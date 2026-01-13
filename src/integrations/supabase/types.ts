@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      conversations: {
+        Row: {
+          assigned_to: string | null
+          channel: string
+          created_at: string
+          external_thread_id: string | null
+          id: string
+          last_message_at: string | null
+          lead_id: string | null
+          status: string
+          unread_count: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          channel: string
+          created_at?: string
+          external_thread_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          lead_id?: string | null
+          status?: string
+          unread_count?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          channel?: string
+          created_at?: string
+          external_thread_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          lead_id?: string | null
+          status?: string
+          unread_count?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           created_at: string
@@ -54,6 +111,63 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          attachments: Json | null
+          content: string
+          conversation_id: string
+          created_at: string
+          delivered_at: string | null
+          direction: string
+          id: string
+          read_at: string | null
+          sender_id: string | null
+          sent_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          content: string
+          conversation_id: string
+          created_at?: string
+          delivered_at?: string | null
+          direction: string
+          id?: string
+          read_at?: string | null
+          sender_id?: string | null
+          sent_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          direction?: string
+          id?: string
+          read_at?: string | null
+          sender_id?: string | null
+          sent_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
