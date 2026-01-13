@@ -10,10 +10,10 @@ import {
   CreditCard,
   HelpCircle,
   X,
-  FileText,
   BarChart3,
   Target,
   Kanban,
+  Inbox,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -23,6 +23,7 @@ interface SidebarProps {
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
   { name: "Leads", href: "/dashboard/leads", icon: Target },
   { name: "Opportunities", href: "/dashboard/opportunities", icon: Kanban },
   { name: "Contacts", href: "/dashboard/contacts", icon: Users },
