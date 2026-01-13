@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           assigned_to: string | null
@@ -304,6 +331,68 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workspace_instances: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          status: Database["public"]["Enums"]["workspace_status"]
+          supabase_anon_key: string
+          supabase_url: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["workspace_status"]
+          supabase_anon_key: string
+          supabase_url: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["workspace_status"]
+          supabase_anon_key?: string
+          supabase_url?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_instances_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           created_at: string
@@ -368,6 +457,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_workspace_role: {
         Args: {
           _role: Database["public"]["Enums"]["workspace_role"]
@@ -376,6 +472,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_workspace_admin_or_owner: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
@@ -386,7 +483,9 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "super_admin" | "admin" | "user"
       workspace_role: "owner" | "admin" | "agent" | "viewer"
+      workspace_status: "active" | "suspended" | "inactive" | "pending"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -514,7 +613,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["super_admin", "admin", "user"],
       workspace_role: ["owner", "admin", "agent", "viewer"],
+      workspace_status: ["active", "suspended", "inactive", "pending"],
     },
   },
 } as const
