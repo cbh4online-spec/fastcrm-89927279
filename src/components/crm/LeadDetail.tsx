@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, User, Mail, Phone, Calendar, Edit2, Trash2, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { CrmCopilot } from "@/components/copilot/CrmCopilot";
 
 const statusColors: Record<LeadStatus, string> = {
   new: "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -187,123 +188,130 @@ export function LeadDetail() {
       </div>
 
       {/* Lead Details */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Contact Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Name</label>
-              {isEditing ? (
-                <Input
-                  value={editedLead?.name}
-                  onChange={(e) =>
-                    setEditedLead((prev) => prev && { ...prev, name: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              ) : (
-                <p className="text-foreground">{lead.name}</p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                <Mail className="w-3.5 h-3.5" />
-                Email
-              </label>
-              {isEditing ? (
-                <Input
-                  type="email"
-                  value={editedLead?.email}
-                  onChange={(e) =>
-                    setEditedLead((prev) => prev && { ...prev, email: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              ) : (
-                <p className="text-foreground">{lead.email || "—"}</p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                <Phone className="w-3.5 h-3.5" />
-                Phone
-              </label>
-              {isEditing ? (
-                <Input
-                  value={editedLead?.phone}
-                  onChange={(e) =>
-                    setEditedLead((prev) => prev && { ...prev, phone: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              ) : (
-                <p className="text-foreground">{lead.phone || "—"}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="md:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Contact Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Name</label>
+                {isEditing ? (
+                  <Input
+                    value={editedLead?.name}
+                    onChange={(e) =>
+                      setEditedLead((prev) => prev && { ...prev, name: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-foreground">{lead.name}</p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5" />
+                  Email
+                </label>
+                {isEditing ? (
+                  <Input
+                    type="email"
+                    value={editedLead?.email}
+                    onChange={(e) =>
+                      setEditedLead((prev) => prev && { ...prev, email: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-foreground">{lead.email || "—"}</p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <Phone className="w-3.5 h-3.5" />
+                  Phone
+                </label>
+                {isEditing ? (
+                  <Input
+                    value={editedLead?.phone}
+                    onChange={(e) =>
+                      setEditedLead((prev) => prev && { ...prev, phone: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-foreground">{lead.phone || "—"}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Lead Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Source</label>
-              {isEditing ? (
-                <Input
-                  value={editedLead?.source}
-                  onChange={(e) =>
-                    setEditedLead((prev) => prev && { ...prev, source: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              ) : (
-                <p className="text-foreground">{lead.source || "—"}</p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Status</label>
-              {isEditing ? (
-                <Select
-                  value={editedLead?.status}
-                  onValueChange={(value) =>
-                    setEditedLead((prev) => prev && { ...prev, status: value as LeadStatus })
-                  }
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="mt-1">
-                  <Badge variant="outline" className={statusColors[lead.status]}>
-                    {statusLabels[lead.status]}
-                  </Badge>
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Last Updated</label>
-              <p className="text-foreground">
-                {new Date(lead.updated_at).toLocaleString()}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Lead Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Source</label>
+                {isEditing ? (
+                  <Input
+                    value={editedLead?.source}
+                    onChange={(e) =>
+                      setEditedLead((prev) => prev && { ...prev, source: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-foreground">{lead.source || "—"}</p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Status</label>
+                {isEditing ? (
+                  <Select
+                    value={editedLead?.status}
+                    onValueChange={(value) =>
+                      setEditedLead((prev) => prev && { ...prev, status: value as LeadStatus })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="mt-1">
+                    <Badge variant="outline" className={statusColors[lead.status]}>
+                      {statusLabels[lead.status]}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Last Updated</label>
+                <p className="text-foreground">
+                  {new Date(lead.updated_at).toLocaleString()}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI Copilot Sidebar */}
+        <div className="space-y-4">
+          <CrmCopilot lead={lead} />
+        </div>
       </div>
     </div>
   );
