@@ -41,6 +41,177 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_actions: {
+        Row: {
+          action_type: Database["public"]["Enums"]["automation_action_type"]
+          config: Json
+          created_at: string
+          id: string
+          position: number
+          rule_id: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["automation_action_type"]
+          config?: Json
+          created_at?: string
+          id?: string
+          position?: number
+          rule_id: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["automation_action_type"]
+          config?: Json
+          created_at?: string
+          id?: string
+          position?: number
+          rule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_actions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_conditions: {
+        Row: {
+          created_at: string
+          field_name: string
+          id: string
+          operator: Database["public"]["Enums"]["condition_operator"]
+          position: number
+          rule_id: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          field_name: string
+          id?: string
+          operator: Database["public"]["Enums"]["condition_operator"]
+          position?: number
+          rule_id: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          field_name?: string
+          id?: string
+          operator?: Database["public"]["Enums"]["condition_operator"]
+          position?: number
+          rule_id?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_conditions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_logs: {
+        Row: {
+          actions_executed: Json | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          rule_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["execution_status"]
+          trigger_data: Json
+          workspace_id: string
+        }
+        Insert: {
+          actions_executed?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          rule_id: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["execution_status"]
+          trigger_data?: Json
+          workspace_id: string
+        }
+        Update: {
+          actions_executed?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          rule_id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["execution_status"]
+          trigger_data?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_rules: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          trigger: Database["public"]["Enums"]["automation_trigger"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          trigger: Database["public"]["Enums"]["automation_trigger"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          trigger?: Database["public"]["Enums"]["automation_trigger"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           assigned_to: string | null
@@ -484,6 +655,25 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "user"
+      automation_action_type:
+        | "create_task"
+        | "move_opportunity_stage"
+        | "send_message"
+        | "notify_user"
+      automation_trigger:
+        | "lead_created"
+        | "opportunity_stage_changed"
+        | "payment_confirmed"
+      condition_operator:
+        | "equals"
+        | "not_equals"
+        | "contains"
+        | "not_contains"
+        | "greater_than"
+        | "less_than"
+        | "is_empty"
+        | "is_not_empty"
+      execution_status: "pending" | "running" | "completed" | "failed"
       workspace_role: "owner" | "admin" | "agent" | "viewer"
       workspace_status: "active" | "suspended" | "inactive" | "pending"
     }
@@ -614,6 +804,28 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "user"],
+      automation_action_type: [
+        "create_task",
+        "move_opportunity_stage",
+        "send_message",
+        "notify_user",
+      ],
+      automation_trigger: [
+        "lead_created",
+        "opportunity_stage_changed",
+        "payment_confirmed",
+      ],
+      condition_operator: [
+        "equals",
+        "not_equals",
+        "contains",
+        "not_contains",
+        "greater_than",
+        "less_than",
+        "is_empty",
+        "is_not_empty",
+      ],
+      execution_status: ["pending", "running", "completed", "failed"],
       workspace_role: ["owner", "admin", "agent", "viewer"],
       workspace_status: ["active", "suspended", "inactive", "pending"],
     },
