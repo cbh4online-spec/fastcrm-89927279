@@ -14,6 +14,152 @@ export type Database = {
   }
   public: {
     Tables: {
+      leads: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          source: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunities: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string | null
+          owner_id: string
+          stage_id: string
+          status: string
+          title: string
+          updated_at: string
+          value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          owner_id: string
+          stage_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          owner_id?: string
+          stage_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stages: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
