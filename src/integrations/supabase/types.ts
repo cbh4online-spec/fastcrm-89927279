@@ -269,6 +269,83 @@ export type Database = {
           },
         ]
       }
+      landing_pages: {
+        Row: {
+          created_at: string
+          created_by: string
+          cta_color: string | null
+          cta_text: string | null
+          custom_css: string | null
+          features: Json | null
+          form_enabled: boolean | null
+          form_fields: Json | null
+          form_title: string | null
+          headline: string | null
+          hero_image_url: string | null
+          id: string
+          is_published: boolean | null
+          published_at: string | null
+          slug: string
+          subheadline: string | null
+          testimonials: Json | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          cta_color?: string | null
+          cta_text?: string | null
+          custom_css?: string | null
+          features?: Json | null
+          form_enabled?: boolean | null
+          form_fields?: Json | null
+          form_title?: string | null
+          headline?: string | null
+          hero_image_url?: string | null
+          id?: string
+          is_published?: boolean | null
+          published_at?: string | null
+          slug: string
+          subheadline?: string | null
+          testimonials?: Json | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          cta_color?: string | null
+          cta_text?: string | null
+          custom_css?: string | null
+          features?: Json | null
+          form_enabled?: boolean | null
+          form_fields?: Json | null
+          form_title?: string | null
+          headline?: string | null
+          hero_image_url?: string | null
+          id?: string
+          is_published?: boolean | null
+          published_at?: string | null
+          slug?: string
+          subheadline?: string | null
+          testimonials?: Json | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           created_at: string

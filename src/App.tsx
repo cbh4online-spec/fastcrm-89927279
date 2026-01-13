@@ -17,6 +17,8 @@ import LeadDetail from "./pages/LeadDetail";
 import Opportunities from "./pages/Opportunities";
 import Inbox from "./pages/Inbox";
 import Automations from "./pages/Automations";
+import LandingPages from "./pages/LandingPages";
+import PublicLandingPage from "./pages/PublicLandingPage";
 import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +45,8 @@ const App = () => (
                 <Route path="/dashboard/opportunities" element={<Opportunities />} />
                 <Route path="/dashboard/inbox" element={<Inbox />} />
                 <Route path="/dashboard/automations" element={<Automations />} />
+                <Route path="/dashboard/landing-pages" element={<LandingPages />} />
+                <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                 <Route path="/super-admin" element={<SuperAdmin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
