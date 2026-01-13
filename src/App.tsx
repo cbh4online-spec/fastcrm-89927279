@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+import { WorkspaceInstanceProvider } from "@/contexts/WorkspaceInstanceContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -28,20 +29,22 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <WorkspaceProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/dashboard/settings" element={<Settings />} />
-              <Route path="/dashboard/leads" element={<Leads />} />
-              <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
-              <Route path="/dashboard/opportunities" element={<Opportunities />} />
-              <Route path="/dashboard/inbox" element={<Inbox />} />
-              <Route path="/super-admin" element={<SuperAdmin />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <WorkspaceInstanceProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard/settings" element={<Settings />} />
+                <Route path="/dashboard/leads" element={<Leads />} />
+                <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
+                <Route path="/dashboard/opportunities" element={<Opportunities />} />
+                <Route path="/dashboard/inbox" element={<Inbox />} />
+                <Route path="/super-admin" element={<SuperAdmin />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </WorkspaceInstanceProvider>
           </WorkspaceProvider>
         </AuthProvider>
       </BrowserRouter>

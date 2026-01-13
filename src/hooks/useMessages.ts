@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 
@@ -29,6 +29,7 @@ export interface Message {
 
 export function useMessages(conversationId: string | undefined) {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -36,7 +37,7 @@ export function useMessages(conversationId: string | undefined) {
     queryFn: async () => {
       if (!conversationId || !currentWorkspace) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
@@ -59,7 +60,7 @@ export function useMessages(conversationId: string | undefined) {
   useEffect(() => {
     if (!conversationId || !currentWorkspace) return;
 
-    const channel = supabase
+    const channel = workspaceClient
       .channel(`messages-${conversationId}`)
       .on(
         "postgres_changes",
@@ -77,9 +78,9 @@ export function useMessages(conversationId: string | undefined) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      workspaceClient.removeChannel(channel);
     };
-  }, [conversationId, currentWorkspace, queryClient]);
+  }, [conversationId, currentWorkspace, queryClient, workspaceClient]);
 
   return query;
 }
@@ -87,6 +88,7 @@ export function useMessages(conversationId: string | undefined) {
 export function useSendMessage() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
 
   return useMutation({
@@ -102,14 +104,14 @@ export function useSendMessage() {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
 
       // Insert message
-      const { data: message, error: messageError } = await supabase
+      const { data: message, error: messageError } = await workspaceClient
         .from("messages")
         .insert({
           conversation_id: conversationId,
           workspace_id: currentWorkspace.id,
           direction: "outbound" as const,
           content,
-          attachments: attachments as unknown as any,
+          attachments: attachments as unknown as Record<string, never>[],
           sender_id: user.id,
           sent_at: new Date().toISOString(),
         })
@@ -119,7 +121,7 @@ export function useSendMessage() {
       if (messageError) throw messageError;
 
       // Update conversation last_message_at
-      await supabase
+      await workspaceClient
         .from("conversations")
         .update({ last_message_at: new Date().toISOString() })
         .eq("id", conversationId);

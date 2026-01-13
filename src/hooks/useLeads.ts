@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type LeadStatus = "new" | "in_progress" | "completed";
@@ -32,13 +32,14 @@ export interface UpdateLeadInput extends Partial<CreateLeadInput> {
 
 export function useLeads(filters?: { status?: LeadStatus; search?: string }) {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["leads", currentWorkspace?.id, filters],
     queryFn: async () => {
       if (!currentWorkspace) return [];
 
-      let query = supabase
+      let query = workspaceClient
         .from("leads")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -65,13 +66,14 @@ export function useLeads(filters?: { status?: LeadStatus; search?: string }) {
 
 export function useLead(id: string | undefined) {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["lead", id],
     queryFn: async () => {
       if (!id || !currentWorkspace) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("leads")
         .select("*")
         .eq("id", id)
@@ -88,13 +90,14 @@ export function useLead(id: string | undefined) {
 export function useCreateLead() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CreateLeadInput) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("leads")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -120,12 +123,13 @@ export function useCreateLead() {
 export function useUpdateLead() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (input: UpdateLeadInput) => {
       const { id, ...updates } = input;
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("leads")
         .update(updates)
         .eq("id", id)
@@ -145,10 +149,11 @@ export function useUpdateLead() {
 export function useDeleteLead() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("leads").delete().eq("id", id);
+      const { error } = await workspaceClient.from("leads").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

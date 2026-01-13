@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Lead } from "./useLeads";
 
@@ -35,13 +35,14 @@ export interface UpdateOpportunityInput extends Partial<Omit<CreateOpportunityIn
 
 export function useOpportunities() {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["opportunities", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("opportunities")
         .select(`
           *,
@@ -59,13 +60,14 @@ export function useOpportunities() {
 
 export function useOpportunity(id: string | undefined) {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["opportunity", id],
     queryFn: async () => {
       if (!id || !currentWorkspace) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("opportunities")
         .select(`
           *,
@@ -85,13 +87,14 @@ export function useOpportunity(id: string | undefined) {
 export function useCreateOpportunity() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CreateOpportunityInput) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("opportunities")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -117,12 +120,13 @@ export function useCreateOpportunity() {
 export function useUpdateOpportunity() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (input: UpdateOpportunityInput) => {
       const { id, ...updates } = input;
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("opportunities")
         .update(updates)
         .eq("id", id)
@@ -142,10 +146,11 @@ export function useUpdateOpportunity() {
 export function useDeleteOpportunity() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("opportunities").delete().eq("id", id);
+      const { error } = await workspaceClient.from("opportunities").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -157,10 +162,11 @@ export function useDeleteOpportunity() {
 export function useMoveOpportunity() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async ({ id, stage_id }: { id: string; stage_id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("opportunities")
         .update({ stage_id })
         .eq("id", id)
