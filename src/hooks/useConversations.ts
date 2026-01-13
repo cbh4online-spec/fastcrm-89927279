@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { Lead } from "./useLeads";
 
 export type ConversationChannel = "whatsapp" | "email" | "sms" | "webchat" | "instagram" | "facebook";
@@ -30,13 +30,14 @@ export interface ConversationFilters {
 
 export function useConversations(filters?: ConversationFilters) {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["conversations", currentWorkspace?.id, filters],
     queryFn: async () => {
       if (!currentWorkspace) return [];
 
-      let query = supabase
+      let query = workspaceClient
         .from("conversations")
         .select(`
           *,
@@ -72,13 +73,14 @@ export function useConversations(filters?: ConversationFilters) {
 
 export function useConversation(id: string | undefined) {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["conversation", id],
     queryFn: async () => {
       if (!id || !currentWorkspace) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("conversations")
         .select(`
           *,
@@ -98,10 +100,11 @@ export function useConversation(id: string | undefined) {
 export function useAssignConversation() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async ({ conversationId, assignTo }: { conversationId: string; assignTo: string | null }) => {
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("conversations")
         .update({ assigned_to: assignTo })
         .eq("id", conversationId)
@@ -121,10 +124,11 @@ export function useAssignConversation() {
 export function useUpdateConversationStatus() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async ({ conversationId, status }: { conversationId: string; status: ConversationStatus }) => {
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("conversations")
         .update({ status })
         .eq("id", conversationId)
@@ -144,10 +148,11 @@ export function useUpdateConversationStatus() {
 export function useMarkConversationRead() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("conversations")
         .update({ unread_count: 0 })
         .eq("id", conversationId)

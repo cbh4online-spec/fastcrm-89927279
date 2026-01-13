@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 
 export interface PipelineStage {
   id: string;
@@ -24,13 +24,14 @@ export interface UpdateStageInput extends Partial<CreateStageInput> {
 
 export function usePipelineStages() {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["pipeline_stages", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("pipeline_stages")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -46,13 +47,14 @@ export function usePipelineStages() {
 export function useCreatePipelineStage() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (input: CreateStageInput) => {
       if (!currentWorkspace) throw new Error("No workspace selected");
 
       // Get current max position
-      const { data: stages } = await supabase
+      const { data: stages } = await workspaceClient
         .from("pipeline_stages")
         .select("position")
         .eq("workspace_id", currentWorkspace.id)
@@ -61,7 +63,7 @@ export function useCreatePipelineStage() {
 
       const maxPosition = stages?.[0]?.position ?? -1;
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("pipeline_stages")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -84,12 +86,13 @@ export function useCreatePipelineStage() {
 export function useUpdatePipelineStage() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (input: UpdateStageInput) => {
       const { id, ...updates } = input;
 
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("pipeline_stages")
         .update(updates)
         .eq("id", id)
@@ -108,10 +111,11 @@ export function useUpdatePipelineStage() {
 export function useDeletePipelineStage() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("pipeline_stages").delete().eq("id", id);
+      const { error } = await workspaceClient.from("pipeline_stages").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -123,11 +127,12 @@ export function useDeletePipelineStage() {
 export function useReorderPipelineStages() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (stages: { id: string; position: number }[]) => {
       const updates = stages.map((stage) =>
-        supabase
+        workspaceClient
           .from("pipeline_stages")
           .update({ position: stage.position })
           .eq("id", stage.id)

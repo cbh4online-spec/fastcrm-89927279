@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace, WorkspaceRole } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 
 export interface WorkspaceMember {
   id: string;
@@ -17,6 +17,7 @@ export interface WorkspaceMember {
 
 export function useWorkspaceMembers() {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["workspace_members", currentWorkspace?.id],
@@ -24,7 +25,7 @@ export function useWorkspaceMembers() {
       if (!currentWorkspace) return [];
 
       // Get members first
-      const { data: members, error: membersError } = await supabase
+      const { data: members, error: membersError } = await workspaceClient
         .from("workspace_members")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -34,7 +35,7 @@ export function useWorkspaceMembers() {
 
       // Get profiles for each member
       const userIds = members.map((m) => m.user_id);
-      const { data: profiles } = await supabase
+      const { data: profiles } = await workspaceClient
         .from("profiles")
         .select("user_id, full_name, email, avatar_url")
         .in("user_id", userIds);

@@ -4,6 +4,7 @@ import { TopBar } from "./TopBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { WorkspaceStatusGuard } from "@/components/workspace/WorkspaceStatusGuard";
 import { Loader2 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -33,14 +34,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen flex bg-background">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
-        <TopBar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-6 animate-fade-in">
-          {children}
-        </main>
+    <WorkspaceStatusGuard>
+      <div className="min-h-screen flex bg-background">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
+          <TopBar onMenuClick={() => setSidebarOpen(true)} />
+          <main className="flex-1 p-6 animate-fade-in">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </WorkspaceStatusGuard>
   );
 }
