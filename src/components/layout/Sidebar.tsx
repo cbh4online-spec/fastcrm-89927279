@@ -14,6 +14,7 @@ import {
   Target,
   Kanban,
   Inbox,
+  Zap,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -26,6 +27,7 @@ const navigation = [
   { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
   { name: "Leads", href: "/dashboard/leads", icon: Target },
   { name: "Opportunities", href: "/dashboard/opportunities", icon: Kanban },
+  { name: "Automations", href: "/dashboard/automations", icon: Zap },
   { name: "Contacts", href: "/dashboard/contacts", icon: Users },
   { name: "Companies", href: "/dashboard/companies", icon: Building2 },
   { name: "Reports", href: "/dashboard/reports", icon: BarChart3 },

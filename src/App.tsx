@@ -16,6 +16,7 @@ import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 import Opportunities from "./pages/Opportunities";
 import Inbox from "./pages/Inbox";
+import Automations from "./pages/Automations";
 import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
 
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
                 <Route path="/dashboard/opportunities" element={<Opportunities />} />
                 <Route path="/dashboard/inbox" element={<Inbox />} />
+                <Route path="/dashboard/automations" element={<Automations />} />
                 <Route path="/super-admin" element={<SuperAdmin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
