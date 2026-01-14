@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import { recordMessage, checkMessageLoop } from "@/lib/inboxSafety";
 
 export type MessageDirection = "inbound" | "outbound";
 
@@ -96,12 +97,24 @@ export function useSendMessage() {
       conversationId,
       content,
       attachments = [],
+      isAutomated = false,
+      skipSafetyCheck = false,
     }: {
       conversationId: string;
       content: string;
       attachments?: MessageAttachment[];
+      isAutomated?: boolean;
+      skipSafetyCheck?: boolean;
     }) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
+
+      // Safety check for automated messages (manual messages are always allowed but tracked)
+      if (isAutomated && !skipSafetyCheck) {
+        const safetyCheck = checkMessageLoop(conversationId);
+        if (!safetyCheck.canExecute) {
+          throw new Error(safetyCheck.reason || "Mensagem bloqueada por controlo de segurança");
+        }
+      }
 
       // Get conversation to check channel
       const { data: conversation, error: convError } = await workspaceClient
@@ -166,7 +179,10 @@ export function useSendMessage() {
         attachments: (message.attachments || []) as unknown as MessageAttachment[],
       } as Message;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      // Record the message for loop detection
+      recordMessage(data.conversation_id, "outbound", variables.isAutomated);
+      
       queryClient.invalidateQueries({ queryKey: ["messages", data.conversation_id] });
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
     },

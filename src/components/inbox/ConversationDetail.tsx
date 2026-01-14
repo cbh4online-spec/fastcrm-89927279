@@ -47,9 +47,11 @@ import { EnhancedAIReplyPanel } from "./EnhancedAIReplyPanel";
 import { ConversationClassification } from "./ConversationClassification";
 import { InboxActionsMenu } from "./InboxActionsMenu";
 import { ConversationFollowupBanner } from "./ConversationFollowupBanner";
+import { InboxSafetyIndicator } from "./InboxSafetyIndicator";
 import { Separator } from "@/components/ui/separator";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
+import { useSafeMessageSend, useInboxSafetyCheck } from "@/hooks/useInboxSafety";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -270,6 +272,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
               ))}
             </SelectContent>
           </Select>
+
+          {/* Safety Indicator */}
+          <InboxSafetyIndicator conversationId={conversationId} />
 
           {/* Inbox Actions */}
           <InboxActionsMenu

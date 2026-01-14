@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AutomationRule, AutomationTrigger, useAutomationRules } from "./useAutomations";
 import { useCreateActivity } from "./useCrmActivities";
 import { toast } from "sonner";
+import { performInboxSafetyCheck, requiresConfirmation } from "@/lib/inboxSafety";
+import { useAutomationGlobalPause, useCheckEntityRateLimit } from "./useAutomationSafety";
 
 export type InboxActionType =
   | "mark_high_priority"
@@ -118,6 +120,7 @@ export function useExecuteInboxAction() {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
+  const { data: isGloballyPaused = false } = useAutomationGlobalPause();
 
   return useMutation({
     mutationFn: async ({
@@ -127,6 +130,7 @@ export function useExecuteInboxAction() {
       actionData,
       triggerAutomation = false,
       automationRuleId,
+      isAutomatedAction = false,
     }: {
       conversationId: string;
       leadId?: string | null;
@@ -134,8 +138,24 @@ export function useExecuteInboxAction() {
       actionData?: Record<string, unknown>;
       triggerAutomation?: boolean;
       automationRuleId?: string;
+      isAutomatedAction?: boolean;
     }) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
+
+      // Safety check for automated actions
+      if (isAutomatedAction || triggerAutomation) {
+        const safetyCheck = performInboxSafetyCheck({
+          action: actionType,
+          conversationId,
+          isGloballyPaused,
+          isInboxAutomationsPaused: false, // Would be fetched in real impl
+          isAutomatedAction: true,
+        });
+
+        if (!safetyCheck.canExecute) {
+          throw new Error(safetyCheck.reason || "Ação bloqueada por controlo de segurança");
+        }
+      }
 
       // Log the action
       const { data, error } = await workspaceClient
