@@ -525,6 +525,62 @@ export type Database = {
           },
         ]
       }
+      crm_saved_views: {
+        Row: {
+          created_at: string | null
+          entity_type: Database["public"]["Enums"]["crm_entity_type"]
+          filters: Json | null
+          for_role: Database["public"]["Enums"]["workspace_role"] | null
+          id: string
+          is_default: boolean | null
+          name: string
+          sort_config: Json | null
+          updated_at: string | null
+          user_id: string | null
+          view_mode: Database["public"]["Enums"]["crm_view_mode"]
+          visible_columns: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          entity_type: Database["public"]["Enums"]["crm_entity_type"]
+          filters?: Json | null
+          for_role?: Database["public"]["Enums"]["workspace_role"] | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          sort_config?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          view_mode?: Database["public"]["Enums"]["crm_view_mode"]
+          visible_columns?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          entity_type?: Database["public"]["Enums"]["crm_entity_type"]
+          filters?: Json | null
+          for_role?: Database["public"]["Enums"]["workspace_role"] | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          sort_config?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          view_mode?: Database["public"]["Enums"]["crm_view_mode"]
+          visible_columns?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_saved_views_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_field_values: {
         Row: {
           created_at: string
@@ -1391,6 +1447,8 @@ export type Database = {
         | "less_than"
         | "is_empty"
         | "is_not_empty"
+      crm_entity_type: "contacts" | "opportunities"
+      crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
       subscription_plan: "free" | "basic" | "pro" | "agency"
       workspace_role: "owner" | "admin" | "agent" | "viewer"
@@ -1556,6 +1614,8 @@ export const Constants = {
         "is_empty",
         "is_not_empty",
       ],
+      crm_entity_type: ["contacts", "opportunities"],
+      crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
       subscription_plan: ["free", "basic", "pro", "agency"],
       workspace_role: ["owner", "admin", "agent", "viewer"],
