@@ -108,6 +108,8 @@ export function buildContextFromTriggerData(
 
 /**
  * Render a template with automation context and handle missing variables
+ * CRITICAL: Automations MUST use templates - no direct message sending allowed
+ * CRITICAL: Messages with unresolved variables are BLOCKED - never sent partially
  */
 export function renderAutomationTemplate(
   template: {
@@ -115,6 +117,7 @@ export function renderAutomationTemplate(
     name: string;
     content: string;
     subject?: string | null;
+    required_variables?: string[];
   },
   context: VariableContext,
   config: AutomationTemplateConfig
@@ -134,16 +137,23 @@ export function renderAutomationTemplate(
 
   const uniqueMissing = [...new Set(allMissing)];
 
+  // Check required variables from template definition
+  const requiredMissing = template.required_variables?.filter(v => uniqueMissing.includes(v)) || [];
+
   // If there are missing variables, handle based on config
-  // NOTE: "send_partial" has been removed - automations must NEVER send messages with unresolved variables
+  // CRITICAL: Never send messages with unresolved variables - this is enforced at all levels
   if (uniqueMissing.length > 0) {
+    const errorDetail = requiredMissing.length > 0
+      ? `Variáveis obrigatórias em falta: ${requiredMissing.join(", ")}`
+      : `Variáveis não resolvidas: ${uniqueMissing.join(", ")}`;
+
     switch (config.on_missing_fields) {
       case "stop_automation":
         return {
           success: false,
           missingVariables: uniqueMissing,
           action: "stopped",
-          error: `Automação interrompida: variáveis não resolvidas (${uniqueMissing.join(", ")})`,
+          error: `Automação interrompida: ${errorDetail}. Mensagens com variáveis em falta nunca são enviadas.`,
         };
 
       case "create_task":
@@ -151,7 +161,7 @@ export function renderAutomationTemplate(
           success: false,
           missingVariables: uniqueMissing,
           action: "task_created",
-          taskTitle: config.task_title || `Completar mensagem de template "${template.name}"`,
+          taskTitle: config.task_title || `Completar mensagem de template "${template.name}" - ${errorDetail}`,
         };
 
       case "skip_and_log":
@@ -159,6 +169,7 @@ export function renderAutomationTemplate(
           success: false,
           missingVariables: uniqueMissing,
           action: "skipped",
+          error: `Ação ignorada: ${errorDetail}`,
         };
 
       default:
@@ -167,7 +178,7 @@ export function renderAutomationTemplate(
           success: false,
           missingVariables: uniqueMissing,
           action: "stopped",
-          error: `Automação interrompida: variáveis não resolvidas (${uniqueMissing.join(", ")})`,
+          error: `Automação interrompida por segurança: ${errorDetail}`,
         };
     }
   }
