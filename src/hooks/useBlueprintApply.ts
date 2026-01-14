@@ -4,7 +4,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CrmBlueprint } from '@/types/blueprint';
 import { ApplyMode } from '@/components/blueprint/BlueprintApplyPreview';
-import { useCustomFields, useCreateCustomField, CustomField } from '@/hooks/useCustomFields';
+import { useCustomFields, useCreateCustomField, CustomField, CustomFieldType } from '@/hooks/useCustomFields';
 import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { toast } from 'sonner';
 import {
@@ -14,6 +14,26 @@ import {
   DuplicateMatch,
 } from '@/lib/duplicateDetection';
 import { Json } from '@/integrations/supabase/types';
+import { BlueprintCustomField } from '@/types/blueprint';
+
+// Map blueprint field types to supported CustomFieldType
+function mapBlueprintTypeToCustomFieldType(blueprintType: BlueprintCustomField['type']): CustomFieldType {
+  const typeMapping: Record<BlueprintCustomField['type'], CustomFieldType> = {
+    'text': 'text',
+    'textarea': 'text',
+    'number': 'number',
+    'currency': 'number',
+    'date': 'date',
+    'datetime': 'date',
+    'boolean': 'boolean',
+    'select': 'select',
+    'multiselect': 'select',
+    'email': 'text',
+    'phone': 'text',
+    'url': 'text',
+  };
+  return typeMapping[blueprintType] || 'text';
+}
 
 interface ApplyResult {
   success: boolean;
@@ -124,7 +144,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
             await createCustomField.mutateAsync({
               entity_type: blueprint.entityType as any,
               name: field.name,
-              field_type: field.type,
+              field_type: mapBlueprintTypeToCustomFieldType(field.type),
               required: field.required,
               options: optionsAsStrings,
             });
