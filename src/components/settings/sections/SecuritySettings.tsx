@@ -12,9 +12,20 @@ import {
   FileKey,
 } from "lucide-react";
 
-export function SecuritySettings() {
+interface SecuritySettingsProps {
+  searchQuery?: string;
+  matchedSections?: Set<string>;
+}
+
+export function SecuritySettings({ searchQuery = "", matchedSections }: SecuritySettingsProps) {
   const { plan } = useSubscription();
   const isAgency = plan === "agency";
+  const hasSearch = searchQuery.trim().length > 0;
+
+  const shouldShow = (sectionId: string) => {
+    if (!hasSearch || !matchedSections) return true;
+    return matchedSections.has(sectionId);
+  };
 
   return (
     <div className="space-y-6">

@@ -13,9 +13,20 @@ import {
   Sidebar,
 } from "lucide-react";
 
-export function ExperienceSettings() {
+interface ExperienceSettingsProps {
+  searchQuery?: string;
+  matchedSections?: Set<string>;
+}
+
+export function ExperienceSettings({ searchQuery = "", matchedSections }: ExperienceSettingsProps) {
   const { canUseFeature } = useSubscription();
   const hasCustomization = canUseFeature("dashboard_customization");
+  const hasSearch = searchQuery.trim().length > 0;
+
+  const shouldShow = (sectionId: string) => {
+    if (!hasSearch || !matchedSections) return true;
+    return matchedSections.has(sectionId);
+  };
 
   return (
     <div className="space-y-6">

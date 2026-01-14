@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SettingsNavigation, SettingsCategory } from "@/components/settings/SettingsNavigation";
@@ -9,6 +9,7 @@ import { AutomationAISettings } from "@/components/settings/sections/AutomationA
 import { ExperienceSettings } from "@/components/settings/sections/ExperienceSettings";
 import { SecuritySettings } from "@/components/settings/sections/SecuritySettings";
 import { IntegrationsSettings } from "@/components/settings/sections/IntegrationsSettings";
+import { searchSettings } from "@/components/settings/settingsSearchData";
 
 const categoryTitles: Record<SettingsCategory, { title: string; description: string }> = {
   workspace: {
@@ -45,26 +46,42 @@ export default function Settings() {
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>("workspace");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const searchResults = useMemo(() => {
+    return searchSettings(searchQuery);
+  }, [searchQuery]);
+
+  // Auto-switch to first matched category when searching
+  useEffect(() => {
+    if (searchQuery.trim() && searchResults.matchedCategories.size > 0) {
+      if (!searchResults.matchedCategories.has(activeCategory)) {
+        const firstMatchedCategory = Array.from(searchResults.matchedCategories)[0];
+        setActiveCategory(firstMatchedCategory);
+      }
+    }
+  }, [searchQuery, searchResults.matchedCategories, activeCategory]);
+
   const categoryInfo = categoryTitles[activeCategory];
 
   const renderContent = () => {
+    const matchedSections = searchResults.matchedSections;
+    
     switch (activeCategory) {
       case "workspace":
-        return <WorkspaceSettings />;
+        return <WorkspaceSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "channels":
-        return <ChannelsSettings />;
+        return <ChannelsSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "crm":
-        return <CrmDataSettings />;
+        return <CrmDataSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "automation":
-        return <AutomationAISettings />;
+        return <AutomationAISettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "experience":
-        return <ExperienceSettings />;
+        return <ExperienceSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "security":
-        return <SecuritySettings />;
+        return <SecuritySettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "integrations":
-        return <IntegrationsSettings />;
+        return <IntegrationsSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       default:
-        return <WorkspaceSettings />;
+        return <WorkspaceSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
     }
   };
 
@@ -77,6 +94,8 @@ export default function Settings() {
           onCategoryChange={setActiveCategory}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          matchedCategories={searchResults.matchedCategories}
+          matchCount={searchResults.matchedItems.length}
         />
 
         {/* Main Content */}
