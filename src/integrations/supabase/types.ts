@@ -602,6 +602,47 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_layouts: {
+        Row: {
+          created_at: string
+          entity_type: string
+          id: string
+          is_default: boolean
+          layout: Json
+          updated_at: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          id?: string
+          is_default?: boolean
+          layout?: Json
+          updated_at?: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          id?: string
+          is_default?: boolean
+          layout?: Json
+          updated_at?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_layouts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_connections: {
         Row: {
           access_token: string
