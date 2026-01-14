@@ -25,7 +25,7 @@ import { toast } from "sonner";
 export function UnifiedCrmView() {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
-  const { contacts, isLoading: contactsLoading, deleteContact } = useContacts();
+  const { contacts, isLoading: contactsLoading, deleteContact, deleteContacts, addTagsToContacts } = useContacts();
   const { data: opportunities, isLoading: opportunitiesLoading } = useOpportunities();
   const { data: stages } = usePipelineStages();
   const { views, isLoading: viewsLoading, getDefaultView, createView, updateView, deleteView, setAsDefault, getUserViews } = useCrmViews();
@@ -278,6 +278,8 @@ export function UnifiedCrmView() {
             visibleColumns={visibleColumns}
             onRowClick={handleRowClick}
             onDeleteContact={(id) => deleteContact.mutateAsync(id)}
+            onDeleteContacts={(ids) => deleteContacts.mutateAsync(ids)}
+            onAddTagsToContacts={(ids, tags) => addTagsToContacts.mutateAsync({ ids, tags })}
           />
         ) : (
           <CrmBoardView

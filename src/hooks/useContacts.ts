@@ -130,11 +130,59 @@ export function useContacts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
-      toast.success("Contacto eliminado com sucesso");
     },
     onError: (error) => {
       console.error("Error deleting contact:", error);
       toast.error("Erro ao eliminar contacto");
+    },
+  });
+
+  const deleteContacts = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("contacts")
+        .delete()
+        .in("id", ids);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+    },
+    onError: (error) => {
+      console.error("Error deleting contacts:", error);
+      toast.error("Erro ao eliminar contactos");
+    },
+  });
+
+  const addTagsToContacts = useMutation({
+    mutationFn: async ({ ids, tags }: { ids: string[]; tags: string[] }) => {
+      // Get current contacts to merge tags
+      const { data: existingContacts, error: fetchError } = await supabase
+        .from("contacts")
+        .select("id, tags")
+        .in("id", ids);
+
+      if (fetchError) throw fetchError;
+
+      // Update each contact with merged tags
+      const updates = existingContacts?.map(contact => {
+        const currentTags = contact.tags || [];
+        const mergedTags = [...new Set([...currentTags, ...tags])];
+        return supabase
+          .from("contacts")
+          .update({ tags: mergedTags })
+          .eq("id", contact.id);
+      }) || [];
+
+      await Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+    },
+    onError: (error) => {
+      console.error("Error adding tags:", error);
+      toast.error("Erro ao adicionar etiquetas");
     },
   });
 
@@ -145,5 +193,7 @@ export function useContacts() {
     createContact,
     updateContact,
     deleteContact,
+    deleteContacts,
+    addTagsToContacts,
   };
 }
