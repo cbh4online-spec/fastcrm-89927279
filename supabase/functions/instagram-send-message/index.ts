@@ -28,17 +28,20 @@ serve(async (req) => {
     // Get conversation details
     const { data: conversation, error: convError } = await supabase
       .from("conversations")
-      .select("*, instagram_connections!inner(*)")
+      .select("*")
       .eq("id", conversationId)
       .eq("channel", "instagram")
       .single();
 
     if (convError || !conversation) {
+      console.error("Conversation error:", convError);
       return new Response(
-        JSON.stringify({ error: "Conversation not found or not an Instagram conversation" }),
+        JSON.stringify({ error: "Conversation not found or not an Instagram conversation", details: convError }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("Found conversation:", conversationId, "workspace:", conversation.workspace_id);
 
     // Get Instagram connection for this workspace
     const { data: connection, error: connError } = await supabase
@@ -49,24 +52,32 @@ serve(async (req) => {
       .single();
 
     if (connError || !connection) {
+      console.error("Connection error:", connError);
       return new Response(
-        JSON.stringify({ error: "No active Instagram connection for this workspace" }),
+        JSON.stringify({ error: "No active Instagram connection for this workspace", details: connError }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("Found connection for page:", connection.page_id);
 
     // Get recipient ID from channel_metadata
     const channelMetadata = conversation.channel_metadata as any;
     const recipientId = channelMetadata?.instagram_sender_id;
 
+    console.log("Channel metadata:", JSON.stringify(channelMetadata));
+    console.log("Recipient ID:", recipientId);
+
     if (!recipientId) {
       return new Response(
-        JSON.stringify({ error: "Cannot determine recipient" }),
+        JSON.stringify({ error: "Cannot determine recipient - no instagram_sender_id in metadata", metadata: channelMetadata }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Send message via Instagram Graph API
+    console.log("Sending message to:", recipientId, "via page:", connection.page_id);
+    
     const response = await fetch(
       `https://graph.facebook.com/v18.0/${connection.page_id}/messages`,
       {
@@ -82,16 +93,16 @@ serve(async (req) => {
       }
     );
 
+    const responseData = await response.json();
+    console.log("Instagram API response:", JSON.stringify(responseData));
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Instagram API error:", errorData);
+      console.error("Instagram API error:", responseData);
       return new Response(
-        JSON.stringify({ error: "Failed to send message", details: errorData }),
+        JSON.stringify({ error: "Failed to send message", details: responseData }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const result = await response.json();
 
     // Save outbound message to database
     const authHeader = req.headers.get("Authorization");
@@ -118,8 +129,10 @@ serve(async (req) => {
       .update({ last_message_at: new Date().toISOString() })
       .eq("id", conversationId);
 
+    console.log("Message saved to database successfully");
+    
     return new Response(
-      JSON.stringify({ success: true, messageId: result.message_id }),
+      JSON.stringify({ success: true, messageId: responseData.message_id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
