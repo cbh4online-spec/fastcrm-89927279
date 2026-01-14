@@ -14,6 +14,7 @@ export interface CustomField {
   field_type: CustomFieldType;
   options: string[];
   required: boolean;
+  is_unique: boolean;
   position: number;
   created_at: string;
   updated_at: string;
@@ -34,6 +35,7 @@ export interface CreateCustomFieldInput {
   field_type: CustomFieldType;
   options?: string[];
   required?: boolean;
+  is_unique?: boolean;
   position?: number;
 }
 
@@ -42,8 +44,10 @@ export interface UpdateCustomFieldInput {
   name?: string;
   options?: string[];
   required?: boolean;
+  is_unique?: boolean;
   position?: number;
 }
+
 
 // Hook to get custom fields for an entity type
 export function useCustomFields(entityType?: CustomFieldEntityType) {
@@ -93,6 +97,7 @@ export function useCreateCustomField() {
           field_type: input.field_type,
           options: input.options || [],
           required: input.required || false,
+          is_unique: input.is_unique || false,
           position: input.position || 0,
         })
         .select()
@@ -190,7 +195,7 @@ export function useCustomFieldValues(entityId: string | undefined) {
   });
 }
 
-// Hook to set a custom field value
+// Hook to set a custom field value with uniqueness validation
 export function useSetCustomFieldValue() {
   const queryClient = useQueryClient();
   const { workspaceClient } = useWorkspaceInstance();
@@ -199,12 +204,32 @@ export function useSetCustomFieldValue() {
     mutationFn: async ({ 
       customFieldId, 
       entityId, 
-      value 
+      value,
+      fieldName,
+      isUnique
     }: { 
       customFieldId: string; 
       entityId: string; 
       value: unknown;
+      fieldName?: string;
+      isUnique?: boolean;
     }) => {
+      // Check for uniqueness if the field requires it
+      if (isUnique && value !== null && value !== undefined && value !== "") {
+        const { data: existingValues, error: checkError } = await workspaceClient
+          .from("custom_field_values")
+          .select("entity_id")
+          .eq("custom_field_id", customFieldId)
+          .eq("value", value as never)
+          .neq("entity_id", entityId);
+
+        if (checkError) throw checkError;
+
+        if (existingValues && existingValues.length > 0) {
+          throw new Error(`O valor "${value}" já existe no campo "${fieldName || 'personalizado'}". Este campo não permite duplicados.`);
+        }
+      }
+
       // Upsert the value
       const { data, error } = await workspaceClient
         .from("custom_field_values")
@@ -229,7 +254,7 @@ export function useSetCustomFieldValue() {
     },
     onError: (error: Error) => {
       console.error("Error setting custom field value:", error);
-      toast.error("Erro ao guardar valor do campo");
+      toast.error(error.message || "Erro ao guardar valor do campo");
     },
   });
 }

@@ -50,14 +50,16 @@ export function CustomFieldsForm({ entityType, entityId, className }: CustomFiel
     setValues(initial);
   }, [existingValues]);
 
-  const handleValueChange = async (fieldId: string, value: unknown) => {
-    setValues((prev) => ({ ...prev, [fieldId]: value }));
+  const handleValueChange = async (field: CustomField, value: unknown) => {
+    setValues((prev) => ({ ...prev, [field.id]: value }));
     
-    // Debounce the save
+    // Save the value with uniqueness validation
     await setFieldValue.mutateAsync({
-      customFieldId: fieldId,
+      customFieldId: field.id,
       entityId,
       value,
+      fieldName: field.name,
+      isUnique: field.is_unique,
     });
   };
 
@@ -74,7 +76,7 @@ export function CustomFieldsForm({ entityType, entityId, className }: CustomFiel
             key={field.id}
             field={field}
             value={values[field.id]}
-            onChange={(value) => handleValueChange(field.id, value)}
+            onChange={(value) => handleValueChange(field, value)}
           />
         ))}
       </div>

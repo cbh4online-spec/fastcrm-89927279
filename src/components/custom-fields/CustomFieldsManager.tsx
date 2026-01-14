@@ -62,6 +62,7 @@ interface CustomFieldFormData {
   field_type: CustomFieldType;
   options: string;
   required: boolean;
+  is_unique: boolean;
 }
 
 const initialFormData: CustomFieldFormData = {
@@ -69,6 +70,7 @@ const initialFormData: CustomFieldFormData = {
   field_type: "text",
   options: "",
   required: false,
+  is_unique: false,
 };
 
 export function CustomFieldsManager() {
@@ -96,6 +98,7 @@ export function CustomFieldsManager() {
       field_type: field.field_type,
       options: field.options?.join(", ") || "",
       required: field.required,
+      is_unique: field.is_unique,
     });
     setDialogOpen(true);
   };
@@ -114,6 +117,7 @@ export function CustomFieldsManager() {
         name: formData.name.trim(),
         options,
         required: formData.required,
+        is_unique: formData.is_unique,
       });
     } else {
       await createField.mutateAsync({
@@ -122,6 +126,7 @@ export function CustomFieldsManager() {
         field_type: formData.field_type,
         options,
         required: formData.required,
+        is_unique: formData.is_unique,
         position: fields.length,
       });
     }
@@ -190,6 +195,7 @@ export function CustomFieldsManager() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Opções</TableHead>
                     <TableHead>Obrigatório</TableHead>
+                    <TableHead>Único</TableHead>
                     <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -228,6 +234,13 @@ export function CustomFieldsManager() {
                           <Badge variant="default">Sim</Badge>
                         ) : (
                           <span className="text-muted-foreground">Não</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {field.is_unique ? (
+                          <Badge variant="secondary" className="bg-amber-500/20 text-amber-600 border-amber-500/30">Único</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -331,6 +344,22 @@ export function CustomFieldsManager() {
                 }
               />
             </div>
+
+            {(formData.field_type === "text" || formData.field_type === "number") && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="is_unique">Valor único (sem duplicados)</Label>
+                  <p className="text-xs text-muted-foreground">Ex: NIF, número de cliente</p>
+                </div>
+                <Switch
+                  id="is_unique"
+                  checked={formData.is_unique}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, is_unique: checked })
+                  }
+                />
+              </div>
+            )}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>

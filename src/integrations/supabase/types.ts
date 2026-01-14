@@ -425,6 +425,7 @@ export type Database = {
           entity_type: string
           field_type: string
           id: string
+          is_unique: boolean
           name: string
           options: Json | null
           position: number
@@ -437,6 +438,7 @@ export type Database = {
           entity_type: string
           field_type: string
           id?: string
+          is_unique?: boolean
           name: string
           options?: Json | null
           position?: number
@@ -449,6 +451,7 @@ export type Database = {
           entity_type?: string
           field_type?: string
           id?: string
+          is_unique?: boolean
           name?: string
           options?: Json | null
           position?: number
@@ -1043,6 +1046,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_custom_field_unique_value: {
+        Args: { p_custom_field_id: string; p_entity_id: string; p_value: Json }
+        Returns: boolean
+      }
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
