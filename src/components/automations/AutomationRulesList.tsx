@@ -32,7 +32,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MoreHorizontal, Pencil, Trash2, History, Loader2, MessageSquareText } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, History, Loader2, MessageSquareText, Bot } from "lucide-react";
+import { AIAutomationExplainer } from "./AIAutomationExplainer";
 import {
   useAutomationRules,
   useDeleteAutomationRule,
@@ -225,6 +226,7 @@ export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  <AIAutomationExplainer rule={rule} />
                 </TableCell>
               </TableRow>
             );

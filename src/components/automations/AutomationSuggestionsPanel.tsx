@@ -75,9 +75,15 @@ const actionLabels: Record<string, string> = {
   move_opportunity_stage: "Mover Etapa",
   add_tag: "Adicionar Tag",
   send_message: "Enviar Mensagem",
+  send_template_message: "Enviar Template",
   notify_user: "Notificar",
   create_opportunity: "Criar Oportunidade",
   update_field: "Atualizar Campo",
+  create_proposal: "Criar Proposta",
+  send_proposal_link: "Enviar Proposta",
+  wait_time: "Aguardar",
+  stop_automation: "Parar",
+  change_lead_status: "Alterar Estado",
 };
 
 const operatorLabels: Record<string, string> = {
