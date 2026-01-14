@@ -1146,6 +1146,95 @@ export type Database = {
           },
         ]
       }
+      email_connections: {
+        Row: {
+          auth_type: string
+          connected_by: string
+          created_at: string
+          display_name: string | null
+          email_address: string
+          encrypted_app_password: string | null
+          id: string
+          imap_host: string | null
+          imap_port: number | null
+          imap_use_ssl: boolean | null
+          is_active: boolean | null
+          last_sync_at: string | null
+          last_sync_uid: string | null
+          oauth_access_token: string | null
+          oauth_refresh_token: string | null
+          oauth_token_expires_at: string | null
+          provider: string
+          smtp_host: string | null
+          smtp_port: number | null
+          smtp_use_tls: boolean | null
+          sync_error: string | null
+          sync_status: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auth_type: string
+          connected_by: string
+          created_at?: string
+          display_name?: string | null
+          email_address: string
+          encrypted_app_password?: string | null
+          id?: string
+          imap_host?: string | null
+          imap_port?: number | null
+          imap_use_ssl?: boolean | null
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          last_sync_uid?: string | null
+          oauth_access_token?: string | null
+          oauth_refresh_token?: string | null
+          oauth_token_expires_at?: string | null
+          provider: string
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_use_tls?: boolean | null
+          sync_error?: string | null
+          sync_status?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auth_type?: string
+          connected_by?: string
+          created_at?: string
+          display_name?: string | null
+          email_address?: string
+          encrypted_app_password?: string | null
+          id?: string
+          imap_host?: string | null
+          imap_port?: number | null
+          imap_use_ssl?: boolean | null
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          last_sync_uid?: string | null
+          oauth_access_token?: string | null
+          oauth_refresh_token?: string | null
+          oauth_token_expires_at?: string | null
+          provider?: string
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_use_tls?: boolean | null
+          sync_error?: string | null
+          sync_status?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbox_action_logs: {
         Row: {
           action_data: Json | null
@@ -1414,6 +1503,10 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           direction: string
+          email_in_reply_to: string | null
+          email_message_id: string | null
+          email_references: string[] | null
+          email_subject: string | null
           external_message_id: string | null
           id: string
           read_at: string | null
@@ -1428,6 +1521,10 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           direction: string
+          email_in_reply_to?: string | null
+          email_message_id?: string | null
+          email_references?: string[] | null
+          email_subject?: string | null
           external_message_id?: string | null
           id?: string
           read_at?: string | null
@@ -1442,6 +1539,10 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           direction?: string
+          email_in_reply_to?: string | null
+          email_message_id?: string | null
+          email_references?: string[] | null
+          email_subject?: string | null
           external_message_id?: string | null
           id?: string
           read_at?: string | null
