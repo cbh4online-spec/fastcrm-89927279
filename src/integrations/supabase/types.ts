@@ -2293,6 +2293,9 @@ export type Database = {
         | "proposal_created"
         | "proposal_viewed"
         | "scheduled_time"
+        | "first_message_from_lead"
+        | "conversation_resolved"
+        | "conversation_priority_changed"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -2483,6 +2486,9 @@ export const Constants = {
         "proposal_created",
         "proposal_viewed",
         "scheduled_time",
+        "first_message_from_lead",
+        "conversation_resolved",
+        "conversation_priority_changed",
       ],
       condition_operator: [
         "equals",
