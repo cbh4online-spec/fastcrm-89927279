@@ -40,11 +40,44 @@ export interface UpdateViewInput extends Partial<CreateViewInput> {
   id: string;
 }
 
-export const ROLE_DEFAULT_VIEWS: Record<WorkspaceRole, { entity: CrmEntityType; mode: CrmViewMode }> = {
-  owner: { entity: "opportunities", mode: "board" },
-  admin: { entity: "opportunities", mode: "table" },
-  agent: { entity: "contacts", mode: "table" },
-  viewer: { entity: "contacts", mode: "table" },
+// Role-based default configurations
+export interface RoleViewConfig {
+  entity: CrmEntityType;
+  mode: CrmViewMode;
+  contactColumns: string[];
+  opportunityColumns: string[];
+  description: string;
+}
+
+export const ROLE_DEFAULT_VIEWS: Record<WorkspaceRole, RoleViewConfig> = {
+  owner: {
+    entity: "opportunities",
+    mode: "board",
+    contactColumns: ["name", "email", "company", "tags", "created_at"],
+    opportunityColumns: ["title", "value", "stage", "lead", "status", "expected_close_date"],
+    description: "Vista executiva com foco em pipeline e valores",
+  },
+  admin: {
+    entity: "opportunities",
+    mode: "table",
+    contactColumns: ["name", "email", "phone", "company", "job_title", "tags", "created_at"],
+    opportunityColumns: ["title", "value", "stage", "lead", "status", "expected_close_date", "created_at"],
+    description: "Vista completa com todos os detalhes",
+  },
+  agent: {
+    entity: "contacts",
+    mode: "table",
+    contactColumns: ["name", "email", "phone", "company", "tags"],
+    opportunityColumns: ["title", "value", "stage", "lead", "status"],
+    description: "Vista operacional para gestão de contactos",
+  },
+  viewer: {
+    entity: "contacts",
+    mode: "table",
+    contactColumns: ["name", "email", "company", "created_at"],
+    opportunityColumns: ["title", "value", "stage", "status"],
+    description: "Vista simplificada apenas para consulta",
+  },
 };
 
 export const CONTACT_COLUMNS = [
@@ -53,22 +86,32 @@ export const CONTACT_COLUMNS = [
   { key: "phone", label: "Telefone" },
   { key: "company", label: "Empresa" },
   { key: "job_title", label: "Cargo" },
-  { key: "tags", label: "Tags" },
-  { key: "created_at", label: "Criado em" },
+  { key: "tags", label: "Etiquetas" },
+  { key: "created_at", label: "Data de criação" },
 ];
 
 export const OPPORTUNITY_COLUMNS = [
-  { key: "title", label: "Título", required: true },
+  { key: "title", label: "Nome do negócio", required: true },
   { key: "value", label: "Valor" },
   { key: "stage", label: "Etapa" },
-  { key: "lead", label: "Lead" },
+  { key: "lead", label: "Contacto" },
   { key: "status", label: "Estado" },
-  { key: "expected_close_date", label: "Data Prevista" },
-  { key: "created_at", label: "Criado em" },
+  { key: "expected_close_date", label: "Previsão de fecho" },
+  { key: "created_at", label: "Data de criação" },
 ];
 
-export const DEFAULT_CONTACT_COLUMNS = ["name", "email", "phone", "company", "tags", "created_at"];
-export const DEFAULT_OPPORTUNITY_COLUMNS = ["title", "value", "stage", "lead", "status", "created_at"];
+// Contact status groups for board view
+export const CONTACT_STATUSES = [
+  { id: "new", name: "Novos", color: "#3b82f6", description: "Contactos recém-adicionados" },
+  { id: "contacted", name: "Em contacto", color: "#8b5cf6", description: "Já iniciou conversa" },
+  { id: "qualified", name: "Qualificados", color: "#10b981", description: "Prontos para oportunidade" },
+  { id: "inactive", name: "Inativos", color: "#6b7280", description: "Sem atividade recente" },
+];
+
+export function getDefaultColumnsForRole(role: WorkspaceRole, entity: CrmEntityType): string[] {
+  const config = ROLE_DEFAULT_VIEWS[role];
+  return entity === "contacts" ? config.contactColumns : config.opportunityColumns;
+}
 
 export function useCrmViews() {
   const { currentWorkspace } = useWorkspace();
@@ -124,11 +167,11 @@ export function useCrmViews() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crm-views", currentWorkspace?.id] });
-      toast.success("Vista guardada com sucesso");
+      toast.success("Vista guardada! Pode acedê-la a qualquer momento.");
     },
     onError: (error) => {
       console.error("Error creating view:", error);
-      toast.error("Erro ao guardar vista");
+      toast.error("Não foi possível guardar a vista. Tente novamente.");
     },
   });
 
@@ -156,11 +199,11 @@ export function useCrmViews() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crm-views", currentWorkspace?.id] });
-      toast.success("Vista atualizada com sucesso");
+      toast.success("Alterações guardadas!");
     },
     onError: (error) => {
       console.error("Error updating view:", error);
-      toast.error("Erro ao atualizar vista");
+      toast.error("Não foi possível atualizar a vista.");
     },
   });
 
@@ -175,11 +218,11 @@ export function useCrmViews() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crm-views", currentWorkspace?.id] });
-      toast.success("Vista eliminada");
+      toast.success("Vista removida.");
     },
     onError: (error) => {
       console.error("Error deleting view:", error);
-      toast.error("Erro ao eliminar vista");
+      toast.error("Não foi possível eliminar a vista.");
     },
   });
 
@@ -208,11 +251,11 @@ export function useCrmViews() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crm-views", currentWorkspace?.id] });
-      toast.success("Vista definida como padrão");
+      toast.success("Esta vista será carregada automaticamente.");
     },
     onError: (error) => {
       console.error("Error setting default view:", error);
-      toast.error("Erro ao definir vista padrão");
+      toast.error("Não foi possível definir como padrão.");
     },
   });
 

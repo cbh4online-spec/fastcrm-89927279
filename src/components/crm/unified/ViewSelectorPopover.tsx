@@ -2,21 +2,24 @@ import { CrmSavedView } from "@/hooks/useCrmViews";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Check, 
   Star, 
   Trash2, 
   Users, 
-  Kanban, 
+  TrendingUp, 
   Table2, 
   LayoutGrid,
   Building2,
+  Bookmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,8 +53,10 @@ export function ViewSelectorPopover({
       <div
         key={view.id}
         className={cn(
-          "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors",
-          isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"
+          "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all",
+          isSelected 
+            ? "bg-primary/10 border border-primary/30 shadow-sm" 
+            : "hover:bg-muted border border-transparent"
         )}
         onClick={() => {
           onSelectView(view.id);
@@ -60,25 +65,39 @@ export function ViewSelectorPopover({
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium truncate">{view.name}</span>
+            <span className={cn("font-medium truncate", isSelected && "text-primary")}>
+              {view.name}
+            </span>
             {view.is_default && (
-              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+              <Tooltip>
+                <TooltipTrigger>
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                </TooltipTrigger>
+                <TooltipContent>Vista padrão</TooltipContent>
+              </Tooltip>
             )}
             {isWorkspaceView && (
-              <Building2 className="w-3 h-3 text-muted-foreground" />
+              <Tooltip>
+                <TooltipTrigger>
+                  <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>Vista partilhada com a equipa</TooltipContent>
+              </Tooltip>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline" className="text-xs">
+          <div className="flex items-center gap-2 mt-1.5">
+            <Badge variant="outline" className="text-xs gap-1">
               {view.view_mode === "table" ? (
-                <><Table2 className="w-3 h-3 mr-1" /> Tabela</>
+                <><Table2 className="w-3 h-3" /> Lista</>
               ) : (
-                <><LayoutGrid className="w-3 h-3 mr-1" /> Quadro</>
+                <><LayoutGrid className="w-3 h-3" /> Quadro</>
               )}
             </Badge>
             {view.for_role && (
               <Badge variant="secondary" className="text-xs capitalize">
-                {view.for_role}
+                {view.for_role === "owner" ? "Proprietário" :
+                 view.for_role === "admin" ? "Administrador" :
+                 view.for_role === "agent" ? "Agente" : "Visualizador"}
               </Badge>
             )}
           </div>
@@ -86,30 +105,40 @@ export function ViewSelectorPopover({
         <div className="flex items-center gap-1">
           {isSelected && <Check className="w-4 h-4 text-primary" />}
           {!view.is_default && !isWorkspaceView && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSetDefault(view.id);
-              }}
-            >
-              <Star className="w-4 h-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSetDefault(view.id);
+                  }}
+                >
+                  <Star className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Definir como vista inicial</TooltipContent>
+            </Tooltip>
           )}
           {!isWorkspaceView && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteView(view.id);
-              }}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteView(view.id);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Eliminar vista</TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -120,15 +149,28 @@ export function ViewSelectorPopover({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Vistas Guardadas</DialogTitle>
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Bookmark className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle>As minhas vistas</DialogTitle>
+              <DialogDescription>
+                Selecione uma vista guardada ou continue a personalizar
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
-        <ScrollArea className="max-h-[400px]">
-          <div className="space-y-4">
+        <ScrollArea className="max-h-[400px] pr-4">
+          <div className="space-y-6">
             {contactViews.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2 px-1">
+                <div className="flex items-center gap-2 mb-3 px-1">
                   <Users className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-muted-foreground">Contactos</span>
+                  <Badge variant="secondary" className="text-xs ml-auto">
+                    {contactViews.length}
+                  </Badge>
                 </div>
                 <div className="space-y-1">
                   {contactViews.map(renderViewItem)}
@@ -138,9 +180,12 @@ export function ViewSelectorPopover({
 
             {opportunityViews.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2 px-1">
-                  <Kanban className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Oportunidades</span>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Negócios</span>
+                  <Badge variant="secondary" className="text-xs ml-auto">
+                    {opportunityViews.length}
+                  </Badge>
                 </div>
                 <div className="space-y-1">
                   {opportunityViews.map(renderViewItem)}
@@ -149,9 +194,14 @@ export function ViewSelectorPopover({
             )}
 
             {views.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Ainda não tem vistas guardadas</p>
-                <p className="text-sm mt-1">Personalize a vista e clique em "Nova Vista" para guardar</p>
+              <div className="text-center py-12">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Bookmark className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <h3 className="font-medium mb-1">Ainda sem vistas guardadas</h3>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                  Personalize os filtros e colunas, depois clique em "Guardar como nova" para criar a sua primeira vista
+                </p>
               </div>
             )}
           </div>

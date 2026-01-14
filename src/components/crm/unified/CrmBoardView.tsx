@@ -2,20 +2,30 @@ import { useMemo, useState } from "react";
 import { Contact } from "@/hooks/useContacts";
 import { Opportunity, useMoveOpportunity } from "@/hooks/useOpportunities";
 import { PipelineStage } from "@/hooks/usePipelineStages";
-import { CrmEntityType } from "@/hooks/useCrmViews";
+import { CrmEntityType, CONTACT_STATUSES } from "@/hooks/useCrmViews";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { DollarSign, User, GripVertical, Mail, Phone, Building2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { 
+  DollarSign, 
+  User, 
+  GripVertical, 
+  Mail, 
+  Phone, 
+  Building2, 
+  MessageSquare, 
+  CheckSquare, 
+  TrendingUp,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  Tag,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// Contact status groups for board view
-const CONTACT_STATUSES = [
-  { id: "new", name: "Novos", color: "#3b82f6" },
-  { id: "contacted", name: "Contactados", color: "#8b5cf6" },
-  { id: "qualified", name: "Qualificados", color: "#10b981" },
-  { id: "inactive", name: "Inativos", color: "#6b7280" },
-];
+import { formatDistanceToNow, differenceInDays } from "date-fns";
+import { pt } from "date-fns/locale";
 
 interface CrmBoardViewProps {
   entityType: CrmEntityType;
@@ -23,6 +33,7 @@ interface CrmBoardViewProps {
   opportunities: Opportunity[];
   stages: PipelineStage[];
   onRowClick: (id: string) => void;
+  onQuickAction?: (action: "reply" | "task" | "opportunity", entityId: string, entityType: CrmEntityType) => void;
 }
 
 export function CrmBoardView({
@@ -31,6 +42,7 @@ export function CrmBoardView({
   opportunities,
   stages,
   onRowClick,
+  onQuickAction,
 }: CrmBoardViewProps) {
   const moveOpportunity = useMoveOpportunity();
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -49,7 +61,7 @@ export function CrmBoardView({
     return map;
   }, [opportunities, stages]);
 
-  // Group contacts by status (using tags or a default distribution)
+  // Group contacts by status
   const contactsByStatus = useMemo(() => {
     const map: Record<string, Contact[]> = {};
     CONTACT_STATUSES.forEach((status) => {
@@ -57,7 +69,6 @@ export function CrmBoardView({
     });
     
     contacts.forEach((contact) => {
-      // Simple logic: check tags for status keywords, default to "new"
       const tags = contact.tags?.map(t => t.toLowerCase()) || [];
       if (tags.includes("inactive") || tags.includes("inativo")) {
         map["inactive"].push(contact);
@@ -80,14 +91,14 @@ export function CrmBoardView({
     if (!stages?.length) {
       return (
         <div className="text-center py-12 bg-muted/30 rounded-lg">
-          <p className="text-muted-foreground">Configure as etapas do pipeline para usar a vista de quadro</p>
+          <p className="text-muted-foreground">Configure as etapas do pipeline para ver o quadro de oportunidades</p>
         </div>
       );
     }
 
     return (
       <ScrollArea className="flex-1 -mx-6 px-6 h-full">
-        <div className="flex gap-4 pb-4 h-full">
+        <div className="flex gap-4 pb-4 h-full min-h-[500px]">
           {stages.map((stage) => (
             <OpportunityColumn
               key={stage.id}
@@ -98,6 +109,7 @@ export function CrmBoardView({
               onDragEnd={() => setDraggedId(null)}
               draggedId={draggedId}
               onCardClick={onRowClick}
+              onQuickAction={onQuickAction}
             />
           ))}
         </div>
@@ -109,19 +121,33 @@ export function CrmBoardView({
   // Contacts board view
   return (
     <ScrollArea className="flex-1 -mx-6 px-6 h-full">
-      <div className="flex gap-4 pb-4 h-full">
+      <div className="flex gap-4 pb-4 h-full min-h-[500px]">
         {CONTACT_STATUSES.map((status) => (
           <ContactColumn
             key={status.id}
             status={status}
             contacts={contactsByStatus[status.id] || []}
             onCardClick={onRowClick}
+            onQuickAction={onQuickAction}
           />
         ))}
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
   );
+}
+
+// Deal health indicator based on days in stage
+function getDealHealth(createdAt: string, value: number): { status: "healthy" | "warning" | "critical"; label: string } {
+  const daysInStage = differenceInDays(new Date(), new Date(createdAt));
+  
+  if (daysInStage <= 7) {
+    return { status: "healthy", label: "No prazo" };
+  } else if (daysInStage <= 14) {
+    return { status: "warning", label: "Atenção necessária" };
+  } else {
+    return { status: "critical", label: "Risco de perda" };
+  }
 }
 
 // Opportunity Column Component
@@ -133,6 +159,7 @@ interface OpportunityColumnProps {
   onDragEnd: () => void;
   draggedId: string | null;
   onCardClick: (id: string) => void;
+  onQuickAction?: (action: "reply" | "task" | "opportunity", entityId: string, entityType: CrmEntityType) => void;
 }
 
 function OpportunityColumn({
@@ -143,21 +170,22 @@ function OpportunityColumn({
   onDragEnd,
   draggedId,
   onCardClick,
+  onQuickAction,
 }: OpportunityColumnProps) {
   const totalValue = opportunities.reduce((sum, opp) => sum + Number(opp.value), 0);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.currentTarget.classList.add("bg-accent/50");
+    e.currentTarget.classList.add("ring-2", "ring-primary/50");
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    e.currentTarget.classList.remove("bg-accent/50");
+    e.currentTarget.classList.remove("ring-2", "ring-primary/50");
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    e.currentTarget.classList.remove("bg-accent/50");
+    e.currentTarget.classList.remove("ring-2", "ring-primary/50");
     const oppId = e.dataTransfer.getData("text/plain");
     if (oppId) {
       onMoveOpportunity(oppId, stage.id);
@@ -166,7 +194,7 @@ function OpportunityColumn({
 
   return (
     <div
-      className="flex-shrink-0 w-80 flex flex-col rounded-lg bg-muted/30 border border-border"
+      className="flex-shrink-0 w-80 flex flex-col rounded-lg bg-muted/30 border border-border transition-all"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -192,41 +220,116 @@ function OpportunityColumn({
 
       <ScrollArea className="flex-1 p-2">
         <div className="space-y-2">
-          {opportunities.map((opp) => (
-            <Card
-              key={opp.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("text/plain", opp.id);
-                onDragStart(opp.id);
-              }}
-              onDragEnd={onDragEnd}
-              onClick={() => onCardClick(opp.id)}
-              className={cn(
-                "cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors",
-                draggedId === opp.id && "opacity-50"
-              )}
-            >
-              <CardContent className="p-3">
-                <div className="flex items-start gap-2">
-                  <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-foreground truncate">{opp.title}</h4>
-                    {opp.lead && (
-                      <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
-                        <User className="w-3 h-3" />
-                        <span className="truncate">{opp.lead.name}</span>
+          {opportunities.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Arraste negócios para aqui
+            </div>
+          ) : (
+            opportunities.map((opp) => {
+              const health = getDealHealth(opp.created_at, opp.value);
+              const daysInStage = differenceInDays(new Date(), new Date(opp.created_at));
+              
+              return (
+                <Card
+                  key={opp.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", opp.id);
+                    onDragStart(opp.id);
+                  }}
+                  onDragEnd={onDragEnd}
+                  onClick={() => onCardClick(opp.id)}
+                  className={cn(
+                    "cursor-grab active:cursor-grabbing hover:border-primary/50 transition-all hover:shadow-md",
+                    draggedId === opp.id && "opacity-50 rotate-2"
+                  )}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-2">
+                      <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {/* Title and Health Indicator */}
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-medium text-foreground truncate">{opp.title}</h4>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={cn(
+                                "flex-shrink-0 w-2 h-2 rounded-full mt-1.5",
+                                health.status === "healthy" && "bg-green-500",
+                                health.status === "warning" && "bg-amber-500",
+                                health.status === "critical" && "bg-red-500"
+                              )} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{health.label}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+
+                        {/* Lead Name */}
+                        {opp.lead && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <User className="w-3 h-3" />
+                            <span className="truncate">{opp.lead.name}</span>
+                          </div>
+                        )}
+
+                        {/* Value and Days */}
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-1 font-semibold text-primary">
+                            <DollarSign className="w-3.5 h-3.5" />
+                            {Number(opp.value).toLocaleString("pt-PT")} €
+                          </div>
+                          <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                            <Clock className="w-3 h-3" />
+                            {daysInStage}d nesta etapa
+                          </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        {onQuickAction && (
+                          <div className="flex items-center gap-1 pt-1 border-t border-border/50">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onQuickAction("task", opp.id, "opportunities");
+                                  }}
+                                >
+                                  <CheckSquare className="w-3.5 h-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Nova tarefa</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onQuickAction("reply", opp.id, "opportunities");
+                                  }}
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Enviar mensagem</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="flex items-center gap-1 mt-2 text-sm font-medium text-primary">
-                      <DollarSign className="w-3.5 h-3.5" />
-                      {Number(opp.value).toLocaleString("pt-PT", { minimumFractionDigits: 0 })} €
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </div>
       </ScrollArea>
     </div>
@@ -235,16 +338,17 @@ function OpportunityColumn({
 
 // Contact Column Component
 interface ContactColumnProps {
-  status: { id: string; name: string; color: string };
+  status: { id: string; name: string; color: string; description: string };
   contacts: Contact[];
   onCardClick: (id: string) => void;
+  onQuickAction?: (action: "reply" | "task" | "opportunity", entityId: string, entityType: CrmEntityType) => void;
 }
 
-function ContactColumn({ status, contacts, onCardClick }: ContactColumnProps) {
+function ContactColumn({ status, contacts, onCardClick, onQuickAction }: ContactColumnProps) {
   return (
     <div className="flex-shrink-0 w-80 flex flex-col rounded-lg bg-muted/30 border border-border">
       <div className="p-3 border-b border-border">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-1">
           <div
             className="w-3 h-3 rounded-full"
             style={{ backgroundColor: status.color }}
@@ -254,38 +358,126 @@ function ContactColumn({ status, contacts, onCardClick }: ContactColumnProps) {
             {contacts.length}
           </Badge>
         </div>
+        <p className="text-xs text-muted-foreground">{status.description}</p>
       </div>
 
       <ScrollArea className="flex-1 p-2">
         <div className="space-y-2">
-          {contacts.map((contact) => (
-            <Card
-              key={contact.id}
-              onClick={() => onCardClick(contact.id)}
-              className="cursor-pointer hover:border-primary/50 transition-colors"
-            >
-              <CardContent className="p-3">
-                <h4 className="font-medium text-foreground truncate">{contact.name}</h4>
-                {contact.job_title && (
-                  <p className="text-sm text-muted-foreground truncate">{contact.job_title}</p>
-                )}
-                <div className="mt-2 space-y-1">
-                  {contact.email && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Mail className="w-3 h-3" />
-                      <span className="truncate">{contact.email}</span>
+          {contacts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Sem contactos neste estado
+            </div>
+          ) : (
+            contacts.map((contact) => (
+              <Card
+                key={contact.id}
+                onClick={() => onCardClick(contact.id)}
+                className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md"
+              >
+                <CardContent className="p-3 space-y-2">
+                  {/* Name and Title */}
+                  <div>
+                    <h4 className="font-medium text-foreground truncate">{contact.name}</h4>
+                    {contact.job_title && (
+                      <p className="text-sm text-muted-foreground truncate">{contact.job_title}</p>
+                    )}
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="space-y-1">
+                    {contact.email && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Mail className="w-3 h-3" />
+                        <span className="truncate">{contact.email}</span>
+                      </div>
+                    )}
+                    {contact.company && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Building2 className="w-3 h-3" />
+                        <span className="truncate">{contact.company}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tags */}
+                  {contact.tags && contact.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {contact.tags.slice(0, 2).map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {contact.tags.length > 2 && (
+                        <Badge variant="outline" className="text-xs px-1.5 py-0">
+                          +{contact.tags.length - 2}
+                        </Badge>
+                      )}
                     </div>
                   )}
-                  {contact.company && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Building2 className="w-3 h-3" />
-                      <span className="truncate">{contact.company}</span>
+
+                  {/* Last Activity */}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground pt-1">
+                    <Clock className="w-3 h-3" />
+                    {formatDistanceToNow(new Date(contact.updated_at), { addSuffix: true, locale: pt })}
+                  </div>
+
+                  {/* Quick Actions */}
+                  {onQuickAction && (
+                    <div className="flex items-center gap-1 pt-1 border-t border-border/50">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onQuickAction("reply", contact.id, "contacts");
+                            }}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Enviar mensagem</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onQuickAction("task", contact.id, "contacts");
+                            }}
+                          >
+                            <CheckSquare className="w-3.5 h-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Nova tarefa</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onQuickAction("opportunity", contact.id, "contacts");
+                            }}
+                          >
+                            <TrendingUp className="w-3.5 h-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Criar oportunidade</TooltipContent>
+                      </Tooltip>
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </ScrollArea>
     </div>

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Bookmark } from "lucide-react";
 
 interface SaveViewDialogProps {
   open: boolean;
@@ -39,30 +40,52 @@ export function SaveViewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Guardar Vista</DialogTitle>
-          <DialogDescription>
-            Guarde a configuração atual (filtros, colunas, modo de visualização) como uma vista personalizada.
-          </DialogDescription>
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Bookmark className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle>Guardar esta vista</DialogTitle>
+              <DialogDescription className="text-sm mt-1">
+                Guarde os filtros, colunas e modo de visualização atuais para aceder rapidamente no futuro.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="name">Nome da Vista</Label>
+            <Label htmlFor="name">Dê um nome à sua vista</Label>
             <Input
               id="name"
-              placeholder="Ex: Contactos Ativos"
+              placeholder="Ex: Negócios prioritários, Contactos recentes..."
               value={name}
               onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && name.trim()) {
+                  handleSave();
+                }
+              }}
+              autoFocus
             />
+            <p className="text-xs text-muted-foreground">
+              Escolha um nome que descreva o tipo de dados que vai ver
+            </p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-start space-x-3 bg-muted/50 p-3 rounded-lg">
             <Checkbox
               id="default"
               checked={isDefault}
               onCheckedChange={(checked) => setIsDefault(checked === true)}
+              className="mt-0.5"
             />
-            <Label htmlFor="default" className="text-sm font-normal">
-              Definir como vista padrão
-            </Label>
+            <div>
+              <Label htmlFor="default" className="text-sm font-medium cursor-pointer">
+                Usar como vista inicial
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Esta vista será carregada automaticamente quando abrir o CRM
+              </p>
+            </div>
           </div>
         </div>
         <DialogFooter>
@@ -70,7 +93,7 @@ export function SaveViewDialog({
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={!name.trim() || isLoading}>
-            {isLoading ? "A guardar..." : "Guardar Vista"}
+            {isLoading ? "A guardar..." : "Guardar vista"}
           </Button>
         </DialogFooter>
       </DialogContent>
