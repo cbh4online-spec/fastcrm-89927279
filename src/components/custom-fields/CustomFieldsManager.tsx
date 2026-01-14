@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   useCustomFields,
   useCreateCustomField,
@@ -29,14 +29,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -47,8 +39,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Calendar as CalendarIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 const FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
   text: "Texto",
@@ -82,6 +76,9 @@ export function CustomFieldsManager() {
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [deleteFieldId, setDeleteFieldId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CustomFieldFormData>(initialFormData);
+  const [showPreview, setShowPreview] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const { data: fields = [], isLoading } = useCustomFields(entityType);
   const createField = useCreateCustomField();
@@ -93,7 +90,7 @@ export function CustomFieldsManager() {
     setEditingField(null);
     setFormData({
       ...initialFormData,
-      position: fields.length, // Default to last position
+      position: fields.length,
     });
     setDialogOpen(true);
   };
@@ -120,7 +117,6 @@ export function CustomFieldsManager() {
       : [];
 
     if (editingField) {
-      // Check if position changed
       const positionChanged = formData.position !== editingField.position;
       
       await updateField.mutateAsync({
@@ -132,13 +128,11 @@ export function CustomFieldsManager() {
         position: formData.position,
       });
 
-      // If position changed, reorder other fields
       if (positionChanged) {
         const updatedFields = [...fields]
           .filter(f => f.id !== editingField.id)
           .sort((a, b) => a.position - b.position);
         
-        // Insert at new position and recalculate
         updatedFields.splice(formData.position, 0, { ...editingField, position: formData.position } as CustomField);
         
         const reorderedFields = updatedFields.map((f, index) => ({
@@ -149,10 +143,8 @@ export function CustomFieldsManager() {
         await reorderFields.mutateAsync(reorderedFields);
       }
     } else {
-      // Create new field at specified position
       const newPosition = formData.position;
       
-      // Shift existing fields if necessary
       if (newPosition < fields.length) {
         const fieldsToShift = fields
           .filter(f => f.position >= newPosition)
@@ -189,27 +181,58 @@ export function CustomFieldsManager() {
     }
   };
 
-  const moveField = useCallback(async (fieldId: string, direction: "up" | "down") => {
-    const currentIndex = fields.findIndex(f => f.id === fieldId);
-    if (currentIndex === -1) return;
+  // Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const dragIndex = draggedIndex;
     
-    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= fields.length) return;
+    setDraggedIndex(null);
+    setDragOverIndex(null);
 
-    // Swap positions
+    if (dragIndex === null || dragIndex === dropIndex) return;
+
+    // Reorder fields
     const updatedFields = [...fields];
-    const temp = updatedFields[currentIndex];
-    updatedFields[currentIndex] = updatedFields[newIndex];
-    updatedFields[newIndex] = temp;
+    const [draggedField] = updatedFields.splice(dragIndex, 1);
+    updatedFields.splice(dropIndex, 0, draggedField);
 
-    // Update positions
     const reorderedFields = updatedFields.map((f, index) => ({
       id: f.id,
       position: index,
     }));
 
     await reorderFields.mutateAsync(reorderedFields);
-  }, [fields, reorderFields]);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const getEntityTypeLabel = (type: CustomFieldEntityType) => {
+    switch (type) {
+      case "lead": return "leads";
+      case "opportunity": return "oportunidades";
+      case "contact": return "contactos";
+      case "company": return "empresas";
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -217,13 +240,24 @@ export function CustomFieldsManager() {
         <div>
           <h2 className="text-xl font-semibold">Campos Personalizados</h2>
           <p className="text-sm text-muted-foreground">
-            Crie campos personalizados para leads e oportunidades
+            Crie e organize campos personalizados
           </p>
         </div>
-        <Button onClick={handleOpenCreate}>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Campo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPreview(!showPreview)}
+            className="gap-2"
+          >
+            {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showPreview ? "Ocultar" : "Pré-visualizar"}
+          </Button>
+          <Button onClick={handleOpenCreate}>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Campo
+          </Button>
+        </div>
       </div>
 
       <Tabs value={entityType} onValueChange={(v) => setEntityType(v as CustomFieldEntityType)}>
@@ -235,132 +269,118 @@ export function CustomFieldsManager() {
         </TabsList>
 
         <TabsContent value={entityType} className="mt-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-            </div>
-          ) : fields.length === 0 ? (
-            <div className="text-center py-12 bg-muted/30 rounded-lg">
-              <p className="text-muted-foreground">
-                Ainda não tem campos personalizados para {
-                  entityType === "lead" ? "leads" : 
-                  entityType === "opportunity" ? "oportunidades" :
-                  entityType === "contact" ? "contactos" : "empresas"
-                }
-              </p>
-              <Button variant="outline" className="mt-4" onClick={handleOpenCreate}>
-                <Plus className="w-4 h-4 mr-2" />
-                Criar primeiro campo
-              </Button>
-            </div>
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[80px]">Ordem</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Opções</TableHead>
-                    <TableHead>Obrigatório</TableHead>
-                    <TableHead>Único</TableHead>
-                    <TableHead className="w-[100px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+          <div className={cn("grid gap-6", showPreview && fields.length > 0 && "lg:grid-cols-2")}>
+            {/* Fields List */}
+            <div>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                </div>
+              ) : fields.length === 0 ? (
+                <div className="text-center py-12 bg-muted/30 rounded-lg">
+                  <p className="text-muted-foreground">
+                    Ainda não tem campos personalizados para {getEntityTypeLabel(entityType)}
+                  </p>
+                  <Button variant="outline" className="mt-4" onClick={handleOpenCreate}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Criar primeiro campo
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Arraste os campos para reordenar ou use o menu de ações
+                  </p>
                   {fields.map((field, index) => (
-                    <TableRow key={field.id} className="group">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="flex flex-col gap-0.5">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-6 w-6 opacity-60 hover:opacity-100 transition-opacity"
-                              disabled={index === 0 || reorderFields.isPending}
-                              onClick={() => moveField(field.id, "up")}
-                              title="Mover para cima"
-                            >
-                              <ArrowUp className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-6 w-6 opacity-60 hover:opacity-100 transition-opacity"
-                              disabled={index === fields.length - 1 || reorderFields.isPending}
-                              onClick={() => moveField(field.id, "down")}
-                              title="Mover para baixo"
-                            >
-                              <ArrowDown className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <Badge variant="outline" className="text-xs font-mono">
-                            {index + 1}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">{field.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {FIELD_TYPE_LABELS[field.field_type]}
+                    <div
+                      key={field.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        "flex items-center gap-3 p-3 bg-background border rounded-lg cursor-grab active:cursor-grabbing transition-all",
+                        draggedIndex === index && "opacity-50 scale-95",
+                        dragOverIndex === index && "border-primary border-2 bg-primary/5",
+                        reorderFields.isPending && "pointer-events-none opacity-60"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <GripVertical className="w-4 h-4" />
+                        <Badge variant="outline" className="text-xs font-mono w-6 justify-center">
+                          {index + 1}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {field.field_type === "select" && field.options?.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {field.options.slice(0, 3).map((opt) => (
-                              <Badge key={opt} variant="outline" className="text-xs">
-                                {opt}
-                              </Badge>
-                            ))}
-                            {field.options.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{field.options.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {field.required ? (
-                          <Badge variant="default">Sim</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">Não</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {field.is_unique ? (
-                          <Badge variant="secondary" className="bg-amber-500/20 text-amber-600 border-amber-500/30">Único</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenEdit(field)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteFieldId(field.id)}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
+                          <span className="font-medium truncate">{field.name}</span>
+                          {field.required && (
+                            <span className="text-destructive text-xs">*</span>
+                          )}
+                          {field.is_unique && (
+                            <Badge variant="secondary" className="text-xs bg-amber-500/20 text-amber-600">
+                              Único
+                            </Badge>
+                          )}
                         </div>
-                      </TableCell>
-                    </TableRow>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {FIELD_TYPE_LABELS[field.field_type]}
+                          </Badge>
+                          {field.field_type === "select" && field.options?.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              {field.options.length} opções
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleOpenEdit(field)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setDeleteFieldId(field.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Preview Panel */}
+            {showPreview && fields.length > 0 && (
+              <Card className="animate-fade-in">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Pré-visualização do Formulário</CardTitle>
+                  <CardDescription>
+                    Como os campos personalizados aparecerão no formulário
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                    {fields.map((field) => (
+                      <FormFieldPreview key={field.id} field={field} />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -374,11 +394,7 @@ export function CustomFieldsManager() {
             <DialogDescription>
               {editingField
                 ? "Atualize as configurações do campo personalizado."
-                : `Adicione um novo campo para ${
-                    entityType === "lead" ? "leads" : 
-                    entityType === "opportunity" ? "oportunidades" :
-                    entityType === "contact" ? "contactos" : "empresas"
-                  }.`}
+                : `Adicione um novo campo para ${getEntityTypeLabel(entityType)}.`}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -441,7 +457,6 @@ export function CustomFieldsManager() {
                 </SelectTrigger>
                 <SelectContent>
                   {editingField ? (
-                    // When editing, show all current positions
                     fields.map((_, index) => (
                       <SelectItem key={index} value={index.toString()}>
                         Posição {index + 1}
@@ -450,7 +465,6 @@ export function CustomFieldsManager() {
                       </SelectItem>
                     ))
                   ) : (
-                    // When creating, show positions including the new one
                     [...Array(fields.length + 1)].map((_, index) => (
                       <SelectItem key={index} value={index.toString()}>
                         Posição {index + 1}
@@ -533,6 +547,65 @@ export function CustomFieldsManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+// Preview component for each field type
+function FormFieldPreview({ field }: { field: CustomField }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm">
+        {field.name}
+        {field.required && <span className="text-destructive ml-1">*</span>}
+      </Label>
+      
+      {field.field_type === "text" && (
+        <Input 
+          placeholder={`Introduza ${field.name.toLowerCase()}`} 
+          disabled 
+          className="bg-background"
+        />
+      )}
+      
+      {field.field_type === "number" && (
+        <Input 
+          type="number" 
+          placeholder="0" 
+          disabled 
+          className="bg-background"
+        />
+      )}
+      
+      {field.field_type === "date" && (
+        <Button 
+          variant="outline" 
+          disabled 
+          className="w-full justify-start text-left font-normal text-muted-foreground bg-background"
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          Selecionar data
+        </Button>
+      )}
+      
+      {field.field_type === "boolean" && (
+        <div className="flex items-center justify-between rounded-lg border p-3 bg-background">
+          <span className="text-sm text-muted-foreground">Sim / Não</span>
+          <Switch disabled />
+        </div>
+      )}
+      
+      {field.field_type === "select" && (
+        <Select disabled>
+          <SelectTrigger className="bg-background">
+            <SelectValue placeholder={`Selecionar ${field.name.toLowerCase()}`} />
+          </SelectTrigger>
+        </Select>
+      )}
+      
+      {field.is_unique && (
+        <p className="text-xs text-amber-600">Campo único (sem duplicados)</p>
+      )}
     </div>
   );
 }
