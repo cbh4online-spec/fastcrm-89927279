@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
 import { EntityContextSidebar } from "@/components/crm/EntityContextSidebar";
-import { EntityKPIDashboard } from "@/components/crm/EntityKPIDashboard";
+import { CustomizableKPIDashboard } from "@/components/crm/CustomizableKPIDashboard";
 import { 
   useFieldSuggestions, 
   useGenerateFieldSuggestions,
@@ -478,8 +478,8 @@ export function LeadDetail() {
             <div className="p-6 space-y-4 max-w-4xl">
               {activeSection === "overview" && (
                 <>
-                  {/* KPI Dashboard */}
-                  <EntityKPIDashboard
+                  {/* Customizable KPI Dashboard */}
+                  <CustomizableKPIDashboard
                     entityType="lead"
                     entityId={id}
                     entityData={lead ? {
