@@ -14,6 +14,7 @@ import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/
 import { ConfigurableEntitySidebar } from "@/components/crm/ConfigurableEntitySidebar";
 import { CustomizableKPIDashboard } from "@/components/crm/CustomizableKPIDashboard";
 import { UnifiedLayoutCustomizer } from "@/components/crm/UnifiedLayoutCustomizer";
+import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { useLayoutConfig, DEFAULT_SIDEBAR_MODULES } from "@/hooks/useLayoutConfig";
 import { useUserRole } from "@/hooks/useUserRole";
 import { 
@@ -321,6 +322,17 @@ export function ContactDetail() {
 
   return (
     <div className="h-full flex flex-col -m-6">
+      {/* Breadcrumbs */}
+      <div className="bg-background px-6 pt-4">
+        <PageBreadcrumbs
+          items={[
+            { label: "CRM", href: "/dashboard/crm" },
+            { label: "Contactos", href: "/dashboard/contacts" },
+            { label: contact.name },
+          ]}
+        />
+      </div>
+      
       {/* Header */}
       <div className="bg-background border-b px-6 py-4">
         <div className="flex items-center justify-between">
