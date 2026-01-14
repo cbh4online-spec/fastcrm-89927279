@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCompanies, Company, UpdateCompanyData } from "@/hooks/useCompanies";
 import { Button } from "@/components/ui/button";
@@ -48,11 +48,20 @@ import {
   MapPin,
   Tag,
   FileText,
-  MoreHorizontal
+  MoreHorizontal,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
-import { CustomFieldsForm, CustomFieldsDisplay } from "@/components/custom-fields/CustomFieldsForm";
-import { useCustomFieldValues } from "@/hooks/useCustomFields";
+import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
+import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
+import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
+import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
+import { 
+  useFieldSuggestions, 
+  useGenerateFieldSuggestions,
+  useAcceptSuggestion, 
+  useRejectSuggestion 
+} from "@/hooks/useFieldSuggestions";
 import { cn } from "@/lib/utils";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
@@ -108,8 +117,22 @@ export function CompanyDetail() {
   const navigate = useNavigate();
   const { companies, isLoading, updateCompany, deleteCompany } = useCompanies();
   const { data: customFieldValues = [] } = useCustomFieldValues(id);
+  const { data: customFields = [] } = useCustomFields("company");
+  const setCustomFieldValue = useSetCustomFieldValue();
 
   const company = companies.find(c => c.id === id);
+
+  // AI field suggestions
+  const { data: suggestions = [] } = useFieldSuggestions("company", id);
+  const generateSuggestions = useGenerateFieldSuggestions();
+  const acceptSuggestion = useAcceptSuggestion();
+  const rejectSuggestion = useRejectSuggestion();
+  const [acceptingField, setAcceptingField] = useState<string | null>(null);
+
+  // Custom field values map for easy lookup
+  const customFieldValuesMap = new Map(
+    customFieldValues.map(cfv => [cfv.custom_field_id, cfv.value])
+  );
 
   const [isEditing, setIsEditing] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(true);
@@ -178,6 +201,79 @@ export function CompanyDetail() {
     } catch (error) {
       toast.error("Erro ao eliminar empresa");
     }
+  };
+
+  // Helper to accept inline suggestion for standard fields
+  const handleAcceptInlineSuggestion = useCallback(async (fieldName: string, value: unknown) => {
+    if (!company) return;
+    
+    const suggestion = suggestions.find(s => s.field_name === fieldName && s.field_type === "standard");
+    if (!suggestion) return;
+    
+    setAcceptingField(fieldName);
+    try {
+      await acceptSuggestion.mutateAsync({
+        suggestion,
+        onApply: async () => {
+          await updateCompany.mutateAsync({
+            id: company.id,
+            [fieldName]: value,
+          });
+        },
+      });
+    } finally {
+      setAcceptingField(null);
+    }
+  }, [company, suggestions, acceptSuggestion, updateCompany]);
+
+  // Helper to reject inline suggestion for standard fields
+  const handleRejectInlineSuggestion = useCallback((fieldName: string) => {
+    const suggestion = suggestions.find(s => s.field_name === fieldName && s.field_type === "standard");
+    if (suggestion) {
+      rejectSuggestion.mutate(suggestion);
+    }
+  }, [suggestions, rejectSuggestion]);
+
+  // Handler for accepting custom field suggestions
+  const handleAcceptCustomFieldSuggestion = useCallback(async (customFieldId: string, value: unknown) => {
+    if (!company) return;
+    
+    const suggestion = suggestions.find(
+      s => s.field_type === "custom" && s.custom_field_id === customFieldId
+    );
+    if (!suggestion) return;
+    
+    setAcceptingField(customFieldId);
+    try {
+      await acceptSuggestion.mutateAsync({
+        suggestion,
+        onApply: async () => {
+          await setCustomFieldValue.mutateAsync({
+            customFieldId,
+            entityId: company.id,
+            value,
+          });
+        },
+      });
+    } finally {
+      setAcceptingField(null);
+    }
+  }, [company, suggestions, acceptSuggestion, setCustomFieldValue]);
+
+  // Handler for rejecting custom field suggestions
+  const handleRejectCustomFieldSuggestion = useCallback((customFieldId: string) => {
+    const suggestion = suggestions.find(
+      s => s.field_type === "custom" && s.custom_field_id === customFieldId
+    );
+    if (suggestion) {
+      rejectSuggestion.mutate(suggestion);
+    }
+  }, [suggestions, rejectSuggestion]);
+
+  // Generate suggestions handler
+  const handleGenerateSuggestions = async () => {
+    if (!id) return;
+    await generateSuggestions.mutateAsync({ entityType: "company", entityId: id });
   };
 
   if (isLoading) {
@@ -271,6 +367,15 @@ export function CompanyDetail() {
             </>
           ) : (
             <>
+              <Button 
+                variant="outline" 
+                onClick={handleGenerateSuggestions}
+                disabled={generateSuggestions.isPending}
+                className="gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                {generateSuggestions.isPending ? "A analisar..." : "Sugestões IA"}
+              </Button>
               <Button onClick={handleEdit}>
                 <Edit2 className="w-4 h-4 mr-2" />
                 Editar
@@ -313,13 +418,17 @@ export function CompanyDetail() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="divide-y divide-border/50">
-                <DetailRow
+                <DetailRowWithSuggestion
                   label="Website"
+                  fieldName="website"
                   value={company.website}
                   icon={<Globe className="w-4 h-4" />}
                   isEditing={isEditing}
                   isLink={!!company.website}
-                  linkType="url"
+                  suggestion={getSuggestionForField(suggestions, "website")}
+                  onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("website", value)}
+                  onRejectSuggestion={() => handleRejectInlineSuggestion("website")}
+                  isAcceptingSuggestion={acceptingField === "website"}
                   editComponent={
                     <Input
                       value={editedCompany?.website}
@@ -330,13 +439,17 @@ export function CompanyDetail() {
                     />
                   }
                 />
-                <DetailRow
+                <DetailRowWithSuggestion
                   label="E-mail"
+                  fieldName="email"
                   value={company.email}
                   icon={<Mail className="w-4 h-4" />}
                   isEditing={isEditing}
                   isLink={!!company.email}
-                  linkType="email"
+                  suggestion={getSuggestionForField(suggestions, "email")}
+                  onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("email", value)}
+                  onRejectSuggestion={() => handleRejectInlineSuggestion("email")}
+                  isAcceptingSuggestion={acceptingField === "email"}
                   editComponent={
                     <Input
                       type="email"
@@ -347,13 +460,17 @@ export function CompanyDetail() {
                     />
                   }
                 />
-                <DetailRow
+                <DetailRowWithSuggestion
                   label="Telefone"
+                  fieldName="phone"
                   value={company.phone}
                   icon={<Phone className="w-4 h-4" />}
                   isEditing={isEditing}
                   isLink={!!company.phone}
-                  linkType="phone"
+                  suggestion={getSuggestionForField(suggestions, "phone")}
+                  onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("phone", value)}
+                  onRejectSuggestion={() => handleRejectInlineSuggestion("phone")}
+                  isAcceptingSuggestion={acceptingField === "phone"}
                   editComponent={
                     <Input
                       value={editedCompany?.phone}
@@ -363,11 +480,16 @@ export function CompanyDetail() {
                     />
                   }
                 />
-                <DetailRow
+                <DetailRowWithSuggestion
                   label="Indústria"
+                  fieldName="industry"
                   value={company.industry}
                   icon={<Factory className="w-4 h-4" />}
                   isEditing={isEditing}
+                  suggestion={getSuggestionForField(suggestions, "industry")}
+                  onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("industry", value)}
+                  onRejectSuggestion={() => handleRejectInlineSuggestion("industry")}
+                  isAcceptingSuggestion={acceptingField === "industry"}
                   editComponent={
                     <Input
                       value={editedCompany?.industry}
@@ -515,8 +637,8 @@ export function CompanyDetail() {
             </Collapsible>
           )}
 
-          {/* Custom Fields Section - Collapsible */}
-          {(customFieldValues.length > 0 || isEditing) && (
+          {/* Custom Fields Section - Show if there are fields defined or values exist */}
+          {(customFields.length > 0 || customFieldValues.length > 0) && (
             <Collapsible open={showCustomFields} onOpenChange={setShowCustomFields}>
               <Card>
                 <CollapsibleTrigger asChild>
@@ -536,22 +658,22 @@ export function CompanyDetail() {
                       <CustomFieldsForm entityType="company" entityId={company.id} />
                     ) : (
                       <div className="divide-y divide-border/50">
-                        {customFieldValues.map((fieldValue) => (
-                          <DetailRow
-                            key={fieldValue.id}
-                            label={fieldValue.custom_field.name}
-                            value={
-                              fieldValue.custom_field.field_type === 'boolean'
-                                ? (fieldValue.value ? 'Sim' : 'Não')
-                                : fieldValue.custom_field.field_type === 'date'
-                                ? new Date(fieldValue.value as string).toLocaleDateString('pt-PT')
-                                : String(fieldValue.value || '—')
-                            }
+                        {customFields.map((field) => (
+                          <CustomFieldWithSuggestion
+                            key={field.id}
+                            field={field}
+                            value={customFieldValuesMap.get(field.id)}
+                            onChange={() => {}}
+                            isEditing={false}
+                            suggestion={getCustomFieldSuggestion(suggestions, field.id)}
+                            onAcceptSuggestion={(value) => handleAcceptCustomFieldSuggestion(field.id, value)}
+                            onRejectSuggestion={() => handleRejectCustomFieldSuggestion(field.id)}
+                            isAcceptingSuggestion={acceptingField === field.id}
                           />
                         ))}
-                        {customFieldValues.length === 0 && (
+                        {customFields.length === 0 && (
                           <p className="text-sm text-muted-foreground py-3">
-                            Sem campos personalizados preenchidos
+                            Sem campos personalizados definidos
                           </p>
                         )}
                       </div>
