@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
 
 const opportunitySchema = z.object({
   title: z.string().min(1, "Title is required").max(100),
@@ -52,6 +54,7 @@ export function CreateOpportunityDialog({
   const createOpportunity = useCreateOpportunity();
   const { data: stages } = usePipelineStages();
   const { data: leads } = useLeads();
+  const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
 
   const form = useForm<OpportunityFormValues>({
     resolver: zodResolver(opportunitySchema),
@@ -65,12 +68,18 @@ export function CreateOpportunityDialog({
 
   const onSubmit = async (values: OpportunityFormValues) => {
     try {
-      await createOpportunity.mutateAsync({
+      const result = await createOpportunity.mutateAsync({
         title: values.title,
         lead_id: values.lead_id || undefined,
         value: values.value,
         stage_id: values.stage_id,
       });
+      
+      // Save custom fields if any
+      if (result?.id && customFieldsRef.current) {
+        await customFieldsRef.current.saveCustomFields(result.id);
+      }
+      
       toast.success("Opportunity created successfully");
       form.reset();
       onOpenChange(false);
@@ -81,7 +90,7 @@ export function CreateOpportunityDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Opportunity</DialogTitle>
           <DialogDescription>
@@ -176,6 +185,13 @@ export function CreateOpportunityDialog({
                 </FormItem>
               )}
             />
+            
+            {/* Custom Fields */}
+            <CustomFieldsFormCreate
+              ref={customFieldsRef}
+              entityType="opportunity"
+            />
+            
             <DialogFooter>
               <Button
                 type="button"

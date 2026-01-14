@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useContacts } from "@/hooks/useContacts";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
 
 interface CreateContactDialogProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface CreateContactDialogProps {
 export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogProps) {
   const { createContact } = useContacts();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -37,7 +39,7 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
 
     setIsSubmitting(true);
     try {
-      await createContact.mutateAsync({
+      const result = await createContact.mutateAsync({
         name: formData.name.trim(),
         email: formData.email.trim() || undefined,
         phone: formData.phone.trim() || undefined,
@@ -49,6 +51,12 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
           .map((t) => t.trim())
           .filter(Boolean),
       });
+      
+      // Save custom fields if any
+      if (result?.id && customFieldsRef.current) {
+        await customFieldsRef.current.saveCustomFields(result.id);
+      }
+      
       setFormData({
         name: "",
         email: "",
@@ -64,9 +72,24 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        job_title: "",
+        notes: "",
+        tags: "",
+      });
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Contacto</DialogTitle>
           <DialogDescription>
@@ -143,6 +166,13 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
               />
             </div>
           </div>
+          
+          {/* Custom Fields */}
+          <CustomFieldsFormCreate
+            ref={customFieldsRef}
+            entityType="contact"
+          />
+          
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar

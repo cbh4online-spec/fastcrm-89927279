@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import {
   useCustomFields,
   useCustomFieldValues,
@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
+// ==================== Edit Mode (existing entity) ====================
 interface CustomFieldsFormProps {
   entityType: CustomFieldEntityType;
   entityId: string;
@@ -84,6 +85,71 @@ export function CustomFieldsForm({ entityType, entityId, className }: CustomFiel
   );
 }
 
+// ==================== Create Mode (new entity, save later) ====================
+export interface CustomFieldsFormCreateRef {
+  saveCustomFields: (entityId: string) => Promise<void>;
+  getValues: () => Record<string, unknown>;
+}
+
+interface CustomFieldsFormCreateProps {
+  entityType: CustomFieldEntityType;
+  className?: string;
+}
+
+export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, CustomFieldsFormCreateProps>(
+  function CustomFieldsFormCreate({ entityType, className }, ref) {
+    const { data: fields = [] } = useCustomFields(entityType);
+    const setFieldValue = useSetCustomFieldValue();
+
+    const [values, setValues] = useState<Record<string, unknown>>({});
+
+    // Expose methods to parent
+    useImperativeHandle(ref, () => ({
+      saveCustomFields: async (entityId: string) => {
+        // Save all field values
+        for (const field of fields) {
+          const value = values[field.id];
+          if (value !== undefined && value !== null && value !== "") {
+            await setFieldValue.mutateAsync({
+              customFieldId: field.id,
+              entityId,
+              value,
+              fieldName: field.name,
+              isUnique: field.is_unique,
+            });
+          }
+        }
+      },
+      getValues: () => values,
+    }));
+
+    const handleValueChange = (field: CustomField, value: unknown) => {
+      setValues((prev) => ({ ...prev, [field.id]: value }));
+    };
+
+    if (fields.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className={cn("space-y-4", className)}>
+        <h4 className="text-sm font-medium text-muted-foreground">Campos Personalizados</h4>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {fields.map((field) => (
+            <CustomFieldInput
+              key={field.id}
+              field={field}
+              value={values[field.id]}
+              onChange={(value) => handleValueChange(field, value)}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+);
+
+// ==================== Field Input Component ====================
 interface CustomFieldInputProps {
   field: CustomField;
   value: unknown;
@@ -206,7 +272,7 @@ function CustomFieldInput({ field, value, onChange }: CustomFieldInputProps) {
   }
 }
 
-// Display component for showing custom field values (read-only)
+// ==================== Display Component (read-only) ====================
 interface CustomFieldsDisplayProps {
   entityType: CustomFieldEntityType;
   entityId: string;
