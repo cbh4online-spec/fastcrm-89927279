@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCompanies, Company } from "@/hooks/useCompanies";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,13 +28,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, MoreHorizontal, Globe, Phone, Mail, Pencil, Trash2, Building2 } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Globe, Phone, Mail, Pencil, Trash2, Building2, Eye } from "lucide-react";
 import { CreateCompanyDialog } from "./CreateCompanyDialog";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
 export function CompaniesList() {
+  const navigate = useNavigate();
   const { companies, isLoading, deleteCompany } = useCompanies();
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -125,7 +127,11 @@ export function CompaniesList() {
             </TableHeader>
             <TableBody>
               {filteredCompanies.map((company) => (
-                <TableRow key={company.id}>
+                <TableRow 
+                  key={company.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => navigate(`/dashboard/companies/${company.id}`)}
+                >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -203,7 +209,7 @@ export function CompaniesList() {
                   <TableCell className="text-muted-foreground">
                     {format(new Date(company.created_at), "dd MMM yyyy", { locale: pt })}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -211,6 +217,10 @@ export function CompaniesList() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/dashboard/companies/${company.id}`)}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Ver Detalhes
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditCompany(company)}>
                           <Pencil className="w-4 h-4 mr-2" />
                           Editar

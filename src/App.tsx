@@ -21,7 +21,9 @@ import LandingPages from "./pages/LandingPages";
 import PublicLandingPage from "./pages/PublicLandingPage";
 import SuperAdmin from "./pages/SuperAdmin";
 import Contacts from "./pages/Contacts";
+import ContactDetail from "./pages/ContactDetail";
 import Companies from "./pages/Companies";
+import CompanyDetail from "./pages/CompanyDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,7 +51,9 @@ const App = () => (
                 <Route path="/dashboard/automations" element={<Automations />} />
                 <Route path="/dashboard/landing-pages" element={<LandingPages />} />
                 <Route path="/dashboard/contacts" element={<Contacts />} />
+                <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
                 <Route path="/dashboard/companies" element={<Companies />} />
+                <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
                 <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                 <Route path="/super-admin" element={<SuperAdmin />} />
                 <Route path="*" element={<NotFound />} />
