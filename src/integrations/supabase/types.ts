@@ -525,6 +525,56 @@ export type Database = {
           },
         ]
       }
+      crm_blueprints: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          entity_type: string
+          id: string
+          name: string
+          schema: Json
+          status: string
+          updated_at: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entity_type?: string
+          id?: string
+          name: string
+          schema?: Json
+          status?: string
+          updated_at?: string
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entity_type?: string
+          id?: string
+          name?: string
+          schema?: Json
+          status?: string
+          updated_at?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_blueprints_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_saved_views: {
         Row: {
           created_at: string | null
