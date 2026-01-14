@@ -443,6 +443,39 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
       return;
     }
 
+    // SAFETY: Validate messaging actions have templates selected
+    const messagingActions = ["send_template_message", "send_message"];
+    for (let i = 0; i < values.actions.length; i++) {
+      const action = values.actions[i];
+      if (messagingActions.includes(action.action_type)) {
+        const templateId = (action.config as Record<string, unknown>)?.template_id;
+        if (!templateId) {
+          toast.error(`Action ${i + 1}: Messaging actions require a template selection. No message can be sent without a validated template.`);
+          return;
+        }
+      }
+    }
+
+    // SAFETY: Check for potential infinite loops before saving
+    const automationConfig = {
+      trigger: values.trigger,
+      conditions: values.conditions.filter(c => c.field_name && c.operator).map(c => ({
+        field_name: c.field_name!,
+        operator: c.operator!,
+        value: c.value ?? null,
+      })),
+      actions: values.actions.map(a => ({
+        action_type: a.action_type,
+        config: a.config
+      })),
+    };
+    
+    const loopCheck = detectPotentialLoop(automationConfig);
+    if (loopCheck.hasLoop && activate) {
+      toast.error(`Potential infinite loop detected: Field "${loopCheck.details?.triggerField}" triggers on change but is also modified by an action. Cannot activate.`);
+      return;
+    }
+
     const payload = {
       name: values.name,
       description: values.description,
