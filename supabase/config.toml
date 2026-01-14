@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.instagram-auth-url]
 verify_jwt = false
+
+[functions.ai-field-suggestions]
+verify_jwt = true

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useContacts, Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
 import {
   Collapsible,
   CollapsibleContent,
@@ -843,6 +844,17 @@ export function ContactDetail() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* AI Field Suggestions */}
+              <FieldSuggestionsPanel
+                entityType="contact"
+                entityId={contact.id}
+                onApplySuggestion={async (fieldName, value, fieldType) => {
+                  if (fieldType === "standard") {
+                    await updateContact.mutateAsync({ id: contact.id, [fieldName]: value });
+                  }
+                }}
+              />
 
               {/* AI Insights Widget */}
               <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/5 to-primary/10">

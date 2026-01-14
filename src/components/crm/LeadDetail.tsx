@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLead, useUpdateLead, useDeleteLead, LeadStatus } from "@/hooks/useLeads";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
 import {
   Select,
   SelectContent,
@@ -202,6 +203,28 @@ export function LeadDetail() {
       toast.error("Erro ao eliminar lead");
     }
   };
+
+  // Handler for applying AI field suggestions
+  const handleApplySuggestion = useCallback(async (
+    fieldName: string,
+    value: unknown,
+    fieldType: "standard" | "custom",
+    customFieldId?: string
+  ) => {
+    if (!lead) return;
+
+    if (fieldType === "standard") {
+      // Apply to standard lead fields
+      await updateLead.mutateAsync({
+        id: lead.id,
+        [fieldName]: value,
+      });
+    } else if (fieldType === "custom" && customFieldId) {
+      // For custom fields, we'd need to update the custom field value
+      // This would require additional implementation in the custom fields hook
+      console.log("Apply custom field:", customFieldId, value);
+    }
+  }, [lead, updateLead]);
 
   if (isLoading) {
     return (
@@ -787,6 +810,13 @@ export function LeadDetail() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* AI Field Suggestions */}
+              <FieldSuggestionsPanel
+                entityType="lead"
+                entityId={lead.id}
+                onApplySuggestion={handleApplySuggestion}
+              />
 
               {/* AI Insights Widget */}
               <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/5 to-primary/10">
