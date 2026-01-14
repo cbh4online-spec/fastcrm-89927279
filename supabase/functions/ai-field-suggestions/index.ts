@@ -120,7 +120,23 @@ serve(async (req) => {
         : null,
     };
 
-    // Build the system prompt
+    // Format custom field definitions with type info for better AI understanding
+    const formattedCustomFields = (customFields || []).map(cf => ({
+      id: cf.id,
+      name: cf.name,
+      field_type: cf.field_type,
+      required: cf.required,
+      // For select fields, include allowed options
+      allowed_options: cf.field_type === 'select' ? cf.options : undefined,
+      // Add type hints for AI
+      value_format: cf.field_type === 'date' ? 'ISO 8601 date string (YYYY-MM-DD)' :
+                   cf.field_type === 'number' ? 'Numeric value' :
+                   cf.field_type === 'boolean' ? 'true or false' :
+                   cf.field_type === 'select' ? `One of: ${(cf.options || []).join(', ')}` :
+                   'Text string'
+    }));
+
+    // Build the system prompt with enhanced custom field instructions
     const systemPrompt = `You are an AI assistant for a CRM system. Your job is to analyze available data and suggest values for empty or incomplete fields.
 
 IMPORTANT RULES:
@@ -128,7 +144,15 @@ IMPORTANT RULES:
 2. Only suggest values when you have high confidence based on actual data
 3. Each suggestion must include a confidence score (0-1) and brief explanation
 4. Analyze conversation messages carefully for contact info, company names, etc.
-5. For custom fields, match the expected field type (text, number, date, select)
+
+CUSTOM FIELD RULES (CRITICAL):
+5. For "select" type custom fields, you MUST ONLY suggest values from the allowed_options list. Never suggest values outside this list.
+6. For "date" type custom fields, suggest dates in ISO 8601 format (YYYY-MM-DD)
+7. For "number" type custom fields, suggest numeric values only
+8. For "boolean" type custom fields, suggest true or false only
+9. For "text" type custom fields, suggest appropriate text strings
+10. Always include the custom field's ID as customFieldId when suggesting custom field values
+11. Use the custom field's name as the fieldName
 
 Available entity types and their standard fields:
 - lead: name, email, phone, source, status, tags
@@ -143,15 +167,19 @@ You MUST use the suggest_field_values tool to provide your analysis.`;
 Current Data:
 ${JSON.stringify(context.currentData, null, 2)}
 
-Custom Field Definitions:
-${JSON.stringify(context.customFieldDefinitions, null, 2)}
+Custom Field Definitions (with type constraints):
+${JSON.stringify(formattedCustomFields, null, 2)}
 
 Existing Custom Field Values:
 ${JSON.stringify(context.existingCustomFieldValues, null, 2)}
 
 ${context.conversationHistory ? `Recent Conversation Messages:\n${context.conversationHistory}` : "No conversation data available."}
 
-Suggest appropriate values for any empty standard fields and custom fields. Focus on fields where you have evidence from the data provided.`;
+IMPORTANT: 
+- For standard fields, set fieldType to "standard"
+- For custom fields, set fieldType to "custom" and include the customFieldId
+- For select-type custom fields, ONLY suggest values from the allowed_options list
+- Focus on fields where you have evidence from the data provided`;
 
     // Call Lovable AI
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

@@ -61,7 +61,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
-import { useCustomFieldValues } from "@/hooks/useCustomFields";
+import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
+import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
 import { cn } from "@/lib/utils";
 
 // Sidebar navigation items
@@ -145,6 +146,8 @@ export function ContactDetail() {
   const navigate = useNavigate();
   const { contacts, isLoading, updateContact, deleteContact } = useContacts();
   const { data: customFieldValues = [] } = useCustomFieldValues(id);
+  const { data: customFields = [] } = useCustomFields("contact");
+  const setCustomFieldValue = useSetCustomFieldValue();
 
   const contact = contacts.find(c => c.id === id);
 
@@ -153,6 +156,11 @@ export function ContactDetail() {
   const acceptSuggestion = useAcceptSuggestion();
   const rejectSuggestion = useRejectSuggestion();
   const [acceptingField, setAcceptingField] = useState<string | null>(null);
+
+  // Custom field values map for easy lookup
+  const customFieldValuesMap = new Map(
+    customFieldValues.map(cfv => [cfv.custom_field_id, cfv.value])
+  );
 
   const [isEditing, setIsEditing] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
@@ -243,6 +251,42 @@ export function ContactDetail() {
   // Helper to reject inline suggestion
   const handleRejectInlineSuggestion = useCallback((fieldName: string) => {
     const suggestion = suggestions.find(s => s.field_name === fieldName);
+    if (suggestion) {
+      rejectSuggestion.mutate(suggestion);
+    }
+  }, [suggestions, rejectSuggestion]);
+
+  // Handler for accepting custom field suggestions
+  const handleAcceptCustomFieldSuggestion = useCallback(async (customFieldId: string, value: unknown) => {
+    if (!contact) return;
+    
+    const suggestion = suggestions.find(
+      s => s.field_type === "custom" && s.custom_field_id === customFieldId
+    );
+    if (!suggestion) return;
+    
+    setAcceptingField(customFieldId);
+    try {
+      await acceptSuggestion.mutateAsync({
+        suggestion,
+        onApply: async () => {
+          await setCustomFieldValue.mutateAsync({
+            customFieldId,
+            entityId: contact.id,
+            value,
+          });
+        },
+      });
+    } finally {
+      setAcceptingField(null);
+    }
+  }, [contact, suggestions, acceptSuggestion, setCustomFieldValue]);
+
+  // Handler for rejecting custom field suggestions
+  const handleRejectCustomFieldSuggestion = useCallback((customFieldId: string) => {
+    const suggestion = suggestions.find(
+      s => s.field_type === "custom" && s.custom_field_id === customFieldId
+    );
     if (suggestion) {
       rejectSuggestion.mutate(suggestion);
     }
@@ -592,8 +636,8 @@ export function ContactDetail() {
                     </Collapsible>
                   )}
 
-                  {/* Custom Fields Section */}
-                  {(customFieldValues.length > 0 || isEditing) && (
+                  {/* Custom Fields Section - Show if there are fields defined or values exist */}
+                  {(customFields.length > 0 || customFieldValues.length > 0) && (
                     <Collapsible open={showCustomFields} onOpenChange={setShowCustomFields}>
                       <Card>
                         <CollapsibleTrigger asChild>
@@ -613,22 +657,22 @@ export function ContactDetail() {
                               <CustomFieldsForm entityType="contact" entityId={contact.id} />
                             ) : (
                               <div className="divide-y divide-border/50">
-                                {customFieldValues.map((fieldValue) => (
-                                  <DetailRow
-                                    key={fieldValue.id}
-                                    label={fieldValue.custom_field.name}
-                                    value={
-                                      fieldValue.custom_field.field_type === 'boolean'
-                                        ? (fieldValue.value ? 'Sim' : 'Não')
-                                        : fieldValue.custom_field.field_type === 'date'
-                                        ? new Date(fieldValue.value as string).toLocaleDateString('pt-PT')
-                                        : String(fieldValue.value || '—')
-                                    }
+                                {customFields.map((field) => (
+                                  <CustomFieldWithSuggestion
+                                    key={field.id}
+                                    field={field}
+                                    value={customFieldValuesMap.get(field.id)}
+                                    onChange={() => {}}
+                                    isEditing={false}
+                                    suggestion={getCustomFieldSuggestion(suggestions, field.id)}
+                                    onAcceptSuggestion={(value) => handleAcceptCustomFieldSuggestion(field.id, value)}
+                                    onRejectSuggestion={() => handleRejectCustomFieldSuggestion(field.id)}
+                                    isAcceptingSuggestion={acceptingField === field.id}
                                   />
                                 ))}
-                                {customFieldValues.length === 0 && (
+                                {customFields.length === 0 && (
                                   <p className="text-sm text-muted-foreground py-3">
-                                    Sem campos personalizados preenchidos
+                                    Sem campos personalizados definidos
                                   </p>
                                 )}
                               </div>
