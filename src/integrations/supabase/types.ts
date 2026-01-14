@@ -1264,6 +1264,254 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          proposal_id: string
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          proposal_id: string
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          proposal_id?: string
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_activity_logs_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_activity_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_templates: {
+        Row: {
+          content_blocks: Json
+          created_at: string
+          created_by: string | null
+          cta_color: string | null
+          cta_text: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          styles: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          content_blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          cta_color?: string | null
+          cta_text?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          styles?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          content_blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          cta_color?: string | null
+          cta_text?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          styles?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_versions: {
+        Row: {
+          change_summary: string | null
+          content_blocks: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          proposal_id: string
+          variables: Json | null
+          version: number
+        }
+        Insert: {
+          change_summary?: string | null
+          content_blocks: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          proposal_id: string
+          variables?: Json | null
+          version: number
+        }
+        Update: {
+          change_summary?: string | null
+          content_blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          proposal_id?: string
+          variables?: Json | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_versions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          accepted_at: string | null
+          content_blocks: Json
+          created_at: string
+          created_by: string | null
+          cta_color: string | null
+          cta_text: string | null
+          currency: string | null
+          expires_at: string | null
+          id: string
+          opportunity_id: string
+          payment_status: string | null
+          price: number | null
+          published_at: string | null
+          slug: string
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_price_id: string | null
+          styles: Json | null
+          template_id: string | null
+          title: string
+          updated_at: string
+          variables: Json | null
+          views_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          content_blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          cta_color?: string | null
+          cta_text?: string | null
+          currency?: string | null
+          expires_at?: string | null
+          id?: string
+          opportunity_id: string
+          payment_status?: string | null
+          price?: number | null
+          published_at?: string | null
+          slug: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_price_id?: string | null
+          styles?: Json | null
+          template_id?: string | null
+          title: string
+          updated_at?: string
+          variables?: Json | null
+          views_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          content_blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          cta_color?: string | null
+          cta_text?: string | null
+          currency?: string | null
+          expires_at?: string | null
+          id?: string
+          opportunity_id?: string
+          payment_status?: string | null
+          price?: number | null
+          published_at?: string | null
+          slug?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_price_id?: string | null
+          styles?: Json | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+          variables?: Json | null
+          views_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null
