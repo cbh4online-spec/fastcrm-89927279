@@ -4,16 +4,24 @@ import { AutomationTrigger, AutomationActionType, ConditionOperator } from "@/ho
 const triggerDescriptions: Record<AutomationTrigger, string> = {
   lead_created: "Quando um novo lead é criado",
   lead_updated: "Quando um lead é atualizado",
+  lead_status_changed: "Quando o estado de um lead muda",
+  lead_no_response: "Quando um lead não responde",
   opportunity_created: "Quando uma nova oportunidade é criada",
   opportunity_updated: "Quando uma oportunidade é atualizada",
   opportunity_stage_changed: "Quando uma oportunidade muda de etapa",
+  opportunity_value_changed: "Quando o valor de uma oportunidade muda",
   contact_created: "Quando um novo contacto é criado",
   contact_updated: "Quando um contacto é atualizado",
   company_created: "Quando uma nova empresa é criada",
   company_updated: "Quando uma empresa é atualizada",
   custom_field_updated: "Quando um campo personalizado é alterado",
   payment_confirmed: "Quando um pagamento é confirmado",
+  message_received: "Quando uma mensagem é recebida",
+  conversation_no_reply: "Quando não há resposta na conversa",
+  proposal_created: "Quando uma proposta é criada",
+  proposal_viewed: "Quando uma proposta é visualizada",
   proposal_paid: "Quando uma proposta é paga",
+  scheduled_time: "Em data/hora agendada",
 };
 
 // Generate plain language description of an operator

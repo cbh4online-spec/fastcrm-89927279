@@ -47,6 +47,7 @@ import { CriticalFieldsWarning, LoopDetectionWarning } from "./CriticalFieldsWar
 import { CustomFieldTriggerConfig } from "./CustomFieldTriggerConfig";
 import { TemplateActionConfig } from "./TemplateActionConfig";
 import { ProposalActionConfig } from "./ProposalActionConfig";
+import { TimeTriggerConfig } from "./TimeTriggerConfig";
 import { 
   detectPotentialLoop, 
   getModifiedFields, 
@@ -55,19 +56,34 @@ import {
 } from "@/lib/automationSafety";
 
 // Extended trigger options with new types
-const triggerOptions: { value: AutomationTrigger; label: string; entity: string }[] = [
+const triggerOptions: { value: AutomationTrigger; label: string; entity: string; requiresConfig?: boolean }[] = [
+  // Lead triggers
   { value: "lead_created", label: "Lead Criado", entity: "lead" },
   { value: "lead_updated", label: "Lead Atualizado", entity: "lead" },
+  { value: "lead_status_changed", label: "Estado do Lead Alterado", entity: "lead" },
+  { value: "lead_no_response", label: "Lead Sem Resposta", entity: "lead", requiresConfig: true },
+  // Opportunity triggers
   { value: "opportunity_created", label: "Oportunidade Criada", entity: "opportunity" },
   { value: "opportunity_updated", label: "Oportunidade Atualizada", entity: "opportunity" },
   { value: "opportunity_stage_changed", label: "Etapa de Oportunidade Alterada", entity: "opportunity" },
+  { value: "opportunity_value_changed", label: "Valor da Oportunidade Alterado", entity: "opportunity" },
+  // Contact/Company triggers
   { value: "contact_created", label: "Contacto Criado", entity: "contact" },
   { value: "contact_updated", label: "Contacto Atualizado", entity: "contact" },
   { value: "company_created", label: "Empresa Criada", entity: "company" },
   { value: "company_updated", label: "Empresa Atualizada", entity: "company" },
   { value: "custom_field_updated", label: "Campo Personalizado Alterado", entity: "any" },
-  { value: "payment_confirmed", label: "Pagamento Confirmado", entity: "payment" },
+  // Inbox triggers
+  { value: "message_received", label: "Mensagem Recebida", entity: "conversation" },
+  { value: "conversation_no_reply", label: "Sem Resposta na Conversa", entity: "conversation", requiresConfig: true },
+  // Proposal triggers
+  { value: "proposal_created", label: "Proposta Criada", entity: "proposal" },
+  { value: "proposal_viewed", label: "Proposta Visualizada", entity: "proposal" },
   { value: "proposal_paid", label: "Proposta Paga", entity: "proposal" },
+  // Payment triggers
+  { value: "payment_confirmed", label: "Pagamento Confirmado", entity: "payment" },
+  // Time triggers
+  { value: "scheduled_time", label: "Data/Hora Agendada", entity: "scheduled", requiresConfig: true },
 ];
 
 // Extended action options
@@ -184,7 +200,14 @@ const coreFieldsByEntity: Record<string, { name: string; label: string; type: Cu
     { name: "title", label: "Título", type: "text" },
     { name: "price", label: "Valor", type: "number" },
     { name: "status", label: "Estado", type: "status" },
+    { name: "views_count", label: "Visualizações", type: "number" },
   ],
+  conversation: [
+    { name: "channel", label: "Canal", type: "text" },
+    { name: "status", label: "Estado", type: "status" },
+    { name: "unread_count", label: "Não Lidas", type: "number" },
+  ],
+  scheduled: [],
   any: [],
 };
 
@@ -211,13 +234,18 @@ const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
   trigger: z.enum([
-    "lead_created", "lead_updated", "opportunity_created", "opportunity_updated",
-    "opportunity_stage_changed", "contact_created", "contact_updated",
-    "company_created", "company_updated", "custom_field_updated", "payment_confirmed",
-    "proposal_paid"
+    "lead_created", "lead_updated", "lead_status_changed", "lead_no_response",
+    "opportunity_created", "opportunity_updated", "opportunity_stage_changed", "opportunity_value_changed",
+    "contact_created", "contact_updated", "company_created", "company_updated",
+    "custom_field_updated", "payment_confirmed",
+    "message_received", "conversation_no_reply",
+    "proposal_created", "proposal_viewed", "proposal_paid",
+    "scheduled_time"
   ]),
   trigger_config: z.object({
     custom_field_id: z.string().optional(),
+    no_response_hours: z.number().optional(),
+    scheduled_date: z.string().optional(),
   }).optional(),
   is_active: z.boolean(),
   conditions: z.array(conditionSchema),
@@ -537,6 +565,19 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                   <CustomFieldTriggerConfig 
                     control={form.control} 
                     name="trigger_config.custom_field_id" 
+                  />
+                </div>
+              )}
+
+              {/* Time-based Trigger Configuration */}
+              {(selectedTrigger === "lead_no_response" || 
+                selectedTrigger === "conversation_no_reply" || 
+                selectedTrigger === "scheduled_time") && (
+                <div className="mt-4">
+                  <TimeTriggerConfig
+                    trigger={selectedTrigger}
+                    config={form.watch("trigger_config") || {}}
+                    onChange={(config) => form.setValue("trigger_config", config)}
                   />
                 </div>
               )}
