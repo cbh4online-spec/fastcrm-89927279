@@ -49,6 +49,7 @@ import { InboxActionsMenu } from "./InboxActionsMenu";
 import { ConversationFollowupBanner } from "./ConversationFollowupBanner";
 import { Separator } from "@/components/ui/separator";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
+import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -436,6 +437,16 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 opportunityData={opportunityData}
                 channel={conversation.channel}
                 onInsertReply={handleInsertReply}
+              />
+
+              <Separator className="my-2" />
+
+              {/* Unified Activity Log */}
+              <UnifiedActivityLog
+                conversationId={conversationId}
+                leadId={conversation.lead_id || undefined}
+                compact
+                limit={10}
               />
             </div>
           </div>

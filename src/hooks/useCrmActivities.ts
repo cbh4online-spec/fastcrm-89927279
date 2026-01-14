@@ -46,6 +46,12 @@ export interface CreateActivityInput {
   opportunity_id?: string;
   conversation_id?: string;
   automation_rule_id?: string;
+  // Extended metadata fields for unified log
+  channel?: string;
+  template_id?: string;
+  template_name?: string;
+  ai_generated?: boolean;
+  ai_assisted?: boolean;
 }
 
 interface ActivityFilters {
@@ -180,6 +186,16 @@ export function useCreateActivity() {
     mutationFn: async (input: CreateActivityInput) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
 
+      // Merge extended metadata fields into metadata object
+      const mergedMetadata = {
+        ...(input.metadata || {}),
+        ...(input.channel && { channel: input.channel }),
+        ...(input.template_id && { template_id: input.template_id }),
+        ...(input.template_name && { template_name: input.template_name }),
+        ...(input.ai_generated !== undefined && { ai_generated: input.ai_generated }),
+        ...(input.ai_assisted !== undefined && { ai_assisted: input.ai_assisted }),
+      };
+
       const insertData = {
         workspace_id: currentWorkspace.id,
         entity_type: input.entity_type,
@@ -187,7 +203,7 @@ export function useCreateActivity() {
         activity_type: input.activity_type,
         title: input.title,
         description: input.description || null,
-        metadata: input.metadata || {},
+        metadata: mergedMetadata,
         lead_id: input.lead_id || null,
         opportunity_id: input.opportunity_id || null,
         conversation_id: input.conversation_id || null,
@@ -219,8 +235,13 @@ export function useLogAutomationActivity() {
     automationName: string,
     entityType: EntityType,
     entityId: string,
-    conversationId?: string,
-    leadId?: string
+    options?: {
+      conversationId?: string;
+      leadId?: string;
+      channel?: string;
+      templateId?: string;
+      templateName?: string;
+    }
   ) => {
     return createActivity.mutateAsync({
       entity_type: entityType,
@@ -230,8 +251,46 @@ export function useLogAutomationActivity() {
       description: `A automação "${automationName}" foi acionada automaticamente.`,
       metadata: { automation_rule_id: automationRuleId },
       automation_rule_id: automationRuleId,
-      conversation_id: conversationId,
-      lead_id: leadId,
+      conversation_id: options?.conversationId,
+      lead_id: options?.leadId,
+      channel: options?.channel,
+      template_id: options?.templateId,
+      template_name: options?.templateName,
+    });
+  };
+}
+
+// Hook to log message activities with full context
+export function useLogMessageActivity() {
+  const createActivity = useCreateActivity();
+
+  return async (options: {
+    direction: "inbound" | "outbound";
+    conversationId: string;
+    leadId?: string;
+    channel?: string;
+    templateId?: string;
+    templateName?: string;
+    aiGenerated?: boolean;
+    aiAssisted?: boolean;
+    messagePreview?: string;
+  }) => {
+    const isOutbound = options.direction === "outbound";
+    return createActivity.mutateAsync({
+      entity_type: "conversation",
+      entity_id: options.conversationId,
+      activity_type: isOutbound ? "message_sent" : "message_received",
+      title: isOutbound ? "Mensagem enviada" : "Mensagem recebida",
+      description: options.messagePreview 
+        ? options.messagePreview.slice(0, 100) + (options.messagePreview.length > 100 ? "..." : "")
+        : undefined,
+      conversation_id: options.conversationId,
+      lead_id: options.leadId,
+      channel: options.channel,
+      template_id: options.templateId,
+      template_name: options.templateName,
+      ai_generated: options.aiGenerated,
+      ai_assisted: options.aiAssisted,
     });
   };
 }

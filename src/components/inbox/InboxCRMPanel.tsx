@@ -40,7 +40,9 @@ import {
   DollarSign,
   Calendar,
   ListTodo,
+  Activity,
 } from "lucide-react";
+import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -425,6 +427,24 @@ export function InboxCRMPanel({ conversationId }: InboxCRMPanelProps) {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+        
+        {/* Unified Activity Log */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              Atividades
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UnifiedActivityLog
+              leadId={lead.id}
+              conversationId={conversationId || undefined}
+              compact
+              limit={10}
+            />
           </CardContent>
         </Card>
         
