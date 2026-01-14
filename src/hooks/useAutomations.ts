@@ -7,16 +7,24 @@ import { toast } from "sonner";
 export type AutomationTrigger = 
   | "lead_created" 
   | "lead_updated"
+  | "lead_status_changed"
+  | "lead_no_response"
   | "opportunity_created"
   | "opportunity_updated"
-  | "opportunity_stage_changed" 
+  | "opportunity_stage_changed"
+  | "opportunity_value_changed"
   | "contact_created"
   | "contact_updated"
   | "company_created"
   | "company_updated"
   | "custom_field_updated"
   | "payment_confirmed"
-  | "proposal_paid";
+  | "message_received"
+  | "conversation_no_reply"
+  | "proposal_created"
+  | "proposal_viewed"
+  | "proposal_paid"
+  | "scheduled_time";
 
 export type AutomationActionType = 
   | "create_task" 
@@ -59,6 +67,12 @@ export interface AutomationRule {
   name: string;
   description: string | null;
   trigger: AutomationTrigger;
+  trigger_config?: {
+    delay_hours?: number;
+    delay_days?: number;
+    scheduled_date?: string;
+    no_response_hours?: number;
+  };
   is_active: boolean;
   created_by: string;
   created_at: string;

@@ -246,6 +246,7 @@ export type Database = {
           is_active: boolean
           name: string
           trigger: Database["public"]["Enums"]["automation_trigger"]
+          trigger_config: Json | null
           updated_at: string
           workspace_id: string
         }
@@ -257,6 +258,7 @@ export type Database = {
           is_active?: boolean
           name: string
           trigger: Database["public"]["Enums"]["automation_trigger"]
+          trigger_config?: Json | null
           updated_at?: string
           workspace_id: string
         }
@@ -268,6 +270,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           trigger?: Database["public"]["Enums"]["automation_trigger"]
+          trigger_config?: Json | null
           updated_at?: string
           workspace_id?: string
         }
@@ -2138,6 +2141,14 @@ export type Database = {
         | "company_created"
         | "company_updated"
         | "proposal_paid"
+        | "lead_status_changed"
+        | "lead_no_response"
+        | "opportunity_value_changed"
+        | "message_received"
+        | "conversation_no_reply"
+        | "proposal_created"
+        | "proposal_viewed"
+        | "scheduled_time"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -2316,6 +2327,14 @@ export const Constants = {
         "company_created",
         "company_updated",
         "proposal_paid",
+        "lead_status_changed",
+        "lead_no_response",
+        "opportunity_value_changed",
+        "message_received",
+        "conversation_no_reply",
+        "proposal_created",
+        "proposal_viewed",
+        "scheduled_time",
       ],
       condition_operator: [
         "equals",
