@@ -18,6 +18,7 @@ import { TemplateSelector } from './TemplateSelector';
 import { SavedBlueprintsList } from './SavedBlueprintsList';
 import { BlueprintVersionHistory } from './BlueprintVersionHistory';
 import { BlueprintRefineChat } from './BlueprintRefineChat';
+import { BlueprintAutomationSuggestions } from './BlueprintAutomationSuggestions';
 import { useBlueprintApply } from '@/hooks/useBlueprintApply';
 import { useBlueprintVersions } from '@/hooks/useBlueprintVersions';
 import { BlueprintTemplate } from '@/data/blueprintTemplates';
@@ -36,6 +37,7 @@ import {
   ArrowRight,
   FolderOpen,
   MessageCircle,
+  Zap,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -66,6 +68,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
   const [loadedFromDraft, setLoadedFromDraft] = useState(false);
   const [existingBlueprintId, setExistingBlueprintId] = useState<string | null>(null);
   const [originalBlueprint, setOriginalBlueprint] = useState<CrmBlueprint | null>(null);
+  const [showAutomationSuggestions, setShowAutomationSuggestions] = useState(false);
 
   const {
     isApplying,
@@ -680,11 +683,38 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
             existingStages={existingStages}
             existingAutomations={existingAutomations}
             duplicates={duplicates}
-            onApply={handleApply}
+            onApply={async (mode, decisions) => {
+              const result = await handleApply(mode, decisions);
+              if (result.success) {
+                // Show automation suggestions after successful apply
+                setShowAutomationSuggestions(true);
+              }
+              return result;
+            }}
             isApplying={isApplying}
             onReset={handleReset}
           />
+          
+          {/* Suggest Automations Button */}
+          <div className="flex justify-center pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAutomationSuggestions(true)}
+              className="gap-2"
+            >
+              <Zap className="h-4 w-4" />
+              Ver Sugestões de Automação
+            </Button>
+          </div>
         </div>
+      )}
+
+      {/* Automation Suggestions Dialog */}
+      {showAutomationSuggestions && blueprint && (
+        <BlueprintAutomationSuggestions 
+          blueprint={blueprint} 
+          onClose={() => setShowAutomationSuggestions(false)} 
+        />
       )}
     </div>
   );

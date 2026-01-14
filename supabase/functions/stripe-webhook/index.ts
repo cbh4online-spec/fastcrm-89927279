@@ -14,6 +14,77 @@ const PRODUCT_TO_PLAN: Record<string, string> = {
   "prod_Tn6mBblFLd6lD2": "agency",
 };
 
+// Check if event was already processed (idempotency)
+async function checkEventIdempotency(
+  supabase: any,
+  eventId: string,
+  workspaceId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("stripe_event_log")
+    .select("id")
+    .eq("stripe_event_id", eventId)
+    .maybeSingle();
+
+  return !!data;
+}
+
+// Record processed event
+async function recordStripeEvent(
+  supabase: any,
+  eventId: string,
+  eventType: string,
+  workspaceId: string,
+  payload?: unknown
+) {
+  await supabase.from("stripe_event_log").insert({
+    stripe_event_id: eventId,
+    event_type: eventType,
+    workspace_id: workspaceId,
+    payload: payload || null,
+  });
+}
+
+// Trigger automation for payment events
+async function triggerPaymentAutomation(
+  supabase: any,
+  workspaceId: string,
+  opportunityId: string,
+  triggerType: "payment_confirmed" | "proposal_paid",
+  paymentData: Record<string, unknown>
+) {
+  logStep("Triggering payment automation", { workspaceId, opportunityId, triggerType });
+
+  // Find active automation rules for this trigger
+  const { data: rules } = await supabase
+    .from("automation_rules")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .eq("trigger", triggerType)
+    .eq("is_active", true);
+
+  if (!rules || rules.length === 0) {
+    logStep("No active automation rules for trigger", { triggerType });
+    return;
+  }
+
+  // Create automation log for each rule
+  for (const rule of rules) {
+    await supabase.from("automation_logs").insert({
+      workspace_id: workspaceId,
+      rule_id: rule.id,
+      trigger_data: {
+        opportunity_id: opportunityId,
+        ...paymentData,
+      },
+      status: "pending",
+      started_at: new Date().toISOString(),
+    });
+
+    logStep("Created automation log for rule", { ruleId: rule.id, ruleName: rule.name });
+  }
+}
+
 serve(async (req) => {
   const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
     apiVersion: "2025-08-27.basil" 
@@ -43,13 +114,27 @@ serve(async (req) => {
       event = JSON.parse(body) as Stripe.Event;
     }
 
-    logStep("Received event", { type: event.type });
+    logStep("Received event", { type: event.type, id: event.id });
 
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const workspaceId = session.metadata?.workspace_id;
         const plan = session.metadata?.plan;
+        const opportunityId = session.metadata?.opportunity_id;
+        const proposalId = session.metadata?.proposal_id;
+
+        // Check idempotency for proposal payments
+        if (workspaceId && opportunityId) {
+          const alreadyProcessed = await checkEventIdempotency(supabaseClient, event.id, workspaceId);
+          if (alreadyProcessed) {
+            logStep("Event already processed, skipping", { eventId: event.id });
+            return new Response(JSON.stringify({ received: true, skipped: true }), {
+              headers: { "Content-Type": "application/json" },
+              status: 200,
+            });
+          }
+        }
 
         if (workspaceId && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(
@@ -81,6 +166,72 @@ serve(async (req) => {
           } else {
             logStep("Subscription created/updated", { workspaceId, plan: resolvedPlan });
           }
+        }
+
+        // Handle proposal/opportunity payment
+        if (workspaceId && opportunityId && session.payment_status === "paid") {
+          const amount = session.amount_total || 0;
+
+          // Update opportunity status to won
+          const { error: oppError } = await supabaseClient
+            .from("opportunities")
+            .update({ 
+              status: "won",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", opportunityId);
+
+          if (oppError) {
+            logStep("Error updating opportunity", { error: oppError });
+          } else {
+            logStep("Opportunity marked as won", { opportunityId });
+          }
+
+          // Update proposal payment status
+          if (proposalId) {
+            await supabaseClient
+              .from("proposals")
+              .update({
+                payment_status: "paid",
+                accepted_at: new Date().toISOString(),
+                stripe_checkout_session_id: session.id,
+                stripe_payment_intent_id: session.payment_intent as string,
+              })
+              .eq("id", proposalId);
+
+            logStep("Proposal payment status updated", { proposalId });
+          }
+
+          // Record payment
+          await supabaseClient.from("payments").insert({
+            workspace_id: workspaceId,
+            opportunity_id: opportunityId,
+            amount: amount / 100, // Convert from cents
+            currency: session.currency?.toUpperCase() || "EUR",
+            status: "completed",
+            stripe_payment_id: session.payment_intent as string,
+          });
+
+          // Record event for idempotency
+          await recordStripeEvent(supabaseClient, event.id, event.type, workspaceId, {
+            opportunityId,
+            proposalId,
+            amount,
+          });
+
+          // Trigger automations
+          await triggerPaymentAutomation(
+            supabaseClient,
+            workspaceId,
+            opportunityId,
+            proposalId ? "proposal_paid" : "payment_confirmed",
+            {
+              amount: amount / 100,
+              currency: session.currency,
+              proposal_id: proposalId,
+              payment_intent: session.payment_intent,
+            }
+          );
         }
         break;
       }
