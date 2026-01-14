@@ -1312,6 +1312,58 @@ export type Database = {
           },
         ]
       }
+      proposal_analytics: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          proposal_id: string
+          template_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          proposal_id: string
+          template_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          proposal_id?: string
+          template_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_analytics_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_analytics_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_analytics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_templates: {
         Row: {
           content_blocks: Json
@@ -1418,6 +1470,7 @@ export type Database = {
           expires_at: string | null
           id: string
           opportunity_id: string
+          payment_idempotency_key: string | null
           payment_status: string | null
           price: number | null
           published_at: string | null
@@ -1445,6 +1498,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           opportunity_id: string
+          payment_idempotency_key?: string | null
           payment_status?: string | null
           price?: number | null
           published_at?: string | null
@@ -1472,6 +1526,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           opportunity_id?: string
+          payment_idempotency_key?: string | null
           payment_status?: string | null
           price?: number | null
           published_at?: string | null
@@ -2068,6 +2123,8 @@ export type Database = {
         | "create_opportunity"
         | "update_field"
         | "send_template_message"
+        | "create_proposal"
+        | "send_proposal_link"
       automation_trigger:
         | "lead_created"
         | "opportunity_stage_changed"
@@ -2080,6 +2137,7 @@ export type Database = {
         | "contact_updated"
         | "company_created"
         | "company_updated"
+        | "proposal_paid"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -2242,6 +2300,8 @@ export const Constants = {
         "create_opportunity",
         "update_field",
         "send_template_message",
+        "create_proposal",
+        "send_proposal_link",
       ],
       automation_trigger: [
         "lead_created",
@@ -2255,6 +2315,7 @@ export const Constants = {
         "contact_updated",
         "company_created",
         "company_updated",
+        "proposal_paid",
       ],
       condition_operator: [
         "equals",

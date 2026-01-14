@@ -48,6 +48,7 @@ const triggerLabels: Record<AutomationTrigger, string> = {
   company_updated: "Empresa Atualizada",
   custom_field_updated: "Campo Custom",
   payment_confirmed: "Pagamento",
+  proposal_paid: "Proposta Paga",
 };
 
 const triggerColors: Record<AutomationTrigger, string> = {
@@ -62,6 +63,7 @@ const triggerColors: Record<AutomationTrigger, string> = {
   company_updated: "bg-amber-400",
   custom_field_updated: "bg-cyan-500",
   payment_confirmed: "bg-green-500",
+  proposal_paid: "bg-teal-500",
 };
 
 interface Props {
