@@ -16,7 +16,9 @@ import { BlueprintPreview } from './BlueprintPreview';
 import { BlueprintApplyPreview, ApplyMode, ApplyResult } from './BlueprintApplyPreview';
 import { TemplateSelector } from './TemplateSelector';
 import { SavedBlueprintsList } from './SavedBlueprintsList';
+import { BlueprintVersionHistory } from './BlueprintVersionHistory';
 import { useBlueprintApply } from '@/hooks/useBlueprintApply';
+import { useBlueprintVersions } from '@/hooks/useBlueprintVersions';
 import { BlueprintTemplate } from '@/data/blueprintTemplates';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -70,6 +72,8 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     duplicates,
     applyBlueprint,
   } = useBlueprintApply(blueprint);
+
+  const { createVersion } = useBlueprintVersions(existingBlueprintId);
 
   const handleSelectTemplate = (template: BlueprintTemplate) => {
     setSelectedTemplate(template);
@@ -151,6 +155,14 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     setIsSaving(true);
     try {
       if (existingBlueprintId) {
+        // Save current version to history before updating
+        await createVersion({
+          blueprintId: existingBlueprintId,
+          version: blueprint.version,
+          schema: blueprint,
+          changeSummary: `Versão ${blueprint.version} guardada`,
+        });
+
         // Update existing blueprint
         const { error } = await supabase
           .from('crm_blueprints')
@@ -189,6 +201,14 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
 
         if (error) throw error;
 
+        // Create initial version in history
+        await createVersion({
+          blueprintId: data.id,
+          version: blueprint.version,
+          schema: blueprint,
+          changeSummary: 'Versão inicial',
+        });
+
         // Track the new blueprint ID for future updates
         setExistingBlueprintId(data.id);
         setLoadedFromDraft(true);
@@ -206,6 +226,11 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleRestoreVersion = (restoredBlueprint: CrmBlueprint) => {
+    setBlueprint(restoredBlueprint);
+    toast.info('Versão restaurada. Guarde para aplicar as alterações.');
   };
 
   const handleLoadDraft = (loadedBlueprint: CrmBlueprint, dbId: string) => {
@@ -573,10 +598,17 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Guardar
+                  {existingBlueprintId ? 'Atualizar' : 'Guardar'}
                 </>
               )}
             </Button>
+            {existingBlueprintId && (
+              <BlueprintVersionHistory
+                blueprintId={existingBlueprintId}
+                currentVersion={blueprint.version}
+                onRestore={handleRestoreVersion}
+              />
+            )}
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Exportar

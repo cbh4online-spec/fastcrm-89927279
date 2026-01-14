@@ -410,6 +410,44 @@ export type Database = {
           },
         ]
       }
+      blueprint_versions: {
+        Row: {
+          blueprint_id: string
+          change_summary: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          schema: Json
+          version: number
+        }
+        Insert: {
+          blueprint_id: string
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          schema?: Json
+          version: number
+        }
+        Update: {
+          blueprint_id?: string
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          schema?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blueprint_versions_blueprint_id_fkey"
+            columns: ["blueprint_id"]
+            isOneToOne: false
+            referencedRelation: "crm_blueprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
