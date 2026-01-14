@@ -22,6 +22,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { CrmEntityType, CrmViewMode } from "@/hooks/useCrmViews";
+import { CrmAdvancedFilters, CrmFilters } from "./CrmAdvancedFilters";
 
 interface ColumnDef {
   key: string;
@@ -37,10 +38,14 @@ interface CrmHeaderProps {
   columns: ColumnDef[];
   selectedViewId: string | null;
   hasUnsavedChanges: boolean;
+  filters: CrmFilters;
+  stages?: { id: string; name: string }[];
+  availableTags?: string[];
   onEntityChange: (entity: CrmEntityType) => void;
   onViewModeChange: (mode: CrmViewMode) => void;
   onSearchChange: (query: string) => void;
   onColumnsChange: (columns: string[]) => void;
+  onFiltersChange: (filters: CrmFilters) => void;
   onSaveView: () => void;
   onUpdateView: () => void;
   onOpenViewSelector: () => void;
@@ -54,10 +59,14 @@ export function CrmHeader({
   columns,
   selectedViewId,
   hasUnsavedChanges,
+  filters,
+  stages = [],
+  availableTags = [],
   onEntityChange,
   onViewModeChange,
   onSearchChange,
   onColumnsChange,
+  onFiltersChange,
   onSaveView,
   onUpdateView,
   onOpenViewSelector,
@@ -181,7 +190,7 @@ export function CrmHeader({
         </div>
       </div>
 
-      {/* Second row: Search + Column selector */}
+      {/* Second row: Search + Filters + Column selector */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -196,34 +205,45 @@ export function CrmHeader({
           />
         </div>
 
-        {viewMode === "table" && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Columns3 className="h-4 w-4" />
-                Colunas
-                <ChevronDown className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Personalizar colunas</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {columns.map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.key}
-                  checked={visibleColumns.includes(column.key)}
-                  onCheckedChange={() => handleColumnToggle(column.key)}
-                  disabled={column.required}
-                >
-                  {column.label}
-                  {column.required && (
-                    <span className="ml-auto text-xs text-muted-foreground">obrigatório</span>
-                  )}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Advanced Filters */}
+          <CrmAdvancedFilters
+            entityType={entityType}
+            filters={filters}
+            stages={stages}
+            availableTags={availableTags}
+            onFiltersChange={onFiltersChange}
+          />
+
+          {viewMode === "table" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Columns3 className="h-4 w-4" />
+                  Colunas
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Personalizar colunas</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {columns.map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.key}
+                    checked={visibleColumns.includes(column.key)}
+                    onCheckedChange={() => handleColumnToggle(column.key)}
+                    disabled={column.required}
+                  >
+                    {column.label}
+                    {column.required && (
+                      <span className="ml-auto text-xs text-muted-foreground">obrigatório</span>
+                    )}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
     </div>
   );
