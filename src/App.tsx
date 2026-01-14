@@ -20,6 +20,8 @@ import Inbox from "./pages/Inbox";
 import Automations from "./pages/Automations";
 import LandingPages from "./pages/LandingPages";
 import PublicLandingPage from "./pages/PublicLandingPage";
+import Proposals from "./pages/Proposals";
+import PublicProposalPage from "./pages/PublicProposalPage";
 import SuperAdmin from "./pages/SuperAdmin";
 import Contacts from "./pages/Contacts";
 import ContactDetail from "./pages/ContactDetail";
@@ -62,8 +64,9 @@ const App = () => (
                   <Route path="/dashboard/ai-suggestions" element={<AISuggestionsHistory />} />
                   <Route path="/dashboard/crm" element={<Crm />} />
                   <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
+                  <Route path="/dashboard/proposals" element={<Proposals />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
-                  <Route path="/super-admin" element={<SuperAdmin />} />
+                  <Route path="/p/:slug" element={<PublicProposalPage />} />
                   <Route path="/super-admin" element={<SuperAdmin />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

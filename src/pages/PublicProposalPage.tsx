@@ -42,17 +42,21 @@ export default function PublicProposalPage() {
   };
 
   const trackView = async () => {
-    // Increment view count
-    await supabase.rpc("increment_proposal_views", { proposal_slug: slug }).catch(() => {});
-    
-    // Log activity
+    // Get proposal info and log activity
     const { data: prop } = await supabase
       .from("proposals")
-      .select("id, workspace_id")
+      .select("id, workspace_id, views_count")
       .eq("slug", slug)
       .single();
     
     if (prop) {
+      // Increment views count directly
+      await supabase
+        .from("proposals")
+        .update({ views_count: (prop.views_count || 0) + 1 })
+        .eq("id", prop.id);
+
+      // Log activity
       await supabase.from("proposal_activity_logs").insert({
         proposal_id: prop.id,
         workspace_id: prop.workspace_id,
