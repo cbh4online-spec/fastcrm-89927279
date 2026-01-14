@@ -328,6 +328,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           channel: string
+          channel_metadata: Json | null
           created_at: string
           external_thread_id: string | null
           id: string
@@ -341,6 +342,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           channel: string
+          channel_metadata?: Json | null
           created_at?: string
           external_thread_id?: string | null
           id?: string
@@ -354,6 +356,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           channel?: string
+          channel_metadata?: Json | null
           created_at?: string
           external_thread_id?: string | null
           id?: string
@@ -376,6 +379,56 @@ export type Database = {
             foreignKeyName: "conversations_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_connections: {
+        Row: {
+          access_token: string
+          connected_by: string
+          created_at: string
+          id: string
+          instagram_user_id: string
+          instagram_username: string | null
+          is_active: boolean
+          page_id: string
+          token_expires_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          access_token: string
+          connected_by: string
+          created_at?: string
+          id?: string
+          instagram_user_id: string
+          instagram_username?: string | null
+          is_active?: boolean
+          page_id: string
+          token_expires_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          access_token?: string
+          connected_by?: string
+          created_at?: string
+          id?: string
+          instagram_user_id?: string
+          instagram_username?: string | null
+          is_active?: boolean
+          page_id?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
