@@ -11,14 +11,15 @@ import {
   ROLE_DEFAULT_VIEWS,
   CONTACT_COLUMNS,
   OPPORTUNITY_COLUMNS,
-  DEFAULT_CONTACT_COLUMNS,
-  DEFAULT_OPPORTUNITY_COLUMNS,
+  getDefaultColumnsForRole,
 } from "@/hooks/useCrmViews";
 import { CrmHeader } from "./unified/CrmHeader";
 import { CrmTableView } from "./unified/CrmTableView";
 import { CrmBoardView } from "./unified/CrmBoardView";
 import { SaveViewDialog } from "./unified/SaveViewDialog";
 import { ViewSelectorPopover } from "./unified/ViewSelectorPopover";
+import { QuickTaskDialog } from "./unified/QuickTaskDialog";
+import { toast } from "sonner";
 
 export function UnifiedCrmView() {
   const navigate = useNavigate();
@@ -29,19 +30,24 @@ export function UnifiedCrmView() {
   const { views, isLoading: viewsLoading, getDefaultView, createView, updateView, deleteView, setAsDefault, getUserViews } = useCrmViews();
 
   // Get role-based defaults
-  const roleDefaults = currentWorkspace?.role ? ROLE_DEFAULT_VIEWS[currentWorkspace.role] : { entity: "contacts" as CrmEntityType, mode: "table" as CrmViewMode };
+  const userRole = currentWorkspace?.role || "viewer";
+  const roleConfig = ROLE_DEFAULT_VIEWS[userRole];
 
   // State
-  const [entityType, setEntityType] = useState<CrmEntityType>(roleDefaults.entity);
-  const [viewMode, setViewMode] = useState<CrmViewMode>(roleDefaults.mode);
+  const [entityType, setEntityType] = useState<CrmEntityType>(roleConfig.entity);
+  const [viewMode, setViewMode] = useState<CrmViewMode>(roleConfig.mode);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<Record<string, unknown>>({});
   const [visibleColumns, setVisibleColumns] = useState<string[]>(
-    entityType === "contacts" ? DEFAULT_CONTACT_COLUMNS : DEFAULT_OPPORTUNITY_COLUMNS
+    getDefaultColumnsForRole(userRole, roleConfig.entity)
   );
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [viewSelectorOpen, setViewSelectorOpen] = useState(false);
+  
+  // Quick action dialogs
+  const [quickTaskOpen, setQuickTaskOpen] = useState(false);
+  const [quickActionTarget, setQuickActionTarget] = useState<{ id: string; type: CrmEntityType } | null>(null);
 
   // Load default view on mount based on entity type
   const loadDefaultView = useCallback((entity: CrmEntityType) => {
@@ -50,22 +56,22 @@ export function UnifiedCrmView() {
       setViewMode(defaultView.view_mode);
       setFilters(defaultView.filters);
       setVisibleColumns(defaultView.visible_columns.length > 0 ? defaultView.visible_columns : 
-        (entity === "contacts" ? DEFAULT_CONTACT_COLUMNS : DEFAULT_OPPORTUNITY_COLUMNS));
+        getDefaultColumnsForRole(userRole, entity));
       setSelectedViewId(defaultView.id);
     } else {
       // Use role defaults
-      const roleDefault = currentWorkspace?.role ? ROLE_DEFAULT_VIEWS[currentWorkspace.role] : null;
+      const roleDefault = ROLE_DEFAULT_VIEWS[userRole];
       if (roleDefault && roleDefault.entity === entity) {
         setViewMode(roleDefault.mode);
       } else {
         setViewMode("table");
       }
-      setVisibleColumns(entity === "contacts" ? DEFAULT_CONTACT_COLUMNS : DEFAULT_OPPORTUNITY_COLUMNS);
+      setVisibleColumns(getDefaultColumnsForRole(userRole, entity));
       setSelectedViewId(null);
     }
     setFilters({});
     setSearchQuery("");
-  }, [getDefaultView, currentWorkspace?.role]);
+  }, [getDefaultView, userRole]);
 
   // Handle entity toggle
   const handleEntityChange = useCallback((newEntity: CrmEntityType) => {
@@ -81,10 +87,10 @@ export function UnifiedCrmView() {
       setViewMode(view.view_mode);
       setFilters(view.filters);
       setVisibleColumns(view.visible_columns.length > 0 ? view.visible_columns : 
-        (view.entity_type === "contacts" ? DEFAULT_CONTACT_COLUMNS : DEFAULT_OPPORTUNITY_COLUMNS));
+        getDefaultColumnsForRole(userRole, view.entity_type));
       setSelectedViewId(viewId);
     }
-  }, [views]);
+  }, [views, userRole]);
 
   // Filter data
   const filteredContacts = useMemo(() => {
@@ -123,7 +129,19 @@ export function UnifiedCrmView() {
     if (entityType === "contacts") {
       navigate(`/dashboard/contacts/${id}`);
     } else {
-      // For opportunities, we could navigate to a detail page when it exists
+      navigate(`/dashboard/opportunities`);
+    }
+  };
+
+  // Handle quick actions
+  const handleQuickAction = (action: "reply" | "task" | "opportunity", entityId: string, entityType: CrmEntityType) => {
+    setQuickActionTarget({ id: entityId, type: entityType });
+    
+    if (action === "task") {
+      setQuickTaskOpen(true);
+    } else if (action === "reply") {
+      toast.info("Funcionalidade de mensagem em desenvolvimento");
+    } else if (action === "opportunity") {
       navigate(`/dashboard/opportunities`);
     }
   };
@@ -206,6 +224,7 @@ export function UnifiedCrmView() {
             opportunities={filteredOpportunities}
             stages={stages || []}
             onRowClick={handleRowClick}
+            onQuickAction={handleQuickAction}
           />
         )}
       </div>
@@ -226,6 +245,13 @@ export function UnifiedCrmView() {
         onSelectView={applyView}
         onSetDefault={(id) => setAsDefault.mutateAsync({ id, entityType })}
         onDeleteView={(id) => deleteView.mutateAsync(id)}
+      />
+
+      <QuickTaskDialog
+        open={quickTaskOpen}
+        onOpenChange={setQuickTaskOpen}
+        relatedId={quickActionTarget?.id || ""}
+        relatedType={quickActionTarget?.type === "contacts" ? "lead" : "opportunity"}
       />
     </div>
   );
