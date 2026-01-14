@@ -1,10 +1,9 @@
 import { useConversations } from "@/hooks/useConversations";
-import { useMessages } from "@/hooks/useMessages";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Clock, MessageSquare, AlertTriangle, TrendingUp } from "lucide-react";
-import { differenceInMinutes, differenceInHours } from "date-fns";
-
+import { differenceInHours } from "date-fns";
+import { IntegrationStatusPanel } from "./IntegrationStatusPanel";
 export function InboxMetricsBar() {
   const { data: conversations } = useConversations();
   
@@ -29,6 +28,11 @@ export function InboxMetricsBar() {
   return (
     <TooltipProvider>
       <div className="flex items-center gap-6 px-4 py-2 border-b border-border bg-muted/30">
+        {/* Integration Status (compact) */}
+        <IntegrationStatusPanel compact />
+        
+        <div className="w-px h-4 bg-border" />
+        
         {/* Open Conversations */}
         <Tooltip>
           <TooltipTrigger asChild>
