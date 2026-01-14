@@ -17,6 +17,8 @@ export interface TemplateActivityLog {
   user_id: string;
   channel: string;
   created_at: string;
+  template_version?: number;
+  template_name?: string;
 }
 
 export function useTemplateActivityLogs(entityType?: string, entityId?: string) {
@@ -60,6 +62,8 @@ export function useLogTemplateActivity() {
       variablesUsed,
       missingVariables,
       channel,
+      templateVersion,
+      templateName,
     }: {
       templateId: string;
       entityType: string;
@@ -69,8 +73,32 @@ export function useLogTemplateActivity() {
       variablesUsed: Record<string, string>;
       missingVariables: string[];
       channel: string;
+      templateVersion?: number;
+      templateName?: string;
     }) => {
       if (!currentWorkspace || !user) throw new Error('No workspace or user');
+
+      // Get template info if not provided
+      let version = templateVersion;
+      let name = templateName;
+      if (!version || !name) {
+        const { data: template } = await supabase
+          .from('templates' as any)
+          .select('name')
+          .eq('id', templateId)
+          .single();
+        
+        const { data: latestVersion } = await supabase
+          .from('template_versions' as any)
+          .select('version')
+          .eq('template_id', templateId)
+          .order('version', { ascending: false })
+          .limit(1)
+          .single();
+        
+        version = version || (latestVersion as any)?.version || 1;
+        name = name || (template as any)?.name || 'Template';
+      }
 
       const { data, error } = await supabase
         .from('template_activity_logs' as any)
@@ -90,7 +118,13 @@ export function useLogTemplateActivity() {
         .single();
 
       if (error) throw error;
-      return data as unknown as TemplateActivityLog;
+      
+      // Return with additional metadata
+      return {
+        ...(data as unknown as TemplateActivityLog),
+        template_version: version,
+        template_name: name,
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['template-activity-logs'] });

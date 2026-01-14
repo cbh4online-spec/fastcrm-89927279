@@ -8,7 +8,21 @@ export interface TemplateVariable {
   category: 'lead' | 'opportunity' | 'company' | 'contact' | 'user' | 'date' | 'custom';
   required?: boolean;
   example: string;
+  alternativeFields?: string[]; // For field mapping suggestions
 }
+
+// Map of variable keys to compatible alternative fields for mapping
+export const variableAlternatives: Record<string, string[]> = {
+  '{{lead.name}}': ['{{contact.name}}', '{{company.name}}'],
+  '{{lead.email}}': ['{{contact.email}}', '{{company.email}}', '{{user.email}}'],
+  '{{lead.phone}}': ['{{contact.phone}}', '{{company.phone}}'],
+  '{{lead.first_name}}': ['{{contact.first_name}}', '{{user.first_name}}'],
+  '{{contact.name}}': ['{{lead.name}}', '{{company.name}}'],
+  '{{contact.email}}': ['{{lead.email}}', '{{company.email}}', '{{user.email}}'],
+  '{{company.name}}': ['{{lead.name}}', '{{contact.company}}'],
+  '{{company.email}}': ['{{lead.email}}', '{{contact.email}}'],
+  '{{opportunity.title}}': ['{{lead.name}}'],
+};
 
 export interface VariableCategory {
   id: string;
