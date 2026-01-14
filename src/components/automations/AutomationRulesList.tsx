@@ -38,13 +38,29 @@ import { format } from "date-fns";
 
 const triggerLabels: Record<AutomationTrigger, string> = {
   lead_created: "Lead Criado",
+  lead_updated: "Lead Atualizado",
+  opportunity_created: "Oport. Criada",
+  opportunity_updated: "Oport. Atualizada",
   opportunity_stage_changed: "Etapa Alterada",
-  payment_confirmed: "Pagamento Confirmado",
+  contact_created: "Contacto Criado",
+  contact_updated: "Contacto Atualizado",
+  company_created: "Empresa Criada",
+  company_updated: "Empresa Atualizada",
+  custom_field_updated: "Campo Custom",
+  payment_confirmed: "Pagamento",
 };
 
 const triggerColors: Record<AutomationTrigger, string> = {
   lead_created: "bg-blue-500",
+  lead_updated: "bg-blue-400",
+  opportunity_created: "bg-purple-500",
+  opportunity_updated: "bg-purple-400",
   opportunity_stage_changed: "bg-purple-500",
+  contact_created: "bg-emerald-500",
+  contact_updated: "bg-emerald-400",
+  company_created: "bg-amber-500",
+  company_updated: "bg-amber-400",
+  custom_field_updated: "bg-cyan-500",
   payment_confirmed: "bg-green-500",
 };
 
