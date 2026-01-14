@@ -426,6 +426,22 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
   }, [editRule, form, open]);
 
   const onSubmit = async (values: FormValues) => {
+    // SAFETY: Validate messaging actions have templates selected
+    const messagingActions = ["send_template_message", "send_message"];
+    for (let i = 0; i < values.actions.length; i++) {
+      const action = values.actions[i];
+      if (messagingActions.includes(action.action_type)) {
+        const templateId = (action.config as Record<string, unknown>)?.template_id;
+        if (!templateId) {
+          form.setError(`actions.${i}.config.template_id`, {
+            type: "manual",
+            message: "Template obrigatório para ações de mensagem",
+          });
+          return;
+        }
+      }
+    }
+
     const payload = {
       name: values.name,
       description: values.description,

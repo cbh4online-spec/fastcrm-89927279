@@ -44,6 +44,8 @@ import { VariableContext } from "@/lib/templateVariables";
 import { Template } from "@/hooks/useTemplates";
 import { InboxAIAssistant } from "./InboxAIAssistant";
 import { ConversationClassification } from "./ConversationClassification";
+import { InboxTemplateAIDraft } from "./InboxTemplateAIDraft";
+import { Separator } from "@/components/ui/separator";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -313,7 +315,14 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
           </ScrollArea>
 
           {/* Input */}
-          <div className="p-3 border-t border-border bg-card">
+          <div className="p-3 border-t border-border bg-card space-y-2">
+            {/* Reply Options Info */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Opções de resposta:</span>
+              <Badge variant="outline" className="text-[10px] py-0">Texto livre</Badge>
+              <Badge variant="outline" className="text-[10px] py-0">Template</Badge>
+              <Badge variant="outline" className="text-[10px] py-0">AI + Template</Badge>
+            </div>
             <div className="flex items-center gap-2">
               <TemplateSelector
                 entityType="lead"
@@ -323,13 +332,13 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 goal="follow_up"
                 onApply={handleTemplateApply}
                 trigger={
-                  <Button variant="outline" size="icon" className="h-9 w-9">
+                  <Button variant="outline" size="icon" className="h-9 w-9" title="Usar template">
                     <FileText className="w-4 h-4" />
                   </Button>
                 }
               />
               <Input
-                placeholder="Escreva uma mensagem..."
+                placeholder="Escreva uma mensagem ou use templates/AI..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => {
@@ -378,6 +387,22 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 messages={messages}
                 leadName={conversation.lead?.name}
                 onInsertReply={handleInsertReply}
+              />
+
+              <Separator className="my-4" />
+
+              {/* Template-based AI Draft */}
+              <InboxTemplateAIDraft
+                entityData={templateContext}
+                conversationContext={{
+                  messages: messages.map(m => ({
+                    direction: m.direction,
+                    content: m.content,
+                  })),
+                  leadName: conversation.lead?.name,
+                  channel: conversation.channel,
+                }}
+                onApply={handleInsertReply}
               />
             </div>
           </div>

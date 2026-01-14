@@ -134,12 +134,12 @@ export function TemplateActionConfig({ form, index, entityType }: TemplateAction
 
   return (
     <div className="space-y-4">
-      {/* Template Requirement Notice */}
-      <Alert className="bg-blue-500/10 border-blue-500/30">
-        <FileText className="h-4 w-4 text-blue-500" />
+      {/* Template Requirement Notice - Critical Warning */}
+      <Alert className="bg-amber-500/10 border-amber-500/30">
+        <AlertTriangle className="h-4 w-4 text-amber-600" />
         <AlertDescription className="text-sm">
-          <strong>Templates obrigatórios:</strong> Todas as mensagens automáticas devem usar templates para garantir 
-          que as variáveis sejam validadas antes do envio.
+          <strong>Template obrigatório:</strong> Automações não podem enviar mensagens sem templates. 
+          Variáveis serão validadas e mensagens com dados em falta serão bloqueadas.
         </AlertDescription>
       </Alert>
       {/* Channel Selection */}
