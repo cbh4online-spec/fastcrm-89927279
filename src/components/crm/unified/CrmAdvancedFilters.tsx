@@ -189,16 +189,16 @@ export function CrmAdvancedFilters({
               <div className="space-y-2">
                 <Label>Estado do contacto</Label>
                 <Select
-                  value={localFilters.status || ""}
+                  value={localFilters.status || "__all__"}
                   onValueChange={(value) =>
-                    setLocalFilters({ ...localFilters, status: value || undefined })
+                    setLocalFilters({ ...localFilters, status: value === "__all__" ? undefined : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todos os estados" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os estados</SelectItem>
+                    <SelectItem value="__all__">Todos os estados</SelectItem>
                     {CONTACT_STATUSES.map((status) => (
                       <SelectItem key={status.id} value={status.id}>
                         <div className="flex items-center gap-2">
@@ -217,16 +217,16 @@ export function CrmAdvancedFilters({
               <div className="space-y-2">
                 <Label>Etapa do negócio</Label>
                 <Select
-                  value={localFilters.stage || ""}
+                  value={localFilters.stage || "__all__"}
                   onValueChange={(value) =>
-                    setLocalFilters({ ...localFilters, stage: value || undefined })
+                    setLocalFilters({ ...localFilters, stage: value === "__all__" ? undefined : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todas as etapas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as etapas</SelectItem>
+                    <SelectItem value="__all__">Todas as etapas</SelectItem>
                     {stages.map((stage) => (
                       <SelectItem key={stage.id} value={stage.id}>
                         {stage.name}
