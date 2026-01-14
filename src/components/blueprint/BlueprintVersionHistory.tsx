@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,8 +22,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useBlueprintVersions } from '@/hooks/useBlueprintVersions';
+import { BlueprintVersionCompare } from './BlueprintVersionCompare';
 import { CrmBlueprint } from '@/types/blueprint';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import {
   History,
@@ -32,12 +34,20 @@ import {
   FileJson,
   Layers,
   GitBranch,
+  GitCompare,
+  X,
 } from 'lucide-react';
 
 interface BlueprintVersionHistoryProps {
   blueprintId: string | null;
   currentVersion: number;
   onRestore: (blueprint: CrmBlueprint) => void;
+}
+
+interface VersionForCompare {
+  id: string;
+  version: number;
+  schema: CrmBlueprint;
 }
 
 export function BlueprintVersionHistory({
@@ -49,6 +59,9 @@ export function BlueprintVersionHistory({
   const [open, setOpen] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<CrmBlueprint | null>(null);
   const [confirmRestore, setConfirmRestore] = useState<string | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<VersionForCompare[]>([]);
+  const [showCompareDialog, setShowCompareDialog] = useState(false);
 
   const handleRestore = async (versionId: string) => {
     const blueprint = await restoreVersion(versionId);
@@ -59,13 +72,38 @@ export function BlueprintVersionHistory({
     }
   };
 
+  const toggleVersionForCompare = (version: VersionForCompare) => {
+    const isSelected = selectedForCompare.some((v) => v.id === version.id);
+    if (isSelected) {
+      setSelectedForCompare(selectedForCompare.filter((v) => v.id !== version.id));
+    } else if (selectedForCompare.length < 2) {
+      setSelectedForCompare([...selectedForCompare, version]);
+    }
+  };
+
+  const handleCompare = () => {
+    if (selectedForCompare.length === 2) {
+      setShowCompareDialog(true);
+    }
+  };
+
+  const exitCompareMode = () => {
+    setCompareMode(false);
+    setSelectedForCompare([]);
+  };
+
   if (!blueprintId) {
     return null;
   }
 
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          exitCompareMode();
+        }
+      }}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
             <History className="h-4 w-4 mr-2" />
@@ -79,6 +117,45 @@ export function BlueprintVersionHistory({
               Histórico de Versões
             </DialogTitle>
           </DialogHeader>
+
+          {/* Compare Mode Controls */}
+          {versions.length >= 2 && (
+            <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
+              {compareMode ? (
+                <>
+                  <div className="flex items-center gap-2 text-sm">
+                    <GitCompare className="h-4 w-4 text-primary" />
+                    <span>
+                      Selecione 2 versões para comparar ({selectedForCompare.length}/2)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      disabled={selectedForCompare.length !== 2}
+                      onClick={handleCompare}
+                    >
+                      <GitCompare className="h-4 w-4 mr-1" />
+                      Comparar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={exitCompareMode}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setCompareMode(true)}
+                  className="w-full"
+                >
+                  <GitCompare className="h-4 w-4 mr-2" />
+                  Comparar Versões
+                </Button>
+              )}
+            </div>
+          )}
 
           {isLoading ? (
             <div className="space-y-3">
@@ -106,14 +183,29 @@ export function BlueprintVersionHistory({
                 {versions.map((version, index) => {
                   const isCurrent = version.version === currentVersion;
                   const isLatest = index === 0;
+                  const isSelectedForCompare = selectedForCompare.some((v) => v.id === version.id);
 
                   return (
                     <div
                       key={version.id}
                       className={`flex items-start gap-4 p-4 border rounded-lg transition-colors ${
+                        isSelectedForCompare ? 'bg-primary/10 border-primary' :
                         isCurrent ? 'bg-primary/5 border-primary/30' : 'hover:bg-muted/50'
                       }`}
                     >
+                      {compareMode && (
+                        <div className="flex items-center justify-center pt-1">
+                          <Checkbox
+                            checked={isSelectedForCompare}
+                            onCheckedChange={() => toggleVersionForCompare({
+                              id: version.id,
+                              version: version.version,
+                              schema: version.schema,
+                            })}
+                            disabled={selectedForCompare.length >= 2 && !isSelectedForCompare}
+                          />
+                        </div>
+                      )}
                       <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center shrink-0">
                         <FileJson className="h-5 w-5 text-primary" />
                       </div>
@@ -152,30 +244,60 @@ export function BlueprintVersionHistory({
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setPreviewVersion(version.schema)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {!isCurrent && (
+                      {!compareMode && (
+                        <div className="flex items-center gap-2 shrink-0">
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            onClick={() => setConfirmRestore(version.id)}
+                            onClick={() => setPreviewVersion(version.schema)}
                           >
-                            <RotateCcw className="h-4 w-4 mr-1" />
-                            Restaurar
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
+                          {!isCurrent && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setConfirmRestore(version.id)}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Restaurar
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Compare Dialog */}
+      <Dialog open={showCompareDialog} onOpenChange={setShowCompareDialog}>
+        <DialogContent className="max-w-3xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GitCompare className="h-5 w-5" />
+              Comparação de Versões
+            </DialogTitle>
+          </DialogHeader>
+          {selectedForCompare.length === 2 && (
+            <BlueprintVersionCompare
+              versionA={{
+                version: Math.min(selectedForCompare[0].version, selectedForCompare[1].version),
+                schema: selectedForCompare[0].version < selectedForCompare[1].version 
+                  ? selectedForCompare[0].schema 
+                  : selectedForCompare[1].schema,
+              }}
+              versionB={{
+                version: Math.max(selectedForCompare[0].version, selectedForCompare[1].version),
+                schema: selectedForCompare[0].version > selectedForCompare[1].version 
+                  ? selectedForCompare[0].schema 
+                  : selectedForCompare[1].schema,
+              }}
+            />
           )}
         </DialogContent>
       </Dialog>
