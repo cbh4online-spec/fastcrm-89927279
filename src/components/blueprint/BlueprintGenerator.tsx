@@ -14,6 +14,8 @@ import {
 } from '@/types/blueprint';
 import { ClarifyingQuestions } from './ClarifyingQuestions';
 import { BlueprintPreview } from './BlueprintPreview';
+import { BlueprintApplyPreview, ApplyMode } from './BlueprintApplyPreview';
+import { useBlueprintApply } from '@/hooks/useBlueprintApply';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -25,6 +27,7 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertCircle,
+  Play,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
@@ -33,7 +36,7 @@ interface BlueprintGeneratorProps {
   onBlueprintSaved?: (blueprint: CrmBlueprint) => void;
 }
 
-type GeneratorStep = 'input' | 'clarifying' | 'preview';
+type GeneratorStep = 'input' | 'clarifying' | 'preview' | 'apply';
 
 export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGeneratorProps) {
   const { currentWorkspace } = useWorkspace();
@@ -46,6 +49,15 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
   const [confidence, setConfidence] = useState<number | null>(null);
   const [explanation, setExplanation] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const {
+    isApplying,
+    existingFields,
+    existingStages,
+    existingAutomations,
+    duplicates,
+    applyBlueprint,
+  } = useBlueprintApply(blueprint);
 
   const handleGenerate = async (clarifyingAnswers?: Record<string, string | string[]>) => {
     setIsLoading(true);
@@ -139,6 +151,17 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     setExplanation('');
   };
 
+  const handleApply = async (mode: ApplyMode, mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>) => {
+    const result = await applyBlueprint(mode, mergeDecisions);
+    if (result.success && result.errors.length === 0) {
+      handleReset();
+    }
+  };
+
+  const handleProceedToApply = () => {
+    setStep('apply');
+  };
+
   return (
     <div className="space-y-6">
       {/* Progress indicator */}
@@ -167,7 +190,16 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
           }`}>
             3
           </div>
-          <span className="text-sm">Resultado</span>
+          <span className="text-sm">Pré-visualização</span>
+        </div>
+        <Separator className="flex-1" />
+        <div className="flex items-center gap-2">
+          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium ${
+            step === 'apply' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+          }`}>
+            4
+          </div>
+          <span className="text-sm">Aplicar</span>
         </div>
       </div>
 
@@ -299,7 +331,11 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
 
           {/* Actions */}
           <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={isSaving} className="flex-1">
+            <Button onClick={handleProceedToApply} className="flex-1">
+              <Play className="h-4 w-4 mr-2" />
+              Pré-visualizar & Aplicar
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving} variant="outline">
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -308,7 +344,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Guardar Blueprint
+                  Guardar
                 </>
               )}
             </Button>
@@ -321,6 +357,24 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
               Recomeçar
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Apply Step */}
+      {step === 'apply' && blueprint && (
+        <div className="space-y-4">
+          <Button variant="ghost" onClick={() => setStep('preview')} className="mb-2">
+            ← Voltar à pré-visualização
+          </Button>
+          <BlueprintApplyPreview
+            blueprint={blueprint}
+            existingFields={existingFields}
+            existingStages={existingStages}
+            existingAutomations={existingAutomations}
+            duplicates={duplicates}
+            onApply={handleApply}
+            isApplying={isApplying}
+          />
         </div>
       )}
     </div>

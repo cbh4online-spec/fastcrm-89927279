@@ -353,6 +353,63 @@ export type Database = {
           },
         ]
       }
+      blueprint_apply_logs: {
+        Row: {
+          applied_by: string
+          apply_type: string
+          blueprint_id: string
+          changes_applied: Json
+          created_at: string
+          duplicates_detected: Json
+          duplicates_merged: Json
+          error_message: string | null
+          id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          applied_by: string
+          apply_type?: string
+          blueprint_id: string
+          changes_applied?: Json
+          created_at?: string
+          duplicates_detected?: Json
+          duplicates_merged?: Json
+          error_message?: string | null
+          id?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          applied_by?: string
+          apply_type?: string
+          blueprint_id?: string
+          changes_applied?: Json
+          created_at?: string
+          duplicates_detected?: Json
+          duplicates_merged?: Json
+          error_message?: string | null
+          id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blueprint_apply_logs_blueprint_id_fkey"
+            columns: ["blueprint_id"]
+            isOneToOne: false
+            referencedRelation: "crm_blueprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blueprint_apply_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
