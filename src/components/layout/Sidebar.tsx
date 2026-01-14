@@ -48,14 +48,15 @@ interface NavItem {
 interface NavGroup {
   name: string;
   icon: typeof LayoutDashboard;
+  href: string;
   items: NavItem[];
 }
 
 const crmNavigation: NavGroup = {
   name: "CRM",
   icon: LayoutList,
+  href: "/dashboard/crm",
   items: [
-    { name: "Vista Geral", href: "/dashboard/crm", icon: LayoutList },
     { name: "Leads", href: "/dashboard/leads", icon: Target },
     { name: "Oportunidades", href: "/dashboard/opportunities", icon: Kanban },
     { name: "Contactos", href: "/dashboard/contacts", icon: Users },
@@ -179,24 +180,37 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             
             {/* CRM Collapsible Group */}
             <Collapsible open={crmOpen} onOpenChange={setCrmOpen}>
-              <CollapsibleTrigger asChild>
-                <button
+              <div className="flex items-center">
+                <Link
+                  to={crmNavigation.href}
+                  onClick={onClose}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full",
-                    isCrmActive
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-1",
+                    isActive(crmNavigation.href)
                       ? "bg-sidebar-accent text-sidebar-primary"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   )}
                 >
                   <crmNavigation.icon className="w-5 h-5" />
                   <span className="flex-1 text-left">{crmNavigation.name}</span>
-                  {crmOpen ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                </button>
-              </CollapsibleTrigger>
+                </Link>
+                <CollapsibleTrigger asChild>
+                  <button
+                    className={cn(
+                      "p-2 rounded-lg transition-colors",
+                      isCrmActive
+                        ? "text-sidebar-primary hover:bg-sidebar-accent"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    )}
+                  >
+                    {crmOpen ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+              </div>
               <CollapsibleContent className="space-y-1 mt-1">
                 {crmNavigation.items.map((item) => renderNavItem(item, true))}
               </CollapsibleContent>
