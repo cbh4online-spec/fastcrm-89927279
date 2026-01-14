@@ -15,6 +15,7 @@ import {
   Paperclip,
   User,
   ChevronRight,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEntityRelatedCounts } from "@/hooks/useEntityInsights";
@@ -37,6 +38,7 @@ const MODULE_ICONS: Record<SidebarModuleType, React.ReactNode> = {
   social: <Share2 className="w-4 h-4" />,
   payments: <DollarSign className="w-4 h-4" />,
   files: <Paperclip className="w-4 h-4" />,
+  activity_timeline: <Activity className="w-4 h-4" />,
 };
 
 const MODULE_COLORS: Record<SidebarModuleType, string> = {
@@ -52,6 +54,7 @@ const MODULE_COLORS: Record<SidebarModuleType, string> = {
   social: "text-indigo-600",
   payments: "text-teal-600",
   files: "text-slate-600",
+  activity_timeline: "text-violet-600",
 };
 
 // Map module types to count keys
@@ -68,6 +71,7 @@ const MODULE_COUNT_KEYS: Record<SidebarModuleType, keyof ReturnType<typeof useEn
   social: "socialInteractions",
   payments: "payments",
   files: "files",
+  activity_timeline: "notes", // Timeline shows all activities, use notes as placeholder
 };
 
 interface ConfigurableEntitySidebarProps {
