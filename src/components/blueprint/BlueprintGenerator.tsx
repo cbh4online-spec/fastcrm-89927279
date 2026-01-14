@@ -17,6 +17,7 @@ import { BlueprintApplyPreview, ApplyMode, ApplyResult } from './BlueprintApplyP
 import { TemplateSelector } from './TemplateSelector';
 import { SavedBlueprintsList } from './SavedBlueprintsList';
 import { BlueprintVersionHistory } from './BlueprintVersionHistory';
+import { BlueprintRefineChat } from './BlueprintRefineChat';
 import { useBlueprintApply } from '@/hooks/useBlueprintApply';
 import { useBlueprintVersions } from '@/hooks/useBlueprintVersions';
 import { BlueprintTemplate } from '@/data/blueprintTemplates';
@@ -34,6 +35,7 @@ import {
   LayoutTemplate,
   ArrowRight,
   FolderOpen,
+  MessageCircle,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -43,7 +45,7 @@ interface BlueprintGeneratorProps {
   onBlueprintSaved?: (blueprint: CrmBlueprint) => void;
 }
 
-type GeneratorStep = 'select' | 'customize' | 'clarifying' | 'preview' | 'apply';
+type GeneratorStep = 'select' | 'customize' | 'clarifying' | 'preview' | 'refine' | 'apply';
 type GeneratorMode = 'template' | 'scratch' | 'import';
 
 export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGeneratorProps) {
@@ -63,6 +65,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
   const [isSaving, setIsSaving] = useState(false);
   const [loadedFromDraft, setLoadedFromDraft] = useState(false);
   const [existingBlueprintId, setExistingBlueprintId] = useState<string | null>(null);
+  const [originalBlueprint, setOriginalBlueprint] = useState<CrmBlueprint | null>(null);
 
   const {
     isApplying,
@@ -280,6 +283,30 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     setStep('apply');
   };
 
+  const handleStartRefine = () => {
+    if (blueprint) {
+      setOriginalBlueprint(JSON.parse(JSON.stringify(blueprint)));
+      setStep('refine');
+    }
+  };
+
+  const handleRefineComplete = () => {
+    setStep('preview');
+    toast.success('Blueprint refinado com sucesso!');
+  };
+
+  const handleRefineCancel = () => {
+    if (originalBlueprint) {
+      setBlueprint(originalBlueprint);
+    }
+    setOriginalBlueprint(null);
+    setStep('preview');
+  };
+
+  const handleBlueprintUpdated = (updatedBlueprint: CrmBlueprint) => {
+    setBlueprint(updatedBlueprint);
+  };
+
   const handleUseTemplateDirectly = () => {
     if (!selectedTemplate) return;
 
@@ -314,7 +341,8 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
       case 'customize': return 2;
       case 'clarifying': return 3;
       case 'preview': return 4;
-      case 'apply': return 5;
+      case 'refine': return 5;
+      case 'apply': return 6;
       default: return 1;
     }
   };
@@ -328,7 +356,8 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
           { num: 2, label: 'Personalizar' },
           { num: 3, label: 'Clarificação' },
           { num: 4, label: 'Pré-visualização' },
-          { num: 5, label: 'Aplicar' },
+          { num: 5, label: 'Refinar' },
+          { num: 6, label: 'Aplicar' },
         ].map((s, idx) => (
           <div key={s.num} className="flex items-center gap-2 shrink-0">
             {idx > 0 && <Separator className="w-4 md:w-8" />}
@@ -585,11 +614,17 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
 
           {/* Actions */}
           <div className="flex gap-2 flex-wrap">
+            <Button onClick={handleStartRefine} variant="secondary" className="flex-1">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Refinar com AI
+            </Button>
             <Button onClick={handleProceedToApply} className="flex-1">
               <Play className="h-4 w-4 mr-2" />
-              Pré-visualizar & Aplicar
+              Aplicar
             </Button>
-            <Button onClick={handleSave} disabled={isSaving} variant="outline">
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={handleSave} disabled={isSaving} variant="outline" className="flex-1">
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -618,6 +653,18 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
               Recomeçar
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Refine Step */}
+      {step === 'refine' && blueprint && (
+        <div className="space-y-4">
+          <BlueprintRefineChat
+            blueprint={blueprint}
+            onBlueprintUpdated={handleBlueprintUpdated}
+            onComplete={handleRefineComplete}
+            onCancel={handleRefineCancel}
+          />
         </div>
       )}
 
