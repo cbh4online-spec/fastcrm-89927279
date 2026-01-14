@@ -11,6 +11,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
+import { ConfigurableEntitySidebar } from "@/components/crm/ConfigurableEntitySidebar";
+import { CustomizableKPIDashboard } from "@/components/crm/CustomizableKPIDashboard";
+import { UnifiedLayoutCustomizer } from "@/components/crm/UnifiedLayoutCustomizer";
+import { useLayoutConfig, DEFAULT_SIDEBAR_MODULES } from "@/hooks/useLayoutConfig";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   useFieldSuggestions, 
   useGenerateFieldSuggestions,
@@ -65,23 +70,6 @@ import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
 import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
 import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
 import { cn } from "@/lib/utils";
-
-// Sidebar navigation items
-interface SidebarNavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  count?: number;
-}
-
-const sidebarNavItems: SidebarNavItem[] = [
-  { id: "overview", label: "Visão Geral", icon: <User className="w-4 h-4" /> },
-  { id: "notes", label: "Notas", icon: <FileText className="w-4 h-4" />, count: 0 },
-  { id: "messages", label: "Mensagens", icon: <MessageSquare className="w-4 h-4" />, count: 0 },
-  { id: "opportunities", label: "Oportunidades", icon: <TrendingUp className="w-4 h-4" />, count: 0 },
-  { id: "tasks", label: "Tarefas", icon: <CheckSquare className="w-4 h-4" />, count: 0 },
-  { id: "files", label: "Ficheiros", icon: <Paperclip className="w-4 h-4" />, count: 0 },
-];
 
 // Reusable row component for label-value display
 interface DetailRowProps {
@@ -169,6 +157,12 @@ export function ContactDetail() {
   const [showCustomFields, setShowCustomFields] = useState(true);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showNotes, setShowNotes] = useState(true);
+  const [layoutCustomizerOpen, setLayoutCustomizerOpen] = useState(false);
+  
+  // Layout configuration
+  const { data: layoutData } = useLayoutConfig("contact");
+  const { isAdmin } = useUserRole();
+  const sidebarModules = layoutData?.layout.sidebar || DEFAULT_SIDEBAR_MODULES;
   const [editedContact, setEditedContact] = useState<{
     name: string;
     email: string;
@@ -452,40 +446,14 @@ export function ContactDetail() {
 
       {/* Main Content - 3 Column Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Navigation */}
-        <aside className="w-56 border-r bg-muted/20 flex-shrink-0">
-          <ScrollArea className="h-full">
-            <div className="p-4">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Lista Relacionada
-              </h3>
-              <nav className="space-y-1">
-                {sidebarNavItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveSection(item.id)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
-                      activeSection === item.id
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      {item.icon}
-                      {item.label}
-                    </span>
-                    {item.count !== undefined && item.count > 0 && (
-                      <Badge variant="secondary" className="h-5 min-w-5 flex items-center justify-center text-xs">
-                        {item.count}
-                      </Badge>
-                    )}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </ScrollArea>
-        </aside>
+        {/* Left Sidebar - Configurable Context Hub */}
+        <ConfigurableEntitySidebar
+          entityType="contact"
+          entityId={id}
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          modules={sidebarModules}
+        />
 
         {/* Center Content */}
         <main className="flex-1 overflow-auto">
@@ -493,6 +461,18 @@ export function ContactDetail() {
             <div className="p-6 space-y-4 max-w-3xl">
               {activeSection === "overview" && (
                 <>
+                  {/* Customizable KPI Dashboard */}
+                  <CustomizableKPIDashboard
+                    entityType="contact"
+                    entityId={id}
+                    entityData={contact ? {
+                      name: contact.name,
+                      notes: contact.notes || undefined,
+                      tags: contact.tags || undefined,
+                    } : null}
+                    onCustomizeClick={() => setLayoutCustomizerOpen(true)}
+                  />
+                  
                   {/* General Information Card */}
                   <Card>
                     <CardHeader className="pb-2">
@@ -975,6 +955,17 @@ export function ContactDetail() {
           </ScrollArea>
         </aside>
       </div>
+
+      {/* Unified Layout Customizer */}
+      <UnifiedLayoutCustomizer
+        open={layoutCustomizerOpen}
+        onOpenChange={setLayoutCustomizerOpen}
+        entityType="contact"
+        entityId={id}
+        currentLayout={layoutData?.layout || { widgets: [], sidebar: DEFAULT_SIDEBAR_MODULES }}
+        layoutSource={layoutData?.source || "default"}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }

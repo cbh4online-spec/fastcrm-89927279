@@ -10,8 +10,11 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
-import { EntityContextSidebar } from "@/components/crm/EntityContextSidebar";
+import { ConfigurableEntitySidebar } from "@/components/crm/ConfigurableEntitySidebar";
 import { CustomizableKPIDashboard } from "@/components/crm/CustomizableKPIDashboard";
+import { UnifiedLayoutCustomizer } from "@/components/crm/UnifiedLayoutCustomizer";
+import { useLayoutConfig, DEFAULT_SIDEBAR_MODULES } from "@/hooks/useLayoutConfig";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   useFieldSuggestions, 
   useGenerateFieldSuggestions,
@@ -171,6 +174,12 @@ export function LeadDetail() {
   const [activeSection, setActiveSection] = useState("overview");
   const [showCustomFields, setShowCustomFields] = useState(true);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const [layoutCustomizerOpen, setLayoutCustomizerOpen] = useState(false);
+  
+  // Layout configuration
+  const { data: layoutData } = useLayoutConfig("lead");
+  const { isAdmin } = useUserRole();
+  const sidebarModules = layoutData?.layout.sidebar || DEFAULT_SIDEBAR_MODULES;
   const [editedLead, setEditedLead] = useState<{
     name: string;
     email: string;
@@ -464,12 +473,13 @@ export function LeadDetail() {
 
       {/* Main Content - 3 Column Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Context Hub */}
-        <EntityContextSidebar
+        {/* Left Sidebar - Configurable Context Hub */}
+        <ConfigurableEntitySidebar
           entityType="lead"
           entityId={id}
           activeSection={activeSection}
           onSectionChange={setActiveSection}
+          modules={sidebarModules}
         />
 
         {/* Center Content */}
@@ -488,6 +498,7 @@ export function LeadDetail() {
                       source: lead.source || undefined,
                       tags: lead.tags || undefined,
                     } : null}
+                    onCustomizeClick={() => setLayoutCustomizerOpen(true)}
                   />
 
                   {/* General Information Card */}
@@ -937,6 +948,17 @@ export function LeadDetail() {
           </ScrollArea>
         </aside>
       </div>
+
+      {/* Unified Layout Customizer */}
+      <UnifiedLayoutCustomizer
+        open={layoutCustomizerOpen}
+        onOpenChange={setLayoutCustomizerOpen}
+        entityType="lead"
+        entityId={id}
+        currentLayout={layoutData?.layout || { widgets: [], sidebar: DEFAULT_SIDEBAR_MODULES }}
+        layoutSource={layoutData?.source || "default"}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }
