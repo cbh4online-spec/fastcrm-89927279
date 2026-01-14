@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useConversation, useMarkConversationRead, useUpdateConversationStatus, useAssignConversation } from "@/hooks/useConversations";
 import { useMessages, useSendMessage } from "@/hooks/useMessages";
 import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOpportunities } from "@/hooks/useOpportunities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,12 +43,12 @@ import { toast } from "sonner";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { VariableContext } from "@/lib/templateVariables";
 import { Template } from "@/hooks/useTemplates";
-import { InboxAIAssistant } from "./InboxAIAssistant";
+import { EnhancedAIReplyPanel } from "./EnhancedAIReplyPanel";
 import { ConversationClassification } from "./ConversationClassification";
-import { InboxTemplateAIDraft } from "./InboxTemplateAIDraft";
 import { InboxActionsMenu } from "./InboxActionsMenu";
 import { ConversationFollowupBanner } from "./ConversationFollowupBanner";
 import { Separator } from "@/components/ui/separator";
+import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -67,6 +68,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const { data: conversation, isLoading: convLoading } = useConversation(conversationId || undefined);
   const { data: messages, isLoading: messagesLoading } = useMessages(conversationId || undefined);
   const { data: agents } = useAgentMembers();
+  const { data: opportunities } = useOpportunities();
   const sendMessage = useSendMessage();
   const markRead = useMarkConversationRead();
   const updateStatus = useUpdateConversationStatus();
@@ -75,6 +77,34 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const [newMessage, setNewMessage] = useState("");
   const [showAIAssistant, setShowAIAssistant] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Build lead data for AI
+  const leadData: LeadData | undefined = useMemo(() => {
+    if (!conversation?.lead) return undefined;
+    return {
+      id: conversation.lead.id,
+      name: conversation.lead.name,
+      email: conversation.lead.email || undefined,
+      phone: conversation.lead.phone || undefined,
+      status: (conversation.lead as any).status || undefined,
+      source: (conversation.lead as any).source || undefined,
+      tags: (conversation.lead as any).tags || undefined,
+    };
+  }, [conversation?.lead]);
+
+  // Find opportunity linked to this lead
+  const opportunityData: OpportunityData | undefined = useMemo(() => {
+    if (!conversation?.lead_id || !opportunities) return undefined;
+    const opp = opportunities.find(o => o.lead_id === conversation.lead_id);
+    if (!opp) return undefined;
+    return {
+      id: opp.id,
+      title: opp.title,
+      value: opp.value,
+      stage: opp.stage_id, // Could enhance by fetching stage name
+      status: opp.status,
+    };
+  }, [conversation?.lead_id, opportunities]);
 
   // Build template context from conversation
   const templateContext: VariableContext = {
@@ -397,27 +427,15 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 classificationConfirmed={conversation.classification_confirmed}
               />
 
-              {/* Reply Suggestions */}
-              <InboxAIAssistant
+              <Separator className="my-2" />
+
+              {/* Enhanced AI Reply Panel */}
+              <EnhancedAIReplyPanel
                 messages={messages}
-                leadName={conversation.lead?.name}
+                leadData={leadData}
+                opportunityData={opportunityData}
+                channel={conversation.channel}
                 onInsertReply={handleInsertReply}
-              />
-
-              <Separator className="my-4" />
-
-              {/* Template-based AI Draft */}
-              <InboxTemplateAIDraft
-                entityData={templateContext}
-                conversationContext={{
-                  messages: messages.map(m => ({
-                    direction: m.direction,
-                    content: m.content,
-                  })),
-                  leadName: conversation.lead?.name,
-                  channel: conversation.channel,
-                }}
-                onApply={handleInsertReply}
               />
             </div>
           </div>
