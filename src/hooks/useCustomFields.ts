@@ -174,6 +174,39 @@ export function useDeleteCustomField() {
   });
 }
 
+// Hook to reorder custom fields (update positions in batch)
+export function useReorderCustomFields() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async (fields: { id: string; position: number }[]) => {
+      // Update each field's position
+      const updates = fields.map(({ id, position }) =>
+        workspaceClient
+          .from("custom_fields")
+          .update({ position })
+          .eq("id", id)
+      );
+
+      const results = await Promise.all(updates);
+      
+      for (const result of results) {
+        if (result.error) throw result.error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
+      toast.success("Ordem dos campos atualizada");
+    },
+    onError: (error: Error) => {
+      console.error("Error reordering custom fields:", error);
+      toast.error("Erro ao reordenar campos");
+    },
+  });
+}
+
 // Hook to get custom field values for an entity
 export function useCustomFieldValues(entityId: string | undefined) {
   const { workspaceClient } = useWorkspaceInstance();
