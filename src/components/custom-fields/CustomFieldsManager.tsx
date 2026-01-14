@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   useCustomFields,
   useCreateCustomField,
   useUpdateCustomField,
   useDeleteCustomField,
+  useReorderCustomFields,
   CustomField,
   CustomFieldEntityType,
   CustomFieldType,
@@ -46,7 +47,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
@@ -63,6 +64,7 @@ interface CustomFieldFormData {
   options: string;
   required: boolean;
   is_unique: boolean;
+  position: number;
 }
 
 const initialFormData: CustomFieldFormData = {
@@ -71,6 +73,7 @@ const initialFormData: CustomFieldFormData = {
   options: "",
   required: false,
   is_unique: false,
+  position: 0,
 };
 
 export function CustomFieldsManager() {
@@ -84,10 +87,14 @@ export function CustomFieldsManager() {
   const createField = useCreateCustomField();
   const updateField = useUpdateCustomField();
   const deleteField = useDeleteCustomField();
+  const reorderFields = useReorderCustomFields();
 
   const handleOpenCreate = () => {
     setEditingField(null);
-    setFormData(initialFormData);
+    setFormData({
+      ...initialFormData,
+      position: fields.length, // Default to last position
+    });
     setDialogOpen(true);
   };
 
@@ -99,6 +106,7 @@ export function CustomFieldsManager() {
       options: field.options?.join(", ") || "",
       required: field.required,
       is_unique: field.is_unique,
+      position: field.position,
     });
     setDialogOpen(true);
   };
@@ -112,14 +120,52 @@ export function CustomFieldsManager() {
       : [];
 
     if (editingField) {
+      // Check if position changed
+      const positionChanged = formData.position !== editingField.position;
+      
       await updateField.mutateAsync({
         id: editingField.id,
         name: formData.name.trim(),
         options,
         required: formData.required,
         is_unique: formData.is_unique,
+        position: formData.position,
       });
+
+      // If position changed, reorder other fields
+      if (positionChanged) {
+        const updatedFields = [...fields]
+          .filter(f => f.id !== editingField.id)
+          .sort((a, b) => a.position - b.position);
+        
+        // Insert at new position and recalculate
+        updatedFields.splice(formData.position, 0, { ...editingField, position: formData.position } as CustomField);
+        
+        const reorderedFields = updatedFields.map((f, index) => ({
+          id: f.id,
+          position: index,
+        }));
+        
+        await reorderFields.mutateAsync(reorderedFields);
+      }
     } else {
+      // Create new field at specified position
+      const newPosition = formData.position;
+      
+      // Shift existing fields if necessary
+      if (newPosition < fields.length) {
+        const fieldsToShift = fields
+          .filter(f => f.position >= newPosition)
+          .map(f => ({
+            id: f.id,
+            position: f.position + 1,
+          }));
+        
+        if (fieldsToShift.length > 0) {
+          await reorderFields.mutateAsync(fieldsToShift);
+        }
+      }
+
       await createField.mutateAsync({
         entity_type: entityType,
         name: formData.name.trim(),
@@ -127,7 +173,7 @@ export function CustomFieldsManager() {
         options,
         required: formData.required,
         is_unique: formData.is_unique,
-        position: fields.length,
+        position: newPosition,
       });
     }
 
@@ -142,6 +188,28 @@ export function CustomFieldsManager() {
       setDeleteFieldId(null);
     }
   };
+
+  const moveField = useCallback(async (fieldId: string, direction: "up" | "down") => {
+    const currentIndex = fields.findIndex(f => f.id === fieldId);
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= fields.length) return;
+
+    // Swap positions
+    const updatedFields = [...fields];
+    const temp = updatedFields[currentIndex];
+    updatedFields[currentIndex] = updatedFields[newIndex];
+    updatedFields[newIndex] = temp;
+
+    // Update positions
+    const reorderedFields = updatedFields.map((f, index) => ({
+      id: f.id,
+      position: index,
+    }));
+
+    await reorderFields.mutateAsync(reorderedFields);
+  }, [fields, reorderFields]);
 
   return (
     <div className="space-y-6">
@@ -190,7 +258,7 @@ export function CustomFieldsManager() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
+                    <TableHead className="w-[80px]">Ordem</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Opções</TableHead>
@@ -200,10 +268,33 @@ export function CustomFieldsManager() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {fields.map((field) => (
+                  {fields.map((field, index) => (
                     <TableRow key={field.id}>
                       <TableCell>
-                        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
+                        <div className="flex items-center gap-1">
+                          <GripVertical className="w-4 h-4 text-muted-foreground" />
+                          <div className="flex flex-col">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              disabled={index === 0 || reorderFields.isPending}
+                              onClick={() => moveField(field.id, "up")}
+                            >
+                              <ArrowUp className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              disabled={index === fields.length - 1 || reorderFields.isPending}
+                              onClick={() => moveField(field.id, "down")}
+                            >
+                              <ArrowDown className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          <span className="text-xs text-muted-foreground ml-1">{index + 1}</span>
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium">{field.name}</TableCell>
                       <TableCell>
@@ -334,6 +425,44 @@ export function CustomFieldsManager() {
               </div>
             )}
 
+            <div className="space-y-2">
+              <Label htmlFor="position">Posição no Formulário</Label>
+              <Select
+                value={formData.position.toString()}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, position: parseInt(value) })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {editingField ? (
+                    // When editing, show all current positions
+                    fields.map((_, index) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        Posição {index + 1}
+                        {index === 0 && " (primeiro)"}
+                        {index === fields.length - 1 && " (último)"}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    // When creating, show positions including the new one
+                    [...Array(fields.length + 1)].map((_, index) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        Posição {index + 1}
+                        {index === 0 && " (primeiro)"}
+                        {index === fields.length && " (último)"}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Define onde o campo aparece no formulário
+              </p>
+            </div>
+
             <div className="flex items-center justify-between">
               <Label htmlFor="required">Campo obrigatório</Label>
               <Switch
@@ -370,7 +499,8 @@ export function CustomFieldsManager() {
                 disabled={
                   !formData.name.trim() ||
                   createField.isPending ||
-                  updateField.isPending
+                  updateField.isPending ||
+                  reorderFields.isPending
                 }
               >
                 {editingField ? "Guardar" : "Criar"}
