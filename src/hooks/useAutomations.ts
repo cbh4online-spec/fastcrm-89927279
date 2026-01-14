@@ -352,6 +352,13 @@ export function useToggleAutomationRule() {
   });
 }
 
+export interface AutomationLogFilters {
+  ruleId?: string;
+  leadId?: string;
+  opportunityId?: string;
+  status?: ExecutionStatus;
+}
+
 export function useAutomationLogs(ruleId?: string) {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
@@ -365,11 +372,11 @@ export function useAutomationLogs(ruleId?: string) {
         .from("automation_logs")
         .select(`
           *,
-          rule:automation_rules(id, name)
+          rule:automation_rules(id, name, trigger)
         `)
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (ruleId) {
         query = query.eq("rule_id", ruleId);
@@ -378,7 +385,7 @@ export function useAutomationLogs(ruleId?: string) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as AutomationLog[];
+      return data as (AutomationLog & { rule?: { id: string; name: string; trigger: string } })[];
     },
     enabled: !!currentWorkspace,
   });

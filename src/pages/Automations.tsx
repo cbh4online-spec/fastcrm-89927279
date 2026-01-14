@@ -7,6 +7,7 @@ import { Plus, Zap, History, Sparkles } from "lucide-react";
 import { AutomationRulesList } from "@/components/automations/AutomationRulesList";
 import { VisualAutomationBuilder } from "@/components/automations/VisualAutomationBuilder";
 import { AutomationLogsDialog } from "@/components/automations/AutomationLogsDialog";
+import { AutomationLogsPanel } from "@/components/automations/AutomationLogsPanel";
 import { AutomationSuggestionsPanel } from "@/components/automations/AutomationSuggestionsPanel";
 import { AutomationRule, useAutomationRules, useAutomationLogs } from "@/hooks/useAutomations";
 import { toast } from "sonner";
@@ -85,7 +86,7 @@ export default function Automations() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Execuções (últimas 100)</CardTitle>
+              <CardTitle className="text-sm font-medium">Execuções (últimas 200)</CardTitle>
               <History className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -142,62 +143,7 @@ export default function Automations() {
           </TabsContent>
 
           <TabsContent value="logs" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Histórico de Execução</CardTitle>
-                <CardDescription>
-                  Ver logs de todas as execuções de automação
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AutomationLogsDialog
-                  open={false}
-                  onOpenChange={() => {}}
-                  ruleId={null}
-                />
-                {/* Inline logs table */}
-                <div className="border rounded-lg">
-                  {allLogs && allLogs.length > 0 ? (
-                    <div className="divide-y">
-                      {allLogs.slice(0, 20).map((log) => (
-                        <div key={log.id} className="p-4 flex items-center justify-between">
-                          <div>
-                            <div className="font-medium">{log.rule?.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {new Date(log.created_at).toLocaleString("pt-PT")}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                log.status === "completed"
-                                  ? "bg-green-100 text-green-700"
-                                  : log.status === "failed"
-                                  ? "bg-red-100 text-red-700"
-                                  : log.status === "running"
-                                  ? "bg-blue-100 text-blue-700"
-                                  : "bg-yellow-100 text-yellow-700"
-                              }`}
-                            >
-                              {log.status}
-                            </span>
-                            {log.error_message && (
-                              <span className="text-sm text-destructive truncate max-w-[200px]">
-                                {log.error_message}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-8 text-center text-muted-foreground">
-                      Nenhum log de execução ainda.
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <AutomationLogsPanel />
           </TabsContent>
         </Tabs>
       </div>
