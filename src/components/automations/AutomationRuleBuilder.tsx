@@ -102,57 +102,58 @@ const actionOptions: { value: AutomationActionType; label: string; description: 
 ];
 
 // Operator options based on field type
-const getOperatorsForFieldType = (fieldType: CustomFieldType | "text" | "number" | "email" | "status" | "tags"): { value: ConditionOperator; label: string }[] => {
+const getOperatorsForFieldType = (fieldType: CustomFieldType | "text" | "number" | "email" | "status" | "tags" | "currency"): { value: ConditionOperator; label: string }[] => {
   switch (fieldType) {
     case "text":
     case "email":
       return [
-        { value: "equals", label: "Igual a" },
-        { value: "not_equals", label: "Diferente de" },
-        { value: "contains", label: "Contém" },
-        { value: "not_contains", label: "Não contém" },
-        { value: "is_empty", label: "Está vazio" },
-        { value: "is_not_empty", label: "Não está vazio" },
+        { value: "equals", label: "é igual a" },
+        { value: "not_equals", label: "é diferente de" },
+        { value: "contains", label: "contém" },
+        { value: "not_contains", label: "não contém" },
+        { value: "is_empty", label: "está vazio" },
+        { value: "is_not_empty", label: "não está vazio" },
       ];
     case "number":
+    case "currency":
       return [
-        { value: "equals", label: "Igual a" },
-        { value: "not_equals", label: "Diferente de" },
-        { value: "greater_than", label: "Maior que" },
-        { value: "less_than", label: "Menor que" },
-        { value: "is_empty", label: "Está vazio" },
-        { value: "is_not_empty", label: "Não está vazio" },
+        { value: "equals", label: "é igual a" },
+        { value: "not_equals", label: "é diferente de" },
+        { value: "greater_than", label: "é maior que" },
+        { value: "less_than", label: "é menor que" },
+        { value: "is_empty", label: "está vazio" },
+        { value: "is_not_empty", label: "não está vazio" },
       ];
     case "select":
     case "status":
       return [
-        { value: "equals", label: "Igual a" },
-        { value: "not_equals", label: "Diferente de" },
+        { value: "equals", label: "é igual a" },
+        { value: "not_equals", label: "é diferente de" },
       ];
     case "boolean":
       return [
-        { value: "equals", label: "É verdadeiro" },
-        { value: "not_equals", label: "É falso" },
+        { value: "equals", label: "é verdadeiro" },
+        { value: "not_equals", label: "é falso" },
       ];
     case "date":
       return [
-        { value: "equals", label: "Igual a" },
-        { value: "greater_than", label: "Depois de" },
-        { value: "less_than", label: "Antes de" },
-        { value: "is_empty", label: "Está vazio" },
-        { value: "is_not_empty", label: "Não está vazio" },
+        { value: "equals", label: "é igual a" },
+        { value: "greater_than", label: "é depois de" },
+        { value: "less_than", label: "é antes de" },
+        { value: "is_empty", label: "está vazio" },
+        { value: "is_not_empty", label: "não está vazio" },
       ];
     case "tags":
       return [
-        { value: "contains", label: "Contém" },
-        { value: "not_contains", label: "Não contém" },
-        { value: "is_empty", label: "Está vazio" },
-        { value: "is_not_empty", label: "Não está vazio" },
+        { value: "contains", label: "contém" },
+        { value: "not_contains", label: "não contém" },
+        { value: "is_empty", label: "está vazio" },
+        { value: "is_not_empty", label: "não está vazio" },
       ];
     default:
       return [
-        { value: "equals", label: "Igual a" },
-        { value: "not_equals", label: "Diferente de" },
+        { value: "equals", label: "é igual a" },
+        { value: "not_equals", label: "é diferente de" },
       ];
   }
 };
@@ -586,12 +587,17 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
             <Separator />
 
             {/* Conditions Section */}
-            <Card className="border-dashed">
-              <CardHeader className="py-3">
+            <Card className="border-dashed border-blue-200 dark:border-blue-900">
+              <CardHeader className="py-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-t-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Filter className="h-4 w-4 text-blue-500" />
-                    <CardTitle className="text-sm">Se as condições forem verdadeiras</CardTitle>
+                    <div>
+                      <CardTitle className="text-sm">Só continuar se…</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Condições são opcionais e avaliadas antes das ações
+                      </p>
+                    </div>
                   </div>
                   <Button
                     type="button"
@@ -611,11 +617,31 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 pt-4">
                 {conditionFields.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Sem condições — a regra será executada sempre que o gatilho ocorrer.
-                  </p>
+                  <div className="text-center py-6 border-2 border-dashed rounded-lg">
+                    <Filter className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Sem condições — a regra será executada sempre que o gatilho ocorrer
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() =>
+                        appendCondition({
+                          field_name: "",
+                          operator: "equals",
+                          value: "",
+                          position: conditionFields.length,
+                        })
+                      }
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Adicionar condição
+                    </Button>
+                  </div>
                 ) : (
                   conditionFields.map((field, index) => {
                     const selectedFieldName = form.watch(`conditions.${index}.field_name`);
@@ -624,17 +650,21 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                     const operators = getOperatorsForField(selectedFieldName);
 
                     return (
-                      <div key={field.id} className="flex gap-2 items-start p-3 bg-muted/30 rounded-lg">
+                      <div key={field.id} className="flex gap-2 items-center p-3 bg-muted/30 rounded-lg border">
+                        {index > 0 && (
+                          <Badge variant="outline" className="text-xs shrink-0">E</Badge>
+                        )}
+                        
                         {/* Field selector */}
                         <FormField
                           control={form.control}
                           name={`conditions.${index}.field_name`}
                           render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel className="text-xs text-muted-foreground">Campo</FormLabel>
+                            <FormItem className="flex-1 space-y-1">
+                              <FormLabel className="text-xs text-muted-foreground sr-only">Campo</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
-                                  <SelectTrigger>
+                                  <SelectTrigger className="h-9">
                                     <SelectValue placeholder="Selecionar campo" />
                                   </SelectTrigger>
                                 </FormControl>
@@ -662,11 +692,11 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                           control={form.control}
                           name={`conditions.${index}.operator`}
                           render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel className="text-xs text-muted-foreground">Operador</FormLabel>
+                            <FormItem className="w-40 space-y-1">
+                              <FormLabel className="text-xs text-muted-foreground sr-only">Operador</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
-                                  <SelectTrigger>
+                                  <SelectTrigger className="h-9">
                                     <SelectValue />
                                   </SelectTrigger>
                                 </FormControl>
@@ -688,8 +718,8 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                             control={form.control}
                             name={`conditions.${index}.value`}
                             render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel className="text-xs text-muted-foreground">Valor</FormLabel>
+                              <FormItem className="flex-1 space-y-1">
+                                <FormLabel className="text-xs text-muted-foreground sr-only">Valor</FormLabel>
                                 <FormControl>
                                   {fieldInfo?.type === "boolean" ? (
                                     <Select 
