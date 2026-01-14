@@ -77,7 +77,7 @@ export function useTemplates(filters: TemplateFilters = {}) {
       if (!currentWorkspace) return [];
 
       let query = supabase
-        .from('templates')
+        .from('templates' as any)
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('updated_at', { ascending: false });
@@ -107,7 +107,7 @@ export function useTemplates(filters: TemplateFilters = {}) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as Template[];
+      return data as unknown as Template[];
     },
     enabled: !!currentWorkspace,
   });
@@ -122,13 +122,13 @@ export function useTemplateFolders() {
       if (!currentWorkspace) return [];
 
       const { data, error } = await supabase
-        .from('template_folders')
+        .from('template_folders' as any)
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('position');
 
       if (error) throw error;
-      return data as TemplateFolder[];
+      return data as unknown as TemplateFolder[];
     },
     enabled: !!currentWorkspace,
   });
@@ -141,13 +141,13 @@ export function useTemplateVersions(templateId: string | null) {
       if (!templateId) return [];
 
       const { data, error } = await supabase
-        .from('template_versions')
+        .from('template_versions' as any)
         .select('*')
         .eq('template_id', templateId)
         .order('version', { ascending: false });
 
       if (error) throw error;
-      return data as TemplateVersion[];
+      return data as unknown as TemplateVersion[];
     },
     enabled: !!templateId,
   });
@@ -163,29 +163,29 @@ export function useCreateTemplate() {
       if (!currentWorkspace || !user) throw new Error('No workspace');
 
       const { data, error } = await supabase
-        .from('templates')
+        .from('templates' as any)
         .insert({
           ...template,
           workspace_id: currentWorkspace.id,
           created_by: user.id,
-        })
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
 
       // Create initial version
-      await supabase.from('template_versions').insert({
-        template_id: data.id,
+      await supabase.from('template_versions' as any).insert({
+        template_id: (data as any).id,
         version: 1,
         content: template.content || '',
         rich_content: template.rich_content,
         subject: template.subject,
         change_summary: 'Versão inicial',
         created_by: user.id,
-      });
+      } as any);
 
-      return data;
+      return data as unknown as Template;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
@@ -204,14 +204,14 @@ export function useUpdateTemplate() {
   return useMutation({
     mutationFn: async ({ id, createVersion, ...updates }: Partial<Template> & { id: string; createVersion?: boolean }) => {
       const { data: current } = await supabase
-        .from('templates')
+        .from('templates' as any)
         .select('*')
         .eq('id', id)
         .single();
 
       const { data, error } = await supabase
-        .from('templates')
-        .update(updates)
+        .from('templates' as any)
+        .update(updates as any)
         .eq('id', id)
         .select()
         .single();
@@ -219,25 +219,25 @@ export function useUpdateTemplate() {
       if (error) throw error;
 
       // Create new version if content changed
-      if (createVersion && current && (updates.content !== current.content || updates.rich_content !== current.rich_content)) {
+      if (createVersion && current && (updates.content !== (current as any).content || updates.rich_content !== (current as any).rich_content)) {
         const { data: versions } = await supabase
-          .from('template_versions')
+          .from('template_versions' as any)
           .select('version')
           .eq('template_id', id)
           .order('version', { ascending: false })
           .limit(1);
 
-        const nextVersion = (versions?.[0]?.version || 0) + 1;
+        const nextVersion = ((versions as any)?.[0]?.version || 0) + 1;
 
-        await supabase.from('template_versions').insert({
+        await supabase.from('template_versions' as any).insert({
           template_id: id,
           version: nextVersion,
-          content: updates.content || current.content,
-          rich_content: updates.rich_content || current.rich_content,
-          subject: updates.subject || current.subject,
+          content: updates.content || (current as any).content,
+          rich_content: updates.rich_content || (current as any).rich_content,
+          subject: updates.subject || (current as any).subject,
           change_summary: `Versão ${nextVersion}`,
           created_by: user?.id,
-        });
+        } as any);
       }
 
       return data;
@@ -258,7 +258,7 @@ export function useDeleteTemplate() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('templates').delete().eq('id', id);
+      const { error } = await supabase.from('templates' as any).delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -280,11 +280,11 @@ export function useCreateFolder() {
       if (!currentWorkspace) throw new Error('No workspace');
 
       const { data, error } = await supabase
-        .from('template_folders')
+        .from('template_folders' as any)
         .insert({
           ...folder,
           workspace_id: currentWorkspace.id,
-        })
+        } as any)
         .select()
         .single();
 
@@ -307,17 +307,17 @@ export function useIncrementTemplateUsage() {
   return useMutation({
     mutationFn: async (templateId: string) => {
       const { data: current } = await supabase
-        .from('templates')
+        .from('templates' as any)
         .select('usage_count')
         .eq('id', templateId)
         .single();
 
       const { error } = await supabase
-        .from('templates')
+        .from('templates' as any)
         .update({
-          usage_count: (current?.usage_count || 0) + 1,
+          usage_count: ((current as any)?.usage_count || 0) + 1,
           last_used_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', templateId);
 
       if (error) throw error;
