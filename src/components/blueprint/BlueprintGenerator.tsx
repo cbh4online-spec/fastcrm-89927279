@@ -60,6 +60,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
   const [recommendedTemplate, setRecommendedTemplate] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [loadedFromDraft, setLoadedFromDraft] = useState(false);
+  const [existingBlueprintId, setExistingBlueprintId] = useState<string | null>(null);
 
   const {
     isApplying,
@@ -149,21 +150,55 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
 
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('crm_blueprints' as any).insert({
-        workspace_id: currentWorkspace.id,
-        name: blueprint.name,
-        version: blueprint.version,
-        entity_type: blueprint.entityType,
-        schema: blueprint as unknown as Record<string, unknown>,
-        status: 'draft',
-      } as any);
+      if (existingBlueprintId) {
+        // Update existing blueprint
+        const { error } = await supabase
+          .from('crm_blueprints')
+          .update({
+            name: blueprint.name,
+            version: blueprint.version + 1,
+            entity_type: blueprint.entityType,
+            schema: JSON.parse(JSON.stringify(blueprint)),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingBlueprintId);
 
-      if (error) throw error;
+        if (error) throw error;
+
+        // Update local blueprint version
+        setBlueprint({
+          ...blueprint,
+          version: blueprint.version + 1,
+        });
+
+        toast.success('Blueprint atualizado com sucesso!');
+      } else {
+        // Insert new blueprint
+        const { data, error } = await supabase
+          .from('crm_blueprints')
+          .insert([{
+            workspace_id: currentWorkspace.id,
+            name: blueprint.name,
+            version: blueprint.version,
+            entity_type: blueprint.entityType,
+            schema: JSON.parse(JSON.stringify(blueprint)),
+            status: 'draft',
+          }])
+          .select('id')
+          .single();
+
+        if (error) throw error;
+
+        // Track the new blueprint ID for future updates
+        setExistingBlueprintId(data.id);
+        setLoadedFromDraft(true);
+
+        toast.success('Blueprint guardado com sucesso!');
+      }
 
       // Invalidate the blueprints cache to refresh the list
       queryClient.invalidateQueries({ queryKey: ['blueprints', currentWorkspace.id] });
 
-      toast.success('Blueprint guardado com sucesso!');
       onBlueprintSaved?.(blueprint);
     } catch (error) {
       console.error('Error saving blueprint:', error);
@@ -173,8 +208,9 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     }
   };
 
-  const handleLoadDraft = (loadedBlueprint: CrmBlueprint) => {
+  const handleLoadDraft = (loadedBlueprint: CrmBlueprint, dbId: string) => {
     setBlueprint(loadedBlueprint);
+    setExistingBlueprintId(dbId);
     setConfidence(null);
     setExplanation('Carregado de rascunho guardado.');
     setLoadedFromDraft(true);
@@ -207,6 +243,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     setExplanation('');
     setRecommendedTemplate(null);
     setLoadedFromDraft(false);
+    setExistingBlueprintId(null);
   };
 
   const handleApply = async (applyMode: ApplyMode, mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>): Promise<ApplyResult> => {
