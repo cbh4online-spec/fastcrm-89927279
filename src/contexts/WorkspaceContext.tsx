@@ -88,25 +88,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     
     try {
-      // Create workspace
-      const { data: workspaceData, error: workspaceError } = await supabase
-        .from("workspaces")
-        .insert({ name, slug })
-        .select()
-        .single();
+      // Usar função RPC SECURITY DEFINER para criar workspace e owner atomicamente
+      const { data, error } = await supabase.rpc('create_workspace_with_owner', {
+        p_name: name,
+        p_slug: slug,
+      });
 
-      if (workspaceError) throw workspaceError;
+      if (error) throw error;
 
-      // Add current user as owner
-      const { error: memberError } = await supabase
-        .from("workspace_members")
-        .insert({
-          workspace_id: workspaceData.id,
-          user_id: user.id,
-          role: "owner",
-        });
-
-      if (memberError) throw memberError;
+      const workspaceData = data as { id: string; name: string; slug: string; created_at: string };
 
       const newWorkspace: Workspace = {
         id: workspaceData.id,
