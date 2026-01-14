@@ -55,7 +55,7 @@ export function useBlueprints() {
     enabled: !!currentWorkspace?.id,
   });
 
-  const loadBlueprint = async (id: string): Promise<CrmBlueprint | null> => {
+  const loadBlueprint = async (id: string): Promise<{ blueprint: CrmBlueprint; dbId: string } | null> => {
     const { data, error } = await supabase
       .from('crm_blueprints')
       .select('*')
@@ -73,7 +73,10 @@ export function useBlueprints() {
     }
 
     const row = data as BlueprintRow;
-    return row.schema as unknown as CrmBlueprint;
+    return {
+      blueprint: row.schema as unknown as CrmBlueprint,
+      dbId: row.id,
+    };
   };
 
   const deleteBlueprint = useMutation({

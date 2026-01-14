@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 interface SavedBlueprintsListProps {
-  onLoadBlueprint: (blueprint: CrmBlueprint) => void;
+  onLoadBlueprint: (blueprint: CrmBlueprint, dbId: string) => void;
 }
 
 export function SavedBlueprintsList({ onLoadBlueprint }: SavedBlueprintsListProps) {
@@ -39,10 +39,10 @@ export function SavedBlueprintsList({ onLoadBlueprint }: SavedBlueprintsListProp
 
   const handleLoad = async (id: string) => {
     setLoadingId(id);
-    const blueprint = await loadBlueprint(id);
+    const result = await loadBlueprint(id);
     setLoadingId(null);
-    if (blueprint) {
-      onLoadBlueprint(blueprint);
+    if (result) {
+      onLoadBlueprint(result.blueprint, result.dbId);
     }
   };
 
