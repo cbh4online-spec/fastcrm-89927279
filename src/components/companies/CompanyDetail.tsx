@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import {
   Select,
   SelectContent,
@@ -309,6 +310,15 @@ export function CompanyDetail() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumbs */}
+      <PageBreadcrumbs
+        items={[
+          { label: "CRM", href: "/dashboard/crm" },
+          { label: "Empresas", href: "/dashboard/companies" },
+          { label: company.name },
+        ]}
+      />
+      
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
