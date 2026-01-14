@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Contact } from "@/hooks/useContacts";
 import { Opportunity } from "@/hooks/useOpportunities";
 import { PipelineStage } from "@/hooks/usePipelineStages";
@@ -25,6 +25,7 @@ import { pt } from "date-fns/locale";
 import { CrmEntityType } from "@/hooks/useCrmViews";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BulkActionsBar } from "./BulkActionsBar";
+import { TablePagination } from "./TablePagination";
 
 interface CrmTableViewProps {
   entityType: CrmEntityType;
@@ -38,6 +39,8 @@ interface CrmTableViewProps {
   onAddTagsToContacts?: (ids: string[], tags: string[]) => Promise<void>;
 }
 
+const DEFAULT_PAGE_SIZE = 25;
+
 export function CrmTableView({
   entityType,
   contacts,
@@ -50,28 +53,50 @@ export function CrmTableView({
   onAddTagsToContacts,
 }: CrmTableViewProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const getStageById = (stageId: string) => stages.find(s => s.id === stageId);
 
-  const currentItems = entityType === "contacts" ? contacts : opportunities;
-  const allIds = currentItems.map(item => item.id);
+  const allItems = entityType === "contacts" ? contacts : opportunities;
+  const totalItems = allItems.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
 
-  const isAllSelected = allIds.length > 0 && allIds.every(id => selectedIds.has(id));
-  const isSomeSelected = allIds.some(id => selectedIds.has(id)) && !isAllSelected;
+  // Reset to page 1 when data or entity changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds(new Set());
+  }, [entityType, totalItems]);
 
-  // Get available tags from contacts
+  // Paginated items
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return allItems.slice(startIndex, endIndex);
+  }, [allItems, currentPage, pageSize]);
+
+  const paginatedContacts = entityType === "contacts" ? (paginatedItems as Contact[]) : [];
+  const paginatedOpportunities = entityType === "opportunities" ? (paginatedItems as Opportunity[]) : [];
+
+  const currentPageIds = paginatedItems.map(item => item.id);
+  const isAllOnPageSelected = currentPageIds.length > 0 && currentPageIds.every(id => selectedIds.has(id));
+  const isSomeOnPageSelected = currentPageIds.some(id => selectedIds.has(id)) && !isAllOnPageSelected;
+
+  // Get available tags from all contacts (not just paginated)
   const availableTags = useMemo(() => {
     const tags = new Set<string>();
     contacts.forEach(c => c.tags?.forEach(t => tags.add(t)));
     return Array.from(tags);
   }, [contacts]);
 
-  const handleSelectAll = () => {
-    if (isAllSelected) {
-      setSelectedIds(new Set());
+  const handleSelectAllOnPage = () => {
+    const newSelected = new Set(selectedIds);
+    if (isAllOnPageSelected) {
+      currentPageIds.forEach(id => newSelected.delete(id));
     } else {
-      setSelectedIds(new Set(allIds));
+      currentPageIds.forEach(id => newSelected.add(id));
     }
+    setSelectedIds(newSelected);
   };
 
   const handleSelectItem = (id: string, checked: boolean) => {
@@ -93,7 +118,6 @@ export function CrmTableView({
     if (entityType === "contacts" && onDeleteContacts) {
       await onDeleteContacts(ids);
     } else {
-      // Fallback: delete one by one
       for (const id of ids) {
         await onDeleteContact(id);
       }
@@ -103,9 +127,8 @@ export function CrmTableView({
 
   const handleBulkExport = () => {
     const ids = Array.from(selectedIds);
-    const itemsToExport = currentItems.filter(item => ids.includes(item.id));
+    const itemsToExport = allItems.filter(item => ids.includes(item.id));
     
-    // Create CSV content
     let csvContent = "";
     if (entityType === "contacts") {
       const contactsData = itemsToExport as Contact[];
@@ -122,7 +145,6 @@ export function CrmTableView({
       });
     }
 
-    // Download CSV
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -135,6 +157,15 @@ export function CrmTableView({
       await onAddTagsToContacts(Array.from(selectedIds), tags);
       setSelectedIds(new Set());
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
   };
 
   if (entityType === "contacts") {
@@ -158,146 +189,157 @@ export function CrmTableView({
           availableTags={availableTags}
         />
         
-        <ScrollArea className="border rounded-lg flex-1">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">
-                  <Checkbox
-                    checked={isAllSelected}
-                    onCheckedChange={handleSelectAll}
-                    aria-label="Selecionar todos"
-                    className={isSomeSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                  />
-                </TableHead>
-                {visibleColumns.includes("name") && <TableHead>Nome</TableHead>}
-                {visibleColumns.includes("email") && <TableHead>Email</TableHead>}
-                {visibleColumns.includes("phone") && <TableHead>Telefone</TableHead>}
-                {visibleColumns.includes("company") && <TableHead>Empresa</TableHead>}
-                {visibleColumns.includes("job_title") && <TableHead>Cargo</TableHead>}
-                {visibleColumns.includes("tags") && <TableHead>Tags</TableHead>}
-                {visibleColumns.includes("created_at") && <TableHead>Criado em</TableHead>}
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contacts.map((contact) => (
-                <TableRow
-                  key={contact.id}
-                  className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(contact.id) ? "bg-primary/5" : ""}`}
-                  onClick={() => onRowClick(contact.id)}
-                >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+        <div className="flex-1 flex flex-col border rounded-lg overflow-hidden">
+          <ScrollArea className="flex-1">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]">
                     <Checkbox
-                      checked={selectedIds.has(contact.id)}
-                      onCheckedChange={(checked) => handleSelectItem(contact.id, checked as boolean)}
-                      aria-label={`Selecionar ${contact.name}`}
+                      checked={isAllOnPageSelected}
+                      onCheckedChange={handleSelectAllOnPage}
+                      aria-label="Selecionar todos nesta página"
+                      className={isSomeOnPageSelected ? "data-[state=checked]:bg-primary/50" : ""}
                     />
-                  </TableCell>
-                  {visibleColumns.includes("name") && (
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{contact.name}</p>
-                        {contact.job_title && !visibleColumns.includes("job_title") && (
-                          <p className="text-sm text-muted-foreground">{contact.job_title}</p>
-                        )}
-                      </div>
+                  </TableHead>
+                  {visibleColumns.includes("name") && <TableHead>Nome</TableHead>}
+                  {visibleColumns.includes("email") && <TableHead>Email</TableHead>}
+                  {visibleColumns.includes("phone") && <TableHead>Telefone</TableHead>}
+                  {visibleColumns.includes("company") && <TableHead>Empresa</TableHead>}
+                  {visibleColumns.includes("job_title") && <TableHead>Cargo</TableHead>}
+                  {visibleColumns.includes("tags") && <TableHead>Tags</TableHead>}
+                  {visibleColumns.includes("created_at") && <TableHead>Criado em</TableHead>}
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedContacts.map((contact) => (
+                  <TableRow
+                    key={contact.id}
+                    className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(contact.id) ? "bg-primary/5" : ""}`}
+                    onClick={() => onRowClick(contact.id)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(contact.id)}
+                        onCheckedChange={(checked) => handleSelectItem(contact.id, checked as boolean)}
+                        aria-label={`Selecionar ${contact.name}`}
+                      />
                     </TableCell>
-                  )}
-                  {visibleColumns.includes("email") && (
-                    <TableCell>
-                      {contact.email ? (
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-primary hover:underline">{contact.email}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes("phone") && (
-                    <TableCell>
-                      {contact.phone ? (
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-muted-foreground" />
-                          {contact.phone}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes("company") && (
-                    <TableCell>
-                      {contact.company ? (
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-muted-foreground" />
-                          {contact.company}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes("job_title") && (
-                    <TableCell>
-                      {contact.job_title || <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes("tags") && (
-                    <TableCell>
-                      {contact.tags && contact.tags.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {contact.tags.slice(0, 2).map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {contact.tags.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{contact.tags.length - 2}
-                            </Badge>
+                    {visibleColumns.includes("name") && (
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{contact.name}</p>
+                          {contact.job_title && !visibleColumns.includes("job_title") && (
+                            <p className="text-sm text-muted-foreground">{contact.job_title}</p>
                           )}
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("email") && (
+                      <TableCell>
+                        {contact.email ? (
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-primary hover:underline">{contact.email}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("phone") && (
+                      <TableCell>
+                        {contact.phone ? (
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            {contact.phone}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("company") && (
+                      <TableCell>
+                        {contact.company ? (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-muted-foreground" />
+                            {contact.company}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("job_title") && (
+                      <TableCell>
+                        {contact.job_title || <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("tags") && (
+                      <TableCell>
+                        {contact.tags && contact.tags.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {contact.tags.slice(0, 2).map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                            {contact.tags.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{contact.tags.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("created_at") && (
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(contact.created_at), "dd MMM yyyy", { locale: pt })}
+                      </TableCell>
+                    )}
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onRowClick(contact.id)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onDeleteContact(contact.id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
-                  )}
-                  {visibleColumns.includes("created_at") && (
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(contact.created_at), "dd MMM yyyy", { locale: pt })}
-                    </TableCell>
-                  )}
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onRowClick(contact.id)}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Ver Detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => onDeleteContact(contact.id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+          
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </div>
       </div>
     );
   }
@@ -322,126 +364,137 @@ export function CrmTableView({
         onAddTags={async () => {}}
       />
       
-      <ScrollArea className="border rounded-lg flex-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={isAllSelected}
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Selecionar todos"
-                  className={isSomeSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                />
-              </TableHead>
-              {visibleColumns.includes("title") && <TableHead>Título</TableHead>}
-              {visibleColumns.includes("value") && <TableHead>Valor</TableHead>}
-              {visibleColumns.includes("stage") && <TableHead>Etapa</TableHead>}
-              {visibleColumns.includes("lead") && <TableHead>Lead</TableHead>}
-              {visibleColumns.includes("status") && <TableHead>Estado</TableHead>}
-              {visibleColumns.includes("expected_close_date") && <TableHead>Data Prevista</TableHead>}
-              {visibleColumns.includes("created_at") && <TableHead>Criado em</TableHead>}
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {opportunities.map((opp) => {
-              const stage = getStageById(opp.stage_id);
-              return (
-                <TableRow
-                  key={opp.id}
-                  className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(opp.id) ? "bg-primary/5" : ""}`}
-                  onClick={() => onRowClick(opp.id)}
-                >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedIds.has(opp.id)}
-                      onCheckedChange={(checked) => handleSelectItem(opp.id, checked as boolean)}
-                      aria-label={`Selecionar ${opp.title}`}
-                    />
-                  </TableCell>
-                  {visibleColumns.includes("title") && (
-                    <TableCell>
-                      <p className="font-medium">{opp.title}</p>
+      <div className="flex-1 flex flex-col border rounded-lg overflow-hidden">
+        <ScrollArea className="flex-1">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={isAllOnPageSelected}
+                    onCheckedChange={handleSelectAllOnPage}
+                    aria-label="Selecionar todos nesta página"
+                    className={isSomeOnPageSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                  />
+                </TableHead>
+                {visibleColumns.includes("title") && <TableHead>Título</TableHead>}
+                {visibleColumns.includes("value") && <TableHead>Valor</TableHead>}
+                {visibleColumns.includes("stage") && <TableHead>Etapa</TableHead>}
+                {visibleColumns.includes("lead") && <TableHead>Lead</TableHead>}
+                {visibleColumns.includes("status") && <TableHead>Estado</TableHead>}
+                {visibleColumns.includes("expected_close_date") && <TableHead>Data Prevista</TableHead>}
+                {visibleColumns.includes("created_at") && <TableHead>Criado em</TableHead>}
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedOpportunities.map((opp) => {
+                const stage = getStageById(opp.stage_id);
+                return (
+                  <TableRow
+                    key={opp.id}
+                    className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(opp.id) ? "bg-primary/5" : ""}`}
+                    onClick={() => onRowClick(opp.id)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(opp.id)}
+                        onCheckedChange={(checked) => handleSelectItem(opp.id, checked as boolean)}
+                        aria-label={`Selecionar ${opp.title}`}
+                      />
                     </TableCell>
-                  )}
-                  {visibleColumns.includes("value") && (
-                    <TableCell>
-                      <div className="flex items-center gap-1 font-medium text-primary">
-                        <DollarSign className="w-4 h-4" />
-                        {Number(opp.value).toLocaleString("pt-PT", { minimumFractionDigits: 0 })}
-                      </div>
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes("stage") && (
-                    <TableCell>
-                      {stage ? (
-                        <Badge 
-                          variant="outline" 
-                          style={{ borderColor: stage.color, color: stage.color }}
-                        >
-                          {stage.name}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes("lead") && (
-                    <TableCell>
-                      {opp.lead ? (
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          {opp.lead.name}
+                    {visibleColumns.includes("title") && (
+                      <TableCell>
+                        <p className="font-medium">{opp.title}</p>
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("value") && (
+                      <TableCell>
+                        <div className="flex items-center gap-1 font-medium text-primary">
+                          <DollarSign className="w-4 h-4" />
+                          {Number(opp.value).toLocaleString("pt-PT", { minimumFractionDigits: 0 })}
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("stage") && (
+                      <TableCell>
+                        {stage ? (
+                          <Badge 
+                            variant="outline" 
+                            style={{ borderColor: stage.color, color: stage.color }}
+                          >
+                            {stage.name}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("lead") && (
+                      <TableCell>
+                        {opp.lead ? (
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            {opp.lead.name}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("status") && (
+                      <TableCell>
+                        <Badge 
+                          variant={opp.status === "won" ? "default" : opp.status === "lost" ? "destructive" : "secondary"}
+                        >
+                          {opp.status === "open" ? "Aberta" : opp.status === "won" ? "Ganha" : "Perdida"}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("expected_close_date") && (
+                      <TableCell className="text-muted-foreground">
+                        {opp.expected_close_date 
+                          ? format(new Date(opp.expected_close_date), "dd MMM yyyy", { locale: pt })
+                          : "—"}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("created_at") && (
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(opp.created_at), "dd MMM yyyy", { locale: pt })}
+                      </TableCell>
+                    )}
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onRowClick(opp.id)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver Detalhes
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
-                  )}
-                  {visibleColumns.includes("status") && (
-                    <TableCell>
-                      <Badge 
-                        variant={opp.status === "won" ? "default" : opp.status === "lost" ? "destructive" : "secondary"}
-                      >
-                        {opp.status === "open" ? "Aberta" : opp.status === "won" ? "Ganha" : "Perdida"}
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes("expected_close_date") && (
-                    <TableCell className="text-muted-foreground">
-                      {opp.expected_close_date 
-                        ? format(new Date(opp.expected_close_date), "dd MMM yyyy", { locale: pt })
-                        : "—"}
-                    </TableCell>
-                  )}
-                  {visibleColumns.includes("created_at") && (
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(opp.created_at), "dd MMM yyyy", { locale: pt })}
-                    </TableCell>
-                  )}
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onRowClick(opp.id)}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Ver Detalhes
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+        
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      </div>
     </div>
   );
 }
