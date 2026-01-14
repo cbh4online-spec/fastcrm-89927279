@@ -341,11 +341,25 @@ export function AutomationSuggestionsPanel() {
   const handleAccept = async (suggestion: AutomationSuggestion) => {
     setAcceptingId(suggestion.id);
     try {
+      // SAFETY: Validate messaging actions have templates - AI suggestions must have valid templates
+      const messagingActions = ["send_template_message", "send_message"];
+      for (const action of suggestion.actions) {
+        if (messagingActions.includes(action.action_type)) {
+          const templateId = action.config?.template_id;
+          if (!templateId) {
+            toast.error("Esta sugestão requer seleção de um template. Edite primeiro para adicionar um template.");
+            setAcceptingId(null);
+            return;
+          }
+        }
+      }
+
+      // SAFETY: AI suggestions are ALWAYS created as inactive (draft)
       await createRule.mutateAsync({
         name: suggestion.title,
         description: suggestion.description,
         trigger: suggestion.trigger_type as AutomationTrigger,
-        is_active: false,
+        is_active: false, // CRITICAL: AI never activates automations
         conditions: suggestion.conditions.map((c, i) => ({
           field_name: c.field_name,
           operator: c.operator as ConditionOperator,
@@ -360,7 +374,7 @@ export function AutomationSuggestionsPanel() {
       });
 
       await acceptSuggestion.mutateAsync(suggestion.id);
-      toast.success("Regra de automação criada com sucesso! Está desativada por segurança.");
+      toast.success("Regra de automação criada como RASCUNHO. Revise e ative manualmente.");
     } catch (error) {
       toast.error("Erro ao criar regra de automação");
     } finally {
