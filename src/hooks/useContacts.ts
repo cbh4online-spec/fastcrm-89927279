@@ -12,16 +12,11 @@ export interface Contact {
   email: string | null;
   phone: string | null;
   company: string | null;
-  company_id: string | null;
   job_title: string | null;
   notes: string | null;
   tags: string[];
   created_at: string;
   updated_at: string;
-  companies?: {
-    id: string;
-    name: string;
-  } | null;
 }
 
 export interface CreateContactData {
@@ -29,7 +24,6 @@ export interface CreateContactData {
   email?: string;
   phone?: string;
   company?: string;
-  company_id?: string;
   job_title?: string;
   notes?: string;
   tags?: string[];
@@ -51,12 +45,12 @@ export function useContacts() {
       
       const { data, error } = await supabase
         .from("contacts")
-        .select("id, workspace_id, created_by, name, email, phone, company, company_id, job_title, notes, tags, created_at, updated_at, companies:company_id(id, name)")
+        .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as unknown as Contact[];
+      return data as Contact[];
     },
     enabled: !!currentWorkspace,
   });
@@ -74,12 +68,11 @@ export function useContacts() {
           email: data.email || null,
           phone: data.phone || null,
           company: data.company || null,
-          company_id: data.company_id || null,
           job_title: data.job_title || null,
           notes: data.notes || null,
           tags: data.tags || [],
         })
-        .select("*, companies:company_id(id, name)")
+        .select()
         .single();
 
       if (error) throw error;
@@ -102,7 +95,6 @@ export function useContacts() {
       if (data.email !== undefined) updateData.email = data.email || null;
       if (data.phone !== undefined) updateData.phone = data.phone || null;
       if (data.company !== undefined) updateData.company = data.company || null;
-      if (data.company_id !== undefined) updateData.company_id = data.company_id || null;
       if (data.job_title !== undefined) updateData.job_title = data.job_title || null;
       if (data.notes !== undefined) updateData.notes = data.notes || null;
       if (data.tags !== undefined) updateData.tags = data.tags || [];
@@ -111,7 +103,7 @@ export function useContacts() {
         .from("contacts")
         .update(updateData)
         .eq("id", id)
-        .select("*, companies:company_id(id, name)")
+        .select()
         .single();
 
       if (error) throw error;

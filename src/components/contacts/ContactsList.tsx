@@ -42,7 +42,7 @@ export function ContactsList() {
 
   const filteredContacts = contacts.filter((contact) => {
     const query = searchQuery.toLowerCase();
-    const companyName = contact.companies?.name?.toLowerCase() || contact.company?.toLowerCase() || "";
+    const companyName = contact.company?.toLowerCase() || "";
     return (
       contact.name.toLowerCase().includes(query) ||
       contact.email?.toLowerCase().includes(query) ||
@@ -166,10 +166,10 @@ export function ContactsList() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {contact.companies?.name || contact.company ? (
+                    {contact.company ? (
                       <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-muted-foreground" />
-                        {contact.companies?.name || contact.company}
+                        {contact.company}
                       </div>
                     ) : (
                       <span className="text-muted-foreground">—</span>
