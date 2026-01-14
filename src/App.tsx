@@ -27,6 +27,7 @@ import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import AISuggestionsHistory from "./pages/AISuggestionsHistory";
 import Crm from "./pages/Crm";
+import FormStudioPage from "./pages/FormStudioPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
                   <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
                   <Route path="/dashboard/ai-suggestions" element={<AISuggestionsHistory />} />
                   <Route path="/dashboard/crm" element={<Crm />} />
+                  <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/super-admin" element={<SuperAdmin />} />
                   <Route path="/super-admin" element={<SuperAdmin />} />
