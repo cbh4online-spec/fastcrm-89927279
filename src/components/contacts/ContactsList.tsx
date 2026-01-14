@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useContacts, Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,13 +28,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, MoreHorizontal, Mail, Phone, Building2, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Mail, Phone, Building2, Pencil, Trash2, Eye } from "lucide-react";
 import { CreateContactDialog } from "./CreateContactDialog";
 import { EditContactDialog } from "./EditContactDialog";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
 export function ContactsList() {
+  const navigate = useNavigate();
   const { contacts, isLoading, deleteContact } = useContacts();
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -126,7 +128,11 @@ export function ContactsList() {
             </TableHeader>
             <TableBody>
               {filteredContacts.map((contact) => (
-                <TableRow key={contact.id}>
+                <TableRow 
+                  key={contact.id} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => navigate(`/dashboard/contacts/${contact.id}`)}
+                >
                   <TableCell>
                     <div>
                       <p className="font-medium">{contact.name}</p>
@@ -196,7 +202,7 @@ export function ContactsList() {
                   <TableCell className="text-muted-foreground">
                     {format(new Date(contact.created_at), "dd MMM yyyy", { locale: pt })}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -204,6 +210,10 @@ export function ContactsList() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/dashboard/contacts/${contact.id}`)}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Ver Detalhes
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditContact(contact)}>
                           <Pencil className="w-4 h-4 mr-2" />
                           Editar
