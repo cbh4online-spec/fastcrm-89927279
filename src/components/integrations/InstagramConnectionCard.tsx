@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Instagram, CheckCircle, XCircle, Loader2, ExternalLink } from "lucide-react";
+import { Instagram, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface InstagramConnection {
   id: string;
@@ -63,19 +64,28 @@ export function InstagramConnectionCard() {
     fetchConnection();
   }, [currentWorkspace, workspaceClient]);
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!currentWorkspace || !user) return;
     setIsConnecting(true);
 
-    // Instagram OAuth URL
-    const META_APP_ID = import.meta.env.VITE_META_APP_ID;
-    const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/instagram-oauth-callback`;
-    const state = `${currentWorkspace.id}:${user.id}`;
-    const scope = "instagram_basic,instagram_manage_messages,pages_messaging,pages_manage_metadata";
+    try {
+      // Call edge function to get the OAuth URL
+      const { data, error } = await supabase.functions.invoke("instagram-auth-url", {
+        body: {
+          workspaceId: currentWorkspace.id,
+          userId: user.id,
+        },
+      });
 
-    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code`;
-
-    window.location.href = authUrl;
+      if (error) throw error;
+      if (data?.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    } catch (error) {
+      console.error("Error getting auth URL:", error);
+      toast.error("Erro ao iniciar conexão com Instagram");
+      setIsConnecting(false);
+    }
   };
 
   const handleDisconnect = async () => {
