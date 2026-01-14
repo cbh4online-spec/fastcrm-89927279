@@ -40,8 +40,10 @@ import {
   Pause,
   Copy,
   ArrowDown,
-  GripVertical
+  GripVertical,
+  Play
 } from "lucide-react";
+import { AutomationTestRunner } from "./AutomationTestRunner";
 import {
   useCreateAutomationRule,
   useUpdateAutomationRule,
@@ -345,6 +347,7 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
   const { data: companyCustomFields } = useCustomFields("company");
 
   const [isDraft, setIsDraft] = useState(true);
+  const [showTestRunner, setShowTestRunner] = useState(false);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -1080,13 +1083,22 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
             )}
             
             {editRule && (
-              <Button
-                variant="outline"
-                onClick={handleDuplicate}
-              >
-                <Copy className="h-4 w-4 mr-1" />
-                Duplicate
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowTestRunner(true)}
+                >
+                  <Play className="h-4 w-4 mr-1" />
+                  Test
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDuplicate}
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Duplicate
+                </Button>
+              </>
             )}
             
             <Button
@@ -1100,6 +1112,15 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
           </div>
         </div>
       </SheetContent>
+
+      {/* Test Runner Dialog */}
+      {editRule && showTestRunner && (
+        <AutomationTestRunner
+          open={showTestRunner}
+          onOpenChange={setShowTestRunner}
+          rule={editRule}
+        />
+      )}
     </Sheet>
   );
 }

@@ -32,8 +32,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MoreHorizontal, Pencil, Trash2, History, Loader2, MessageSquareText, Bot } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, History, Loader2, MessageSquareText, Bot, Play } from "lucide-react";
 import { AIAutomationExplainer } from "./AIAutomationExplainer";
+import { AutomationTestRunner } from "./AutomationTestRunner";
 import {
   useAutomationRules,
   useDeleteAutomationRule,
@@ -100,6 +101,7 @@ export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
   const deleteRule = useDeleteAutomationRule();
   const toggleRule = useToggleAutomationRule();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [testRule, setTestRule] = useState<AutomationRule | null>(null);
 
   const handleToggle = (rule: AutomationRule) => {
     toggleRule.mutate({ id: rule.id, is_active: !rule.is_active });
@@ -217,6 +219,10 @@ export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
                         <History className="mr-2 h-4 w-4" />
                         Ver Logs
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTestRule(rule)}>
+                        <Play className="mr-2 h-4 w-4" />
+                        Test Mode
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() => setDeleteId(rule.id)}
@@ -250,6 +256,15 @@ export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Test Runner Dialog */}
+      {testRule && (
+        <AutomationTestRunner
+          open={!!testRule}
+          onOpenChange={(open) => !open && setTestRule(null)}
+          rule={testRule}
+        />
+      )}
     </TooltipProvider>
   );
 }
