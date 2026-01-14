@@ -269,31 +269,34 @@ export function CustomFieldsManager() {
                 </TableHeader>
                 <TableBody>
                   {fields.map((field, index) => (
-                    <TableRow key={field.id}>
+                    <TableRow key={field.id} className="group">
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <GripVertical className="w-4 h-4 text-muted-foreground" />
-                          <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col gap-0.5">
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="icon"
-                              className="h-5 w-5"
+                              className="h-6 w-6 opacity-60 hover:opacity-100 transition-opacity"
                               disabled={index === 0 || reorderFields.isPending}
                               onClick={() => moveField(field.id, "up")}
+                              title="Mover para cima"
                             >
                               <ArrowUp className="w-3 h-3" />
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="icon"
-                              className="h-5 w-5"
+                              className="h-6 w-6 opacity-60 hover:opacity-100 transition-opacity"
                               disabled={index === fields.length - 1 || reorderFields.isPending}
                               onClick={() => moveField(field.id, "down")}
+                              title="Mover para baixo"
                             >
                               <ArrowDown className="w-3 h-3" />
                             </Button>
                           </div>
-                          <span className="text-xs text-muted-foreground ml-1">{index + 1}</span>
+                          <Badge variant="outline" className="text-xs font-mono">
+                            {index + 1}
+                          </Badge>
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">{field.name}</TableCell>
