@@ -11,7 +11,7 @@ import {
   BlueprintClarifyingQuestion,
   BlueprintGenerationResponse,
 } from '@/types/blueprint';
-import { ClarifyingQuestions } from './ClarifyingQuestions';
+import { ConversationalQuestions } from './ConversationalQuestions';
 import { BlueprintPreview } from './BlueprintPreview';
 import { BlueprintApplyPreview, ApplyMode } from './BlueprintApplyPreview';
 import { TemplateSelector } from './TemplateSelector';
@@ -456,7 +456,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
               </CardContent>
             </Card>
           )}
-          <ClarifyingQuestions
+          <ConversationalQuestions
             questions={questions}
             onSubmit={handleClarifyingSubmit}
             isLoading={isLoading}
