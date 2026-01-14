@@ -32,7 +32,7 @@ serve(async (req) => {
 
     const callbackUri = `${SUPABASE_URL}/functions/v1/instagram-oauth-callback`;
     const state = `${workspaceId}:${userId}`;
-    const scope = "instagram_basic,instagram_manage_messages,pages_messaging,pages_manage_metadata,pages_read_engagement";
+    const scope = "instagram_basic,instagram_manage_messages,pages_read_engagement,pages_show_list";
 
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(callbackUri)}&state=${state}&scope=${scope}&response_type=code`;
 
