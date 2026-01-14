@@ -79,6 +79,7 @@ import { CustomFieldsForm, CustomFieldsDisplay } from "@/components/custom-field
 import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
 import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
+import { ContextualTemplatePanel } from "@/components/templates/ContextualTemplatePanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { VariableContext } from "@/lib/templateVariables";
 import { cn } from "@/lib/utils";
@@ -968,6 +969,17 @@ export function LeadDetail() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Contextual Templates */}
+              <ContextualTemplatePanel
+                entityType="lead"
+                entityId={id || ''}
+                entityData={templateContext}
+                status={lead?.status}
+                goal={lead?.status === 'new' ? 'qualification' : 'follow_up'}
+                onApply={handleTemplateApply}
+                maxVisible={3}
+              />
 
               {/* AI Field Suggestions */}
               <FieldSuggestionsPanel
