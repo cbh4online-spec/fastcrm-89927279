@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-export type AutomationTrigger = 
-  | "lead_created" 
+export type AutomationTrigger =
+  | "lead_created"
   | "lead_updated"
   | "lead_status_changed"
   | "lead_no_response"
@@ -19,17 +20,17 @@ export type AutomationTrigger =
   | "company_updated"
   | "custom_field_updated"
   | "payment_confirmed"
+  | "proposal_paid"
   | "message_received"
   | "conversation_no_reply"
   | "proposal_created"
   | "proposal_viewed"
-  | "proposal_paid"
   | "scheduled_time";
 
-export type AutomationActionType = 
-  | "create_task" 
-  | "move_opportunity_stage" 
-  | "send_message" 
+export type AutomationActionType =
+  | "create_task"
+  | "move_opportunity_stage"
+  | "send_message"
   | "notify_user"
   | "assign_owner"
   | "add_tag"
@@ -37,9 +38,21 @@ export type AutomationActionType =
   | "update_field"
   | "send_template_message"
   | "create_proposal"
-  | "send_proposal_link";
+  | "send_proposal_link"
+  | "wait_time"
+  | "stop_automation"
+  | "change_lead_status";
 
-export type ConditionOperator = "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than" | "is_empty" | "is_not_empty";
+export type ConditionOperator =
+  | "equals"
+  | "not_equals"
+  | "contains"
+  | "not_contains"
+  | "greater_than"
+  | "less_than"
+  | "is_empty"
+  | "is_not_empty";
+
 export type ExecutionStatus = "pending" | "running" | "completed" | "failed";
 
 export interface AutomationCondition {

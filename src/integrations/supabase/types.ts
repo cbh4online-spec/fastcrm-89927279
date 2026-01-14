@@ -2128,6 +2128,9 @@ export type Database = {
         | "send_template_message"
         | "create_proposal"
         | "send_proposal_link"
+        | "wait_time"
+        | "stop_automation"
+        | "change_lead_status"
       automation_trigger:
         | "lead_created"
         | "opportunity_stage_changed"
@@ -2313,6 +2316,9 @@ export const Constants = {
         "send_template_message",
         "create_proposal",
         "send_proposal_link",
+        "wait_time",
+        "stop_automation",
+        "change_lead_status",
       ],
       automation_trigger: [
         "lead_created",

@@ -39,7 +39,7 @@ const operatorDescriptions: Record<ConditionOperator, (fieldLabel: string, value
 // Generate plain language description of an action
 const actionDescriptions: Record<AutomationActionType, (config: Record<string, unknown>) => string> = {
   create_task: (config) => {
-    const title = config.title as string || "nova tarefa";
+    const title = config.task_title as string || config.title as string || "nova tarefa";
     return `Criar tarefa "${title}"`;
   },
   assign_owner: (config) => {
@@ -68,7 +68,7 @@ const actionDescriptions: Record<AutomationActionType, (config: Record<string, u
   },
   update_field: (config) => {
     const fieldName = config.field_name as string || "campo";
-    const value = config.value as string || "valor";
+    const value = config.field_value as string || config.value as string || "valor";
     return `Atualizar ${fieldName} para "${value}"`;
   },
   create_proposal: (config) => {
@@ -77,6 +77,20 @@ const actionDescriptions: Record<AutomationActionType, (config: Record<string, u
   send_proposal_link: (config) => {
     const channel = config.channel as string || "canal";
     return `Enviar link da proposta via ${channel}`;
+  },
+  wait_time: (config) => {
+    const hours = config.wait_hours as number;
+    const days = config.wait_days as number;
+    if (days) return `Aguardar ${days} dia(s)`;
+    if (hours) return `Aguardar ${hours} hora(s)`;
+    return `Aguardar tempo definido`;
+  },
+  stop_automation: () => {
+    return `Parar automação`;
+  },
+  change_lead_status: (config) => {
+    const status = config.new_status as string || "novo estado";
+    return `Alterar estado do lead para "${status}"`;
   },
 };
 

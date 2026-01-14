@@ -33,6 +33,7 @@ const FIELD_MODIFYING_ACTIONS: AutomationActionType[] = [
   "move_opportunity_stage",
   "assign_owner",
   "add_tag",
+  "change_lead_status",
 ];
 
 // Get entity type from trigger
