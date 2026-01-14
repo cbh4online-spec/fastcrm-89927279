@@ -45,6 +45,7 @@ import { Template } from "@/hooks/useTemplates";
 import { InboxAIAssistant } from "./InboxAIAssistant";
 import { ConversationClassification } from "./ConversationClassification";
 import { InboxTemplateAIDraft } from "./InboxTemplateAIDraft";
+import { InboxActionsMenu } from "./InboxActionsMenu";
 import { Separator } from "@/components/ui/separator";
 
 const channelIcons = {
@@ -238,7 +239,15 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
             </SelectContent>
           </Select>
 
-          {/* Actions */}
+          {/* Inbox Actions */}
+          <InboxActionsMenu
+            conversationId={conversationId}
+            leadId={conversation.lead_id}
+            leadName={conversation.lead?.name || null}
+            currentPriority={conversation.user_priority || conversation.ai_priority}
+          />
+
+          {/* Quick Status Actions */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">

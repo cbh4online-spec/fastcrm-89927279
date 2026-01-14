@@ -976,6 +976,74 @@ export type Database = {
           },
         ]
       }
+      inbox_action_logs: {
+        Row: {
+          action_data: Json | null
+          action_type: string
+          automation_rule_id: string | null
+          automation_triggered: boolean | null
+          conversation_id: string
+          created_at: string
+          id: string
+          lead_id: string | null
+          performed_by: string
+          workspace_id: string
+        }
+        Insert: {
+          action_data?: Json | null
+          action_type: string
+          automation_rule_id?: string | null
+          automation_triggered?: boolean | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          performed_by: string
+          workspace_id: string
+        }
+        Update: {
+          action_data?: Json | null
+          action_type?: string
+          automation_rule_id?: string | null
+          automation_triggered?: boolean | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          performed_by?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_action_logs_automation_rule_id_fkey"
+            columns: ["automation_rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_action_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_action_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_action_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_connections: {
         Row: {
           access_token: string
@@ -2323,6 +2391,11 @@ export type Database = {
         | "first_message_from_lead"
         | "conversation_resolved"
         | "conversation_priority_changed"
+        | "inbox_priority_changed"
+        | "inbox_lead_status_changed"
+        | "inbox_opportunity_created"
+        | "inbox_proposal_sent"
+        | "inbox_followup_scheduled"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -2516,6 +2589,11 @@ export const Constants = {
         "first_message_from_lead",
         "conversation_resolved",
         "conversation_priority_changed",
+        "inbox_priority_changed",
+        "inbox_lead_status_changed",
+        "inbox_opportunity_created",
+        "inbox_proposal_sent",
+        "inbox_followup_scheduled",
       ],
       condition_operator: [
         "equals",
