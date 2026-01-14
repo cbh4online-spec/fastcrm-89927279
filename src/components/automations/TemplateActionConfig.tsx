@@ -69,7 +69,7 @@ export function TemplateActionConfig({ form, index, entityType }: TemplateAction
   const [selectedChannel, setSelectedChannel] = useState<TemplateType | "">("");
 
   const selectedTemplateId = form.watch(`actions.${index}.config.template_id`);
-  const onMissingFields = form.watch(`actions.${index}.config.on_missing_fields`) || "create_task";
+  const onMissingFields = form.watch(`actions.${index}.config.on_missing_fields`) || "stop_automation";
 
   // Filter templates by selected channel
   const filteredTemplates = useMemo(() => {
@@ -134,6 +134,14 @@ export function TemplateActionConfig({ form, index, entityType }: TemplateAction
 
   return (
     <div className="space-y-4">
+      {/* Template Requirement Notice */}
+      <Alert className="bg-blue-500/10 border-blue-500/30">
+        <FileText className="h-4 w-4 text-blue-500" />
+        <AlertDescription className="text-sm">
+          <strong>Templates obrigatórios:</strong> Todas as mensagens automáticas devem usar templates para garantir 
+          que as variáveis sejam validadas antes do envio.
+        </AlertDescription>
+      </Alert>
       {/* Channel Selection */}
       <FormField
         control={form.control}
@@ -270,7 +278,7 @@ export function TemplateActionConfig({ form, index, entityType }: TemplateAction
               <FormLabel>Quando faltarem dados</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
-                value={field.value || "create_task"}
+                value={field.value || "stop_automation"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -278,6 +286,17 @@ export function TemplateActionConfig({ form, index, entityType }: TemplateAction
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="stop_automation">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-red-500" />
+                      <div>
+                        <div>Parar automação</div>
+                        <div className="text-xs text-muted-foreground">
+                          Interrompe a automação completamente
+                        </div>
+                      </div>
+                    </div>
+                  </SelectItem>
                   <SelectItem value="create_task">
                     <div className="flex items-center gap-2">
                       <ListTodo className="h-4 w-4 text-blue-500" />
@@ -293,20 +312,9 @@ export function TemplateActionConfig({ form, index, entityType }: TemplateAction
                     <div className="flex items-center gap-2">
                       <SkipForward className="h-4 w-4 text-amber-500" />
                       <div>
-                        <div>Saltar e registar</div>
+                        <div>Saltar e continuar</div>
                         <div className="text-xs text-muted-foreground">
-                          Não envia, apenas regista no log
-                        </div>
-                      </div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="send_partial">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-green-500" />
-                      <div>
-                        <div>Enviar mesmo assim</div>
-                        <div className="text-xs text-muted-foreground">
-                          Envia com variáveis em branco
+                          Ignora esta ação mas continua a automação
                         </div>
                       </div>
                     </div>
@@ -314,9 +322,9 @@ export function TemplateActionConfig({ form, index, entityType }: TemplateAction
                 </SelectContent>
               </Select>
               <FormDescription>
+                {onMissingFields === "stop_automation" && "A automação será interrompida e o erro registado nos logs."}
                 {onMissingFields === "create_task" && "Uma tarefa será criada para um agente completar a mensagem."}
-                {onMissingFields === "skip_and_log" && "A ação será ignorada mas registada nos logs para análise."}
-                {onMissingFields === "send_partial" && "A mensagem será enviada com campos vazios."}
+                {onMissingFields === "skip_and_log" && "A ação será ignorada e a automação continua para as próximas ações."}
               </FormDescription>
             </FormItem>
           )}

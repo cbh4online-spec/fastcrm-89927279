@@ -87,11 +87,11 @@ const triggerOptions: { value: AutomationTrigger; label: string; entity: string;
 ];
 
 // Extended action options grouped by category
+// NOTE: send_message removed - all messages MUST use templates to ensure variable validation
 const actionOptions: { value: AutomationActionType; label: string; description: string; category: string }[] = [
-  // Communication
-  { value: "send_template_message", label: "Enviar Email/WhatsApp/DM", description: "Envia mensagem usando um template", category: "Comunicação" },
-  { value: "send_message", label: "Enviar Mensagem Direta", description: "Envia mensagem ao lead", category: "Comunicação" },
-  { value: "notify_user", label: "Notificar Utilizador", description: "Envia notificação a um utilizador", category: "Comunicação" },
+  // Communication - all require templates
+  { value: "send_template_message", label: "Enviar Email/WhatsApp/DM", description: "Envia mensagem usando um template validado", category: "Comunicação" },
+  { value: "notify_user", label: "Notificar Utilizador", description: "Envia notificação a um utilizador do sistema", category: "Comunicação" },
   // CRM
   { value: "create_task", label: "Criar Tarefa", description: "Cria uma nova tarefa associada", category: "CRM" },
   { value: "update_field", label: "Atualizar Campo", description: "Atualiza valor de um campo", category: "CRM" },
@@ -1019,28 +1019,7 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                           </>
                         )}
 
-                        {actionType === "send_message" && (
-                          <FormField
-                            control={form.control}
-                            name={`actions.${index}.config.message`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Mensagem</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Olá {name}, obrigado pelo contacto!"
-                                    className="resize-none"
-                                    {...field}
-                                    value={field.value as string || ""}
-                                  />
-                                </FormControl>
-                                <FormDescription className="text-xs">
-                                  Use {"{name}"}, {"{email}"} para campos dinâmicos
-                                </FormDescription>
-                              </FormItem>
-                            )}
-                          />
-                        )}
+                        {/* send_message removed - all messages must use templates */}
 
                         {actionType === "add_tag" && (
                           <FormField
