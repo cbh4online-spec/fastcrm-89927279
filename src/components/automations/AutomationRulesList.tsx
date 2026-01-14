@@ -26,7 +26,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Pencil, Trash2, History, Loader2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { MoreHorizontal, Pencil, Trash2, History, Loader2, MessageSquareText } from "lucide-react";
 import {
   useAutomationRules,
   useDeleteAutomationRule,
@@ -35,6 +41,7 @@ import {
   AutomationTrigger,
 } from "@/hooks/useAutomations";
 import { format } from "date-fns";
+import { generatePlainLanguageSummary } from "@/lib/automationPlainLanguage";
 
 const triggerLabels: Record<AutomationTrigger, string> = {
   lead_created: "Lead Criado",
@@ -105,78 +112,107 @@ export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
   }
 
   return (
-    <>
+    <TooltipProvider>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Nome</TableHead>
             <TableHead>Gatilho</TableHead>
-            <TableHead>Condições</TableHead>
-            <TableHead>Ações</TableHead>
+            <TableHead>Resumo</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Criado</TableHead>
             <TableHead className="w-[80px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rules.map((rule) => (
-            <TableRow key={rule.id}>
-              <TableCell className="font-medium">
-                {rule.name}
-                {rule.description && (
-                  <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                    {rule.description}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell>
-                <Badge className={triggerColors[rule.trigger]}>
-                  {triggerLabels[rule.trigger]}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {rule.conditions?.length || 0} condição(ões)
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {rule.actions?.length || 0} ação(ões)
-              </TableCell>
-              <TableCell>
-                <Switch
-                  checked={rule.is_active}
-                  onCheckedChange={() => handleToggle(rule)}
-                />
-              </TableCell>
-              <TableCell className="text-muted-foreground text-sm">
-                {format(new Date(rule.created_at), "dd/MM/yyyy")}
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEdit(rule)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onViewLogs(rule.id)}>
-                      <History className="mr-2 h-4 w-4" />
-                      Ver Logs
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => setDeleteId(rule.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Eliminar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+          {rules.map((rule) => {
+            const conditions = (rule.conditions || []).map((c) => ({
+              field_name: c.field_name,
+              operator: c.operator,
+              value: c.value,
+            }));
+            const actions = (rule.actions || []).map((a) => ({
+              action_type: a.action_type,
+              config: a.config as Record<string, unknown>,
+            }));
+            const summary = generatePlainLanguageSummary(rule.trigger, conditions, actions);
+
+            return (
+              <TableRow key={rule.id}>
+                <TableCell className="font-medium">
+                  {rule.name}
+                  {rule.description && (
+                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                      {rule.description}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge className={triggerColors[rule.trigger]}>
+                    {triggerLabels[rule.trigger]}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-2 cursor-help">
+                        <MessageSquareText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground truncate max-w-[300px]">
+                          {summary.conditions.length > 0 
+                            ? `Se ${summary.conditions[0]}${summary.conditions.length > 1 ? ` (+${summary.conditions.length - 1})` : ""}`
+                            : "Sem condições"
+                          }
+                          {" → "}
+                          {summary.actions.length > 0
+                            ? `${summary.actions[0]}${summary.actions.length > 1 ? ` (+${summary.actions.length - 1})` : ""}`
+                            : "Sem ações"
+                          }
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[400px]">
+                      <p className="font-medium">{summary.fullSummary}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={rule.is_active}
+                    onCheckedChange={() => handleToggle(rule)}
+                  />
+                </TableCell>
+                <TableCell className="text-muted-foreground text-sm">
+                  {format(new Date(rule.created_at), "dd/MM/yyyy")}
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onEdit(rule)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onViewLogs(rule.id)}>
+                        <History className="mr-2 h-4 w-4" />
+                        Ver Logs
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => setDeleteId(rule.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
 
@@ -196,6 +232,6 @@ export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 }
