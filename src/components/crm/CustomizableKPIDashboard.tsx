@@ -20,8 +20,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEntityKPIs, useEntityAIInsights } from "@/hooks/useEntityInsights";
-import { useDashboardLayout, WidgetConfig, WidgetType } from "@/hooks/useDashboardLayout";
-import { DashboardCustomizer } from "./DashboardCustomizer";
+import { 
+  useLayoutConfig, 
+  WidgetConfig, 
+  WidgetType,
+  LayoutConfig,
+} from "@/hooks/useLayoutConfig";
+import { UnifiedLayoutCustomizer } from "./UnifiedLayoutCustomizer";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface WidgetProps {
@@ -33,7 +38,6 @@ interface WidgetProps {
 // Individual widget components
 function MessagesWidget({ settings, kpis }: WidgetProps) {
   const timeWindow = (settings.timeWindow as number) || 30;
-  // Note: Currently we only have 30-day data, would need to extend the KPI hook for other windows
   return (
     <KPICard
       label={`Mensagens (${timeWindow}d)`}
@@ -264,16 +268,20 @@ interface CustomizableKPIDashboardProps {
     tags?: string[];
     notes?: string;
   } | null;
+  onCustomizeClick?: () => void;
+  showCustomizeButton?: boolean;
 }
 
 export function CustomizableKPIDashboard({
   entityType,
   entityId,
   entityData,
+  onCustomizeClick,
+  showCustomizeButton = true,
 }: CustomizableKPIDashboardProps) {
   const [customizerOpen, setCustomizerOpen] = useState(false);
   
-  const { data: layoutData, isLoading: layoutLoading } = useDashboardLayout(entityType);
+  const { data: layoutData, isLoading: layoutLoading } = useLayoutConfig(entityType);
   const { data: kpis, isLoading: kpisLoading } = useEntityKPIs(entityType, entityId);
   const { data: insights } = useEntityAIInsights(entityType, entityId, entityData);
   const { isAdmin } = useUserRole();
@@ -282,12 +290,25 @@ export function CustomizableKPIDashboard({
     return <DashboardSkeleton />;
   }
 
-  const { layout, source, layoutId } = layoutData || { layout: [], source: "default", layoutId: null };
-  const enabledWidgets = layout.filter(w => w.enabled).sort((a, b) => a.position - b.position);
+  const { layout, source, layoutId } = layoutData || { 
+    layout: { widgets: [], sidebar: [] } as LayoutConfig, 
+    source: "default" as const, 
+    layoutId: null 
+  };
+  
+  const enabledWidgets = layout.widgets.filter(w => w.enabled).sort((a, b) => a.position - b.position);
 
   // Separate AI insights widget (always full width) from KPI widgets
   const kpiWidgets = enabledWidgets.filter(w => w.type !== "ai_insights");
   const aiInsightsWidget = enabledWidgets.find(w => w.type === "ai_insights");
+
+  const handleCustomizeClick = () => {
+    if (onCustomizeClick) {
+      onCustomizeClick();
+    } else {
+      setCustomizerOpen(true);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -318,28 +339,32 @@ export function CustomizableKPIDashboard({
       )}
 
       {/* Customize button */}
-      <div className="flex justify-end">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setCustomizerOpen(true)}
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
-          <Settings2 className="w-3.5 h-3.5 mr-1" />
-          Personalizar dashboard
-        </Button>
-      </div>
+      {showCustomizeButton && (
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCustomizeClick}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Settings2 className="w-3.5 h-3.5 mr-1" />
+            Personalizar
+          </Button>
+        </div>
+      )}
 
-      {/* Customizer dialog */}
-      <DashboardCustomizer
-        open={customizerOpen}
-        onOpenChange={setCustomizerOpen}
-        entityType={entityType}
-        entityId={entityId}
-        currentLayout={layout}
-        layoutSource={source}
-        isAdmin={isAdmin}
-      />
+      {/* Unified customizer dialog (only when using internal state) */}
+      {!onCustomizeClick && (
+        <UnifiedLayoutCustomizer
+          open={customizerOpen}
+          onOpenChange={setCustomizerOpen}
+          entityType={entityType}
+          entityId={entityId}
+          currentLayout={layout}
+          layoutSource={source}
+          isAdmin={isAdmin}
+        />
+      )}
     </div>
   );
 }
@@ -374,3 +399,6 @@ function DashboardSkeleton() {
     </div>
   );
 }
+
+// Export for use in other components
+export { useLayoutConfig };
