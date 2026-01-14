@@ -118,14 +118,14 @@ export function CreateOpportunityDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Linked Lead</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={(value) => field.onChange(value === "__none__" ? undefined : value)} value={field.value || "__none__"}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a lead (optional)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No lead</SelectItem>
+                      <SelectItem value="__none__">No lead</SelectItem>
                       {leads?.map((lead) => (
                         <SelectItem key={lead.id} value={lead.id}>
                           {lead.name}
