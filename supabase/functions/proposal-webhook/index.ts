@@ -31,15 +31,31 @@ serve(async (req) => {
       const proposalId = session.metadata?.proposal_id;
       const opportunityId = session.metadata?.opportunity_id;
       const workspaceId = session.metadata?.workspace_id;
+      const paymentIntentId = session.payment_intent as string;
 
-      if (proposalId) {
-        // Update proposal
+      // Idempotency check - prevent duplicate processing
+      if (proposalId && paymentIntentId) {
+        const { data: existing } = await supabaseClient
+          .from("proposals")
+          .select("payment_idempotency_key")
+          .eq("id", proposalId)
+          .single();
+
+        if (existing?.payment_idempotency_key === paymentIntentId) {
+          console.log(`[PROPOSAL-WEBHOOK] Already processed: ${paymentIntentId}`);
+          return new Response(JSON.stringify({ received: true, status: "already_processed" }), {
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        // Update proposal with idempotency key and status
         await supabaseClient
           .from("proposals")
           .update({
             status: "accepted",
             payment_status: "completed",
-            stripe_payment_intent_id: session.payment_intent as string,
+            stripe_payment_intent_id: paymentIntentId,
+            payment_idempotency_key: paymentIntentId,
             accepted_at: new Date().toISOString(),
           })
           .eq("id", proposalId);
@@ -52,8 +68,9 @@ serve(async (req) => {
             .eq("id", opportunityId);
         }
 
-        // Log activity
+        // Log activity and analytics
         if (workspaceId) {
+          // Activity log
           await supabaseClient.from("proposal_activity_logs").insert({
             proposal_id: proposalId,
             workspace_id: workspaceId,
@@ -61,9 +78,53 @@ serve(async (req) => {
             details: {
               amount: session.amount_total,
               currency: session.currency,
-              payment_intent: session.payment_intent,
+              payment_intent: paymentIntentId,
             },
           });
+
+          // Analytics
+          const { data: proposal } = await supabaseClient
+            .from("proposals")
+            .select("template_id")
+            .eq("id", proposalId)
+            .single();
+
+          await supabaseClient.from("proposal_analytics").insert({
+            workspace_id: workspaceId,
+            proposal_id: proposalId,
+            template_id: proposal?.template_id,
+            event_type: "payment_completed",
+            metadata: {
+              amount: session.amount_total,
+              currency: session.currency,
+            },
+          });
+
+          // Trigger automation: proposal_paid
+          const { data: automationRules } = await supabaseClient
+            .from("automation_rules")
+            .select("*")
+            .eq("workspace_id", workspaceId)
+            .eq("trigger", "proposal_paid")
+            .eq("is_active", true);
+
+          if (automationRules && automationRules.length > 0) {
+            // Log automation executions for each matching rule
+            for (const rule of automationRules) {
+              await supabaseClient.from("automation_logs").insert({
+                rule_id: rule.id,
+                workspace_id: workspaceId,
+                trigger_data: {
+                  proposal_id: proposalId,
+                  opportunity_id: opportunityId,
+                  amount: session.amount_total,
+                  currency: session.currency,
+                },
+                status: "pending",
+              });
+            }
+            console.log(`[PROPOSAL-WEBHOOK] Triggered ${automationRules.length} automations`);
+          }
         }
 
         console.log(`[PROPOSAL-WEBHOOK] Proposal ${proposalId} accepted`);

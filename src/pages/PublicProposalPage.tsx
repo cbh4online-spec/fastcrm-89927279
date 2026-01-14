@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ProposalPreview } from "@/components/proposals/ProposalPreview";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
-import type { Proposal, ContentBlock } from "@/types/proposal";
+import type { Proposal } from "@/types/proposal";
 
 export default function PublicProposalPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -42,10 +41,10 @@ export default function PublicProposalPage() {
   };
 
   const trackView = async () => {
-    // Get proposal info and log activity
+    // Get proposal info
     const { data: prop } = await supabase
       .from("proposals")
-      .select("id, workspace_id, views_count")
+      .select("id, workspace_id, views_count, template_id")
       .eq("slug", slug)
       .single();
     
@@ -62,6 +61,15 @@ export default function PublicProposalPage() {
         workspace_id: prop.workspace_id,
         action: "viewed",
         user_agent: navigator.userAgent,
+      } as never);
+
+      // Track analytics
+      await supabase.from("proposal_analytics").insert({
+        workspace_id: prop.workspace_id,
+        proposal_id: prop.id,
+        template_id: prop.template_id,
+        event_type: "view",
+        metadata: { user_agent: navigator.userAgent },
       } as never);
     }
   };

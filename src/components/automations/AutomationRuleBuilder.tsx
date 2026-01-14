@@ -46,6 +46,7 @@ import { useCustomFields, CustomField, CustomFieldType } from "@/hooks/useCustom
 import { CriticalFieldsWarning, LoopDetectionWarning } from "./CriticalFieldsWarning";
 import { CustomFieldTriggerConfig } from "./CustomFieldTriggerConfig";
 import { TemplateActionConfig } from "./TemplateActionConfig";
+import { ProposalActionConfig } from "./ProposalActionConfig";
 import { 
   detectPotentialLoop, 
   getModifiedFields, 
@@ -66,6 +67,7 @@ const triggerOptions: { value: AutomationTrigger; label: string; entity: string 
   { value: "company_updated", label: "Empresa Atualizada", entity: "company" },
   { value: "custom_field_updated", label: "Campo Personalizado Alterado", entity: "any" },
   { value: "payment_confirmed", label: "Pagamento Confirmado", entity: "payment" },
+  { value: "proposal_paid", label: "Proposta Paga", entity: "proposal" },
 ];
 
 // Extended action options
@@ -79,6 +81,8 @@ const actionOptions: { value: AutomationActionType; label: string; description: 
   { value: "notify_user", label: "Notificar Utilizador", description: "Envia notificação a um utilizador" },
   { value: "create_opportunity", label: "Criar Oportunidade", description: "Cria oportunidade se não existir" },
   { value: "update_field", label: "Atualizar Campo", description: "Atualiza valor de um campo" },
+  { value: "create_proposal", label: "Criar Proposta", description: "Cria proposta a partir de um modelo" },
+  { value: "send_proposal_link", label: "Enviar Link da Proposta", description: "Envia link da proposta via template" },
 ];
 
 // Operator options based on field type
@@ -176,6 +180,11 @@ const coreFieldsByEntity: Record<string, { name: string; label: string; type: Cu
     { name: "currency", label: "Moeda", type: "text" },
     { name: "status", label: "Estado", type: "status" },
   ],
+  proposal: [
+    { name: "title", label: "Título", type: "text" },
+    { name: "price", label: "Valor", type: "number" },
+    { name: "status", label: "Estado", type: "status" },
+  ],
   any: [],
 };
 
@@ -189,7 +198,11 @@ const conditionSchema = z.object({
 });
 
 const actionSchema = z.object({
-  action_type: z.enum(["create_task", "move_opportunity_stage", "send_message", "notify_user", "assign_owner", "add_tag", "create_opportunity", "update_field", "send_template_message"]),
+  action_type: z.enum([
+    "create_task", "move_opportunity_stage", "send_message", "notify_user", 
+    "assign_owner", "add_tag", "create_opportunity", "update_field", 
+    "send_template_message", "create_proposal", "send_proposal_link"
+  ]),
   config: z.record(z.unknown()),
   position: z.number(),
 });
@@ -200,7 +213,8 @@ const formSchema = z.object({
   trigger: z.enum([
     "lead_created", "lead_updated", "opportunity_created", "opportunity_updated",
     "opportunity_stage_changed", "contact_created", "contact_updated",
-    "company_created", "company_updated", "custom_field_updated", "payment_confirmed"
+    "company_created", "company_updated", "custom_field_updated", "payment_confirmed",
+    "proposal_paid"
   ]),
   trigger_config: z.object({
     custom_field_id: z.string().optional(),
@@ -1064,6 +1078,14 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                             form={form} 
                             index={index} 
                             entityType={entityType} 
+                          />
+                        )}
+
+                        {(actionType === "create_proposal" || actionType === "send_proposal_link") && (
+                          <ProposalActionConfig
+                            actionType={actionType}
+                            config={form.watch(`actions.${index}.config`) || {}}
+                            onChange={(config) => form.setValue(`actions.${index}.config`, config)}
                           />
                         )}
                       </div>

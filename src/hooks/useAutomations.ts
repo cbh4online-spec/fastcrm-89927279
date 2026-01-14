@@ -15,7 +15,8 @@ export type AutomationTrigger =
   | "company_created"
   | "company_updated"
   | "custom_field_updated"
-  | "payment_confirmed";
+  | "payment_confirmed"
+  | "proposal_paid";
 
 export type AutomationActionType = 
   | "create_task" 
@@ -26,7 +27,9 @@ export type AutomationActionType =
   | "add_tag"
   | "create_opportunity"
   | "update_field"
-  | "send_template_message";
+  | "send_template_message"
+  | "create_proposal"
+  | "send_proposal_link";
 
 export type ConditionOperator = "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than" | "is_empty" | "is_not_empty";
 export type ExecutionStatus = "pending" | "running" | "completed" | "failed";

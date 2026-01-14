@@ -42,6 +42,7 @@ export function getEntityFromTrigger(trigger: AutomationTrigger): string {
   if (trigger.startsWith("contact_")) return "contact";
   if (trigger.startsWith("company_")) return "company";
   if (trigger === "custom_field_updated") return "any";
+  if (trigger === "proposal_paid") return "proposal";
   return "unknown";
 }
 
