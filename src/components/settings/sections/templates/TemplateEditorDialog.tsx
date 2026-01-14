@@ -8,7 +8,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,11 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
   useCreateTemplate,
   useUpdateTemplate,
   useTemplateVersions,
@@ -33,12 +27,10 @@ import {
   TemplateGoal,
   TemplateTone,
 } from '@/hooks/useTemplates';
-import { TemplateVariablePicker } from '@/components/templates/TemplateVariablePicker';
+import { VariableHighlightedEditor } from '@/components/templates/VariableHighlightedEditor';
 import { RichTemplateEditor } from './RichTemplateEditor';
 import { TemplatePreview } from './TemplatePreview';
 import { TemplateVersionHistory } from './TemplateVersionHistory';
-import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
 import {
   Mail,
   MessageCircle,
@@ -49,11 +41,11 @@ import {
   X,
   Eye,
   History,
-  Variable,
   Plus,
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { extractVariables } from '@/lib/templateVariables';
 
 interface TemplateEditorDialogProps {
   open: boolean;
@@ -152,10 +144,6 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: TemplateE
     setActiveTab('edit');
   };
 
-  const handleInsertVariable = (variable: string) => {
-    setContent(prev => prev + variable);
-  };
-
   const handleAddTag = () => {
     if (newTag && !tags.includes(newTag)) {
       setTags([...tags, newTag]);
@@ -177,8 +165,8 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: TemplateE
 
   // Detect required variables from content
   useEffect(() => {
-    const matches = content.match(/\{\{[^}]+\}\}/g) || [];
-    setRequiredVariables([...new Set(matches)]);
+    const extracted = extractVariables(content);
+    setRequiredVariables(extracted);
   }, [content]);
 
   const handleSave = async () => {
@@ -414,23 +402,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: TemplateE
 
                 {/* Content Editor */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Conteúdo *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button type="button" size="sm" variant="outline">
-                          <Variable className="h-4 w-4 mr-2" />
-                          Inserir Variável
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 p-0" align="end">
-                        <TemplateVariablePicker
-                          onInsert={handleInsertVariable}
-                          compatibleModules={compatibleModules}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  <Label className="mb-2 block">Conteúdo *</Label>
                   
                   {type === 'proposal' ? (
                     <RichTemplateEditor
@@ -440,28 +412,15 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: TemplateE
                       onTextChange={setContent}
                     />
                   ) : (
-                    <Textarea
+                    <VariableHighlightedEditor
                       value={content}
-                      onChange={(e) => setContent(e.target.value)}
+                      onChange={setContent}
                       placeholder="Escreve o teu template aqui. Usa variáveis como {{lead.first_name}} para personalização..."
-                      className="min-h-[200px] font-mono text-sm"
+                      compatibleModules={compatibleModules}
+                      minHeight="200px"
                     />
                   )}
                 </div>
-
-                {/* Required Variables Detection */}
-                {requiredVariables.length > 0 && (
-                  <div className="p-3 bg-muted rounded-lg">
-                    <Label className="text-xs">Variáveis detetadas</Label>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {requiredVariables.map((v) => (
-                        <Badge key={v} variant="outline" className="font-mono text-xs">
-                          {v}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </ScrollArea>
           </TabsContent>

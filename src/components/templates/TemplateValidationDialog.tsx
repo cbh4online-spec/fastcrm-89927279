@@ -24,8 +24,8 @@ import {
   validateTemplate,
   renderTemplate,
   getVariableInfo,
+  resolveVariable,
   VariableContext,
-  ValidationResult,
 } from '@/lib/templateVariables';
 import {
   AlertCircle,
@@ -38,7 +38,6 @@ import {
   Send,
   Loader2,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface TemplateValidationDialogProps {
   open: boolean;
@@ -58,6 +57,19 @@ interface VariableResolution {
   value: string;
   mappedField?: string;
 }
+
+// Variable alternatives for mapping
+const variableAlternatives: Record<string, string[]> = {
+  '{{lead.name}}': ['{{contact.name}}', '{{company.name}}'],
+  '{{lead.email}}': ['{{contact.email}}', '{{company.email}}', '{{user.email}}'],
+  '{{lead.phone}}': ['{{contact.phone}}', '{{company.phone}}'],
+  '{{lead.first_name}}': ['{{contact.first_name}}', '{{user.first_name}}'],
+  '{{contact.name}}': ['{{lead.name}}', '{{company.name}}'],
+  '{{contact.email}}': ['{{lead.email}}', '{{company.email}}', '{{user.email}}'],
+  '{{company.name}}': ['{{lead.name}}', '{{contact.company}}'],
+  '{{company.email}}': ['{{lead.email}}', '{{contact.email}}'],
+  '{{opportunity.title}}': ['{{lead.name}}'],
+};
 
 export function TemplateValidationDialog({
   open,
@@ -157,6 +169,7 @@ export function TemplateValidationDialog({
       const resolution = resolutions[v];
       if (!resolution) return false;
       if (resolution.mode === 'fill') return resolution.value.length > 0;
+      if (resolution.mode === 'map') return resolution.mappedField && resolution.value.length > 0;
       if (resolution.mode === 'remove') return true;
       return false;
     }) && allInvalid.every(v => {
@@ -270,7 +283,7 @@ export function TemplateValidationDialog({
                       <div className="flex items-center gap-2">
                         <Select
                           value={resolution?.mode || 'fill'}
-                          onValueChange={(v) => updateResolution(variable, { mode: v as ResolutionMode })}
+                          onValueChange={(v) => updateResolution(variable, { mode: v as ResolutionMode, value: '', mappedField: undefined })}
                         >
                           <SelectTrigger className="w-[160px] h-8">
                             <SelectValue />
@@ -282,6 +295,14 @@ export function TemplateValidationDialog({
                                 Preencher valor
                               </div>
                             </SelectItem>
+                            {variableAlternatives[variable]?.length > 0 && (
+                              <SelectItem value="map">
+                                <div className="flex items-center gap-2">
+                                  <Link className="h-3 w-3" />
+                                  Mapear campo
+                                </div>
+                              </SelectItem>
+                            )}
                             <SelectItem value="remove">
                               <div className="flex items-center gap-2">
                                 <Trash2 className="h-3 w-3" />
@@ -298,6 +319,45 @@ export function TemplateValidationDialog({
                             placeholder={info?.example || 'Introduz um valor...'}
                             className="flex-1 h-8"
                           />
+                        )}
+                        
+                        {resolution?.mode === 'map' && variableAlternatives[variable] && (
+                          <Select
+                            value={resolution.mappedField || ''}
+                            onValueChange={(v) => {
+                              const mappedValue = resolveVariable(v, context);
+                              updateResolution(variable, { 
+                                mappedField: v, 
+                                value: mappedValue || '' 
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="flex-1 h-8">
+                              <SelectValue placeholder="Selecionar campo..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {variableAlternatives[variable].map((alt) => {
+                                const altInfo = getVariableInfo(alt);
+                                const altValue = resolveVariable(alt, context);
+                                return (
+                                  <SelectItem 
+                                    key={alt} 
+                                    value={alt}
+                                    disabled={!altValue}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <code className="text-xs">{alt.replace(/\{\{|\}\}/g, '')}</code>
+                                      {altValue && (
+                                        <span className="text-xs text-muted-foreground">
+                                          = {altValue.substring(0, 20)}{altValue.length > 20 ? '...' : ''}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
                         )}
                       </div>
                     </div>
