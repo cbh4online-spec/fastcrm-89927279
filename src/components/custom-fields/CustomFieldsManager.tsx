@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState } from "react";
 import {
   useCustomFields,
   useCreateCustomField,
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +41,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Calendar as CalendarIcon, Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +51,54 @@ const FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
   date: "Data",
   boolean: "Sim/Não",
   select: "Seleção",
+};
+
+// Native fields structure for each entity type
+interface NativeField {
+  id: string;
+  name: string;
+  type: "text" | "email" | "phone" | "select" | "textarea" | "number" | "date";
+  required?: boolean;
+  placeholder?: string;
+  options?: string[];
+}
+
+const NATIVE_FIELDS: Record<CustomFieldEntityType, NativeField[]> = {
+  contact: [
+    { id: "name", name: "Nome", type: "text", required: true, placeholder: "Nome completo" },
+    { id: "email", name: "Email", type: "email", placeholder: "email@exemplo.com" },
+    { id: "phone", name: "Telefone", type: "phone", placeholder: "+351 000 000 000" },
+    { id: "company", name: "Empresa", type: "text", placeholder: "Nome da empresa" },
+    { id: "job_title", name: "Cargo", type: "text", placeholder: "Cargo" },
+    { id: "tags", name: "Tags", type: "text", placeholder: "tag1, tag2" },
+    { id: "notes", name: "Notas", type: "textarea", placeholder: "Notas adicionais..." },
+  ],
+  company: [
+    { id: "name", name: "Nome", type: "text", required: true, placeholder: "Nome da empresa" },
+    { id: "industry", name: "Indústria", type: "text", placeholder: "Setor de atividade" },
+    { id: "size", name: "Tamanho", type: "select", options: ["1-10", "11-50", "51-200", "201-500", "500+"] },
+    { id: "website", name: "Website", type: "text", placeholder: "https://..." },
+    { id: "email", name: "Email", type: "email", placeholder: "email@empresa.com" },
+    { id: "phone", name: "Telefone", type: "phone", placeholder: "+351 000 000 000" },
+    { id: "address", name: "Morada", type: "textarea", placeholder: "Morada completa" },
+    { id: "tags", name: "Tags", type: "text", placeholder: "tag1, tag2" },
+    { id: "notes", name: "Notas", type: "textarea", placeholder: "Notas adicionais..." },
+  ],
+  lead: [
+    { id: "name", name: "Nome", type: "text", required: true, placeholder: "Nome do lead" },
+    { id: "email", name: "Email", type: "email", placeholder: "email@exemplo.com" },
+    { id: "phone", name: "Telefone", type: "phone", placeholder: "+351 000 000 000" },
+    { id: "source", name: "Origem", type: "select", options: ["Website", "Referência", "LinkedIn", "Evento", "Outro"] },
+    { id: "status", name: "Estado", type: "select", options: ["new", "contacted", "qualified", "unqualified"] },
+  ],
+  opportunity: [
+    { id: "title", name: "Nome", type: "text", required: true, placeholder: "Nome da oportunidade" },
+    { id: "value", name: "Valor (€)", type: "number", placeholder: "0" },
+    { id: "stage_id", name: "Fase", type: "select", placeholder: "Selecionar fase" },
+    { id: "lead_id", name: "Lead Associado", type: "select", placeholder: "Selecionar lead" },
+    { id: "expected_close_date", name: "Data Prevista", type: "date" },
+    { id: "notes", name: "Notas", type: "textarea", placeholder: "Notas adicionais..." },
+  ],
 };
 
 interface CustomFieldFormData {
@@ -85,6 +134,9 @@ export function CustomFieldsManager() {
   const updateField = useUpdateCustomField();
   const deleteField = useDeleteCustomField();
   const reorderFields = useReorderCustomFields();
+
+  const nativeFields = NATIVE_FIELDS[entityType];
+  const totalFieldsCount = nativeFields.length;
 
   const handleOpenCreate = () => {
     setEditingField(null);
@@ -234,6 +286,21 @@ export function CustomFieldsManager() {
     }
   };
 
+  // Get position label showing where the field will appear
+  const getPositionLabel = (position: number): string => {
+    if (position === 0) {
+      return `Após "${nativeFields[0]?.name || 'Nome'}" (primeiro campo personalizado)`;
+    }
+    
+    const customFieldsBeforePosition = fields.filter(f => f.position < position);
+    if (customFieldsBeforePosition.length > 0) {
+      const lastCustomField = customFieldsBeforePosition[customFieldsBeforePosition.length - 1];
+      return `Após "${lastCustomField.name}" (personalizado)`;
+    }
+    
+    return `Posição ${position + 1}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -269,7 +336,7 @@ export function CustomFieldsManager() {
         </TabsList>
 
         <TabsContent value={entityType} className="mt-4">
-          <div className={cn("grid gap-6", showPreview && fields.length > 0 && "lg:grid-cols-2")}>
+          <div className={cn("grid gap-6", showPreview && "lg:grid-cols-2")}>
             {/* Fields List */}
             <div>
               {isLoading ? (
@@ -362,21 +429,26 @@ export function CustomFieldsManager() {
               )}
             </div>
 
-            {/* Preview Panel */}
-            {showPreview && fields.length > 0 && (
+            {/* Full Form Preview Panel */}
+            {showPreview && (
               <Card className="animate-fade-in">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Pré-visualização do Formulário</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    Pré-visualização do Formulário
+                    <Badge variant="outline" className="font-normal">
+                      {getEntityTypeLabel(entityType).charAt(0).toUpperCase() + getEntityTypeLabel(entityType).slice(1)}
+                    </Badge>
+                  </CardTitle>
                   <CardDescription>
-                    Como os campos personalizados aparecerão no formulário
+                    Visualização completa do formulário com campos nativos e personalizados
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                    {fields.map((field) => (
-                      <FormFieldPreview key={field.id} field={field} />
-                    ))}
-                  </div>
+                  <FullFormPreview
+                    entityType={entityType}
+                    nativeFields={nativeFields}
+                    customFields={fields}
+                  />
                 </CardContent>
               </Card>
             )}
@@ -476,7 +548,7 @@ export function CustomFieldsManager() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Define onde o campo aparece no formulário
+                Os campos personalizados aparecem após os campos nativos do formulário
               </p>
             </div>
 
@@ -551,8 +623,119 @@ export function CustomFieldsManager() {
   );
 }
 
-// Preview component for each field type
-function FormFieldPreview({ field }: { field: CustomField }) {
+// Full form preview component that shows native + custom fields
+interface FullFormPreviewProps {
+  entityType: CustomFieldEntityType;
+  nativeFields: NativeField[];
+  customFields: CustomField[];
+}
+
+function FullFormPreview({ entityType, nativeFields, customFields }: FullFormPreviewProps) {
+  return (
+    <div className="space-y-4 p-4 border rounded-lg bg-muted/20 max-h-[500px] overflow-y-auto">
+      {/* Native fields */}
+      {nativeFields.map((field, index) => (
+        <div key={field.id}>
+          <NativeFieldPreview field={field} />
+          
+          {/* Insert custom fields after first native field (Nome) */}
+          {index === 0 && customFields.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {customFields.map((customField) => (
+                <div 
+                  key={customField.id}
+                  className="relative rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-3"
+                >
+                  <Badge 
+                    variant="secondary" 
+                    className="absolute -top-2 left-3 text-xs bg-primary text-primary-foreground"
+                  >
+                    <Star className="w-3 h-3 mr-1" />
+                    Personalizado
+                  </Badge>
+                  <div className="mt-1">
+                    <CustomFieldPreview field={customField} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Empty state for custom fields */}
+      {customFields.length === 0 && (
+        <div className="mt-4 p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg text-center">
+          <p className="text-sm text-muted-foreground">
+            Os campos personalizados aparecerão aqui após o campo "Nome"
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Native field preview component
+function NativeFieldPreview({ field }: { field: NativeField }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm flex items-center gap-2">
+        {field.name}
+        {field.required && <span className="text-destructive">*</span>}
+        <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+          Nativo
+        </Badge>
+      </Label>
+      
+      {(field.type === "text" || field.type === "email" || field.type === "phone") && (
+        <Input 
+          placeholder={field.placeholder} 
+          disabled 
+          className="bg-background"
+        />
+      )}
+      
+      {field.type === "number" && (
+        <Input 
+          type="number" 
+          placeholder={field.placeholder || "0"} 
+          disabled 
+          className="bg-background"
+        />
+      )}
+      
+      {field.type === "date" && (
+        <Button 
+          variant="outline" 
+          disabled 
+          className="w-full justify-start text-left font-normal text-muted-foreground bg-background"
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          Selecionar data
+        </Button>
+      )}
+      
+      {field.type === "select" && (
+        <Select disabled>
+          <SelectTrigger className="bg-background">
+            <SelectValue placeholder={field.placeholder || `Selecionar ${field.name.toLowerCase()}`} />
+          </SelectTrigger>
+        </Select>
+      )}
+      
+      {field.type === "textarea" && (
+        <Textarea 
+          placeholder={field.placeholder} 
+          disabled 
+          className="bg-background resize-none min-h-[60px]"
+        />
+      )}
+    </div>
+  );
+}
+
+// Custom field preview component
+function CustomFieldPreview({ field }: { field: CustomField }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-sm">
