@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useContacts, Contact } from "@/hooks/useContacts";
+import { useCompanies } from "@/hooks/useCompanies";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface EditContactDialogProps {
   contact: Contact;
@@ -21,12 +29,13 @@ interface EditContactDialogProps {
 
 export function EditContactDialog({ contact, open, onOpenChange }: EditContactDialogProps) {
   const { updateContact } = useContacts();
+  const { companies } = useCompanies();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    company: "",
+    company_id: "",
     job_title: "",
     notes: "",
     tags: "",
@@ -38,7 +47,7 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
         name: contact.name,
         email: contact.email || "",
         phone: contact.phone || "",
-        company: contact.company || "",
+        company_id: contact.company_id || "",
         job_title: contact.job_title || "",
         notes: contact.notes || "",
         tags: contact.tags?.join(", ") || "",
@@ -57,7 +66,7 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
         name: formData.name.trim(),
         email: formData.email.trim() || undefined,
         phone: formData.phone.trim() || undefined,
-        company: formData.company.trim() || undefined,
+        company_id: formData.company_id || undefined,
         job_title: formData.job_title.trim() || undefined,
         notes: formData.notes.trim() || undefined,
         tags: formData.tags
@@ -113,13 +122,23 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-company">Empresa</Label>
-              <Input
-                id="edit-company"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                placeholder="Nome da Empresa"
-              />
+              <Label htmlFor="edit-company_id">Empresa</Label>
+              <Select
+                value={formData.company_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, company_id: value === "none" ? "" : value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="edit-job_title">Cargo</Label>
