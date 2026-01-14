@@ -1303,6 +1303,194 @@ export type Database = {
         }
         Relationships: []
       }
+      template_folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          position: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          position?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          position?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "template_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_folders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_versions: {
+        Row: {
+          change_summary: string | null
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          rich_content: Json | null
+          subject: string | null
+          template_id: string
+          version: number
+        }
+        Insert: {
+          change_summary?: string | null
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          rich_content?: Json | null
+          subject?: string | null
+          template_id: string
+          version: number
+        }
+        Update: {
+          change_summary?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          rich_content?: Json | null
+          subject?: string | null
+          template_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      templates: {
+        Row: {
+          click_rate: number | null
+          compatible_modules: string[] | null
+          content: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          folder_id: string | null
+          goal: Database["public"]["Enums"]["template_goal"] | null
+          id: string
+          is_active: boolean | null
+          is_favorite: boolean | null
+          language: string | null
+          last_used_at: string | null
+          name: string
+          reply_rate: number | null
+          required_variables: string[] | null
+          rich_content: Json | null
+          subject: string | null
+          tags: string[] | null
+          tone: Database["public"]["Enums"]["template_tone"] | null
+          type: Database["public"]["Enums"]["template_type"]
+          updated_at: string
+          usage_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          click_rate?: number | null
+          compatible_modules?: string[] | null
+          content: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          folder_id?: string | null
+          goal?: Database["public"]["Enums"]["template_goal"] | null
+          id?: string
+          is_active?: boolean | null
+          is_favorite?: boolean | null
+          language?: string | null
+          last_used_at?: string | null
+          name: string
+          reply_rate?: number | null
+          required_variables?: string[] | null
+          rich_content?: Json | null
+          subject?: string | null
+          tags?: string[] | null
+          tone?: Database["public"]["Enums"]["template_tone"] | null
+          type: Database["public"]["Enums"]["template_type"]
+          updated_at?: string
+          usage_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          click_rate?: number | null
+          compatible_modules?: string[] | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          folder_id?: string | null
+          goal?: Database["public"]["Enums"]["template_goal"] | null
+          id?: string
+          is_active?: boolean | null
+          is_favorite?: boolean | null
+          language?: string | null
+          last_used_at?: string | null
+          name?: string
+          reply_rate?: number | null
+          required_variables?: string[] | null
+          rich_content?: Json | null
+          subject?: string | null
+          tags?: string[] | null
+          tone?: Database["public"]["Enums"]["template_tone"] | null
+          type?: Database["public"]["Enums"]["template_type"]
+          updated_at?: string
+          usage_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "templates_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "template_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1596,6 +1784,15 @@ export type Database = {
       crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
       subscription_plan: "free" | "basic" | "pro" | "agency"
+      template_goal:
+        | "qualification"
+        | "follow_up"
+        | "booking"
+        | "closing"
+        | "support"
+        | "other"
+      template_tone: "formal" | "direct" | "friendly" | "casual"
+      template_type: "email" | "whatsapp" | "instagram_dm" | "proposal" | "sms"
       workspace_role: "owner" | "admin" | "agent" | "viewer"
       workspace_status: "active" | "suspended" | "inactive" | "pending"
     }
@@ -1763,6 +1960,16 @@ export const Constants = {
       crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
       subscription_plan: ["free", "basic", "pro", "agency"],
+      template_goal: [
+        "qualification",
+        "follow_up",
+        "booking",
+        "closing",
+        "support",
+        "other",
+      ],
+      template_tone: ["formal", "direct", "friendly", "casual"],
+      template_type: ["email", "whatsapp", "instagram_dm", "proposal", "sms"],
       workspace_role: ["owner", "admin", "agent", "viewer"],
       workspace_status: ["active", "suspended", "inactive", "pending"],
     },
