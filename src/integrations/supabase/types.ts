@@ -384,6 +384,80 @@ export type Database = {
           },
         ]
       }
+      custom_field_values: {
+        Row: {
+          created_at: string
+          custom_field_id: string
+          entity_id: string
+          id: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          custom_field_id: string
+          entity_id: string
+          id?: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          custom_field_id?: string
+          entity_id?: string
+          id?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_values_custom_field_id_fkey"
+            columns: ["custom_field_id"]
+            isOneToOne: false
+            referencedRelation: "custom_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_fields: {
+        Row: {
+          created_at: string
+          entity_type: string
+          field_type: string
+          id: string
+          name: string
+          options: Json | null
+          position: number
+          required: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          field_type: string
+          id?: string
+          name: string
+          options?: Json | null
+          position?: number
+          required?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          field_type?: string
+          id?: string
+          name?: string
+          options?: Json | null
+          position?: number
+          required?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       instagram_connections: {
         Row: {
           access_token: string

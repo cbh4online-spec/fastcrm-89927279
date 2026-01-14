@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Building2, Users, Shield, Bell, Plug, Trash2 } from "lucide-react";
+import { Building2, Users, Shield, Bell, Plug, Trash2, SlidersHorizontal } from "lucide-react";
 import { InstagramConnectionCard } from "@/components/integrations/InstagramConnectionCard";
+import { CustomFieldsManager } from "@/components/custom-fields/CustomFieldsManager";
 
 const teamMembers = [
   { id: 1, name: "John Doe", email: "john@example.com", role: "owner", avatar: null },
@@ -54,6 +55,10 @@ export default function Settings() {
             <TabsTrigger value="security" className="gap-2">
               <Shield className="h-4 w-4" />
               Security
+            </TabsTrigger>
+            <TabsTrigger value="custom-fields" className="gap-2">
+              <SlidersHorizontal className="h-4 w-4" />
+              Campos
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-2">
               <Bell className="h-4 w-4" />
@@ -243,6 +248,14 @@ export default function Settings() {
                   </div>
                   <Button variant="outline">Manage keys</Button>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="custom-fields" className="space-y-6">
+            <Card>
+              <CardContent className="pt-6">
+                <CustomFieldsManager />
               </CardContent>
             </Card>
           </TabsContent>

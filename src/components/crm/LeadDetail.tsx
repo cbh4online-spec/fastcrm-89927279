@@ -26,6 +26,7 @@ import {
 import { ArrowLeft, User, Mail, Phone, Calendar, Edit2, Trash2, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { CrmCopilot } from "@/components/copilot/CrmCopilot";
+import { CustomFieldsForm, CustomFieldsDisplay } from "@/components/custom-fields/CustomFieldsForm";
 
 const statusColors: Record<LeadStatus, string> = {
   new: "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -304,6 +305,20 @@ export function LeadDetail() {
                   {new Date(lead.updated_at).toLocaleString()}
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Custom Fields */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Campos Personalizados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <CustomFieldsForm entityType="lead" entityId={lead.id} />
+              ) : (
+                <CustomFieldsDisplay entityType="lead" entityId={lead.id} />
+              )}
             </CardContent>
           </Card>
         </div>
