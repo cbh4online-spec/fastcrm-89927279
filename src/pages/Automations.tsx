@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Zap, History, Sparkles } from "lucide-react";
 import { AutomationRulesList } from "@/components/automations/AutomationRulesList";
-import { AutomationRuleBuilder } from "@/components/automations/AutomationRuleBuilder";
+import { VisualAutomationBuilder } from "@/components/automations/VisualAutomationBuilder";
 import { AutomationLogsDialog } from "@/components/automations/AutomationLogsDialog";
 import { AutomationSuggestionsPanel } from "@/components/automations/AutomationSuggestionsPanel";
 import { AutomationRule, useAutomationRules, useAutomationLogs } from "@/hooks/useAutomations";
+import { toast } from "sonner";
 
 export default function Automations() {
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -35,6 +36,17 @@ export default function Automations() {
   const handleBuilderClose = (open: boolean) => {
     setBuilderOpen(open);
     if (!open) setEditRule(null);
+  };
+
+  const handleDuplicate = (rule: AutomationRule) => {
+    setEditRule({
+      ...rule,
+      id: "", // Clear ID to create new
+      name: `${rule.name} (Copy)`,
+      is_active: false,
+    } as AutomationRule);
+    setBuilderOpen(true);
+    toast.info("Duplicating automation - save to create a copy");
   };
 
   const activeRules = rules?.filter((r) => r.is_active).length ?? 0;
@@ -190,10 +202,11 @@ export default function Automations() {
         </Tabs>
       </div>
 
-      <AutomationRuleBuilder
+      <VisualAutomationBuilder
         open={builderOpen}
         onOpenChange={handleBuilderClose}
         editRule={editRule}
+        onDuplicate={handleDuplicate}
       />
 
       <AutomationLogsDialog
