@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useContacts, Contact } from "@/hooks/useContacts";
-import { useOpportunities, Opportunity } from "@/hooks/useOpportunities";
+import { useContacts } from "@/hooks/useContacts";
+import { useOpportunities } from "@/hooks/useOpportunities";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
 import {
   useCrmViews,
@@ -19,6 +19,7 @@ import { CrmBoardView } from "./unified/CrmBoardView";
 import { SaveViewDialog } from "./unified/SaveViewDialog";
 import { ViewSelectorPopover } from "./unified/ViewSelectorPopover";
 import { QuickTaskDialog } from "./unified/QuickTaskDialog";
+import { CrmFilters } from "./unified/CrmAdvancedFilters";
 import { toast } from "sonner";
 
 export function UnifiedCrmView() {
@@ -37,7 +38,8 @@ export function UnifiedCrmView() {
   const [entityType, setEntityType] = useState<CrmEntityType>(roleConfig.entity);
   const [viewMode, setViewMode] = useState<CrmViewMode>(roleConfig.mode);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<Record<string, unknown>>({});
+  const [advancedFilters, setAdvancedFilters] = useState<CrmFilters>({});
+  const [viewFilters, setViewFilters] = useState<Record<string, unknown>>({});
   const [visibleColumns, setVisibleColumns] = useState<string[]>(
     getDefaultColumnsForRole(userRole, roleConfig.entity)
   );
@@ -54,7 +56,7 @@ export function UnifiedCrmView() {
     const defaultView = getDefaultView(entity);
     if (defaultView) {
       setViewMode(defaultView.view_mode);
-      setFilters(defaultView.filters);
+      setViewFilters(defaultView.filters);
       setVisibleColumns(defaultView.visible_columns.length > 0 ? defaultView.visible_columns : 
         getDefaultColumnsForRole(userRole, entity));
       setSelectedViewId(defaultView.id);
@@ -69,7 +71,8 @@ export function UnifiedCrmView() {
       setVisibleColumns(getDefaultColumnsForRole(userRole, entity));
       setSelectedViewId(null);
     }
-    setFilters({});
+    setViewFilters({});
+    setAdvancedFilters({});
     setSearchQuery("");
   }, [getDefaultView, userRole]);
 
@@ -85,38 +88,92 @@ export function UnifiedCrmView() {
     if (view) {
       setEntityType(view.entity_type);
       setViewMode(view.view_mode);
-      setFilters(view.filters);
+      setViewFilters(view.filters);
       setVisibleColumns(view.visible_columns.length > 0 ? view.visible_columns : 
         getDefaultColumnsForRole(userRole, view.entity_type));
       setSelectedViewId(viewId);
     }
   }, [views, userRole]);
 
-  // Filter data
+  // Get available tags from contacts
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    contacts.forEach(c => c.tags?.forEach(t => tags.add(t)));
+    return Array.from(tags);
+  }, [contacts]);
+
+  // Filter data with advanced filters
   const filteredContacts = useMemo(() => {
     if (entityType !== "contacts") return [];
     return contacts.filter((contact) => {
+      // Text search
       const query = searchQuery.toLowerCase();
       const companyName = contact.company?.toLowerCase() || "";
-      return (
+      const matchesSearch = 
         contact.name.toLowerCase().includes(query) ||
         contact.email?.toLowerCase().includes(query) ||
         companyName.includes(query) ||
-        contact.phone?.includes(query)
-      );
+        contact.phone?.includes(query);
+      
+      if (!matchesSearch) return false;
+
+      // Status filter
+      if (advancedFilters.status) {
+        // Contacts don't have a built-in status, so we skip this for now
+        // Could be extended with custom fields
+      }
+
+      // Tags filter
+      if (advancedFilters.tags && advancedFilters.tags.length > 0) {
+        const contactTags = contact.tags || [];
+        if (!advancedFilters.tags.some(t => contactTags.includes(t))) return false;
+      }
+
+      // Date filter
+      if (advancedFilters.dateFrom) {
+        const createdAt = new Date(contact.created_at);
+        if (createdAt < advancedFilters.dateFrom) return false;
+      }
+      if (advancedFilters.dateTo) {
+        const createdAt = new Date(contact.created_at);
+        if (createdAt > advancedFilters.dateTo) return false;
+      }
+
+      return true;
     });
-  }, [contacts, searchQuery, entityType]);
+  }, [contacts, searchQuery, entityType, advancedFilters]);
 
   const filteredOpportunities = useMemo(() => {
     if (entityType !== "opportunities") return [];
     return (opportunities || []).filter((opp) => {
+      // Text search
       const query = searchQuery.toLowerCase();
-      return (
+      const matchesSearch = 
         opp.title.toLowerCase().includes(query) ||
-        opp.lead?.name.toLowerCase().includes(query)
-      );
+        opp.lead?.name.toLowerCase().includes(query);
+      
+      if (!matchesSearch) return false;
+
+      // Stage filter
+      if (advancedFilters.stage && opp.stage_id !== advancedFilters.stage) return false;
+
+      // Value range filter
+      if (advancedFilters.valueMin !== undefined && (opp.value || 0) < advancedFilters.valueMin) return false;
+      if (advancedFilters.valueMax !== undefined && (opp.value || 0) > advancedFilters.valueMax) return false;
+
+      // Date filter
+      if (advancedFilters.dateFrom) {
+        const createdAt = new Date(opp.created_at);
+        if (createdAt < advancedFilters.dateFrom) return false;
+      }
+      if (advancedFilters.dateTo) {
+        const createdAt = new Date(opp.created_at);
+        if (createdAt > advancedFilters.dateTo) return false;
+      }
+
+      return true;
     });
-  }, [opportunities, searchQuery, entityType]);
+  }, [opportunities, searchQuery, entityType, advancedFilters]);
 
   // Get column definitions
   const columns = entityType === "contacts" ? CONTACT_COLUMNS : OPPORTUNITY_COLUMNS;
@@ -152,7 +209,7 @@ export function UnifiedCrmView() {
       name,
       entity_type: entityType,
       view_mode: viewMode,
-      filters,
+      filters: { ...viewFilters, ...advancedFilters },
       visible_columns: visibleColumns,
       is_default: isDefault,
     });
@@ -164,7 +221,7 @@ export function UnifiedCrmView() {
     if (!selectedViewId) return;
     await updateView.mutateAsync({
       id: selectedViewId,
-      filters,
+      filters: { ...viewFilters, ...advancedFilters },
       visible_columns: visibleColumns,
       view_mode: viewMode,
     });
@@ -175,12 +232,13 @@ export function UnifiedCrmView() {
     if (!selectedViewId) return false;
     const view = views.find(v => v.id === selectedViewId);
     if (!view) return false;
+    const currentFilters = { ...viewFilters, ...advancedFilters };
     return (
       view.view_mode !== viewMode ||
-      JSON.stringify(view.filters) !== JSON.stringify(filters) ||
+      JSON.stringify(view.filters) !== JSON.stringify(currentFilters) ||
       JSON.stringify(view.visible_columns) !== JSON.stringify(visibleColumns)
     );
-  }, [selectedViewId, views, viewMode, filters, visibleColumns]);
+  }, [selectedViewId, views, viewMode, viewFilters, advancedFilters, visibleColumns]);
 
   return (
     <div className="space-y-4 h-full flex flex-col">
@@ -192,10 +250,14 @@ export function UnifiedCrmView() {
         columns={columns}
         selectedViewId={selectedViewId}
         hasUnsavedChanges={hasUnsavedChanges}
+        filters={advancedFilters}
+        stages={stages?.map(s => ({ id: s.id, name: s.name })) || []}
+        availableTags={availableTags}
         onEntityChange={handleEntityChange}
         onViewModeChange={setViewMode}
         onSearchChange={setSearchQuery}
         onColumnsChange={setVisibleColumns}
+        onFiltersChange={setAdvancedFilters}
         onSaveView={() => setSaveDialogOpen(true)}
         onUpdateView={handleUpdateCurrentView}
         onOpenViewSelector={() => setViewSelectorOpen(true)}

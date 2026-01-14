@@ -20,6 +20,7 @@ import {
   Globe,
   Brain,
   Crown,
+  LayoutList,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -39,6 +40,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
+  { name: "CRM", href: "/dashboard/crm", icon: LayoutList },
   { name: "Leads", href: "/dashboard/leads", icon: Target },
   { name: "Opportunities", href: "/dashboard/opportunities", icon: Kanban },
   { name: "Automations", href: "/dashboard/automations", icon: Zap },
