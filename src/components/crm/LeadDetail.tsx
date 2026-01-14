@@ -80,6 +80,7 @@ import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@
 import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { ContextualTemplatePanel } from "@/components/templates/ContextualTemplatePanel";
+import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
 import { useAuth } from "@/contexts/AuthContext";
 import { VariableContext } from "@/lib/templateVariables";
 import { cn } from "@/lib/utils";
@@ -987,6 +988,17 @@ export function LeadDetail() {
                 entityId={lead.id}
                 onApplySuggestion={handleApplySuggestion}
               />
+
+              {/* Unified Activity Log */}
+              <Card className="border-0 shadow-sm">
+                <CardContent className="pt-4">
+                  <UnifiedActivityLog
+                    leadId={id}
+                    compact
+                    limit={15}
+                  />
+                </CardContent>
+              </Card>
 
               {/* AI Insights Widget */}
               <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/5 to-primary/10">
