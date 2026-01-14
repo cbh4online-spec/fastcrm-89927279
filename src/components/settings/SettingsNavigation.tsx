@@ -12,12 +12,14 @@ import {
   Plug,
   Search,
   Crown,
+  FileText,
 } from "lucide-react";
 
 export type SettingsCategory =
   | "workspace"
   | "channels"
   | "crm"
+  | "templates"
   | "automation"
   | "experience"
   | "security"
@@ -50,6 +52,12 @@ const categories = [
     label: "CRM & Dados",
     icon: Database,
     description: "Campos, Pipelines, Importação",
+  },
+  {
+    id: "templates" as const,
+    label: "Templates",
+    icon: FileText,
+    description: "Mensagens, Propostas, Variáveis",
   },
   {
     id: "automation" as const,

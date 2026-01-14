@@ -5,6 +5,7 @@ import { SettingsNavigation, SettingsCategory } from "@/components/settings/Sett
 import { WorkspaceSettings } from "@/components/settings/sections/WorkspaceSettings";
 import { ChannelsSettings } from "@/components/settings/sections/ChannelsSettings";
 import { CrmDataSettings } from "@/components/settings/sections/CrmDataSettings";
+import { TemplatesSettings } from "@/components/settings/sections/TemplatesSettings";
 import { AutomationAISettings } from "@/components/settings/sections/AutomationAISettings";
 import { ExperienceSettings } from "@/components/settings/sections/ExperienceSettings";
 import { SecuritySettings } from "@/components/settings/sections/SecuritySettings";
@@ -23,6 +24,10 @@ const categoryTitles: Record<SettingsCategory, { title: string; description: str
   crm: {
     title: "CRM & Dados",
     description: "Personalizar campos, pipelines e gestão de dados",
+  },
+  templates: {
+    title: "Templates",
+    description: "Biblioteca central de mensagens e propostas reutilizáveis",
   },
   automation: {
     title: "Automação & IA",
@@ -72,6 +77,8 @@ export default function Settings() {
         return <ChannelsSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "crm":
         return <CrmDataSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
+      case "templates":
+        return <TemplatesSettings />;
       case "automation":
         return <AutomationAISettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "experience":

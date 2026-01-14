@@ -19,7 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   useCreateTemplate,
   useUpdateTemplate,
@@ -29,6 +33,7 @@ import {
   TemplateGoal,
   TemplateTone,
 } from '@/hooks/useTemplates';
+import { TemplateVariablePicker } from '@/components/templates/TemplateVariablePicker';
 import { RichTemplateEditor } from './RichTemplateEditor';
 import { TemplatePreview } from './TemplatePreview';
 import { TemplateVersionHistory } from './TemplateVersionHistory';
@@ -79,19 +84,6 @@ const toneLabels: Record<TemplateTone, string> = {
   friendly: 'Amigável',
   casual: 'Casual',
 };
-
-const availableVariables = [
-  { key: '{{lead.name}}', label: 'Nome do Lead' },
-  { key: '{{lead.email}}', label: 'Email do Lead' },
-  { key: '{{lead.phone}}', label: 'Telefone' },
-  { key: '{{company.name}}', label: 'Nome da Empresa' },
-  { key: '{{opportunity.title}}', label: 'Título da Oportunidade' },
-  { key: '{{opportunity.value}}', label: 'Valor da Oportunidade' },
-  { key: '{{user.name}}', label: 'Teu Nome' },
-  { key: '{{user.email}}', label: 'Teu Email' },
-  { key: '{{date.today}}', label: 'Data de Hoje' },
-  { key: '{{date.tomorrow}}', label: 'Data de Amanhã' },
-];
 
 const compatibleModulesOptions = [
   { value: 'lead', label: 'Leads' },
@@ -424,22 +416,20 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: TemplateE
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label>Conteúdo *</Label>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground mr-2">Variáveis:</span>
-                      {availableVariables.slice(0, 4).map((v) => (
-                        <Button
-                          key={v.key}
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-xs px-2"
-                          onClick={() => handleInsertVariable(v.key)}
-                        >
-                          <Variable className="h-3 w-3 mr-1" />
-                          {v.label}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button type="button" size="sm" variant="outline">
+                          <Variable className="h-4 w-4 mr-2" />
+                          Inserir Variável
                         </Button>
-                      ))}
-                    </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="end">
+                        <TemplateVariablePicker
+                          onInsert={handleInsertVariable}
+                          compatibleModules={compatibleModules}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   
                   {type === 'proposal' ? (
@@ -453,7 +443,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: TemplateE
                     <Textarea
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      placeholder="Escreve o teu template aqui..."
+                      placeholder="Escreve o teu template aqui. Usa variáveis como {{lead.first_name}} para personalização..."
                       className="min-h-[200px] font-mono text-sm"
                     />
                   )}
