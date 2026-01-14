@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Building2, Users, Shield, Bell, CreditCard, Trash2 } from "lucide-react";
+import { Building2, Users, Shield, Bell, Plug, Trash2 } from "lucide-react";
+import { InstagramConnectionCard } from "@/components/integrations/InstagramConnectionCard";
 
 const teamMembers = [
   { id: 1, name: "John Doe", email: "john@example.com", role: "owner", avatar: null },
@@ -45,6 +46,10 @@ export default function Settings() {
             <TabsTrigger value="team" className="gap-2">
               <Users className="h-4 w-4" />
               Team
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="gap-2">
+              <Plug className="h-4 w-4" />
+              Integrações
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-2">
               <Shield className="h-4 w-4" />
@@ -191,6 +196,15 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="integrations" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Canais de Comunicação</h2>
+              <div className="grid gap-4">
+                <InstagramConnectionCard />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">
