@@ -1,11 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
@@ -18,9 +16,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   CrmBlueprint,
   BlueprintCustomField,
-  BlueprintSection,
   BlueprintPipelineStage,
   BlueprintAutomation,
 } from '@/types/blueprint';
@@ -38,10 +43,24 @@ import {
   Star,
   Play,
   Shield,
+  Loader2,
+  PartyPopper,
+  XCircle,
+  SkipForward,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type ApplyMode = 'all' | 'fields' | 'automations' | 'stages';
+
+export interface ApplyResult {
+  success: boolean;
+  fieldsCreated: number;
+  stagesCreated: number;
+  automationsCreated: number;
+  duplicatesMerged: number;
+  duplicatesSkipped: number;
+  errors: string[];
+}
 
 interface BlueprintApplyPreviewProps {
   blueprint: CrmBlueprint;
@@ -53,8 +72,9 @@ interface BlueprintApplyPreviewProps {
     automations: DuplicateMatch[];
     stages: DuplicateMatch[];
   };
-  onApply: (mode: ApplyMode, mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>) => Promise<void>;
+  onApply: (mode: ApplyMode, mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>) => Promise<ApplyResult>;
   isApplying: boolean;
+  onReset?: () => void;
 }
 
 export function BlueprintApplyPreview({
@@ -65,9 +85,12 @@ export function BlueprintApplyPreview({
   duplicates,
   onApply,
   isApplying,
+  onReset,
 }: BlueprintApplyPreviewProps) {
   const [applyMode, setApplyMode] = useState<ApplyMode>('all');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [resultOpen, setResultOpen] = useState(false);
+  const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
   const [mergeDecisions, setMergeDecisions] = useState<Record<string, 'create' | 'merge' | 'skip'>>({});
 
   const hasDuplicates = useMemo(() => {
@@ -98,7 +121,16 @@ export function BlueprintApplyPreview({
 
   const handleConfirmedApply = async () => {
     setConfirmOpen(false);
-    await onApply(applyMode, mergeDecisions);
+    const result = await onApply(applyMode, mergeDecisions);
+    setApplyResult(result);
+    setResultOpen(true);
+  };
+
+  const handleCloseResult = () => {
+    setResultOpen(false);
+    if (applyResult?.success && applyResult.errors.length === 0 && onReset) {
+      onReset();
+    }
   };
 
   const renderFieldPreview = (field: BlueprintCustomField, index: number) => {
@@ -111,8 +143,9 @@ export function BlueprintApplyPreview({
       <div
         key={index}
         className={cn(
-          'p-3 border rounded-lg',
-          duplicate && 'border-amber-500/50 bg-amber-500/5'
+          'p-3 border rounded-lg transition-all',
+          duplicate && 'border-amber-500/50 bg-amber-500/5',
+          decision === 'skip' && 'opacity-50'
         )}
       >
         <div className="flex items-start justify-between gap-2">
@@ -160,6 +193,7 @@ export function BlueprintApplyPreview({
                   className="text-xs h-6 px-2"
                   onClick={() => handleMergeDecision(field.name, 'skip')}
                 >
+                  <SkipForward className="h-3 w-3 mr-1" />
                   Ignorar
                 </Button>
                 <Button
@@ -195,22 +229,27 @@ export function BlueprintApplyPreview({
         key={index}
         className={cn(
           'flex items-center gap-3 p-3 border rounded-lg',
-          duplicate && 'border-amber-500/50 bg-amber-500/5'
+          duplicate && 'border-amber-500/50 bg-amber-500/5 opacity-60'
         )}
       >
         <div
-          className="w-4 h-4 rounded-full"
+          className="w-4 h-4 rounded-full shrink-0"
           style={{ backgroundColor: stage.color }}
         />
-        <span className="font-medium flex-1">{stage.name}</span>
-        <Badge variant="outline">Posição {stage.position + 1}</Badge>
+        <div className="flex-1">
+          <span className="font-medium">{stage.name}</span>
+          {stage.description && (
+            <p className="text-xs text-muted-foreground">{stage.description}</p>
+          )}
+        </div>
+        <Badge variant="outline" className="shrink-0">Posição {stage.position + 1}</Badge>
         {duplicate ? (
-          <Badge variant="outline" className="text-amber-600 border-amber-500">
+          <Badge variant="outline" className="text-amber-600 border-amber-500 shrink-0">
             <AlertTriangle className="h-3 w-3 mr-1" />
             Já existe
           </Badge>
         ) : (
-          <Badge variant="secondary" className="text-green-600">
+          <Badge variant="secondary" className="text-green-600 shrink-0">
             <CheckCircle2 className="h-3 w-3 mr-1" />
             Novo
           </Badge>
@@ -238,25 +277,30 @@ export function BlueprintApplyPreview({
             <p className="text-sm text-muted-foreground mt-1">
               {automation.description}
             </p>
-            <div className="flex items-center gap-2 mt-2 text-xs">
+            <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
               <Badge variant="outline">
                 <Play className="h-3 w-3 mr-1" />
                 {automation.trigger}
               </Badge>
-              <ArrowRight className="h-3 w-3" />
+              <ArrowRight className="h-3 w-3 shrink-0" />
               <Badge variant="secondary">
                 {automation.actions.length} ação(ões)
               </Badge>
+              {automation.conditions.length > 0 && (
+                <Badge variant="outline" className="text-muted-foreground">
+                  {automation.conditions.length} condição(ões)
+                </Badge>
+              )}
             </div>
           </div>
 
           {duplicate ? (
-            <Badge variant="outline" className="text-amber-600 border-amber-500">
+            <Badge variant="outline" className="text-amber-600 border-amber-500 shrink-0">
               <AlertTriangle className="h-3 w-3 mr-1" />
               Similar
             </Badge>
           ) : (
-            <Badge variant="secondary" className="text-green-600">
+            <Badge variant="secondary" className="text-green-600 shrink-0">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               Novo
             </Badge>
@@ -268,37 +312,69 @@ export function BlueprintApplyPreview({
 
   return (
     <div className="space-y-6">
+      {/* Summary Header */}
+      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">{blueprint.name}</CardTitle>
+          <CardDescription>{blueprint.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-background rounded-lg border">
+              <div className="text-2xl font-bold text-primary">{blueprint.customFields.length}</div>
+              <div className="text-xs text-muted-foreground">Campos</div>
+            </div>
+            <div className="text-center p-3 bg-background rounded-lg border">
+              <div className="text-2xl font-bold text-primary">{blueprint.sections.length}</div>
+              <div className="text-xs text-muted-foreground">Secções</div>
+            </div>
+            <div className="text-center p-3 bg-background rounded-lg border">
+              <div className="text-2xl font-bold text-primary">{blueprint.pipelineStages?.length || 0}</div>
+              <div className="text-xs text-muted-foreground">Etapas Pipeline</div>
+            </div>
+            <div className="text-center p-3 bg-background rounded-lg border">
+              <div className="text-2xl font-bold text-primary">{blueprint.automations.length}</div>
+              <div className="text-xs text-muted-foreground">Automações</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Apply Mode Selection */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Opções de Aplicação
+            O que aplicar?
           </CardTitle>
+          <CardDescription>
+            Escolhe o que queres aplicar ao teu CRM. Podes aplicar tudo ou apenas partes específicas.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { mode: 'all' as ApplyMode, label: 'Aplicar tudo', icon: CheckCircle2 },
-              { mode: 'fields' as ApplyMode, label: 'Apenas campos', icon: Grid3X3 },
-              { mode: 'stages' as ApplyMode, label: 'Apenas pipeline', icon: Workflow },
-              { mode: 'automations' as ApplyMode, label: 'Apenas automações', icon: Zap },
-            ].map(({ mode, label, icon: Icon }) => (
+              { mode: 'all' as ApplyMode, label: 'Tudo', icon: CheckCircle2, count: totalChanges },
+              { mode: 'fields' as ApplyMode, label: 'Campos', icon: Grid3X3, count: blueprint.customFields.length },
+              { mode: 'stages' as ApplyMode, label: 'Pipeline', icon: Workflow, count: blueprint.pipelineStages?.length || 0 },
+              { mode: 'automations' as ApplyMode, label: 'Automações', icon: Zap, count: blueprint.automations.length },
+            ].map(({ mode, label, icon: Icon, count }) => (
               <div
                 key={mode}
                 className={cn(
-                  'p-3 border rounded-lg cursor-pointer transition-colors',
+                  'p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md',
                   applyMode === mode
-                    ? 'border-primary bg-primary/5'
+                    ? 'border-primary bg-primary/5 shadow-sm'
                     : 'hover:border-muted-foreground/50'
                 )}
                 onClick={() => setApplyMode(mode)}
               >
-                <div className="flex items-center gap-2">
-                  <Checkbox checked={applyMode === mode} />
+                <div className="flex items-center gap-2 mb-2">
+                  <Checkbox checked={applyMode === mode} className="pointer-events-none" />
                   <Icon className="h-4 w-4" />
-                  <span className="text-sm font-medium">{label}</span>
                 </div>
+                <div className="font-medium">{label}</div>
+                <div className="text-xs text-muted-foreground">{count} item(s)</div>
               </div>
             ))}
           </div>
@@ -315,8 +391,25 @@ export function BlueprintApplyPreview({
                 <p className="font-medium text-amber-700">Duplicados detetados</p>
                 <p className="text-sm text-amber-600 mt-1">
                   Foram encontrados {duplicates.fields.length + duplicates.automations.length + duplicates.stages.length} itens 
-                  similares ou duplicados. Reveja as decisões de fusão abaixo antes de aplicar.
+                  similares ou duplicados. Decide o que fazer com cada um antes de aplicar.
                 </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {duplicates.fields.length > 0 && (
+                    <Badge variant="outline" className="border-amber-500 text-amber-700">
+                      {duplicates.fields.length} campo(s)
+                    </Badge>
+                  )}
+                  {duplicates.stages.length > 0 && (
+                    <Badge variant="outline" className="border-amber-500 text-amber-700">
+                      {duplicates.stages.length} etapa(s)
+                    </Badge>
+                  )}
+                  {duplicates.automations.length > 0 && (
+                    <Badge variant="outline" className="border-amber-500 text-amber-700">
+                      {duplicates.automations.length} automação(ões)
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -326,50 +419,130 @@ export function BlueprintApplyPreview({
       {/* Preview Content */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Pré-visualização das alterações</CardTitle>
+          <CardTitle className="text-lg">Pré-visualização detalhada</CardTitle>
+          <CardDescription>Revê todas as alterações antes de aplicar.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="fields">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="fields" disabled={applyMode === 'automations' || applyMode === 'stages'}>
                 <Grid3X3 className="h-4 w-4 mr-2" />
-                Campos ({blueprint.customFields.length})
+                <span className="hidden sm:inline">Campos</span>
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                  {blueprint.customFields.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="sections" disabled={applyMode === 'automations' || applyMode === 'stages'}>
+                <Layers className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Layout</span>
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                  {blueprint.sections.length}
+                </Badge>
               </TabsTrigger>
               <TabsTrigger value="stages" disabled={applyMode === 'fields' || applyMode === 'automations'}>
                 <Workflow className="h-4 w-4 mr-2" />
-                Pipeline ({blueprint.pipelineStages?.length || 0})
+                <span className="hidden sm:inline">Pipeline</span>
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                  {blueprint.pipelineStages?.length || 0}
+                </Badge>
               </TabsTrigger>
               <TabsTrigger value="automations" disabled={applyMode === 'fields' || applyMode === 'stages'}>
                 <Zap className="h-4 w-4 mr-2" />
-                Automações ({blueprint.automations.length})
+                <span className="hidden sm:inline">Auto</span>
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                  {blueprint.automations.length}
+                </Badge>
               </TabsTrigger>
             </TabsList>
 
             <ScrollArea className="h-[400px] mt-4">
               <TabsContent value="fields" className="mt-0 space-y-2">
                 {blueprint.sections.length > 0 ? (
-                  blueprint.sections.map((section, sIdx) => (
-                    <div key={sIdx} className="mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Layers className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{section.name}</span>
+                  blueprint.sections.map((section, sIdx) => {
+                    const sectionFields = blueprint.customFields.filter(f => 
+                      section.fields.includes(f.name)
+                    );
+                    if (sectionFields.length === 0) return null;
+                    
+                    return (
+                      <div key={sIdx} className="mb-4">
+                        <div className="flex items-center gap-2 mb-2 p-2 bg-muted/50 rounded-lg">
+                          <Layers className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{section.name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {sectionFields.length} campo(s)
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 pl-4 border-l-2 border-muted ml-2">
+                          {sectionFields.map((field, fIdx) => renderFieldPreview(field, fIdx))}
+                        </div>
                       </div>
-                      <div className="space-y-2 pl-6">
-                        {blueprint.customFields
-                          .filter(f => section.fields.includes(f.name))
-                          .map((field, fIdx) => renderFieldPreview(field, fIdx))}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="space-y-2">
                     {blueprint.customFields.map((field, idx) => renderFieldPreview(field, idx))}
                   </div>
                 )}
+                {blueprint.customFields.length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">
+                    Nenhum campo definido
+                  </p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="sections" className="mt-0 space-y-3">
+                {blueprint.sections.map((section, idx) => (
+                  <Card key={idx} className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Layers className="h-4 w-4 text-primary" />
+                      <span className="font-medium">{section.name}</span>
+                      {section.collapsed && (
+                        <Badge variant="outline" className="text-xs">Recolhida</Badge>
+                      )}
+                    </div>
+                    {section.description && (
+                      <p className="text-sm text-muted-foreground mb-2">{section.description}</p>
+                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {section.fields.map((fieldName, fIdx) => (
+                        <Badge key={fIdx} variant="secondary" className="text-xs">
+                          {fieldName}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Card>
+                ))}
+                {blueprint.sections.length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">
+                    Nenhuma secção definida - os campos serão mostrados sem agrupamento
+                  </p>
+                )}
               </TabsContent>
 
               <TabsContent value="stages" className="mt-0 space-y-2">
-                {blueprint.pipelineStages?.map((stage, idx) => renderStagePreview(stage, idx)) || (
+                {blueprint.pipelineStages && blueprint.pipelineStages.length > 0 ? (
+                  <>
+                    <div className="flex gap-1 mb-4 p-3 bg-muted/50 rounded-lg overflow-x-auto">
+                      {blueprint.pipelineStages
+                        .sort((a, b) => a.position - b.position)
+                        .map((stage, idx, arr) => (
+                          <div key={idx} className="flex items-center shrink-0">
+                            <div 
+                              className="px-3 py-1.5 rounded-full text-xs font-medium text-white"
+                              style={{ backgroundColor: stage.color }}
+                            >
+                              {stage.name}
+                            </div>
+                            {idx < arr.length - 1 && (
+                              <ArrowRight className="h-4 w-4 mx-1 text-muted-foreground" />
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                    {blueprint.pipelineStages.map((stage, idx) => renderStagePreview(stage, idx))}
+                  </>
+                ) : (
                   <p className="text-muted-foreground text-center py-8">
                     Nenhuma etapa de pipeline definida
                   </p>
@@ -378,7 +551,15 @@ export function BlueprintApplyPreview({
 
               <TabsContent value="automations" className="mt-0 space-y-2">
                 {blueprint.automations.length > 0 ? (
-                  blueprint.automations.map((auto, idx) => renderAutomationPreview(auto, idx))
+                  <>
+                    <div className="p-3 bg-muted/50 rounded-lg mb-3">
+                      <p className="text-sm text-muted-foreground">
+                        💡 As automações serão criadas <strong>inativas</strong> por segurança. 
+                        Ativa-as manualmente depois de rever.
+                      </p>
+                    </div>
+                    {blueprint.automations.map((auto, idx) => renderAutomationPreview(auto, idx))}
+                  </>
                 ) : (
                   <p className="text-muted-foreground text-center py-8">
                     Nenhuma automação definida
@@ -398,7 +579,10 @@ export function BlueprintApplyPreview({
         size="lg"
       >
         {isApplying ? (
-          'A aplicar...'
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            A aplicar...
+          </>
         ) : (
           <>
             <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -413,37 +597,158 @@ export function BlueprintApplyPreview({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Confirmar aplicação do blueprint
+              Confirmar aplicação
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>Está prestes a aplicar as seguintes alterações:</p>
-              <ul className="list-disc list-inside text-sm">
-                {(applyMode === 'all' || applyMode === 'fields') && (
-                  <li>{blueprint.customFields.length} campos personalizados</li>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás prestes a aplicar as seguintes alterações:</p>
+                <ul className="list-none space-y-1 text-sm">
+                  {(applyMode === 'all' || applyMode === 'fields') && (
+                    <li className="flex items-center gap-2">
+                      <Grid3X3 className="h-4 w-4" />
+                      {blueprint.customFields.length} campos personalizados
+                    </li>
+                  )}
+                  {(applyMode === 'all' || applyMode === 'stages') && blueprint.pipelineStages && blueprint.pipelineStages.length > 0 && (
+                    <li className="flex items-center gap-2">
+                      <Workflow className="h-4 w-4" />
+                      {blueprint.pipelineStages.length} etapas de pipeline
+                    </li>
+                  )}
+                  {(applyMode === 'all' || applyMode === 'automations') && blueprint.automations.length > 0 && (
+                    <li className="flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      {blueprint.automations.length} automações (inativas)
+                    </li>
+                  )}
+                </ul>
+                {hasDuplicates && (
+                  <div className="flex items-center gap-2 p-2 bg-amber-500/10 rounded-lg text-amber-700">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm">Existem duplicados - verifica as decisões</span>
+                  </div>
                 )}
-                {(applyMode === 'all' || applyMode === 'stages') && blueprint.pipelineStages && (
-                  <li>{blueprint.pipelineStages.length} etapas de pipeline</li>
-                )}
-                {(applyMode === 'all' || applyMode === 'automations') && (
-                  <li>{blueprint.automations.length} automações</li>
-                )}
-              </ul>
-              {hasDuplicates && (
-                <p className="text-amber-600 font-medium mt-2">
-                  ⚠️ Existem duplicados. Verifique as decisões de fusão.
+                <p className="text-xs text-muted-foreground pt-2 border-t">
+                  🔒 Esta ação será registada no log de auditoria.
                 </p>
-              )}
-              <p className="font-medium mt-2">Esta ação será registada no log de auditoria.</p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmedApply}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
               Confirmar e Aplicar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Result Dialog */}
+      <Dialog open={resultOpen} onOpenChange={setResultOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {applyResult?.success && applyResult.errors.length === 0 ? (
+                <>
+                  <PartyPopper className="h-5 w-5 text-green-500" />
+                  Blueprint aplicado com sucesso!
+                </>
+              ) : applyResult?.errors.length ? (
+                <>
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  Aplicado com avisos
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  Erro ao aplicar
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-4 pt-2">
+                {/* Success Stats */}
+                {applyResult && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {applyResult.fieldsCreated > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
+                        <Grid3X3 className="h-4 w-4 text-green-600" />
+                        <div>
+                          <div className="font-medium text-green-700">{applyResult.fieldsCreated}</div>
+                          <div className="text-xs text-green-600">campos criados</div>
+                        </div>
+                      </div>
+                    )}
+                    {applyResult.stagesCreated > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
+                        <Workflow className="h-4 w-4 text-green-600" />
+                        <div>
+                          <div className="font-medium text-green-700">{applyResult.stagesCreated}</div>
+                          <div className="text-xs text-green-600">etapas criadas</div>
+                        </div>
+                      </div>
+                    )}
+                    {applyResult.automationsCreated > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
+                        <Zap className="h-4 w-4 text-green-600" />
+                        <div>
+                          <div className="font-medium text-green-700">{applyResult.automationsCreated}</div>
+                          <div className="text-xs text-green-600">automações criadas</div>
+                        </div>
+                      </div>
+                    )}
+                    {applyResult.duplicatesMerged > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-blue-500/10 rounded-lg">
+                        <Merge className="h-4 w-4 text-blue-600" />
+                        <div>
+                          <div className="font-medium text-blue-700">{applyResult.duplicatesMerged}</div>
+                          <div className="text-xs text-blue-600">duplicados fundidos</div>
+                        </div>
+                      </div>
+                    )}
+                    {applyResult.duplicatesSkipped > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                        <SkipForward className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">{applyResult.duplicatesSkipped}</div>
+                          <div className="text-xs text-muted-foreground">ignorados</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Errors */}
+                {applyResult?.errors && applyResult.errors.length > 0 && (
+                  <div className="p-3 bg-red-500/10 rounded-lg">
+                    <p className="font-medium text-red-700 mb-2">Erros encontrados:</p>
+                    <ul className="text-sm text-red-600 space-y-1">
+                      {applyResult.errors.map((err, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <XCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                          {err}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {applyResult?.success && applyResult.errors.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Todas as alterações foram aplicadas. Podes agora ver os campos, pipeline e automações nas respetivas secções do CRM.
+                  </p>
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={handleCloseResult}>
+              {applyResult?.success && applyResult.errors.length === 0 ? 'Concluir' : 'Fechar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
