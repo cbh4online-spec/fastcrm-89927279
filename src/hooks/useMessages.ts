@@ -88,7 +88,7 @@ export function useMessages(conversationId: string | undefined) {
 export function useSendMessage() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
-  const { workspaceClient } = useWorkspaceInstance();
+  const { workspaceClient, mainClient } = useWorkspaceInstance();
   const { user } = useAuth();
 
   return useMutation({
@@ -103,7 +103,41 @@ export function useSendMessage() {
     }) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
 
-      // Insert message
+      // Get conversation to check channel
+      const { data: conversation, error: convError } = await workspaceClient
+        .from("conversations")
+        .select("channel")
+        .eq("id", conversationId)
+        .single();
+
+      if (convError) throw convError;
+
+      // For Instagram, use the edge function to send via Instagram API
+      if (conversation.channel === "instagram") {
+        const { data, error } = await mainClient.functions.invoke("instagram-send-message", {
+          body: { conversationId, message: content },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        // Message is saved by the edge function, just invalidate queries
+        return {
+          id: data.messageId || crypto.randomUUID(),
+          conversation_id: conversationId,
+          workspace_id: currentWorkspace.id,
+          direction: "outbound" as MessageDirection,
+          content,
+          attachments: [],
+          sender_id: user.id,
+          sent_at: new Date().toISOString(),
+          delivered_at: new Date().toISOString(),
+          read_at: null,
+          created_at: new Date().toISOString(),
+        } as Message;
+      }
+
+      // For other channels, insert message directly
       const { data: message, error: messageError } = await workspaceClient
         .from("messages")
         .insert({
