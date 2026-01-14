@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
 
 interface EditContactDialogProps {
   contact: Contact;
@@ -148,6 +149,11 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
                 placeholder="Informações adicionais sobre o contacto..."
                 rows={3}
               />
+            </div>
+            
+            {/* Custom Fields */}
+            <div className="sm:col-span-2 pt-2 border-t">
+              <CustomFieldsForm entityType="contact" entityId={contact.id} />
             </div>
           </div>
           <DialogFooter>

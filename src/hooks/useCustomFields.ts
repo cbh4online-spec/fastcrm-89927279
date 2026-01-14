@@ -4,7 +4,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { toast } from "sonner";
 
 export type CustomFieldType = "text" | "number" | "date" | "boolean" | "select";
-export type CustomFieldEntityType = "lead" | "opportunity";
+export type CustomFieldEntityType = "lead" | "opportunity" | "contact" | "company";
 
 export interface CustomField {
   id: string;
