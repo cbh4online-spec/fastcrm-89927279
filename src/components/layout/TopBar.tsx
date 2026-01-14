@@ -8,9 +8,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, Bell, Search, LogOut, User, Settings } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Menu, Bell, LogOut, User, Settings, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { GlobalSearch } from "./GlobalSearch";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -43,17 +43,23 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden md:flex relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="w-64 pl-9 h-9 bg-muted/50"
-          />
+        <div className="hidden md:flex">
+          <GlobalSearch />
         </div>
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Mobile search button */}
+        <div className="md:hidden">
+          <GlobalSearch
+            trigger={
+              <Button variant="ghost" size="icon">
+                <Search className="h-5 w-5" />
+              </Button>
+            }
+          />
+        </div>
+
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
@@ -90,16 +96,16 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
               <User className="mr-2 h-4 w-4" />
-              Profile
+              Perfil
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
               <Settings className="mr-2 h-4 w-4" />
-              Settings
+              Definições
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
-              Sign out
+              Terminar sessão
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
