@@ -172,6 +172,9 @@ export function validateAutomation(config: AutomationConfig): {
     if (action.action_type === "move_opportunity_stage" && !action.config.stage_id) {
       errors.push("A ação 'Mover Etapa' requer a seleção de uma etapa.");
     }
+    if (action.action_type === "send_template_message" && !action.config.template_id) {
+      errors.push("A ação 'Enviar com Template' requer a seleção de um template.");
+    }
   }
 
   return {

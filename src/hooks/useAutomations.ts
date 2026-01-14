@@ -25,7 +25,8 @@ export type AutomationActionType =
   | "assign_owner"
   | "add_tag"
   | "create_opportunity"
-  | "update_field";
+  | "update_field"
+  | "send_template_message";
 
 export type ConditionOperator = "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than" | "is_empty" | "is_not_empty";
 export type ExecutionStatus = "pending" | "running" | "completed" | "failed";

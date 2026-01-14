@@ -1819,6 +1819,7 @@ export type Database = {
         | "add_tag"
         | "create_opportunity"
         | "update_field"
+        | "send_template_message"
       automation_trigger:
         | "lead_created"
         | "opportunity_stage_changed"
@@ -1992,6 +1993,7 @@ export const Constants = {
         "add_tag",
         "create_opportunity",
         "update_field",
+        "send_template_message",
       ],
       automation_trigger: [
         "lead_created",

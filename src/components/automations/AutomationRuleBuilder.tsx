@@ -45,6 +45,7 @@ import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
 import { useCustomFields, CustomField, CustomFieldType } from "@/hooks/useCustomFields";
 import { CriticalFieldsWarning, LoopDetectionWarning } from "./CriticalFieldsWarning";
 import { CustomFieldTriggerConfig } from "./CustomFieldTriggerConfig";
+import { TemplateActionConfig } from "./TemplateActionConfig";
 import { 
   detectPotentialLoop, 
   getModifiedFields, 
@@ -74,6 +75,7 @@ const actionOptions: { value: AutomationActionType; label: string; description: 
   { value: "move_opportunity_stage", label: "Mover Etapa", description: "Move oportunidade para outra etapa" },
   { value: "add_tag", label: "Adicionar Tag", description: "Adiciona uma tag à entidade" },
   { value: "send_message", label: "Enviar Mensagem", description: "Envia mensagem ao lead" },
+  { value: "send_template_message", label: "Enviar com Template", description: "Envia mensagem usando um template" },
   { value: "notify_user", label: "Notificar Utilizador", description: "Envia notificação a um utilizador" },
   { value: "create_opportunity", label: "Criar Oportunidade", description: "Cria oportunidade se não existir" },
   { value: "update_field", label: "Atualizar Campo", description: "Atualiza valor de um campo" },
@@ -187,7 +189,7 @@ const conditionSchema = z.object({
 });
 
 const actionSchema = z.object({
-  action_type: z.enum(["create_task", "move_opportunity_stage", "send_message", "notify_user", "assign_owner", "add_tag", "create_opportunity", "update_field"]),
+  action_type: z.enum(["create_task", "move_opportunity_stage", "send_message", "notify_user", "assign_owner", "add_tag", "create_opportunity", "update_field", "send_template_message"]),
   config: z.record(z.unknown()),
   position: z.number(),
 });
@@ -1055,6 +1057,14 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                               )}
                             />
                           </>
+                        )}
+
+                        {actionType === "send_template_message" && (
+                          <TemplateActionConfig 
+                            form={form} 
+                            index={index} 
+                            entityType={entityType} 
+                          />
                         )}
                       </div>
                     </div>
