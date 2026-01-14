@@ -4,8 +4,29 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-export type AutomationTrigger = "lead_created" | "opportunity_stage_changed" | "payment_confirmed";
-export type AutomationActionType = "create_task" | "move_opportunity_stage" | "send_message" | "notify_user";
+export type AutomationTrigger = 
+  | "lead_created" 
+  | "lead_updated"
+  | "opportunity_created"
+  | "opportunity_updated"
+  | "opportunity_stage_changed" 
+  | "contact_created"
+  | "contact_updated"
+  | "company_created"
+  | "company_updated"
+  | "custom_field_updated"
+  | "payment_confirmed";
+
+export type AutomationActionType = 
+  | "create_task" 
+  | "move_opportunity_stage" 
+  | "send_message" 
+  | "notify_user"
+  | "assign_owner"
+  | "add_tag"
+  | "create_opportunity"
+  | "update_field";
+
 export type ConditionOperator = "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than" | "is_empty" | "is_not_empty";
 export type ExecutionStatus = "pending" | "running" | "completed" | "failed";
 

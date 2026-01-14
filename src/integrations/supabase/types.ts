@@ -1155,10 +1155,22 @@ export type Database = {
         | "move_opportunity_stage"
         | "send_message"
         | "notify_user"
+        | "assign_owner"
+        | "add_tag"
+        | "create_opportunity"
+        | "update_field"
       automation_trigger:
         | "lead_created"
         | "opportunity_stage_changed"
         | "payment_confirmed"
+        | "lead_updated"
+        | "custom_field_updated"
+        | "opportunity_created"
+        | "opportunity_updated"
+        | "contact_created"
+        | "contact_updated"
+        | "company_created"
+        | "company_updated"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -1304,11 +1316,23 @@ export const Constants = {
         "move_opportunity_stage",
         "send_message",
         "notify_user",
+        "assign_owner",
+        "add_tag",
+        "create_opportunity",
+        "update_field",
       ],
       automation_trigger: [
         "lead_created",
         "opportunity_stage_changed",
         "payment_confirmed",
+        "lead_updated",
+        "custom_field_updated",
+        "opportunity_created",
+        "opportunity_updated",
+        "contact_created",
+        "contact_updated",
+        "company_created",
+        "company_updated",
       ],
       condition_operator: [
         "equals",
