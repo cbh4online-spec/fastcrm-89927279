@@ -86,19 +86,26 @@ const triggerOptions: { value: AutomationTrigger; label: string; entity: string;
   { value: "scheduled_time", label: "Data/Hora Agendada", entity: "scheduled", requiresConfig: true },
 ];
 
-// Extended action options
-const actionOptions: { value: AutomationActionType; label: string; description: string }[] = [
-  { value: "create_task", label: "Criar Tarefa", description: "Cria uma nova tarefa associada" },
-  { value: "assign_owner", label: "Atribuir Responsável", description: "Define o responsável pela entidade" },
-  { value: "move_opportunity_stage", label: "Mover Etapa", description: "Move oportunidade para outra etapa" },
-  { value: "add_tag", label: "Adicionar Tag", description: "Adiciona uma tag à entidade" },
-  { value: "send_message", label: "Enviar Mensagem", description: "Envia mensagem ao lead" },
-  { value: "send_template_message", label: "Enviar com Template", description: "Envia mensagem usando um template" },
-  { value: "notify_user", label: "Notificar Utilizador", description: "Envia notificação a um utilizador" },
-  { value: "create_opportunity", label: "Criar Oportunidade", description: "Cria oportunidade se não existir" },
-  { value: "update_field", label: "Atualizar Campo", description: "Atualiza valor de um campo" },
-  { value: "create_proposal", label: "Criar Proposta", description: "Cria proposta a partir de um modelo" },
-  { value: "send_proposal_link", label: "Enviar Link da Proposta", description: "Envia link da proposta via template" },
+// Extended action options grouped by category
+const actionOptions: { value: AutomationActionType; label: string; description: string; category: string }[] = [
+  // Communication
+  { value: "send_template_message", label: "Enviar Email/WhatsApp/DM", description: "Envia mensagem usando um template", category: "Comunicação" },
+  { value: "send_message", label: "Enviar Mensagem Direta", description: "Envia mensagem ao lead", category: "Comunicação" },
+  { value: "notify_user", label: "Notificar Utilizador", description: "Envia notificação a um utilizador", category: "Comunicação" },
+  // CRM
+  { value: "create_task", label: "Criar Tarefa", description: "Cria uma nova tarefa associada", category: "CRM" },
+  { value: "update_field", label: "Atualizar Campo", description: "Atualiza valor de um campo", category: "CRM" },
+  { value: "change_lead_status", label: "Alterar Estado do Lead", description: "Muda o estado do lead", category: "CRM" },
+  { value: "create_opportunity", label: "Criar Oportunidade", description: "Cria oportunidade se não existir", category: "CRM" },
+  { value: "move_opportunity_stage", label: "Mover Etapa", description: "Move oportunidade para outra etapa", category: "CRM" },
+  { value: "assign_owner", label: "Atribuir Responsável", description: "Define o responsável pela entidade", category: "CRM" },
+  { value: "add_tag", label: "Adicionar Tag", description: "Adiciona uma tag à entidade", category: "CRM" },
+  // Proposals
+  { value: "create_proposal", label: "Criar Proposta", description: "Cria proposta a partir de um modelo", category: "Propostas" },
+  { value: "send_proposal_link", label: "Enviar Link da Proposta", description: "Envia link da proposta via template", category: "Propostas" },
+  // System
+  { value: "wait_time", label: "Aguardar Tempo", description: "Pausa a automação por X tempo", category: "Sistema" },
+  { value: "stop_automation", label: "Parar Automação", description: "Interrompe a execução da automação", category: "Sistema" },
 ];
 
 // Operator options based on field type
@@ -225,7 +232,8 @@ const actionSchema = z.object({
   action_type: z.enum([
     "create_task", "move_opportunity_stage", "send_message", "notify_user", 
     "assign_owner", "add_tag", "create_opportunity", "update_field", 
-    "send_template_message", "create_proposal", "send_proposal_link"
+    "send_template_message", "create_proposal", "send_proposal_link",
+    "wait_time", "stop_automation", "change_lead_status"
   ]),
   config: z.record(z.unknown()),
   position: z.number(),
@@ -856,13 +864,22 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {actionOptions.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                      <div>
-                                        <div>{opt.label}</div>
-                                        <div className="text-xs text-muted-foreground">{opt.description}</div>
+                                  {["Comunicação", "CRM", "Propostas", "Sistema"].map((category) => (
+                                    <div key={category}>
+                                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50">
+                                        {category}
                                       </div>
-                                    </SelectItem>
+                                      {actionOptions
+                                        .filter((opt) => opt.category === category)
+                                        .map((opt) => (
+                                          <SelectItem key={opt.value} value={opt.value}>
+                                            <div>
+                                              <div>{opt.label}</div>
+                                              <div className="text-xs text-muted-foreground">{opt.description}</div>
+                                            </div>
+                                          </SelectItem>
+                                        ))}
+                                    </div>
                                   ))}
                                 </SelectContent>
                               </Select>
@@ -1157,6 +1174,98 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                             actionType={actionType}
                             config={form.watch(`actions.${index}.config`) || {}}
                             onChange={(config) => form.setValue(`actions.${index}.config`, config)}
+                          />
+                        )}
+
+                        {actionType === "wait_time" && (
+                          <div className="space-y-4">
+                            <div className="flex gap-4">
+                              <FormField
+                                control={form.control}
+                                name={`actions.${index}.config.wait_days`}
+                                render={({ field }) => (
+                                  <FormItem className="flex-1">
+                                    <FormLabel>Dias</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        {...field}
+                                        value={field.value as string || ""}
+                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`actions.${index}.config.wait_hours`}
+                                render={({ field }) => (
+                                  <FormItem className="flex-1">
+                                    <FormLabel>Horas</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        max="23"
+                                        placeholder="0"
+                                        {...field}
+                                        value={field.value as string || ""}
+                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <FormDescription className="text-xs">
+                              A automação aguardará este tempo antes de continuar para a próxima ação
+                            </FormDescription>
+                          </div>
+                        )}
+
+                        {actionType === "stop_automation" && (
+                          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm">
+                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                              <AlertTriangle className="h-4 w-4" />
+                              <span className="font-medium">Esta ação irá parar a automação</span>
+                            </div>
+                            <p className="text-muted-foreground mt-1">
+                              Nenhuma ação após esta será executada. Use com condições para criar fluxos condicionais.
+                            </p>
+                          </div>
+                        )}
+
+                        {actionType === "change_lead_status" && (
+                          <FormField
+                            control={form.control}
+                            name={`actions.${index}.config.new_status`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Novo estado do lead</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value as string || ""}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecionar estado" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="new">Novo</SelectItem>
+                                    <SelectItem value="contacted">Contactado</SelectItem>
+                                    <SelectItem value="qualified">Qualificado</SelectItem>
+                                    <SelectItem value="proposal">Proposta</SelectItem>
+                                    <SelectItem value="negotiation">Negociação</SelectItem>
+                                    <SelectItem value="won">Ganho</SelectItem>
+                                    <SelectItem value="lost">Perdido</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
                           />
                         )}
                       </div>
