@@ -22,7 +22,10 @@ export type AutomationTrigger =
   | "payment_confirmed"
   | "proposal_paid"
   | "message_received"
+  | "first_message_from_lead"
   | "conversation_no_reply"
+  | "conversation_resolved"
+  | "conversation_priority_changed"
   | "proposal_created"
   | "proposal_viewed"
   | "scheduled_time";
@@ -85,6 +88,11 @@ export interface AutomationRule {
     delay_days?: number;
     scheduled_date?: string;
     no_response_hours?: number;
+    // Inbox trigger config
+    channels?: string[];
+    no_reply_hours?: number;
+    priority_from?: string;
+    priority_to?: string;
   };
   is_active: boolean;
   created_by: string;

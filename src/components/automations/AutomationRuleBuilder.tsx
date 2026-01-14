@@ -48,6 +48,7 @@ import { CustomFieldTriggerConfig } from "./CustomFieldTriggerConfig";
 import { TemplateActionConfig } from "./TemplateActionConfig";
 import { ProposalActionConfig } from "./ProposalActionConfig";
 import { TimeTriggerConfig } from "./TimeTriggerConfig";
+import { InboxTriggerConfig, isInboxTrigger } from "./InboxTriggerConfig";
 import { 
   detectPotentialLoop, 
   getModifiedFields, 
@@ -74,8 +75,11 @@ const triggerOptions: { value: AutomationTrigger; label: string; entity: string;
   { value: "company_updated", label: "Empresa Atualizada", entity: "company" },
   { value: "custom_field_updated", label: "Campo Personalizado Alterado", entity: "any" },
   // Inbox triggers
-  { value: "message_received", label: "Mensagem Recebida", entity: "conversation" },
+  { value: "message_received", label: "Mensagem Recebida", entity: "conversation", requiresConfig: true },
+  { value: "first_message_from_lead", label: "1ª Mensagem do Lead", entity: "conversation", requiresConfig: true },
   { value: "conversation_no_reply", label: "Sem Resposta na Conversa", entity: "conversation", requiresConfig: true },
+  { value: "conversation_resolved", label: "Conversa Resolvida", entity: "conversation", requiresConfig: true },
+  { value: "conversation_priority_changed", label: "Prioridade Alterada", entity: "conversation", requiresConfig: true },
   // Proposal triggers
   { value: "proposal_created", label: "Proposta Criada", entity: "proposal" },
   { value: "proposal_viewed", label: "Proposta Visualizada", entity: "proposal" },
@@ -247,7 +251,7 @@ const formSchema = z.object({
     "opportunity_created", "opportunity_updated", "opportunity_stage_changed", "opportunity_value_changed",
     "contact_created", "contact_updated", "company_created", "company_updated",
     "custom_field_updated", "payment_confirmed",
-    "message_received", "conversation_no_reply",
+    "message_received", "first_message_from_lead", "conversation_no_reply", "conversation_resolved", "conversation_priority_changed",
     "proposal_created", "proposal_viewed", "proposal_paid",
     "scheduled_time"
   ]),
@@ -255,6 +259,11 @@ const formSchema = z.object({
     custom_field_id: z.string().optional(),
     no_response_hours: z.number().optional(),
     scheduled_date: z.string().optional(),
+    // Inbox trigger config
+    channels: z.array(z.string()).optional(),
+    no_reply_hours: z.number().optional(),
+    priority_from: z.string().optional(),
+    priority_to: z.string().optional(),
   }).optional(),
   is_active: z.boolean(),
   conditions: z.array(conditionSchema),
@@ -580,10 +589,20 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
 
               {/* Time-based Trigger Configuration */}
               {(selectedTrigger === "lead_no_response" || 
-                selectedTrigger === "conversation_no_reply" || 
                 selectedTrigger === "scheduled_time") && (
                 <div className="mt-4">
                   <TimeTriggerConfig
+                    trigger={selectedTrigger}
+                    config={form.watch("trigger_config") || {}}
+                    onChange={(config) => form.setValue("trigger_config", config)}
+                  />
+                </div>
+              )}
+
+              {/* Inbox Trigger Configuration */}
+              {isInboxTrigger(selectedTrigger) && (
+                <div className="mt-4">
+                  <InboxTriggerConfig
                     trigger={selectedTrigger}
                     config={form.watch("trigger_config") || {}}
                     onChange={(config) => form.setValue("trigger_config", config)}
