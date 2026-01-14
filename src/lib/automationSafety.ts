@@ -176,6 +176,13 @@ export function validateAutomation(config: AutomationConfig): {
     if (action.action_type === "send_template_message" && !action.config.template_id) {
       errors.push("A ação 'Enviar com Template' requer a seleção de um template.");
     }
+    // Proposal action validations
+    if (action.action_type === "create_proposal" && !action.config.proposal_template_id) {
+      errors.push("A ação 'Criar Proposta' requer a seleção de um modelo de proposta.");
+    }
+    if (action.action_type === "send_proposal_link" && !action.config.message_template_id) {
+      errors.push("A ação 'Enviar Link da Proposta' requer a seleção de um template de mensagem.");
+    }
   }
 
   return {
