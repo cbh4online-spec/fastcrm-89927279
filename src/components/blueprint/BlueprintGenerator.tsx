@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
@@ -15,12 +14,13 @@ import {
 import { ClarifyingQuestions } from './ClarifyingQuestions';
 import { BlueprintPreview } from './BlueprintPreview';
 import { BlueprintApplyPreview, ApplyMode } from './BlueprintApplyPreview';
+import { TemplateSelector } from './TemplateSelector';
 import { useBlueprintApply } from '@/hooks/useBlueprintApply';
+import { BlueprintTemplate } from '@/data/blueprintTemplates';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   Sparkles,
-  FileJson,
   Loader2,
   Save,
   Download,
@@ -28,6 +28,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Play,
+  LayoutTemplate,
+  ArrowRight,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
@@ -36,18 +38,22 @@ interface BlueprintGeneratorProps {
   onBlueprintSaved?: (blueprint: CrmBlueprint) => void;
 }
 
-type GeneratorStep = 'input' | 'clarifying' | 'preview' | 'apply';
+type GeneratorStep = 'select' | 'customize' | 'clarifying' | 'preview' | 'apply';
+type GeneratorMode = 'template' | 'scratch' | 'import';
 
 export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGeneratorProps) {
   const { currentWorkspace } = useWorkspace();
-  const [step, setStep] = useState<GeneratorStep>('input');
-  const [inputMode, setInputMode] = useState<'schema' | 'natural'>(formSchema ? 'schema' : 'natural');
+  const [step, setStep] = useState<GeneratorStep>('select');
+  const [mode, setMode] = useState<GeneratorMode | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<BlueprintTemplate | null>(null);
+  const [customizationPrompt, setCustomizationPrompt] = useState('');
   const [naturalDescription, setNaturalDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [questions, setQuestions] = useState<BlueprintClarifyingQuestion[]>([]);
   const [blueprint, setBlueprint] = useState<CrmBlueprint | null>(null);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [explanation, setExplanation] = useState<string>('');
+  const [recommendedTemplate, setRecommendedTemplate] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const {
@@ -59,21 +65,50 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     applyBlueprint,
   } = useBlueprintApply(blueprint);
 
+  const handleSelectTemplate = (template: BlueprintTemplate) => {
+    setSelectedTemplate(template);
+    setMode('template');
+    setStep('customize');
+  };
+
+  const handleStartFromScratch = () => {
+    setSelectedTemplate(null);
+    setMode('scratch');
+    setStep('customize');
+  };
+
+  const handleImportForm = () => {
+    if (!formSchema) {
+      toast.error('Nenhum formulário disponível. Crie um no Form Studio primeiro.');
+      return;
+    }
+    setMode('import');
+    setStep('customize');
+  };
+
   const handleGenerate = async (clarifyingAnswers?: Record<string, string | string[]>) => {
     setIsLoading(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-blueprint', {
         body: {
-          formSchema: inputMode === 'schema' ? formSchema : undefined,
-          naturalLanguageDescription: inputMode === 'natural' ? naturalDescription : undefined,
+          formSchema: mode === 'import' ? formSchema : undefined,
+          naturalLanguageDescription: mode === 'scratch' ? naturalDescription : undefined,
+          template: selectedTemplate?.blueprint,
+          templateId: selectedTemplate?.id,
+          customizationPrompt: customizationPrompt || undefined,
           clarifyingAnswers,
+          mode,
         },
       });
 
       if (error) throw error;
 
-      const response = data as BlueprintGenerationResponse;
+      const response = data as BlueprintGenerationResponse & { recommendedTemplateId?: string };
+
+      if (response.recommendedTemplateId) {
+        setRecommendedTemplate(response.recommendedTemplateId);
+      }
 
       if (response.needsClarification && response.questions) {
         setQuestions(response.questions);
@@ -144,15 +179,20 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
   };
 
   const handleReset = () => {
-    setStep('input');
+    setStep('select');
+    setMode(null);
+    setSelectedTemplate(null);
+    setCustomizationPrompt('');
+    setNaturalDescription('');
     setQuestions([]);
     setBlueprint(null);
     setConfidence(null);
     setExplanation('');
+    setRecommendedTemplate(null);
   };
 
-  const handleApply = async (mode: ApplyMode, mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>) => {
-    const result = await applyBlueprint(mode, mergeDecisions);
+  const handleApply = async (applyMode: ApplyMode, mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>) => {
+    const result = await applyBlueprint(applyMode, mergeDecisions);
     if (result.success && result.errors.length === 0) {
       handleReset();
     }
@@ -162,107 +202,159 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     setStep('apply');
   };
 
+  const handleUseTemplateDirectly = () => {
+    if (!selectedTemplate) return;
+
+    const newBlueprint: CrmBlueprint = {
+      id: crypto.randomUUID(),
+      version: 1,
+      name: selectedTemplate.blueprint.name,
+      description: selectedTemplate.blueprint.description,
+      entityType: selectedTemplate.blueprint.entityType,
+      customFields: selectedTemplate.blueprint.customFields,
+      sections: selectedTemplate.blueprint.sections,
+      pipelineStages: selectedTemplate.blueprint.pipelineStages,
+      automations: selectedTemplate.blueprint.automations,
+      dedupeRules: selectedTemplate.blueprint.dedupeRules,
+      mappingRules: selectedTemplate.blueprint.mappingRules,
+      metadata: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'draft',
+      },
+    };
+
+    setBlueprint(newBlueprint);
+    setConfidence(1);
+    setExplanation('Template aplicado diretamente sem personalização.');
+    setStep('preview');
+  };
+
+  const getStepNumber = () => {
+    switch (step) {
+      case 'select': return 1;
+      case 'customize': return 2;
+      case 'clarifying': return 3;
+      case 'preview': return 4;
+      case 'apply': return 5;
+      default: return 1;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Progress indicator */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium ${
-            step === 'input' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-          }`}>
-            1
+      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        {[
+          { num: 1, label: 'Escolher Modo' },
+          { num: 2, label: 'Personalizar' },
+          { num: 3, label: 'Clarificação' },
+          { num: 4, label: 'Pré-visualização' },
+          { num: 5, label: 'Aplicar' },
+        ].map((s, idx) => (
+          <div key={s.num} className="flex items-center gap-2 shrink-0">
+            {idx > 0 && <Separator className="w-4 md:w-8" />}
+            <div className="flex items-center gap-2">
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                getStepNumber() === s.num ? 'bg-primary text-primary-foreground' : 
+                getStepNumber() > s.num ? 'bg-primary/20 text-primary' : 'bg-muted'
+              }`}>
+                {getStepNumber() > s.num ? <CheckCircle2 className="h-4 w-4" /> : s.num}
+              </div>
+              <span className="text-sm hidden md:inline">{s.label}</span>
+            </div>
           </div>
-          <span className="text-sm">Input</span>
-        </div>
-        <Separator className="flex-1" />
-        <div className="flex items-center gap-2">
-          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium ${
-            step === 'clarifying' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-          }`}>
-            2
-          </div>
-          <span className="text-sm">Clarificação</span>
-        </div>
-        <Separator className="flex-1" />
-        <div className="flex items-center gap-2">
-          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium ${
-            step === 'preview' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-          }`}>
-            3
-          </div>
-          <span className="text-sm">Pré-visualização</span>
-        </div>
-        <Separator className="flex-1" />
-        <div className="flex items-center gap-2">
-          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium ${
-            step === 'apply' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-          }`}>
-            4
-          </div>
-          <span className="text-sm">Aplicar</span>
-        </div>
+        ))}
       </div>
 
-      {/* Input Step */}
-      {step === 'input' && (
+      {/* Step 1: Select Mode */}
+      {step === 'select' && (
+        <TemplateSelector
+          onSelectTemplate={handleSelectTemplate}
+          onStartFromScratch={handleStartFromScratch}
+          onImportForm={handleImportForm}
+          selectedTemplate={selectedTemplate}
+        />
+      )}
+
+      {/* Step 2: Customize */}
+      {step === 'customize' && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              Gerar Blueprint CRM
+              {mode === 'template' && selectedTemplate && (
+                <>
+                  <span className="text-2xl">{selectedTemplate.icon}</span>
+                  Personalizar: {selectedTemplate.name}
+                </>
+              )}
+              {mode === 'scratch' && (
+                <>
+                  <Sparkles className="h-5 w-5" />
+                  Descrever CRM Pretendido
+                </>
+              )}
+              {mode === 'import' && formSchema && (
+                <>
+                  <LayoutTemplate className="h-5 w-5" />
+                  Adaptar Template ao Formulário
+                </>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as 'schema' | 'natural')}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="schema" disabled={!formSchema}>
-                  <FileJson className="h-4 w-4 mr-2" />
-                  Schema do Formulário
-                </TabsTrigger>
-                <TabsTrigger value="natural">
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Linguagem Natural
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="schema" className="mt-4">
-                {formSchema ? (
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-lg bg-muted/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium">{formSchema.title}</span>
-                        <Badge variant="secondary">{formSchema.fields.length} campos</Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {formSchema.fields.map((field) => (
-                          <Badge key={field.id} variant="outline" className="text-xs">
-                            {field.label}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <Button onClick={() => handleGenerate()} disabled={isLoading} className="w-full">
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          A analisar schema...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Gerar Blueprint
-                        </>
-                      )}
-                    </Button>
+            {/* Template mode */}
+            {mode === 'template' && selectedTemplate && (
+              <>
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">{selectedTemplate.blueprint.name}</span>
+                    <Badge variant="secondary">{selectedTemplate.industry}</Badge>
                   </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-8">
-                    Nenhum schema de formulário disponível. Use o Form Studio para criar um.
-                  </p>
-                )}
-              </TabsContent>
+                  <p className="text-sm text-muted-foreground mb-3">{selectedTemplate.description}</p>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="outline">{selectedTemplate.blueprint.customFields.length} campos</Badge>
+                    <Badge variant="outline">{selectedTemplate.blueprint.sections.length} secções</Badge>
+                    {selectedTemplate.blueprint.pipelineStages && (
+                      <Badge variant="outline">{selectedTemplate.blueprint.pipelineStages.length} etapas</Badge>
+                    )}
+                  </div>
+                </div>
 
-              <TabsContent value="natural" className="mt-4 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Personalizações (opcional)</label>
+                  <Textarea
+                    value={customizationPrompt}
+                    onChange={(e) => setCustomizationPrompt(e.target.value)}
+                    placeholder="Descreva quaisquer personalizações que pretende...&#10;&#10;Exemplo: Adicionar campo para orçamento em dólares, remover etapa de negociação, adicionar automação para leads urgentes."
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={handleUseTemplateDirectly} variant="outline" className="flex-1">
+                    Usar Template Diretamente
+                  </Button>
+                  <Button onClick={() => handleGenerate()} disabled={isLoading} className="flex-1">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        A personalizar...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Personalizar com AI
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Scratch mode */}
+            {mode === 'scratch' && (
+              <>
                 <Textarea
                   value={naturalDescription}
                   onChange={(e) => setNaturalDescription(e.target.value)}
@@ -286,19 +378,93 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
                     </>
                   )}
                 </Button>
-              </TabsContent>
-            </Tabs>
+              </>
+            )}
+
+            {/* Import mode */}
+            {mode === 'import' && formSchema && (
+              <>
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">{formSchema.title}</span>
+                    <Badge variant="secondary">{formSchema.fields.length} campos</Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {formSchema.fields.slice(0, 8).map((field) => (
+                      <Badge key={field.id} variant="outline" className="text-xs">
+                        {field.label}
+                      </Badge>
+                    ))}
+                    {formSchema.fields.length > 8 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{formSchema.fields.length - 8} mais
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Instruções adicionais (opcional)</label>
+                  <Textarea
+                    value={customizationPrompt}
+                    onChange={(e) => setCustomizationPrompt(e.target.value)}
+                    placeholder="Adicione contexto sobre o seu negócio...&#10;&#10;Exemplo: Este formulário é para captura de leads de uma escola de idiomas. Queremos pipeline com etapas de matrícula."
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                <Button
+                  onClick={() => handleGenerate()}
+                  disabled={isLoading}
+                  className="w-full"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      A analisar formulário...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Recomendar Template & Adaptar
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+
+            <Button variant="ghost" onClick={handleReset} className="w-full">
+              ← Voltar à seleção
+            </Button>
           </CardContent>
         </Card>
       )}
 
       {/* Clarifying Questions Step */}
       {step === 'clarifying' && (
-        <ClarifyingQuestions
-          questions={questions}
-          onSubmit={handleClarifyingSubmit}
-          isLoading={isLoading}
-        />
+        <div className="space-y-4">
+          {recommendedTemplate && (
+            <Card className="border-primary/50 bg-primary/5">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-2">
+                  <LayoutTemplate className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Template recomendado: {recommendedTemplate}</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  A AI identificou este template como o mais adequado para o seu caso.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          <ClarifyingQuestions
+            questions={questions}
+            onSubmit={handleClarifyingSubmit}
+            isLoading={isLoading}
+          />
+          <Button variant="ghost" onClick={() => setStep('customize')}>
+            ← Voltar
+          </Button>
+        </div>
       )}
 
       {/* Preview Step */}
@@ -322,6 +488,11 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
                 {explanation && (
                   <p className="text-sm text-muted-foreground mt-2">{explanation}</p>
                 )}
+                {recommendedTemplate && (
+                  <Badge variant="secondary" className="mt-2">
+                    Baseado no template: {recommendedTemplate}
+                  </Badge>
+                )}
               </CardContent>
             </Card>
           )}
@@ -330,7 +501,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
           <BlueprintPreview blueprint={blueprint} />
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={handleProceedToApply} className="flex-1">
               <Play className="h-4 w-4 mr-2" />
               Pré-visualizar & Aplicar

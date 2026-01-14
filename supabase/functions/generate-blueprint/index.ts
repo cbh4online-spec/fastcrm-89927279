@@ -6,7 +6,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are a CRM Blueprint Generator. Given a form schema or natural language description, you generate comprehensive CRM blueprints.
+// Available templates for AI recommendation
+const TEMPLATE_SUMMARIES = `
+Available industry templates:
+1. real-estate: Real estate agencies - property visits, buyer preferences, budget, negotiation
+2. saas-sales: SaaS sales - demos, trials, onboarding, B2B conversions
+3. ecommerce: E-commerce - abandoned carts, quote requests, customer support
+4. consulting: Consulting firms - proposals, meetings, project management
+5. healthcare: Healthcare/Clinics - appointments, patients, follow-ups
+6. education: Education/Courses - enrollments, student leads, course interest
+`;
+
+const SYSTEM_PROMPT = `You are a CRM Blueprint Generator with access to pre-built industry templates. 
+
+Your job is to:
+1. When given a form or description, recommend the best matching template (if any)
+2. Customize templates based on user needs
+3. Generate blueprints from scratch when no template fits
+4. Ask clarifying questions (3-7 max) when needed
+
+${TEMPLATE_SUMMARIES}
 
 Your output must be a JSON object with this structure:
 {
@@ -14,7 +33,8 @@ Your output must be a JSON object with this structure:
   "questions": [...] (if needsClarification is true),
   "blueprint": {...} (if needsClarification is false),
   "confidence": number (0-1),
-  "explanation": string
+  "explanation": string,
+  "recommendedTemplateId": string (optional - ID of recommended template)
 }
 
 When you need clarification (3-7 questions max), return:
@@ -27,7 +47,8 @@ When you need clarification (3-7 questions max), return:
       "type": "single" | "multiple" | "text",
       "options": [{"label": "...", "value": "..."}] // for single/multiple
     }
-  ]
+  ],
+  "recommendedTemplateId": "template_id" // if you can already recommend one
 }
 
 Questions to consider asking:
@@ -39,13 +60,21 @@ Questions to consider asking:
 
 When generating a blueprint, include:
 1. customFields: Array of fields with correct types, required flags, options
+   - Types: text, textarea, number, currency, date, datetime, boolean, select, multiselect, email, phone, url
 2. sections: Logical groupings of fields (Contact Info, Business Details, etc.)
 3. pipelineStages: Only if sales intent detected (array of stages with colors)
 4. automations: Starter rules based on form intent
+   - triggers: lead_created, lead_updated, opportunity_stage_changed, payment_confirmed, custom_field_updated, opportunity_created, contact_created, company_created
+   - action types: create_task, move_opportunity_stage, send_message, notify_user, assign_owner, add_tag, create_opportunity, update_field
 5. dedupeRules: Email, phone, or other unique identifiers
 6. mappingRules: How form fields map to CRM fields
 
 Pipeline stage colors should be hex codes like: #3B82F6, #10B981, #F59E0B, #EF4444, #8B5CF6
+
+When customizing a template:
+- Keep the base structure but modify/add/remove fields as needed
+- Update automations to match new fields
+- Maintain the industry-appropriate pipeline stages unless asked otherwise
 
 Return ONLY valid JSON, no markdown or explanations outside the JSON.`;
 
@@ -55,7 +84,16 @@ serve(async (req) => {
   }
 
   try {
-    const { formSchema, naturalLanguageDescription, clarifyingAnswers } = await req.json();
+    const { 
+      formSchema, 
+      naturalLanguageDescription, 
+      clarifyingAnswers,
+      template,
+      templateId,
+      customizationPrompt,
+      mode 
+    } = await req.json();
+    
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
@@ -64,7 +102,43 @@ serve(async (req) => {
 
     let userPrompt = '';
 
-    if (formSchema) {
+    // Mode: template customization
+    if (mode === 'template' && template) {
+      userPrompt = `The user selected the "${templateId}" template as a starting point.
+
+Template structure:
+${JSON.stringify(template, null, 2)}
+
+${customizationPrompt ? `User customization requests:\n${customizationPrompt}\n\n` : ''}
+${customizationPrompt 
+  ? 'Customize this template according to the user requests. Generate the complete modified blueprint.'
+  : 'The user wants to use this template with minimal changes. Ask 3-5 clarifying questions to ensure the template fits their specific needs, or confirm it works as-is.'}`;
+    }
+    // Mode: import form and recommend template
+    else if (mode === 'import' && formSchema) {
+      userPrompt = `Analyze this form schema and recommend the best matching industry template:
+
+Form Schema:
+${JSON.stringify(formSchema, null, 2)}
+
+${customizationPrompt ? `Additional context from user:\n${customizationPrompt}\n\n` : ''}
+
+1. First, identify which template best matches this form's purpose
+2. Then adapt that template to incorporate ALL the form fields appropriately
+3. Create proper field mappings from form fields to CRM fields
+4. If no template is a good match, create a custom blueprint
+
+Always include the recommendedTemplateId if you're basing the blueprint on a template.`;
+    }
+    // Mode: scratch (natural language)
+    else if (mode === 'scratch' && naturalLanguageDescription) {
+      userPrompt = `Generate a CRM blueprint from this description:
+${naturalLanguageDescription}
+
+First check if any existing template would be a good starting point. If so, recommend it and customize it. If not, create a completely custom blueprint.`;
+    }
+    // Legacy support
+    else if (formSchema) {
       userPrompt = `Generate a CRM blueprint from this form schema:\n${JSON.stringify(formSchema, null, 2)}`;
     } else if (naturalLanguageDescription) {
       userPrompt = `Generate a CRM blueprint from this description:\n${naturalLanguageDescription}`;
@@ -132,6 +206,7 @@ serve(async (req) => {
         id: crypto.randomUUID(),
         version: 1,
         name: parsed.blueprint.name || 'Untitled Blueprint',
+        description: parsed.blueprint.description,
         entityType: parsed.blueprint.entityType || 'lead',
         customFields: parsed.blueprint.customFields || [],
         sections: parsed.blueprint.sections || [],
@@ -139,6 +214,7 @@ serve(async (req) => {
         automations: parsed.blueprint.automations || [],
         dedupeRules: parsed.blueprint.dedupeRules || [],
         mappingRules: parsed.blueprint.mappingRules || [],
+        sourceFormSchema: formSchema,
         metadata: {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
