@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Zap, Filter, PlayCircle, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Zap, Filter, PlayCircle, AlertTriangle, Shield } from "lucide-react";
 import {
   useCreateAutomationRule,
   useUpdateAutomationRule,
@@ -43,6 +43,14 @@ import {
 import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
 import { useCustomFields, CustomField, CustomFieldType } from "@/hooks/useCustomFields";
+import { CriticalFieldsWarning, LoopDetectionWarning } from "./CriticalFieldsWarning";
+import { CustomFieldTriggerConfig } from "./CustomFieldTriggerConfig";
+import { 
+  detectPotentialLoop, 
+  getModifiedFields, 
+  getEntityFromTrigger,
+  getCriticalFieldsAffected 
+} from "@/lib/automationSafety";
 
 // Extended trigger options with new types
 const triggerOptions: { value: AutomationTrigger; label: string; entity: string }[] = [
@@ -192,12 +200,69 @@ const formSchema = z.object({
     "opportunity_stage_changed", "contact_created", "contact_updated",
     "company_created", "company_updated", "custom_field_updated", "payment_confirmed"
   ]),
+  trigger_config: z.object({
+    custom_field_id: z.string().optional(),
+  }).optional(),
   is_active: z.boolean(),
   conditions: z.array(conditionSchema),
   actions: z.array(actionSchema).min(1, "Pelo menos uma ação é obrigatória"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+// Safety warnings component
+function SafetyWarnings({ 
+  trigger, 
+  conditions, 
+  actions 
+}: { 
+  trigger: AutomationTrigger;
+  conditions: FormValues["conditions"];
+  actions: FormValues["actions"];
+}) {
+  const entityType = getEntityFromTrigger(trigger);
+  const modifiedFields = getModifiedFields(actions.map(a => ({
+    action_type: a.action_type,
+    config: a.config
+  })));
+  
+  const loopCheck = detectPotentialLoop({
+    trigger,
+    conditions: conditions.map(c => ({
+      field_name: c.field_name,
+      operator: c.operator,
+      value: c.value
+    })),
+    actions: actions.map(a => ({
+      action_type: a.action_type,
+      config: a.config
+    }))
+  });
+  
+  const criticalFields = getCriticalFieldsAffected(entityType, actions.map(a => ({
+    action_type: a.action_type,
+    config: a.config
+  })));
+  
+  const showCriticalWarning = criticalFields.length > 0 && conditions.length === 0;
+  
+  if (!loopCheck.hasLoop && !showCriticalWarning) return null;
+  
+  return (
+    <div className="space-y-3">
+      <LoopDetectionWarning 
+        potentialLoop={loopCheck.hasLoop}
+        loopDetails={loopCheck.details}
+      />
+      {showCriticalWarning && (
+        <CriticalFieldsWarning 
+          entityType={entityType}
+          fieldsBeingUpdated={modifiedFields}
+        />
+      )}
+    </div>
+  );
+}
 
 interface Props {
   open: boolean;
@@ -223,6 +288,7 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
       name: "",
       description: "",
       trigger: "lead_created",
+      trigger_config: {},
       is_active: true,
       conditions: [],
       actions: [{ action_type: "notify_user", config: {}, position: 0 }],
@@ -448,6 +514,16 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                   </FormItem>
                 )}
               />
+
+              {/* Custom Field Trigger Configuration */}
+              {selectedTrigger === "custom_field_updated" && (
+                <div className="mt-4">
+                  <CustomFieldTriggerConfig 
+                    control={form.control} 
+                    name="trigger_config.custom_field_id" 
+                  />
+                </div>
+              )}
             </div>
 
             <Separator />
@@ -986,6 +1062,13 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
                 })}
               </CardContent>
             </Card>
+
+            {/* Safety Warnings */}
+            <SafetyWarnings 
+              trigger={selectedTrigger}
+              conditions={form.watch("conditions")}
+              actions={form.watch("actions")}
+            />
 
             {/* Safety Notice */}
             <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm">
