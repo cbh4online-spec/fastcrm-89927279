@@ -35,12 +35,13 @@ function mapBlueprintTypeToCustomFieldType(blueprintType: BlueprintCustomField['
   return typeMapping[blueprintType] || 'text';
 }
 
-interface ApplyResult {
+export interface ApplyResult {
   success: boolean;
   fieldsCreated: number;
   stagesCreated: number;
   automationsCreated: number;
   duplicatesMerged: number;
+  duplicatesSkipped: number;
   errors: string[];
 }
 
@@ -100,7 +101,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
     mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>
   ): Promise<ApplyResult> => {
     if (!blueprint || !currentWorkspace || !user) {
-      return { success: false, fieldsCreated: 0, stagesCreated: 0, automationsCreated: 0, duplicatesMerged: 0, errors: ['Missing data'] };
+      return { success: false, fieldsCreated: 0, stagesCreated: 0, automationsCreated: 0, duplicatesMerged: 0, duplicatesSkipped: 0, errors: ['Missing data'] };
     }
 
     setIsApplying(true);
@@ -110,6 +111,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
       stagesCreated: 0,
       automationsCreated: 0,
       duplicatesMerged: 0,
+      duplicatesSkipped: 0,
       errors: [],
     };
 
@@ -130,7 +132,10 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
           const decision = mergeDecisions[field.name] || 'create';
 
           if (duplicate) {
-            if (decision === 'skip') continue;
+            if (decision === 'skip') {
+              result.duplicatesSkipped++;
+              continue;
+            }
             if (decision === 'merge') {
               result.duplicatesMerged++;
               continue;

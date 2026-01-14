@@ -13,7 +13,7 @@ import {
 } from '@/types/blueprint';
 import { ConversationalQuestions } from './ConversationalQuestions';
 import { BlueprintPreview } from './BlueprintPreview';
-import { BlueprintApplyPreview, ApplyMode } from './BlueprintApplyPreview';
+import { BlueprintApplyPreview, ApplyMode, ApplyResult } from './BlueprintApplyPreview';
 import { TemplateSelector } from './TemplateSelector';
 import { useBlueprintApply } from '@/hooks/useBlueprintApply';
 import { BlueprintTemplate } from '@/data/blueprintTemplates';
@@ -191,11 +191,9 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     setRecommendedTemplate(null);
   };
 
-  const handleApply = async (applyMode: ApplyMode, mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>) => {
+  const handleApply = async (applyMode: ApplyMode, mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>): Promise<ApplyResult> => {
     const result = await applyBlueprint(applyMode, mergeDecisions);
-    if (result.success && result.errors.length === 0) {
-      handleReset();
-    }
+    return result;
   };
 
   const handleProceedToApply = () => {
@@ -545,6 +543,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
             duplicates={duplicates}
             onApply={handleApply}
             isApplying={isApplying}
+            onReset={handleReset}
           />
         </div>
       )}
