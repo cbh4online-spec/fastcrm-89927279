@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.classify-conversation]
 verify_jwt = true
+
+[functions.ai-inbox-reply]
+verify_jwt = true
