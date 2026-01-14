@@ -59,15 +59,19 @@ export function AIPersonalizeDialog({
   onApply,
 }: AIPersonalizeDialogProps) {
   const [personalizedContent, setPersonalizedContent] = useState('');
+  const [personalizedSubject, setPersonalizedSubject] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [instructions, setInstructions] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adaptations, setAdaptations] = useState<string[]>([]);
+  const [unresolvedVars, setUnresolvedVars] = useState<string[]>([]);
   
   const TypeIcon = typeConfig[template.type]?.icon || FileText;
   
   // Get the base rendered content
   const baseContent = renderTemplate(template.content, context);
+  const baseSubject = template.subject ? renderTemplate(template.subject, context) : '';
   
   // Generate personalized content on open
   useEffect(() => {
@@ -79,38 +83,48 @@ export function AIPersonalizeDialog({
   const generatePersonalizedContent = async () => {
     setIsGenerating(true);
     setError(null);
+    setAdaptations([]);
+    setUnresolvedVars([]);
     
     try {
-      // Build context description
-      const contextDesc = buildContextDescription(context);
-      
-      const { data, error: fnError } = await supabase.functions.invoke('ai-copilot', {
+      const { data, error: fnError } = await supabase.functions.invoke('ai-template-copilot', {
         body: {
           action: 'personalize_template',
           template: {
             content: template.content,
+            subject: template.subject,
             type: template.type,
             goal: template.goal,
             tone: template.tone,
           },
-          context: contextDesc,
+          context: {
+            lead: context.lead,
+            opportunity: context.opportunity,
+            company: context.company,
+            contact: context.contact,
+            user: context.user,
+          },
           instructions: instructions || undefined,
-          baseContent,
         },
       });
       
       if (fnError) throw fnError;
       
-      if (data?.personalizedContent) {
-        setPersonalizedContent(data.personalizedContent);
+      if (data?.result) {
+        setPersonalizedContent(data.result.personalizedContent);
+        setPersonalizedSubject(data.result.personalizedSubject || '');
+        setAdaptations(data.result.adaptations || []);
+        setUnresolvedVars(data.result.unresolvedVariables || []);
       } else {
-        // Fallback to base content if AI fails
-        setPersonalizedContent(baseContent);
+        throw new Error('Resposta inválida da IA');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('AI personalization error:', err);
-      setError('Não foi possível personalizar. A usar versão base.');
+      const errorMessage = err.message || 'Não foi possível personalizar';
+      setError(errorMessage);
+      // Fallback to base content
       setPersonalizedContent(baseContent);
+      setPersonalizedSubject(baseSubject);
     } finally {
       setIsGenerating(false);
     }
@@ -122,7 +136,10 @@ export function AIPersonalizeDialog({
   };
   
   const handleCopy = () => {
-    navigator.clipboard.writeText(personalizedContent);
+    const text = personalizedSubject 
+      ? `Assunto: ${personalizedSubject}\n\n${personalizedContent}`
+      : personalizedContent;
+    navigator.clipboard.writeText(text);
     setCopied(true);
     toast.success('Copiado para a área de transferência');
     setTimeout(() => setCopied(false), 2000);
@@ -245,6 +262,37 @@ export function AIPersonalizeDialog({
               )}
             </ScrollArea>
           </div>
+          
+          {/* Adaptations Made */}
+          {adaptations.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Adaptações feitas</Label>
+              <div className="flex flex-wrap gap-1">
+                {adaptations.map((a, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px]">
+                    {a}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Unresolved Variables Warning */}
+          {unresolvedVars.length > 0 && (
+            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 border border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-amber-800">Variáveis não resolvidas</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {unresolvedVars.map((v) => (
+                    <Badge key={v} variant="outline" className="text-[10px] text-amber-700 border-amber-300">
+                      {v}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Comparison with original */}
           <details className="text-xs">
