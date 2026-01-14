@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Sparkles, 
@@ -12,7 +11,8 @@ import {
   ChevronDown, 
   ChevronUp,
   AlertCircle,
-  Zap
+  Zap,
+  Shield
 } from "lucide-react";
 import { 
   useFieldSuggestions, 
@@ -24,6 +24,7 @@ import {
   FieldSuggestion
 } from "@/hooks/useFieldSuggestions";
 import { cn } from "@/lib/utils";
+import { ConfidenceScore, SuggestionExplanation } from "./AIConfidenceDisplay";
 
 interface FieldSuggestionsPanelProps {
   entityType: EntityType;
@@ -48,18 +49,6 @@ function SuggestionCard({
   onReject: () => void;
   isAccepting: boolean;
 }) {
-  const confidenceColor = suggestion.confidence >= 0.8 
-    ? "text-emerald-600" 
-    : suggestion.confidence >= 0.5 
-      ? "text-amber-600" 
-      : "text-orange-600";
-
-  const confidenceLabel = suggestion.confidence >= 0.8 
-    ? "Alta" 
-    : suggestion.confidence >= 0.5 
-      ? "Média" 
-      : "Baixa";
-
   const displayValue = typeof suggestion.suggested_value === "object" 
     ? JSON.stringify(suggestion.suggested_value)
     : String(suggestion.suggested_value);
@@ -128,15 +117,7 @@ function SuggestionCard({
         <span className="text-muted-foreground flex-1 truncate pr-2">
           {suggestion.explanation}
         </span>
-        <div className="flex items-center gap-1 shrink-0">
-          <span className={cn("font-medium", confidenceColor)}>
-            {confidenceLabel}
-          </span>
-          <Progress 
-            value={suggestion.confidence * 100} 
-            className="w-12 h-1.5"
-          />
-        </div>
+        <ConfidenceScore confidence={suggestion.confidence} size="sm" />
       </div>
     </div>
   );
