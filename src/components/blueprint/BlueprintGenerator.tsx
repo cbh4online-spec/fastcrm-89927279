@@ -15,6 +15,7 @@ import { ConversationalQuestions } from './ConversationalQuestions';
 import { BlueprintPreview } from './BlueprintPreview';
 import { BlueprintApplyPreview, ApplyMode, ApplyResult } from './BlueprintApplyPreview';
 import { TemplateSelector } from './TemplateSelector';
+import { SavedBlueprintsList } from './SavedBlueprintsList';
 import { useBlueprintApply } from '@/hooks/useBlueprintApply';
 import { BlueprintTemplate } from '@/data/blueprintTemplates';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,8 +31,10 @@ import {
   Play,
   LayoutTemplate,
   ArrowRight,
+  FolderOpen,
 } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface BlueprintGeneratorProps {
   formSchema?: FormSchema;
@@ -43,6 +46,7 @@ type GeneratorMode = 'template' | 'scratch' | 'import';
 
 export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGeneratorProps) {
   const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<GeneratorStep>('select');
   const [mode, setMode] = useState<GeneratorMode | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<BlueprintTemplate | null>(null);
@@ -55,6 +59,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
   const [explanation, setExplanation] = useState<string>('');
   const [recommendedTemplate, setRecommendedTemplate] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [loadedFromDraft, setLoadedFromDraft] = useState(false);
 
   const {
     isApplying,
@@ -155,6 +160,9 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
 
       if (error) throw error;
 
+      // Invalidate the blueprints cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['blueprints', currentWorkspace.id] });
+
       toast.success('Blueprint guardado com sucesso!');
       onBlueprintSaved?.(blueprint);
     } catch (error) {
@@ -163,6 +171,15 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleLoadDraft = (loadedBlueprint: CrmBlueprint) => {
+    setBlueprint(loadedBlueprint);
+    setConfidence(null);
+    setExplanation('Carregado de rascunho guardado.');
+    setLoadedFromDraft(true);
+    setStep('preview');
+    toast.success(`Blueprint "${loadedBlueprint.name}" carregado!`);
   };
 
   const handleExport = () => {
@@ -189,6 +206,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
     setConfidence(null);
     setExplanation('');
     setRecommendedTemplate(null);
+    setLoadedFromDraft(false);
   };
 
   const handleApply = async (applyMode: ApplyMode, mergeDecisions: Record<string, 'create' | 'merge' | 'skip'>): Promise<ApplyResult> => {
@@ -267,12 +285,17 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
 
       {/* Step 1: Select Mode */}
       {step === 'select' && (
-        <TemplateSelector
-          onSelectTemplate={handleSelectTemplate}
-          onStartFromScratch={handleStartFromScratch}
-          onImportForm={handleImportForm}
-          selectedTemplate={selectedTemplate}
-        />
+        <div className="space-y-6">
+          <TemplateSelector
+            onSelectTemplate={handleSelectTemplate}
+            onStartFromScratch={handleStartFromScratch}
+            onImportForm={handleImportForm}
+            selectedTemplate={selectedTemplate}
+          />
+          
+          {/* Saved Blueprints List */}
+          <SavedBlueprintsList onLoadBlueprint={handleLoadDraft} />
+        </div>
       )}
 
       {/* Step 2: Customize */}
