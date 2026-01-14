@@ -19,6 +19,16 @@ export interface Conversation {
   created_at: string;
   updated_at: string;
   lead?: Pick<Lead, "id" | "name" | "email" | "phone"> | null;
+  // AI Classification fields
+  ai_priority?: "high" | "medium" | "low" | null;
+  ai_intent?: "support" | "sales" | "question" | "follow_up" | "complaint" | "other" | null;
+  ai_sentiment?: "positive" | "neutral" | "negative" | null;
+  ai_classification_at?: string | null;
+  user_priority?: "high" | "medium" | "low" | null;
+  user_intent?: "support" | "sales" | "question" | "follow_up" | "complaint" | "other" | null;
+  classification_confirmed?: boolean;
+  classification_confirmed_at?: string | null;
+  classification_confirmed_by?: string | null;
 }
 
 export interface ConversationFilters {

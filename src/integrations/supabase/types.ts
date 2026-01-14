@@ -667,9 +667,16 @@ export type Database = {
       }
       conversations: {
         Row: {
+          ai_classification_at: string | null
+          ai_intent: string | null
+          ai_priority: string | null
+          ai_sentiment: string | null
           assigned_to: string | null
           channel: string
           channel_metadata: Json | null
+          classification_confirmed: boolean | null
+          classification_confirmed_at: string | null
+          classification_confirmed_by: string | null
           created_at: string
           external_thread_id: string | null
           id: string
@@ -678,12 +685,21 @@ export type Database = {
           status: string
           unread_count: number
           updated_at: string
+          user_intent: string | null
+          user_priority: string | null
           workspace_id: string
         }
         Insert: {
+          ai_classification_at?: string | null
+          ai_intent?: string | null
+          ai_priority?: string | null
+          ai_sentiment?: string | null
           assigned_to?: string | null
           channel: string
           channel_metadata?: Json | null
+          classification_confirmed?: boolean | null
+          classification_confirmed_at?: string | null
+          classification_confirmed_by?: string | null
           created_at?: string
           external_thread_id?: string | null
           id?: string
@@ -692,12 +708,21 @@ export type Database = {
           status?: string
           unread_count?: number
           updated_at?: string
+          user_intent?: string | null
+          user_priority?: string | null
           workspace_id: string
         }
         Update: {
+          ai_classification_at?: string | null
+          ai_intent?: string | null
+          ai_priority?: string | null
+          ai_sentiment?: string | null
           assigned_to?: string | null
           channel?: string
           channel_metadata?: Json | null
+          classification_confirmed?: boolean | null
+          classification_confirmed_at?: string | null
+          classification_confirmed_by?: string | null
           created_at?: string
           external_thread_id?: string | null
           id?: string
@@ -706,6 +731,8 @@ export type Database = {
           status?: string
           unread_count?: number
           updated_at?: string
+          user_intent?: string | null
+          user_priority?: string | null
           workspace_id?: string
         }
         Relationships: [
