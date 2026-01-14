@@ -3,10 +3,11 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Zap, History } from "lucide-react";
+import { Plus, Zap, History, Sparkles } from "lucide-react";
 import { AutomationRulesList } from "@/components/automations/AutomationRulesList";
 import { AutomationRuleBuilder } from "@/components/automations/AutomationRuleBuilder";
 import { AutomationLogsDialog } from "@/components/automations/AutomationLogsDialog";
+import { AutomationSuggestionsPanel } from "@/components/automations/AutomationSuggestionsPanel";
 import { AutomationRule, useAutomationRules, useAutomationLogs } from "@/hooks/useAutomations";
 
 export default function Automations() {
@@ -100,11 +101,19 @@ export default function Automations() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="rules">
+        <Tabs defaultValue="suggestions">
           <TabsList>
+            <TabsTrigger value="suggestions">
+              <Sparkles className="h-4 w-4 mr-1" />
+              Sugestões IA
+            </TabsTrigger>
             <TabsTrigger value="rules">Regras</TabsTrigger>
             <TabsTrigger value="logs">Logs de Execução</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="suggestions" className="mt-4">
+            <AutomationSuggestionsPanel />
+          </TabsContent>
 
           <TabsContent value="rules" className="mt-4">
             <Card>

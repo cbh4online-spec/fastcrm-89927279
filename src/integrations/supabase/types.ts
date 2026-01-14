@@ -281,6 +281,78 @@ export type Database = {
           },
         ]
       }
+      automation_suggestions: {
+        Row: {
+          actions: Json
+          conditions: Json
+          confidence: number
+          created_at: string
+          created_automation_id: string | null
+          description: string
+          explanation: string
+          id: string
+          pattern_data: Json | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          title: string
+          trigger_config: Json
+          trigger_type: string
+          workspace_id: string
+        }
+        Insert: {
+          actions?: Json
+          conditions?: Json
+          confidence: number
+          created_at?: string
+          created_automation_id?: string | null
+          description: string
+          explanation: string
+          id?: string
+          pattern_data?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title: string
+          trigger_config?: Json
+          trigger_type: string
+          workspace_id: string
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json
+          confidence?: number
+          created_at?: string
+          created_automation_id?: string | null
+          description?: string
+          explanation?: string
+          id?: string
+          pattern_data?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title?: string
+          trigger_config?: Json
+          trigger_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_suggestions_created_automation_id_fkey"
+            columns: ["created_automation_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
