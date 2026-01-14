@@ -16,6 +16,7 @@ import {
   Inbox,
   Zap,
   Globe,
+  Brain,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -32,6 +33,7 @@ const navigation = [
   { name: "Landing Pages", href: "/dashboard/landing-pages", icon: Globe },
   { name: "Contacts", href: "/dashboard/contacts", icon: Users },
   { name: "Companies", href: "/dashboard/companies", icon: Building2 },
+  { name: "AI Insights", href: "/dashboard/ai-suggestions", icon: Brain },
   { name: "Reports", href: "/dashboard/reports", icon: BarChart3 },
 ];
 
