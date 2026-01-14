@@ -665,6 +665,89 @@ export type Database = {
           },
         ]
       }
+      conversation_followups: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          conversation_id: string
+          created_at: string
+          hours_since_last_reply: number
+          id: string
+          lead_id: string | null
+          prepared_message: string | null
+          sent_at: string | null
+          snooze_until: string | null
+          status: string
+          suggested_at: string
+          template_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          conversation_id: string
+          created_at?: string
+          hours_since_last_reply: number
+          id?: string
+          lead_id?: string | null
+          prepared_message?: string | null
+          sent_at?: string | null
+          snooze_until?: string | null
+          status?: string
+          suggested_at?: string
+          template_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          conversation_id?: string
+          created_at?: string
+          hours_since_last_reply?: number
+          id?: string
+          lead_id?: string | null
+          prepared_message?: string | null
+          sent_at?: string | null
+          snooze_until?: string | null
+          status?: string
+          suggested_at?: string
+          template_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_followups_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_followups_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_followups_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_followups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           ai_classification_at: string | null
