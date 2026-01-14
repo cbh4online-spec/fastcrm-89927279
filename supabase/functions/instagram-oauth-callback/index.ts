@@ -19,9 +19,10 @@ serve(async (req) => {
 
     if (error) {
       console.error("OAuth error:", error);
+      const appUrl = Deno.env.get("APP_URL") || "https://fastcrm.lovable.app";
       return new Response(null, {
         status: 302,
-        headers: { Location: `/settings?instagram_error=${error}` },
+        headers: { Location: `${appUrl}/dashboard/settings?instagram_error=${error}` },
       });
     }
 
@@ -149,14 +150,14 @@ serve(async (req) => {
     const appUrl = Deno.env.get("APP_URL") || "https://fastcrm.lovable.app";
     return new Response(null, {
       status: 302,
-      headers: { Location: `${appUrl}/settings?instagram_connected=true` },
+      headers: { Location: `${appUrl}/dashboard/settings?instagram_connected=true` },
     });
   } catch (error) {
     console.error("OAuth callback error:", error);
     const appUrl = Deno.env.get("APP_URL") || "https://fastcrm.lovable.app";
     return new Response(null, {
       status: 302,
-      headers: { Location: `${appUrl}/settings?instagram_error=connection_failed` },
+      headers: { Location: `${appUrl}/dashboard/settings?instagram_error=connection_failed` },
     });
   }
 });
