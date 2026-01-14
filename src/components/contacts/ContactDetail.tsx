@@ -10,6 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
+import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
+import { 
+  useFieldSuggestions, 
+  useAcceptSuggestion, 
+  useRejectSuggestion 
+} from "@/hooks/useFieldSuggestions";
 import {
   Collapsible,
   CollapsibleContent,
@@ -142,6 +148,12 @@ export function ContactDetail() {
 
   const contact = contacts.find(c => c.id === id);
 
+  // AI field suggestions
+  const { data: suggestions = [] } = useFieldSuggestions("contact", id);
+  const acceptSuggestion = useAcceptSuggestion();
+  const rejectSuggestion = useRejectSuggestion();
+  const [acceptingField, setAcceptingField] = useState<string | null>(null);
+
   const [isEditing, setIsEditing] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
   const [showCustomFields, setShowCustomFields] = useState(true);
@@ -204,6 +216,37 @@ export function ContactDetail() {
       toast.error("Erro ao eliminar contacto");
     }
   };
+
+  // Helper to accept inline suggestion
+  const handleAcceptInlineSuggestion = useCallback(async (fieldName: string, value: unknown) => {
+    if (!contact) return;
+    
+    const suggestion = suggestions.find(s => s.field_name === fieldName);
+    if (!suggestion) return;
+    
+    setAcceptingField(fieldName);
+    try {
+      await acceptSuggestion.mutateAsync({
+        suggestion,
+        onApply: async () => {
+          await updateContact.mutateAsync({
+            id: contact.id,
+            [fieldName]: value,
+          });
+        },
+      });
+    } finally {
+      setAcceptingField(null);
+    }
+  }, [contact, suggestions, acceptSuggestion, updateContact]);
+
+  // Helper to reject inline suggestion
+  const handleRejectInlineSuggestion = useCallback((fieldName: string) => {
+    const suggestion = suggestions.find(s => s.field_name === fieldName);
+    if (suggestion) {
+      rejectSuggestion.mutate(suggestion);
+    }
+  }, [suggestions, rejectSuggestion]);
 
   if (isLoading) {
     return (

@@ -9,6 +9,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
+import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
+import { 
+  useFieldSuggestions, 
+  useAcceptSuggestion, 
+  useRejectSuggestion 
+} from "@/hooks/useFieldSuggestions";
 import {
   Select,
   SelectContent,
@@ -147,6 +153,12 @@ export function LeadDetail() {
   const { data: customFieldValues = [] } = useCustomFieldValues(id);
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
+  
+  // AI field suggestions
+  const { data: suggestions = [] } = useFieldSuggestions("lead", id);
+  const acceptSuggestion = useAcceptSuggestion();
+  const rejectSuggestion = useRejectSuggestion();
+  const [acceptingField, setAcceptingField] = useState<string | null>(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
@@ -204,7 +216,7 @@ export function LeadDetail() {
     }
   };
 
-  // Handler for applying AI field suggestions
+  // Handler for applying AI field suggestions (for panel)
   const handleApplySuggestion = useCallback(async (
     fieldName: string,
     value: unknown,
@@ -214,17 +226,46 @@ export function LeadDetail() {
     if (!lead) return;
 
     if (fieldType === "standard") {
-      // Apply to standard lead fields
       await updateLead.mutateAsync({
         id: lead.id,
         [fieldName]: value,
       });
     } else if (fieldType === "custom" && customFieldId) {
-      // For custom fields, we'd need to update the custom field value
-      // This would require additional implementation in the custom fields hook
       console.log("Apply custom field:", customFieldId, value);
     }
   }, [lead, updateLead]);
+
+  // Helper to accept inline suggestion
+  const handleAcceptInlineSuggestion = useCallback(async (fieldName: string, value: unknown) => {
+    if (!lead) return;
+    
+    const suggestion = suggestions.find(s => s.field_name === fieldName);
+    if (!suggestion) return;
+    
+    setAcceptingField(fieldName);
+    try {
+      await acceptSuggestion.mutateAsync({
+        suggestion,
+        onApply: async () => {
+          await updateLead.mutateAsync({
+            id: lead.id,
+            [fieldName]: value,
+          });
+        },
+      });
+    } finally {
+      setAcceptingField(null);
+    }
+  }, [lead, suggestions, acceptSuggestion, updateLead]);
+
+  // Helper to reject inline suggestion
+  const handleRejectInlineSuggestion = useCallback((fieldName: string) => {
+    const suggestion = suggestions.find(s => s.field_name === fieldName);
+    if (suggestion) {
+      rejectSuggestion.mutate(suggestion);
+    }
+  }, [suggestions, rejectSuggestion]);
+
 
   if (isLoading) {
     return (
@@ -420,11 +461,16 @@ export function LeadDetail() {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="divide-y divide-border/50">
-                        <DetailRow
+                        <DetailRowWithSuggestion
                           label="Nome"
+                          fieldName="name"
                           value={lead.name}
                           icon={<User className="w-4 h-4" />}
                           isEditing={isEditing}
+                          suggestion={getSuggestionForField(suggestions, "name")}
+                          onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("name", value)}
+                          onRejectSuggestion={() => handleRejectInlineSuggestion("name")}
+                          isAcceptingSuggestion={acceptingField === "name"}
                           editComponent={
                             <Input
                               value={editedLead?.name}
@@ -434,12 +480,17 @@ export function LeadDetail() {
                             />
                           }
                         />
-                        <DetailRow
+                        <DetailRowWithSuggestion
                           label="E-mail"
+                          fieldName="email"
                           value={lead.email}
                           icon={<Mail className="w-4 h-4" />}
                           isEditing={isEditing}
                           isLink={!!lead.email}
+                          suggestion={getSuggestionForField(suggestions, "email")}
+                          onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("email", value)}
+                          onRejectSuggestion={() => handleRejectInlineSuggestion("email")}
+                          isAcceptingSuggestion={acceptingField === "email"}
                           editComponent={
                             <Input
                               type="email"
@@ -450,12 +501,17 @@ export function LeadDetail() {
                             />
                           }
                         />
-                        <DetailRow
+                        <DetailRowWithSuggestion
                           label="Telefone"
+                          fieldName="phone"
                           value={lead.phone}
                           icon={<Phone className="w-4 h-4" />}
                           isEditing={isEditing}
                           isLink={!!lead.phone}
+                          suggestion={getSuggestionForField(suggestions, "phone")}
+                          onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("phone", value)}
+                          onRejectSuggestion={() => handleRejectInlineSuggestion("phone")}
+                          isAcceptingSuggestion={acceptingField === "phone"}
                           editComponent={
                             <Input
                               value={editedLead?.phone}
@@ -465,11 +521,16 @@ export function LeadDetail() {
                             />
                           }
                         />
-                        <DetailRow
+                        <DetailRowWithSuggestion
                           label="Origem"
+                          fieldName="source"
                           value={lead.source}
                           icon={<Briefcase className="w-4 h-4" />}
                           isEditing={isEditing}
+                          suggestion={getSuggestionForField(suggestions, "source")}
+                          onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("source", value)}
+                          onRejectSuggestion={() => handleRejectInlineSuggestion("source")}
+                          isAcceptingSuggestion={acceptingField === "source"}
                           editComponent={
                             <Input
                               value={editedLead?.source}
