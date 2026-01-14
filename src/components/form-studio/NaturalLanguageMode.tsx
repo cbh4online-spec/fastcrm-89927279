@@ -73,7 +73,7 @@ export function NaturalLanguageMode({ onFieldsGenerated }: NaturalLanguageModePr
         <Textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Descreva o formulário que pretende criar...&#10;&#10;Exemplo: Formulário de contacto com campos para nome, email, telefone (opcional), assunto e mensagem. O campo assunto deve ser um dropdown com opções: Vendas, Suporte, Parcerias, Outro."
+          placeholder="Quero um formulário de pedido de orçamento para serviços de marketing.&#10;&#10;Perguntar nome, email, empresa, tipo de serviço, orçamento mensal e urgência."
           className="min-h-[150px] resize-none"
         />
         <Button
