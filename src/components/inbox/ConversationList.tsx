@@ -64,8 +64,23 @@ interface ConversationListProps {
   defaultChannel?: ConversationChannel | null;
 }
 
-// AI-based priority calculation
+// AI-based priority calculation - uses AI classification if available
 function calculatePriority(conv: any): { priority: ConversationPriority; reason: string } {
+  // Use AI/user classification if available
+  const effectivePriority = conv.user_priority || conv.ai_priority;
+  if (effectivePriority) {
+    const reasonMap = {
+      high: "Classificado como alta prioridade",
+      medium: "Classificado como média prioridade",
+      low: "Classificado como baixa prioridade",
+    };
+    return { 
+      priority: effectivePriority as ConversationPriority, 
+      reason: conv.user_priority ? `${reasonMap[effectivePriority]} (editado)` : reasonMap[effectivePriority]
+    };
+  }
+
+  // Fallback: calculate based on conversation state
   const hoursSinceLastMessage = conv.last_message_at 
     ? differenceInHours(new Date(), new Date(conv.last_message_at))
     : 0;
@@ -89,6 +104,16 @@ function calculatePriority(conv: any): { priority: ConversationPriority; reason:
   // Low priority
   return { priority: "low", reason: "Conversa em dia" };
 }
+
+// Intent icons and labels
+const intentConfig: Record<string, { label: string; color: string }> = {
+  sales: { label: "Vendas", color: "text-green-600 bg-green-100 dark:bg-green-900/30" },
+  support: { label: "Suporte", color: "text-blue-600 bg-blue-100 dark:bg-blue-900/30" },
+  question: { label: "Pergunta", color: "text-purple-600 bg-purple-100 dark:bg-purple-900/30" },
+  follow_up: { label: "Follow-up", color: "text-amber-600 bg-amber-100 dark:bg-amber-900/30" },
+  complaint: { label: "Reclamação", color: "text-red-600 bg-red-100 dark:bg-red-900/30" },
+  other: { label: "Outro", color: "text-muted-foreground bg-muted" },
+};
 
 const priorityConfig = {
   high: { 
@@ -237,12 +262,14 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
               <p className="text-sm text-muted-foreground">Sem conversas</p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
+          <div className="divide-y divide-border">
               {processedConversations.map((conv) => {
                 const ChannelIcon = channelIcons[conv.channel];
                 const displayName = conv.lead?.name || conv.external_thread_id || "Desconhecido";
                 const priorityInfo = priorityConfig[conv.priority];
                 const PriorityIcon = priorityInfo.icon;
+                const effectiveIntent = conv.user_intent || conv.ai_intent;
+                const hasAIClassification = conv.ai_priority || conv.ai_intent;
 
                 return (
                   <button
@@ -280,23 +307,41 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
                           </div>
                         </div>
                         
-                        {/* Priority indicator with reason */}
-                        {conv.priority !== "low" && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className={cn(
-                                "flex items-center gap-1 mt-1 text-xs",
-                                priorityInfo.color
-                              )}>
-                                {PriorityIcon && <PriorityIcon className="w-3 h-3" />}
-                                <span>{priorityInfo.label}</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                              <p className="text-xs">{conv.reason}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
+                        {/* Priority and Intent badges */}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          {conv.priority !== "low" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className={cn(
+                                  "flex items-center gap-1 text-xs px-1.5 py-0.5 rounded",
+                                  priorityInfo.color,
+                                  priorityInfo.bgColor
+                                )}>
+                                  {PriorityIcon && <PriorityIcon className="w-3 h-3" />}
+                                  <span>{priorityInfo.label}</span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="right">
+                                <p className="text-xs">{conv.reason}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          
+                          {/* Intent badge */}
+                          {effectiveIntent && intentConfig[effectiveIntent] && (
+                            <span className={cn(
+                              "text-xs px-1.5 py-0.5 rounded",
+                              intentConfig[effectiveIntent].color
+                            )}>
+                              {intentConfig[effectiveIntent].label}
+                            </span>
+                          )}
+
+                          {/* AI indicator */}
+                          {hasAIClassification && !conv.user_priority && !conv.user_intent && (
+                            <span className="text-[10px] text-muted-foreground">AI</span>
+                          )}
+                        </div>
                         
                         <div className="flex items-center justify-between gap-2 mt-1">
                           <span className="text-xs text-muted-foreground truncate capitalize">

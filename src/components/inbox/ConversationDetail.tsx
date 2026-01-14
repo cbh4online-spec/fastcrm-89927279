@@ -35,9 +35,6 @@ import {
   Globe,
   FileText,
   Sparkles,
-  RefreshCw,
-  ArrowDownRight,
-  Scissors,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -46,6 +43,7 @@ import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { VariableContext } from "@/lib/templateVariables";
 import { Template } from "@/hooks/useTemplates";
 import { InboxAIAssistant } from "./InboxAIAssistant";
+import { ConversationClassification } from "./ConversationClassification";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -355,12 +353,33 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
         {/* AI Assistant Panel */}
         {showAIAssistant && messages && messages.length > 0 && (
-          <div className="w-72 border-l border-border bg-muted/20 hidden lg:block">
-            <InboxAIAssistant
-              messages={messages}
-              leadName={conversation.lead?.name}
-              onInsertReply={handleInsertReply}
-            />
+          <div className="w-80 border-l border-border bg-muted/20 hidden lg:block overflow-y-auto">
+            <div className="p-3 space-y-4">
+              {/* AI Classification */}
+              <ConversationClassification
+                conversationId={conversationId}
+                leadId={conversation.lead_id}
+                messages={messages.map(m => ({
+                  direction: m.direction,
+                  content: m.content,
+                }))}
+                leadName={conversation.lead?.name}
+                channel={conversation.channel}
+                aiPriority={conversation.ai_priority}
+                aiIntent={conversation.ai_intent}
+                aiSentiment={conversation.ai_sentiment}
+                userPriority={conversation.user_priority}
+                userIntent={conversation.user_intent}
+                classificationConfirmed={conversation.classification_confirmed}
+              />
+
+              {/* Reply Suggestions */}
+              <InboxAIAssistant
+                messages={messages}
+                leadName={conversation.lead?.name}
+                onInsertReply={handleInsertReply}
+              />
+            </div>
           </div>
         )}
       </div>
