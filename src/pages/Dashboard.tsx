@@ -2,48 +2,65 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Building2, FileText, TrendingUp, Plus, ArrowUpRight, ArrowDownRight } from "lucide-react";
-
-const stats = [
-  {
-    name: "Total Contacts",
-    value: "2,651",
-    change: "+12.5%",
-    trend: "up",
-    icon: Users,
-  },
-  {
-    name: "Companies",
-    value: "148",
-    change: "+3.2%",
-    trend: "up",
-    icon: Building2,
-  },
-  {
-    name: "Documents",
-    value: "89",
-    change: "-2.1%",
-    trend: "down",
-    icon: FileText,
-  },
-  {
-    name: "Growth",
-    value: "24.5%",
-    change: "+4.3%",
-    trend: "up",
-    icon: TrendingUp,
-  },
-];
-
-const recentActivity = [
-  { id: 1, action: "New contact added", subject: "Sarah Johnson", time: "2 hours ago" },
-  { id: 2, action: "Company updated", subject: "Acme Corp", time: "4 hours ago" },
-  { id: 3, action: "Document shared", subject: "Q4 Report", time: "Yesterday" },
-  { id: 4, action: "New team member", subject: "Mike Chen", time: "2 days ago" },
-];
+import { Users, Building2, FileText, TrendingUp, Plus, ArrowUpRight, ArrowDownRight, Briefcase, Target, Loader2 } from "lucide-react";
+import { useLeads } from "@/hooks/useLeads";
+import { useContacts } from "@/hooks/useContacts";
+import { useCompanies } from "@/hooks/useCompanies";
+import { useOpportunities } from "@/hooks/useOpportunities";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
+import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
+import { CreateCompanyDialog } from "@/components/companies/CreateCompanyDialog";
+import { CreateOpportunityDialog } from "@/components/crm/CreateOpportunityDialog";
 
 export default function Dashboard() {
   const { currentWorkspace } = useWorkspace();
+  const navigate = useNavigate();
+  
+  const { data: leads, isLoading: leadsLoading } = useLeads();
+  const { contacts, isLoading: contactsLoading } = useContacts();
+  const { companies, isLoading: companiesLoading } = useCompanies();
+  const { data: opportunities, isLoading: opportunitiesLoading } = useOpportunities();
+
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateContact, setShowCreateContact] = useState(false);
+  const [showCreateCompany, setShowCreateCompany] = useState(false);
+  const [showCreateOpportunity, setShowCreateOpportunity] = useState(false);
+
+  const isLoading = leadsLoading || contactsLoading || companiesLoading || opportunitiesLoading;
+
+  const totalLeads = leads?.length || 0;
+  const totalContacts = contacts?.length || 0;
+  const totalCompanies = companies?.length || 0;
+  const totalOpportunities = opportunities?.length || 0;
+
+  const stats = [
+    {
+      name: "Leads",
+      value: totalLeads,
+      icon: Target,
+      href: "/dashboard/leads",
+    },
+    {
+      name: "Contactos",
+      value: totalContacts,
+      icon: Users,
+      href: "/dashboard/contacts",
+    },
+    {
+      name: "Empresas",
+      value: totalCompanies,
+      icon: Building2,
+      href: "/dashboard/companies",
+    },
+    {
+      name: "Oportunidades",
+      value: totalOpportunities,
+      icon: Briefcase,
+      href: "/dashboard/opportunities",
+    },
+  ];
 
   return (
     <DashboardLayout>
@@ -52,22 +69,22 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              Welcome back! 👋
+              Bem-vindo! 👋
             </h1>
             <p className="text-muted-foreground">
-              Here's what's happening in {currentWorkspace?.name}
+              Aqui está o resumo do {currentWorkspace?.name}
             </p>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Quick add
-          </Button>
         </div>
 
         {/* Stats grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat) => (
-            <Card key={stat.name} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={stat.name} 
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate(stat.href)}
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.name}
@@ -75,76 +92,109 @@ export default function Dashboard() {
                 <stat.icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="flex items-center text-xs mt-1">
-                  {stat.trend === "up" ? (
-                    <ArrowUpRight className="h-3 w-3 text-success mr-1" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3 text-destructive mr-1" />
-                  )}
-                  <span className={stat.trend === "up" ? "text-success" : "text-destructive"}>
-                    {stat.change}
-                  </span>
-                  <span className="text-muted-foreground ml-1">from last month</span>
-                </div>
+                {isLoading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                ) : (
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
 
         {/* Main content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent activity */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest updates from your workspace</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-center justify-between py-3 border-b border-border last:border-0"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">{activity.action}</p>
-                      <p className="text-sm text-muted-foreground">{activity.subject}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{activity.time}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Quick actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks at your fingertips</CardDescription>
+              <CardTitle>Ações Rápidas</CardTitle>
+              <CardDescription>Tarefas comuns ao seu alcance</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setShowCreateLead(true)}
+              >
+                <Target className="mr-2 h-4 w-4" />
+                Adicionar lead
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setShowCreateContact(true)}
+              >
                 <Users className="mr-2 h-4 w-4" />
-                Add contact
+                Adicionar contacto
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setShowCreateCompany(true)}
+              >
                 <Building2 className="mr-2 h-4 w-4" />
-                Add company
+                Adicionar empresa
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setShowCreateOpportunity(true)}
+              >
+                <Briefcase className="mr-2 h-4 w-4" />
+                Criar oportunidade
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Navigation shortcuts */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Navegação</CardTitle>
+              <CardDescription>Acesso rápido às áreas principais</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate("/dashboard/crm")}
+              >
+                <TrendingUp className="mr-2 h-4 w-4" />
+                CRM / Pipeline
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate("/dashboard/inbox")}
+              >
                 <FileText className="mr-2 h-4 w-4" />
-                Create document
+                Inbox
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate("/dashboard/proposals")}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Propostas
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate("/dashboard/automations")}
+              >
                 <Plus className="mr-2 h-4 w-4" />
-                Invite team member
+                Automações
               </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Dialogs */}
+      <CreateLeadDialog open={showCreateLead} onOpenChange={setShowCreateLead} />
+      <CreateContactDialog open={showCreateContact} onOpenChange={setShowCreateContact} />
+      <CreateCompanyDialog open={showCreateCompany} onOpenChange={setShowCreateCompany} />
+      <CreateOpportunityDialog open={showCreateOpportunity} onOpenChange={setShowCreateOpportunity} />
     </DashboardLayout>
   );
 }
