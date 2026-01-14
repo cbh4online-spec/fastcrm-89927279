@@ -155,6 +155,53 @@ export const settingsSearchData: SearchableItem[] = [
     keywords: ["importar", "exportar", "csv", "excel", "dados", "migração"],
   },
 
+  // Templates
+  {
+    id: "templates-library",
+    category: "templates",
+    sectionTitle: "Biblioteca de Templates",
+    sectionDescription: "Templates de mensagens e propostas reutilizáveis",
+    itemTitle: "Criar Template",
+    itemDescription: "Email, WhatsApp, Instagram DM, Propostas",
+    keywords: ["templates", "mensagens", "propostas", "email", "whatsapp", "instagram", "biblioteca"],
+  },
+  {
+    id: "templates-variables",
+    category: "templates",
+    sectionTitle: "Variáveis de Template",
+    sectionDescription: "Personalização dinâmica com variáveis",
+    itemTitle: "Lead, Oportunidade, Empresa",
+    itemDescription: "{{lead.first_name}}, {{opportunity.value}}",
+    keywords: ["variáveis", "personalização", "dinâmico", "lead", "oportunidade", "merge tags"],
+  },
+  {
+    id: "templates-types",
+    category: "templates",
+    sectionTitle: "Tipos de Template",
+    sectionDescription: "Email, WhatsApp, Instagram DM, Proposta, SMS",
+    itemTitle: "Canais de Mensagem",
+    itemDescription: "Templates por canal",
+    keywords: ["email", "whatsapp", "instagram", "dm", "sms", "proposta", "canal"],
+  },
+  {
+    id: "templates-goals",
+    category: "templates",
+    sectionTitle: "Objetivos de Template",
+    sectionDescription: "Qualificação, Follow-up, Agendamento, Fecho",
+    itemTitle: "Categorização por Objetivo",
+    itemDescription: "Organizar templates por finalidade",
+    keywords: ["objetivo", "qualificação", "follow-up", "agendamento", "fecho", "suporte"],
+  },
+  {
+    id: "templates-versions",
+    category: "templates",
+    sectionTitle: "Histórico de Versões",
+    sectionDescription: "Manter histórico de alterações dos templates",
+    itemTitle: "Versões Anteriores",
+    itemDescription: "Restaurar Versão",
+    keywords: ["versões", "histórico", "alterações", "restaurar", "backup"],
+  },
+
   // Automation & AI
   {
     id: "automation-rules",
@@ -345,7 +392,7 @@ export function searchSettings(query: string): {
   if (!normalizedQuery) {
     return {
       matchedItems: settingsSearchData,
-      matchedCategories: new Set(["workspace", "channels", "crm", "automation", "experience", "security", "integrations"]),
+      matchedCategories: new Set(["workspace", "channels", "crm", "templates", "automation", "experience", "security", "integrations"]),
       matchedSections: new Set(settingsSearchData.map(item => item.id)),
     };
   }
