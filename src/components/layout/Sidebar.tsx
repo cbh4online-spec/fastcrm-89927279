@@ -1,7 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { PlanBadge } from "@/components/subscription/FeatureGate";
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +19,7 @@ import {
   Zap,
   Globe,
   Brain,
+  Crown,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -24,7 +27,16 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const navigation = [
+type FeatureKey = "ai_suggestions" | "dashboard_customization" | "automation_custom_fields";
+
+interface NavItem {
+  name: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+  premiumFeature?: FeatureKey;
+}
+
+const navigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
   { name: "Leads", href: "/dashboard/leads", icon: Target },
@@ -33,11 +45,11 @@ const navigation = [
   { name: "Landing Pages", href: "/dashboard/landing-pages", icon: Globe },
   { name: "Contacts", href: "/dashboard/contacts", icon: Users },
   { name: "Companies", href: "/dashboard/companies", icon: Building2 },
-  { name: "AI Insights", href: "/dashboard/ai-suggestions", icon: Brain },
+  { name: "AI Insights", href: "/dashboard/ai-suggestions", icon: Brain, premiumFeature: "ai_suggestions" },
   { name: "Reports", href: "/dashboard/reports", icon: BarChart3 },
 ];
 
-const secondaryNavigation = [
+const secondaryNavigation: NavItem[] = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
@@ -46,6 +58,7 @@ const secondaryNavigation = [
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
   const { currentWorkspace } = useWorkspace();
+  const { plan, canUseFeature } = useSubscription();
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -93,24 +106,34 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <WorkspaceSwitcher />
           </div>
 
+          {/* Plan Badge */}
+          <div className="px-4 py-2 border-b border-sidebar-border">
+            <PlanBadge plan={plan} className="w-full justify-center" />
+          </div>
+
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                  isActive(item.href)
-                    ? "bg-sidebar-accent text-sidebar-primary"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.name}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const isPremium = item.premiumFeature && !canUseFeature(item.premiumFeature);
+              
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    isActive(item.href)
+                      ? "bg-sidebar-accent text-sidebar-primary"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="flex-1">{item.name}</span>
+                  {isPremium && <Crown className="w-4 h-4 text-amber-500" />}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Secondary Navigation */}
