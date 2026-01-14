@@ -2,6 +2,7 @@ import { SettingsSection, SettingsItem } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InstagramConnectionCard } from "@/components/integrations/InstagramConnectionCard";
+import { EmailChannelSettings } from "./EmailChannelSettings";
 import {
   Mail,
   MessageSquare,
@@ -48,30 +49,11 @@ export function ChannelsSettings({ searchQuery = "", matchedSections }: Channels
 
   return (
     <div className="space-y-6">
-      {/* Email */}
-      {shouldShow("channels-email") && (
-        <SettingsSection
-          title="Email"
-          description="Configurar integração de email para comunicação"
-          icon={<Mail className="h-5 w-5" />}
-        >
-          <SettingsItem
-            title="Integração SMTP"
-            description="Enviar emails através do seu servidor"
-            action={<Button variant="outline">Configurar</Button>}
-          />
-          <SettingsItem
-            title="Templates de Email"
-            description="Criar modelos de email reutilizáveis"
-            action={<Button variant="outline">Gerir Templates</Button>}
-          />
-          <SettingsItem
-            title="Assinaturas"
-            description="Definir assinaturas de email por utilizador"
-            action={<Button variant="outline">Configurar</Button>}
-          />
-        </SettingsSection>
-      )}
+      {/* Email Channel - IMAP/SMTP Integration */}
+      <EmailChannelSettings 
+        searchQuery={searchQuery} 
+        matchedSections={matchedSections ? new Set([...matchedSections, "email-channel"]) : undefined} 
+      />
 
       {/* WhatsApp / Instagram */}
       {shouldShow("channels-whatsapp-instagram") && (
