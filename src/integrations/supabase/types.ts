@@ -1199,6 +1199,100 @@ export type Database = {
           },
         ]
       }
+      workspace_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          status: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_usage: {
+        Row: {
+          ai_insights_used: number | null
+          ai_suggestions_used: number | null
+          automations_executed: number | null
+          created_at: string
+          id: string
+          period_start: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_insights_used?: number | null
+          ai_suggestions_used?: number | null
+          automations_executed?: number | null
+          created_at?: string
+          id?: string
+          period_start?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_insights_used?: number | null
+          ai_suggestions_used?: number | null
+          automations_executed?: number | null
+          created_at?: string
+          id?: string
+          period_start?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           created_at: string
@@ -1234,6 +1328,10 @@ export type Database = {
       }
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
+        Returns: Json
+      }
+      get_plan_limits: {
+        Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
         Returns: Json
       }
       has_role: {
@@ -1294,6 +1392,7 @@ export type Database = {
         | "is_empty"
         | "is_not_empty"
       execution_status: "pending" | "running" | "completed" | "failed"
+      subscription_plan: "free" | "basic" | "pro" | "agency"
       workspace_role: "owner" | "admin" | "agent" | "viewer"
       workspace_status: "active" | "suspended" | "inactive" | "pending"
     }
@@ -1458,6 +1557,7 @@ export const Constants = {
         "is_not_empty",
       ],
       execution_status: ["pending", "running", "completed", "failed"],
+      subscription_plan: ["free", "basic", "pro", "agency"],
       workspace_role: ["owner", "admin", "agent", "viewer"],
       workspace_status: ["active", "suspended", "inactive", "pending"],
     },

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { WorkspaceInstanceProvider } from "@/contexts/WorkspaceInstanceContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -38,28 +39,30 @@ const App = () => (
         <AuthProvider>
           <WorkspaceProvider>
             <WorkspaceInstanceProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/settings" element={<Settings />} />
-                <Route path="/dashboard/leads" element={<Leads />} />
-                <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
-                <Route path="/dashboard/opportunities" element={<Opportunities />} />
-                <Route path="/dashboard/inbox" element={<Inbox />} />
-                <Route path="/dashboard/automations" element={<Automations />} />
-                <Route path="/dashboard/landing-pages" element={<LandingPages />} />
-                <Route path="/dashboard/contacts" element={<Contacts />} />
-                <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
-                <Route path="/dashboard/companies" element={<Companies />} />
-                <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
-                <Route path="/dashboard/ai-suggestions" element={<AISuggestionsHistory />} />
-                <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
-                <Route path="/super-admin" element={<SuperAdmin />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <SubscriptionProvider>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/onboarding" element={<Onboarding />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/dashboard/settings" element={<Settings />} />
+                  <Route path="/dashboard/leads" element={<Leads />} />
+                  <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
+                  <Route path="/dashboard/opportunities" element={<Opportunities />} />
+                  <Route path="/dashboard/inbox" element={<Inbox />} />
+                  <Route path="/dashboard/automations" element={<Automations />} />
+                  <Route path="/dashboard/landing-pages" element={<LandingPages />} />
+                  <Route path="/dashboard/contacts" element={<Contacts />} />
+                  <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
+                  <Route path="/dashboard/companies" element={<Companies />} />
+                  <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
+                  <Route path="/dashboard/ai-suggestions" element={<AISuggestionsHistory />} />
+                  <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
+                  <Route path="/super-admin" element={<SuperAdmin />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </SubscriptionProvider>
             </WorkspaceInstanceProvider>
           </WorkspaceProvider>
         </AuthProvider>
