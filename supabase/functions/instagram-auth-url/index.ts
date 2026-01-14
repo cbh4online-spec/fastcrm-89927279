@@ -32,11 +32,11 @@ serve(async (req) => {
 
     const callbackUri = `${SUPABASE_URL}/functions/v1/instagram-oauth-callback`;
     const state = `${workspaceId}:${userId}`;
-    // Instagram API with Instagram Login requires these scopes
-    const scope = "instagram_business_basic,instagram_business_manage_messages";
+    // Facebook Login for Business - scopes for Instagram messaging
+    const scope = "instagram_basic,instagram_manage_messages,pages_show_list,pages_read_engagement";
 
-    // Use Instagram OAuth endpoint (not Facebook)
-    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(callbackUri)}&scope=${scope}&response_type=code&state=${state}`;
+    // Use Facebook OAuth endpoint
+    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(callbackUri)}&state=${state}&scope=${scope}&response_type=code`;
 
     return new Response(
       JSON.stringify({ authUrl }),
