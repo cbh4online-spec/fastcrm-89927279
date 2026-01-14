@@ -2,9 +2,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Lead } from "./useLeads";
 
 export type OpportunityStatus = "open" | "won" | "lost";
+
+// Simplified lead type for opportunity relations (only selected fields from query)
+export interface OpportunityLead {
+  id: string;
+  name: string;
+  email: string | null;
+  phone?: string | null;
+}
 
 export interface Opportunity {
   id: string;
@@ -15,9 +22,12 @@ export interface Opportunity {
   stage_id: string;
   owner_id: string;
   status: OpportunityStatus;
+  expected_close_date: string | null;
+  lost_reason: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
-  lead?: Lead | null;
+  lead?: OpportunityLead | null;
 }
 
 export interface CreateOpportunityInput {
@@ -26,11 +36,14 @@ export interface CreateOpportunityInput {
   value?: number;
   stage_id: string;
   status?: OpportunityStatus;
+  expected_close_date?: string;
+  notes?: string;
 }
 
 export interface UpdateOpportunityInput extends Partial<Omit<CreateOpportunityInput, "stage_id">> {
   id: string;
   stage_id?: string;
+  lost_reason?: string;
 }
 
 export function useOpportunities() {

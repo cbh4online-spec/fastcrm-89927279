@@ -4,6 +4,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type LeadStatus = "new" | "in_progress" | "completed";
+export type LeadSource = "instagram" | "whatsapp" | "email" | "form" | string;
 
 export interface Lead {
   id: string;
@@ -11,8 +12,13 @@ export interface Lead {
   name: string;
   email: string | null;
   phone: string | null;
-  source: string | null;
+  source: LeadSource | null;
   status: LeadStatus;
+  tags: string[];
+  external_instagram_id: string | null;
+  external_whatsapp_id: string | null;
+  external_email: string | null;
+  external_username: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -22,8 +28,13 @@ export interface CreateLeadInput {
   name: string;
   email?: string;
   phone?: string;
-  source?: string;
+  source?: LeadSource;
   status?: LeadStatus;
+  tags?: string[];
+  external_instagram_id?: string;
+  external_whatsapp_id?: string;
+  external_email?: string;
+  external_username?: string;
 }
 
 export interface UpdateLeadInput extends Partial<CreateLeadInput> {
