@@ -46,6 +46,7 @@ import { InboxAIAssistant } from "./InboxAIAssistant";
 import { ConversationClassification } from "./ConversationClassification";
 import { InboxTemplateAIDraft } from "./InboxTemplateAIDraft";
 import { InboxActionsMenu } from "./InboxActionsMenu";
+import { ConversationFollowupBanner } from "./ConversationFollowupBanner";
 import { Separator } from "@/components/ui/separator";
 
 const channelIcons = {
@@ -272,6 +273,11 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Follow-up Banner */}
+      {messages && messages.length > 0 && (
+        <ConversationFollowupBanner conversation={conversation} messages={messages} />
+      )}
 
       {/* Messages Area */}
       <div className="flex-1 flex overflow-hidden">
