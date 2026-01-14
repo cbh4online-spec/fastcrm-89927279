@@ -7,7 +7,7 @@ import {
 export interface AutomationTemplateConfig {
   template_id: string;
   channel: string;
-  on_missing_fields: "create_task" | "skip_and_log" | "send_partial";
+  on_missing_fields: "stop_automation" | "create_task" | "skip_and_log";
   task_title?: string;
 }
 
@@ -16,8 +16,9 @@ export interface TemplateRenderResult {
   renderedContent?: string;
   renderedSubject?: string;
   missingVariables: string[];
-  action: "sent" | "task_created" | "skipped";
+  action: "sent" | "task_created" | "skipped" | "stopped";
   taskTitle?: string;
+  error?: string;
 }
 
 /**
@@ -134,8 +135,17 @@ export function renderAutomationTemplate(
   const uniqueMissing = [...new Set(allMissing)];
 
   // If there are missing variables, handle based on config
+  // NOTE: "send_partial" has been removed - automations must NEVER send messages with unresolved variables
   if (uniqueMissing.length > 0) {
     switch (config.on_missing_fields) {
+      case "stop_automation":
+        return {
+          success: false,
+          missingVariables: uniqueMissing,
+          action: "stopped",
+          error: `Automação interrompida: variáveis não resolvidas (${uniqueMissing.join(", ")})`,
+        };
+
       case "create_task":
         return {
           success: false,
@@ -151,17 +161,13 @@ export function renderAutomationTemplate(
           action: "skipped",
         };
 
-      case "send_partial":
-        // Render with blanks for missing variables
-        const partialContext = { ...context };
+      default:
+        // Default to stopping automation for safety - never send with unresolved variables
         return {
-          success: true,
-          renderedContent: renderTemplate(template.content, partialContext),
-          renderedSubject: template.subject 
-            ? renderTemplate(template.subject, partialContext) 
-            : undefined,
+          success: false,
           missingVariables: uniqueMissing,
-          action: "sent",
+          action: "stopped",
+          error: `Automação interrompida: variáveis não resolvidas (${uniqueMissing.join(", ")})`,
         };
     }
   }
@@ -205,9 +211,12 @@ export function formatTemplateActionLog(
       rendered_content: result.renderedContent,
       rendered_subject: result.renderedSubject,
       missing_variables: result.missingVariables,
+      action: result.action,
+      stopped: result.action === "stopped",
       skipped: result.action === "skipped",
       task_created: result.action === "task_created",
       task_title: result.taskTitle,
+      error: result.error,
     },
   };
 }
