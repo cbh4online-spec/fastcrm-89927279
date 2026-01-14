@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -19,12 +18,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Send,
   MoreVertical,
-  User,
   CheckCircle,
   Archive,
   XCircle,
@@ -35,15 +34,18 @@ import {
   Facebook,
   Globe,
   FileText,
+  Sparkles,
+  RefreshCw,
+  ArrowDownRight,
+  Scissors,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { InboxCopilot } from "@/components/copilot/InboxCopilot";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
-import { ContextualTemplatePanel } from "@/components/templates/ContextualTemplatePanel";
 import { VariableContext } from "@/lib/templateVariables";
 import { Template } from "@/hooks/useTemplates";
+import { InboxAIAssistant } from "./InboxAIAssistant";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -69,6 +71,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const assignConversation = useAssignConversation();
 
   const [newMessage, setNewMessage] = useState("");
+  const [showAIAssistant, setShowAIAssistant] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Build template context from conversation
@@ -112,7 +115,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       });
       setNewMessage("");
     } catch (error) {
-      toast.error("Failed to send message");
+      toast.error("Falha ao enviar mensagem");
     }
   };
 
@@ -123,9 +126,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         conversationId,
         assignTo: userId || null,
       });
-      toast.success("Conversation assigned");
+      toast.success("Conversa atribuída");
     } catch (error) {
-      toast.error("Failed to assign conversation");
+      toast.error("Falha ao atribuir conversa");
     }
   };
 
@@ -133,20 +136,24 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     if (!conversationId) return;
     try {
       await updateStatus.mutateAsync({ conversationId, status });
-      toast.success(`Conversation ${status}`);
+      toast.success(status === "closed" ? "Conversa fechada" : status === "archived" ? "Conversa arquivada" : "Conversa reaberta");
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error("Falha ao atualizar estado");
     }
+  };
+
+  const handleInsertReply = (text: string) => {
+    setNewMessage(text);
   };
 
   if (!conversationId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-muted/20">
+      <div className="h-full flex items-center justify-center bg-muted/20">
         <div className="text-center">
           <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium text-foreground">No conversation selected</h3>
+          <h3 className="text-lg font-medium text-foreground">Nenhuma conversa selecionada</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Select a conversation from the list to view messages
+            Selecione uma conversa da lista para ver as mensagens
           </p>
         </div>
       </div>
@@ -155,7 +162,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   if (convLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="h-full flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -163,195 +170,199 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   if (!conversation) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-muted-foreground">Conversation not found</p>
+      <div className="h-full flex items-center justify-center">
+        <p className="text-muted-foreground">Conversa não encontrada</p>
       </div>
     );
   }
 
   const ChannelIcon = channelIcons[conversation.channel];
 
-  const handleInsertReply = (text: string) => {
-    setNewMessage(text);
-  };
-
   return (
-    <div className="flex-1 flex bg-background">
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-              <ChannelIcon className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div>
-              <h3 className="font-medium text-foreground">
-                {conversation.lead?.name || conversation.external_thread_id || "Unknown"}
-              </h3>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="capitalize">{conversation.channel}</span>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-xs",
-                    conversation.status === "open" && "border-green-500 text-green-500",
-                    conversation.status === "closed" && "border-muted-foreground",
-                    conversation.status === "archived" && "border-amber-500 text-amber-500"
-                  )}
-                >
-                  {conversation.status}
-                </Badge>
-              </div>
-            </div>
+    <div className="h-full flex flex-col bg-background">
+      {/* Header */}
+      <div className="p-3 border-b border-border flex items-center justify-between bg-card">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+            <ChannelIcon className="w-4 h-4 text-muted-foreground" />
           </div>
-
-          <div className="flex items-center gap-2">
-            {/* Assign */}
-            <Select
-              value={conversation.assigned_to || "unassigned"}
-              onValueChange={handleAssign}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Assign to..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {agents?.map((agent) => (
-                  <SelectItem key={agent.user_id} value={agent.user_id}>
-                    {agent.profile?.full_name || agent.profile?.email || "Agent"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Actions */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleStatusChange("open")}>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Mark as Open
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange("closed")}>
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Close Conversation
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange("archived")}>
-                  <Archive className="w-4 h-4 mr-2" />
-                  Archive
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div>
+            <h3 className="font-medium text-foreground text-sm">
+              {conversation.lead?.name || conversation.external_thread_id || "Desconhecido"}
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="capitalize">{conversation.channel}</span>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] px-1.5 py-0",
+                  conversation.status === "open" && "border-green-500 text-green-500",
+                  conversation.status === "closed" && "border-muted-foreground",
+                  conversation.status === "archived" && "border-amber-500 text-amber-500"
+                )}
+              >
+                {conversation.status === "open" ? "Aberta" : 
+                 conversation.status === "closed" ? "Fechada" : "Arquivada"}
+              </Badge>
+            </div>
           </div>
         </div>
 
-        {/* Messages */}
-        <ScrollArea className="flex-1 p-4">
-          {messagesLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : !messages?.length ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              No messages yet
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex",
-                    message.direction === "outbound" ? "justify-end" : "justify-start"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "max-w-[70%] rounded-lg px-4 py-2",
-                      message.direction === "outbound"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
-                    )}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <p
-                      className={cn(
-                        "text-xs mt-1",
-                        message.direction === "outbound"
-                          ? "text-primary-foreground/70"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      {format(new Date(message.sent_at), "HH:mm")}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </ScrollArea>
+        <div className="flex items-center gap-2">
+          {/* AI Toggle */}
+          <Button
+            variant={showAIAssistant ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setShowAIAssistant(!showAIAssistant)}
+            className="gap-1"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">AI</span>
+          </Button>
 
-        {/* Input */}
-        <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-2">
-            <TemplateSelector
-              entityType="lead"
-              entityId={conversation?.lead?.id || conversationId || ''}
-              entityData={templateContext}
-              channel={conversation?.channel}
-              goal="follow_up"
-              onApply={handleTemplateApply}
-              trigger={
-                <Button variant="outline" size="icon">
-                  <FileText className="w-4 h-4" />
-                </Button>
-              }
-            />
-            <Input
-              placeholder="Type a message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleSend}
-              disabled={!newMessage.trim() || sendMessage.isPending}
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
+          {/* Assign */}
+          <Select
+            value={conversation.assigned_to || "unassigned"}
+            onValueChange={handleAssign}
+          >
+            <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectValue placeholder="Atribuir..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassigned">Não atribuído</SelectItem>
+              {agents?.map((agent) => (
+                <SelectItem key={agent.user_id} value={agent.user_id}>
+                  {agent.profile?.full_name || agent.profile?.email || "Agente"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Actions */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleStatusChange("open")}>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Marcar como Aberta
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusChange("closed")}>
+                <XCircle className="w-4 h-4 mr-2" />
+                Fechar Conversa
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleStatusChange("archived")}>
+                <Archive className="w-4 h-4 mr-2" />
+                Arquivar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Copilot Sidebar */}
-      <div className="w-80 border-l border-border p-4 overflow-y-auto hidden lg:block space-y-4">
-        {/* Contextual Templates */}
-        <ContextualTemplatePanel
-          entityType="lead"
-          entityId={conversation?.lead?.id || conversationId || ''}
-          entityData={templateContext}
-          channel={conversation?.channel}
-          goal="follow_up"
-          onApply={handleTemplateApply}
-          maxVisible={2}
-        />
-        
-        <InboxCopilot 
-          messages={messages || []} 
-          onInsertReply={handleInsertReply}
-        />
+      {/* Messages Area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Chat Messages */}
+        <div className="flex-1 flex flex-col">
+          <ScrollArea className="flex-1 p-4">
+            {messagesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : !messages?.length ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                Sem mensagens
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={cn(
+                      "flex",
+                      message.direction === "outbound" ? "justify-end" : "justify-start"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "max-w-[75%] rounded-lg px-3 py-2",
+                        message.direction === "outbound"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-foreground"
+                      )}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <p
+                        className={cn(
+                          "text-[10px] mt-1",
+                          message.direction === "outbound"
+                            ? "text-primary-foreground/70"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {format(new Date(message.sent_at), "HH:mm")}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </ScrollArea>
+
+          {/* Input */}
+          <div className="p-3 border-t border-border bg-card">
+            <div className="flex items-center gap-2">
+              <TemplateSelector
+                entityType="lead"
+                entityId={conversation?.lead?.id || conversationId || ''}
+                entityData={templateContext}
+                channel={conversation?.channel}
+                goal="follow_up"
+                onApply={handleTemplateApply}
+                trigger={
+                  <Button variant="outline" size="icon" className="h-9 w-9">
+                    <FileText className="w-4 h-4" />
+                  </Button>
+                }
+              />
+              <Input
+                placeholder="Escreva uma mensagem..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                className="flex-1 h-9"
+              />
+              <Button
+                onClick={handleSend}
+                disabled={!newMessage.trim() || sendMessage.isPending}
+                className="h-9"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* AI Assistant Panel */}
+        {showAIAssistant && messages && messages.length > 0 && (
+          <div className="w-72 border-l border-border bg-muted/20 hidden lg:block">
+            <InboxAIAssistant
+              messages={messages}
+              leadName={conversation.lead?.name}
+              onInsertReply={handleInsertReply}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
