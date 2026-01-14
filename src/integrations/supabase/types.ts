@@ -212,6 +212,59 @@ export type Database = {
           },
         ]
       }
+      contacts: {
+        Row: {
+          company: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          job_title: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          tags: string[] | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          job_title?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          job_title?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           assigned_to: string | null
