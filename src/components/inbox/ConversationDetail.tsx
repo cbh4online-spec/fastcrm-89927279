@@ -41,7 +41,9 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { InboxCopilot } from "@/components/copilot/InboxCopilot";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
+import { ContextualTemplatePanel } from "@/components/templates/ContextualTemplatePanel";
 import { VariableContext } from "@/lib/templateVariables";
+import { Template } from "@/hooks/useTemplates";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -84,7 +86,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     } : null,
   };
 
-  const handleTemplateApply = (renderedContent: string) => {
+  const handleTemplateApply = (renderedContent: string, _renderedSubject?: string, _template?: Template) => {
     setNewMessage(renderedContent);
   };
 
@@ -334,7 +336,18 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       </div>
 
       {/* Copilot Sidebar */}
-      <div className="w-80 border-l border-border p-4 overflow-y-auto hidden lg:block">
+      <div className="w-80 border-l border-border p-4 overflow-y-auto hidden lg:block space-y-4">
+        {/* Contextual Templates */}
+        <ContextualTemplatePanel
+          entityType="lead"
+          entityId={conversation?.lead?.id || conversationId || ''}
+          entityData={templateContext}
+          channel={conversation?.channel}
+          goal="follow_up"
+          onApply={handleTemplateApply}
+          maxVisible={2}
+        />
+        
         <InboxCopilot 
           messages={messages || []} 
           onInsertReply={handleInsertReply}

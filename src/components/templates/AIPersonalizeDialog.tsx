@@ -1,0 +1,310 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Template, TemplateType } from '@/hooks/useTemplates';
+import { renderTemplate, VariableContext } from '@/lib/templateVariables';
+import {
+  Sparkles,
+  Send,
+  Copy,
+  RefreshCw,
+  Mail,
+  MessageCircle,
+  Instagram,
+  FileText,
+  Smartphone,
+  User,
+  Loader2,
+  Check,
+  AlertCircle,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+interface AIPersonalizeDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  template: Template;
+  context: VariableContext;
+  onApply: (personalizedContent: string) => void;
+}
+
+const typeConfig: Record<TemplateType, { icon: React.ElementType; color: string; label: string }> = {
+  email: { icon: Mail, color: 'text-blue-500', label: 'Email' },
+  whatsapp: { icon: MessageCircle, color: 'text-green-500', label: 'WhatsApp' },
+  instagram_dm: { icon: Instagram, color: 'text-pink-500', label: 'Instagram' },
+  proposal: { icon: FileText, color: 'text-purple-500', label: 'Proposta' },
+  sms: { icon: Smartphone, color: 'text-amber-500', label: 'SMS' },
+};
+
+export function AIPersonalizeDialog({
+  open,
+  onOpenChange,
+  template,
+  context,
+  onApply,
+}: AIPersonalizeDialogProps) {
+  const [personalizedContent, setPersonalizedContent] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [instructions, setInstructions] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const TypeIcon = typeConfig[template.type]?.icon || FileText;
+  
+  // Get the base rendered content
+  const baseContent = renderTemplate(template.content, context);
+  
+  // Generate personalized content on open
+  useEffect(() => {
+    if (open && !personalizedContent) {
+      generatePersonalizedContent();
+    }
+  }, [open]);
+  
+  const generatePersonalizedContent = async () => {
+    setIsGenerating(true);
+    setError(null);
+    
+    try {
+      // Build context description
+      const contextDesc = buildContextDescription(context);
+      
+      const { data, error: fnError } = await supabase.functions.invoke('ai-copilot', {
+        body: {
+          action: 'personalize_template',
+          template: {
+            content: template.content,
+            type: template.type,
+            goal: template.goal,
+            tone: template.tone,
+          },
+          context: contextDesc,
+          instructions: instructions || undefined,
+          baseContent,
+        },
+      });
+      
+      if (fnError) throw fnError;
+      
+      if (data?.personalizedContent) {
+        setPersonalizedContent(data.personalizedContent);
+      } else {
+        // Fallback to base content if AI fails
+        setPersonalizedContent(baseContent);
+      }
+    } catch (err) {
+      console.error('AI personalization error:', err);
+      setError('Não foi possível personalizar. A usar versão base.');
+      setPersonalizedContent(baseContent);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
+  const handleRegenerate = () => {
+    setPersonalizedContent('');
+    generatePersonalizedContent();
+  };
+  
+  const handleCopy = () => {
+    navigator.clipboard.writeText(personalizedContent);
+    setCopied(true);
+    toast.success('Copiado para a área de transferência');
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  const handleApply = () => {
+    onApply(personalizedContent);
+    onOpenChange(false);
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-purple-500" />
+            Personalizar com IA
+          </DialogTitle>
+          <DialogDescription className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1">
+              <TypeIcon className={cn("h-3 w-3", typeConfig[template.type]?.color)} />
+              {template.name}
+            </Badge>
+            <span>→</span>
+            <span>Versão personalizada para este contexto</span>
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-hidden flex flex-col gap-4">
+          {/* Context Summary */}
+          <div className="flex flex-wrap gap-2">
+            {context.lead && (
+              <Badge variant="secondary" className="gap-1">
+                <User className="h-3 w-3" />
+                {context.lead.name}
+              </Badge>
+            )}
+            {context.opportunity && (
+              <Badge variant="secondary" className="gap-1">
+                <FileText className="h-3 w-3" />
+                {context.opportunity.title}
+              </Badge>
+            )}
+            {template.tone && (
+              <Badge variant="outline" className="text-xs">
+                Tom: {template.tone}
+              </Badge>
+            )}
+          </div>
+          
+          {/* Instructions Input */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">
+              Instruções adicionais (opcional)
+            </Label>
+            <Textarea
+              placeholder="Ex: Mencionar a reunião de ontem, usar tom mais casual..."
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              className="h-16 text-sm resize-none"
+            />
+          </div>
+          
+          <Separator />
+          
+          {/* Personalized Content */}
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Mensagem Personalizada</Label>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRegenerate}
+                  disabled={isGenerating}
+                  className="h-7 text-xs gap-1"
+                >
+                  <RefreshCw className={cn("h-3 w-3", isGenerating && "animate-spin")} />
+                  Regenerar
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopy}
+                  disabled={isGenerating || !personalizedContent}
+                  className="h-7 text-xs gap-1"
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copied ? 'Copiado' : 'Copiar'}
+                </Button>
+              </div>
+            </div>
+            
+            <ScrollArea className="h-[200px] rounded-md border bg-muted/30">
+              {isGenerating ? (
+                <div className="p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                    A personalizar mensagem...
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-5/6" />
+                </div>
+              ) : error ? (
+                <div className="p-4">
+                  <div className="flex items-center gap-2 text-sm text-amber-600 mb-2">
+                    <AlertCircle className="h-4 w-4" />
+                    {error}
+                  </div>
+                  <div className="whitespace-pre-wrap text-sm">{personalizedContent}</div>
+                </div>
+              ) : (
+                <Textarea
+                  value={personalizedContent}
+                  onChange={(e) => setPersonalizedContent(e.target.value)}
+                  className="h-full min-h-[180px] border-0 bg-transparent resize-none"
+                  placeholder="Conteúdo personalizado aparecerá aqui..."
+                />
+              )}
+            </ScrollArea>
+          </div>
+          
+          {/* Comparison with original */}
+          <details className="text-xs">
+            <summary className="text-muted-foreground cursor-pointer hover:text-foreground">
+              Ver template original
+            </summary>
+            <div className="mt-2 p-3 rounded-md bg-muted/50 whitespace-pre-wrap text-muted-foreground">
+              {baseContent}
+            </div>
+          </details>
+        </div>
+        
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleApply}
+            disabled={isGenerating || !personalizedContent}
+            className="gap-2"
+          >
+            <Send className="h-4 w-4" />
+            Usar Mensagem
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Build a description of the context for the AI
+function buildContextDescription(context: VariableContext): string {
+  const parts: string[] = [];
+  
+  if (context.lead) {
+    parts.push(`Lead: ${context.lead.name}`);
+    if (context.lead.email) parts.push(`Email: ${context.lead.email}`);
+    if (context.lead.status) parts.push(`Status: ${context.lead.status}`);
+    if (context.lead.source) parts.push(`Origem: ${context.lead.source}`);
+  }
+  
+  if (context.opportunity) {
+    parts.push(`Oportunidade: ${context.opportunity.title}`);
+    if (context.opportunity.value) parts.push(`Valor: €${context.opportunity.value}`);
+    if (context.opportunity.stage) parts.push(`Etapa: ${context.opportunity.stage}`);
+  }
+  
+  if (context.company) {
+    parts.push(`Empresa: ${context.company.name}`);
+    if (context.company.industry) parts.push(`Indústria: ${context.company.industry}`);
+  }
+  
+  if (context.contact) {
+    parts.push(`Contato: ${context.contact.name}`);
+    if (context.contact.job_title) parts.push(`Cargo: ${context.contact.job_title}`);
+  }
+  
+  if (context.user) {
+    parts.push(`Remetente: ${context.user.full_name || context.user.email || 'Usuário'}`);
+  }
+  
+  return parts.join('\n');
+}

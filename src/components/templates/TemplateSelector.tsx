@@ -22,31 +22,26 @@ import {
 import { useApplyTemplate } from '@/hooks/useTemplateActivity';
 import {
   validateTemplate,
-  renderTemplate,
   VariableContext,
-  getExampleContext,
 } from '@/lib/templateVariables';
 import { TemplateValidationDialog } from '@/components/templates/TemplateValidationDialog';
+import { AIPersonalizeDialog } from '@/components/templates/AIPersonalizeDialog';
 import {
   FileText,
   Search,
   Star,
-  Clock,
   Sparkles,
   Mail,
   MessageCircle,
   Instagram,
   Smartphone,
   Send,
-  Eye,
   CheckCircle2,
   AlertTriangle,
   Zap,
   TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
-import { pt } from 'date-fns/locale';
 
 interface TemplateRecommendation {
   template: Template;
@@ -187,6 +182,7 @@ export function TemplateSelector({
   const [activeTab, setActiveTab] = useState<'recommended' | 'all' | 'favorites'>('recommended');
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [validationOpen, setValidationOpen] = useState(false);
+  const [aiPersonalizeOpen, setAIPersonalizeOpen] = useState(false);
   
   const { data: templates = [], isLoading } = useTemplates({ isActive: true });
   const applyTemplate = useApplyTemplate();
@@ -248,9 +244,29 @@ export function TemplateSelector({
   };
   
   const handleAIPersonalize = (template: Template) => {
-    if (onAIPersonalize) {
-      onAIPersonalize(template, entityData);
+    setSelectedTemplate(template);
+    setAIPersonalizeOpen(true);
+  };
+  
+  const handleAIApply = async (personalizedContent: string) => {
+    if (!selectedTemplate) return;
+    
+    try {
+      await applyTemplate.mutateAsync({
+        templateId: selectedTemplate.id,
+        templateType: selectedTemplate.type,
+        entityType,
+        entityId,
+        renderedContent: personalizedContent,
+        variablesUsed: { ai_personalized: 'true' },
+      });
+      
+      onApply(personalizedContent, undefined, selectedTemplate);
+      setAIPersonalizeOpen(false);
       setOpen(false);
+      setSelectedTemplate(null);
+    } catch (error) {
+      // Error handled by mutation
     }
   };
   
@@ -327,22 +343,22 @@ export function TemplateSelector({
                   e.stopPropagation();
                   handleSelectTemplate(template);
                 }}
+                title="Usar template"
               >
                 <Send className="h-3.5 w-3.5" />
               </Button>
-              {onAIPersonalize && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7 text-purple-500 hover:text-purple-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAIPersonalize(template);
-                  }}
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                </Button>
-              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-purple-500 hover:text-purple-600 hover:bg-purple-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAIPersonalize(template);
+                }}
+                title="Personalizar com IA"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -459,6 +475,17 @@ export function TemplateSelector({
           context={entityData}
           onApply={handleApplyValidated}
           isApplying={applyTemplate.isPending}
+        />
+      )}
+      
+      {/* AI Personalize Dialog */}
+      {selectedTemplate && (
+        <AIPersonalizeDialog
+          open={aiPersonalizeOpen}
+          onOpenChange={setAIPersonalizeOpen}
+          template={selectedTemplate}
+          context={entityData}
+          onApply={handleAIApply}
         />
       )}
     </>
