@@ -14,6 +14,10 @@ interface NaturalLanguageModeProps {
 
 const EXAMPLE_PROMPTS = [
   {
+    title: 'Pedido de orçamento',
+    prompt: 'Quero um formulário de pedido de orçamento para serviços de marketing. Perguntar nome, email, empresa, tipo de serviço (dropdown: SEO, Redes Sociais, Publicidade, Branding, Outro), orçamento mensal e urgência (baixa, média, alta).',
+  },
+  {
     title: 'Contacto simples',
     prompt: 'Formulário de contacto com nome, email, telefone e mensagem',
   },
@@ -24,10 +28,6 @@ const EXAMPLE_PROMPTS = [
   {
     title: 'Qualificação lead',
     prompt: 'Questionário de qualificação de lead B2B: empresa, setor, número de funcionários, orçamento disponível, prazo de implementação, principais desafios',
-  },
-  {
-    title: 'Feedback produto',
-    prompt: 'Formulário de feedback: satisfação geral (1-5), funcionalidades favoritas (multiselect), sugestões de melhoria, recomendaria a um amigo (sim/não)',
   },
 ];
 
