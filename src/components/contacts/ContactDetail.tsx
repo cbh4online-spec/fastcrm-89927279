@@ -13,6 +13,7 @@ import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
 import { 
   useFieldSuggestions, 
+  useGenerateFieldSuggestions,
   useAcceptSuggestion, 
   useRejectSuggestion 
 } from "@/hooks/useFieldSuggestions";
@@ -153,6 +154,7 @@ export function ContactDetail() {
 
   // AI field suggestions
   const { data: suggestions = [] } = useFieldSuggestions("contact", id);
+  const generateSuggestions = useGenerateFieldSuggestions();
   const acceptSuggestion = useAcceptSuggestion();
   const rejectSuggestion = useRejectSuggestion();
   const [acceptingField, setAcceptingField] = useState<string | null>(null);
@@ -395,6 +397,15 @@ export function ContactDetail() {
               </>
             ) : (
               <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => id && generateSuggestions.mutate({ entityType: "contact", entityId: id })}
+                  disabled={generateSuggestions.isPending}
+                  className="gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {generateSuggestions.isPending ? "A analisar..." : "Sugestões IA"}
+                </Button>
                 {contact.email && (
                   <Button variant="default" className="gap-2" asChild>
                     <a href={`mailto:${contact.email}`}>
