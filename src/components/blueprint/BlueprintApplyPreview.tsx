@@ -31,6 +31,9 @@ import {
 } from '@/types/blueprint';
 import { DuplicateMatch } from '@/lib/duplicateDetection';
 import { CustomField } from '@/hooks/useCustomFields';
+import { useBlueprintUndo, UndoResult } from '@/hooks/useBlueprintUndo';
+import { format } from 'date-fns';
+import { pt } from 'date-fns/locale';
 import {
   Grid3X3,
   Layers,
@@ -47,6 +50,8 @@ import {
   PartyPopper,
   XCircle,
   SkipForward,
+  Undo2,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -92,6 +97,13 @@ export function BlueprintApplyPreview({
   const [resultOpen, setResultOpen] = useState(false);
   const [applyResult, setApplyResult] = useState<ApplyResult | null>(null);
   const [mergeDecisions, setMergeDecisions] = useState<Record<string, 'create' | 'merge' | 'skip'>>({});
+  
+  // Undo state
+  const [undoConfirmOpen, setUndoConfirmOpen] = useState(false);
+  const [undoResultOpen, setUndoResultOpen] = useState(false);
+  const [undoResult, setUndoResult] = useState<UndoResult | null>(null);
+  
+  const { lastApply, isLoading: isLoadingUndo, isUndoing, undoLastApply, refreshLastApply } = useBlueprintUndo();
 
   const hasDuplicates = useMemo(() => {
     return duplicates.fields.length > 0 || duplicates.automations.length > 0 || duplicates.stages.length > 0;
@@ -124,6 +136,10 @@ export function BlueprintApplyPreview({
     const result = await onApply(applyMode, mergeDecisions);
     setApplyResult(result);
     setResultOpen(true);
+    // Refresh undo state after successful apply
+    if (result.success) {
+      refreshLastApply();
+    }
   };
 
   const handleCloseResult = () => {
@@ -132,6 +148,18 @@ export function BlueprintApplyPreview({
       onReset();
     }
   };
+  
+  const handleUndoClick = () => {
+    setUndoConfirmOpen(true);
+  };
+  
+  const handleConfirmedUndo = async () => {
+    setUndoConfirmOpen(false);
+    const result = await undoLastApply();
+    setUndoResult(result);
+    setUndoResultOpen(true);
+  };
+
 
   // Find which section a field belongs to
   const getFieldSection = (fieldName: string): string | null => {
@@ -652,11 +680,73 @@ export function BlueprintApplyPreview({
                 <li>• Duplicados são detetados e sugerimos fundir</li>
                 <li>• Dados existentes nunca são sobrescritos</li>
                 <li>• Todas as alterações são registadas no log de auditoria</li>
+                <li>• Podes reverter a última aplicação a qualquer momento</li>
               </ul>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Undo Last Apply Section */}
+      {lastApply && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <History className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-700 flex items-center gap-2">
+                    Última aplicação
+                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-400">
+                      {lastApply.apply_type === 'all' ? 'Tudo' : 
+                       lastApply.apply_type === 'fields' ? 'Campos' : 
+                       lastApply.apply_type === 'automations' ? 'Automações' : 'Pipeline'}
+                    </Badge>
+                  </p>
+                  <p className="text-sm text-amber-600 mt-1">
+                    {lastApply.blueprint_name || 'Blueprint'} • {' '}
+                    {format(new Date(lastApply.created_at), "d 'de' MMMM 'às' HH:mm", { locale: pt })}
+                  </p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {lastApply.changes_applied.filter(c => c.type === 'field_created').length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Grid3X3 className="h-3 w-3 mr-1" />
+                        {lastApply.changes_applied.filter(c => c.type === 'field_created').length} campo(s)
+                      </Badge>
+                    )}
+                    {lastApply.changes_applied.filter(c => c.type === 'stage_created').length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Workflow className="h-3 w-3 mr-1" />
+                        {lastApply.changes_applied.filter(c => c.type === 'stage_created').length} etapa(s)
+                      </Badge>
+                    )}
+                    {lastApply.changes_applied.filter(c => c.type === 'automation_created').length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Zap className="h-3 w-3 mr-1" />
+                        {lastApply.changes_applied.filter(c => c.type === 'automation_created').length} automação(ões)
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUndoClick}
+                disabled={isUndoing}
+                className="shrink-0 border-amber-500 text-amber-700 hover:bg-amber-100"
+              >
+                {isUndoing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Undo2 className="h-4 w-4 mr-2" />
+                )}
+                Reverter
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Apply Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -860,6 +950,144 @@ export function BlueprintApplyPreview({
           <DialogFooter>
             <Button onClick={handleCloseResult}>
               {applyResult?.success && applyResult.errors.length === 0 ? 'Concluir' : 'Fechar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Undo Confirmation Dialog */}
+      <AlertDialog open={undoConfirmOpen} onOpenChange={setUndoConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Undo2 className="h-5 w-5 text-amber-500" />
+              Reverter última aplicação
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Estás prestes a reverter a aplicação do blueprint{' '}
+                  <strong>{lastApply?.blueprint_name || 'desconhecido'}</strong>.
+                </p>
+                <p>Isto vai eliminar:</p>
+                <ul className="list-none space-y-1 text-sm">
+                  {lastApply?.changes_applied.filter(c => c.type === 'field_created').length ? (
+                    <li className="flex items-center gap-2">
+                      <Grid3X3 className="h-4 w-4" />
+                      {lastApply.changes_applied.filter(c => c.type === 'field_created').length} campo(s) personalizado(s)
+                    </li>
+                  ) : null}
+                  {lastApply?.changes_applied.filter(c => c.type === 'stage_created').length ? (
+                    <li className="flex items-center gap-2">
+                      <Workflow className="h-4 w-4" />
+                      {lastApply.changes_applied.filter(c => c.type === 'stage_created').length} etapa(s) de pipeline
+                    </li>
+                  ) : null}
+                  {lastApply?.changes_applied.filter(c => c.type === 'automation_created').length ? (
+                    <li className="flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      {lastApply.changes_applied.filter(c => c.type === 'automation_created').length} automação(ões)
+                    </li>
+                  ) : null}
+                </ul>
+                <div className="flex items-center gap-2 p-2 bg-red-500/10 rounded-lg text-red-700">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-sm">Esta ação não pode ser desfeita!</span>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmedUndo} className="bg-amber-600 hover:bg-amber-700">
+              <Undo2 className="h-4 w-4 mr-2" />
+              Confirmar Reversão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Undo Result Dialog */}
+      <Dialog open={undoResultOpen} onOpenChange={setUndoResultOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {undoResult?.success && undoResult.errors.length === 0 ? (
+                <>
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  Reversão concluída!
+                </>
+              ) : undoResult?.errors.length ? (
+                <>
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  Reversão parcial
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  Erro na reversão
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-4 pt-2">
+                {undoResult && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {undoResult.fieldsDeleted > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-amber-500/10 rounded-lg">
+                        <Grid3X3 className="h-4 w-4 text-amber-600" />
+                        <div>
+                          <div className="font-medium text-amber-700">{undoResult.fieldsDeleted}</div>
+                          <div className="text-xs text-amber-600">campos eliminados</div>
+                        </div>
+                      </div>
+                    )}
+                    {undoResult.stagesDeleted > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-amber-500/10 rounded-lg">
+                        <Workflow className="h-4 w-4 text-amber-600" />
+                        <div>
+                          <div className="font-medium text-amber-700">{undoResult.stagesDeleted}</div>
+                          <div className="text-xs text-amber-600">etapas eliminadas</div>
+                        </div>
+                      </div>
+                    )}
+                    {undoResult.automationsDeleted > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-amber-500/10 rounded-lg">
+                        <Zap className="h-4 w-4 text-amber-600" />
+                        <div>
+                          <div className="font-medium text-amber-700">{undoResult.automationsDeleted}</div>
+                          <div className="text-xs text-amber-600">automações eliminadas</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {undoResult?.errors && undoResult.errors.length > 0 && (
+                  <div className="p-3 bg-red-500/10 rounded-lg">
+                    <p className="font-medium text-red-700 mb-2">Erros encontrados:</p>
+                    <ul className="text-sm text-red-600 space-y-1">
+                      {undoResult.errors.map((err, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <XCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                          {err}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {undoResult?.success && undoResult.errors.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    A última aplicação foi revertida. Os campos, etapas e automações criados foram eliminados.
+                  </p>
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setUndoResultOpen(false)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
