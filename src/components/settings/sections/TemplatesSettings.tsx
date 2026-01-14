@@ -30,6 +30,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import {
   useTemplates,
   useTemplateFolders,
   useDeleteTemplate,
@@ -40,6 +47,8 @@ import {
   TemplateFilters,
 } from '@/hooks/useTemplates';
 import { TemplateEditorDialog } from './templates/TemplateEditorDialog';
+import { TemplateCopilot } from '@/components/templates/TemplateCopilot';
+import { TemplateImproveSuggestions } from '@/components/templates/TemplateImproveSuggestions';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import {
@@ -62,6 +71,9 @@ import {
   Eye,
   Clock,
   Tag,
+  Sparkles,
+  Wand2,
+  Lightbulb,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -92,6 +104,7 @@ export function TemplatesSettings() {
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
+  const [aiCopilotOpen, setAiCopilotOpen] = useState(false);
 
   const { data: templates = [], isLoading } = useTemplates({
     search: searchQuery || undefined,
@@ -142,6 +155,37 @@ export function TemplatesSettings() {
     }
   };
 
+  const handleAIGenerated = (template: { content: string; subject?: string; suggestedName: string; suggestedGoal?: TemplateGoal }) => {
+    setEditingTemplate({
+      id: '',
+      name: template.suggestedName,
+      content: template.content,
+      subject: template.subject || null,
+      type: 'email',
+      goal: template.suggestedGoal || 'follow_up',
+      tone: 'friendly',
+      tags: [],
+      compatible_modules: ['lead', 'opportunity'],
+      required_variables: [],
+      is_active: true,
+      is_favorite: false,
+      usage_count: 0,
+      last_used_at: null,
+      reply_rate: null,
+      click_rate: null,
+      description: null,
+      language: 'pt',
+      folder_id: null,
+      created_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      workspace_id: '',
+      rich_content: null,
+    } as Template);
+    setAiCopilotOpen(false);
+    setEditorOpen(true);
+  };
+
   const renderTemplateCard = (template: Template) => {
     const TypeIcon = typeConfig[template.type].icon;
     
@@ -188,6 +232,19 @@ export function TemplatesSettings() {
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              {/* AI Improve Suggestions */}
+              <TemplateImproveSuggestions 
+                template={template}
+                onApplyImprovement={(content, subject) => {
+                  setEditingTemplate({ ...template, content, subject: subject || template.subject });
+                  setEditorOpen(true);
+                }}
+                trigger={
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Lightbulb className="h-4 w-4" />
+                  </Button>
+                }
+              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -264,10 +321,33 @@ export function TemplatesSettings() {
             Gere os templates de mensagens para Email, WhatsApp, Instagram e propostas.
           </p>
         </div>
-        <Button onClick={handleCreateNew}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Template
-        </Button>
+        <div className="flex items-center gap-2">
+          <Sheet open={aiCopilotOpen} onOpenChange={setAiCopilotOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                Gerar com IA
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[500px] sm:max-w-lg p-0">
+              <SheetHeader className="p-4 border-b">
+                <SheetTitle className="flex items-center gap-2">
+                  <Wand2 className="h-5 w-5 text-primary" />
+                  Assistente de Templates
+                </SheetTitle>
+              </SheetHeader>
+              <ScrollArea className="h-[calc(100vh-80px)]">
+                <div className="p-4">
+                  <TemplateCopilot onTemplateGenerated={handleAIGenerated} />
+                </div>
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
+          <Button onClick={handleCreateNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Template
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
