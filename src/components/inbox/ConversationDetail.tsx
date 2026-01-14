@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useConversation, useMarkConversationRead, useUpdateConversationStatus, useAssignConversation } from "@/hooks/useConversations";
 import { useMessages, useSendMessage } from "@/hooks/useMessages";
 import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -33,11 +34,14 @@ import {
   Instagram,
   Facebook,
   Globe,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { InboxCopilot } from "@/components/copilot/InboxCopilot";
+import { TemplateSelector } from "@/components/templates/TemplateSelector";
+import { VariableContext } from "@/lib/templateVariables";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -53,6 +57,7 @@ interface ConversationDetailProps {
 }
 
 export function ConversationDetail({ conversationId }: ConversationDetailProps) {
+  const { user } = useAuth();
   const { data: conversation, isLoading: convLoading } = useConversation(conversationId || undefined);
   const { data: messages, isLoading: messagesLoading } = useMessages(conversationId || undefined);
   const { data: agents } = useAgentMembers();
@@ -63,6 +68,25 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Build template context from conversation
+  const templateContext: VariableContext = {
+    lead: conversation?.lead ? {
+      id: conversation.lead.id,
+      name: conversation.lead.name,
+      email: conversation.lead.email || undefined,
+      phone: conversation.lead.phone || undefined,
+    } : null,
+    user: user ? {
+      id: user.id,
+      full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilizador',
+      email: user.email,
+    } : null,
+  };
+
+  const handleTemplateApply = (renderedContent: string) => {
+    setNewMessage(renderedContent);
+  };
 
   // Mark as read when viewing
   useEffect(() => {
@@ -274,6 +298,19 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         {/* Input */}
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-2">
+            <TemplateSelector
+              entityType="lead"
+              entityId={conversation?.lead?.id || conversationId || ''}
+              entityData={templateContext}
+              channel={conversation?.channel}
+              goal="follow_up"
+              onApply={handleTemplateApply}
+              trigger={
+                <Button variant="outline" size="icon">
+                  <FileText className="w-4 h-4" />
+                </Button>
+              }
+            />
             <Input
               placeholder="Type a message..."
               value={newMessage}
