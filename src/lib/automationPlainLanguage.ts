@@ -24,6 +24,13 @@ const triggerDescriptions: Record<AutomationTrigger, string> = {
   scheduled_time: "Em data/hora agendada",
 };
 
+/**
+ * Get human-readable label for a trigger
+ */
+export function getTriggerLabel(trigger: AutomationTrigger | string): string {
+  return triggerDescriptions[trigger as AutomationTrigger] || trigger;
+}
+
 // Generate plain language description of an operator
 const operatorDescriptions: Record<ConditionOperator, (fieldLabel: string, value: string | null) => string> = {
   equals: (field, value) => `${field} é igual a "${value}"`,
