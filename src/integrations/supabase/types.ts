@@ -516,11 +516,16 @@ export type Database = {
           created_at: string
           created_by: string
           email: string | null
+          external_email: string | null
+          external_instagram_id: string | null
+          external_username: string | null
+          external_whatsapp_id: string | null
           id: string
           name: string
           phone: string | null
           source: string | null
           status: string
+          tags: string[] | null
           updated_at: string
           workspace_id: string
         }
@@ -528,11 +533,16 @@ export type Database = {
           created_at?: string
           created_by: string
           email?: string | null
+          external_email?: string | null
+          external_instagram_id?: string | null
+          external_username?: string | null
+          external_whatsapp_id?: string | null
           id?: string
           name: string
           phone?: string | null
           source?: string | null
           status?: string
+          tags?: string[] | null
           updated_at?: string
           workspace_id: string
         }
@@ -540,11 +550,16 @@ export type Database = {
           created_at?: string
           created_by?: string
           email?: string | null
+          external_email?: string | null
+          external_instagram_id?: string | null
+          external_username?: string | null
+          external_whatsapp_id?: string | null
           id?: string
           name?: string
           phone?: string | null
           source?: string | null
           status?: string
+          tags?: string[] | null
           updated_at?: string
           workspace_id?: string
         }
@@ -566,6 +581,7 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           direction: string
+          external_message_id: string | null
           id: string
           read_at: string | null
           sender_id: string | null
@@ -579,6 +595,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           direction: string
+          external_message_id?: string | null
           id?: string
           read_at?: string | null
           sender_id?: string | null
@@ -592,6 +609,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           direction?: string
+          external_message_id?: string | null
           id?: string
           read_at?: string | null
           sender_id?: string | null
@@ -618,8 +636,11 @@ export type Database = {
       opportunities: {
         Row: {
           created_at: string
+          expected_close_date: string | null
           id: string
           lead_id: string | null
+          lost_reason: string | null
+          notes: string | null
           owner_id: string
           stage_id: string
           status: string
@@ -630,8 +651,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          expected_close_date?: string | null
           id?: string
           lead_id?: string | null
+          lost_reason?: string | null
+          notes?: string | null
           owner_id: string
           stage_id: string
           status?: string
@@ -642,8 +666,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          expected_close_date?: string | null
           id?: string
           lead_id?: string | null
+          lost_reason?: string | null
+          notes?: string | null
           owner_id?: string
           stage_id?: string
           status?: string
@@ -675,6 +702,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          opportunity_id: string
+          status: string
+          stripe_payment_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          opportunity_id: string
+          status?: string
+          stripe_payment_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          opportunity_id?: string
+          status?: string
+          stripe_payment_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
       }
       pipeline_stages: {
         Row: {
@@ -741,6 +801,45 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          due_at: string | null
+          id: string
+          related_id: string
+          related_type: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          related_id: string
+          related_type: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          related_id?: string
+          related_type?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
         }
         Relationships: []
       }
