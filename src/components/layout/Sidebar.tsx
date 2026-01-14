@@ -18,6 +18,7 @@ import {
   Kanban,
   Inbox,
   Zap,
+  FileEdit,
   Globe,
   Brain,
   Crown,
@@ -70,6 +71,7 @@ const navigation: NavItem[] = [
 ];
 
 const afterCrmNavigation: NavItem[] = [
+  { name: "Form Studio", href: "/dashboard/form-studio", icon: FileEdit },
   { name: "Automações", href: "/dashboard/automations", icon: Zap },
   { name: "Landing Pages", href: "/dashboard/landing-pages", icon: Globe },
   { name: "AI Insights", href: "/dashboard/ai-suggestions", icon: Brain, premiumFeature: "ai_suggestions" },
