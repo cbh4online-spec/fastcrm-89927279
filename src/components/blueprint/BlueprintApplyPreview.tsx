@@ -133,11 +133,18 @@ export function BlueprintApplyPreview({
     }
   };
 
+  // Find which section a field belongs to
+  const getFieldSection = (fieldName: string): string | null => {
+    const section = blueprint.sections.find(s => s.fields.includes(fieldName));
+    return section?.name || null;
+  };
+
   const renderFieldPreview = (field: BlueprintCustomField, index: number) => {
     const duplicate = duplicates.fields.find(d => 
       (d.blueprintItem as BlueprintCustomField).name === field.name
     );
     const decision = duplicate ? mergeDecisions[field.name] : undefined;
+    const sectionName = getFieldSection(field.name);
 
     return (
       <div
@@ -150,10 +157,16 @@ export function BlueprintApplyPreview({
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium">{field.name}</span>
               <Badge variant="outline" className="text-xs">{field.type}</Badge>
               {field.required && <Star className="h-3 w-3 text-amber-500" />}
+              {sectionName && (
+                <Badge variant="secondary" className="text-xs">
+                  <Layers className="h-3 w-3 mr-1" />
+                  {sectionName}
+                </Badge>
+              )}
             </div>
             {field.options && field.options.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
@@ -258,6 +271,45 @@ export function BlueprintApplyPreview({
     );
   };
 
+  // Format trigger to human-readable
+  const formatTrigger = (trigger: string): string => {
+    const triggerMap: Record<string, string> = {
+      'lead_created': 'Novo lead criado',
+      'lead_updated': 'Lead atualizado',
+      'opportunity_created': 'Nova oportunidade',
+      'opportunity_updated': 'Oportunidade atualizada',
+      'opportunity_stage_changed': 'Etapa alterada',
+      'payment_confirmed': 'Pagamento confirmado',
+      'custom_field_updated': 'Campo personalizado alterado',
+      'contact_created': 'Novo contacto',
+      'contact_updated': 'Contacto atualizado',
+      'company_created': 'Nova empresa',
+      'company_updated': 'Empresa atualizada',
+    };
+    return triggerMap[trigger] || trigger;
+  };
+
+  // Format action type to human-readable
+  const formatAction = (actionType: string): string => {
+    const actionMap: Record<string, string> = {
+      'create_task': 'Criar tarefa',
+      'move_opportunity_stage': 'Mover etapa',
+      'send_message': 'Enviar mensagem',
+      'notify_user': 'Notificar utilizador',
+      'assign_owner': 'Atribuir responsável',
+      'add_tag': 'Adicionar etiqueta',
+      'create_opportunity': 'Criar oportunidade',
+      'update_field': 'Atualizar campo',
+    };
+    return actionMap[actionType] || actionType;
+  };
+
+  // Format conditions to human-readable
+  const formatConditions = (conditions: BlueprintAutomation['conditions']): string => {
+    if (conditions.length === 0) return '';
+    return conditions.map(c => `${c.field} ${c.operator} "${c.value}"`).join(' e ');
+  };
+
   const renderAutomationPreview = (automation: BlueprintAutomation, index: number) => {
     const duplicate = duplicates.automations.find(d => 
       (d.blueprintItem as BlueprintAutomation).name === automation.name
@@ -267,33 +319,12 @@ export function BlueprintApplyPreview({
       <div
         key={index}
         className={cn(
-          'p-3 border rounded-lg',
+          'p-4 border rounded-lg',
           duplicate && 'border-amber-500/50 bg-amber-500/5'
         )}
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1">
-            <div className="font-medium">{automation.name}</div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {automation.description}
-            </p>
-            <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
-              <Badge variant="outline">
-                <Play className="h-3 w-3 mr-1" />
-                {automation.trigger}
-              </Badge>
-              <ArrowRight className="h-3 w-3 shrink-0" />
-              <Badge variant="secondary">
-                {automation.actions.length} ação(ões)
-              </Badge>
-              {automation.conditions.length > 0 && (
-                <Badge variant="outline" className="text-muted-foreground">
-                  {automation.conditions.length} condição(ões)
-                </Badge>
-              )}
-            </div>
-          </div>
-
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="font-medium">{automation.name}</div>
           {duplicate ? (
             <Badge variant="outline" className="text-amber-600 border-amber-500 shrink-0">
               <AlertTriangle className="h-3 w-3 mr-1" />
@@ -306,6 +337,44 @@ export function BlueprintApplyPreview({
             </Badge>
           )}
         </div>
+        
+        {/* When → If → Do summary */}
+        <div className="space-y-2 text-sm">
+          <div className="flex items-start gap-2">
+            <Badge variant="outline" className="shrink-0 font-medium">
+              Quando
+            </Badge>
+            <span className="text-muted-foreground">{formatTrigger(automation.trigger)}</span>
+          </div>
+          
+          {automation.conditions.length > 0 && (
+            <div className="flex items-start gap-2">
+              <Badge variant="outline" className="shrink-0 font-medium">
+                Se
+              </Badge>
+              <span className="text-muted-foreground">{formatConditions(automation.conditions)}</span>
+            </div>
+          )}
+          
+          <div className="flex items-start gap-2">
+            <Badge variant="outline" className="shrink-0 font-medium">
+              Fazer
+            </Badge>
+            <div className="flex flex-wrap gap-1">
+              {automation.actions.map((action, aIdx) => (
+                <Badge key={aIdx} variant="secondary" className="text-xs">
+                  {formatAction(action.type)}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {automation.description && (
+          <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+            {automation.description}
+          </p>
+        )}
       </div>
     );
   };
@@ -571,25 +640,71 @@ export function BlueprintApplyPreview({
         </CardContent>
       </Card>
 
-      {/* Apply Button */}
-      <Button
-        onClick={handleApplyClick}
-        disabled={isApplying || totalChanges === 0}
-        className="w-full"
-        size="lg"
-      >
-        {isApplying ? (
-          <>
+      {/* Safety Notice */}
+      <Card className="border-blue-500/30 bg-blue-500/5">
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <Shield className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-blue-700">Regras de Segurança</p>
+              <ul className="text-blue-600 mt-1 space-y-1">
+                <li>• Nenhuma alteração é aplicada automaticamente</li>
+                <li>• Duplicados são detetados e sugerimos fundir</li>
+                <li>• Dados existentes nunca são sobrescritos</li>
+                <li>• Todas as alterações são registadas no log de auditoria</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Apply Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Button
+          onClick={() => { setApplyMode('all'); handleApplyClick(); }}
+          disabled={isApplying || totalChanges === 0}
+          className="w-full"
+          size="lg"
+        >
+          {isApplying && applyMode === 'all' ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              A aplicar...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Aplicar Tudo
+            </>
+          )}
+        </Button>
+        <Button
+          onClick={() => { setApplyMode('fields'); handleApplyClick(); }}
+          disabled={isApplying || blueprint.customFields.length === 0}
+          variant="outline"
+          size="lg"
+        >
+          {isApplying && applyMode === 'fields' ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            A aplicar...
-          </>
-        ) : (
-          <>
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            Aplicar {totalChanges} alteração(ões)
-          </>
-        )}
-      </Button>
+          ) : (
+            <Grid3X3 className="h-4 w-4 mr-2" />
+          )}
+          Só Campos ({blueprint.customFields.length})
+        </Button>
+        <Button
+          onClick={() => { setApplyMode('automations'); handleApplyClick(); }}
+          disabled={isApplying || blueprint.automations.length === 0}
+          variant="outline"
+          size="lg"
+        >
+          {isApplying && applyMode === 'automations' ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Zap className="h-4 w-4 mr-2" />
+          )}
+          Só Automações ({blueprint.automations.length})
+        </Button>
+      </div>
 
       {/* Confirmation Dialog */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
