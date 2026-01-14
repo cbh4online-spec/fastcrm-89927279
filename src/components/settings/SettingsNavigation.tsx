@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import {
   Users,
   MessageSquare,
@@ -28,6 +28,8 @@ interface SettingsNavigationProps {
   onCategoryChange: (category: SettingsCategory) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  matchedCategories?: Set<SettingsCategory>;
+  matchCount?: number;
 }
 
 const categories = [
@@ -81,7 +83,15 @@ export function SettingsNavigation({
   onCategoryChange,
   searchQuery,
   onSearchChange,
+  matchedCategories,
+  matchCount,
 }: SettingsNavigationProps) {
+  const hasSearch = searchQuery.trim().length > 0;
+  
+  const filteredCategories = hasSearch && matchedCategories
+    ? categories.filter(cat => matchedCategories.has(cat.id))
+    : categories;
+
   return (
     <div className="w-72 border-r border-border bg-muted/30 flex flex-col">
       {/* Search */}
@@ -95,40 +105,54 @@ export function SettingsNavigation({
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
+        {hasSearch && matchCount !== undefined && (
+          <p className="text-xs text-muted-foreground mt-2">
+            {matchCount === 0 
+              ? "Nenhum resultado encontrado" 
+              : `${matchCount} resultado${matchCount !== 1 ? "s" : ""} encontrado${matchCount !== 1 ? "s" : ""}`
+            }
+          </p>
+        )}
       </div>
 
       {/* Categories */}
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => onCategoryChange(category.id)}
-              className={cn(
-                "w-full text-left px-3 py-3 rounded-lg transition-colors",
-                activeCategory === category.id
-                  ? "bg-primary/10 text-primary"
-                  : "text-foreground hover:bg-muted"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <category.icon className="h-5 w-5" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm truncate">
-                      {category.label}
-                    </span>
-                    {category.isPremium && (
-                      <Crown className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
-                    )}
+          {filteredCategories.length === 0 && hasSearch ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Sem categorias correspondentes
+            </p>
+          ) : (
+            filteredCategories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => onCategoryChange(category.id)}
+                className={cn(
+                  "w-full text-left px-3 py-3 rounded-lg transition-colors",
+                  activeCategory === category.id
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground hover:bg-muted"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <category.icon className="h-5 w-5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm truncate">
+                        {category.label}
+                      </span>
+                      {category.isPremium && (
+                        <Crown className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {category.description}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {category.description}
-                  </p>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))
+          )}
         </div>
       </ScrollArea>
     </div>
