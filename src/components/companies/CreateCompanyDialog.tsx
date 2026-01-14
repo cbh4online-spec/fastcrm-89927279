@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useCompanies } from "@/hooks/useCompanies";
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
 
 interface CreateCompanyDialogProps {
   open: boolean;
@@ -52,6 +53,7 @@ const industries = [
 export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogProps) {
   const { createCompany } = useCompanies();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
   const [formData, setFormData] = useState({
     name: "",
     website: "",
@@ -70,7 +72,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
 
     setIsSubmitting(true);
     try {
-      await createCompany.mutateAsync({
+      const result = await createCompany.mutateAsync({
         name: formData.name.trim(),
         website: formData.website.trim() || undefined,
         industry: formData.industry || undefined,
@@ -84,6 +86,12 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
           .map((t) => t.trim())
           .filter(Boolean),
       });
+      
+      // Save custom fields if any
+      if (result?.id && customFieldsRef.current) {
+        await customFieldsRef.current.saveCustomFields(result.id);
+      }
+      
       setFormData({
         name: "",
         website: "",
@@ -101,9 +109,26 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      setFormData({
+        name: "",
+        website: "",
+        industry: "",
+        size: "",
+        phone: "",
+        email: "",
+        address: "",
+        notes: "",
+        tags: "",
+      });
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Empresa</DialogTitle>
           <DialogDescription>
@@ -216,6 +241,13 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
               />
             </div>
           </div>
+          
+          {/* Custom Fields */}
+          <CustomFieldsFormCreate
+            ref={customFieldsRef}
+            entityType="company"
+          />
+          
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar

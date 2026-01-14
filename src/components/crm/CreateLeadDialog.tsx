@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
 
 const leadSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
@@ -47,6 +48,7 @@ interface CreateLeadDialogProps {
 
 export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) {
   const createLead = useCreateLead();
+  const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
@@ -61,13 +63,19 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
 
   const onSubmit = async (values: LeadFormValues) => {
     try {
-      await createLead.mutateAsync({
+      const result = await createLead.mutateAsync({
         name: values.name,
         email: values.email || undefined,
         phone: values.phone || undefined,
         source: values.source || undefined,
         status: values.status as LeadStatus,
       });
+      
+      // Save custom fields if any
+      if (result?.id && customFieldsRef.current) {
+        await customFieldsRef.current.saveCustomFields(result.id);
+      }
+      
       toast.success("Lead created successfully");
       form.reset();
       onOpenChange(false);
@@ -78,7 +86,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Lead</DialogTitle>
           <DialogDescription>
@@ -161,6 +169,13 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                 </FormItem>
               )}
             />
+            
+            {/* Custom Fields */}
+            <CustomFieldsFormCreate
+              ref={customFieldsRef}
+              entityType="lead"
+            />
+            
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
