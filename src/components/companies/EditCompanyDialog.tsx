@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
 
 interface EditCompanyDialogProps {
   company: Company;
@@ -221,6 +222,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 placeholder="Informações adicionais sobre a empresa..."
                 rows={3}
               />
+            </div>
+            
+            {/* Custom Fields */}
+            <div className="sm:col-span-2 pt-2 border-t">
+              <CustomFieldsForm entityType="company" entityId={company.id} />
             </div>
           </div>
           <DialogFooter>

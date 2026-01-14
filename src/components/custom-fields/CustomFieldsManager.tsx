@@ -157,6 +157,8 @@ export function CustomFieldsManager() {
         <TabsList>
           <TabsTrigger value="lead">Leads</TabsTrigger>
           <TabsTrigger value="opportunity">Oportunidades</TabsTrigger>
+          <TabsTrigger value="contact">Contactos</TabsTrigger>
+          <TabsTrigger value="company">Empresas</TabsTrigger>
         </TabsList>
 
         <TabsContent value={entityType} className="mt-4">
@@ -167,7 +169,11 @@ export function CustomFieldsManager() {
           ) : fields.length === 0 ? (
             <div className="text-center py-12 bg-muted/30 rounded-lg">
               <p className="text-muted-foreground">
-                Ainda não tem campos personalizados para {entityType === "lead" ? "leads" : "oportunidades"}
+                Ainda não tem campos personalizados para {
+                  entityType === "lead" ? "leads" : 
+                  entityType === "opportunity" ? "oportunidades" :
+                  entityType === "contact" ? "contactos" : "empresas"
+                }
               </p>
               <Button variant="outline" className="mt-4" onClick={handleOpenCreate}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -261,7 +267,11 @@ export function CustomFieldsManager() {
             <DialogDescription>
               {editingField
                 ? "Atualize as configurações do campo personalizado."
-                : `Adicione um novo campo para ${entityType === "lead" ? "leads" : "oportunidades"}.`}
+                : `Adicione um novo campo para ${
+                    entityType === "lead" ? "leads" : 
+                    entityType === "opportunity" ? "oportunidades" :
+                    entityType === "contact" ? "contactos" : "empresas"
+                  }.`}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
