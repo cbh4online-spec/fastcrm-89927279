@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SettingsNavigation, SettingsCategory } from "@/components/settings/SettingsNavigation";
@@ -48,8 +49,34 @@ const categoryTitles: Record<SettingsCategory, { title: string; description: str
 };
 
 export default function Settings() {
-  const [activeCategory, setActiveCategory] = useState<SettingsCategory>("workspace");
+  const { section } = useParams<{ section?: string }>();
+  const navigate = useNavigate();
+  
+  // Map URL sections to valid categories
+  const validCategories: SettingsCategory[] = [
+    "workspace", "channels", "crm", "templates", 
+    "automation", "experience", "security", "integrations"
+  ];
+  
+  const initialCategory = validCategories.includes(section as SettingsCategory) 
+    ? (section as SettingsCategory) 
+    : "workspace";
+  
+  const [activeCategory, setActiveCategory] = useState<SettingsCategory>(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Sync URL when category changes
+  const handleCategoryChange = (category: SettingsCategory) => {
+    setActiveCategory(category);
+    navigate(`/dashboard/settings/${category}`, { replace: true });
+  };
+
+  // Sync state when URL changes
+  useEffect(() => {
+    if (section && validCategories.includes(section as SettingsCategory)) {
+      setActiveCategory(section as SettingsCategory);
+    }
+  }, [section]);
 
   const searchResults = useMemo(() => {
     return searchSettings(searchQuery);
@@ -98,7 +125,7 @@ export default function Settings() {
         {/* Navigation Sidebar */}
         <SettingsNavigation
           activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
+          onCategoryChange={handleCategoryChange}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           matchedCategories={searchResults.matchedCategories}
