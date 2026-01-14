@@ -78,6 +78,9 @@ import { toast } from "sonner";
 import { CustomFieldsForm, CustomFieldsDisplay } from "@/components/custom-fields/CustomFieldsForm";
 import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
 import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
+import { TemplateSelector } from "@/components/templates/TemplateSelector";
+import { useAuth } from "@/contexts/AuthContext";
+import { VariableContext } from "@/lib/templateVariables";
 import { cn } from "@/lib/utils";
 
 const statusColors: Record<LeadStatus, string> = {
@@ -152,6 +155,7 @@ function DetailRow({ label, value, isEditing, editComponent, icon, isLink }: Det
 export function LeadDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: lead, isLoading } = useLead(id);
   const { data: customFieldValues = [] } = useCustomFieldValues(id);
   const { data: customFields = [] } = useCustomFields("lead");
@@ -188,6 +192,30 @@ export function LeadDetail() {
     source: string;
     status: LeadStatus;
   } | null>(null);
+
+  // Build context for templates
+  const templateContext: VariableContext = {
+    lead: lead ? {
+      id: lead.id,
+      name: lead.name,
+      email: lead.email || undefined,
+      phone: lead.phone || undefined,
+      status: lead.status,
+      source: lead.source || undefined,
+      created_at: lead.created_at,
+    } : null,
+    user: user ? {
+      id: user.id,
+      full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilizador',
+      email: user.email,
+    } : null,
+  };
+
+  const handleTemplateApply = (renderedContent: string, renderedSubject?: string) => {
+    // Copy to clipboard or open composer
+    navigator.clipboard.writeText(renderedContent);
+    toast.success('Mensagem copiada para a área de transferência');
+  };
 
   const handleEdit = () => {
     if (lead) {
@@ -443,10 +471,20 @@ export function LeadDetail() {
                   <Sparkles className="w-4 h-4" />
                   {generateSuggestions.isPending ? "A analisar..." : "Sugestões IA"}
                 </Button>
-                <Button variant="default" className="gap-2">
-                  <Send className="w-4 h-4" />
-                  Enviar Mensagem
-                </Button>
+                <TemplateSelector
+                  entityType="lead"
+                  entityId={id || ''}
+                  entityData={templateContext}
+                  status={lead?.status}
+                  goal={lead?.status === 'new' ? 'qualification' : 'follow_up'}
+                  onApply={handleTemplateApply}
+                  trigger={
+                    <Button variant="default" className="gap-2">
+                      <FileText className="w-4 h-4" />
+                      Templates
+                    </Button>
+                  }
+                />
                 <Button variant="outline" onClick={handleEdit}>
                   <Edit2 className="w-4 h-4 mr-2" />
                   Editar
