@@ -145,6 +145,54 @@ export type Database = {
           },
         ]
       }
+      automation_chain_tracking: {
+        Row: {
+          chain_id: string
+          created_at: string | null
+          depth: number | null
+          entity_id: string
+          entity_type: string
+          id: string
+          rule_id: string
+          workspace_id: string
+        }
+        Insert: {
+          chain_id: string
+          created_at?: string | null
+          depth?: number | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          rule_id: string
+          workspace_id: string
+        }
+        Update: {
+          chain_id?: string
+          created_at?: string | null
+          depth?: number | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          rule_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_chain_tracking_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_chain_tracking_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_conditions: {
         Row: {
           created_at: string
@@ -179,6 +227,57 @@ export type Database = {
             columns: ["rule_id"]
             isOneToOne: false
             referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_execution_tracking: {
+        Row: {
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          execution_count: number | null
+          id: string
+          last_execution_at: string | null
+          rule_id: string
+          window_start: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          execution_count?: number | null
+          id?: string
+          last_execution_at?: string | null
+          rule_id: string
+          window_start?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          execution_count?: number | null
+          id?: string
+          last_execution_at?: string | null
+          rule_id?: string
+          window_start?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_execution_tracking_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_execution_tracking_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -245,6 +344,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          state: Database["public"]["Enums"]["automation_state"] | null
           trigger: Database["public"]["Enums"]["automation_trigger"]
           trigger_config: Json | null
           updated_at: string
@@ -257,6 +357,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          state?: Database["public"]["Enums"]["automation_state"] | null
           trigger: Database["public"]["Enums"]["automation_trigger"]
           trigger_config?: Json | null
           updated_at?: string
@@ -269,6 +370,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          state?: Database["public"]["Enums"]["automation_state"] | null
           trigger?: Database["public"]["Enums"]["automation_trigger"]
           trigger_config?: Json | null
           updated_at?: string
@@ -1570,6 +1672,44 @@ export type Database = {
           },
         ]
       }
+      stripe_event_log: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          payload: Json | null
+          processed_at: string | null
+          stripe_event_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          stripe_event_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          stripe_event_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_event_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null
@@ -2131,6 +2271,7 @@ export type Database = {
         | "wait_time"
         | "stop_automation"
         | "change_lead_status"
+      automation_state: "draft" | "active" | "paused" | "error"
       automation_trigger:
         | "lead_created"
         | "opportunity_stage_changed"
@@ -2320,6 +2461,7 @@ export const Constants = {
         "stop_automation",
         "change_lead_status",
       ],
+      automation_state: ["draft", "active", "paused", "error"],
       automation_trigger: [
         "lead_created",
         "opportunity_stage_changed",

@@ -1,6 +1,41 @@
 import { AutomationTrigger, AutomationActionType, ConditionOperator } from "@/hooks/useAutomations";
 import { CRITICAL_FIELDS } from "@/components/automations/CriticalFieldsWarning";
 
+// Automation states
+export type AutomationState = "draft" | "active" | "paused" | "error";
+
+export const AUTOMATION_STATE_CONFIG: Record<AutomationState, { 
+  label: string; 
+  color: string; 
+  bgColor: string;
+  description: string;
+}> = {
+  draft: { 
+    label: "Rascunho", 
+    color: "text-muted-foreground", 
+    bgColor: "bg-muted",
+    description: "Automação em desenvolvimento, não será executada" 
+  },
+  active: { 
+    label: "Ativa", 
+    color: "text-green-600", 
+    bgColor: "bg-green-100 dark:bg-green-900/30",
+    description: "Automação em execução normal" 
+  },
+  paused: { 
+    label: "Pausada", 
+    color: "text-amber-600", 
+    bgColor: "bg-amber-100 dark:bg-amber-900/30",
+    description: "Automação temporariamente suspensa" 
+  },
+  error: { 
+    label: "Erro", 
+    color: "text-red-600", 
+    bgColor: "bg-red-100 dark:bg-red-900/30",
+    description: "Automação desativada devido a erros" 
+  },
+};
+
 interface AutomationCondition {
   field_name: string;
   operator: ConditionOperator;
@@ -17,6 +52,19 @@ interface AutomationConfig {
   conditions: AutomationCondition[];
   actions: AutomationAction[];
 }
+
+// Rate limiting configuration
+export interface RateLimitConfig {
+  max_per_entity_per_hour: number;
+  max_chain_depth: number;
+  window_minutes: number;
+}
+
+export const DEFAULT_RATE_LIMITS: RateLimitConfig = {
+  max_per_entity_per_hour: 10,
+  max_chain_depth: 5,
+  window_minutes: 60,
+};
 
 // Triggers that watch for field updates
 const FIELD_UPDATE_TRIGGERS: AutomationTrigger[] = [
@@ -207,4 +255,110 @@ export function checkExecutionLimits(
     exceeded: recentExecutions >= limit,
     percentage: Math.min((recentExecutions / limit) * 100, 100),
   };
+}
+
+// Safety check result
+export interface SafetyCheckResult {
+  canExecute: boolean;
+  reason?: string;
+  code?: "GLOBAL_PAUSE" | "RATE_LIMIT" | "CHAIN_DEPTH" | "DUPLICATE_EVENT" | "RULE_PAUSED" | "RULE_ERROR";
+}
+
+// Check if Stripe event has already been processed (idempotency)
+export function isStripeEventProcessed(eventId: string, processedEvents: string[]): boolean {
+  return processedEvents.includes(eventId);
+}
+
+// Check chain depth for loop prevention
+export function checkChainDepth(currentDepth: number, maxDepth: number): SafetyCheckResult {
+  if (currentDepth >= maxDepth) {
+    return {
+      canExecute: false,
+      reason: `Limite de profundidade de cadeia atingido (${maxDepth}). Possível loop infinito.`,
+      code: "CHAIN_DEPTH",
+    };
+  }
+  return { canExecute: true };
+}
+
+// Check rate limit for entity
+export function checkEntityRateLimit(
+  executionCount: number,
+  maxPerHour: number
+): SafetyCheckResult {
+  if (executionCount >= maxPerHour) {
+    return {
+      canExecute: false,
+      reason: `Limite de ${maxPerHour} execuções por hora para esta entidade foi atingido.`,
+      code: "RATE_LIMIT",
+    };
+  }
+  return { canExecute: true };
+}
+
+// Full safety check
+export function performFullSafetyCheck(params: {
+  isGloballyPaused: boolean;
+  ruleState: AutomationState;
+  chainDepth: number;
+  maxChainDepth: number;
+  entityExecutionCount: number;
+  maxPerEntityPerHour: number;
+  stripeEventId?: string;
+  processedStripeEvents?: string[];
+}): SafetyCheckResult {
+  // Check global pause
+  if (params.isGloballyPaused) {
+    return {
+      canExecute: false,
+      reason: "Todas as automações estão pausadas globalmente.",
+      code: "GLOBAL_PAUSE",
+    };
+  }
+
+  // Check rule state
+  if (params.ruleState === "paused") {
+    return {
+      canExecute: false,
+      reason: "Esta automação está pausada.",
+      code: "RULE_PAUSED",
+    };
+  }
+
+  if (params.ruleState === "error") {
+    return {
+      canExecute: false,
+      reason: "Esta automação está em estado de erro.",
+      code: "RULE_ERROR",
+    };
+  }
+
+  if (params.ruleState === "draft") {
+    return {
+      canExecute: false,
+      reason: "Esta automação está em rascunho.",
+      code: "RULE_PAUSED",
+    };
+  }
+
+  // Check chain depth
+  const chainCheck = checkChainDepth(params.chainDepth, params.maxChainDepth);
+  if (!chainCheck.canExecute) return chainCheck;
+
+  // Check rate limit
+  const rateCheck = checkEntityRateLimit(params.entityExecutionCount, params.maxPerEntityPerHour);
+  if (!rateCheck.canExecute) return rateCheck;
+
+  // Check Stripe idempotency
+  if (params.stripeEventId && params.processedStripeEvents) {
+    if (isStripeEventProcessed(params.stripeEventId, params.processedStripeEvents)) {
+      return {
+        canExecute: false,
+        reason: "Este evento Stripe já foi processado.",
+        code: "DUPLICATE_EVENT",
+      };
+    }
+  }
+
+  return { canExecute: true };
 }

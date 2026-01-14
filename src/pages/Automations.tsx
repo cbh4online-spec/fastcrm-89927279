@@ -9,6 +9,7 @@ import { VisualAutomationBuilder } from "@/components/automations/VisualAutomati
 import { AutomationLogsDialog } from "@/components/automations/AutomationLogsDialog";
 import { AutomationLogsPanel } from "@/components/automations/AutomationLogsPanel";
 import { AutomationSuggestionsPanel } from "@/components/automations/AutomationSuggestionsPanel";
+import { GlobalPauseToggle } from "@/components/automations/GlobalPauseToggle";
 import { AutomationRule, useAutomationRules, useAutomationLogs } from "@/hooks/useAutomations";
 import { toast } from "sonner";
 
@@ -64,10 +65,13 @@ export default function Automations() {
               Configure regras para automatizar tarefas repetitivas
             </p>
           </div>
-          <Button onClick={() => setBuilderOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Regra
-          </Button>
+          <div className="flex items-center gap-4">
+            <GlobalPauseToggle />
+            <Button onClick={() => setBuilderOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Regra
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}

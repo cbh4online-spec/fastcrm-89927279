@@ -9,11 +9,11 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -32,16 +32,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MoreHorizontal, Pencil, Trash2, History, Loader2, MessageSquareText, Bot, Play } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, History, Loader2, MessageSquareText, Play, Pause, FileEdit } from "lucide-react";
 import { AIAutomationExplainer } from "./AIAutomationExplainer";
 import { AutomationTestRunner } from "./AutomationTestRunner";
+import { AutomationStateManager } from "./AutomationStateManager";
 import {
   useAutomationRules,
   useDeleteAutomationRule,
-  useToggleAutomationRule,
   AutomationRule,
   AutomationTrigger,
 } from "@/hooks/useAutomations";
+import { useAutomationGlobalPause } from "@/hooks/useAutomationSafety";
+import { AutomationState, AUTOMATION_STATE_CONFIG } from "@/lib/automationSafety";
 import { format } from "date-fns";
 import { generatePlainLanguageSummary } from "@/lib/automationPlainLanguage";
 
@@ -98,14 +100,10 @@ interface Props {
 
 export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
   const { data: rules, isLoading } = useAutomationRules();
+  const { data: isGloballyPaused } = useAutomationGlobalPause();
   const deleteRule = useDeleteAutomationRule();
-  const toggleRule = useToggleAutomationRule();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [testRule, setTestRule] = useState<AutomationRule | null>(null);
-
-  const handleToggle = (rule: AutomationRule) => {
-    toggleRule.mutate({ id: rule.id, is_active: !rule.is_active });
-  };
 
   const handleDelete = () => {
     if (deleteId) {
@@ -195,10 +193,25 @@ export function AutomationRulesList({ onEdit, onViewLogs }: Props) {
                   </Tooltip>
                 </TableCell>
                 <TableCell>
-                  <Switch
-                    checked={rule.is_active}
-                    onCheckedChange={() => handleToggle(rule)}
-                  />
+                  <div className="flex items-center gap-2">
+                    <AutomationStateManager
+                      ruleId={rule.id}
+                      currentState={((rule as any).state as AutomationState) || (rule.is_active ? "active" : "draft")}
+                    />
+                    {isGloballyPaused && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge variant="outline" className="text-amber-600 border-amber-300">
+                            <Pause className="h-3 w-3 mr-1" />
+                            Global
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Todas as automações estão pausadas globalmente
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
                   {format(new Date(rule.created_at), "dd/MM/yyyy")}
