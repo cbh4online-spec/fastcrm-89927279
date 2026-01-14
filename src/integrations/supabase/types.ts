@@ -41,6 +41,75 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_field_suggestions: {
+        Row: {
+          confidence: number
+          created_at: string
+          custom_field_id: string | null
+          entity_id: string
+          entity_type: string
+          explanation: string
+          field_name: string
+          field_type: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_context: Json | null
+          status: string
+          suggested_value: Json
+          workspace_id: string
+        }
+        Insert: {
+          confidence: number
+          created_at?: string
+          custom_field_id?: string | null
+          entity_id: string
+          entity_type: string
+          explanation: string
+          field_name: string
+          field_type: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_context?: Json | null
+          status?: string
+          suggested_value: Json
+          workspace_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          custom_field_id?: string | null
+          entity_id?: string
+          entity_type?: string
+          explanation?: string
+          field_name?: string
+          field_type?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_context?: Json | null
+          status?: string
+          suggested_value?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_field_suggestions_custom_field_id_fkey"
+            columns: ["custom_field_id"]
+            isOneToOne: false
+            referencedRelation: "custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_field_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_actions: {
         Row: {
           action_type: Database["public"]["Enums"]["automation_action_type"]

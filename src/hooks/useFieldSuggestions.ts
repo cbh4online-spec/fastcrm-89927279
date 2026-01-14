@@ -1,0 +1,203 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { toast } from "sonner";
+
+export type EntityType = "lead" | "opportunity" | "contact" | "company";
+export type SuggestionStatus = "pending" | "accepted" | "rejected" | "expired";
+
+export interface FieldSuggestion {
+  id: string;
+  workspace_id: string;
+  entity_type: EntityType;
+  entity_id: string;
+  field_name: string;
+  field_type: "standard" | "custom";
+  custom_field_id: string | null;
+  suggested_value: unknown;
+  confidence: number;
+  explanation: string;
+  status: SuggestionStatus;
+  source_context: Record<string, unknown> | null;
+  created_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+}
+
+export interface GenerateSuggestionsResult {
+  suggestions: Array<{
+    fieldName: string;
+    fieldType: "standard" | "custom";
+    customFieldId?: string;
+    suggestedValue: unknown;
+    confidence: number;
+    explanation: string;
+  }>;
+  context: {
+    hasConversations: boolean;
+    customFieldsAnalyzed: number;
+  };
+}
+
+export function useFieldSuggestions(entityType: EntityType, entityId: string | undefined) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["field-suggestions", entityType, entityId],
+    queryFn: async (): Promise<FieldSuggestion[]> => {
+      if (!entityId || !currentWorkspace?.id) return [];
+
+      const { data, error } = await supabase
+        .from("ai_field_suggestions")
+        .select("*")
+        .eq("entity_type", entityType)
+        .eq("entity_id", entityId)
+        .eq("status", "pending")
+        .order("confidence", { ascending: false });
+
+      if (error) throw error;
+      
+      // Type assertion needed because the types file is read-only
+      return (data || []) as unknown as FieldSuggestion[];
+    },
+    enabled: !!entityId && !!currentWorkspace?.id,
+  });
+}
+
+export function useGenerateFieldSuggestions() {
+  const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      entityType, 
+      entityId 
+    }: { 
+      entityType: EntityType; 
+      entityId: string;
+    }): Promise<GenerateSuggestionsResult> => {
+      if (!currentWorkspace?.id) throw new Error("Workspace not found");
+
+      const { data, error } = await supabase.functions.invoke("ai-field-suggestions", {
+        body: {
+          entityType,
+          entityId,
+          workspaceId: currentWorkspace.id,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        if (data.error.includes("Rate limit")) {
+          toast.error("Limite de pedidos AI atingido. Tente novamente mais tarde.");
+        } else if (data.error.includes("credits")) {
+          toast.error("Créditos AI esgotados. Adicione créditos para continuar.");
+        }
+        throw new Error(data.error);
+      }
+
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ["field-suggestions", variables.entityType, variables.entityId] 
+      });
+    },
+  });
+}
+
+export function useAcceptSuggestion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      suggestion,
+      onApply,
+    }: { 
+      suggestion: FieldSuggestion;
+      onApply: (fieldName: string, value: unknown, fieldType: "standard" | "custom", customFieldId?: string) => Promise<void>;
+    }) => {
+      // Apply the suggestion value
+      await onApply(
+        suggestion.field_name, 
+        suggestion.suggested_value, 
+        suggestion.field_type,
+        suggestion.custom_field_id || undefined
+      );
+
+      // Mark suggestion as accepted
+      const { error } = await supabase
+        .from("ai_field_suggestions")
+        .update({ 
+          status: "accepted",
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", suggestion.id);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ["field-suggestions", variables.suggestion.entity_type, variables.suggestion.entity_id] 
+      });
+      toast.success("Sugestão aplicada com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao aplicar sugestão");
+    },
+  });
+}
+
+export function useRejectSuggestion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (suggestion: FieldSuggestion) => {
+      const { error } = await supabase
+        .from("ai_field_suggestions")
+        .update({ 
+          status: "rejected",
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", suggestion.id);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, suggestion) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ["field-suggestions", suggestion.entity_type, suggestion.entity_id] 
+      });
+    },
+  });
+}
+
+export function useDismissAllSuggestions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      entityType, 
+      entityId 
+    }: { 
+      entityType: EntityType; 
+      entityId: string;
+    }) => {
+      const { error } = await supabase
+        .from("ai_field_suggestions")
+        .update({ 
+          status: "rejected",
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("entity_type", entityType)
+        .eq("entity_id", entityId)
+        .eq("status", "pending");
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ["field-suggestions", variables.entityType, variables.entityId] 
+      });
+    },
+  });
+}
