@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
+import { EntityContextSidebar } from "@/components/crm/EntityContextSidebar";
+import { EntityKPIDashboard } from "@/components/crm/EntityKPIDashboard";
 import { 
   useFieldSuggestions, 
   useGenerateFieldSuggestions,
@@ -94,23 +96,18 @@ const sourceIcons: Record<string, React.ReactNode> = {
   referral: <UserCircle className="w-3 h-3" />,
 };
 
-// Sidebar navigation items
-interface SidebarNavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  count?: number;
+// Helper function for time ago
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return "agora mesmo";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} horas`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} dias`;
+  
+  return date.toLocaleDateString('pt-PT');
 }
-
-const sidebarNavItems: SidebarNavItem[] = [
-  { id: "overview", label: "Visão Geral", icon: <User className="w-4 h-4" /> },
-  { id: "notes", label: "Notas", icon: <FileText className="w-4 h-4" />, count: 0 },
-  { id: "messages", label: "Mensagens", icon: <MessageSquare className="w-4 h-4" />, count: 0 },
-  { id: "opportunities", label: "Oportunidades", icon: <TrendingUp className="w-4 h-4" />, count: 0 },
-  { id: "tasks", label: "Tarefas", icon: <CheckSquare className="w-4 h-4" />, count: 0 },
-  { id: "files", label: "Ficheiros", icon: <Paperclip className="w-4 h-4" />, count: 0 },
-  { id: "payments", label: "Pagamentos", icon: <DollarSign className="w-4 h-4" />, count: 0 },
-];
 
 // Reusable row component for label-value display
 interface DetailRowProps {
@@ -467,47 +464,32 @@ export function LeadDetail() {
 
       {/* Main Content - 3 Column Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Navigation */}
-        <aside className="w-56 border-r bg-muted/20 flex-shrink-0">
-          <ScrollArea className="h-full">
-            <div className="p-4">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Lista Relacionada
-              </h3>
-              <nav className="space-y-1">
-                {sidebarNavItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveSection(item.id)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
-                      activeSection === item.id
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      {item.icon}
-                      {item.label}
-                    </span>
-                    {item.count !== undefined && item.count > 0 && (
-                      <Badge variant="secondary" className="h-5 min-w-5 flex items-center justify-center text-xs">
-                        {item.count}
-                      </Badge>
-                    )}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </ScrollArea>
-        </aside>
+        {/* Left Sidebar - Context Hub */}
+        <EntityContextSidebar
+          entityType="lead"
+          entityId={id}
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+        />
 
         {/* Center Content */}
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
-            <div className="p-6 space-y-4 max-w-3xl">
+            <div className="p-6 space-y-4 max-w-4xl">
               {activeSection === "overview" && (
                 <>
+                  {/* KPI Dashboard */}
+                  <EntityKPIDashboard
+                    entityType="lead"
+                    entityId={id}
+                    entityData={lead ? {
+                      name: lead.name,
+                      status: lead.status,
+                      source: lead.source || undefined,
+                      tags: lead.tags || undefined,
+                    } : null}
+                  />
+
                   {/* General Information Card */}
                   <Card>
                     <CardHeader className="pb-2">
@@ -957,17 +939,4 @@ export function LeadDetail() {
       </div>
     </div>
   );
-}
-
-// Helper function for time ago
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return "agora mesmo";
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} horas`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} dias`;
-  
-  return date.toLocaleDateString('pt-PT');
 }
