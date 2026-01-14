@@ -1303,6 +1303,66 @@ export type Database = {
         }
         Relationships: []
       }
+      template_activity_logs: {
+        Row: {
+          channel: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          missing_variables: string[] | null
+          rendered_content: string
+          rendered_subject: string | null
+          template_id: string
+          user_id: string
+          variables_used: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          missing_variables?: string[] | null
+          rendered_content: string
+          rendered_subject?: string | null
+          template_id: string
+          user_id: string
+          variables_used?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          missing_variables?: string[] | null
+          rendered_content?: string
+          rendered_subject?: string | null
+          template_id?: string
+          user_id?: string
+          variables_used?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_activity_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_activity_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_folders: {
         Row: {
           color: string | null
