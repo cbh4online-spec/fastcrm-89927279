@@ -3,12 +3,13 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Zap, History, Sparkles } from "lucide-react";
+import { Plus, Zap, History, Sparkles, BookOpen } from "lucide-react";
 import { AutomationRulesList } from "@/components/automations/AutomationRulesList";
 import { VisualAutomationBuilder } from "@/components/automations/VisualAutomationBuilder";
 import { AutomationLogsDialog } from "@/components/automations/AutomationLogsDialog";
 import { AutomationLogsPanel } from "@/components/automations/AutomationLogsPanel";
 import { AutomationSuggestionsPanel } from "@/components/automations/AutomationSuggestionsPanel";
+import { AutomationRecipesPanel } from "@/components/automations/AutomationRecipesPanel";
 import { GlobalPauseToggle } from "@/components/automations/GlobalPauseToggle";
 import { AutomationRule, useAutomationRules, useAutomationLogs } from "@/hooks/useAutomations";
 import { toast } from "sonner";
@@ -26,6 +27,14 @@ export default function Automations() {
   const handleEdit = (rule: AutomationRule) => {
     setEditRule(rule);
     setBuilderOpen(true);
+  };
+
+  const handleEditById = (ruleId: string) => {
+    const rule = rules?.find((r) => r.id === ruleId);
+    if (rule) {
+      setEditRule(rule);
+      setBuilderOpen(true);
+    }
   };
 
   const handleViewLogs = (ruleId: string) => {
@@ -118,8 +127,12 @@ export default function Automations() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="suggestions">
+        <Tabs defaultValue="recipes">
           <TabsList>
+            <TabsTrigger value="recipes">
+              <BookOpen className="h-4 w-4 mr-1" />
+              Receitas Inbox
+            </TabsTrigger>
             <TabsTrigger value="suggestions">
               <Sparkles className="h-4 w-4 mr-1" />
               Sugestões IA
@@ -127,6 +140,10 @@ export default function Automations() {
             <TabsTrigger value="rules">Regras</TabsTrigger>
             <TabsTrigger value="logs">Logs de Execução</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="recipes" className="mt-4">
+            <AutomationRecipesPanel onEditRule={handleEditById} />
+          </TabsContent>
 
           <TabsContent value="suggestions" className="mt-4">
             <AutomationSuggestionsPanel />
