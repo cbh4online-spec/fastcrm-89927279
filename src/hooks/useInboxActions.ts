@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { AutomationRule, AutomationTrigger, useAutomationRules } from "./useAutomations";
+import { useCreateActivity } from "./useCrmActivities";
 import { toast } from "sonner";
 
 export type InboxActionType =

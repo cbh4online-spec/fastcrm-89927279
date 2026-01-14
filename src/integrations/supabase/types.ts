@@ -835,6 +835,93 @@ export type Database = {
           },
         ]
       }
+      crm_activities: {
+        Row: {
+          activity_type: string
+          automation_rule_id: string | null
+          conversation_id: string | null
+          created_at: string
+          description: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+          opportunity_id: string | null
+          performed_by: string | null
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          activity_type: string
+          automation_rule_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          description?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          opportunity_id?: string | null
+          performed_by?: string | null
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          activity_type?: string
+          automation_rule_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          description?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          opportunity_id?: string | null
+          performed_by?: string | null
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activities_automation_rule_id_fkey"
+            columns: ["automation_rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_blueprints: {
         Row: {
           created_at: string
@@ -1264,6 +1351,7 @@ export type Database = {
           external_username: string | null
           external_whatsapp_id: string | null
           id: string
+          last_contact_at: string | null
           name: string
           phone: string | null
           source: string | null
@@ -1281,6 +1369,7 @@ export type Database = {
           external_username?: string | null
           external_whatsapp_id?: string | null
           id?: string
+          last_contact_at?: string | null
           name: string
           phone?: string | null
           source?: string | null
@@ -1298,6 +1387,7 @@ export type Database = {
           external_username?: string | null
           external_whatsapp_id?: string | null
           id?: string
+          last_contact_at?: string | null
           name?: string
           phone?: string | null
           source?: string | null

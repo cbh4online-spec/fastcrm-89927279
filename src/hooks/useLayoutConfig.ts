@@ -111,7 +111,8 @@ export type SidebarModuleType =
   | "emails"
   | "social"
   | "payments"
-  | "files";
+  | "files"
+  | "activity_timeline";
 
 export interface SidebarModuleConfig {
   id: string;
@@ -125,17 +126,18 @@ export interface SidebarModuleConfig {
 
 export const DEFAULT_SIDEBAR_MODULES: SidebarModuleConfig[] = [
   { id: "overview", type: "overview", enabled: true, position: 0, settings: { hide_if_empty: false } },
-  { id: "notes", type: "notes", enabled: true, position: 1, settings: { hide_if_empty: false } },
-  { id: "messages", type: "messages", enabled: true, position: 2, settings: { hide_if_empty: false } },
-  { id: "open_activities", type: "open_activities", enabled: true, position: 3, settings: { hide_if_empty: false } },
-  { id: "closed_activities", type: "closed_activities", enabled: true, position: 4, settings: { hide_if_empty: true } },
-  { id: "meetings", type: "meetings", enabled: true, position: 5, settings: { hide_if_empty: true } },
-  { id: "opportunities", type: "opportunities", enabled: true, position: 6, settings: { hide_if_empty: false } },
-  { id: "campaigns", type: "campaigns", enabled: true, position: 7, settings: { hide_if_empty: true } },
-  { id: "emails", type: "emails", enabled: true, position: 8, settings: { hide_if_empty: true } },
-  { id: "social", type: "social", enabled: true, position: 9, settings: { hide_if_empty: true } },
-  { id: "payments", type: "payments", enabled: true, position: 10, settings: { hide_if_empty: true } },
-  { id: "files", type: "files", enabled: true, position: 11, settings: { hide_if_empty: true } },
+  { id: "activity_timeline", type: "activity_timeline", enabled: true, position: 1, settings: { hide_if_empty: false } },
+  { id: "notes", type: "notes", enabled: true, position: 2, settings: { hide_if_empty: false } },
+  { id: "messages", type: "messages", enabled: true, position: 3, settings: { hide_if_empty: false } },
+  { id: "open_activities", type: "open_activities", enabled: true, position: 4, settings: { hide_if_empty: false } },
+  { id: "closed_activities", type: "closed_activities", enabled: true, position: 5, settings: { hide_if_empty: true } },
+  { id: "meetings", type: "meetings", enabled: true, position: 6, settings: { hide_if_empty: true } },
+  { id: "opportunities", type: "opportunities", enabled: true, position: 7, settings: { hide_if_empty: false } },
+  { id: "campaigns", type: "campaigns", enabled: true, position: 8, settings: { hide_if_empty: true } },
+  { id: "emails", type: "emails", enabled: true, position: 9, settings: { hide_if_empty: true } },
+  { id: "social", type: "social", enabled: true, position: 10, settings: { hide_if_empty: true } },
+  { id: "payments", type: "payments", enabled: true, position: 11, settings: { hide_if_empty: true } },
+  { id: "files", type: "files", enabled: true, position: 12, settings: { hide_if_empty: true } },
 ];
 
 export const SIDEBAR_MODULE_DEFINITIONS: Record<SidebarModuleType, {
@@ -221,6 +223,13 @@ export const SIDEBAR_MODULE_DEFINITIONS: Record<SidebarModuleType, {
     description: "Documentos e anexos",
     icon: "Paperclip",
     category: "communication",
+  },
+  activity_timeline: {
+    label: "Timeline de Atividades",
+    description: "Histórico completo de atividades e interações",
+    icon: "Activity",
+    category: "activity",
+    isCore: true,
   },
 };
 

@@ -56,6 +56,7 @@ import {
   Paperclip,
   LayoutDashboard,
   PanelLeft,
+  Activity,
 } from "lucide-react";
 import {
   WidgetConfig,
@@ -101,6 +102,7 @@ const SIDEBAR_ICONS: Record<SidebarModuleType, React.ReactNode> = {
   social: <Share2 className="w-4 h-4" />,
   payments: <DollarSign className="w-4 h-4" />,
   files: <Paperclip className="w-4 h-4" />,
+  activity_timeline: <Activity className="w-4 h-4" />,
 };
 
 interface UnifiedLayoutCustomizerProps {
