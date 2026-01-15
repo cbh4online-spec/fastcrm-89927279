@@ -164,13 +164,27 @@ Deno.serve(async (req) => {
     const record = data.records[recordKey];
 
     // Parse the response into our format
+    // Handle CAE - can be array or string from API
+    let caeValue: string | null = null;
+    if (record.cae) {
+      if (Array.isArray(record.cae)) {
+        caeValue = record.cae.join(', ');
+      } else {
+        caeValue = record.cae;
+      }
+    } else if (record.cae_main?.code) {
+      caeValue = record.cae_main.code;
+    } else if (record.rapiea?.code) {
+      caeValue = record.rapiea.code;
+    }
+
     const result: LookupResult = {
       company_name: record.title || null,
       billing_address: record.address || record.place?.address || null,
       billing_city: record.city || record.place?.city || null,
       billing_postal_code: formatPostalCode(record.pc4, record.pc3) || formatPostalCode(record.place?.pc4, record.place?.pc3) || null,
       billing_country: 'Portugal',
-      cae: record.cae || record.cae_main?.code || record.rapiea?.code || null,
+      cae: caeValue,
       cae_description: record.cae_main?.description || record.rapiea?.description_short || record.activity || null,
       company_status: parseStatus(record.status),
       capital_social: formatCapital(record.structure?.capital, record.structure?.capital_currency),
