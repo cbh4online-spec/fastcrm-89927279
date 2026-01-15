@@ -1,6 +1,13 @@
 export type ProductType = 'simple' | 'recurring' | 'sessions' | 'composite';
 export type ProductStatus = 'active' | 'archived';
 export type BillingType = 'one-off' | 'recurring';
+export type BundlePriceMode = 'auto' | 'manual';
+export type BillingFrequency = 'monthly' | 'quarterly' | 'yearly';
+export type DeliveryMode = 'online' | 'presencial' | 'hybrid';
+export type EntitlementStatus = 'active' | 'completed' | 'expired' | 'cancelled';
+export type CycleTriggerType = 'days_after_purchase' | 'days_without_session' | 'consumption_percent' | 'days_before_expiry' | 'custom';
+export type CycleActionType = 'create_task' | 'send_email' | 'send_whatsapp' | 'create_opportunity' | 'notify_owner' | 'start_automation';
+export type ProgressionAction = 'task' | 'opportunity' | 'campaign' | 'automation';
 
 export interface Product {
   id: string;
@@ -23,6 +30,22 @@ export interface Product {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Phase B fields
+  total_units: number | null;
+  unit_name: string | null;
+  unit_duration: number | null;
+  validity_days: number | null;
+  delivery_mode: string | null;
+  setup_fee: number | null;
+  recurring_fee: number | null;
+  billing_frequency: string | null;
+  bundle_price_mode: string | null;
+  commercial_description: string | null;
+  benefits: string[] | null;
+  conditions: string | null;
+  sheet_published: boolean | null;
+  sheet_slug: string | null;
+  primary_image_index: number | null;
 }
 
 export interface ProductWithMargins extends Product {
@@ -120,6 +143,150 @@ export const billingTypeLabels: Record<BillingType, string> = {
   'one-off': 'Único',
   recurring: 'Recorrente',
 };
+
+export const billingFrequencyLabels: Record<BillingFrequency, string> = {
+  monthly: 'Mensal',
+  quarterly: 'Trimestral',
+  yearly: 'Anual',
+};
+
+export const deliveryModeLabels: Record<DeliveryMode, string> = {
+  online: 'Online',
+  presencial: 'Presencial',
+  hybrid: 'Híbrido',
+};
+
+export const entitlementStatusLabels: Record<EntitlementStatus, string> = {
+  active: 'Ativo',
+  completed: 'Concluído',
+  expired: 'Expirado',
+  cancelled: 'Cancelado',
+};
+
+export const cycleTriggerLabels: Record<CycleTriggerType, string> = {
+  days_after_purchase: 'Dias após compra',
+  days_without_session: 'Dias sem sessão',
+  consumption_percent: '% de consumo',
+  days_before_expiry: 'Dias antes de expirar',
+  custom: 'Personalizado',
+};
+
+export const cycleActionLabels: Record<CycleActionType, string> = {
+  create_task: 'Criar tarefa',
+  send_email: 'Enviar email',
+  send_whatsapp: 'Enviar WhatsApp',
+  create_opportunity: 'Criar oportunidade',
+  notify_owner: 'Notificar responsável',
+  start_automation: 'Iniciar automação',
+};
+
+// Bundle component interface
+export interface ProductComponent {
+  id: string;
+  workspace_id: string;
+  parent_product_id: string;
+  component_product_id: string;
+  quantity: number;
+  is_optional: boolean;
+  price_override: number | null;
+  cost_override: number | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  component?: Product;
+}
+
+// Client entitlement (session package)
+export interface ClientEntitlement {
+  id: string;
+  workspace_id: string;
+  product_id: string;
+  contact_id: string | null;
+  company_id: string | null;
+  lead_id: string | null;
+  opportunity_id: string | null;
+  proposal_id: string | null;
+  total_units: number;
+  used_units: number;
+  remaining_units: number;
+  unit_name: string;
+  start_date: string;
+  expiry_date: string | null;
+  status: EntitlementStatus;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  product?: Product;
+  contact?: { id: string; name: string };
+  company?: { id: string; name: string };
+}
+
+// Session consumption
+export interface SessionConsumption {
+  id: string;
+  workspace_id: string;
+  entitlement_id: string;
+  units_consumed: number;
+  session_date: string;
+  notes: string | null;
+  performed_by: string;
+  created_at: string;
+}
+
+// Product cycle (maintenance)
+export interface ProductCycle {
+  id: string;
+  workspace_id: string;
+  product_id: string;
+  name: string;
+  trigger_type: CycleTriggerType;
+  trigger_value: number;
+  action_type: CycleActionType;
+  action_config: Record<string, any>;
+  is_active: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Product progression (matching)
+export interface ProductProgression {
+  id: string;
+  workspace_id: string;
+  from_product_id: string;
+  to_product_id: string;
+  progression_name: string | null;
+  timing_days: number | null;
+  timing_window_start: number | null;
+  timing_window_end: number | null;
+  suggested_message: string | null;
+  recommended_action: ProgressionAction | null;
+  confidence_score: number | null;
+  is_ai_suggested: boolean;
+  is_active: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  from_product?: Product;
+  to_product?: Product;
+}
+
+// Product image
+export interface ProductImage {
+  id: string;
+  workspace_id: string;
+  product_id: string;
+  url: string;
+  alt_text: string | null;
+  is_ai_generated: boolean;
+  ai_prompt: string | null;
+  position: number;
+  created_at: string;
+}
 
 // Margin calculation utilities
 export function calculateProductMargins(product: Product): ProductWithMargins {
