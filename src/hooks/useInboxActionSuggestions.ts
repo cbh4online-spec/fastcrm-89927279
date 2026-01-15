@@ -16,16 +16,31 @@ export interface ActionSuggestion {
   context?: string | null;
 }
 
+export interface OpportunityTrigger {
+  shouldSuggest: boolean;
+  priority: "high" | "medium" | "low";
+  reason: string;
+  triggers: string[];
+  prefillData: {
+    title?: string;
+    value?: number;
+    context?: string;
+  };
+}
+
 interface UseInboxActionSuggestionsProps {
   conversationId: string | null;
   messages: Message[] | undefined;
   leadData?: {
     name?: string;
+    email?: string;
+    phone?: string;
     status?: string;
     source?: string;
     tags?: string[];
   };
   opportunityData?: {
+    id?: string;
     title?: string;
     value?: number;
     stage?: string;
@@ -43,6 +58,10 @@ interface UseInboxActionSuggestionsProps {
     hoursSinceLastMessage?: number;
     temperature?: number;
   };
+  companyData?: {
+    name?: string;
+    industry?: string;
+  };
 }
 
 export function useInboxActionSuggestions({
@@ -52,8 +71,10 @@ export function useInboxActionSuggestions({
   opportunityData,
   proposalData,
   conversationData,
+  companyData,
 }: UseInboxActionSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<ActionSuggestion[]>([]);
+  const [opportunityTrigger, setOpportunityTrigger] = useState<OpportunityTrigger | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +84,7 @@ export function useInboxActionSuggestions({
   const fetchSuggestions = useCallback(async () => {
     if (!conversationId || !messages || messages.length === 0) {
       setSuggestions([]);
+      setOpportunityTrigger(null);
       return;
     }
 
@@ -84,6 +106,7 @@ export function useInboxActionSuggestions({
             opportunityData,
             proposalData,
             conversationData,
+            companyData,
           },
         }
       );
@@ -97,6 +120,7 @@ export function useInboxActionSuggestions({
       }
 
       setSuggestions(data?.suggestions || []);
+      setOpportunityTrigger(data?.opportunityTrigger || null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao obter sugestões";
       setError(message);
@@ -104,7 +128,7 @@ export function useInboxActionSuggestions({
     } finally {
       setIsLoading(false);
     }
-  }, [conversationId, messages, leadData, opportunityData, proposalData, conversationData]);
+  }, [conversationId, messages, leadData, opportunityData, proposalData, conversationData, companyData]);
 
   // Auto-fetch on conversation change or new messages
   useEffect(() => {
@@ -120,6 +144,7 @@ export function useInboxActionSuggestions({
       }
     } else {
       setSuggestions([]);
+      setOpportunityTrigger(null);
     }
   }, [conversationId, messages?.length, fetchSuggestions]);
 
@@ -129,6 +154,7 @@ export function useInboxActionSuggestions({
 
   return {
     suggestions,
+    opportunityTrigger,
     isLoading,
     error,
     refresh,
