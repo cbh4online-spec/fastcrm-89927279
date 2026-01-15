@@ -10,14 +10,20 @@ export type AutomationTrigger =
   | "lead_updated"
   | "lead_status_changed"
   | "lead_no_response"
+  | "lead_score_changed"
+  | "lead_temperature_changed"
   | "opportunity_created"
   | "opportunity_updated"
   | "opportunity_stage_changed"
   | "opportunity_value_changed"
   | "contact_created"
   | "contact_updated"
+  | "contact_score_changed"
+  | "contact_temperature_changed"
   | "company_created"
   | "company_updated"
+  | "company_score_changed"
+  | "company_temperature_changed"
   | "custom_field_updated"
   | "payment_confirmed"
   | "proposal_paid"
@@ -30,7 +36,8 @@ export type AutomationTrigger =
   | "proposal_viewed"
   | "scheduled_time"
   | "tag_added"
-  | "tag_removed";
+  | "tag_removed"
+  | "form_submitted";
 
 export type AutomationActionType =
   | "create_task"
