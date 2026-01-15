@@ -39,11 +39,33 @@ interface EmailWebhookPayload {
 }
 
 function parseEmailAddress(input: string): { name: string; email: string } {
-  const match = input.match(/^(?:"?([^"]*)"?\s*)?<?([^>]+@[^>]+)>?$/);
-  if (match) {
-    return { name: match[1]?.trim() || match[2].split("@")[0], email: match[2].toLowerCase() };
+  const cleaned = input.trim();
+  
+  // Format: "Name" <email@domain.com> or Name <email@domain.com>
+  const withBracketsMatch = cleaned.match(/^(?:"?([^"<]*)"?\s*)?<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>$/);
+  if (withBracketsMatch && withBracketsMatch[2]) {
+    const email = withBracketsMatch[2].toLowerCase().trim();
+    const name = withBracketsMatch[1]?.trim() || email.split("@")[0];
+    return { name, email };
   }
-  return { name: input.split("@")[0], email: input.toLowerCase() };
+  
+  // Simple format: email@domain.com (no brackets)
+  const simpleEmailMatch = cleaned.match(/^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/);
+  if (simpleEmailMatch) {
+    const email = simpleEmailMatch[1].toLowerCase().trim();
+    return { name: email.split("@")[0], email };
+  }
+  
+  // Fallback - try to extract any email-like pattern from the string
+  const anyEmailMatch = cleaned.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  if (anyEmailMatch) {
+    const email = anyEmailMatch[1].toLowerCase().trim();
+    const namePart = cleaned.replace(/<[^>]+>/, "").replace(/"/g, "").trim();
+    return { name: namePart || email.split("@")[0], email };
+  }
+  
+  console.warn("Could not parse email address:", input);
+  return { name: cleaned, email: cleaned.toLowerCase() };
 }
 
 serve(async (req) => {
