@@ -706,6 +706,129 @@ export type Database = {
           },
         ]
       }
+      client_entitlements: {
+        Row: {
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          expiry_date: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          opportunity_id: string | null
+          product_id: string
+          proposal_id: string | null
+          remaining_units: number | null
+          start_date: string
+          status: string
+          total_units: number
+          unit_name: string
+          updated_at: string
+          used_units: number
+          workspace_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by: string
+          expiry_date?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          product_id: string
+          proposal_id?: string | null
+          remaining_units?: number | null
+          start_date?: string
+          status?: string
+          total_units: number
+          unit_name?: string
+          updated_at?: string
+          used_units?: number
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          expiry_date?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          product_id?: string
+          proposal_id?: string | null
+          remaining_units?: number | null
+          start_date?: string
+          status?: string
+          total_units?: number
+          unit_name?: string
+          updated_at?: string
+          used_units?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_entitlements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_entitlements_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_entitlements_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_entitlements_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_entitlements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "client_entitlements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_entitlements_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_entitlements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -2782,71 +2905,412 @@ export type Database = {
         }
         Relationships: []
       }
+      product_components: {
+        Row: {
+          component_product_id: string
+          cost_override: number | null
+          created_at: string
+          id: string
+          is_optional: boolean
+          parent_product_id: string
+          position: number
+          price_override: number | null
+          quantity: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          component_product_id: string
+          cost_override?: number | null
+          created_at?: string
+          id?: string
+          is_optional?: boolean
+          parent_product_id: string
+          position?: number
+          price_override?: number | null
+          quantity?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          component_product_id?: string
+          cost_override?: number | null
+          created_at?: string
+          id?: string
+          is_optional?: boolean
+          parent_product_id?: string
+          position?: number
+          price_override?: number | null
+          quantity?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_components_component_product_id_fkey"
+            columns: ["component_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_components_component_product_id_fkey"
+            columns: ["component_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_components_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_components_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_components_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_cycles: {
+        Row: {
+          action_config: Json
+          action_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          position: number
+          product_id: string
+          trigger_type: string
+          trigger_value: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          position?: number
+          product_id: string
+          trigger_type: string
+          trigger_value: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: number
+          product_id?: string
+          trigger_type?: string
+          trigger_value?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_cycles_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_cycles_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_cycles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_images: {
+        Row: {
+          ai_prompt: string | null
+          alt_text: string | null
+          created_at: string
+          id: string
+          is_ai_generated: boolean
+          position: number
+          product_id: string
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_prompt?: string | null
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          is_ai_generated?: boolean
+          position?: number
+          product_id: string
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          ai_prompt?: string | null
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          is_ai_generated?: boolean
+          position?: number
+          product_id?: string
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_images_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_progressions: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          from_product_id: string
+          id: string
+          is_active: boolean
+          is_ai_suggested: boolean | null
+          position: number
+          progression_name: string | null
+          recommended_action: string | null
+          suggested_message: string | null
+          timing_days: number | null
+          timing_window_end: number | null
+          timing_window_start: number | null
+          to_product_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          from_product_id: string
+          id?: string
+          is_active?: boolean
+          is_ai_suggested?: boolean | null
+          position?: number
+          progression_name?: string | null
+          recommended_action?: string | null
+          suggested_message?: string | null
+          timing_days?: number | null
+          timing_window_end?: number | null
+          timing_window_start?: number | null
+          to_product_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          from_product_id?: string
+          id?: string
+          is_active?: boolean
+          is_ai_suggested?: boolean | null
+          position?: number
+          progression_name?: string | null
+          recommended_action?: string | null
+          suggested_message?: string | null
+          timing_days?: number | null
+          timing_window_end?: number | null
+          timing_window_start?: number | null
+          to_product_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_progressions_from_product_id_fkey"
+            columns: ["from_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_progressions_from_product_id_fkey"
+            columns: ["from_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_progressions_to_product_id_fkey"
+            columns: ["to_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_progressions_to_product_id_fkey"
+            columns: ["to_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_progressions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           base_price: number
+          benefits: string[] | null
+          billing_frequency: string | null
           billing_type: string
+          bundle_price_mode: string | null
           category: string | null
+          commercial_description: string | null
           commission_default: number | null
+          conditions: string | null
           created_at: string
           created_by: string
           currency: string
+          delivery_mode: string | null
           direct_cost: number | null
           id: string
           images: string[] | null
           name: string
           operational_cost: number | null
+          primary_image_index: number | null
           product_type: string
+          recurring_fee: number | null
+          setup_fee: number | null
+          sheet_published: boolean | null
+          sheet_slug: string | null
           short_description: string | null
           sku: string | null
           status: string
           target_margin_pct: number | null
           tax_rate_estimate_pct: number | null
+          total_units: number | null
+          unit_duration: number | null
+          unit_name: string | null
           updated_at: string
+          validity_days: number | null
           workspace_id: string
         }
         Insert: {
           base_price?: number
+          benefits?: string[] | null
+          billing_frequency?: string | null
           billing_type?: string
+          bundle_price_mode?: string | null
           category?: string | null
+          commercial_description?: string | null
           commission_default?: number | null
+          conditions?: string | null
           created_at?: string
           created_by: string
           currency?: string
+          delivery_mode?: string | null
           direct_cost?: number | null
           id?: string
           images?: string[] | null
           name: string
           operational_cost?: number | null
+          primary_image_index?: number | null
           product_type?: string
+          recurring_fee?: number | null
+          setup_fee?: number | null
+          sheet_published?: boolean | null
+          sheet_slug?: string | null
           short_description?: string | null
           sku?: string | null
           status?: string
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
+          total_units?: number | null
+          unit_duration?: number | null
+          unit_name?: string | null
           updated_at?: string
+          validity_days?: number | null
           workspace_id: string
         }
         Update: {
           base_price?: number
+          benefits?: string[] | null
+          billing_frequency?: string | null
           billing_type?: string
+          bundle_price_mode?: string | null
           category?: string | null
+          commercial_description?: string | null
           commission_default?: number | null
+          conditions?: string | null
           created_at?: string
           created_by?: string
           currency?: string
+          delivery_mode?: string | null
           direct_cost?: number | null
           id?: string
           images?: string[] | null
           name?: string
           operational_cost?: number | null
+          primary_image_index?: number | null
           product_type?: string
+          recurring_fee?: number | null
+          setup_fee?: number | null
+          sheet_published?: boolean | null
+          sheet_slug?: string | null
           short_description?: string | null
           sku?: string | null
           status?: string
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
+          total_units?: number | null
+          unit_duration?: number | null
+          unit_name?: string | null
           updated_at?: string
+          validity_days?: number | null
           workspace_id?: string
         }
         Relationships: [
@@ -2991,6 +3455,7 @@ export type Database = {
       }
       proposal_items: {
         Row: {
+          bundle_snapshot: Json | null
           commission_pct_snapshot: number | null
           cost_snapshot: number | null
           created_at: string
@@ -3004,10 +3469,12 @@ export type Database = {
           quantity: number
           total_price: number | null
           unit_price: number
+          units_sold: number | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          bundle_snapshot?: Json | null
           commission_pct_snapshot?: number | null
           cost_snapshot?: number | null
           created_at?: string
@@ -3021,10 +3488,12 @@ export type Database = {
           quantity?: number
           total_price?: number | null
           unit_price: number
+          units_sold?: number | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          bundle_snapshot?: Json | null
           commission_pct_snapshot?: number | null
           cost_snapshot?: number | null
           created_at?: string
@@ -3038,6 +3507,7 @@ export type Database = {
           quantity?: number
           total_price?: number | null
           unit_price?: number
+          units_sold?: number | null
           updated_at?: string
           workspace_id?: string
         }
@@ -3268,6 +3738,54 @@ export type Database = {
           },
           {
             foreignKeyName: "proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_consumptions: {
+        Row: {
+          created_at: string
+          entitlement_id: string
+          id: string
+          notes: string | null
+          performed_by: string
+          session_date: string
+          units_consumed: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          entitlement_id: string
+          id?: string
+          notes?: string | null
+          performed_by: string
+          session_date?: string
+          units_consumed?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          entitlement_id?: string
+          id?: string
+          notes?: string | null
+          performed_by?: string
+          session_date?: string
+          units_consumed?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_consumptions_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "client_entitlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_consumptions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
