@@ -15,7 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
-import Opportunities from "./pages/Opportunities";
+import OpportunitiesPage from "./pages/OpportunitiesPage";
 import Inbox from "./pages/Inbox";
 import Automations from "./pages/Automations";
 import LandingPages from "./pages/LandingPages";
@@ -55,7 +55,7 @@ const App = () => (
                   <Route path="/dashboard/settings/:section" element={<Settings />} />
                   <Route path="/dashboard/leads" element={<Leads />} />
                   <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
-                  <Route path="/dashboard/opportunities" element={<Opportunities />} />
+                  <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
                   <Route path="/dashboard/inbox" element={<Inbox />} />
                   <Route path="/dashboard/automations" element={<Automations />} />
                   <Route path="/dashboard/landing-pages" element={<LandingPages />} />

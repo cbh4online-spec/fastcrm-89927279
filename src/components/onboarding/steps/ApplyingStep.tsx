@@ -42,14 +42,38 @@ export function ApplyingStep({ config, onComplete }: ApplyingStepProps) {
       }
 
       try {
-        // Step 1: Create pipeline stages
+        // Step 1: Create pipeline first
         updateStep("pipeline", "loading");
+        
+        // Create the pipeline entry
+        const { data: pipelineData, error: pipelineError } = await supabase
+          .from("pipelines")
+          .insert({
+            workspace_id: currentWorkspace.id,
+            name: config.pipeline.name,
+            type: "sales",
+            description: `Pipeline criado automaticamente durante o onboarding`,
+            is_default: true,
+          })
+          .select()
+          .single();
+
+        if (pipelineError) {
+          console.error("Error creating pipeline:", pipelineError);
+        }
+
+        const pipelineId = pipelineData?.id || null;
+
+        // Create pipeline stages with the pipeline_id
         for (const stage of config.pipeline.stages) {
           await supabase.from("pipeline_stages").insert({
             workspace_id: currentWorkspace.id,
+            pipeline_id: pipelineId,
             name: stage.name,
             position: stage.position,
             color: stage.color,
+            probability: Math.round((stage.position / config.pipeline.stages.length) * 100),
+            description: stage.description || null,
           });
         }
         updateStep("pipeline", "done");
