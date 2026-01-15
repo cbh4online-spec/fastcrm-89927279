@@ -197,3 +197,26 @@ export function useContacts() {
     addTagsToContacts,
   };
 }
+
+// Hook to fetch a single contact by ID
+export function useContact(contactId: string | undefined) {
+  return useQuery({
+    queryKey: ["contact", contactId],
+    queryFn: async () => {
+      if (!contactId) return null;
+      
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("id", contactId)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") return null; // Not found
+        throw error;
+      }
+      return data as Contact;
+    },
+    enabled: !!contactId,
+  });
+}
