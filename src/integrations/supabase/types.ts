@@ -4824,16 +4824,25 @@ export type Database = {
           billing_country: string | null
           billing_email: string | null
           billing_postal_code: string | null
+          cae_codes: string[] | null
+          cae_description: string | null
           company_name: string | null
+          company_status: string | null
           created_at: string
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
+          linkedin_url: string | null
           managed_by_workspace_id: string | null
           name: string
           owner_id: string | null
+          phone: string | null
           slug: string
           status: string | null
           tax_id: string | null
+          twitter_url: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
           billing_address?: string | null
@@ -4841,16 +4850,25 @@ export type Database = {
           billing_country?: string | null
           billing_email?: string | null
           billing_postal_code?: string | null
+          cae_codes?: string[] | null
+          cae_description?: string | null
           company_name?: string | null
+          company_status?: string | null
           created_at?: string
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           managed_by_workspace_id?: string | null
           name: string
           owner_id?: string | null
+          phone?: string | null
           slug: string
           status?: string | null
           tax_id?: string | null
+          twitter_url?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
           billing_address?: string | null
@@ -4858,16 +4876,25 @@ export type Database = {
           billing_country?: string | null
           billing_email?: string | null
           billing_postal_code?: string | null
+          cae_codes?: string[] | null
+          cae_description?: string | null
           company_name?: string | null
+          company_status?: string | null
           created_at?: string
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           managed_by_workspace_id?: string | null
           name?: string
           owner_id?: string | null
+          phone?: string | null
           slug?: string
           status?: string | null
           tax_id?: string | null
+          twitter_url?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: [
           {
