@@ -49,6 +49,7 @@ import { InboxActionsMenu } from "./InboxActionsMenu";
 import { ConversationFollowupBanner } from "./ConversationFollowupBanner";
 import { InboxSafetyIndicator } from "./InboxSafetyIndicator";
 import { ConversationTemperature } from "./ConversationTemperature";
+import { ConversationSummary } from "./ConversationSummary";
 import { Separator } from "@/components/ui/separator";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
@@ -319,6 +320,16 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Conversation Summary */}
+      <ConversationSummary
+        conversationId={conversationId}
+        messages={messages}
+        leadName={conversation.lead?.name}
+        channel={conversation.channel}
+        lastMessageAt={conversation.last_message_at || undefined}
+        className="mx-3 mt-3"
+      />
 
       {/* Follow-up Banner */}
       {messages && messages.length > 0 && (
