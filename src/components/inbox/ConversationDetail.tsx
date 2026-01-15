@@ -46,6 +46,7 @@ import { InboxSafetyIndicator } from "./InboxSafetyIndicator";
 import { ConversationTemperature } from "./ConversationTemperature";
 import { ConversationSummary } from "./ConversationSummary";
 import { AIActionSuggestions } from "./AIActionSuggestions";
+import { EmailMessageBubble } from "./EmailMessageBubble";
 import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
 import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 import { Separator } from "@/components/ui/separator";
@@ -399,34 +400,38 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
             ) : (
               <div className="space-y-3">
                 {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "flex",
-                      message.direction === "outbound" ? "justify-end" : "justify-start"
-                    )}
-                  >
+                  conversation.channel === "email" ? (
+                    <EmailMessageBubble key={message.id} message={message} />
+                  ) : (
                     <div
+                      key={message.id}
                       className={cn(
-                        "max-w-[75%] rounded-lg px-3 py-2",
-                        message.direction === "outbound"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
+                        "flex",
+                        message.direction === "outbound" ? "justify-end" : "justify-start"
                       )}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <p
+                      <div
                         className={cn(
-                          "text-[10px] mt-1",
+                          "max-w-[75%] rounded-lg px-3 py-2",
                           message.direction === "outbound"
-                            ? "text-primary-foreground/70"
-                            : "text-muted-foreground"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground"
                         )}
                       >
-                        {format(new Date(message.sent_at), "HH:mm")}
-                      </p>
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <p
+                          className={cn(
+                            "text-[10px] mt-1",
+                            message.direction === "outbound"
+                              ? "text-primary-foreground/70"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          {format(new Date(message.sent_at), "HH:mm")}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )
                 ))}
                 <div ref={messagesEndRef} />
               </div>
