@@ -11,6 +11,7 @@ import { AutomationAISettings } from "@/components/settings/sections/AutomationA
 import { ExperienceSettings } from "@/components/settings/sections/ExperienceSettings";
 import { SecuritySettings } from "@/components/settings/sections/SecuritySettings";
 import { IntegrationsSettings } from "@/components/settings/sections/IntegrationsSettings";
+import { BillingSettings } from "@/components/settings/sections/BillingSettings";
 import { searchSettings } from "@/components/settings/settingsSearchData";
 
 const categoryTitles: Record<SettingsCategory, { title: string; description: string }> = {
@@ -46,6 +47,10 @@ const categoryTitles: Record<SettingsCategory, { title: string; description: str
     title: "Integrações & API",
     description: "Conectar ferramentas externas e acesso programático",
   },
+  billing: {
+    title: "Plano & Faturação",
+    description: "Gerir subscrição, ver utilização e fazer upgrade",
+  },
 };
 
 export default function Settings() {
@@ -55,7 +60,7 @@ export default function Settings() {
   // Map URL sections to valid categories
   const validCategories: SettingsCategory[] = [
     "workspace", "channels", "crm", "templates", 
-    "automation", "experience", "security", "integrations"
+    "automation", "experience", "security", "integrations", "billing"
   ];
   
   const initialCategory = validCategories.includes(section as SettingsCategory) 
@@ -114,6 +119,8 @@ export default function Settings() {
         return <SecuritySettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "integrations":
         return <IntegrationsSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
+      case "billing":
+        return <BillingSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       default:
         return <WorkspaceSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
     }

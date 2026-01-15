@@ -9,8 +9,9 @@ import { WorkspaceInstancesTable } from "@/components/admin/WorkspaceInstancesTa
 import { WorkspaceInstanceForm } from "@/components/admin/WorkspaceInstanceForm";
 import { AdminSettingsPanel } from "@/components/admin/AdminSettingsPanel";
 import { UserRolesPanel } from "@/components/admin/UserRolesPanel";
+import { SaasManagementPanel } from "@/components/admin/SaasManagementPanel";
 import { WorkspaceInstance } from "@/hooks/useWorkspaceInstances";
-import { Plus, Settings, Database, Users, ShieldCheck, Loader2 } from "lucide-react";
+import { Plus, Settings, Database, Users, ShieldCheck, Loader2, CreditCard } from "lucide-react";
 
 export default function SuperAdmin() {
   const { user, loading: authLoading } = useAuth();
@@ -75,8 +76,12 @@ export default function SuperAdmin() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="instances" className="space-y-6">
+        <Tabs defaultValue="saas" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="saas" className="gap-2">
+              <CreditCard className="h-4 w-4" />
+              Gestão SaaS
+            </TabsTrigger>
             <TabsTrigger value="instances" className="gap-2">
               <Database className="h-4 w-4" />
               Instâncias
@@ -90,6 +95,16 @@ export default function SuperAdmin() {
               Roles
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="saas">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold">Gestão SaaS</h2>
+              <p className="text-muted-foreground">
+                Gerir workspaces, subscrições e utilização
+              </p>
+            </div>
+            <SaasManagementPanel />
+          </TabsContent>
 
           <TabsContent value="instances" className="space-y-4">
             <div className="flex justify-between items-center">
