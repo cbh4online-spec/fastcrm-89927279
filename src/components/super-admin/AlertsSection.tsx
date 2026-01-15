@@ -79,18 +79,15 @@ export function AlertsSection() {
   const { data: usageAlerts } = useQuery({
     queryKey: ["super-admin-usage-alerts"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const result = await supabase
         .from("usage_alerts")
-        .select(`
-          *,
-          workspaces (name)
-        `)
-        .eq("dismissed", false)
+        .select("id, workspace_id, alert_type, resource_type, threshold_percent, current_usage, limit_value, message, created_at, is_dismissed")
+        .eq("is_dismissed", false)
         .order("created_at", { ascending: false })
         .limit(20);
 
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data || [];
     },
   });
 

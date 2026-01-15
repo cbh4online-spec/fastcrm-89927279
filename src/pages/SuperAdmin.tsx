@@ -1,27 +1,36 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { WorkspaceInstancesTable } from "@/components/admin/WorkspaceInstancesTable";
-import { WorkspaceInstanceForm } from "@/components/admin/WorkspaceInstanceForm";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ShieldCheck, Loader2 } from "lucide-react";
+import {
+  SuperAdminSidebar,
+  OverviewSection,
+  WorkspacesSection,
+  BillingSection,
+  AlertsSection,
+  LogsSection,
+  AIUsageSection,
+  PlansSection,
+  UsersSection,
+} from "@/components/super-admin";
 import { AdminSettingsPanel } from "@/components/admin/AdminSettingsPanel";
 import { UserRolesPanel } from "@/components/admin/UserRolesPanel";
-import { SaasManagementPanel } from "@/components/admin/SaasManagementPanel";
+import { WorkspaceInstancesTable } from "@/components/admin/WorkspaceInstancesTable";
+import { WorkspaceInstanceForm } from "@/components/admin/WorkspaceInstanceForm";
 import { WorkspaceInstance } from "@/hooks/useWorkspaceInstances";
-import { Plus, Settings, Database, Users, ShieldCheck, Loader2, CreditCard } from "lucide-react";
 
 export default function SuperAdmin() {
   const { user, loading: authLoading } = useAuth();
   const { isSuperAdmin, isLoading: roleLoading } = useUserRole();
+  const [activeSection, setActiveSection] = useState("overview");
   const [formOpen, setFormOpen] = useState(false);
   const [editInstance, setEditInstance] = useState<WorkspaceInstance | null>(null);
 
   if (authLoading || roleLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -33,7 +42,7 @@ export default function SuperAdmin() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-background">
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -61,96 +70,67 @@ export default function SuperAdmin() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-semibold">Super Admin</h1>
-          </div>
-          <Button variant="outline" onClick={() => window.history.back()}>
-            Voltar
-          </Button>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="saas" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="saas" className="gap-2">
-              <CreditCard className="h-4 w-4" />
-              Gestão SaaS
-            </TabsTrigger>
-            <TabsTrigger value="instances" className="gap-2">
-              <Database className="h-4 w-4" />
-              Instâncias
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2">
-              <Settings className="h-4 w-4" />
-              Configurações
-            </TabsTrigger>
-            <TabsTrigger value="roles" className="gap-2">
-              <Users className="h-4 w-4" />
-              Roles
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="saas">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold">Gestão SaaS</h2>
+  const renderContent = () => {
+    switch (activeSection) {
+      case "overview":
+        return <OverviewSection />;
+      case "workspaces":
+        return <WorkspacesSection />;
+      case "users":
+        return <UsersSection />;
+      case "plans":
+        return <PlansSection />;
+      case "limits":
+        return <PlansSection />; // Same component, different focus
+      case "ai-usage":
+        return <AIUsageSection />;
+      case "subscriptions":
+      case "payments":
+      case "stripe-sync":
+        return <BillingSection />;
+      case "alerts":
+      case "incidents":
+        return <AlertsSection />;
+      case "blocks":
+        return <WorkspacesSection />; // Filter for suspended
+      case "logs":
+        return <LogsSection />;
+      case "settings":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Configurações Globais</h1>
               <p className="text-muted-foreground">
-                Gerir workspaces, subscrições e utilização
-              </p>
-            </div>
-            <SaasManagementPanel />
-          </TabsContent>
-
-          <TabsContent value="instances" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold">Instâncias de Workspace</h2>
-                <p className="text-muted-foreground">
-                  Configure as instâncias Supabase para cada workspace
-                </p>
-              </div>
-              <Button onClick={() => setFormOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Instância
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="pt-6">
-                <WorkspaceInstancesTable onEdit={handleEdit} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold">Configurações Globais</h2>
-              <p className="text-muted-foreground">
-                Gerir configurações do sistema e integrações
+                Gerir configurações do sistema e instâncias
               </p>
             </div>
             <AdminSettingsPanel />
-          </TabsContent>
-
-          <TabsContent value="roles">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold">Gestão de Roles</h2>
-              <p className="text-muted-foreground">
-                Atribuir roles de administrador aos utilizadores
-              </p>
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold mb-4">Gestão de Roles</h2>
+              <UserRolesPanel />
             </div>
-            <Card>
-              <CardContent className="pt-6">
-                <UserRolesPanel />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold mb-4">Instâncias de Workspace</h2>
+              <WorkspaceInstancesTable onEdit={handleEdit} />
+            </div>
+          </div>
+        );
+      default:
+        return <OverviewSection />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-background">
+      <SuperAdminSidebar
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      />
+      
+      <main className="flex-1 overflow-auto">
+        <div className="p-8">
+          {renderContent()}
+        </div>
       </main>
 
       <WorkspaceInstanceForm
