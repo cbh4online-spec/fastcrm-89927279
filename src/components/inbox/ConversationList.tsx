@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { useConversations, ConversationChannel, ConversationStatus } from "@/hooks/useConversations";
+import { useConversations, useDeleteConversations, ConversationChannel, ConversationStatus } from "@/hooks/useConversations";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Search,
   MessageSquare,
@@ -36,10 +47,13 @@ import {
   UserX,
   MessageCircleWarning,
   TrendingUp,
+  Trash2,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { pt } from "date-fns/locale";
+import { toast } from "sonner";
 
 const channelIcons: Record<ConversationChannel, React.ElementType> = {
   whatsapp: Phone,
@@ -172,11 +186,15 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
   const [channelFilter, setChannelFilter] = useState<ConversationChannel | "all">(defaultChannel || "all");
   const [smartFilter, setSmartFilter] = useState<SmartFilter>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
 
   const { data: conversations, isLoading } = useConversations({
     status: statusFilter === "all" ? undefined : statusFilter,
     channel: channelFilter === "all" ? undefined : channelFilter,
   });
+  const deleteConversations = useDeleteConversations();
 
   // Filter and sort conversations with priority
   const processedConversations = useMemo(() => {
@@ -235,6 +253,45 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
     return withPriority;
   }, [conversations, search, smartFilter]);
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === processedConversations.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(processedConversations.map((c) => c.id)));
+    }
+  };
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await deleteConversations.mutateAsync(Array.from(selectedIds));
+      toast.success(`${selectedIds.size} conversa(s) eliminada(s)`);
+      setSelectedIds(new Set());
+      setShowDeleteDialog(false);
+      setSelectionMode(false);
+      onSelect(""); // Clear selection
+    } catch (error) {
+      toast.error("Erro ao eliminar conversas");
+    }
+  };
+
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    if (selectionMode) {
+      setSelectedIds(new Set());
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full bg-card">
@@ -242,17 +299,53 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
         <div className="p-4 border-b border-border space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">Conversas</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(showFilters && "bg-accent")}
-            >
-              <Filter className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {/* Selection Mode Toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={selectionMode ? "secondary" : "ghost"}
+                    size="icon"
+                    onClick={toggleSelectionMode}
+                    className={cn(selectionMode && "ring-1 ring-primary/20")}
+                  >
+                    <CheckSquare className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Modo de seleção</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              {/* Delete Button */}
+              {selectedIds.size > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowDeleteDialog(true)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Eliminar selecionadas ({selectedIds.size})</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(showFilters && "bg-accent")}
+              >
+                <Filter className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-
-          {/* Channel Tabs */}
           <Tabs value={channelFilter} onValueChange={(v) => setChannelFilter(v as ConversationChannel | "all")}>
             <TabsList className="w-full grid grid-cols-5 h-8">
               <TabsTrigger value="all" className="text-xs px-2">Todos</TabsTrigger>
@@ -350,6 +443,21 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
           )}
         </div>
 
+        {/* Select All Bar */}
+        {selectionMode && processedConversations.length > 0 && (
+          <div className="px-4 py-2 border-b border-border flex items-center gap-2 bg-muted/30">
+            <Checkbox
+              checked={selectedIds.size === processedConversations.length && processedConversations.length > 0}
+              onCheckedChange={toggleSelectAll}
+            />
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size > 0 
+                ? `${selectedIds.size} selecionada(s)` 
+                : "Selecionar todas"}
+            </span>
+          </div>
+        )}
+
         {/* Conversation List */}
         <ScrollArea className="flex-1">
           {isLoading ? (
@@ -370,101 +478,139 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
                 const PriorityIcon = priorityInfo.icon;
                 const effectiveIntent = conv.user_intent || conv.ai_intent;
                 const hasAIClassification = conv.ai_priority || conv.ai_intent;
+                const isSelected = selectedIds.has(conv.id);
 
                 return (
-                  <button
+                  <div
                     key={conv.id}
-                    onClick={() => onSelect(conv.id)}
                     className={cn(
-                      "w-full p-3 text-left hover:bg-accent/50 transition-colors relative",
+                      "w-full p-3 text-left hover:bg-accent/50 transition-colors relative flex items-start gap-2",
                       selectedId === conv.id && "bg-accent",
-                      conv.priority === "high" && "border-l-2 border-l-destructive"
+                      conv.priority === "high" && "border-l-2 border-l-destructive",
+                      isSelected && "bg-primary/5"
                     )}
                   >
-                    <div className="flex items-start gap-3">
-                      {/* Channel Icon */}
-                      <div
-                        className={cn(
-                          "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0",
-                          channelColors[conv.channel]
-                        )}
-                      >
-                        <ChannelIcon className="w-4 h-4" />
+                    {/* Selection Checkbox */}
+                    {selectionMode && (
+                      <div className="flex-shrink-0 pt-1">
+                        <Checkbox
+                          checked={isSelected}
+                          onClick={(e) => toggleSelect(conv.id, e)}
+                        />
                       </div>
+                    )}
+                    
+                    <button
+                      onClick={() => !selectionMode && onSelect(conv.id)}
+                      className="flex-1 text-left"
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Channel Icon */}
+                        <div
+                          className={cn(
+                            "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0",
+                            channelColors[conv.channel]
+                          )}
+                        >
+                          <ChannelIcon className="w-4 h-4" />
+                        </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium text-foreground truncate text-sm">
-                            {displayName}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            {conv.unread_count > 0 && (
-                              <Badge className="bg-primary text-primary-foreground text-xs px-1.5 py-0 h-5">
-                                {conv.unread_count}
-                              </Badge>
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-foreground truncate text-sm">
+                              {displayName}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {conv.unread_count > 0 && (
+                                <Badge className="bg-primary text-primary-foreground text-xs px-1.5 py-0 h-5">
+                                  {conv.unread_count}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Priority and Intent badges */}
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {conv.priority !== "low" && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className={cn(
+                                    "flex items-center gap-1 text-xs px-1.5 py-0.5 rounded",
+                                    priorityInfo.color,
+                                    priorityInfo.bgColor
+                                  )}>
+                                    {PriorityIcon && <PriorityIcon className="w-3 h-3" />}
+                                    <span>{priorityInfo.label}</span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                  <p className="text-xs">{conv.reason}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            
+                            {/* Intent badge */}
+                            {effectiveIntent && intentConfig[effectiveIntent] && (
+                              <span className={cn(
+                                "text-xs px-1.5 py-0.5 rounded",
+                                intentConfig[effectiveIntent].color
+                              )}>
+                                {intentConfig[effectiveIntent].label}
+                              </span>
+                            )}
+
+                            {/* AI indicator */}
+                            {hasAIClassification && !conv.user_priority && !conv.user_intent && (
+                              <span className="text-[10px] text-muted-foreground">AI</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center justify-between gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground truncate capitalize">
+                              {conv.channel}
+                            </span>
+                            {conv.last_message_at && (
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
+                                {formatDistanceToNow(new Date(conv.last_message_at), {
+                                  addSuffix: true,
+                                  locale: pt,
+                                })}
+                              </span>
                             )}
                           </div>
                         </div>
-                        
-                        {/* Priority and Intent badges */}
-                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          {conv.priority !== "low" && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className={cn(
-                                  "flex items-center gap-1 text-xs px-1.5 py-0.5 rounded",
-                                  priorityInfo.color,
-                                  priorityInfo.bgColor
-                                )}>
-                                  {PriorityIcon && <PriorityIcon className="w-3 h-3" />}
-                                  <span>{priorityInfo.label}</span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="right">
-                                <p className="text-xs">{conv.reason}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          
-                          {/* Intent badge */}
-                          {effectiveIntent && intentConfig[effectiveIntent] && (
-                            <span className={cn(
-                              "text-xs px-1.5 py-0.5 rounded",
-                              intentConfig[effectiveIntent].color
-                            )}>
-                              {intentConfig[effectiveIntent].label}
-                            </span>
-                          )}
-
-                          {/* AI indicator */}
-                          {hasAIClassification && !conv.user_priority && !conv.user_intent && (
-                            <span className="text-[10px] text-muted-foreground">AI</span>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center justify-between gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground truncate capitalize">
-                            {conv.channel}
-                          </span>
-                          {conv.last_message_at && (
-                            <span className="text-xs text-muted-foreground flex-shrink-0">
-                              {formatDistanceToNow(new Date(conv.last_message_at), {
-                                addSuffix: true,
-                                locale: pt,
-                              })}
-                            </span>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                  </div>
                 );
               })}
             </div>
           )}
         </ScrollArea>
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar conversas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja eliminar {selectedIds.size} conversa(s)? 
+              Esta ação irá eliminar todas as mensagens associadas e não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }
