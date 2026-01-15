@@ -116,6 +116,22 @@ serve(async (req) => {
 
     logStep("Received event", { type: event.type, id: event.id });
 
+    // Helper to log billing events
+    const logBillingEvent = async (
+      eventType: string,
+      workspaceId: string,
+      data?: unknown
+    ) => {
+      await supabaseClient.from("billing_events").insert({
+        workspace_id: workspaceId,
+        event_type: eventType,
+        data: data || null,
+        processed: true,
+        processed_at: new Date().toISOString(),
+        stripe_event_id: event.id,
+      });
+    };
+
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -165,6 +181,10 @@ serve(async (req) => {
             logStep("Error upserting subscription", { error });
           } else {
             logStep("Subscription created/updated", { workspaceId, plan: resolvedPlan });
+            await logBillingEvent("subscription_created", workspaceId, {
+              plan: resolvedPlan,
+              subscription_id: subscription.id,
+            });
           }
         }
 
@@ -219,6 +239,13 @@ serve(async (req) => {
             amount,
           });
 
+          // Log billing event
+          await logBillingEvent("payment_completed", workspaceId, {
+            amount: amount / 100,
+            opportunity_id: opportunityId,
+            proposal_id: proposalId,
+          });
+
           // Trigger automations
           await triggerPaymentAutomation(
             supabaseClient,
@@ -236,6 +263,40 @@ serve(async (req) => {
         break;
       }
 
+      case "customer.subscription.created": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const workspaceId = subscription.metadata?.workspace_id;
+
+        if (workspaceId) {
+          const productId = subscription.items.data[0]?.price.product as string;
+          const plan = PRODUCT_TO_PLAN[productId] || "basic";
+
+          await supabaseClient
+            .from("workspace_subscriptions")
+            .upsert({
+              workspace_id: workspaceId,
+              plan,
+              stripe_customer_id: subscription.customer as string,
+              stripe_subscription_id: subscription.id,
+              stripe_price_id: subscription.items.data[0]?.price.id,
+              status: subscription.status,
+              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              cancel_at_period_end: subscription.cancel_at_period_end,
+            }, {
+              onConflict: "workspace_id",
+            });
+
+          await logBillingEvent("subscription_created", workspaceId, {
+            plan,
+            subscription_id: subscription.id,
+          });
+
+          logStep("Subscription created", { subscriptionId: subscription.id, plan });
+        }
+        break;
+      }
+
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
@@ -244,11 +305,12 @@ serve(async (req) => {
         if (workspaceId) {
           const productId = subscription.items.data[0]?.price.product as string;
           const plan = PRODUCT_TO_PLAN[productId] || "free";
+          const newPlan = event.type === "customer.subscription.deleted" ? "free" : plan;
 
           const { error } = await supabaseClient
             .from("workspace_subscriptions")
             .update({
-              plan: event.type === "customer.subscription.deleted" ? "free" : plan,
+              plan: newPlan,
               status: subscription.status,
               current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
               cancel_at_period_end: subscription.cancel_at_period_end,
@@ -258,18 +320,24 @@ serve(async (req) => {
           if (error) {
             logStep("Error updating subscription", { error });
           } else {
+            await logBillingEvent(
+              event.type === "customer.subscription.deleted" ? "subscription_canceled" : "subscription_updated",
+              workspaceId,
+              { plan: newPlan, status: subscription.status }
+            );
             logStep("Subscription updated", { subscriptionId: subscription.id, status: subscription.status });
           }
         }
         break;
       }
 
-      case "invoice.payment_succeeded": {
+      case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
         if (invoice.subscription) {
           const subscription = await stripe.subscriptions.retrieve(
             invoice.subscription as string
           );
+          const workspaceId = subscription.metadata?.workspace_id;
 
           await supabaseClient
             .from("workspace_subscriptions")
@@ -280,7 +348,14 @@ serve(async (req) => {
             })
             .eq("stripe_subscription_id", subscription.id);
 
-          logStep("Invoice payment succeeded", { subscriptionId: subscription.id });
+          if (workspaceId) {
+            await logBillingEvent("invoice_paid", workspaceId, {
+              invoice_id: invoice.id,
+              amount: (invoice.amount_paid || 0) / 100,
+            });
+          }
+
+          logStep("Invoice paid", { subscriptionId: subscription.id });
         }
         break;
       }
@@ -288,10 +363,31 @@ serve(async (req) => {
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         if (invoice.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(
+            invoice.subscription as string
+          );
+          const workspaceId = subscription.metadata?.workspace_id;
+
           await supabaseClient
             .from("workspace_subscriptions")
             .update({ status: "past_due" })
             .eq("stripe_subscription_id", invoice.subscription);
+
+          // Create usage alert for payment failure
+          if (workspaceId) {
+            await supabaseClient.from("usage_alerts").insert({
+              workspace_id: workspaceId,
+              alert_type: "payment_failed",
+              resource_type: "billing",
+              threshold_percent: 100,
+              message: "O pagamento da sua subscrição falhou. Por favor, atualize o método de pagamento para manter o acesso.",
+            });
+
+            await logBillingEvent("invoice_payment_failed", workspaceId, {
+              invoice_id: invoice.id,
+              amount: (invoice.amount_due || 0) / 100,
+            });
+          }
 
           logStep("Invoice payment failed", { subscriptionId: invoice.subscription });
         }

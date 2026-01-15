@@ -13,6 +13,7 @@ import {
   Search,
   Crown,
   FileText,
+  CreditCard,
 } from "lucide-react";
 
 export type SettingsCategory =
@@ -23,7 +24,8 @@ export type SettingsCategory =
   | "automation"
   | "experience"
   | "security"
-  | "integrations";
+  | "integrations"
+  | "billing";
 
 interface SettingsNavigationProps {
   activeCategory: SettingsCategory;
@@ -83,6 +85,12 @@ const categories = [
     label: "Integrações & API",
     icon: Plug,
     description: "Stripe, Webhooks, Variáveis",
+  },
+  {
+    id: "billing" as const,
+    label: "Plano & Faturação",
+    icon: CreditCard,
+    description: "Subscrição, Utilização, Upgrade",
   },
 ];
 
