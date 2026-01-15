@@ -6,9 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Zoho API base URL (EU region - change to .com for US)
-const ZOHO_API_BASE = "https://mail.zoho.eu/api";
-const ZOHO_AUTH_BASE = "https://accounts.zoho.eu";
+// Zoho API base URL (US/Global region)
+const ZOHO_API_BASE = "https://mail.zoho.com/api";
+const ZOHO_AUTH_BASE = "https://accounts.zoho.com";
 
 interface ZohoEmail {
   messageId: string;
