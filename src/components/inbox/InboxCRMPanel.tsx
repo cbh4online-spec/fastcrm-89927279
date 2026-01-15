@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useConversation } from "@/hooks/useConversations";
+import { useMessages } from "@/hooks/useMessages";
 import { useLead, useUpdateLead } from "@/hooks/useLeads";
 import { useOpportunities, useCreateOpportunity } from "@/hooks/useOpportunities";
 import { useProposals } from "@/hooks/useProposals";
@@ -41,8 +42,10 @@ import {
   Calendar,
   ListTodo,
   Activity,
+  Thermometer,
 } from "lucide-react";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
+import { ConversationTemperature } from "./ConversationTemperature";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -53,6 +56,7 @@ interface InboxCRMPanelProps {
 
 export function InboxCRMPanel({ conversationId }: InboxCRMPanelProps) {
   const { data: conversation } = useConversation(conversationId || undefined);
+  const { data: messages } = useMessages(conversationId || undefined);
   const { data: lead } = useLead(conversation?.lead_id || undefined);
   const { data: opportunities } = useOpportunities();
   const { data: proposals } = useProposals();
@@ -157,6 +161,33 @@ export function InboxCRMPanel({ conversationId }: InboxCRMPanelProps) {
   return (
     <ScrollArea className="h-full">
       <div className="p-4 space-y-4">
+        {/* Temperature Card */}
+        {conversation && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Thermometer className="w-4 h-4" />
+                Temperatura da Conversa
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ConversationTemperature 
+                conversation={{
+                  ...conversation,
+                  messages: messages || [],
+                  opportunities: leadOpportunities.filter(o => o.status === "open").map(o => ({
+                    id: o.id,
+                    status: o.status,
+                    value: o.value,
+                  })),
+                }}
+                variant="full"
+                showDetails
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Lead Info Card */}
         <Card>
           <CardHeader className="pb-2">

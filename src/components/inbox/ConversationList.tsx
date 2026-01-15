@@ -1,8 +1,11 @@
 import { useState, useMemo } from "react";
 import { useConversations, useDeleteConversations, useUpdateConversationPriority, ConversationChannel, ConversationStatus, Conversation } from "@/hooks/useConversations";
+import { useMessages } from "@/hooks/useMessages";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Building2, Pencil, DollarSign, User, Briefcase } from "lucide-react";
+import { calculateTemperature, temperatureConfig } from "@/lib/conversationTemperature";
+import { TemperatureIndicator } from "./ConversationTemperature";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -278,13 +281,19 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
       return true;
     });
     
-    // Add priority and sort
-    const withPriority = filtered.map(conv => ({
-      ...conv,
-      ...calculatePriority(conv),
-      isWaiting: isWaitingReply(conv),
-      hasIntent: hasHighIntent(conv),
-    }));
+    // Add priority and temperature, then sort
+    const withPriority = filtered.map(conv => {
+      const priorityData = calculatePriority(conv);
+      const tempData = calculateTemperature(conv);
+      return {
+        ...conv,
+        ...priorityData,
+        temperature: tempData.score,
+        temperatureState: tempData.state,
+        isWaiting: isWaitingReply(conv),
+        hasIntent: hasHighIntent(conv),
+      };
+    });
     
     // Sort by priority (high > medium > low), then by last_message_at
     const priorityOrder = { high: 0, medium: 1, low: 2 };
@@ -715,9 +724,13 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
                           </div>
                           
                           <div className="flex items-center justify-between gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground truncate capitalize">
-                              {conv.channel}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground truncate capitalize">
+                                {conv.channel}
+                              </span>
+                              {/* Temperature indicator */}
+                              <TemperatureIndicator score={conv.temperature} />
+                            </div>
                             {conv.last_message_at && (
                               <span className="text-xs text-muted-foreground flex-shrink-0">
                                 {formatDistanceToNow(new Date(conv.last_message_at), {

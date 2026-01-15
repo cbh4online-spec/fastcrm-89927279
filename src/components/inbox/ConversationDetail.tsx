@@ -48,6 +48,7 @@ import { ConversationClassification } from "./ConversationClassification";
 import { InboxActionsMenu } from "./InboxActionsMenu";
 import { ConversationFollowupBanner } from "./ConversationFollowupBanner";
 import { InboxSafetyIndicator } from "./InboxSafetyIndicator";
+import { ConversationTemperature } from "./ConversationTemperature";
 import { Separator } from "@/components/ui/separator";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
@@ -239,6 +240,15 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 {conversation.status === "open" ? "Aberta" : 
                  conversation.status === "closed" ? "Fechada" : "Arquivada"}
               </Badge>
+              {/* Temperature badge in header */}
+              <ConversationTemperature 
+                conversation={{ 
+                  ...conversation, 
+                  messages: messages || [],
+                  opportunities: opportunities?.filter(o => o.lead_id === conversation.lead_id && o.status === "open") || [],
+                }}
+                variant="badge"
+              />
             </div>
           </div>
         </div>
