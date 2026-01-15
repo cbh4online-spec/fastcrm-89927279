@@ -33,6 +33,9 @@ import {
   ArrowUp,
   ArrowRight,
   ArrowDown,
+  UserX,
+  MessageCircleWarning,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
@@ -57,6 +60,9 @@ const channelColors: Record<ConversationChannel, string> = {
 };
 
 export type ConversationPriority = "high" | "medium" | "low";
+
+// Smart filters for inbox
+export type SmartFilter = "all" | "unassigned" | "waiting_reply" | "high_intent" | "urgent";
 
 interface ConversationListProps {
   selectedId: string | null;
@@ -105,9 +111,22 @@ function calculatePriority(conv: any): { priority: ConversationPriority; reason:
   return { priority: "low", reason: "Conversa em dia" };
 }
 
+// Check if conversation is waiting for reply (last message was inbound)
+function isWaitingReply(conv: any): boolean {
+  // This would ideally check the last message direction
+  // For now, use unread_count as a proxy
+  return conv.unread_count > 0 && conv.status === "open";
+}
+
+// Check if conversation has high intent
+function hasHighIntent(conv: any): boolean {
+  const effectiveIntent = conv.user_intent || conv.ai_intent;
+  return effectiveIntent === "sales";
+}
+
 // Intent icons and labels
-const intentConfig: Record<string, { label: string; color: string }> = {
-  sales: { label: "Vendas", color: "text-green-600 bg-green-100 dark:bg-green-900/30" },
+const intentConfig: Record<string, { label: string; color: string; icon?: React.ElementType }> = {
+  sales: { label: "Vendas", color: "text-green-600 bg-green-100 dark:bg-green-900/30", icon: TrendingUp },
   support: { label: "Suporte", color: "text-blue-600 bg-blue-100 dark:bg-blue-900/30" },
   question: { label: "Pergunta", color: "text-purple-600 bg-purple-100 dark:bg-purple-900/30" },
   follow_up: { label: "Follow-up", color: "text-amber-600 bg-amber-100 dark:bg-amber-900/30" },
@@ -139,10 +158,19 @@ const priorityConfig = {
   },
 };
 
+const smartFilterConfig: Record<SmartFilter, { label: string; icon: React.ElementType }> = {
+  all: { label: "Todas", icon: MessageSquare },
+  unassigned: { label: "Não atribuídas", icon: UserX },
+  waiting_reply: { label: "Aguardando resposta", icon: MessageCircleWarning },
+  high_intent: { label: "Alta intenção", icon: TrendingUp },
+  urgent: { label: "Urgentes", icon: Flame },
+};
+
 export function ConversationList({ selectedId, onSelect, defaultChannel }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ConversationStatus | "all">("open");
   const [channelFilter, setChannelFilter] = useState<ConversationChannel | "all">(defaultChannel || "all");
+  const [smartFilter, setSmartFilter] = useState<SmartFilter>("all");
   const [showFilters, setShowFilters] = useState(false);
 
   const { data: conversations, isLoading } = useConversations({
@@ -155,19 +183,42 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
     if (!conversations) return [];
     
     let filtered = conversations.filter((conv) => {
-      if (!search) return true;
-      const searchLower = search.toLowerCase();
-      return (
-        conv.lead?.name?.toLowerCase().includes(searchLower) ||
-        conv.lead?.email?.toLowerCase().includes(searchLower) ||
-        conv.external_thread_id?.toLowerCase().includes(searchLower)
-      );
+      // Search filter
+      if (search) {
+        const searchLower = search.toLowerCase();
+        const matchesSearch = 
+          conv.lead?.name?.toLowerCase().includes(searchLower) ||
+          conv.lead?.email?.toLowerCase().includes(searchLower) ||
+          conv.external_thread_id?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+      
+      // Smart filter
+      switch (smartFilter) {
+        case "unassigned":
+          if (conv.assigned_to) return false;
+          break;
+        case "waiting_reply":
+          if (!isWaitingReply(conv)) return false;
+          break;
+        case "high_intent":
+          if (!hasHighIntent(conv)) return false;
+          break;
+        case "urgent":
+          const { priority } = calculatePriority(conv);
+          if (priority !== "high") return false;
+          break;
+      }
+      
+      return true;
     });
     
     // Add priority and sort
     const withPriority = filtered.map(conv => ({
       ...conv,
       ...calculatePriority(conv),
+      isWaiting: isWaitingReply(conv),
+      hasIntent: hasHighIntent(conv),
     }));
     
     // Sort by priority (high > medium > low), then by last_message_at
@@ -182,7 +233,7 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
     });
     
     return withPriority;
-  }, [conversations, search]);
+  }, [conversations, search, smartFilter]);
 
   return (
     <TooltipProvider>
@@ -229,6 +280,55 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9"
             />
+          </div>
+
+          {/* Smart Filters */}
+          <div className="flex gap-1 flex-wrap">
+            {(Object.keys(smartFilterConfig) as SmartFilter[]).map((filter) => {
+              const config = smartFilterConfig[filter];
+              const Icon = config.icon;
+              const isActive = smartFilter === filter;
+              
+              // Count for each filter
+              let count = 0;
+              if (conversations) {
+                switch (filter) {
+                  case "unassigned":
+                    count = conversations.filter(c => !c.assigned_to && c.status === "open").length;
+                    break;
+                  case "waiting_reply":
+                    count = conversations.filter(c => isWaitingReply(c)).length;
+                    break;
+                  case "high_intent":
+                    count = conversations.filter(c => hasHighIntent(c)).length;
+                    break;
+                  case "urgent":
+                    count = conversations.filter(c => calculatePriority(c).priority === "high").length;
+                    break;
+                }
+              }
+              
+              return (
+                <Button
+                  key={filter}
+                  variant={isActive ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-7 text-xs gap-1 px-2",
+                    isActive && "ring-1 ring-primary/20"
+                  )}
+                  onClick={() => setSmartFilter(filter)}
+                >
+                  <Icon className="w-3 h-3" />
+                  <span className="hidden sm:inline">{config.label}</span>
+                  {filter !== "all" && count > 0 && (
+                    <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 ml-0.5">
+                      {count}
+                    </Badge>
+                  )}
+                </Button>
+              );
+            })}
           </div>
 
           {/* Additional Filters */}
