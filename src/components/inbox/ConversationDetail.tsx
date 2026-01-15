@@ -5,7 +5,6 @@ import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOpportunities } from "@/hooks/useOpportunities";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -23,7 +22,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Send,
   MoreVertical,
   CheckCircle,
   Archive,
@@ -34,15 +32,12 @@ import {
   Instagram,
   Facebook,
   Globe,
-  FileText,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { VariableContext } from "@/lib/templateVariables";
-import { Template } from "@/hooks/useTemplates";
 import { EnhancedAIReplyPanel } from "./EnhancedAIReplyPanel";
 import { ConversationClassification } from "./ConversationClassification";
 import { InboxActionsMenu } from "./InboxActionsMenu";
@@ -51,6 +46,7 @@ import { InboxSafetyIndicator } from "./InboxSafetyIndicator";
 import { ConversationTemperature } from "./ConversationTemperature";
 import { ConversationSummary } from "./ConversationSummary";
 import { AIActionSuggestions } from "./AIActionSuggestions";
+import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
 import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 import { Separator } from "@/components/ui/separator";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
@@ -83,12 +79,11 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const updateStatus = useUpdateConversationStatus();
   const assignConversation = useAssignConversation();
 
-  const [newMessage, setNewMessage] = useState("");
   const [showAIAssistant, setShowAIAssistant] = useState(true);
   const [showProposalDialog, setShowProposalDialog] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<AIMessageComposerRef>(null);
 
   // Build lead data for AI
   const leadData: LeadData | undefined = useMemo(() => {
@@ -164,7 +159,12 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   // Handler for reply focus from AI suggestions
   const handleFocusReply = () => {
-    inputRef.current?.focus();
+    composerRef.current?.focus();
+  };
+
+  // Handler for inserting AI reply
+  const handleInsertReply = (text: string) => {
+    composerRef.current?.setMessage(text);
   };
 
   // Build template context from conversation
@@ -182,8 +182,17 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     } : null,
   };
 
-  const handleTemplateApply = (renderedContent: string, _renderedSubject?: string, _template?: Template) => {
-    setNewMessage(renderedContent);
+  // Handle sending message
+  const handleSendMessage = async (content: string) => {
+    if (!conversationId) return;
+    try {
+      await sendMessage.mutateAsync({
+        conversationId,
+        content,
+      });
+    } catch (error) {
+      toast.error("Falha ao enviar mensagem");
+    }
   };
 
   // Mark as read when viewing
@@ -197,20 +206,6 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const handleSend = async () => {
-    if (!newMessage.trim() || !conversationId) return;
-
-    try {
-      await sendMessage.mutateAsync({
-        conversationId,
-        content: newMessage.trim(),
-      });
-      setNewMessage("");
-    } catch (error) {
-      toast.error("Falha ao enviar mensagem");
-    }
-  };
 
   const handleAssign = async (userId: string) => {
     if (!conversationId) return;
@@ -233,10 +228,6 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     } catch (error) {
       toast.error("Falha ao atualizar estado");
     }
-  };
-
-  const handleInsertReply = (text: string) => {
-    setNewMessage(text);
   };
 
   if (!conversationId) {
@@ -442,51 +433,18 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
             )}
           </ScrollArea>
 
-          {/* Input */}
-          <div className="p-3 border-t border-border bg-card space-y-2">
-            {/* Reply Options Info */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Opções de resposta:</span>
-              <Badge variant="outline" className="text-[10px] py-0">Texto livre</Badge>
-              <Badge variant="outline" className="text-[10px] py-0">Template</Badge>
-              <Badge variant="outline" className="text-[10px] py-0">AI + Template</Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <TemplateSelector
-                entityType="lead"
-                entityId={conversation?.lead?.id || conversationId || ''}
-                entityData={templateContext}
-                channel={conversation?.channel}
-                goal="follow_up"
-                onApply={handleTemplateApply}
-                trigger={
-                  <Button variant="outline" size="icon" className="h-9 w-9" title="Usar template">
-                    <FileText className="w-4 h-4" />
-                  </Button>
-                }
-              />
-              <Input
-                ref={inputRef}
-                placeholder="Escreva uma mensagem ou use templates/AI..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                className="flex-1 h-9"
-              />
-              <Button
-                onClick={handleSend}
-                disabled={!newMessage.trim() || sendMessage.isPending}
-                className="h-9"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+          {/* AI Message Composer */}
+          <AIMessageComposer
+            ref={composerRef}
+            conversationId={conversationId}
+            messages={messages || []}
+            leadData={leadData}
+            opportunityData={opportunityData}
+            channel={conversation.channel}
+            templateContext={templateContext}
+            onSend={handleSendMessage}
+            isSending={sendMessage.isPending}
+          />
         </div>
 
         {/* AI Assistant Panel */}
