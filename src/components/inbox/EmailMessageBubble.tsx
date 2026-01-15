@@ -1,0 +1,224 @@
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChevronDown, ChevronUp, Mail, FileText, ExternalLink } from "lucide-react";
+import { Message } from "@/hooks/useMessages";
+
+interface EmailMessageBubbleProps {
+  message: Message;
+}
+
+// Simple HTML sanitizer - removes dangerous tags but keeps formatting
+function sanitizeHtml(html: string): string {
+  // Remove script tags and their content
+  let clean = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  // Remove style tags and their content
+  clean = clean.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  // Remove event handlers
+  clean = clean.replace(/\s*on\w+="[^"]*"/gi, '');
+  clean = clean.replace(/\s*on\w+='[^']*'/gi, '');
+  // Remove javascript: URLs
+  clean = clean.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
+  return clean;
+}
+
+// Check if content appears to be HTML
+function isHtmlContent(content: string): boolean {
+  const htmlTags = /<\/?(?:div|p|br|span|a|table|tr|td|th|ul|ol|li|h[1-6]|strong|em|b|i|img|hr|blockquote|pre|code)[^>]*>/i;
+  return htmlTags.test(content);
+}
+
+// Convert plain text to preserve line breaks
+function plainTextToHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br />');
+}
+
+export function EmailMessageBubble({ message }: EmailMessageBubbleProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showHtml, setShowHtml] = useState(true);
+  
+  const isOutbound = message.direction === "outbound";
+  const hasHtmlContent = isHtmlContent(message.content);
+  const hasSubject = !!message.email_subject;
+  
+  // Prepare content for display
+  const displayContent = hasHtmlContent && showHtml 
+    ? sanitizeHtml(message.content)
+    : plainTextToHtml(message.content);
+
+  // Check if content is long (more than 300 chars or more than 5 lines)
+  const isLongContent = message.content.length > 300 || (message.content.match(/\n/g) || []).length > 5;
+
+  return (
+    <div
+      className={cn(
+        "flex",
+        isOutbound ? "justify-end" : "justify-start"
+      )}
+    >
+      <div
+        className={cn(
+          "max-w-[85%] rounded-lg overflow-hidden",
+          isOutbound
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-foreground"
+        )}
+      >
+        {/* Email Header with Subject */}
+        {hasSubject && (
+          <div className={cn(
+            "px-3 py-2 border-b flex items-center gap-2",
+            isOutbound 
+              ? "bg-primary/90 border-primary-foreground/20" 
+              : "bg-muted/80 border-border"
+          )}>
+            <Mail className="w-4 h-4 flex-shrink-0" />
+            <span className="text-sm font-medium truncate flex-1">
+              {message.email_subject}
+            </span>
+            {hasHtmlContent && (
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-[10px] py-0 cursor-pointer",
+                  isOutbound 
+                    ? "border-primary-foreground/30 text-primary-foreground/80 hover:bg-primary-foreground/10"
+                    : "border-border"
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowHtml(!showHtml);
+                }}
+              >
+                {showHtml ? "HTML" : "Texto"}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Email Body */}
+        <div className="px-3 py-2">
+          {isLongContent ? (
+            <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+              <div className="relative">
+                {!isExpanded && (
+                  <div 
+                    className="text-sm overflow-hidden"
+                    style={{ maxHeight: "150px" }}
+                  >
+                    {hasHtmlContent && showHtml ? (
+                      <div 
+                        dangerouslySetInnerHTML={{ __html: displayContent }}
+                        className={cn(
+                          "prose prose-sm max-w-none",
+                          isOutbound ? "prose-invert" : "",
+                          "[&_a]:underline [&_img]:max-w-full [&_img]:h-auto"
+                        )}
+                      />
+                    ) : (
+                      <div 
+                        dangerouslySetInnerHTML={{ __html: displayContent }}
+                        className="whitespace-pre-wrap"
+                      />
+                    )}
+                    <div className={cn(
+                      "absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t pointer-events-none",
+                      isOutbound 
+                        ? "from-primary to-transparent" 
+                        : "from-muted to-transparent"
+                    )} />
+                  </div>
+                )}
+                
+                <CollapsibleContent>
+                  <ScrollArea className="max-h-[500px]">
+                    {hasHtmlContent && showHtml ? (
+                      <div 
+                        dangerouslySetInnerHTML={{ __html: displayContent }}
+                        className={cn(
+                          "prose prose-sm max-w-none",
+                          isOutbound ? "prose-invert" : "",
+                          "[&_a]:underline [&_img]:max-w-full [&_img]:h-auto"
+                        )}
+                      />
+                    ) : (
+                      <div 
+                        dangerouslySetInnerHTML={{ __html: displayContent }}
+                        className="whitespace-pre-wrap"
+                      />
+                    )}
+                  </ScrollArea>
+                </CollapsibleContent>
+
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={cn(
+                      "w-full h-6 text-xs mt-1",
+                      isOutbound 
+                        ? "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10" 
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {isExpanded ? (
+                      <>
+                        <ChevronUp className="w-3 h-3 mr-1" />
+                        Mostrar menos
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-3 h-3 mr-1" />
+                        Mostrar mais
+                      </>
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+            </Collapsible>
+          ) : (
+            // Short content - show directly
+            hasHtmlContent && showHtml ? (
+              <div 
+                dangerouslySetInnerHTML={{ __html: displayContent }}
+                className={cn(
+                  "prose prose-sm max-w-none text-sm",
+                  isOutbound ? "prose-invert" : "",
+                  "[&_a]:underline [&_img]:max-w-full [&_img]:h-auto"
+                )}
+              />
+            ) : (
+              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+            )
+          )}
+        </div>
+
+        {/* Footer with timestamp */}
+        <div className={cn(
+          "px-3 py-1 flex items-center justify-between text-[10px]",
+          isOutbound ? "text-primary-foreground/70" : "text-muted-foreground"
+        )}>
+          <span>{format(new Date(message.sent_at), "dd/MM HH:mm")}</span>
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="flex items-center gap-1">
+              <FileText className="w-3 h-3" />
+              <span>{message.attachments.length} anexo(s)</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

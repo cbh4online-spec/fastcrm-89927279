@@ -26,6 +26,9 @@ export interface Message {
   delivered_at: string | null;
   read_at: string | null;
   created_at: string;
+  email_subject: string | null;
+  email_message_id: string | null;
+  email_in_reply_to: string | null;
 }
 
 export function useMessages(conversationId: string | undefined) {
