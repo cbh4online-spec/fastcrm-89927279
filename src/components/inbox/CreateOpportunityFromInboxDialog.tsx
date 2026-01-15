@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -20,9 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Zap, Target } from "lucide-react";
+import { Zap, Target, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { AutomationConfirmDialog } from "./AutomationConfirmDialog";
+import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 
 interface CreateOpportunityFromInboxDialogProps {
   open: boolean;
@@ -44,6 +46,9 @@ export function CreateOpportunityFromInboxDialog({
   const [notes, setNotes] = useState("");
   const [selectedStageId, setSelectedStageId] = useState<string>("");
   const [showAutomationConfirm, setShowAutomationConfirm] = useState(false);
+  const [createProposalAfter, setCreateProposalAfter] = useState(false);
+  const [showProposalDialog, setShowProposalDialog] = useState(false);
+  const [createdOpportunityId, setCreatedOpportunityId] = useState<string | null>(null);
 
   const { data: stages } = usePipelineStages();
   const createOpportunity = useCreateOpportunity();
@@ -82,8 +87,15 @@ export function CreateOpportunityFromInboxDialog({
       });
 
       toast.success("Oportunidade criada com sucesso");
-      onOpenChange(false);
-      resetForm();
+      
+      if (createProposalAfter) {
+        setCreatedOpportunityId(opportunity.id);
+        onOpenChange(false);
+        setShowProposalDialog(true);
+      } else {
+        onOpenChange(false);
+        resetForm();
+      }
     } catch (error) {
       toast.error("Erro ao criar oportunidade");
     }
@@ -102,6 +114,15 @@ export function CreateOpportunityFromInboxDialog({
     setValue("");
     setNotes("");
     setSelectedStageId("");
+    setCreateProposalAfter(false);
+    setCreatedOpportunityId(null);
+  };
+
+  const handleProposalClose = (open: boolean) => {
+    setShowProposalDialog(open);
+    if (!open) {
+      resetForm();
+    }
   };
 
   return (
@@ -175,6 +196,22 @@ export function CreateOpportunityFromInboxDialog({
                 </span>
               </div>
             )}
+
+            {/* Create Proposal Option */}
+            <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+              <Checkbox
+                id="create-proposal"
+                checked={createProposalAfter}
+                onCheckedChange={(checked) => setCreateProposalAfter(checked === true)}
+              />
+              <label 
+                htmlFor="create-proposal" 
+                className="flex items-center gap-2 text-sm cursor-pointer flex-1"
+              >
+                <FileText className="w-4 h-4 text-primary" />
+                Criar proposta após guardar
+              </label>
+            </div>
           </div>
 
           <DialogFooter>
@@ -199,6 +236,15 @@ export function CreateOpportunityFromInboxDialog({
         automations={matchingAutomations}
         onConfirm={handleSubmit}
       />
+
+      {/* Create Proposal Dialog */}
+      {createdOpportunityId && (
+        <CreateProposalDialog
+          open={showProposalDialog}
+          onOpenChange={handleProposalClose}
+          opportunityId={createdOpportunityId}
+        />
+      )}
     </>
   );
 }

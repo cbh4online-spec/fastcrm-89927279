@@ -19,6 +19,7 @@ import {
   CalendarClock,
   UserCheck,
   Zap,
+  Sparkles,
 } from "lucide-react";
 import {
   useCheckAutomationsForAction,
@@ -29,22 +30,28 @@ import {
 import { AutomationConfirmDialog } from "./AutomationConfirmDialog";
 import { CreateOpportunityFromInboxDialog } from "./CreateOpportunityFromInboxDialog";
 import { ScheduleFollowupDialog } from "./ScheduleFollowupDialog";
+import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
+import { AITemplateGenerator } from "@/components/templates/AITemplateGenerator";
 import { useNavigate } from "react-router-dom";
 
 interface InboxActionsMenuProps {
   conversationId: string;
   leadId: string | null;
   leadName: string | null;
+  opportunityId?: string | null;
   currentPriority?: string | null;
   currentLeadStatus?: string | null;
+  conversationContext?: string;
 }
 
 export function InboxActionsMenu({
   conversationId,
   leadId,
   leadName,
+  opportunityId,
   currentPriority,
   currentLeadStatus,
+  conversationContext,
 }: InboxActionsMenuProps) {
   const navigate = useNavigate();
   
@@ -54,6 +61,8 @@ export function InboxActionsMenu({
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [showOpportunityDialog, setShowOpportunityDialog] = useState(false);
   const [showFollowupDialog, setShowFollowupDialog] = useState(false);
+  const [showProposalDialog, setShowProposalDialog] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   // Mutations
@@ -144,12 +153,19 @@ export function InboxActionsMenu({
   };
 
   const handleSendProposal = () => {
-    // Navigate to proposals page with lead context
-    if (leadId) {
+    if (opportunityId) {
+      // If we have an opportunity, open the proposal dialog directly
+      setShowProposalDialog(true);
+    } else if (leadId) {
+      // Navigate to proposals page with lead context to create opportunity first
       navigate(`/dashboard/proposals?leadId=${leadId}`);
     } else {
       navigate("/dashboard/proposals");
     }
+  };
+
+  const handleGenerateTemplate = () => {
+    setShowAIGenerator(true);
   };
 
   const hasLeadActions = !!leadId;
@@ -222,7 +238,13 @@ export function InboxActionsMenu({
           {/* Send Proposal */}
           <DropdownMenuItem onClick={handleSendProposal}>
             <FileText className="w-4 h-4 mr-2" />
-            Enviar Proposta
+            {opportunityId ? "Criar Proposta" : "Enviar Proposta"}
+          </DropdownMenuItem>
+
+          {/* Generate Template with AI */}
+          <DropdownMenuItem onClick={handleGenerateTemplate}>
+            <Sparkles className="w-4 h-4 mr-2 text-primary" />
+            Gerar Resposta com IA
           </DropdownMenuItem>
 
           {/* Schedule Follow-up */}
@@ -296,6 +318,26 @@ export function InboxActionsMenu({
           leadName={leadName}
         />
       )}
+
+      {/* Create Proposal Dialog */}
+      {opportunityId && (
+        <CreateProposalDialog
+          open={showProposalDialog}
+          onOpenChange={setShowProposalDialog}
+          opportunityId={opportunityId}
+        />
+      )}
+
+      {/* AI Template Generator */}
+      <AITemplateGenerator
+        open={showAIGenerator}
+        onOpenChange={setShowAIGenerator}
+        defaultType="email"
+        context={{
+          contactName: leadName || undefined,
+          conversationContext,
+        }}
+      />
     </>
   );
 }

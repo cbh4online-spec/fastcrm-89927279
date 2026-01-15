@@ -2285,6 +2285,9 @@ export type Database = {
           is_favorite: boolean | null
           language: string | null
           last_used_at: string | null
+          linked_company_id: string | null
+          linked_contact_id: string | null
+          linked_opportunity_id: string | null
           name: string
           reply_rate: number | null
           required_variables: string[] | null
@@ -2311,6 +2314,9 @@ export type Database = {
           is_favorite?: boolean | null
           language?: string | null
           last_used_at?: string | null
+          linked_company_id?: string | null
+          linked_contact_id?: string | null
+          linked_opportunity_id?: string | null
           name: string
           reply_rate?: number | null
           required_variables?: string[] | null
@@ -2337,6 +2343,9 @@ export type Database = {
           is_favorite?: boolean | null
           language?: string | null
           last_used_at?: string | null
+          linked_company_id?: string | null
+          linked_contact_id?: string | null
+          linked_opportunity_id?: string | null
           name?: string
           reply_rate?: number | null
           required_variables?: string[] | null
@@ -2355,6 +2364,27 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "template_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "templates_linked_company_id_fkey"
+            columns: ["linked_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "templates_linked_contact_id_fkey"
+            columns: ["linked_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "templates_linked_opportunity_id_fkey"
+            columns: ["linked_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
             referencedColumns: ["id"]
           },
           {
