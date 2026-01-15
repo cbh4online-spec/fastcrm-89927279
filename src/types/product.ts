@@ -121,6 +121,21 @@ export interface CreateProductInput {
   tax_rate_estimate_pct?: number;
   target_margin_pct?: number;
   images?: string[];
+  // Phase B fields
+  total_units?: number;
+  unit_name?: string;
+  unit_duration?: number;
+  validity_days?: number;
+  delivery_mode?: string;
+  setup_fee?: number;
+  recurring_fee?: number;
+  billing_frequency?: string;
+  bundle_price_mode?: string;
+  commercial_description?: string;
+  benefits?: string[];
+  conditions?: string;
+  sheet_published?: boolean;
+  sheet_slug?: string;
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {

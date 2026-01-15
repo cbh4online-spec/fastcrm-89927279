@@ -125,6 +125,8 @@ export function ProductsList() {
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="simple">Simples</SelectItem>
             <SelectItem value="recurring">Recorrente</SelectItem>
+            <SelectItem value="composite">Bundle</SelectItem>
+            <SelectItem value="sessions">Sessões</SelectItem>
           </SelectContent>
         </Select>
 

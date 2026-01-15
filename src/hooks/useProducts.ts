@@ -130,6 +130,11 @@ export function useUpdateProduct() {
       if (input.tax_rate_estimate_pct !== undefined) updateData.tax_rate_estimate_pct = input.tax_rate_estimate_pct;
       if (input.target_margin_pct !== undefined) updateData.target_margin_pct = input.target_margin_pct;
       if (input.images !== undefined) updateData.images = input.images;
+      if (input.bundle_price_mode !== undefined) updateData.bundle_price_mode = input.bundle_price_mode;
+      if (input.total_units !== undefined) updateData.total_units = input.total_units;
+      if (input.unit_name !== undefined) updateData.unit_name = input.unit_name;
+      if (input.setup_fee !== undefined) updateData.setup_fee = input.setup_fee;
+      if (input.recurring_fee !== undefined) updateData.recurring_fee = input.recurring_fee;
 
       const { data, error } = await supabase
         .from("products")

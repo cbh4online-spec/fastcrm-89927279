@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Package,
   Edit,
@@ -22,6 +23,8 @@ import {
   Trash2,
   DollarSign,
   History,
+  Layers,
+  Info,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -37,6 +40,7 @@ import { ProductFinancialSection } from "./ProductFinancialSection";
 import { ProductKPICards } from "./ProductKPICards";
 import { ProductUsageHistory } from "./ProductUsageHistory";
 import { ProductAlerts } from "./ProductAlerts";
+import { BundleComponentsTab } from "./BundleComponentsTab";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -111,6 +115,7 @@ export function ProductDetailDialog({
     return null;
   }
 
+  const isBundle = product.product_type === "composite";
   const alerts = generateProductAlerts(product, stats);
 
   return (
@@ -120,11 +125,15 @@ export function ProductDetailDialog({
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Package className="h-6 w-6" />
+                {isBundle ? (
+                  <Layers className="h-6 w-6 text-primary" />
+                ) : (
+                  <Package className="h-6 w-6" />
+                )}
                 <div>
                   <DialogTitle className="text-xl">{product.name}</DialogTitle>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline">
+                    <Badge variant={isBundle ? "default" : "outline"}>
                       {productTypeLabels[product.product_type]}
                     </Badge>
                     <Badge
@@ -165,6 +174,16 @@ export function ProductDetailDialog({
           </DialogHeader>
 
           <ScrollArea className="max-h-[calc(90vh-120px)]">
+            {/* Bundle warning about historical data */}
+            {isBundle && (
+              <Alert className="mb-4">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Alterações neste bundle não afetam vendas passadas. Os snapshots históricos são imutáveis.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Alerts */}
             {alerts.length > 0 && (
               <div className="mb-4">
@@ -178,8 +197,14 @@ export function ProductDetailDialog({
             </div>
 
             <Tabs value={tab} onValueChange={setTab}>
-              <TabsList>
+              <TabsList className="flex-wrap">
                 <TabsTrigger value="details">Detalhes</TabsTrigger>
+                {isBundle && (
+                  <TabsTrigger value="components">
+                    <Layers className="h-4 w-4 mr-1" />
+                    Componentes
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="financial">
                   <DollarSign className="h-4 w-4 mr-1" />
                   Financeiro
@@ -194,18 +219,25 @@ export function ProductDetailDialog({
               <TabsContent value="details" className="mt-4 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <Card className="p-4">
-                    <p className="text-sm text-muted-foreground">Preço Base</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isBundle ? "Preço do Bundle" : "Preço Base"}
+                    </p>
                     <p className="text-2xl font-bold">
                       {formatCurrency(product.base_price, product.currency)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {billingTypeLabels[product.billing_type]}
+                      {isBundle && product.bundle_price_mode && (
+                        <> • Modo: {product.bundle_price_mode === "auto" ? "Automático" : "Manual"}</>
+                      )}
                     </p>
                   </Card>
 
                   {product.direct_cost !== null && (
                     <Card className="p-4">
-                      <p className="text-sm text-muted-foreground">Custo Direto</p>
+                      <p className="text-sm text-muted-foreground">
+                        {isBundle ? "Custo Total" : "Custo Direto"}
+                      </p>
                       <p className="text-xl font-semibold">
                         {formatCurrency(product.direct_cost, product.currency)}
                       </p>
@@ -264,6 +296,12 @@ export function ProductDetailDialog({
                   </>
                 )}
               </TabsContent>
+
+              {isBundle && (
+                <TabsContent value="components" className="mt-4">
+                  <BundleComponentsTab product={product} currency={product.currency} />
+                </TabsContent>
+              )}
 
               <TabsContent value="financial" className="mt-4">
                 <ProductFinancialSection product={product} />
