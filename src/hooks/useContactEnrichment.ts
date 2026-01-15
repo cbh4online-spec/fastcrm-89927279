@@ -117,3 +117,36 @@ export function useRefreshContactInsights() {
     },
   });
 }
+
+export function useGenerateContactMessage() {
+  return useMutation({
+    mutationFn: async ({ 
+      contactId, 
+      contactName, 
+      context 
+    }: { 
+      contactId: string; 
+      contactName: string;
+      context?: string;
+    }): Promise<string> => {
+      const { data, error } = await supabase.functions.invoke("contact-insights", {
+        body: { contactId, generateMessage: true, contactName, context },
+      });
+
+      if (error) {
+        console.error("Message generation error:", error);
+        throw new Error(error.message || "Erro ao gerar mensagem");
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || "Erro ao gerar mensagem");
+      }
+
+      return data.data?.personalizedMessage || "Olá! Como posso ajudá-lo hoje?";
+    },
+    onError: (error) => {
+      console.error("Message generation failed:", error);
+      toast.error("Não foi possível gerar a mensagem");
+    },
+  });
+}
