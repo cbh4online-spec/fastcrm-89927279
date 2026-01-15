@@ -15,6 +15,10 @@ export interface Contact {
   job_title: string | null;
   notes: string | null;
   tags: string[];
+  linkedin_url: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  twitter_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -27,6 +31,10 @@ export interface CreateContactData {
   job_title?: string;
   notes?: string;
   tags?: string[];
+  linkedin_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  twitter_url?: string;
 }
 
 export interface UpdateContactData extends Partial<CreateContactData> {
@@ -71,6 +79,10 @@ export function useContacts() {
           job_title: data.job_title || null,
           notes: data.notes || null,
           tags: data.tags || [],
+          linkedin_url: data.linkedin_url || null,
+          facebook_url: data.facebook_url || null,
+          instagram_url: data.instagram_url || null,
+          twitter_url: data.twitter_url || null,
         })
         .select()
         .single();
@@ -98,6 +110,10 @@ export function useContacts() {
       if (data.job_title !== undefined) updateData.job_title = data.job_title || null;
       if (data.notes !== undefined) updateData.notes = data.notes || null;
       if (data.tags !== undefined) updateData.tags = data.tags || [];
+      if (data.linkedin_url !== undefined) updateData.linkedin_url = data.linkedin_url || null;
+      if (data.facebook_url !== undefined) updateData.facebook_url = data.facebook_url || null;
+      if (data.instagram_url !== undefined) updateData.instagram_url = data.instagram_url || null;
+      if (data.twitter_url !== undefined) updateData.twitter_url = data.twitter_url || null;
 
       const { data: contact, error } = await supabase
         .from("contacts")

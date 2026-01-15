@@ -19,6 +19,10 @@ export interface Lead {
   external_whatsapp_id: string | null;
   external_email: string | null;
   external_username: string | null;
+  linkedin_url: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  twitter_url: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -35,6 +39,10 @@ export interface CreateLeadInput {
   external_whatsapp_id?: string;
   external_email?: string;
   external_username?: string;
+  linkedin_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  twitter_url?: string;
 }
 
 export interface UpdateLeadInput extends Partial<CreateLeadInput> {
@@ -118,6 +126,10 @@ export function useCreateLead() {
           phone: input.phone || null,
           source: input.source || null,
           status: input.status || "new",
+          linkedin_url: input.linkedin_url || null,
+          facebook_url: input.facebook_url || null,
+          instagram_url: input.instagram_url || null,
+          twitter_url: input.twitter_url || null,
         })
         .select()
         .single();

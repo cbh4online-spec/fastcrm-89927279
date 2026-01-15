@@ -17,6 +17,10 @@ export interface Company {
   address: string | null;
   notes: string | null;
   tags: string[];
+  linkedin_url: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  twitter_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +35,10 @@ export interface CreateCompanyData {
   address?: string;
   notes?: string;
   tags?: string[];
+  linkedin_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  twitter_url?: string;
 }
 
 export interface UpdateCompanyData extends Partial<CreateCompanyData> {
@@ -77,6 +85,10 @@ export function useCompanies() {
           address: data.address || null,
           notes: data.notes || null,
           tags: data.tags || [],
+          linkedin_url: data.linkedin_url || null,
+          facebook_url: data.facebook_url || null,
+          instagram_url: data.instagram_url || null,
+          twitter_url: data.twitter_url || null,
         })
         .select()
         .single();
@@ -108,6 +120,10 @@ export function useCompanies() {
           address: data.address,
           notes: data.notes,
           tags: data.tags,
+          linkedin_url: data.linkedin_url,
+          facebook_url: data.facebook_url,
+          instagram_url: data.instagram_url,
+          twitter_url: data.twitter_url,
         })
         .eq("id", id)
         .select()

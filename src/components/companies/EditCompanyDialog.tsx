@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
+import { SocialMediaFields } from "@/components/shared/SocialMediaFields";
 
 interface EditCompanyDialogProps {
   company: Company;
@@ -64,6 +65,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     address: "",
     notes: "",
     tags: "",
+    linkedin_url: "",
+    facebook_url: "",
+    instagram_url: "",
+    twitter_url: "",
   });
 
   useEffect(() => {
@@ -78,6 +83,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         address: company.address || "",
         notes: company.notes || "",
         tags: company.tags?.join(", ") || "",
+        linkedin_url: company.linkedin_url || "",
+        facebook_url: company.facebook_url || "",
+        instagram_url: company.instagram_url || "",
+        twitter_url: company.twitter_url || "",
       });
     }
   }, [company]);
@@ -102,11 +111,19 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
+        linkedin_url: formData.linkedin_url.trim() || undefined,
+        facebook_url: formData.facebook_url.trim() || undefined,
+        instagram_url: formData.instagram_url.trim() || undefined,
+        twitter_url: formData.twitter_url.trim() || undefined,
       });
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSocialChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
   };
 
   return (
@@ -221,6 +238,17 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Informações adicionais sobre a empresa..."
                 rows={3}
+              />
+            </div>
+            
+            {/* Social Media Fields */}
+            <div className="sm:col-span-2 pt-2 border-t">
+              <SocialMediaFields
+                linkedinUrl={formData.linkedin_url}
+                facebookUrl={formData.facebook_url}
+                instagramUrl={formData.instagram_url}
+                twitterUrl={formData.twitter_url}
+                onChange={handleSocialChange}
               />
             </div>
             

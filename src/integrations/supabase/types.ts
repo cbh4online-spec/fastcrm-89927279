@@ -848,15 +848,19 @@ export type Database = {
           email: string | null
           employee_count: number | null
           estimated_value: number | null
+          facebook_url: string | null
           id: string
           industry: string | null
+          instagram_url: string | null
           last_contact_at: string | null
+          linkedin_url: string | null
           name: string
           notes: string | null
           phone: string | null
           size: string | null
           source: string | null
           tags: string[] | null
+          twitter_url: string | null
           updated_at: string
           website: string | null
           workspace_id: string
@@ -879,15 +883,19 @@ export type Database = {
           email?: string | null
           employee_count?: number | null
           estimated_value?: number | null
+          facebook_url?: string | null
           id?: string
           industry?: string | null
+          instagram_url?: string | null
           last_contact_at?: string | null
+          linkedin_url?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           size?: string | null
           source?: string | null
           tags?: string[] | null
+          twitter_url?: string | null
           updated_at?: string
           website?: string | null
           workspace_id: string
@@ -910,15 +918,19 @@ export type Database = {
           email?: string | null
           employee_count?: number | null
           estimated_value?: number | null
+          facebook_url?: string | null
           id?: string
           industry?: string | null
+          instagram_url?: string | null
           last_contact_at?: string | null
+          linkedin_url?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           size?: string | null
           source?: string | null
           tags?: string[] | null
+          twitter_url?: string | null
           updated_at?: string
           website?: string | null
           workspace_id?: string
@@ -950,14 +962,18 @@ export type Database = {
           created_by: string
           email: string | null
           estimated_value: number | null
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
           job_title: string | null
           last_contact_at: string | null
+          linkedin_url: string | null
           name: string
           notes: string | null
           phone: string | null
           source: string | null
           tags: string[] | null
+          twitter_url: string | null
           updated_at: string
           workspace_id: string
         }
@@ -977,14 +993,18 @@ export type Database = {
           created_by: string
           email?: string | null
           estimated_value?: number | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           job_title?: string | null
           last_contact_at?: string | null
+          linkedin_url?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           source?: string | null
           tags?: string[] | null
+          twitter_url?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -1004,14 +1024,18 @@ export type Database = {
           created_by?: string
           email?: string | null
           estimated_value?: number | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           job_title?: string | null
           last_contact_at?: string | null
+          linkedin_url?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           source?: string | null
           tags?: string[] | null
+          twitter_url?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -2686,14 +2710,18 @@ export type Database = {
           external_instagram_id: string | null
           external_username: string | null
           external_whatsapp_id: string | null
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
           last_contact_at: string | null
           lead_score: number | null
+          linkedin_url: string | null
           name: string
           phone: string | null
           source: string | null
           status: string
           tags: string[] | null
+          twitter_url: string | null
           updated_at: string
           workspace_id: string
         }
@@ -2716,14 +2744,18 @@ export type Database = {
           external_instagram_id?: string | null
           external_username?: string | null
           external_whatsapp_id?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           last_contact_at?: string | null
           lead_score?: number | null
+          linkedin_url?: string | null
           name: string
           phone?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
+          twitter_url?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -2746,14 +2778,18 @@ export type Database = {
           external_instagram_id?: string | null
           external_username?: string | null
           external_whatsapp_id?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           last_contact_at?: string | null
           lead_score?: number | null
+          linkedin_url?: string | null
           name?: string
           phone?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
+          twitter_url?: string | null
           updated_at?: string
           workspace_id?: string
         }
