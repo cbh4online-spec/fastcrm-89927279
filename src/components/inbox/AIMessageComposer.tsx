@@ -2,19 +2,12 @@ import { useState, useRef, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   Send,
   Sparkles,
@@ -22,7 +15,6 @@ import {
   Target,
   FileText,
   Loader2,
-  Wand2,
   RefreshCw,
   CheckCircle2,
   Copy,
@@ -31,8 +23,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useInboxAI, LeadData, OpportunityData, ReplySuggestion, ModifyAction } from "@/hooks/useInboxAI";
 import { Message } from "@/hooks/useMessages";
-import { useTemplates, Template } from "@/hooks/useTemplates";
-import { TemplateSelector } from "@/components/templates/TemplateSelector";
+import { InboxTemplatePanel } from "./InboxTemplatePanel";
 import { VariableContext } from "@/lib/templateVariables";
 
 interface AIMessageComposerProps {
@@ -59,11 +50,9 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     const [reasoning, setReasoning] = useState<string>("");
     const [isModifying, setIsModifying] = useState(false);
     const [modifyingAction, setModifyingAction] = useState<ModifyAction | null>(null);
-    const [showTemplateRewrite, setShowTemplateRewrite] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     
     const { isLoading, suggestReplies, modifyReply } = useInboxAI();
-    const { data: templates } = useTemplates();
 
     useImperativeHandle(ref, () => ({
       focus: () => textareaRef.current?.focus(),
@@ -107,43 +96,17 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
       textareaRef.current?.focus();
     };
 
-    const handleTemplateApply = (renderedContent: string, _renderedSubject?: string, _template?: Template) => {
-      setMessage(renderedContent);
-      setShowTemplateRewrite(true);
-    };
-
-    const handleRewriteWithTemplate = async (template: Template) => {
-      if (!message.trim()) {
-        toast.error("Nenhuma mensagem para reescrever");
-        return;
-      }
-      
-      // Use rewrite action with template context
-      setIsModifying(true);
-      setModifyingAction("rewrite");
-      
-      const result = await modifyReply(
-        `Rewrite this message using the template "${template.name}" style and structure. Original message: ${message}. Template content for reference: ${template.content}`,
-        "rewrite",
-        messages,
-        channel
-      );
-      
-      if (result) {
-        setMessage(result.modifiedText);
-        toast.success("Mensagem reescrita com template");
-      }
-      
-      setIsModifying(false);
-      setModifyingAction(null);
-      setShowTemplateRewrite(false);
+    const handleTemplateApply = (content: string, subject?: string) => {
+      // For email, we could handle subject separately if needed
+      // For now, we just apply the content
+      setMessage(content);
+      textareaRef.current?.focus();
     };
 
     const handleSend = async () => {
       if (!message.trim() || isSending) return;
       await onSend(message.trim());
       setMessage("");
-      setShowTemplateRewrite(false);
     };
 
     const handleCopy = (text: string) => {
@@ -182,19 +145,6 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
       };
       return labels[ch] || ch;
     };
-
-    // Map channel to template type for filtering
-    const channelToTemplateType: Record<string, string> = {
-      whatsapp: "whatsapp",
-      email: "email",
-      instagram: "instagram_dm",
-      sms: "sms",
-    };
-    const templateType = channelToTemplateType[channel];
-
-    const channelTemplates = templates?.filter(t => 
-      !templateType || t.type === templateType || t.type === "email"
-    ) || [];
 
     return (
       <div className="p-3 border-t border-border bg-card space-y-2">
@@ -271,70 +221,16 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
                 <p>Adiciona tom comercial focado em conversão</p>
               </TooltipContent>
             </Tooltip>
-
-            {/* Rewrite with Template */}
-            <Popover open={showTemplateRewrite} onOpenChange={setShowTemplateRewrite}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isLoading || !message.trim()}
-                      className="h-7 text-xs gap-1"
-                    >
-                      {isModifying && modifyingAction === "rewrite" ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <FileText className="w-3 h-3" />
-                      )}
-                      Usar template
-                    </Button>
-                  </PopoverTrigger>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Reescreve usando estilo de um template</p>
-                </TooltipContent>
-              </Tooltip>
-              <PopoverContent className="w-64 p-2" align="start">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium">Selecionar template:</p>
-                  <ScrollArea className="h-48">
-                    <div className="space-y-1">
-                      {channelTemplates.length > 0 ? (
-                        channelTemplates.map((template) => (
-                          <Button
-                            key={template.id}
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-start text-xs h-8"
-                            onClick={() => handleRewriteWithTemplate(template)}
-                            disabled={isModifying}
-                          >
-                            <FileText className="w-3 h-3 mr-2 flex-shrink-0" />
-                            <span className="truncate">{template.name}</span>
-                          </Button>
-                        ))
-                      ) : (
-                        <p className="text-xs text-muted-foreground p-2">
-                          Nenhum template disponível para {getChannelLabel(channel)}
-                        </p>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
           </TooltipProvider>
 
-          {/* Template Selector (existing functionality) */}
+          {/* Template Panel (NEW - with AI adaptation) */}
           <div className="ml-auto">
-            <TemplateSelector
-              entityType="lead"
-              entityId={templateContext.lead?.id || conversationId}
-              entityData={templateContext}
+            <InboxTemplatePanel
               channel={channel}
-              goal="follow_up"
+              messages={messages}
+              templateContext={templateContext}
+              leadData={leadData}
+              opportunityData={opportunityData}
               onApply={handleTemplateApply}
               trigger={
                 <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
