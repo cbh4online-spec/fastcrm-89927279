@@ -32,6 +32,7 @@ serve(async (req) => {
       const opportunityId = session.metadata?.opportunity_id;
       const workspaceId = session.metadata?.workspace_id;
       const paymentIntentId = session.payment_intent as string;
+      const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
 
       // Idempotency check - prevent duplicate processing
       if (proposalId && paymentIntentId) {
@@ -48,6 +49,22 @@ serve(async (req) => {
           });
         }
 
+        // Get proposal with opportunity details
+        const { data: proposal } = await supabaseClient
+          .from("proposals")
+          .select("title, template_id, opportunities(id, title, owner_id, lead_id, value)")
+          .eq("id", proposalId)
+          .single();
+
+        // Extract opportunity data
+        const opportunity = (proposal?.opportunities as unknown) as { 
+          id: string; 
+          title: string; 
+          owner_id: string | null; 
+          lead_id: string | null; 
+          value: number | null;
+        } | null;
+
         // Update proposal with idempotency key and status
         await supabaseClient
           .from("proposals")
@@ -60,17 +77,51 @@ serve(async (req) => {
           })
           .eq("id", proposalId);
 
-        // Update opportunity to won
+        // Update opportunity to won and update value if paid amount differs
         if (opportunityId) {
+          const updateData: Record<string, unknown> = { 
+            status: "won",
+            updated_at: new Date().toISOString()
+          };
+          
+          // Update opportunity value to match the actual payment if different
+          if (amountPaid > 0 && opportunity?.value !== amountPaid) {
+            updateData.value = amountPaid;
+          }
+
           await supabaseClient
             .from("opportunities")
-            .update({ status: "won" })
+            .update(updateData)
             .eq("id", opportunityId);
+
+          console.log(`[PROPOSAL-WEBHOOK] Opportunity ${opportunityId} marked as won`);
         }
 
         // Log activity and analytics
         if (workspaceId) {
-          // Activity log
+          // CRM Activity log - this is crucial for the unified activity timeline
+          if (opportunityId) {
+            await supabaseClient.from("crm_activities").insert({
+              workspace_id: workspaceId,
+              entity_type: "opportunity",
+              entity_id: opportunityId,
+              opportunity_id: opportunityId,
+              lead_id: opportunity?.lead_id || null,
+              activity_type: "deal_won",
+              title: `Proposta aceite e paga`,
+              description: `A proposta "${proposal?.title || ""}" foi aceite. Valor: €${amountPaid.toLocaleString("pt-PT")}`,
+              performed_by: opportunity?.owner_id || null,
+              metadata: {
+                proposal_id: proposalId,
+                amount: amountPaid,
+                currency: session.currency,
+                payment_intent: paymentIntentId,
+                source: "proposal_payment"
+              }
+            });
+          }
+
+          // Proposal activity log
           await supabaseClient.from("proposal_activity_logs").insert({
             proposal_id: proposalId,
             workspace_id: workspaceId,
@@ -83,12 +134,6 @@ serve(async (req) => {
           });
 
           // Analytics
-          const { data: proposal } = await supabaseClient
-            .from("proposals")
-            .select("template_id")
-            .eq("id", proposalId)
-            .single();
-
           await supabaseClient.from("proposal_analytics").insert({
             workspace_id: workspaceId,
             proposal_id: proposalId,
@@ -109,7 +154,6 @@ serve(async (req) => {
             .eq("is_active", true);
 
           if (automationRules && automationRules.length > 0) {
-            // Log automation executions for each matching rule
             for (const rule of automationRules) {
               await supabaseClient.from("automation_logs").insert({
                 rule_id: rule.id,
@@ -125,9 +169,54 @@ serve(async (req) => {
             }
             console.log(`[PROPOSAL-WEBHOOK] Triggered ${automationRules.length} automations`);
           }
+
+          // Also trigger opportunity_won automations
+          const { data: wonRules } = await supabaseClient
+            .from("automation_rules")
+            .select("*")
+            .eq("workspace_id", workspaceId)
+            .eq("trigger", "opportunity_won")
+            .eq("is_active", true);
+
+          if (wonRules && wonRules.length > 0) {
+            for (const rule of wonRules) {
+              await supabaseClient.from("automation_logs").insert({
+                rule_id: rule.id,
+                workspace_id: workspaceId,
+                trigger_data: {
+                  opportunity_id: opportunityId,
+                  proposal_id: proposalId,
+                  amount: amountPaid,
+                  currency: session.currency,
+                  won_via: "proposal_payment"
+                },
+                status: "pending",
+              });
+            }
+            console.log(`[PROPOSAL-WEBHOOK] Triggered ${wonRules.length} opportunity_won automations`);
+          }
         }
 
-        console.log(`[PROPOSAL-WEBHOOK] Proposal ${proposalId} accepted`);
+        console.log(`[PROPOSAL-WEBHOOK] Proposal ${proposalId} accepted with payment €${amountPaid}`);
+      }
+    }
+
+    // Handle payment failures
+    if (event.type === "checkout.session.expired" || event.type === "payment_intent.payment_failed") {
+      let proposalId: string | undefined;
+      
+      if (event.type === "checkout.session.expired") {
+        const session = event.data.object as Stripe.Checkout.Session;
+        proposalId = session.metadata?.proposal_id;
+      }
+      
+      if (proposalId) {
+        await supabaseClient
+          .from("proposals")
+          .update({ payment_status: "failed" })
+          .eq("id", proposalId);
+        
+        console.log(`[PROPOSAL-WEBHOOK] Payment failed for proposal ${proposalId}`);
       }
     }
 
