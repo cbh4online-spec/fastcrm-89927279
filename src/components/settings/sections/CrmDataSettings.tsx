@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SettingsSection, SettingsItem } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
 import { CustomFieldsManager } from "@/components/custom-fields/CustomFieldsManager";
+import { FormLayoutEditor } from "@/components/custom-fields/FormLayoutEditor";
 import {
   Users,
   SlidersHorizontal,
@@ -15,6 +16,7 @@ import {
   Trash2,
   GripVertical,
   Edit2,
+  LayoutList,
 } from "lucide-react";
 import {
   Dialog,
@@ -645,6 +647,17 @@ export function CrmDataSettings({ searchQuery = "", matchedSections }: CrmDataSe
               </Button>
             }
           />
+        </SettingsSection>
+      )}
+
+      {/* Form Layout Editor */}
+      {shouldShow("crm-custom-fields") && (
+        <SettingsSection
+          title="Layout dos Formulários"
+          description="Ordenar todos os campos (nativos e personalizados) nos formulários"
+          icon={<LayoutList className="h-5 w-5" />}
+        >
+          <FormLayoutEditor />
         </SettingsSection>
       )}
 
