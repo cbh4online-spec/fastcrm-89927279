@@ -35,3 +35,9 @@ verify_jwt = false
 
 [functions.company-insights]
 verify_jwt = false
+
+[functions.contact-enrich]
+verify_jwt = false
+
+[functions.contact-insights]
+verify_jwt = false
