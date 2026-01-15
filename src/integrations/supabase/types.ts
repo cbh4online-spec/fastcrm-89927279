@@ -1575,15 +1575,27 @@ export type Database = {
       }
       leads: {
         Row: {
+          ai_analyzed_at: string | null
+          ai_insight: string | null
+          ai_lead_type: string | null
+          ai_next_action: string | null
+          ai_next_action_type: string | null
+          ai_temperature: string | null
+          assigned_to: string | null
+          automation_active: boolean | null
+          company_name: string | null
+          conversion_probability: number | null
           created_at: string
           created_by: string
           email: string | null
+          estimated_value: number | null
           external_email: string | null
           external_instagram_id: string | null
           external_username: string | null
           external_whatsapp_id: string | null
           id: string
           last_contact_at: string | null
+          lead_score: number | null
           name: string
           phone: string | null
           source: string | null
@@ -1593,15 +1605,27 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          ai_analyzed_at?: string | null
+          ai_insight?: string | null
+          ai_lead_type?: string | null
+          ai_next_action?: string | null
+          ai_next_action_type?: string | null
+          ai_temperature?: string | null
+          assigned_to?: string | null
+          automation_active?: boolean | null
+          company_name?: string | null
+          conversion_probability?: number | null
           created_at?: string
           created_by: string
           email?: string | null
+          estimated_value?: number | null
           external_email?: string | null
           external_instagram_id?: string | null
           external_username?: string | null
           external_whatsapp_id?: string | null
           id?: string
           last_contact_at?: string | null
+          lead_score?: number | null
           name: string
           phone?: string | null
           source?: string | null
@@ -1611,15 +1635,27 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          ai_analyzed_at?: string | null
+          ai_insight?: string | null
+          ai_lead_type?: string | null
+          ai_next_action?: string | null
+          ai_next_action_type?: string | null
+          ai_temperature?: string | null
+          assigned_to?: string | null
+          automation_active?: boolean | null
+          company_name?: string | null
+          conversion_probability?: number | null
           created_at?: string
           created_by?: string
           email?: string | null
+          estimated_value?: number | null
           external_email?: string | null
           external_instagram_id?: string | null
           external_username?: string | null
           external_whatsapp_id?: string | null
           id?: string
           last_contact_at?: string | null
+          lead_score?: number | null
           name?: string
           phone?: string | null
           source?: string | null
