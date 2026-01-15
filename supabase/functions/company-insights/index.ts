@@ -28,7 +28,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ success: false, error: "Não autorizado" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -36,8 +36,26 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Validate JWT using the anon key client
+    const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getUser(token);
+    
+    if (claimsError || !claimsData?.user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Não autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Use service role for data access
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { companyId } = await req.json();
 

@@ -34,4 +34,4 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.company-insights]
-verify_jwt = true
+verify_jwt = false
