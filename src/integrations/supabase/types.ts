@@ -4783,6 +4783,12 @@ export type Database = {
       }
       workspaces: {
         Row: {
+          billing_address: string | null
+          billing_city: string | null
+          billing_country: string | null
+          billing_email: string | null
+          billing_postal_code: string | null
+          company_name: string | null
           created_at: string
           id: string
           managed_by_workspace_id: string | null
@@ -4790,9 +4796,16 @@ export type Database = {
           owner_id: string | null
           slug: string
           status: string | null
+          tax_id: string | null
           updated_at: string
         }
         Insert: {
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_email?: string | null
+          billing_postal_code?: string | null
+          company_name?: string | null
           created_at?: string
           id?: string
           managed_by_workspace_id?: string | null
@@ -4800,9 +4813,16 @@ export type Database = {
           owner_id?: string | null
           slug: string
           status?: string | null
+          tax_id?: string | null
           updated_at?: string
         }
         Update: {
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_email?: string | null
+          billing_postal_code?: string | null
+          company_name?: string | null
           created_at?: string
           id?: string
           managed_by_workspace_id?: string | null
@@ -4810,6 +4830,7 @@ export type Database = {
           owner_id?: string | null
           slug?: string
           status?: string | null
+          tax_id?: string | null
           updated_at?: string
         }
         Relationships: [
