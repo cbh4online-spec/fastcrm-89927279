@@ -8,9 +8,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, Bell, LogOut, User, Settings, Search } from "lucide-react";
+import { Menu, Bell, LogOut, User, Settings, Search, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GlobalSearch } from "./GlobalSearch";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -19,6 +21,7 @@ interface TopBarProps {
 export function TopBar({ onMenuClick }: TopBarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { isSuperAdmin } = useUserRole();
 
   const handleSignOut = async () => {
     await signOut();
@@ -59,6 +62,25 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             }
           />
         </div>
+
+        {/* Super Admin SaaS Management shortcut */}
+        {isSuperAdmin && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => navigate("/dashboard/super-admin")}
+                className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+              >
+                <ShieldCheck className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Gestão SaaS</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
