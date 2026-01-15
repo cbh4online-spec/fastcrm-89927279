@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -19,8 +18,6 @@ import {
   Archive,
   RotateCcw,
   Loader2,
-  ImagePlus,
-  Trash2,
   DollarSign,
   History,
   Layers,
@@ -61,7 +58,6 @@ export function ProductDetailDialog({
 }: ProductDetailDialogProps) {
   const [tab, setTab] = useState("details");
   const [editOpen, setEditOpen] = useState(false);
-  const [newImageUrl, setNewImageUrl] = useState("");
 
   const { data: product, isLoading } = useProduct(productId);
   const { data: stats } = useProductStats(productId);
@@ -80,28 +76,6 @@ export function ProductDetailDialog({
     await archiveProduct.mutateAsync({
       id: product.id,
       archive: product.status === "active",
-    });
-  };
-
-  const handleAddImage = async () => {
-    if (!product || !newImageUrl.trim()) return;
-
-    await updateProduct.mutateAsync({
-      id: product.id,
-      images: [...(product.images || []), newImageUrl.trim()],
-    });
-    setNewImageUrl("");
-  };
-
-  const handleRemoveImage = async (index: number) => {
-    if (!product) return;
-
-    const newImages = [...(product.images || [])];
-    newImages.splice(index, 1);
-
-    await updateProduct.mutateAsync({
-      id: product.id,
-      images: newImages,
     });
   };
 
@@ -333,49 +307,20 @@ export function ProductDetailDialog({
                 <ProductUsageHistory productId={productId} currency={product.currency} />
               </TabsContent>
 
-              <TabsContent value="images" className="mt-4 space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="URL da imagem"
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
-                  />
-                  <Button
-                    onClick={handleAddImage}
-                    disabled={!newImageUrl.trim() || updateProduct.isPending}
-                  >
-                    <ImagePlus className="h-4 w-4 mr-2" />
-                    Adicionar
-                  </Button>
-                </div>
+              <TabsContent value="images" className="mt-4">
+                <ProductImagesGallery product={product} />
+              </TabsContent>
 
-                {product.images && product.images.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-4">
-                    {product.images.map((url, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={url}
-                          alt={`${product.name} - ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleRemoveImage(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <ImagePlus className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                    <p>Sem imagens ainda.</p>
-                    <p className="text-sm">Adicione URLs de imagens acima.</p>
-                  </div>
-                )}
+              <TabsContent value="progressions" className="mt-4">
+                <ProductProgressionsTab product={product} />
+              </TabsContent>
+
+              <TabsContent value="cycles" className="mt-4">
+                <ProductCyclesTabEnhanced product={product} />
+              </TabsContent>
+
+              <TabsContent value="sheet" className="mt-4">
+                <ProductSheetSettings product={product} />
               </TabsContent>
             </Tabs>
           </ScrollArea>
