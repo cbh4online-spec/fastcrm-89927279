@@ -109,9 +109,9 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
 
   const hasVisibleSections = visibleSections.some(s => s.show);
 
-  // Get current user's role
-  const currentUserMember = members.find(m => m.user_id === user?.id);
-  const canManageMembers = currentUserMember?.role === "owner" || currentUserMember?.role === "admin";
+  // Get current user's role - use workspace role from context as primary source
+  const workspaceRole = currentWorkspace?.role;
+  const canManageMembers = workspaceRole === "owner" || workspaceRole === "admin" || workspaceRole === "agency";
 
   const handleInviteMember = async () => {
     if (!inviteEmail.trim() || !currentWorkspace) return;
