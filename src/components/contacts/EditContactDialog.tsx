@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
+import { SocialMediaFields } from "@/components/shared/SocialMediaFields";
 
 interface EditContactDialogProps {
   contact: Contact;
@@ -31,6 +32,10 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
     job_title: "",
     notes: "",
     tags: "",
+    linkedin_url: "",
+    facebook_url: "",
+    instagram_url: "",
+    twitter_url: "",
   });
 
   useEffect(() => {
@@ -43,6 +48,10 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
         job_title: contact.job_title || "",
         notes: contact.notes || "",
         tags: contact.tags?.join(", ") || "",
+        linkedin_url: contact.linkedin_url || "",
+        facebook_url: contact.facebook_url || "",
+        instagram_url: contact.instagram_url || "",
+        twitter_url: contact.twitter_url || "",
       });
     }
   }, [contact]);
@@ -65,11 +74,19 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
+        linkedin_url: formData.linkedin_url.trim() || undefined,
+        facebook_url: formData.facebook_url.trim() || undefined,
+        instagram_url: formData.instagram_url.trim() || undefined,
+        twitter_url: formData.twitter_url.trim() || undefined,
       });
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSocialChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
   };
 
   return (
@@ -148,6 +165,17 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Informações adicionais sobre o contacto..."
                 rows={3}
+              />
+            </div>
+            
+            {/* Social Media Fields */}
+            <div className="sm:col-span-2 pt-2 border-t">
+              <SocialMediaFields
+                linkedinUrl={formData.linkedin_url}
+                facebookUrl={formData.facebook_url}
+                instagramUrl={formData.instagram_url}
+                twitterUrl={formData.twitter_url}
+                onChange={handleSocialChange}
               />
             </div>
             
