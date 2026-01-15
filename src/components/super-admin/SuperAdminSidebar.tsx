@@ -19,9 +19,16 @@ import {
   ChevronDown,
   ChevronRight,
   ShieldCheck,
+  Zap,
+  TrendingUp,
+  Bell,
+  Database,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 interface NavItem {
   id: string;
@@ -35,6 +42,14 @@ interface NavSection {
   icon: React.ElementType;
   items: NavItem[];
 }
+
+// Quick access shortcuts for SaaS management
+const quickActions = [
+  { id: "workspaces", label: "Workspaces", icon: Building2, color: "bg-blue-500" },
+  { id: "subscriptions", label: "Subscrições", icon: CreditCard, color: "bg-green-500" },
+  { id: "ai-usage", label: "Uso IA", icon: Brain, color: "bg-purple-500" },
+  { id: "alerts", label: "Alertas", icon: Bell, color: "bg-amber-500" },
+];
 
 const navigation: NavSection[] = [
   {
@@ -122,6 +137,33 @@ export function SuperAdminSidebar({ activeSection, onSectionChange }: SuperAdmin
             <h2 className="font-semibold text-foreground">Super Admin</h2>
             <p className="text-xs text-muted-foreground">Gestão SaaS</p>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Actions Menu */}
+      <div className="p-3 border-b bg-muted/30">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Zap className="h-3.5 w-3.5 text-amber-500" />
+          <span className="text-xs font-medium text-muted-foreground">Acesso Rápido</span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {quickActions.map((action) => (
+            <Button
+              key={action.id}
+              variant={isItemActive(action.id) ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "h-auto py-2 px-2 flex flex-col items-center gap-1 text-xs",
+                isItemActive(action.id) && "ring-2 ring-primary/20"
+              )}
+              onClick={() => onSectionChange(action.id)}
+            >
+              <div className={cn("p-1.5 rounded-md", action.color)}>
+                <action.icon className="h-3.5 w-3.5 text-white" />
+              </div>
+              <span className="truncate w-full text-center">{action.label}</span>
+            </Button>
+          ))}
         </div>
       </div>
       
