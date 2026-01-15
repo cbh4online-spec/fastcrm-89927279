@@ -75,3 +75,6 @@ verify_jwt = false
 
 [functions.ai-analyze-entity]
 verify_jwt = false
+
+[functions.ai-entity-insights]
+verify_jwt = false
