@@ -39,6 +39,7 @@ import Imports from "./pages/Imports";
 import PublicProductSheet from "./pages/PublicProductSheet";
 import Invoices from "./pages/Invoices";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
