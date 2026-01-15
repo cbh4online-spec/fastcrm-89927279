@@ -105,13 +105,6 @@ export function WorkspacesSection() {
             status,
             current_period_end,
             stripe_customer_id
-          ),
-          workspace_usage (
-            leads_count,
-            contacts_count,
-            companies_count,
-            ai_calls_used,
-            emails_sent
           )
         `)
         .order("created_at", { ascending: false });
@@ -128,6 +121,36 @@ export function WorkspacesSection() {
         return acc;
       }, {}) || {};
 
+      // Get leads counts per workspace
+      const { data: leadsData } = await supabase
+        .from("leads")
+        .select("workspace_id");
+
+      const leadsCounts = leadsData?.reduce((acc: Record<string, number>, l: any) => {
+        acc[l.workspace_id] = (acc[l.workspace_id] || 0) + 1;
+        return acc;
+      }, {}) || {};
+
+      // Get contacts counts per workspace
+      const { data: contactsData } = await supabase
+        .from("contacts")
+        .select("workspace_id");
+
+      const contactsCounts = contactsData?.reduce((acc: Record<string, number>, c: any) => {
+        acc[c.workspace_id] = (acc[c.workspace_id] || 0) + 1;
+        return acc;
+      }, {}) || {};
+
+      // Get companies counts per workspace
+      const { data: companiesData } = await supabase
+        .from("companies")
+        .select("workspace_id");
+
+      const companiesCounts = companiesData?.reduce((acc: Record<string, number>, c: any) => {
+        acc[c.workspace_id] = (acc[c.workspace_id] || 0) + 1;
+        return acc;
+      }, {}) || {};
+
       return (workspacesData || []).map((ws: any) => ({
         id: ws.id,
         name: ws.name,
@@ -136,7 +159,13 @@ export function WorkspacesSection() {
         owner_id: ws.owner_id,
         created_at: ws.created_at,
         subscription: ws.workspace_subscriptions?.[0] || undefined,
-        usage: ws.workspace_usage?.[0] || undefined,
+        usage: {
+          leads_count: leadsCounts[ws.id] || 0,
+          contacts_count: contactsCounts[ws.id] || 0,
+          companies_count: companiesCounts[ws.id] || 0,
+          ai_calls_used: 0,
+          emails_sent: 0,
+        },
         members_count: memberCounts[ws.id] || 1,
       })) as WorkspaceDetails[];
     },
@@ -378,7 +407,8 @@ export function WorkspacesSection() {
                   <TableCell>
                     <div className="text-xs space-y-1">
                       <p>Leads: {ws.usage?.leads_count || 0}</p>
-                      <p>IA: {ws.usage?.ai_calls_used || 0}</p>
+                      <p>Contactos: {ws.usage?.contacts_count || 0}</p>
+                      <p>Empresas: {ws.usage?.companies_count || 0}</p>
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
