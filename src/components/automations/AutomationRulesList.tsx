@@ -71,6 +71,8 @@ const triggerLabels: Record<AutomationTrigger, string> = {
   proposal_viewed: "Proposta Vista",
   proposal_paid: "Proposta Paga",
   scheduled_time: "Agendado",
+  tag_added: "Tag Adicionada",
+  tag_removed: "Tag Removida",
 };
 
 const triggerColors: Record<AutomationTrigger, string> = {
@@ -97,7 +99,10 @@ const triggerColors: Record<AutomationTrigger, string> = {
   proposal_viewed: "bg-rose-500",
   proposal_paid: "bg-teal-500",
   scheduled_time: "bg-slate-500",
+  tag_added: "bg-pink-500",
+  tag_removed: "bg-pink-400",
 };
+
 
 interface Props {
   onEdit: (rule: AutomationRule) => void;

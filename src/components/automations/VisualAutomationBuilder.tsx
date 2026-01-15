@@ -85,6 +85,9 @@ const triggerOptions: { value: AutomationTrigger; label: string; humanLabel: str
   { value: "company_created", label: "Empresa Criada", humanLabel: "When a company is created", entity: "company" },
   { value: "company_updated", label: "Empresa Atualizada", humanLabel: "When a company is updated", entity: "company" },
   { value: "custom_field_updated", label: "Campo Personalizado Alterado", humanLabel: "When a custom field changes", entity: "any" },
+  // Tag triggers
+  { value: "tag_added", label: "Tag Adicionada", humanLabel: "When a tag is added", entity: "lead", requiresConfig: true },
+  { value: "tag_removed", label: "Tag Removida", humanLabel: "When a tag is removed", entity: "lead", requiresConfig: true },
   // Inbox triggers
   { value: "message_received", label: "Mensagem Recebida", humanLabel: "When a message is received", entity: "conversation", requiresConfig: true },
   { value: "first_message_from_lead", label: "1ª Mensagem do Lead", humanLabel: "When a lead sends the first message", entity: "conversation", requiresConfig: true },
@@ -238,6 +241,7 @@ const formSchema = z.object({
     "opportunity_created", "opportunity_updated", "opportunity_stage_changed", "opportunity_value_changed",
     "contact_created", "contact_updated", "company_created", "company_updated",
     "custom_field_updated", "payment_confirmed",
+    "tag_added", "tag_removed",
     "message_received", "first_message_from_lead", "conversation_no_reply", "conversation_resolved", "conversation_priority_changed",
     "proposal_created", "proposal_viewed", "proposal_paid",
     "scheduled_time"

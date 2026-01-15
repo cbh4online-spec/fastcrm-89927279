@@ -25,6 +25,8 @@ const triggerDescriptions: Record<AutomationTrigger, string> = {
   proposal_viewed: "Quando uma proposta é visualizada",
   proposal_paid: "Quando uma proposta é paga",
   scheduled_time: "Em data/hora agendada",
+  tag_added: "Quando uma tag é adicionada",
+  tag_removed: "Quando uma tag é removida",
 };
 
 /**

@@ -28,7 +28,9 @@ export type AutomationTrigger =
   | "conversation_priority_changed"
   | "proposal_created"
   | "proposal_viewed"
-  | "scheduled_time";
+  | "scheduled_time"
+  | "tag_added"
+  | "tag_removed";
 
 export type AutomationActionType =
   | "create_task"

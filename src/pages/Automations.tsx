@@ -11,6 +11,7 @@ import { AutomationLogsPanel } from "@/components/automations/AutomationLogsPane
 import { AutomationSuggestionsPanel } from "@/components/automations/AutomationSuggestionsPanel";
 import { AutomationRecipesPanel } from "@/components/automations/AutomationRecipesPanel";
 import { GlobalPauseToggle } from "@/components/automations/GlobalPauseToggle";
+import { ConversationAutomationHelper } from "@/components/automations/ConversationAutomationHelper";
 import { AutomationRule, useAutomationRules, useAutomationLogs } from "@/hooks/useAutomations";
 import { toast } from "sonner";
 
@@ -76,6 +77,7 @@ export default function Automations() {
           </div>
           <div className="flex items-center gap-4">
             <GlobalPauseToggle />
+            <ConversationAutomationHelper />
             <Button onClick={() => setBuilderOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Nova Regra
