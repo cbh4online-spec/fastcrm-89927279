@@ -113,7 +113,7 @@ export function KnowledgeBaseModule() {
       title: data.title,
       question: data.question,
       content: data.content,
-      entryType: data.question ? 'faq' : 'content'
+      entryType: data.question ? 'faq' : 'article'
     });
     setIsProcessing(false);
   };

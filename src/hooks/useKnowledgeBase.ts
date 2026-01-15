@@ -428,12 +428,16 @@ export function useKnowledgeBase() {
         totalBases: totalBases || 0,
         totalEntries: totalEntries || 0,
         validatedEntries: validatedEntries || 0,
+        draftEntries: (totalEntries || 0) - (validatedEntries || 0),
         totalQueries: totalQueries || 0,
         aiResolvedQueries: aiResolved,
+        fallbackQueries: (totalQueries || 0) - aiResolved,
         avgResponseTimeMs: Math.round(avgTime),
         conversionsAssisted: conversions,
         meetingsBooked: meetings,
-        pendingFAQSuggestions: 0
+        pendingFAQSuggestions: 0,
+        topUsedEntries: [],
+        missingContentQueries: 0
       });
     } catch (error) {
       console.error('Error fetching metrics:', error);
