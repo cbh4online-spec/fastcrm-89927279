@@ -5,9 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { differenceInHours, startOfDay, startOfWeek } from "date-fns";
 
 export type EntityTemperature = "cold" | "warm" | "hot";
-export type NextActionType = "reply_manual" | "send_template" | "create_opportunity" | "activate_automation" | "archive" | "follow_up" | "schedule_meeting";
+export type ContactTemperature = EntityTemperature;
+export type NextActionType = "reply_manual" | "send_template" | "create_opportunity" | "activate_automation" | "archive" | "follow_up" | "schedule_meeting" | "nurture";
 export type ContactType = "decision_maker" | "influencer" | "champion" | "blocker" | "end_user" | "unknown";
-export type SmartFilterType = "hot" | "no_response" | "high_intent" | "automation_active" | "today" | "this_week";
+export type SmartFilterType = "hot" | "no_response" | "high_intent" | "automation_active" | "today" | "this_week" | "decision_makers";
 
 export interface SmartContact {
   id: string;
@@ -44,6 +45,7 @@ export interface SmartContactsFilters {
   source?: string | "all";
   smartFilter?: SmartFilterType;
   company?: string;
+  contactType?: ContactType | "all";
 }
 
 export interface ContactsKPIs {
@@ -106,12 +108,18 @@ export function useSmartContacts(filters?: SmartContactsFilters) {
         } as SmartContact;
       });
 
+      // Filter by contact type
+      if (filters?.contactType && filters.contactType !== "all") {
+        contacts = contacts.filter(c => c.ai_contact_type === filters.contactType);
+      }
+
       if (filters?.smartFilter) {
         switch (filters.smartFilter) {
           case "hot": contacts = contacts.filter(c => c.ai_temperature === "hot"); break;
           case "no_response": contacts = contacts.filter(c => c.hoursSinceLastContact && c.hoursSinceLastContact > 24); break;
           case "high_intent": contacts = contacts.filter(c => c.contact_score >= 70); break;
           case "automation_active": contacts = contacts.filter(c => c.automation_active); break;
+          case "decision_makers": contacts = contacts.filter(c => c.ai_contact_type === "decision_maker"); break;
           case "today": contacts = contacts.filter(c => new Date(c.created_at) >= today); break;
           case "this_week": contacts = contacts.filter(c => new Date(c.created_at) >= weekStart); break;
         }

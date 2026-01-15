@@ -5,9 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { differenceInHours, startOfDay, startOfWeek } from "date-fns";
 
 export type EntityTemperature = "cold" | "warm" | "hot";
-export type NextActionType = "reply_manual" | "send_template" | "create_opportunity" | "activate_automation" | "archive" | "follow_up" | "schedule_meeting";
+export type CompanyTemperature = EntityTemperature;
+export type NextActionType = "reply_manual" | "send_template" | "create_opportunity" | "activate_automation" | "archive" | "follow_up" | "schedule_meeting" | "research";
 export type CompanyType = "prospect" | "client" | "partner" | "competitor" | "vendor" | "unknown";
-export type SmartFilterType = "hot" | "no_response" | "high_intent" | "automation_active" | "today" | "this_week";
+export type SmartFilterType = "hot" | "no_response" | "high_intent" | "automation_active" | "today" | "this_week" | "clients";
 
 export interface SmartCompany {
   id: string;
@@ -57,6 +58,7 @@ export interface CompaniesKPIs {
   prospects: number;
   avgScore: number;
   totalPipelineValue: number;
+  noResponseOver24h: number;
 }
 
 export function useSmartCompanies(filters?: SmartCompaniesFilters) {
@@ -118,6 +120,7 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters) {
           case "no_response": companies = companies.filter(c => c.hoursSinceLastContact && c.hoursSinceLastContact > 48); break;
           case "high_intent": companies = companies.filter(c => c.company_score >= 70); break;
           case "automation_active": companies = companies.filter(c => c.automation_active); break;
+          case "clients": companies = companies.filter(c => c.ai_company_type === "client"); break;
           case "today": companies = companies.filter(c => new Date(c.created_at) >= today); break;
           case "this_week": companies = companies.filter(c => new Date(c.created_at) >= weekStart); break;
         }
@@ -136,7 +139,10 @@ export function useCompaniesKPIs() {
   return useQuery({
     queryKey: ["companies-kpis", currentWorkspace?.id],
     queryFn: async (): Promise<CompaniesKPIs> => {
-      if (!currentWorkspace) return { totalCompanies: 0, hotCompanies: 0, clients: 0, prospects: 0, avgScore: 0, totalPipelineValue: 0 };
+      if (!currentWorkspace) return { totalCompanies: 0, hotCompanies: 0, clients: 0, prospects: 0, avgScore: 0, totalPipelineValue: 0, noResponseOver24h: 0 };
+
+      const now = new Date();
+      const threshold48h = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
 
       const { data: companies } = await workspaceClient
         .from("companies")
@@ -149,8 +155,9 @@ export function useCompaniesKPIs() {
       const prospects = companies?.filter(c => c.ai_company_type === "prospect").length || 0;
       const avgScore = totalCompanies > 0 ? Math.round(companies!.reduce((s, c) => s + (c.company_score || 0), 0) / totalCompanies) : 0;
       const totalPipelineValue = companies?.reduce((s, c) => s + (c.estimated_value || 0), 0) || 0;
+      const noResponseOver24h = companies?.filter(c => c.last_contact_at && c.last_contact_at < threshold48h).length || 0;
 
-      return { totalCompanies, hotCompanies, clients, prospects, avgScore, totalPipelineValue };
+      return { totalCompanies, hotCompanies, clients, prospects, avgScore, totalPipelineValue, noResponseOver24h };
     },
     enabled: !!currentWorkspace,
     refetchInterval: 60000,
