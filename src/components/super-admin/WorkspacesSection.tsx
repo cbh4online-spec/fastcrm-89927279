@@ -524,7 +524,7 @@ export function WorkspacesSection() {
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {format(new Date(ws.created_at), "dd/MM/yyyy", { locale: pt })}
+                    {format(new Date(ws.created_at), "dd/MM/yyyy HH:mm", { locale: pt })}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
