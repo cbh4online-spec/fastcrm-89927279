@@ -25,6 +25,7 @@ import {
   History,
   Layers,
   Info,
+  Clock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -41,6 +42,7 @@ import { ProductKPICards } from "./ProductKPICards";
 import { ProductUsageHistory } from "./ProductUsageHistory";
 import { ProductAlerts } from "./ProductAlerts";
 import { BundleComponentsTab } from "./BundleComponentsTab";
+import { SessionsTab } from "./SessionsTab";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -116,6 +118,7 @@ export function ProductDetailDialog({
   }
 
   const isBundle = product.product_type === "composite";
+  const isSessions = product.product_type === "sessions";
   const alerts = generateProductAlerts(product, stats);
 
   return (
@@ -203,6 +206,12 @@ export function ProductDetailDialog({
                   <TabsTrigger value="components">
                     <Layers className="h-4 w-4 mr-1" />
                     Componentes
+                  </TabsTrigger>
+                )}
+                {isSessions && (
+                  <TabsTrigger value="sessions">
+                    <Clock className="h-4 w-4 mr-1" />
+                    Pacotes
                   </TabsTrigger>
                 )}
                 <TabsTrigger value="financial">
@@ -300,6 +309,12 @@ export function ProductDetailDialog({
               {isBundle && (
                 <TabsContent value="components" className="mt-4">
                   <BundleComponentsTab product={product} currency={product.currency} />
+                </TabsContent>
+              )}
+
+              {isSessions && (
+                <TabsContent value="sessions" className="mt-4">
+                  <SessionsTab product={product} />
                 </TabsContent>
               )}
 
