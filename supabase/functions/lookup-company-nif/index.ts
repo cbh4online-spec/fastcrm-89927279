@@ -128,6 +128,27 @@ Deno.serve(async (req) => {
     const data: NifPtResponse = await response.json();
     console.log('API response:', JSON.stringify(data));
 
+    // Handle rate limiting
+    if (data.result === 'error') {
+      const message = (data as any).message || '';
+      if (message.toLowerCase().includes('limit') || message.toLowerCase().includes('minute')) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Limite de consultas atingido. Aguarde um minuto e tente novamente.' 
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: message || 'Erro ao consultar API do NIF' 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (data.result !== 'success' || !data.records || Object.keys(data.records).length === 0) {
       return new Response(
         JSON.stringify({ 
