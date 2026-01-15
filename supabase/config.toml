@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.ai-auto-tags]
 verify_jwt = true
+
+[functions.ai-translate-email]
+verify_jwt = true

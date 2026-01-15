@@ -39,6 +39,107 @@ function generateMessageId(domain: string): string {
   return `<${timestamp}.${random}@${domain}>`;
 }
 
+// Generate MIME boundary
+function generateBoundary(): string {
+  return `----=_Part_${Date.now()}_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+}
+
+// Sanitize HTML - remove dangerous scripts while preserving structure
+function sanitizeHtml(html: string): string {
+  // Remove script tags and their content
+  let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+  // Remove on* event handlers
+  sanitized = sanitized.replace(/\s*on\w+\s*=\s*"[^"]*"/gi, "");
+  sanitized = sanitized.replace(/\s*on\w+\s*=\s*'[^']*'/gi, "");
+  // Remove javascript: URLs
+  sanitized = sanitized.replace(/href\s*=\s*"javascript:[^"]*"/gi, 'href="#"');
+  sanitized = sanitized.replace(/href\s*=\s*'javascript:[^']*'/gi, "href='#'");
+  return sanitized;
+}
+
+// Convert plain text to basic HTML
+function textToHtml(text: string): string {
+  // Escape HTML entities first
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  
+  // Convert URLs to links
+  html = html.replace(
+    /(https?:\/\/[^\s]+)/g,
+    '<a href="$1" style="color: #0066cc;">$1</a>'
+  );
+  
+  // Convert line breaks to <br> and paragraphs
+  const paragraphs = html.split(/\n\n+/);
+  html = paragraphs.map(p => `<p style="margin: 0 0 1em 0;">${p.replace(/\n/g, "<br>")}</p>`).join("");
+  
+  return html;
+}
+
+// Strip HTML to plain text for the fallback version
+function htmlToPlainText(html: string): string {
+  // Remove HTML tags but keep content
+  let text = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<li>/gi, "• ")
+    .replace(/<[^>]+>/g, "");
+  
+  // Decode HTML entities
+  text = text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"');
+  
+  // Clean up excessive newlines
+  text = text.replace(/\n{3,}/g, "\n\n").trim();
+  
+  return text;
+}
+
+// Encode for MIME quoted-printable (handles non-ASCII chars)
+function encodeQuotedPrintable(str: string): string {
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(str);
+  let result = "";
+  let lineLength = 0;
+  
+  for (let i = 0; i < bytes.length; i++) {
+    const byte = bytes[i];
+    let encoded: string;
+    
+    // Printable ASCII except = (which needs encoding)
+    if ((byte >= 33 && byte <= 60) || (byte >= 62 && byte <= 126)) {
+      encoded = String.fromCharCode(byte);
+    } else if (byte === 32 || byte === 9) {
+      encoded = String.fromCharCode(byte);
+    } else if (byte === 13 || byte === 10) {
+      result += "\r\n";
+      lineLength = 0;
+      continue;
+    } else {
+      encoded = "=" + byte.toString(16).toUpperCase().padStart(2, "0");
+    }
+    
+    // Soft line break if line is too long
+    if (lineLength + encoded.length > 76) {
+      result += "=\r\n";
+      lineLength = 0;
+    }
+    
+    result += encoded;
+    lineLength += encoded.length;
+  }
+  
+  return result;
+}
+
 // Simple SMTP client using Deno's native TLS
 class SimpleSMTPClient {
   private conn: Deno.Conn | null = null;
@@ -49,6 +150,9 @@ class SimpleSMTPClient {
   async connect(host: string, port: number, user: string, password: string): Promise<void> {
     // Connect with plain TCP first for STARTTLS
     const tcpConn = await Deno.connect({ hostname: host, port }) as Deno.TcpConn;
+    
+    // Store for initial commands
+    this.conn = tcpConn;
     
     // Read greeting
     await this.readResponse();
@@ -95,7 +199,8 @@ class SimpleSMTPClient {
     from: string,
     to: string,
     subject: string,
-    body: string,
+    textBody: string,
+    htmlBody: string,
     headers: Record<string, string>
   ): Promise<void> {
     // MAIL FROM
@@ -119,23 +224,67 @@ class SimpleSMTPClient {
       throw new Error("DATA command failed: " + dataResp);
     }
     
-    // Build email content
+    // Generate boundary for multipart
+    const boundary = generateBoundary();
+    
+    // Build email content with multipart/alternative
     let emailContent = "";
     emailContent += `From: ${headers["From"] || from}\r\n`;
     emailContent += `To: ${to}\r\n`;
-    emailContent += `Subject: ${subject}\r\n`;
+    emailContent += `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=\r\n`;
     emailContent += `Date: ${new Date().toUTCString()}\r\n`;
     emailContent += `MIME-Version: 1.0\r\n`;
-    emailContent += `Content-Type: text/plain; charset=UTF-8\r\n`;
+    emailContent += `Content-Type: multipart/alternative; boundary="${boundary}"\r\n`;
     
     // Add custom headers
     for (const [key, value] of Object.entries(headers)) {
-      if (!["From", "To", "Subject", "Date"].includes(key)) {
+      if (!["From", "To", "Subject", "Date", "MIME-Version", "Content-Type"].includes(key)) {
         emailContent += `${key}: ${value}\r\n`;
       }
     }
     
-    emailContent += `\r\n${body}\r\n.\r\n`;
+    emailContent += `\r\n`;
+    
+    // Plain text part
+    emailContent += `--${boundary}\r\n`;
+    emailContent += `Content-Type: text/plain; charset=UTF-8\r\n`;
+    emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
+    emailContent += `\r\n`;
+    emailContent += encodeQuotedPrintable(textBody);
+    emailContent += `\r\n\r\n`;
+    
+    // HTML part
+    emailContent += `--${boundary}\r\n`;
+    emailContent += `Content-Type: text/html; charset=UTF-8\r\n`;
+    emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
+    emailContent += `\r\n`;
+    
+    // Wrap HTML in basic email template if not already wrapped
+    let fullHtml = htmlBody;
+    if (!htmlBody.toLowerCase().includes("<!doctype") && !htmlBody.toLowerCase().includes("<html")) {
+      fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
+    p { margin: 0 0 1em 0; }
+    a { color: #0066cc; }
+  </style>
+</head>
+<body style="margin: 0; padding: 20px;">
+${htmlBody}
+</body>
+</html>`;
+    }
+    
+    emailContent += encodeQuotedPrintable(fullHtml);
+    emailContent += `\r\n\r\n`;
+    
+    // Close boundary
+    emailContent += `--${boundary}--\r\n`;
+    emailContent += `.\r\n`;
     
     // Send email content
     await this.sendCommand(emailContent, true);
@@ -185,6 +334,7 @@ interface SendEmailRequest {
   to: string;
   subject: string;
   body: string;
+  isHtml?: boolean;
   inReplyTo?: string;
   references?: string[];
 }
@@ -217,8 +367,18 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const body: SendEmailRequest = await req.json();
-    const { connectionId, workspaceId, conversationId, to, subject, body: emailBody, inReplyTo, references } = body;
+    const reqBody: SendEmailRequest = await req.json();
+    const { 
+      connectionId, 
+      workspaceId, 
+      conversationId, 
+      to, 
+      subject, 
+      body: emailBodyRaw, 
+      isHtml = false,
+      inReplyTo, 
+      references 
+    } = reqBody;
 
     // Verify workspace membership
     const { data: member } = await supabaseClient
@@ -267,10 +427,22 @@ serve(async (req) => {
       allReferences.push(inReplyTo);
     }
 
+    // Determine display name with fallback
+    let fromName = connection.display_name;
+    if (!fromName) {
+      // Try to get workspace name as fallback
+      const { data: workspace } = await supabaseClient
+        .from("workspaces")
+        .select("name")
+        .eq("id", workspaceId)
+        .single();
+      
+      fromName = workspace?.name || connection.email_address.split("@")[0];
+    }
+
     // Build headers
-    const fromName = connection.display_name || connection.email_address.split("@")[0];
     const emailHeaders: Record<string, string> = {
-      "From": `"${fromName}" <${connection.email_address}>`,
+      "From": `"${fromName.replace(/"/g, '\\"')}" <${connection.email_address}>`,
       "Message-ID": messageId,
     };
 
@@ -280,6 +452,20 @@ serve(async (req) => {
 
     if (allReferences.length > 0) {
       emailHeaders["References"] = allReferences.join(" ");
+    }
+
+    // Process email body
+    let htmlBody: string;
+    let textBody: string;
+
+    if (isHtml) {
+      // Body is already HTML, sanitize it
+      htmlBody = sanitizeHtml(emailBodyRaw);
+      textBody = htmlToPlainText(emailBodyRaw);
+    } else {
+      // Body is plain text, convert to HTML
+      textBody = emailBodyRaw;
+      htmlBody = textToHtml(emailBodyRaw);
     }
 
     // Connect and send via SMTP
@@ -299,7 +485,8 @@ serve(async (req) => {
         connection.email_address,
         to,
         subject,
-        emailBody,
+        textBody,
+        htmlBody,
         emailHeaders
       );
 
@@ -311,14 +498,14 @@ serve(async (req) => {
       throw new Error(`SMTP error: ${smtpError instanceof Error ? smtpError.message : "Unknown error"}`);
     }
 
-    // Save the sent message
+    // Save the sent message (store HTML version for display)
     const { data: message, error: msgError } = await supabaseClient
       .from("messages")
       .insert({
         conversation_id: conversationId,
         workspace_id: workspaceId,
         direction: "outbound",
-        content: emailBody,
+        content: isHtml ? htmlBody : emailBodyRaw, // Store the formatted content
         sender_id: user.id,
         sent_at: new Date().toISOString(),
         delivered_at: new Date().toISOString(),
@@ -341,10 +528,11 @@ serve(async (req) => {
       .update({ 
         last_message_at: new Date().toISOString(),
         unread_count: 0,
+        last_message_preview: textBody.substring(0, 100),
       })
       .eq("id", conversationId);
 
-    // Log activity
+    // Log activity with full details
     await supabaseClient
       .from("crm_activities")
       .insert({
@@ -360,6 +548,10 @@ serve(async (req) => {
           to,
           subject,
           connection_id: connectionId,
+          from_name: fromName,
+          from_email: connection.email_address,
+          is_html: isHtml,
+          html_body: htmlBody.substring(0, 5000), // Store for debugging/audit
         },
         performed_by: user.id,
       });
@@ -369,6 +561,8 @@ serve(async (req) => {
         success: true, 
         messageId: message.id,
         emailMessageId: messageId,
+        fromName,
+        fromEmail: connection.email_address,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

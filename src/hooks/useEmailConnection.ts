@@ -282,6 +282,7 @@ export function useSendEmail() {
       to: string;
       subject: string;
       body: string;
+      isHtml?: boolean;
       inReplyTo?: string;
       references?: string[];
     }) => {
