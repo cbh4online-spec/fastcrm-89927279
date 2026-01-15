@@ -2782,6 +2782,74 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          base_price: number
+          billing_type: string
+          category: string | null
+          commission_default: number | null
+          created_at: string
+          created_by: string
+          currency: string
+          direct_cost: number | null
+          id: string
+          images: string[] | null
+          name: string
+          product_type: string
+          short_description: string | null
+          sku: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          base_price?: number
+          billing_type?: string
+          category?: string | null
+          commission_default?: number | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          direct_cost?: number | null
+          id?: string
+          images?: string[] | null
+          name: string
+          product_type?: string
+          short_description?: string | null
+          sku?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          base_price?: number
+          billing_type?: string
+          category?: string | null
+          commission_default?: number | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          direct_cost?: number | null
+          id?: string
+          images?: string[] | null
+          name?: string
+          product_type?: string
+          short_description?: string | null
+          sku?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

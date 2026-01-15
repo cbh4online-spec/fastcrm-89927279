@@ -1,0 +1,191 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import type { Product, CreateProductInput, UpdateProductInput } from "@/types/product";
+
+export function useProducts(filters?: {
+  status?: string;
+  productType?: string;
+  category?: string;
+  search?: string;
+}) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["products", currentWorkspace?.id, filters],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+
+      let query = supabase
+        .from("products")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .order("updated_at", { ascending: false });
+
+      if (filters?.status && filters.status !== "all") {
+        query = query.eq("status", filters.status);
+      }
+
+      if (filters?.productType && filters.productType !== "all") {
+        query = query.eq("product_type", filters.productType);
+      }
+
+      if (filters?.category && filters.category !== "all") {
+        query = query.eq("category", filters.category);
+      }
+
+      if (filters?.search) {
+        query = query.or(`name.ilike.%${filters.search}%,category.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data as Product[];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+}
+
+export function useProduct(id: string | undefined) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["product", id],
+    queryFn: async () => {
+      if (!id || !currentWorkspace?.id) return null;
+
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", id)
+        .eq("workspace_id", currentWorkspace.id)
+        .single();
+
+      if (error) throw error;
+      return data as Product;
+    },
+    enabled: !!id && !!currentWorkspace?.id,
+  });
+}
+
+export function useCreateProduct() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (input: CreateProductInput) => {
+      if (!currentWorkspace?.id || !user?.id) {
+        throw new Error("Workspace ou utilizador não encontrado");
+      }
+
+      const { data, error } = await supabase
+        .from("products")
+        .insert({
+          ...input,
+          workspace_id: currentWorkspace.id,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Product;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Produto criado com sucesso!");
+    },
+    onError: (error) => {
+      toast.error("Erro ao criar produto: " + error.message);
+    },
+  });
+}
+
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...input }: UpdateProductInput) => {
+      const { data, error } = await supabase
+        .from("products")
+        .update({
+          ...input,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Product;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product", data.id] });
+      toast.success("Produto atualizado com sucesso!");
+    },
+    onError: (error) => {
+      toast.error("Erro ao atualizar produto: " + error.message);
+    },
+  });
+}
+
+export function useArchiveProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, archive }: { id: string; archive: boolean }) => {
+      const { data, error } = await supabase
+        .from("products")
+        .update({
+          status: archive ? "archived" : "active",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Product;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product", data.id] });
+      toast.success(
+        data.status === "archived"
+          ? "Produto arquivado com sucesso!"
+          : "Produto reativado com sucesso!"
+      );
+    },
+    onError: (error) => {
+      toast.error("Erro ao arquivar produto: " + error.message);
+    },
+  });
+}
+
+export function useProductCategories() {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["product-categories", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+
+      const { data, error } = await supabase
+        .from("products")
+        .select("category")
+        .eq("workspace_id", currentWorkspace.id)
+        .not("category", "is", null);
+
+      if (error) throw error;
+
+      const categories = [...new Set(data.map((p) => p.category).filter(Boolean))] as string[];
+      return categories.sort();
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+}
