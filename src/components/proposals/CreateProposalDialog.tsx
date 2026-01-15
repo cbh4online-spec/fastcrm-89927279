@@ -221,11 +221,12 @@ export function CreateProposalDialog({
   };
 
   const handleSave = async () => {
-    if (!selectedOpportunityId) return;
+    const oppId = selectedOpportunityId === "__none__" ? "" : selectedOpportunityId;
+    if (!oppId) return;
 
     await createProposal.mutateAsync({
-      opportunity_id: selectedOpportunityId,
-      template_id: selectedTemplateId || undefined,
+      opportunity_id: oppId,
+      template_id: selectedTemplateId && selectedTemplateId !== "__none__" ? selectedTemplateId : undefined,
       title,
       content_blocks: blocks,
       variables,
@@ -311,7 +312,7 @@ export function CreateProposalDialog({
                     <SelectValue placeholder="Selecione uma oportunidade" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
                     {loadingOpportunities ? (
                       <div className="p-2 text-center">
                         <Loader2 className="h-4 w-4 animate-spin mx-auto" />
@@ -411,7 +412,7 @@ export function CreateProposalDialog({
                         <SelectValue placeholder="Sem modelo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Sem modelo</SelectItem>
+                        <SelectItem value="__none__">Sem modelo</SelectItem>
                         {loadingTemplates ? (
                           <div className="p-2 text-center">
                             <Loader2 className="h-4 w-4 animate-spin mx-auto" />
@@ -596,7 +597,7 @@ export function CreateProposalDialog({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!selectedOpportunityId || createProposal.isPending}
+            disabled={!selectedOpportunityId || selectedOpportunityId === "__none__" || createProposal.isPending}
           >
             {createProposal.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
