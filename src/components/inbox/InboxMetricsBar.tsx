@@ -1,11 +1,23 @@
 import { useConversations } from "@/hooks/useConversations";
+import { useSyncEmail, useActiveEmailConnection } from "@/hooks/useEmailConnection";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Clock, MessageSquare, AlertTriangle, TrendingUp } from "lucide-react";
+import { Clock, MessageSquare, AlertTriangle, TrendingUp, RefreshCw } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { IntegrationStatusPanel } from "./IntegrationStatusPanel";
+import { cn } from "@/lib/utils";
+
 export function InboxMetricsBar() {
   const { data: conversations } = useConversations();
+  const { data: emailConnection } = useActiveEmailConnection();
+  const syncEmail = useSyncEmail();
+
+  const handleSync = () => {
+    if (emailConnection?.id) {
+      syncEmail.mutate(emailConnection.id);
+    }
+  };
   
   // Calculate metrics
   const openConversations = conversations?.filter(c => c.status === "open") || [];
@@ -97,6 +109,30 @@ export function InboxMetricsBar() {
           <TrendingUp className="w-4 h-4 text-green-500" />
           <span className="text-xs text-muted-foreground">Tempo médio: ~15min</span>
         </div>
+        
+        <div className="w-px h-4 bg-border" />
+        
+        {/* Sync Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSync}
+              disabled={!emailConnection || syncEmail.isPending}
+              className="gap-2"
+            >
+              <RefreshCw className={cn(
+                "w-4 h-4",
+                syncEmail.isPending && "animate-spin"
+              )} />
+              <span className="hidden sm:inline">Sincronizar</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Enviar e receber emails</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
     </TooltipProvider>
   );
