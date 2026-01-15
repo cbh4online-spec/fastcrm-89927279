@@ -47,6 +47,7 @@ import { ConversationTemperature } from "./ConversationTemperature";
 import { ConversationSummary } from "./ConversationSummary";
 import { AIActionSuggestions } from "./AIActionSuggestions";
 import { OpportunityTriggerBanner } from "./OpportunityTriggerBanner";
+import { ConversationAutoTags } from "./ConversationAutoTags";
 import { useInboxActionSuggestions } from "@/hooks/useInboxActionSuggestions";
 import { EmailMessageBubble } from "./EmailMessageBubble";
 import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
@@ -396,6 +397,16 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         lastMessageAt={conversation.last_message_at || undefined}
         className="mx-3 mt-3"
       />
+
+      {/* Auto Tags */}
+      {messages && messages.length >= 2 && (
+        <div className="px-3 py-2 border-b border-border">
+          <ConversationAutoTags
+            conversation={conversation}
+            messages={messages}
+          />
+        </div>
+      )}
 
       {/* Follow-up Banner */}
       {messages && messages.length > 0 && (

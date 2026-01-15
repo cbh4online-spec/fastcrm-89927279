@@ -754,6 +754,7 @@ export type Database = {
           ai_intent: string | null
           ai_priority: string | null
           ai_sentiment: string | null
+          ai_tags: string[] | null
           assigned_to: string | null
           channel: string
           channel_metadata: Json | null
@@ -769,10 +770,13 @@ export type Database = {
           last_message_preview: string | null
           lead_id: string | null
           status: string
+          tags_assigned_at: string | null
+          tags_auto_assigned: boolean | null
           unread_count: number
           updated_at: string
           user_intent: string | null
           user_priority: string | null
+          user_tags: string[] | null
           workspace_id: string
         }
         Insert: {
@@ -780,6 +784,7 @@ export type Database = {
           ai_intent?: string | null
           ai_priority?: string | null
           ai_sentiment?: string | null
+          ai_tags?: string[] | null
           assigned_to?: string | null
           channel: string
           channel_metadata?: Json | null
@@ -795,10 +800,13 @@ export type Database = {
           last_message_preview?: string | null
           lead_id?: string | null
           status?: string
+          tags_assigned_at?: string | null
+          tags_auto_assigned?: boolean | null
           unread_count?: number
           updated_at?: string
           user_intent?: string | null
           user_priority?: string | null
+          user_tags?: string[] | null
           workspace_id: string
         }
         Update: {
@@ -806,6 +814,7 @@ export type Database = {
           ai_intent?: string | null
           ai_priority?: string | null
           ai_sentiment?: string | null
+          ai_tags?: string[] | null
           assigned_to?: string | null
           channel?: string
           channel_metadata?: Json | null
@@ -821,10 +830,13 @@ export type Database = {
           last_message_preview?: string | null
           lead_id?: string | null
           status?: string
+          tags_assigned_at?: string | null
+          tags_auto_assigned?: boolean | null
           unread_count?: number
           updated_at?: string
           user_intent?: string | null
           user_priority?: string | null
+          user_tags?: string[] | null
           workspace_id?: string
         }
         Relationships: [
