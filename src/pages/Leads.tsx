@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { LeadsList } from "@/components/crm/LeadsList";
+import { SmartLeadsTable } from "@/components/leads/SmartLeadsTable";
 
 export default function Leads() {
   return (
     <DashboardLayout>
-      <LeadsList />
+      <SmartLeadsTable />
     </DashboardLayout>
   );
 }

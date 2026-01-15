@@ -65,3 +65,6 @@ verify_jwt = true
 
 [functions.ai-translate-email]
 verify_jwt = true
+
+[functions.ai-analyze-lead]
+verify_jwt = false
