@@ -46,6 +46,8 @@ import { InboxSafetyIndicator } from "./InboxSafetyIndicator";
 import { ConversationTemperature } from "./ConversationTemperature";
 import { ConversationSummary } from "./ConversationSummary";
 import { AIActionSuggestions } from "./AIActionSuggestions";
+import { OpportunityTriggerBanner } from "./OpportunityTriggerBanner";
+import { useInboxActionSuggestions } from "@/hooks/useInboxActionSuggestions";
 import { EmailMessageBubble } from "./EmailMessageBubble";
 import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
 import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
@@ -83,6 +85,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const [showAIAssistant, setShowAIAssistant] = useState(true);
   const [showProposalDialog, setShowProposalDialog] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
+  const [dismissedOpportunityBanner, setDismissedOpportunityBanner] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<AIMessageComposerRef>(null);
 
@@ -151,6 +154,21 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       temperature: temp,
     };
   }, [conversation, messages, leadOpportunities]);
+
+  // Get AI action suggestions with opportunity trigger detection
+  const { opportunityTrigger } = useInboxActionSuggestions({
+    conversationId,
+    messages,
+    leadData,
+    opportunityData,
+    proposalData,
+    conversationData: conversationDataForAI,
+  });
+
+  // Reset dismissed banner when conversation changes
+  useEffect(() => {
+    setDismissedOpportunityBanner(false);
+  }, [conversationId]);
 
   // Handler for proposal click from AI suggestions
   const handleProposalClick = (opportunityId: string) => {
@@ -382,6 +400,22 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       {/* Follow-up Banner */}
       {messages && messages.length > 0 && (
         <ConversationFollowupBanner conversation={conversation} messages={messages} />
+      )}
+
+      {/* Opportunity Trigger Banner */}
+      {opportunityTrigger && 
+       opportunityTrigger.shouldSuggest && 
+       !dismissedOpportunityBanner && 
+       !opportunityData?.id && 
+       conversation.lead_id && (
+        <OpportunityTriggerBanner
+          trigger={opportunityTrigger}
+          conversationId={conversationId}
+          leadId={conversation.lead_id}
+          leadName={conversation.lead?.name || "Lead"}
+          leadEmail={conversation.lead?.email || undefined}
+          onDismiss={() => setDismissedOpportunityBanner(true)}
+        />
       )}
 
       {/* Messages Area */}
