@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Package,
   Edit,
@@ -20,18 +20,23 @@ import {
   Loader2,
   ImagePlus,
   Trash2,
-  Clock,
-  TrendingUp,
+  DollarSign,
+  History,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useProduct, useUpdateProduct, useArchiveProduct } from "@/hooks/useProducts";
+import { useProductStats, generateProductAlerts } from "@/hooks/useProductStats";
 import {
   productTypeLabels,
   productStatusLabels,
   billingTypeLabels,
 } from "@/types/product";
 import { CreateProductDialog } from "./CreateProductDialog";
+import { ProductFinancialSection } from "./ProductFinancialSection";
+import { ProductKPICards } from "./ProductKPICards";
+import { ProductUsageHistory } from "./ProductUsageHistory";
+import { ProductAlerts } from "./ProductAlerts";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -49,6 +54,7 @@ export function ProductDetailDialog({
   const [newImageUrl, setNewImageUrl] = useState("");
 
   const { data: product, isLoading } = useProduct(productId);
+  const { data: stats } = useProductStats(productId);
   const updateProduct = useUpdateProduct();
   const archiveProduct = useArchiveProduct();
 
@@ -105,10 +111,12 @@ export function ProductDetailDialog({
     return null;
   }
 
+  const alerts = generateProductAlerts(product, stats);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -124,6 +132,9 @@ export function ProductDetailDialog({
                     >
                       {productStatusLabels[product.status]}
                     </Badge>
+                    {product.category && (
+                      <Badge variant="secondary">{product.category}</Badge>
+                    )}
                   </div>
                 </div>
               </div>
@@ -153,149 +164,161 @@ export function ProductDetailDialog({
             </div>
           </DialogHeader>
 
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
-              <TabsTrigger value="details">Detalhes</TabsTrigger>
-              <TabsTrigger value="images">Imagens</TabsTrigger>
-              <TabsTrigger value="usage">Uso</TabsTrigger>
-            </TabsList>
+          <ScrollArea className="max-h-[calc(90vh-120px)]">
+            {/* Alerts */}
+            {alerts.length > 0 && (
+              <div className="mb-4">
+                <ProductAlerts alerts={alerts} />
+              </div>
+            )}
 
-            <TabsContent value="details" className="mt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Preço Base</p>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(product.base_price, product.currency)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {billingTypeLabels[product.billing_type]}
-                  </p>
-                </Card>
+            {/* KPI Cards */}
+            <div className="mb-6">
+              <ProductKPICards productId={productId} currency={product.currency} />
+            </div>
 
-                {product.direct_cost !== null && (
+            <Tabs value={tab} onValueChange={setTab}>
+              <TabsList>
+                <TabsTrigger value="details">Detalhes</TabsTrigger>
+                <TabsTrigger value="financial">
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  Financeiro
+                </TabsTrigger>
+                <TabsTrigger value="usage">
+                  <History className="h-4 w-4 mr-1" />
+                  Histórico
+                </TabsTrigger>
+                <TabsTrigger value="images">Imagens</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="mt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <Card className="p-4">
-                    <p className="text-sm text-muted-foreground">Custo Direto</p>
-                    <p className="text-xl font-semibold">
-                      {formatCurrency(product.direct_cost, product.currency)}
+                    <p className="text-sm text-muted-foreground">Preço Base</p>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(product.base_price, product.currency)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Margem:{" "}
-                      {(
-                        ((product.base_price - product.direct_cost) /
-                          product.base_price) *
-                        100
-                      ).toFixed(1)}
-                      %
+                      {billingTypeLabels[product.billing_type]}
                     </p>
                   </Card>
-                )}
-              </div>
 
-              <Separator />
+                  {product.direct_cost !== null && (
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">Custo Direto</p>
+                      <p className="text-xl font-semibold">
+                        {formatCurrency(product.direct_cost, product.currency)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Margem:{" "}
+                        {(
+                          ((product.base_price - product.direct_cost) /
+                            product.base_price) *
+                          100
+                        ).toFixed(1)}
+                        %
+                      </p>
+                    </Card>
+                  )}
+                </div>
 
-              <div className="grid grid-cols-2 gap-y-3 text-sm">
-                {product.category && (
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-y-3 text-sm">
+                  {product.sku && (
+                    <>
+                      <p className="text-muted-foreground">SKU</p>
+                      <p className="font-mono">{product.sku}</p>
+                    </>
+                  )}
+
+                  {product.commission_default !== null && (
+                    <>
+                      <p className="text-muted-foreground">Comissão Padrão</p>
+                      <p>{product.commission_default}%</p>
+                    </>
+                  )}
+
+                  <p className="text-muted-foreground">Criado em</p>
+                  <p>
+                    {format(new Date(product.created_at), "dd/MM/yyyy HH:mm", {
+                      locale: pt,
+                    })}
+                  </p>
+
+                  <p className="text-muted-foreground">Última atualização</p>
+                  <p>
+                    {format(new Date(product.updated_at), "dd/MM/yyyy HH:mm", {
+                      locale: pt,
+                    })}
+                  </p>
+                </div>
+
+                {product.short_description && (
                   <>
-                    <p className="text-muted-foreground">Categoria</p>
-                    <p>{product.category}</p>
-                  </>
-                )}
-
-                {product.sku && (
-                  <>
-                    <p className="text-muted-foreground">SKU</p>
-                    <p className="font-mono">{product.sku}</p>
-                  </>
-                )}
-
-                {product.commission_default !== null && (
-                  <>
-                    <p className="text-muted-foreground">Comissão Padrão</p>
-                    <p>{product.commission_default}%</p>
-                  </>
-                )}
-
-                <p className="text-muted-foreground">Criado em</p>
-                <p>
-                  {format(new Date(product.created_at), "dd/MM/yyyy HH:mm", {
-                    locale: pt,
-                  })}
-                </p>
-
-                <p className="text-muted-foreground">Última atualização</p>
-                <p>
-                  {format(new Date(product.updated_at), "dd/MM/yyyy HH:mm", {
-                    locale: pt,
-                  })}
-                </p>
-              </div>
-
-              {product.short_description && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Descrição</p>
-                    <p className="text-sm">{product.short_description}</p>
-                  </div>
-                </>
-              )}
-            </TabsContent>
-
-            <TabsContent value="images" className="mt-4 space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="URL da imagem"
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                />
-                <Button
-                  onClick={handleAddImage}
-                  disabled={!newImageUrl.trim() || updateProduct.isPending}
-                >
-                  <ImagePlus className="h-4 w-4 mr-2" />
-                  Adicionar
-                </Button>
-              </div>
-
-              {product.images && product.images.length > 0 ? (
-                <div className="grid grid-cols-3 gap-4">
-                  {product.images.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`${product.name} - ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleRemoveImage(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <Separator />
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Descrição</p>
+                      <p className="text-sm">{product.short_description}</p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <ImagePlus className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                  <p>Sem imagens ainda.</p>
-                  <p className="text-sm">Adicione URLs de imagens acima.</p>
-                </div>
-              )}
-            </TabsContent>
+                  </>
+                )}
+              </TabsContent>
 
-            <TabsContent value="usage" className="mt-4">
-              <Card className="p-8 text-center text-muted-foreground">
-                <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <h3 className="font-medium mb-2">Em breve</h3>
-                <p className="text-sm">
-                  Propostas, negócios e receita associada a este produto.
-                </p>
-              </Card>
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="financial" className="mt-4">
+                <ProductFinancialSection product={product} />
+              </TabsContent>
+
+              <TabsContent value="usage" className="mt-4">
+                <ProductUsageHistory productId={productId} currency={product.currency} />
+              </TabsContent>
+
+              <TabsContent value="images" className="mt-4 space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="URL da imagem"
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                  />
+                  <Button
+                    onClick={handleAddImage}
+                    disabled={!newImageUrl.trim() || updateProduct.isPending}
+                  >
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
+
+                {product.images && product.images.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-4">
+                    {product.images.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`${product.name} - ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveImage(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ImagePlus className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                    <p>Sem imagens ainda.</p>
+                    <p className="text-sm">Adicione URLs de imagens acima.</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 

@@ -110,12 +110,30 @@ export function useUpdateProduct() {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdateProductInput) => {
+      const updateData: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      // Only include fields that are explicitly provided
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.product_type !== undefined) updateData.product_type = input.product_type;
+      if (input.status !== undefined) updateData.status = input.status;
+      if (input.category !== undefined) updateData.category = input.category;
+      if (input.base_price !== undefined) updateData.base_price = input.base_price;
+      if (input.currency !== undefined) updateData.currency = input.currency;
+      if (input.billing_type !== undefined) updateData.billing_type = input.billing_type;
+      if (input.short_description !== undefined) updateData.short_description = input.short_description;
+      if (input.sku !== undefined) updateData.sku = input.sku;
+      if (input.direct_cost !== undefined) updateData.direct_cost = input.direct_cost;
+      if (input.operational_cost !== undefined) updateData.operational_cost = input.operational_cost;
+      if (input.commission_default !== undefined) updateData.commission_default = input.commission_default;
+      if (input.tax_rate_estimate_pct !== undefined) updateData.tax_rate_estimate_pct = input.tax_rate_estimate_pct;
+      if (input.target_margin_pct !== undefined) updateData.target_margin_pct = input.target_margin_pct;
+      if (input.images !== undefined) updateData.images = input.images;
+
       const { data, error } = await supabase
         .from("products")
-        .update({
-          ...input,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
