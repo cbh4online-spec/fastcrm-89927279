@@ -16,7 +16,7 @@ import {
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Building2, Save, Search, Loader2, Globe, Linkedin, Facebook, Instagram, Twitter, CheckCircle2, AlertCircle } from "lucide-react";
+import { Building2, Save, Search, Loader2, Globe, Linkedin, Facebook, Instagram, Twitter, CheckCircle2, AlertCircle, X, Plus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -29,7 +29,7 @@ const companyBillingSchema = z.object({
   billing_city: z.string().optional(),
   billing_postal_code: z.string().optional(),
   billing_country: z.string().optional(),
-  cae: z.string().optional(),
+  cae_codes: z.array(z.string()).optional().default([]),
   cae_description: z.string().optional(),
   company_status: z.string().optional(),
   phone: z.string().optional(),
@@ -48,7 +48,7 @@ interface LookupResult {
   billing_city?: string | null;
   billing_postal_code?: string | null;
   billing_country?: string | null;
-  cae?: string | null;
+  cae_codes?: string[];
   cae_description?: string | null;
   company_status?: string | null;
 }
@@ -70,7 +70,7 @@ export function CompanyBillingForm() {
       billing_city: "",
       billing_postal_code: "",
       billing_country: "Portugal",
-      cae: "",
+      cae_codes: [],
       cae_description: "",
       company_status: "",
       phone: "",
@@ -89,7 +89,7 @@ export function CompanyBillingForm() {
 
       const { data, error } = await supabase
         .from("workspaces")
-        .select("company_name, tax_id, billing_email, billing_address, billing_city, billing_postal_code, billing_country")
+        .select("company_name, tax_id, billing_email, billing_address, billing_city, billing_postal_code, billing_country, cae_codes, cae_description, company_status, phone, website, linkedin_url, facebook_url, instagram_url, twitter_url")
         .eq("id", currentWorkspace.id)
         .single();
 
@@ -107,15 +107,15 @@ export function CompanyBillingForm() {
           billing_city: data.billing_city || "",
           billing_postal_code: data.billing_postal_code || "",
           billing_country: data.billing_country || "Portugal",
-          cae: "",
-          cae_description: "",
-          company_status: "",
-          phone: "",
-          website: "",
-          linkedin_url: "",
-          facebook_url: "",
-          instagram_url: "",
-          twitter_url: "",
+          cae_codes: (data as any).cae_codes || [],
+          cae_description: (data as any).cae_description || "",
+          company_status: (data as any).company_status || "",
+          phone: (data as any).phone || "",
+          website: (data as any).website || "",
+          linkedin_url: (data as any).linkedin_url || "",
+          facebook_url: (data as any).facebook_url || "",
+          instagram_url: (data as any).instagram_url || "",
+          twitter_url: (data as any).twitter_url || "",
         });
       }
     }
@@ -168,8 +168,8 @@ export function CompanyBillingForm() {
         if (companyData.billing_country) {
           form.setValue("billing_country", companyData.billing_country);
         }
-        if (companyData.cae) {
-          form.setValue("cae", companyData.cae);
+        if (companyData.cae_codes && companyData.cae_codes.length > 0) {
+          form.setValue("cae_codes", companyData.cae_codes);
         }
         if (companyData.cae_description) {
           form.setValue("cae_description", companyData.cae_description);
@@ -214,7 +214,16 @@ export function CompanyBillingForm() {
           billing_city: data.billing_city || null,
           billing_postal_code: data.billing_postal_code || null,
           billing_country: data.billing_country || null,
-        })
+          cae_codes: data.cae_codes || [],
+          cae_description: data.cae_description || null,
+          company_status: data.company_status || null,
+          phone: data.phone || null,
+          website: data.website || null,
+          linkedin_url: data.linkedin_url || null,
+          facebook_url: data.facebook_url || null,
+          instagram_url: data.instagram_url || null,
+          twitter_url: data.twitter_url || null,
+        } as any)
         .eq("id", currentWorkspace.id);
 
       if (error) throw error;
@@ -344,12 +353,71 @@ export function CompanyBillingForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="cae"
+              name="cae_codes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>CAE</FormLabel>
+                  <FormLabel>Códigos CAE</FormLabel>
                   <FormControl>
-                    <Input placeholder="Código CAE" {...field} />
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        {(field.value || []).map((code, index) => (
+                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                            {code}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newCodes = [...(field.value || [])];
+                                newCodes.splice(index, 1);
+                                field.onChange(newCodes);
+                              }}
+                              className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Adicionar código CAE (ex: 74900)"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const input = e.currentTarget;
+                              const value = input.value.trim();
+                              if (value && /^\d{5}$/.test(value)) {
+                                const currentCodes = field.value || [];
+                                if (!currentCodes.includes(value)) {
+                                  field.onChange([...currentCodes, value]);
+                                }
+                                input.value = '';
+                              }
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            const input = document.querySelector('input[placeholder*="CAE"]') as HTMLInputElement;
+                            if (input) {
+                              const value = input.value.trim();
+                              if (value && /^\d{5}$/.test(value)) {
+                                const currentCodes = field.value || [];
+                                if (!currentCodes.includes(value)) {
+                                  field.onChange([...currentCodes, value]);
+                                }
+                                input.value = '';
+                              }
+                            }
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Pressione Enter ou clique + para adicionar</p>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

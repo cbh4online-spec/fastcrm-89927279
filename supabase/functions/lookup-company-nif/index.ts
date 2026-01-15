@@ -65,7 +65,7 @@ interface LookupResult {
   billing_city: string | null;
   billing_postal_code: string | null;
   billing_country: string | null;
-  cae: string | null;
+  cae_codes: string[];
   cae_description: string | null;
   company_status: string | null;
   capital_social: string | null;
@@ -164,18 +164,18 @@ Deno.serve(async (req) => {
     const record = data.records[recordKey];
 
     // Parse the response into our format
-    // Handle CAE - can be array or string from API
-    let caeValue: string | null = null;
+    // Handle CAE - always return as array for consistency
+    let caeCodes: string[] = [];
     if (record.cae) {
       if (Array.isArray(record.cae)) {
-        caeValue = record.cae.join(', ');
+        caeCodes = record.cae.map((c: any) => String(c));
       } else {
-        caeValue = record.cae;
+        caeCodes = [String(record.cae)];
       }
     } else if (record.cae_main?.code) {
-      caeValue = record.cae_main.code;
+      caeCodes = [record.cae_main.code];
     } else if (record.rapiea?.code) {
-      caeValue = record.rapiea.code;
+      caeCodes = [record.rapiea.code];
     }
 
     const result: LookupResult = {
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
       billing_city: record.city || record.place?.city || null,
       billing_postal_code: formatPostalCode(record.pc4, record.pc3) || formatPostalCode(record.place?.pc4, record.place?.pc3) || null,
       billing_country: 'Portugal',
-      cae: caeValue,
+      cae_codes: caeCodes,
       cae_description: record.cae_main?.description || record.rapiea?.description_short || record.activity || null,
       company_status: parseStatus(record.status),
       capital_social: formatCapital(record.structure?.capital, record.structure?.capital_currency),
