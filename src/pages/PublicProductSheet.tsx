@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,11 +16,12 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useProductPdfExport } from "@/hooks/useProductPdfExport";
 
 export default function PublicProductSheet() {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { generatePdf, isGenerating } = useProductPdfExport();
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["public-product", slug],
@@ -74,6 +76,19 @@ export default function PublicProductSheet() {
     setCurrentImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
   };
 
+  const handleDownloadPdf = async () => {
+    if (!product) return;
+    
+    const workspace = product.workspace as any;
+    await generatePdf(product as any, images as any, {
+      id: workspace?.id || "",
+      name: workspace?.name || "Empresa",
+      email: null,
+      phone: null,
+      website: null,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -106,8 +121,18 @@ export default function PublicProductSheet() {
             <Package className="h-6 w-6 text-primary" />
             <span className="font-semibold">{workspaceName}</span>
           </div>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={handleDownloadPdf}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
             Descarregar PDF
           </Button>
         </div>

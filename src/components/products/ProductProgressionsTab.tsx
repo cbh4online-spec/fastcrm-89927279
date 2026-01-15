@@ -16,6 +16,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -254,6 +255,9 @@ export function ProductProgressionsTab({ product }: ProductProgressionsTabProps)
             <DialogTitle>
               {editingProgression ? "Editar Progressão" : "Nova Progressão"}
             </DialogTitle>
+            <DialogDescription>
+              Defina o próximo produto recomendado para upsell ou cross-sell.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">

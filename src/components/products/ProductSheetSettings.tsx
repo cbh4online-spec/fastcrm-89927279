@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -26,6 +27,9 @@ import {
   Settings2,
 } from "lucide-react";
 import { useUpdateProduct } from "@/hooks/useProducts";
+import { useProductImages } from "@/hooks/useProductImages";
+import { useProductPdfExport } from "@/hooks/useProductPdfExport";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import type { Product } from "@/types/product";
 
@@ -34,6 +38,7 @@ interface ProductSheetSettingsProps {
 }
 
 export function ProductSheetSettings({ product }: ProductSheetSettingsProps) {
+  const { currentWorkspace } = useWorkspace();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState({
@@ -45,6 +50,20 @@ export function ProductSheetSettings({ product }: ProductSheetSettingsProps) {
   });
 
   const updateProduct = useUpdateProduct();
+  const { data: images = [] } = useProductImages(product.id);
+  const { generatePdf, isGenerating } = useProductPdfExport();
+
+  const handleDownloadPdf = async () => {
+    if (!currentWorkspace) return;
+    
+    await generatePdf(product, images, {
+      id: currentWorkspace.id,
+      name: currentWorkspace.name,
+      email: (currentWorkspace as any).email || null,
+      phone: (currentWorkspace as any).phone || null,
+      website: (currentWorkspace as any).website || null,
+    });
+  };
 
   // Generate default slug from product name
   const generateSlug = (name: string) => {
@@ -160,8 +179,17 @@ export function ProductSheetSettings({ product }: ProductSheetSettingsProps) {
           <Settings2 className="h-4 w-4 mr-2" />
           Configurar Ficha
         </Button>
-        <Button variant="outline" size="sm" disabled>
-          <Download className="h-4 w-4 mr-2" />
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleDownloadPdf}
+          disabled={isGenerating}
+        >
+          {isGenerating ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4 mr-2" />
+          )}
           Descarregar PDF
         </Button>
       </div>
@@ -208,6 +236,9 @@ export function ProductSheetSettings({ product }: ProductSheetSettingsProps) {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configurar Ficha de Produto</DialogTitle>
+            <DialogDescription>
+              Configure as informações que aparecem na ficha pública do produto.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
