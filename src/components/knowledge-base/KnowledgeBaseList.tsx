@@ -85,14 +85,14 @@ export function KnowledgeBaseList({
 
         {/* Empty State */}
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-12 text-muted-foreground border rounded-lg bg-muted/30">
             <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p className="font-medium">A IA ainda não tem informação suficiente.</p>
             <p className="text-sm mb-4">
-              Adiciona um site, documento ou FAQ para começar.
+              Cria uma base de conhecimento para depois adicionar site, documento ou FAQ.
             </p>
-            <Button onClick={onCreateNew}>
-              <Plus className="h-4 w-4 mr-1" />
+            <Button onClick={onCreateNew} size="lg">
+              <Plus className="h-4 w-4 mr-2" />
               Criar Base de Conhecimento
             </Button>
           </div>
