@@ -50,10 +50,13 @@ import { ConversationFollowupBanner } from "./ConversationFollowupBanner";
 import { InboxSafetyIndicator } from "./InboxSafetyIndicator";
 import { ConversationTemperature } from "./ConversationTemperature";
 import { ConversationSummary } from "./ConversationSummary";
+import { AIActionSuggestions } from "./AIActionSuggestions";
+import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 import { Separator } from "@/components/ui/separator";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
-import { useSafeMessageSend, useInboxSafetyCheck } from "@/hooks/useInboxSafety";
+import { useProposals } from "@/hooks/useProposals";
+import { calculateTemperature } from "@/lib/conversationTemperature";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -74,6 +77,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const { data: messages, isLoading: messagesLoading } = useMessages(conversationId || undefined);
   const { data: agents } = useAgentMembers();
   const { data: opportunities } = useOpportunities();
+  const { data: proposals } = useProposals();
   const sendMessage = useSendMessage();
   const markRead = useMarkConversationRead();
   const updateStatus = useUpdateConversationStatus();
@@ -81,7 +85,10 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   const [newMessage, setNewMessage] = useState("");
   const [showAIAssistant, setShowAIAssistant] = useState(true);
+  const [showProposalDialog, setShowProposalDialog] = useState(false);
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Build lead data for AI
   const leadData: LeadData | undefined = useMemo(() => {
@@ -110,6 +117,55 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       status: opp.status,
     };
   }, [conversation?.lead_id, opportunities]);
+
+  // Calculate proposal data for AI suggestions
+  const leadOpportunities = useMemo(() => 
+    opportunities?.filter(o => o.lead_id === conversation?.lead_id) || []
+  , [opportunities, conversation?.lead_id]);
+
+  const proposalData = useMemo(() => {
+    const leadProposals = proposals?.filter(p => 
+      leadOpportunities.some(o => o.id === p.opportunity_id)
+    ) || [];
+    return {
+      count: leadProposals.length,
+      hasAccepted: leadProposals.some(p => p.status === "accepted"),
+      hasPending: leadProposals.some(p => p.status === "published"),
+    };
+  }, [proposals, leadOpportunities]);
+
+  // Calculate conversation data for AI suggestions
+  const conversationDataForAI = useMemo(() => {
+    if (!conversation) return undefined;
+    const hoursSinceLastMessage = conversation.last_message_at 
+      ? Math.floor((Date.now() - new Date(conversation.last_message_at).getTime()) / (1000 * 60 * 60))
+      : 0;
+    const temp = messages && messages.length > 0 
+      ? calculateTemperature({
+          ...conversation,
+          messages: messages || [],
+          opportunities: leadOpportunities.filter(o => o.status === "open").map(o => ({ id: o.id, status: o.status, value: o.value })),
+        }).score
+      : 0;
+    return {
+      channel: conversation.channel,
+      status: conversation.status,
+      assignedTo: conversation.assigned_to || undefined,
+      hoursSinceLastMessage,
+      temperature: temp,
+    };
+  }, [conversation, messages, leadOpportunities]);
+
+  // Handler for proposal click from AI suggestions
+  const handleProposalClick = (opportunityId: string) => {
+    setSelectedOpportunityId(opportunityId);
+    setShowProposalDialog(true);
+  };
+
+  // Handler for reply focus from AI suggestions
+  const handleFocusReply = () => {
+    inputRef.current?.focus();
+  };
 
   // Build template context from conversation
   const templateContext: VariableContext = {
@@ -410,6 +466,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 }
               />
               <Input
+                ref={inputRef}
                 placeholder="Escreva uma mensagem ou use templates/AI..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
@@ -436,6 +493,21 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         {showAIAssistant && messages && messages.length > 0 && (
           <div className="w-80 border-l border-border bg-muted/20 hidden lg:block overflow-y-auto">
             <div className="p-3 space-y-4">
+              {/* AI Action Suggestions */}
+              <AIActionSuggestions
+                conversationId={conversationId}
+                messages={messages}
+                leadId={conversation.lead_id || undefined}
+                leadData={leadData}
+                opportunityData={opportunityData}
+                proposalData={proposalData}
+                conversationData={conversationDataForAI}
+                onReplyClick={handleFocusReply}
+                onProposalClick={handleProposalClick}
+              />
+
+              <Separator className="my-2" />
+
               {/* AI Classification */}
               <ConversationClassification
                 conversationId={conversationId}
@@ -478,6 +550,18 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
           </div>
         )}
       </div>
+
+      {/* Create Proposal Dialog */}
+      {selectedOpportunityId && (
+        <CreateProposalDialog
+          open={showProposalDialog}
+          onOpenChange={(open) => {
+            setShowProposalDialog(open);
+            if (!open) setSelectedOpportunityId(null);
+          }}
+          opportunityId={selectedOpportunityId}
+        />
+      )}
     </div>
   );
 }
