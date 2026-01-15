@@ -149,6 +149,15 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
+    name: "IA & Conhecimento",
+    icon: Brain,
+    tooltip: "Bases de conhecimento e especialistas IA",
+    highlight: true,
+    items: [
+      { name: "Bases de Conhecimento", href: "/dashboard/knowledge-base", icon: Brain, tooltip: "Treinar a IA com conteúdo", highlight: true },
+    ],
+  },
+  {
     name: "Financeiro",
     icon: PaymentIcon,
     tooltip: "Faturas, pagamentos e receitas",
