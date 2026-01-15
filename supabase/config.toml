@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.ai-generate-automation]
 verify_jwt = false
+
+[functions.email-update]
+verify_jwt = false
