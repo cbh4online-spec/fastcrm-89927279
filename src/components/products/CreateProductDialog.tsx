@@ -23,8 +23,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info } from "lucide-react";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
 import type { Product, ProductType, BillingType } from "@/types/product";
 
@@ -53,12 +53,14 @@ export function CreateProductDialog({
   const [taxRateEstimate, setTaxRateEstimate] = useState("");
   const [targetMargin, setTargetMargin] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [bundlePriceMode, setBundlePriceMode] = useState<"auto" | "manual">("auto");
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 
   const isEditing = !!product;
   const isLoading = createProduct.isPending || updateProduct.isPending;
+  const isBundle = productType === "composite";
 
   // Calculate margins in real-time
   const price = parseFloat(basePrice) || 0;
@@ -84,6 +86,7 @@ export function CreateProductDialog({
       setCommissionDefault(product.commission_default?.toString() || "");
       setTaxRateEstimate(product.tax_rate_estimate_pct?.toString() || "");
       setTargetMargin(product.target_margin_pct?.toString() || "");
+      setBundlePriceMode((product.bundle_price_mode as "auto" | "manual") || "auto");
       setShowAdvanced(
         !!product.direct_cost ||
           !!product.operational_cost ||
@@ -111,12 +114,13 @@ export function CreateProductDialog({
     setTaxRateEstimate("");
     setTargetMargin("");
     setShowAdvanced(false);
+    setBundlePriceMode("auto");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const data = {
+    const data: any = {
       name,
       product_type: productType,
       category: category || undefined,
@@ -132,6 +136,11 @@ export function CreateProductDialog({
       target_margin_pct: targetMargin ? parseFloat(targetMargin) : undefined,
     };
 
+    // Bundle specific fields
+    if (productType === "composite") {
+      data.bundle_price_mode = bundlePriceMode;
+    }
+
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product.id, ...data });
     } else {
@@ -141,7 +150,8 @@ export function CreateProductDialog({
     onOpenChange(false);
   };
 
-  const isValid = name.trim() && parseFloat(basePrice) >= 0;
+  // For bundles in auto mode, price is optional (calculated from components)
+  const isValid = name.trim() && (isBundle && bundlePriceMode === "auto" ? true : parseFloat(basePrice) >= 0);
 
   const getMarginColor = (pct: number) => {
     if (pct < 0) return "text-destructive";
@@ -155,7 +165,11 @@ export function CreateProductDialog({
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
+            {isBundle ? (
+              <Layers className="h-5 w-5 text-primary" />
+            ) : (
+              <Package className="h-5 w-5" />
+            )}
             {isEditing ? "Editar Produto" : "Criar Produto"}
           </DialogTitle>
         </DialogHeader>
@@ -182,6 +196,13 @@ export function CreateProductDialog({
                 <SelectContent>
                   <SelectItem value="simple">Simples</SelectItem>
                   <SelectItem value="recurring">Recorrente</SelectItem>
+                  <SelectItem value="composite">
+                    <span className="flex items-center gap-2">
+                      <Layers className="h-4 w-4" />
+                      Bundle / Composto
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="sessions">Sessões</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -200,9 +221,41 @@ export function CreateProductDialog({
             </div>
           </div>
 
+          {/* Bundle specific options */}
+          {isBundle && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Bundles são compostos por outros produtos. Depois de criar, adicione componentes na aba "Componentes".
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isBundle && (
+            <div className="space-y-2">
+              <Label>Modo de Preço</Label>
+              <Select value={bundlePriceMode} onValueChange={(v) => setBundlePriceMode(v as "auto" | "manual")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Automático (soma dos componentes)</SelectItem>
+                  <SelectItem value="manual">Manual (preço fixo)</SelectItem>
+                </SelectContent>
+              </Select>
+              {bundlePriceMode === "auto" && (
+                <p className="text-xs text-muted-foreground">
+                  O preço será calculado automaticamente com base nos componentes.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="basePrice">Preço Base *</Label>
+              <Label htmlFor="basePrice">
+                {isBundle ? "Preço do Bundle" : "Preço Base"} {bundlePriceMode === "manual" || !isBundle ? "*" : ""}
+              </Label>
               <Input
                 id="basePrice"
                 type="number"
@@ -210,8 +263,9 @@ export function CreateProductDialog({
                 step="0.01"
                 value={basePrice}
                 onChange={(e) => setBasePrice(e.target.value)}
-                placeholder="0.00"
-                required
+                placeholder={isBundle && bundlePriceMode === "auto" ? "Calculado automaticamente" : "0.00"}
+                disabled={isBundle && bundlePriceMode === "auto"}
+                required={!isBundle || bundlePriceMode === "manual"}
               />
             </div>
 
@@ -278,7 +332,9 @@ export function CreateProductDialog({
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-4">
               <p className="text-xs text-muted-foreground">
-                Define custos para calcular margens automaticamente.
+                {isBundle
+                  ? "Para bundles, os custos podem ser calculados automaticamente a partir dos componentes."
+                  : "Define custos para calcular margens automaticamente."}
               </p>
 
               <div className="grid grid-cols-2 gap-4">
