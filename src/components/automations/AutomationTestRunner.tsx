@@ -587,6 +587,8 @@ function getTriggerDescription(trigger: AutomationTrigger): string {
     proposal_viewed: "When a proposal is viewed",
     proposal_paid: "When a proposal is paid",
     scheduled_time: "At scheduled time",
+    tag_added: "When a tag is added",
+    tag_removed: "When a tag is removed",
   };
   return descriptions[trigger] || trigger;
 }

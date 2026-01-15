@@ -74,6 +74,9 @@ const triggerOptions: { value: AutomationTrigger; label: string; entity: string;
   { value: "company_created", label: "Empresa Criada", entity: "company" },
   { value: "company_updated", label: "Empresa Atualizada", entity: "company" },
   { value: "custom_field_updated", label: "Campo Personalizado Alterado", entity: "any" },
+  // Tag triggers
+  { value: "tag_added", label: "Tag Adicionada", entity: "lead", requiresConfig: true },
+  { value: "tag_removed", label: "Tag Removida", entity: "lead", requiresConfig: true },
   // Inbox triggers
   { value: "message_received", label: "Mensagem Recebida", entity: "conversation", requiresConfig: true },
   { value: "first_message_from_lead", label: "1ª Mensagem do Lead", entity: "conversation", requiresConfig: true },
@@ -251,6 +254,7 @@ const formSchema = z.object({
     "opportunity_created", "opportunity_updated", "opportunity_stage_changed", "opportunity_value_changed",
     "contact_created", "contact_updated", "company_created", "company_updated",
     "custom_field_updated", "payment_confirmed",
+    "tag_added", "tag_removed",
     "message_received", "first_message_from_lead", "conversation_no_reply", "conversation_resolved", "conversation_priority_changed",
     "proposal_created", "proposal_viewed", "proposal_paid",
     "scheduled_time"
@@ -259,6 +263,7 @@ const formSchema = z.object({
     custom_field_id: z.string().optional(),
     no_response_hours: z.number().optional(),
     scheduled_date: z.string().optional(),
+    tag_name: z.string().optional(),
     // Inbox trigger config
     channels: z.array(z.string()).optional(),
     no_reply_hours: z.number().optional(),

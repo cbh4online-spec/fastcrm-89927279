@@ -2700,6 +2700,8 @@ export type Database = {
         | "inbox_opportunity_created"
         | "inbox_proposal_sent"
         | "inbox_followup_scheduled"
+        | "tag_added"
+        | "tag_removed"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -2898,6 +2900,8 @@ export const Constants = {
         "inbox_opportunity_created",
         "inbox_proposal_sent",
         "inbox_followup_scheduled",
+        "tag_added",
+        "tag_removed",
       ],
       condition_operator: [
         "equals",

@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.generate-proposal-copy]
 verify_jwt = false
+
+[functions.ai-generate-automation]
+verify_jwt = false
