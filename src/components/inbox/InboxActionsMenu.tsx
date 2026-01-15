@@ -319,12 +319,14 @@ export function InboxActionsMenu({
         />
       )}
 
-      {/* Create Proposal Dialog */}
+      {/* Create Proposal Dialog - enhanced with context */}
       {opportunityId && (
         <CreateProposalDialog
           open={showProposalDialog}
           onOpenChange={setShowProposalDialog}
           opportunityId={opportunityId}
+          contactName={leadName || undefined}
+          conversationContext={conversationContext}
         />
       )}
 

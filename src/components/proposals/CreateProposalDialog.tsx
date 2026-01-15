@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, Eye, Save } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, FileText, Eye, Save, Sparkles, Wand2 } from "lucide-react";
 import { ProposalContentBlocks } from "./ProposalContentBlocks";
 import { ProposalPreview } from "./ProposalPreview";
 import {
@@ -27,12 +28,18 @@ import {
   useCreateProposal,
 } from "@/hooks/useProposals";
 import { useOpportunities, useOpportunity } from "@/hooks/useOpportunities";
+import { useGenerateProposalCopy, ProposalTone } from "@/hooks/useGenerateProposalCopy";
 import type { ContentBlock } from "@/types/proposal";
+import { toast } from "sonner";
 
 interface CreateProposalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   opportunityId?: string;
+  // Pre-fill from inbox context
+  contactName?: string;
+  companyName?: string;
+  conversationContext?: string;
 }
 
 const defaultBlocks: ContentBlock[] = [
@@ -67,10 +74,20 @@ const defaultBlocks: ContentBlock[] = [
   },
 ];
 
+const toneOptions: { value: ProposalTone; label: string }[] = [
+  { value: "formal", label: "Formal" },
+  { value: "comercial", label: "Comercial" },
+  { value: "casual", label: "Casual" },
+  { value: "curto", label: "Curto e Direto" },
+];
+
 export function CreateProposalDialog({
   open,
   onOpenChange,
   opportunityId,
+  contactName: propContactName,
+  companyName: propCompanyName,
+  conversationContext,
 }: CreateProposalDialogProps) {
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [title, setTitle] = useState("Proposta Comercial");
@@ -83,6 +100,8 @@ export function CreateProposalDialog({
   const [ctaColor, setCtaColor] = useState("#3b82f6");
   const [price, setPrice] = useState<string>("");
   const [expiresAt, setExpiresAt] = useState<string>("");
+  const [offerDescription, setOfferDescription] = useState("");
+  const [selectedTone, setSelectedTone] = useState<ProposalTone>("comercial");
 
   const { data: templates, isLoading: loadingTemplates } =
     useProposalTemplates();
@@ -92,6 +111,7 @@ export function CreateProposalDialog({
     selectedOpportunityId || undefined
   );
   const createProposal = useCreateProposal();
+  const { isLoading: aiLoading, generateCopy } = useGenerateProposalCopy();
 
   // Build variables from opportunity
   const variables: Record<string, string> = {};
@@ -121,6 +141,83 @@ export function CreateProposalDialog({
     }
   }, [selectedTemplateId, templates]);
 
+  // AI Generate proposal content
+  const handleGenerateWithAI = async () => {
+    const contactName = propContactName || selectedOpportunity?.lead?.name;
+    
+    const result = await generateCopy(
+      {
+        contactName,
+        companyName: propCompanyName,
+        dealValue: selectedOpportunity?.value,
+        dealTitle: title,
+        offerDescription,
+      },
+      selectedTone,
+      ["intro", "offer", "benefits", "cta"]
+    );
+
+    if (result) {
+      const newBlocks: ContentBlock[] = [];
+
+      if (result.intro) {
+        newBlocks.push({
+          id: "intro",
+          type: "text",
+          content: {
+            title: result.intro.title,
+            body: result.intro.body,
+          },
+          order: 0,
+        });
+      }
+
+      if (result.offer) {
+        newBlocks.push({
+          id: "offer",
+          type: "offer",
+          content: {
+            title: result.offer.title,
+            description: result.offer.description,
+            price: selectedOpportunity?.value 
+              ? new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(selectedOpportunity.value)
+              : "{{opportunity.value}}",
+            features: result.offer.features,
+          },
+          order: 1,
+        });
+      }
+
+      if (result.benefits) {
+        newBlocks.push({
+          id: "benefits",
+          type: "text",
+          content: {
+            title: result.benefits.title,
+            body: result.benefits.items.map(b => `• **${b.title}**: ${b.description}`).join("\n"),
+          },
+          order: 2,
+        });
+      }
+
+      if (result.cta) {
+        setCtaText(result.cta.text);
+        newBlocks.push({
+          id: "cta",
+          type: "cta",
+          content: {
+            text: result.cta.text,
+            style: "primary",
+          },
+          order: 3,
+        });
+      }
+
+      setBlocks(newBlocks);
+      toast.success("Conteúdo gerado com IA! Revise antes de guardar.");
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedOpportunityId) return;
 
@@ -149,6 +246,7 @@ export function CreateProposalDialog({
     setCtaColor("#3b82f6");
     setPrice("");
     setExpiresAt("");
+    setOfferDescription("");
     setTab("edit");
   };
 
@@ -293,6 +391,66 @@ export function CreateProposalDialog({
                     />
                   </div>
                 </div>
+
+                <Separator />
+
+                {/* AI Generation Section */}
+                <Card className="p-4 bg-primary/5 border-primary/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <h3 className="font-medium">Gerar Conteúdo com IA</h3>
+                    <Badge variant="secondary" className="text-xs">Beta</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Descreva a oferta e deixe a IA gerar o conteúdo da proposta.
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs">Descrição da oferta</Label>
+                      <Input
+                        value={offerDescription}
+                        onChange={(e) => setOfferDescription(e.target.value)}
+                        placeholder="Ex: Serviço de consultoria de marketing digital por 3 meses"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <Label className="text-xs">Tom da proposta</Label>
+                        <Select
+                          value={selectedTone}
+                          onValueChange={(v) => setSelectedTone(v as ProposalTone)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {toneOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <Button
+                        onClick={handleGenerateWithAI}
+                        disabled={aiLoading}
+                        className="mt-5"
+                      >
+                        {aiLoading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Wand2 className="h-4 w-4 mr-2" />
+                        )}
+                        Gerar Proposta
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
 
                 {/* Variables Preview */}
                 {Object.keys(variables).length > 0 && (

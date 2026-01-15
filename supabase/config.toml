@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.conversation-intelligence]
 verify_jwt = false
+
+[functions.generate-proposal-copy]
+verify_jwt = false
