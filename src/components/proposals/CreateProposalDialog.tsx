@@ -20,9 +20,10 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, FileText, Eye, Save, Sparkles, Wand2 } from "lucide-react";
+import { Loader2, FileText, Eye, Save, Sparkles, Wand2, PenLine } from "lucide-react";
 import { ProposalContentBlocks } from "./ProposalContentBlocks";
 import { ProposalPreview } from "./ProposalPreview";
+import { AIProposalGenerator, GeneratedProposalData } from "./AIProposalGenerator";
 import {
   useProposalTemplates,
   useCreateProposal,
@@ -89,6 +90,7 @@ export function CreateProposalDialog({
   companyName: propCompanyName,
   conversationContext,
 }: CreateProposalDialogProps) {
+  const [creationMode, setCreationMode] = useState<"ai" | "manual">("ai");
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [title, setTitle] = useState("Proposta Comercial");
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(
@@ -102,7 +104,7 @@ export function CreateProposalDialog({
   const [expiresAt, setExpiresAt] = useState<string>("");
   const [offerDescription, setOfferDescription] = useState("");
   const [selectedTone, setSelectedTone] = useState<ProposalTone>("comercial");
-
+  const [aiGenerated, setAiGenerated] = useState(false);
   const { data: templates, isLoading: loadingTemplates } =
     useProposalTemplates();
   const { data: opportunities, isLoading: loadingOpportunities } =
@@ -248,8 +250,21 @@ export function CreateProposalDialog({
     setExpiresAt("");
     setOfferDescription("");
     setTab("edit");
+    setCreationMode("ai");
+    setAiGenerated(false);
   };
 
+  const handleAIProposalGenerated = (data: GeneratedProposalData) => {
+    setTitle(data.title);
+    setBlocks(data.blocks);
+    setCtaText(data.ctaText);
+    if (data.suggestedPrice) {
+      setPrice(data.suggestedPrice.toString());
+    }
+    setAiGenerated(true);
+    setCreationMode("manual"); // Switch to manual mode to allow editing
+    toast.success("Proposta carregada! Pode editar antes de guardar.");
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
@@ -260,23 +275,100 @@ export function CreateProposalDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs
-          value={tab}
-          onValueChange={(v) => setTab(v as "edit" | "preview")}
-          className="flex-1 flex flex-col min-h-0"
-        >
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="edit">Editar</TabsTrigger>
-            <TabsTrigger value="preview">
-              <Eye className="h-4 w-4 mr-2" />
-              Pré-visualizar
-            </TabsTrigger>
-          </TabsList>
+        {/* Creation Mode Selector */}
+        <div className="flex gap-2 mb-4">
+          <Button
+            variant={creationMode === "ai" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setCreationMode("ai")}
+            className="flex-1"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Criar com IA
+          </Button>
+          <Button
+            variant={creationMode === "manual" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setCreationMode("manual")}
+            className="flex-1"
+          >
+            <PenLine className="h-4 w-4 mr-2" />
+            Criar Manualmente
+          </Button>
+        </div>
 
-          <TabsContent value="edit" className="flex-1 min-h-0 mt-4">
-            <ScrollArea className="h-full pr-4">
-              <div className="space-y-6">
-                {/* Basic Info */}
+        {creationMode === "ai" && !aiGenerated ? (
+          <ScrollArea className="flex-1">
+            <div className="space-y-4 pr-4">
+              {/* Opportunity Selection for AI mode */}
+              <div className="space-y-2">
+                <Label>Oportunidade (opcional)</Label>
+                <Select
+                  value={selectedOpportunityId}
+                  onValueChange={setSelectedOpportunityId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma oportunidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhuma</SelectItem>
+                    {loadingOpportunities ? (
+                      <div className="p-2 text-center">
+                        <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                      </div>
+                    ) : (
+                      opportunities?.map((opp) => (
+                        <SelectItem key={opp.id} value={opp.id}>
+                          {opp.title}
+                          {opp.lead && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              - {opp.lead.name}
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <AIProposalGenerator
+                onProposalGenerated={handleAIProposalGenerated}
+                contactName={propContactName || selectedOpportunity?.lead?.name}
+                companyName={propCompanyName}
+                conversationContext={conversationContext}
+                opportunityTitle={selectedOpportunity?.title}
+                opportunityValue={selectedOpportunity?.value || undefined}
+              />
+            </div>
+          </ScrollArea>
+        ) : (
+          <Tabs
+            value={tab}
+            onValueChange={(v) => setTab(v as "edit" | "preview")}
+            className="flex-1 flex flex-col min-h-0"
+          >
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="edit">Editar</TabsTrigger>
+              <TabsTrigger value="preview">
+                <Eye className="h-4 w-4 mr-2" />
+                Pré-visualizar
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="edit" className="flex-1 min-h-0 mt-4">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {aiGenerated && (
+                    <Card className="p-3 bg-green-500/10 border-green-500/20">
+                      <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                        <Sparkles className="h-4 w-4" />
+                        <span className="text-sm font-medium">Gerado por IA - revise e ajuste conforme necessário</span>
+                      </div>
+                    </Card>
+                  )}
+                  {/* Basic Info */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Oportunidade *</Label>
@@ -494,8 +586,9 @@ export function CreateProposalDialog({
                 showCta={true}
               />
             </ScrollArea>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        )}
 
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
