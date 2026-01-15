@@ -760,10 +760,13 @@ export type Database = {
           classification_confirmed: boolean | null
           classification_confirmed_at: string | null
           classification_confirmed_by: string | null
+          company_id: string | null
+          contact_id: string | null
           created_at: string
           external_thread_id: string | null
           id: string
           last_message_at: string | null
+          last_message_preview: string | null
           lead_id: string | null
           status: string
           unread_count: number
@@ -783,10 +786,13 @@ export type Database = {
           classification_confirmed?: boolean | null
           classification_confirmed_at?: string | null
           classification_confirmed_by?: string | null
+          company_id?: string | null
+          contact_id?: string | null
           created_at?: string
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
+          last_message_preview?: string | null
           lead_id?: string | null
           status?: string
           unread_count?: number
@@ -806,10 +812,13 @@ export type Database = {
           classification_confirmed?: boolean | null
           classification_confirmed_at?: string | null
           classification_confirmed_by?: string | null
+          company_id?: string | null
+          contact_id?: string | null
           created_at?: string
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
+          last_message_preview?: string | null
           lead_id?: string | null
           status?: string
           unread_count?: number
@@ -819,6 +828,20 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversations_lead_id_fkey"
             columns: ["lead_id"]

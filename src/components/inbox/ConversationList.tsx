@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { useConversations, useDeleteConversations, ConversationChannel, ConversationStatus } from "@/hooks/useConversations";
+import { useConversations, useDeleteConversations, ConversationChannel, ConversationStatus, Conversation } from "@/hooks/useConversations";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -201,13 +202,18 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
     if (!conversations) return [];
     
     let filtered = conversations.filter((conv) => {
-      // Search filter
+      // Search filter - includes contact, company, lead
       if (search) {
         const searchLower = search.toLowerCase();
         const matchesSearch = 
+          conv.contact?.name?.toLowerCase().includes(searchLower) ||
+          conv.contact?.email?.toLowerCase().includes(searchLower) ||
+          conv.contact?.company?.toLowerCase().includes(searchLower) ||
+          conv.company?.name?.toLowerCase().includes(searchLower) ||
           conv.lead?.name?.toLowerCase().includes(searchLower) ||
           conv.lead?.email?.toLowerCase().includes(searchLower) ||
-          conv.external_thread_id?.toLowerCase().includes(searchLower);
+          conv.external_thread_id?.toLowerCase().includes(searchLower) ||
+          conv.last_message_preview?.toLowerCase().includes(searchLower);
         if (!matchesSearch) return false;
       }
       
@@ -473,7 +479,10 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
           <div className="divide-y divide-border">
               {processedConversations.map((conv) => {
                 const ChannelIcon = channelIcons[conv.channel];
-                const displayName = conv.lead?.name || conv.external_thread_id || "Desconhecido";
+                // Priority: contact name > lead name > external_thread_id
+                const displayName = conv.contact?.name || conv.lead?.name || conv.external_thread_id || "Desconhecido";
+                // Get company name from contact's company or linked company
+                const companyName = conv.company?.name || conv.contact?.company || null;
                 const priorityInfo = priorityConfig[conv.priority];
                 const PriorityIcon = priorityInfo.icon;
                 const effectiveIntent = conv.user_intent || conv.ai_intent;
@@ -518,10 +527,18 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium text-foreground truncate text-sm">
-                              {displayName}
-                            </span>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-medium text-foreground truncate text-sm">
+                                {displayName}
+                              </span>
+                              {companyName && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                                  <Building2 className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate">{companyName}</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
                               {conv.unread_count > 0 && (
                                 <Badge className="bg-primary text-primary-foreground text-xs px-1.5 py-0 h-5">
                                   {conv.unread_count}
@@ -529,6 +546,13 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
                               )}
                             </div>
                           </div>
+                          
+                          {/* Last message preview */}
+                          {conv.last_message_preview && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                              {conv.last_message_preview}
+                            </p>
+                          )}
                           
                           {/* Priority and Intent badges */}
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">

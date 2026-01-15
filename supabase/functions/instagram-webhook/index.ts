@@ -84,11 +84,13 @@ serve(async (req) => {
           if (existingConversation) {
             conversationId = existingConversation.id;
 
-            // Update conversation
+            // Update conversation with last message preview
+            const messagePreview = (message.text || "").substring(0, 100);
             await supabase
               .from("conversations")
               .update({
                 last_message_at: new Date(timestamp).toISOString(),
+                last_message_preview: messagePreview,
                 unread_count: supabase.rpc("increment_unread", { row_id: conversationId }),
                 status: "open",
               })
@@ -97,7 +99,8 @@ serve(async (req) => {
             // Try to find/create lead for this sender
             let leadId = null;
 
-            // Create new conversation
+            // Create new conversation with message preview
+            const messagePreview = (message.text || "").substring(0, 100);
             const { data: newConversation, error: convError } = await supabase
               .from("conversations")
               .insert({
@@ -107,6 +110,7 @@ serve(async (req) => {
                 status: "open",
                 unread_count: 1,
                 last_message_at: new Date(timestamp).toISOString(),
+                last_message_preview: messagePreview,
                 lead_id: leadId,
                 channel_metadata: {
                   instagram_sender_id: senderId,

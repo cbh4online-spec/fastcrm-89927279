@@ -6,19 +6,37 @@ import { Lead } from "./useLeads";
 export type ConversationChannel = "whatsapp" | "email" | "sms" | "webchat" | "instagram" | "facebook";
 export type ConversationStatus = "open" | "closed" | "archived";
 
+export interface ConversationContact {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+}
+
+export interface ConversationCompany {
+  id: string;
+  name: string;
+}
+
 export interface Conversation {
   id: string;
   workspace_id: string;
   channel: ConversationChannel;
   external_thread_id: string | null;
   lead_id: string | null;
+  contact_id: string | null;
+  company_id: string | null;
   assigned_to: string | null;
   status: ConversationStatus;
   unread_count: number;
   last_message_at: string | null;
+  last_message_preview: string | null;
   created_at: string;
   updated_at: string;
   lead?: Pick<Lead, "id" | "name" | "email" | "phone"> | null;
+  contact?: ConversationContact | null;
+  company?: ConversationCompany | null;
   // AI Classification fields
   ai_priority?: "high" | "medium" | "low" | null;
   ai_intent?: "support" | "sales" | "question" | "follow_up" | "complaint" | "other" | null;
@@ -51,7 +69,9 @@ export function useConversations(filters?: ConversationFilters) {
         .from("conversations")
         .select(`
           *,
-          lead:leads(id, name, email, phone)
+          lead:leads(id, name, email, phone),
+          contact:contacts(id, name, email, phone, company),
+          company:companies(id, name)
         `)
         .eq("workspace_id", currentWorkspace.id)
         .order("last_message_at", { ascending: false, nullsFirst: false });
@@ -205,6 +225,56 @@ export function useDeleteConversations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
+    },
+  });
+}
+
+// Link conversation to contact
+export function useLinkConversationToContact() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async ({ conversationId, contactId }: { conversationId: string; contactId: string | null }) => {
+      const { data, error } = await workspaceClient
+        .from("conversations")
+        .update({ contact_id: contactId })
+        .eq("id", conversationId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Conversation;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["conversation", data.id] });
+    },
+  });
+}
+
+// Link conversation to company
+export function useLinkConversationToCompany() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async ({ conversationId, companyId }: { conversationId: string; companyId: string | null }) => {
+      const { data, error } = await workspaceClient
+        .from("conversations")
+        .update({ company_id: companyId })
+        .eq("id", conversationId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Conversation;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["conversation", data.id] });
     },
   });
 }
