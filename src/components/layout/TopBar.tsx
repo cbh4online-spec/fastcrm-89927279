@@ -70,7 +70,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={() => navigate("/dashboard/super-admin")}
+                onClick={() => navigate("/super-admin")}
                 className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
               >
                 <ShieldCheck className="h-5 w-5" />
