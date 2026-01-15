@@ -39,7 +39,7 @@ import Imports from "./pages/Imports";
 import PublicProductSheet from "./pages/PublicProductSheet";
 import Invoices from "./pages/Invoices";
 import KnowledgeBase from "./pages/KnowledgeBase";
-
+import AIProfiles from "./pages/AIProfiles";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +81,7 @@ const App = () => (
                   <Route path="/dashboard/payments" element={<Payments />} />
                   <Route path="/dashboard/invoices" element={<Invoices />} />
                   <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
+                  <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
                   <Route path="/dashboard/kpis" element={<KPIs />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />

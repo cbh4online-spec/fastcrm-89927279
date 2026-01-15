@@ -154,7 +154,8 @@ const navigationGroups: NavGroup[] = [
     tooltip: "Bases de conhecimento e especialistas IA",
     highlight: true,
     items: [
-      { name: "Bases de Conhecimento", href: "/dashboard/knowledge-base", icon: Brain, tooltip: "Treinar a IA com conteúdo", highlight: true },
+      { name: "Perfis de IA", href: "/dashboard/ai-profiles", icon: Brain, tooltip: "Comportamento da IA por contexto", highlight: true },
+      { name: "Bases de Conhecimento", href: "/dashboard/knowledge-base", icon: Brain, tooltip: "Treinar a IA com conteúdo" },
     ],
   },
   {
