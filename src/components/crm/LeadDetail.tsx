@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
+import { InsightsSidebar } from "@/components/insights";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
 import { ConfigurableEntitySidebar } from "@/components/crm/ConfigurableEntitySidebar";
 import { CustomizableKPIDashboard } from "@/components/crm/CustomizableKPIDashboard";
@@ -1000,24 +1001,11 @@ export function LeadDetail() {
                 </CardContent>
               </Card>
 
-              {/* AI Insights Widget */}
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/5 to-primary/10">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                    Insights IA
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Com base no perfil e comportamento, este lead tem alta probabilidade de conversão. 
-                    Considere agendar uma chamada esta semana.
-                  </p>
-                  <Button size="sm" variant="outline" className="w-full mt-3 text-xs">
-                    Ver mais insights
-                  </Button>
-                </CardContent>
-              </Card>
+              {/* AI Insights Module */}
+              <InsightsSidebar
+                entityType="lead"
+                entityId={id || ''}
+              />
             </div>
           </ScrollArea>
         </aside>

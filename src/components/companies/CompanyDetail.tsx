@@ -65,6 +65,7 @@ import {
 } from "@/hooks/useFieldSuggestions";
 import { cn } from "@/lib/utils";
 import { CompanyInsightsPanel } from "./CompanyInsightsPanel";
+import { InsightsSidebar } from "@/components/insights";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
 
@@ -418,8 +419,11 @@ export function CompanyDetail() {
         </div>
       </div>
 
-      {/* AI Insights Panel */}
-      <CompanyInsightsPanel company={company} />
+      {/* AI Insights Module */}
+      <InsightsSidebar
+        entityType="company"
+        entityId={id || ''}
+      />
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
