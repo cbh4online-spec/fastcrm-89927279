@@ -259,12 +259,21 @@ export function InboxSafetyIndicator({
 
           {/* Safety Rules Info */}
           <div className="text-[11px] text-muted-foreground space-y-1 pt-2 border-t">
+            <p className="font-medium text-foreground mb-1.5">Regras de Segurança da IA:</p>
             <p className="flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" />
+              <ShieldCheck className="w-3 h-3 text-green-500" />
               Mensagens nunca são enviadas automaticamente
             </p>
             <p className="flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" />
+              <ShieldCheck className="w-3 h-3 text-green-500" />
+              Dados do CRM nunca são alterados sem confirmação
+            </p>
+            <p className="flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-green-500" />
+              IA não inventa informações
+            </p>
+            <p className="flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-amber-500" />
               Loops são detectados e prevenidos
             </p>
           </div>
