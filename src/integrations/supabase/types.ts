@@ -841,25 +841,38 @@ export type Database = {
           annual_revenue: number | null
           assigned_to: string | null
           automation_active: boolean | null
+          cae_codes: string[] | null
+          cae_description: string | null
+          capital_social: string | null
+          city: string | null
           company_score: number | null
+          company_status: string | null
           conversion_probability: number | null
+          county: string | null
           created_at: string
           created_by: string
           email: string | null
           employee_count: number | null
           estimated_value: number | null
           facebook_url: string | null
+          fax: string | null
+          founding_date: string | null
           id: string
           industry: string | null
           instagram_url: string | null
           last_contact_at: string | null
+          legal_nature: string | null
           linkedin_url: string | null
           name: string
           notes: string | null
+          parish: string | null
           phone: string | null
+          postal_code: string | null
+          region: string | null
           size: string | null
           source: string | null
           tags: string[] | null
+          tax_id: string | null
           twitter_url: string | null
           updated_at: string
           website: string | null
@@ -876,25 +889,38 @@ export type Database = {
           annual_revenue?: number | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          cae_codes?: string[] | null
+          cae_description?: string | null
+          capital_social?: string | null
+          city?: string | null
           company_score?: number | null
+          company_status?: string | null
           conversion_probability?: number | null
+          county?: string | null
           created_at?: string
           created_by: string
           email?: string | null
           employee_count?: number | null
           estimated_value?: number | null
           facebook_url?: string | null
+          fax?: string | null
+          founding_date?: string | null
           id?: string
           industry?: string | null
           instagram_url?: string | null
           last_contact_at?: string | null
+          legal_nature?: string | null
           linkedin_url?: string | null
           name: string
           notes?: string | null
+          parish?: string | null
           phone?: string | null
+          postal_code?: string | null
+          region?: string | null
           size?: string | null
           source?: string | null
           tags?: string[] | null
+          tax_id?: string | null
           twitter_url?: string | null
           updated_at?: string
           website?: string | null
@@ -911,25 +937,38 @@ export type Database = {
           annual_revenue?: number | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          cae_codes?: string[] | null
+          cae_description?: string | null
+          capital_social?: string | null
+          city?: string | null
           company_score?: number | null
+          company_status?: string | null
           conversion_probability?: number | null
+          county?: string | null
           created_at?: string
           created_by?: string
           email?: string | null
           employee_count?: number | null
           estimated_value?: number | null
           facebook_url?: string | null
+          fax?: string | null
+          founding_date?: string | null
           id?: string
           industry?: string | null
           instagram_url?: string | null
           last_contact_at?: string | null
+          legal_nature?: string | null
           linkedin_url?: string | null
           name?: string
           notes?: string | null
+          parish?: string | null
           phone?: string | null
+          postal_code?: string | null
+          region?: string | null
           size?: string | null
           source?: string | null
           tags?: string[] | null
+          tax_id?: string | null
           twitter_url?: string | null
           updated_at?: string
           website?: string | null
@@ -2692,6 +2731,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          address: string | null
           ai_analyzed_at: string | null
           ai_insight: string | null
           ai_lead_type: string | null
@@ -2700,8 +2740,14 @@ export type Database = {
           ai_temperature: string | null
           assigned_to: string | null
           automation_active: boolean | null
+          cae_codes: string[] | null
+          cae_description: string | null
+          capital_social: string | null
+          city: string | null
           company_name: string | null
+          company_status: string | null
           conversion_probability: number | null
+          county: string | null
           created_at: string
           created_by: string
           email: string | null
@@ -2711,21 +2757,30 @@ export type Database = {
           external_username: string | null
           external_whatsapp_id: string | null
           facebook_url: string | null
+          fax: string | null
+          founding_date: string | null
           id: string
           instagram_url: string | null
           last_contact_at: string | null
           lead_score: number | null
+          legal_nature: string | null
           linkedin_url: string | null
           name: string
+          parish: string | null
           phone: string | null
+          postal_code: string | null
+          region: string | null
           source: string | null
           status: string
           tags: string[] | null
+          tax_id: string | null
           twitter_url: string | null
           updated_at: string
+          website: string | null
           workspace_id: string
         }
         Insert: {
+          address?: string | null
           ai_analyzed_at?: string | null
           ai_insight?: string | null
           ai_lead_type?: string | null
@@ -2734,8 +2789,14 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          cae_codes?: string[] | null
+          cae_description?: string | null
+          capital_social?: string | null
+          city?: string | null
           company_name?: string | null
+          company_status?: string | null
           conversion_probability?: number | null
+          county?: string | null
           created_at?: string
           created_by: string
           email?: string | null
@@ -2745,21 +2806,30 @@ export type Database = {
           external_username?: string | null
           external_whatsapp_id?: string | null
           facebook_url?: string | null
+          fax?: string | null
+          founding_date?: string | null
           id?: string
           instagram_url?: string | null
           last_contact_at?: string | null
           lead_score?: number | null
+          legal_nature?: string | null
           linkedin_url?: string | null
           name: string
+          parish?: string | null
           phone?: string | null
+          postal_code?: string | null
+          region?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
+          tax_id?: string | null
           twitter_url?: string | null
           updated_at?: string
+          website?: string | null
           workspace_id: string
         }
         Update: {
+          address?: string | null
           ai_analyzed_at?: string | null
           ai_insight?: string | null
           ai_lead_type?: string | null
@@ -2768,8 +2838,14 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          cae_codes?: string[] | null
+          cae_description?: string | null
+          capital_social?: string | null
+          city?: string | null
           company_name?: string | null
+          company_status?: string | null
           conversion_probability?: number | null
+          county?: string | null
           created_at?: string
           created_by?: string
           email?: string | null
@@ -2779,18 +2855,26 @@ export type Database = {
           external_username?: string | null
           external_whatsapp_id?: string | null
           facebook_url?: string | null
+          fax?: string | null
+          founding_date?: string | null
           id?: string
           instagram_url?: string | null
           last_contact_at?: string | null
           lead_score?: number | null
+          legal_nature?: string | null
           linkedin_url?: string | null
           name?: string
+          parish?: string | null
           phone?: string | null
+          postal_code?: string | null
+          region?: string | null
           source?: string | null
           status?: string
           tags?: string[] | null
+          tax_id?: string | null
           twitter_url?: string | null
           updated_at?: string
+          website?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -4826,17 +4910,24 @@ export type Database = {
           billing_postal_code: string | null
           cae_codes: string[] | null
           cae_description: string | null
+          capital_social: string | null
           company_name: string | null
           company_status: string | null
+          county: string | null
           created_at: string
           facebook_url: string | null
+          fax: string | null
+          founding_date: string | null
           id: string
           instagram_url: string | null
+          legal_nature: string | null
           linkedin_url: string | null
           managed_by_workspace_id: string | null
           name: string
           owner_id: string | null
+          parish: string | null
           phone: string | null
+          region: string | null
           slug: string
           status: string | null
           tax_id: string | null
@@ -4852,17 +4943,24 @@ export type Database = {
           billing_postal_code?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
+          capital_social?: string | null
           company_name?: string | null
           company_status?: string | null
+          county?: string | null
           created_at?: string
           facebook_url?: string | null
+          fax?: string | null
+          founding_date?: string | null
           id?: string
           instagram_url?: string | null
+          legal_nature?: string | null
           linkedin_url?: string | null
           managed_by_workspace_id?: string | null
           name: string
           owner_id?: string | null
+          parish?: string | null
           phone?: string | null
+          region?: string | null
           slug: string
           status?: string | null
           tax_id?: string | null
@@ -4878,17 +4976,24 @@ export type Database = {
           billing_postal_code?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
+          capital_social?: string | null
           company_name?: string | null
           company_status?: string | null
+          county?: string | null
           created_at?: string
           facebook_url?: string | null
+          fax?: string | null
+          founding_date?: string | null
           id?: string
           instagram_url?: string | null
+          legal_nature?: string | null
           linkedin_url?: string | null
           managed_by_workspace_id?: string | null
           name?: string
           owner_id?: string | null
+          parish?: string | null
           phone?: string | null
+          region?: string | null
           slug?: string
           status?: string | null
           tax_id?: string | null
