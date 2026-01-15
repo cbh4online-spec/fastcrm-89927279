@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useCompanyEnrichment, EnrichmentResult } from "@/hooks/useCompanyEnrichment";
 import { useCompanyDuplicateCheck, DuplicateMatch } from "@/hooks/useCompanyDuplicates";
+import { useNifLookup, NifLookupResult } from "@/hooks/useNifLookup";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
 import {
   Building2,
@@ -44,6 +46,9 @@ import {
   Link2,
   Phone,
   Tag,
+  Search,
+  X,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -64,6 +69,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
   const navigate = useNavigate();
   const { createCompany } = useCompanies();
   const enrichment = useCompanyEnrichment();
+  const nifLookup = useNifLookup({ showToasts: false });
   const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,6 +86,20 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
     phone: "",
     notes: "",
     tags: "",
+    tax_id: "",
+    address: "",
+    postal_code: "",
+    city: "",
+    cae_codes: [] as string[],
+    cae_description: "",
+    company_status: "",
+    legal_nature: "",
+    capital_social: "",
+    founding_date: "",
+    region: "",
+    county: "",
+    parish: "",
+    fax: "",
   });
 
   // Enriched fields that user can confirm
@@ -228,6 +248,20 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
       phone: "",
       notes: "",
       tags: "",
+      tax_id: "",
+      address: "",
+      postal_code: "",
+      city: "",
+      cae_codes: [],
+      cae_description: "",
+      company_status: "",
+      legal_nature: "",
+      capital_social: "",
+      founding_date: "",
+      region: "",
+      county: "",
+      parish: "",
+      fax: "",
     });
     setEnrichmentData(null);
     setEnrichedFields({});
@@ -281,6 +315,68 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                   required
                   autoFocus
                 />
+              </div>
+
+              {/* NIF Lookup Section */}
+              <div className="space-y-2">
+                <Label htmlFor="tax_id" className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  NIF
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="tax_id"
+                    value={formData.tax_id}
+                    onChange={(e) => setFormData({ ...formData, tax_id: e.target.value.replace(/\D/g, '').slice(0, 9) })}
+                    placeholder="Número de identificação fiscal"
+                    maxLength={9}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      const result = await nifLookup.lookup(formData.tax_id);
+                      if (result) {
+                        setFormData(prev => ({
+                          ...prev,
+                          name: result.company_name || prev.name,
+                          website: result.website || prev.website,
+                          email: result.email || prev.email,
+                          phone: result.phone || prev.phone,
+                          address: result.address || prev.address,
+                          postal_code: result.postal_code || prev.postal_code,
+                          city: result.city || prev.city,
+                          cae_codes: result.cae_codes || prev.cae_codes,
+                          cae_description: result.cae_description || prev.cae_description,
+                          company_status: result.company_status || prev.company_status,
+                          legal_nature: result.legal_nature || prev.legal_nature,
+                          capital_social: result.capital_social || prev.capital_social,
+                          founding_date: result.founding_date || prev.founding_date,
+                          region: result.region || prev.region,
+                          county: result.county || prev.county,
+                          parish: result.parish || prev.parish,
+                          fax: result.fax || prev.fax,
+                        }));
+                        setShowOptionalFields(true);
+                      }
+                    }}
+                    disabled={nifLookup.isLoading || formData.tax_id.length !== 9}
+                  >
+                    {nifLookup.isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Pesquisar
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {nifLookup.status !== "idle" && nifLookup.message && (
+                  <Alert variant={nifLookup.status === "success" ? "default" : "destructive"} className="mt-2">
+                    <AlertDescription>{nifLookup.message}</AlertDescription>
+                  </Alert>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
