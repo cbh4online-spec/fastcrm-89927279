@@ -42,6 +42,47 @@ function parseEmailAddress(header: string): { name: string; email: string } {
   return { name: header, email: header.toLowerCase() };
 }
 
+// Parse IMAP envelope address format: ((name NIL local domain)) or (("Name" NIL "local" "domain"))
+function parseEnvelopeAddress(addressBlock: string): { email: string; name: string } | null {
+  if (!addressBlock || addressBlock === "NIL") return null;
+  
+  // Match pattern: (("name" NIL "local" "domain")) or ((NIL NIL "local" "domain"))
+  // The structure is: ((personal-name NIL mailbox-name host-name))
+  const match = addressBlock.match(/\(\((?:"([^"]*)"|NIL)\s+NIL\s+(?:"([^"]+)"|NIL)\s+(?:"([^"]+)"|NIL)\)\)/);
+  
+  if (match) {
+    const name = match[1] || "";
+    const local = match[2] || "";
+    const domain = match[3] || "";
+    
+    if (local && domain) {
+      const email = `${local}@${domain}`.toLowerCase();
+      return { 
+        email, 
+        name: name ? decodeMimeWord(name) : email 
+      };
+    }
+  }
+  
+  // Try simpler format without nested parens
+  const simpleMatch = addressBlock.match(/\("([^"]*)"\s+NIL\s+"([^"]+)"\s+"([^"]+)"\)/);
+  if (simpleMatch) {
+    const name = simpleMatch[1] || "";
+    const local = simpleMatch[2] || "";
+    const domain = simpleMatch[3] || "";
+    
+    if (local && domain) {
+      const email = `${local}@${domain}`.toLowerCase();
+      return { 
+        email, 
+        name: name ? decodeMimeWord(name) : email 
+      };
+    }
+  }
+  
+  return null;
+}
+
 // Decode MIME encoded words
 function decodeMimeWord(str: string): string {
   if (!str) return "";
@@ -181,8 +222,9 @@ class SimpleIMAPClient {
       const internalDateMatch = block.match(/INTERNALDATE "([^"]+)"/);
       const internalDate = internalDateMatch ? internalDateMatch[1] : null;
 
-      // Extract envelope data
-      const envelopeMatch = block.match(/ENVELOPE \(([^)]+(?:\([^)]*\)[^)]*)*)\)/);
+      // Extract envelope data - IMAP ENVELOPE format:
+      // (date subject ((from)) ((sender)) ((reply-to)) ((to)) ((cc)) ((bcc)) in-reply-to message-id)
+      const envelopeMatch = block.match(/ENVELOPE \((.+)\)/s);
       let subject = "";
       let from = "";
       let to = "";
@@ -192,17 +234,73 @@ class SimpleIMAPClient {
 
       if (envelopeMatch) {
         const envelope = envelopeMatch[1];
+        
+        // Log envelope for debugging
+        console.log("Parsing envelope:", envelope.substring(0, 200));
+        
         // Extract date - first quoted string
         const dateMatch = envelope.match(/^"([^"]*)"/);
         if (dateMatch && dateMatch[1]) {
           date = dateMatch[1];
         }
         
-        // Extract subject - second quoted string (skip NIL)
+        // Extract subject - second field (after date)
         const afterDate = envelope.replace(/^"[^"]*"\s*/, "");
         const subjectMatch = afterDate.match(/^(?:NIL|"([^"]*)")/);
         if (subjectMatch && subjectMatch[1]) {
           subject = decodeMimeWord(subjectMatch[1]);
+        }
+        
+        // Extract FROM address - find first address block after subject
+        // Pattern: ((name NIL local domain)) or (("name" NIL "local" "domain"))
+        const fromMatch = envelope.match(/\(\((?:"[^"]*"|NIL)\s+NIL\s+(?:"[^"]+"|NIL)\s+(?:"[^"]+"|NIL)\)\)/);
+        if (fromMatch) {
+          const parsed = parseEnvelopeAddress(fromMatch[0]);
+          if (parsed) {
+            from = parsed.email;
+            console.log("Parsed FROM:", from, "name:", parsed.name);
+          }
+        }
+        
+        // Extract TO address - find address blocks, TO comes after from/sender/reply-to
+        // We'll look for all address blocks and use heuristics
+        const addressBlocks = envelope.match(/\(\([^)]+\)\)/g);
+        if (addressBlocks && addressBlocks.length > 0) {
+          // First address block is FROM
+          const fromParsed = parseEnvelopeAddress(addressBlocks[0]);
+          if (fromParsed && !from) {
+            from = fromParsed.email;
+          }
+          // Fourth address block (index 3) would be TO if sender and reply-to exist
+          // But often they're NIL, so TO might be at index 1, 2, or 3
+          for (let i = 1; i < Math.min(addressBlocks.length, 4); i++) {
+            const toParsed = parseEnvelopeAddress(addressBlocks[i]);
+            if (toParsed) {
+              to = toParsed.email;
+              break;
+            }
+          }
+        }
+        
+        // Extract message-id - last quoted string that looks like a message ID
+        const msgIdMatches = envelope.match(/<[^>]+@[^>]+>/g);
+        if (msgIdMatches && msgIdMatches.length > 0) {
+          messageId = msgIdMatches[msgIdMatches.length - 1];
+          if (msgIdMatches.length > 1) {
+            inReplyTo = msgIdMatches[0];
+          }
+        }
+        
+        // Alternative: extract message-id from the end
+        const lastMsgIdMatch = envelope.match(/"(<[^>]+>)"[^"]*$/);
+        if (lastMsgIdMatch) {
+          messageId = lastMsgIdMatch[1];
+        }
+        
+        // Extract in-reply-to
+        const inReplyMatch = envelope.match(/"(<[^>]+>)"\s+"<[^>]+>"/);
+        if (inReplyMatch) {
+          inReplyTo = inReplyMatch[1];
         }
       }
 
