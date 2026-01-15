@@ -31,6 +31,7 @@ import AISuggestionsHistory from "./pages/AISuggestionsHistory";
 import Crm from "./pages/Crm";
 import FormStudioPage from "./pages/FormStudioPage";
 import NotFound from "./pages/NotFound";
+import Payments from "./pages/Payments";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
                   <Route path="/dashboard/crm" element={<Crm />} />
                   <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
                   <Route path="/dashboard/proposals" element={<Proposals />} />
+                  <Route path="/dashboard/payments" element={<Payments />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/p/:slug" element={<PublicProposalPage />} />
                   <Route path="/super-admin" element={<SuperAdmin />} />
