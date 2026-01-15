@@ -43,6 +43,10 @@ import { ProductUsageHistory } from "./ProductUsageHistory";
 import { ProductAlerts } from "./ProductAlerts";
 import { BundleComponentsTab } from "./BundleComponentsTab";
 import { SessionsTab } from "./SessionsTab";
+import { ProductImagesGallery } from "./ProductImagesGallery";
+import { ProductProgressionsTab } from "./ProductProgressionsTab";
+import { ProductCyclesTabEnhanced } from "./ProductCyclesTabEnhanced";
+import { ProductSheetSettings } from "./ProductSheetSettings";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -223,6 +227,9 @@ export function ProductDetailDialog({
                   Histórico
                 </TabsTrigger>
                 <TabsTrigger value="images">Imagens</TabsTrigger>
+                <TabsTrigger value="progressions">Progressões</TabsTrigger>
+                <TabsTrigger value="cycles">Ciclos</TabsTrigger>
+                <TabsTrigger value="sheet">Ficha</TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="mt-4 space-y-4">
