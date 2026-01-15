@@ -172,3 +172,22 @@ export function useDeleteLead() {
     },
   });
 }
+
+export function useDeleteLeads() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await workspaceClient
+        .from("leads")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+    },
+  });
+}
