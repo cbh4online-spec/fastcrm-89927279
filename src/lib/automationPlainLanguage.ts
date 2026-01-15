@@ -6,14 +6,20 @@ const triggerDescriptions: Record<AutomationTrigger, string> = {
   lead_updated: "Quando um lead é atualizado",
   lead_status_changed: "Quando o estado de um lead muda",
   lead_no_response: "Quando um lead não responde",
+  lead_score_changed: "Quando o score de um lead muda",
+  lead_temperature_changed: "Quando a temperatura de um lead muda",
   opportunity_created: "Quando uma nova oportunidade é criada",
   opportunity_updated: "Quando uma oportunidade é atualizada",
   opportunity_stage_changed: "Quando uma oportunidade muda de etapa",
   opportunity_value_changed: "Quando o valor de uma oportunidade muda",
   contact_created: "Quando um novo contacto é criado",
   contact_updated: "Quando um contacto é atualizado",
+  contact_score_changed: "Quando o score de um contacto muda",
+  contact_temperature_changed: "Quando a temperatura de um contacto muda",
   company_created: "Quando uma nova empresa é criada",
   company_updated: "Quando uma empresa é atualizada",
+  company_score_changed: "Quando o score de uma empresa muda",
+  company_temperature_changed: "Quando a temperatura de uma empresa muda",
   custom_field_updated: "Quando um campo personalizado é alterado",
   payment_confirmed: "Quando um pagamento é confirmado",
   message_received: "Quando uma mensagem é recebida",
@@ -27,6 +33,7 @@ const triggerDescriptions: Record<AutomationTrigger, string> = {
   scheduled_time: "Em data/hora agendada",
   tag_added: "Quando uma tag é adicionada",
   tag_removed: "Quando uma tag é removida",
+  form_submitted: "Quando um formulário é submetido",
 };
 
 /**

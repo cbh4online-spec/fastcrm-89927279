@@ -3530,6 +3530,13 @@ export type Database = {
         | "inbox_followup_scheduled"
         | "tag_added"
         | "tag_removed"
+        | "form_submitted"
+        | "lead_score_changed"
+        | "lead_temperature_changed"
+        | "contact_score_changed"
+        | "contact_temperature_changed"
+        | "company_score_changed"
+        | "company_temperature_changed"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -3730,6 +3737,13 @@ export const Constants = {
         "inbox_followup_scheduled",
         "tag_added",
         "tag_removed",
+        "form_submitted",
+        "lead_score_changed",
+        "lead_temperature_changed",
+        "contact_score_changed",
+        "contact_temperature_changed",
+        "company_score_changed",
+        "company_temperature_changed",
       ],
       condition_operator: [
         "equals",

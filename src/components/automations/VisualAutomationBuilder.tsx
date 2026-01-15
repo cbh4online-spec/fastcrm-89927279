@@ -76,14 +76,20 @@ const triggerOptions: { value: AutomationTrigger; label: string; humanLabel: str
   { value: "lead_updated", label: "Lead Atualizado", humanLabel: "When a lead is updated", entity: "lead" },
   { value: "lead_status_changed", label: "Estado do Lead Alterado", humanLabel: "When lead status changes", entity: "lead" },
   { value: "lead_no_response", label: "Lead Sem Resposta", humanLabel: "When a lead doesn't respond", entity: "lead", requiresConfig: true },
+  { value: "lead_score_changed", label: "Score Lead Alterado", humanLabel: "When lead score changes", entity: "lead" },
+  { value: "lead_temperature_changed", label: "Temperatura Lead Alterada", humanLabel: "When lead temperature changes", entity: "lead" },
   { value: "opportunity_created", label: "Oportunidade Criada", humanLabel: "When an opportunity is created", entity: "opportunity" },
   { value: "opportunity_updated", label: "Oportunidade Atualizada", humanLabel: "When an opportunity is updated", entity: "opportunity" },
   { value: "opportunity_stage_changed", label: "Etapa de Oportunidade Alterada", humanLabel: "When opportunity stage changes", entity: "opportunity" },
   { value: "opportunity_value_changed", label: "Valor da Oportunidade Alterado", humanLabel: "When opportunity value changes", entity: "opportunity" },
   { value: "contact_created", label: "Contacto Criado", humanLabel: "When a contact is created", entity: "contact" },
   { value: "contact_updated", label: "Contacto Atualizado", humanLabel: "When a contact is updated", entity: "contact" },
+  { value: "contact_score_changed", label: "Score Contacto Alterado", humanLabel: "When contact score changes", entity: "contact" },
+  { value: "contact_temperature_changed", label: "Temperatura Contacto Alterada", humanLabel: "When contact temperature changes", entity: "contact" },
   { value: "company_created", label: "Empresa Criada", humanLabel: "When a company is created", entity: "company" },
   { value: "company_updated", label: "Empresa Atualizada", humanLabel: "When a company is updated", entity: "company" },
+  { value: "company_score_changed", label: "Score Empresa Alterado", humanLabel: "When company score changes", entity: "company" },
+  { value: "company_temperature_changed", label: "Temperatura Empresa Alterada", humanLabel: "When company temperature changes", entity: "company" },
   { value: "custom_field_updated", label: "Campo Personalizado Alterado", humanLabel: "When a custom field changes", entity: "any" },
   // Tag triggers
   { value: "tag_added", label: "Tag Adicionada", humanLabel: "When a tag is added", entity: "lead", requiresConfig: true },
@@ -99,6 +105,8 @@ const triggerOptions: { value: AutomationTrigger; label: string; humanLabel: str
   { value: "proposal_viewed", label: "Proposta Visualizada", humanLabel: "When a proposal is viewed", entity: "proposal" },
   { value: "proposal_paid", label: "Proposta Paga", humanLabel: "When a proposal is paid", entity: "proposal" },
   { value: "payment_confirmed", label: "Pagamento Confirmado", humanLabel: "When payment is confirmed", entity: "payment" },
+  // Form triggers
+  { value: "form_submitted", label: "Formulário Submetido", humanLabel: "When a form is submitted", entity: "form", requiresConfig: true },
   { value: "scheduled_time", label: "Data/Hora Agendada", humanLabel: "At scheduled time", entity: "scheduled", requiresConfig: true },
 ];
 
@@ -175,43 +183,62 @@ const getOperatorsForFieldType = (fieldType: string): { value: ConditionOperator
 // Core fields by entity
 const coreFieldsByEntity: Record<string, { name: string; label: string; type: string }[]> = {
   lead: [
-    { name: "name", label: "Name", type: "text" },
+    { name: "name", label: "Nome", type: "text" },
     { name: "email", label: "Email", type: "email" },
-    { name: "phone", label: "Phone", type: "text" },
-    { name: "source", label: "Source", type: "text" },
-    { name: "status", label: "Status", type: "status" },
+    { name: "phone", label: "Telefone", type: "text" },
+    { name: "source", label: "Origem", type: "text" },
+    { name: "status", label: "Estado", type: "status" },
     { name: "tags", label: "Tags", type: "tags" },
+    { name: "lead_score", label: "Score", type: "number" },
+    { name: "ai_temperature", label: "Temperatura", type: "select" },
   ],
   opportunity: [
-    { name: "title", label: "Title", type: "text" },
-    { name: "value", label: "Value", type: "number" },
-    { name: "stage_id", label: "Stage", type: "select" },
-    { name: "status", label: "Status", type: "status" },
+    { name: "title", label: "Título", type: "text" },
+    { name: "value", label: "Valor", type: "number" },
+    { name: "stage_id", label: "Etapa", type: "select" },
+    { name: "status", label: "Estado", type: "status" },
   ],
   contact: [
-    { name: "name", label: "Name", type: "text" },
+    { name: "name", label: "Nome", type: "text" },
     { name: "email", label: "Email", type: "email" },
-    { name: "company", label: "Company", type: "text" },
+    { name: "company", label: "Empresa", type: "text" },
+    { name: "contact_score", label: "Score", type: "number" },
+    { name: "ai_temperature", label: "Temperatura", type: "select" },
   ],
   company: [
-    { name: "name", label: "Name", type: "text" },
-    { name: "industry", label: "Industry", type: "text" },
+    { name: "name", label: "Nome", type: "text" },
+    { name: "industry", label: "Setor", type: "text" },
+    { name: "company_score", label: "Score", type: "number" },
+    { name: "ai_temperature", label: "Temperatura", type: "select" },
   ],
   payment: [
-    { name: "amount", label: "Amount", type: "number" },
-    { name: "status", label: "Status", type: "status" },
+    { name: "amount", label: "Valor", type: "number" },
+    { name: "status", label: "Estado", type: "status" },
   ],
   proposal: [
-    { name: "title", label: "Title", type: "text" },
-    { name: "price", label: "Price", type: "number" },
-    { name: "status", label: "Status", type: "status" },
+    { name: "title", label: "Título", type: "text" },
+    { name: "price", label: "Valor", type: "number" },
+    { name: "status", label: "Estado", type: "status" },
   ],
   conversation: [
-    { name: "channel", label: "Channel", type: "text" },
-    { name: "status", label: "Status", type: "status" },
+    { name: "channel", label: "Canal", type: "select" },
+    { name: "status", label: "Estado", type: "status" },
+    { name: "ai_intent", label: "Intenção IA", type: "text" },
+    { name: "ai_sentiment", label: "Sentimento IA", type: "select" },
+  ],
+  form: [
+    { name: "form_id", label: "Formulário", type: "select" },
+    { name: "score", label: "Score do Formulário", type: "number" },
+    { name: "temperature", label: "Temperatura", type: "select" },
   ],
   scheduled: [],
   any: [],
+  // Global conditions available in any context
+  global: [
+    { name: "current_hour", label: "Hora Atual", type: "number" },
+    { name: "day_of_week", label: "Dia da Semana", type: "select" },
+    { name: "workspace_plan", label: "Plano SaaS", type: "select" },
+  ],
 };
 
 const conditionSchema = z.object({
@@ -238,18 +265,21 @@ const formSchema = z.object({
   description: z.string().optional(),
   trigger: z.enum([
     "lead_created", "lead_updated", "lead_status_changed", "lead_no_response",
+    "lead_score_changed", "lead_temperature_changed",
     "opportunity_created", "opportunity_updated", "opportunity_stage_changed", "opportunity_value_changed",
-    "contact_created", "contact_updated", "company_created", "company_updated",
+    "contact_created", "contact_updated", "contact_score_changed", "contact_temperature_changed",
+    "company_created", "company_updated", "company_score_changed", "company_temperature_changed",
     "custom_field_updated", "payment_confirmed",
     "tag_added", "tag_removed",
     "message_received", "first_message_from_lead", "conversation_no_reply", "conversation_resolved", "conversation_priority_changed",
     "proposal_created", "proposal_viewed", "proposal_paid",
-    "scheduled_time"
+    "form_submitted", "scheduled_time"
   ]),
   trigger_config: z.object({
     custom_field_id: z.string().optional(),
     no_response_hours: z.number().optional(),
     scheduled_date: z.string().optional(),
+    form_id: z.string().optional(),
     // Inbox trigger config
     channels: z.array(z.string()).optional(),
     no_reply_hours: z.number().optional(),

@@ -568,14 +568,20 @@ function getTriggerDescription(trigger: AutomationTrigger): string {
     lead_updated: "When a lead is updated",
     lead_status_changed: "When lead status changes",
     lead_no_response: "When a lead doesn't respond",
+    lead_score_changed: "When lead score changes",
+    lead_temperature_changed: "When lead temperature changes",
     opportunity_created: "When an opportunity is created",
     opportunity_updated: "When an opportunity is updated",
     opportunity_stage_changed: "When opportunity stage changes",
     opportunity_value_changed: "When opportunity value changes",
     contact_created: "When a contact is created",
     contact_updated: "When a contact is updated",
+    contact_score_changed: "When contact score changes",
+    contact_temperature_changed: "When contact temperature changes",
     company_created: "When a company is created",
     company_updated: "When a company is updated",
+    company_score_changed: "When company score changes",
+    company_temperature_changed: "When company temperature changes",
     custom_field_updated: "When a custom field changes",
     payment_confirmed: "When payment is confirmed",
     message_received: "When a message is received",
@@ -589,6 +595,7 @@ function getTriggerDescription(trigger: AutomationTrigger): string {
     scheduled_time: "At scheduled time",
     tag_added: "When a tag is added",
     tag_removed: "When a tag is removed",
+    form_submitted: "When a form is submitted",
   };
   return descriptions[trigger] || trigger;
 }
