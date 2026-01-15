@@ -6,7 +6,7 @@ import { DashboardKPICards } from "@/components/dashboard/DashboardKPICards";
 import { DashboardAIInsights } from "@/components/dashboard/DashboardAIInsights";
 import { DashboardNextActions } from "@/components/dashboard/DashboardNextActions";
 import { DashboardPipelineSnapshot } from "@/components/dashboard/DashboardPipelineSnapshot";
-import { DashboardQuickNav } from "@/components/dashboard/DashboardQuickNav";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Dashboard() {
   const { currentWorkspace } = useWorkspace();
@@ -28,24 +28,31 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Bem-vindo! 👋
-          </h1>
-          <p className="text-muted-foreground">
-            Centro de comando do {currentWorkspace?.name}
-          </p>
-        </div>
+      <ScrollArea className="h-[calc(100vh-5rem)]">
+        <div className="space-y-6 pb-8">
+          {/* Header */}
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              Bem-vindo! 👋
+            </h1>
+            <p className="text-muted-foreground">
+              Centro de comando do {currentWorkspace?.name}
+            </p>
+          </div>
 
-        {/* Top KPIs */}
-        <DashboardKPICards data={kpiData} isLoading={isLoading} />
+          {/* ZONA 1: Status Rápido (KPIs vivos) */}
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              Status Rápido
+            </h2>
+            <DashboardKPICards data={kpiData} isLoading={isLoading} />
+          </section>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - AI Insights + Next Actions */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* ZONA 2: Alertas & Prioridades (AI-driven) */}
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              Alertas & Prioridades
+            </h2>
             <DashboardAIInsights
               leadsWithoutResponse={insightsData?.leadsWithoutResponse || 0}
               proposalsViewed={insightsData?.proposalsViewed || 0}
@@ -53,27 +60,34 @@ export default function Dashboard() {
               overdueFollowUps={insightsData?.overdueFollowUps || 0}
               unansweredMessages={insightsData?.unansweredMessages || 0}
             />
-            
+          </section>
+
+          {/* ZONA 3: Ações Recomendadas (1-click) */}
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              Ações Recomendadas
+            </h2>
             <DashboardNextActions
               tasks={nextActions}
               overdueCount={overdueTaskCount}
               isLoading={isLoading}
               onCompleteTask={handleCompleteTask}
             />
-          </div>
+          </section>
 
-          {/* Right Column - Pipeline + Quick Nav */}
-          <div className="space-y-6">
+          {/* ZONA 4: Visão de Pipeline & Receita */}
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              Pipeline & Receita
+            </h2>
             <DashboardPipelineSnapshot
               stages={pipelineStages}
               totalValue={pipelineTotalValue}
               isLoading={isLoading}
             />
-            
-            <DashboardQuickNav />
-          </div>
+          </section>
         </div>
-      </div>
+      </ScrollArea>
     </DashboardLayout>
   );
 }
