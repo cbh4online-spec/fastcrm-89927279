@@ -235,6 +235,41 @@ export function useSyncEmail() {
   });
 }
 
+export function useForceResyncEmail() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { mainClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async (connectionId: string) => {
+      if (!currentWorkspace) throw new Error("No workspace selected");
+
+      const { data, error } = await mainClient.functions.invoke("email-fetch", {
+        body: {
+          connectionId,
+          workspaceId: currentWorkspace.id,
+          forceResync: true,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["email-connections"] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      toast.success("Re-sincronização completa iniciada");
+    },
+    onError: (error) => {
+      console.error("Force resync email error:", error);
+      toast.error(`Erro na re-sincronização: ${error.message}`);
+    },
+  });
+}
+
 export function useSendEmail() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();

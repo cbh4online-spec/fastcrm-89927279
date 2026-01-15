@@ -1,9 +1,15 @@
 import { useConversations } from "@/hooks/useConversations";
-import { useSyncEmail, useActiveEmailConnection } from "@/hooks/useEmailConnection";
+import { useSyncEmail, useActiveEmailConnection, useForceResyncEmail } from "@/hooks/useEmailConnection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Clock, MessageSquare, AlertTriangle, TrendingUp, RefreshCw } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Clock, MessageSquare, AlertTriangle, TrendingUp, RefreshCw, RotateCcw, ChevronDown } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { IntegrationStatusPanel } from "./IntegrationStatusPanel";
 import { cn } from "@/lib/utils";
@@ -12,10 +18,19 @@ export function InboxMetricsBar() {
   const { data: conversations } = useConversations();
   const { data: emailConnection } = useActiveEmailConnection();
   const syncEmail = useSyncEmail();
+  const forceResyncEmail = useForceResyncEmail();
+
+  const isSyncing = syncEmail.isPending || forceResyncEmail.isPending;
 
   const handleSync = () => {
     if (emailConnection?.id) {
       syncEmail.mutate(emailConnection.id);
+    }
+  };
+
+  const handleForceResync = () => {
+    if (emailConnection?.id) {
+      forceResyncEmail.mutate(emailConnection.id);
     }
   };
   
@@ -112,27 +127,34 @@ export function InboxMetricsBar() {
         
         <div className="w-px h-4 bg-border" />
         
-        {/* Sync Button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+        {/* Sync Button with Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleSync}
-              disabled={!emailConnection || syncEmail.isPending}
+              disabled={!emailConnection || isSyncing}
               className="gap-2"
             >
               <RefreshCw className={cn(
                 "w-4 h-4",
-                syncEmail.isPending && "animate-spin"
+                isSyncing && "animate-spin"
               )} />
               <span className="hidden sm:inline">Sincronizar</span>
+              <ChevronDown className="w-3 h-3" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Enviar e receber emails</p>
-          </TooltipContent>
-        </Tooltip>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleSync} disabled={isSyncing}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Sincronizar novos
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleForceResync} disabled={isSyncing}>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Re-sincronizar tudo
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </TooltipProvider>
   );
