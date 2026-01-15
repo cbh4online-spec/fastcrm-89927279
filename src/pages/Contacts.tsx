@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ContactsList } from "@/components/contacts/ContactsList";
+import { SmartContactsTable } from "@/components/contacts/SmartContactsTable";
 
 export default function Contacts() {
   return (
     <DashboardLayout>
-      <ContactsList />
+      <SmartContactsTable />
     </DashboardLayout>
   );
 }

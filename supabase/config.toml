@@ -68,3 +68,6 @@ verify_jwt = true
 
 [functions.ai-analyze-lead]
 verify_jwt = false
+
+[functions.ai-analyze-entity]
+verify_jwt = false
