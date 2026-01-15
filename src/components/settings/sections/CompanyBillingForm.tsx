@@ -12,58 +12,53 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Building2, Save, Sparkles, Loader2, Globe, Linkedin, Facebook, Instagram, Twitter } from "lucide-react";
+import { Building2, Save, Search, Loader2, Globe, Linkedin, Facebook, Instagram, Twitter, CheckCircle2, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const companyBillingSchema = z.object({
   company_name: z.string().min(1, "Nome da empresa é obrigatório"),
-  tax_id: z.string().min(1, "NIF é obrigatório"),
+  tax_id: z.string().min(9, "NIF deve ter 9 dígitos").max(9, "NIF deve ter 9 dígitos").regex(/^\d{9}$/, "NIF deve conter apenas números"),
   billing_email: z.string().email("Email inválido").optional().or(z.literal("")),
   billing_address: z.string().optional(),
   billing_city: z.string().optional(),
   billing_postal_code: z.string().optional(),
   billing_country: z.string().optional(),
+  cae: z.string().optional(),
+  cae_description: z.string().optional(),
+  company_status: z.string().optional(),
   phone: z.string().optional(),
   website: z.string().optional(),
   linkedin_url: z.string().optional(),
   facebook_url: z.string().optional(),
   instagram_url: z.string().optional(),
   twitter_url: z.string().optional(),
-  industry: z.string().optional(),
-  description: z.string().optional(),
 });
 
 type CompanyBillingFormData = z.infer<typeof companyBillingSchema>;
 
-interface EnrichmentResult {
-  company_name?: string;
-  billing_address?: string;
-  billing_city?: string;
-  billing_postal_code?: string;
-  billing_country?: string;
-  billing_email?: string;
-  phone?: string;
-  website?: string;
-  linkedin_url?: string;
-  facebook_url?: string;
-  instagram_url?: string;
-  twitter_url?: string;
-  industry?: string;
-  description?: string;
-  confidence?: "high" | "medium" | "low";
+interface LookupResult {
+  company_name?: string | null;
+  billing_address?: string | null;
+  billing_city?: string | null;
+  billing_postal_code?: string | null;
+  billing_country?: string | null;
+  cae?: string | null;
+  cae_description?: string | null;
+  company_status?: string | null;
 }
 
 export function CompanyBillingForm() {
   const { currentWorkspace, refreshWorkspaces } = useWorkspace();
   const [isLoading, setIsLoading] = useState(false);
-  const [isEnriching, setIsEnriching] = useState(false);
-  const [enrichmentConfidence, setEnrichmentConfidence] = useState<string | null>(null);
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [lookupStatus, setLookupStatus] = useState<"idle" | "success" | "error">("idle");
+  const [lookupMessage, setLookupMessage] = useState<string | null>(null);
 
   const form = useForm<CompanyBillingFormData>({
     resolver: zodResolver(companyBillingSchema),
@@ -75,14 +70,15 @@ export function CompanyBillingForm() {
       billing_city: "",
       billing_postal_code: "",
       billing_country: "Portugal",
+      cae: "",
+      cae_description: "",
+      company_status: "",
       phone: "",
       website: "",
       linkedin_url: "",
       facebook_url: "",
       instagram_url: "",
       twitter_url: "",
-      industry: "",
-      description: "",
     },
   });
 
@@ -111,14 +107,15 @@ export function CompanyBillingForm() {
           billing_city: data.billing_city || "",
           billing_postal_code: data.billing_postal_code || "",
           billing_country: data.billing_country || "Portugal",
+          cae: "",
+          cae_description: "",
+          company_status: "",
           phone: "",
           website: "",
           linkedin_url: "",
           facebook_url: "",
           instagram_url: "",
           twitter_url: "",
-          industry: "",
-          description: "",
         });
       }
     }
@@ -126,98 +123,75 @@ export function CompanyBillingForm() {
     loadWorkspaceData();
   }, [currentWorkspace?.id, form]);
 
-  async function handleEnrichData() {
-    const taxId = form.getValues("tax_id");
-    const country = form.getValues("billing_country") || "Portugal";
+  async function handleLookupByNif() {
+    const nif = form.getValues("tax_id");
 
-    if (!taxId || taxId.length < 9) {
-      toast.error("Introduza um NIF/NIPC válido para enriquecer os dados");
+    if (!nif || nif.length !== 9 || !/^\d{9}$/.test(nif)) {
+      toast.error("Introduza um NIF válido com 9 dígitos");
       return;
     }
 
-    setIsEnriching(true);
-    setEnrichmentConfidence(null);
+    setIsLookingUp(true);
+    setLookupStatus("idle");
+    setLookupMessage(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("enrich-company-data", {
-        body: { tax_id: taxId, country },
+      const { data, error } = await supabase.functions.invoke("lookup-company-nif", {
+        body: { nif },
       });
 
       if (error) throw error;
 
       if (data.error) {
+        setLookupStatus("error");
+        setLookupMessage(data.error);
         toast.error(data.error);
         return;
       }
 
       if (data.success && data.data) {
-        const enrichedData: EnrichmentResult = data.data;
-        setEnrichmentConfidence(enrichedData.confidence || null);
-
-        // Only update fields that have values and are currently empty or user confirms
-        const currentValues = form.getValues();
-        const updates: Partial<CompanyBillingFormData> = {};
-
-        if (enrichedData.company_name && !currentValues.company_name) {
-          updates.company_name = enrichedData.company_name;
+        const companyData: LookupResult = data.data;
+        
+        // Update form fields with found data
+        if (companyData.company_name) {
+          form.setValue("company_name", companyData.company_name);
         }
-        if (enrichedData.billing_address && !currentValues.billing_address) {
-          updates.billing_address = enrichedData.billing_address;
+        if (companyData.billing_address) {
+          form.setValue("billing_address", companyData.billing_address);
         }
-        if (enrichedData.billing_city && !currentValues.billing_city) {
-          updates.billing_city = enrichedData.billing_city;
+        if (companyData.billing_city) {
+          form.setValue("billing_city", companyData.billing_city);
         }
-        if (enrichedData.billing_postal_code && !currentValues.billing_postal_code) {
-          updates.billing_postal_code = enrichedData.billing_postal_code;
+        if (companyData.billing_postal_code) {
+          form.setValue("billing_postal_code", companyData.billing_postal_code);
         }
-        if (enrichedData.billing_country && !currentValues.billing_country) {
-          updates.billing_country = enrichedData.billing_country;
+        if (companyData.billing_country) {
+          form.setValue("billing_country", companyData.billing_country);
         }
-        if (enrichedData.billing_email && !currentValues.billing_email) {
-          updates.billing_email = enrichedData.billing_email;
+        if (companyData.cae) {
+          form.setValue("cae", companyData.cae);
         }
-        if (enrichedData.phone && !currentValues.phone) {
-          updates.phone = enrichedData.phone;
+        if (companyData.cae_description) {
+          form.setValue("cae_description", companyData.cae_description);
         }
-        if (enrichedData.website && !currentValues.website) {
-          updates.website = enrichedData.website;
-        }
-        if (enrichedData.linkedin_url && !currentValues.linkedin_url) {
-          updates.linkedin_url = enrichedData.linkedin_url;
-        }
-        if (enrichedData.facebook_url && !currentValues.facebook_url) {
-          updates.facebook_url = enrichedData.facebook_url;
-        }
-        if (enrichedData.instagram_url && !currentValues.instagram_url) {
-          updates.instagram_url = enrichedData.instagram_url;
-        }
-        if (enrichedData.twitter_url && !currentValues.twitter_url) {
-          updates.twitter_url = enrichedData.twitter_url;
-        }
-        if (enrichedData.industry && !currentValues.industry) {
-          updates.industry = enrichedData.industry;
-        }
-        if (enrichedData.description && !currentValues.description) {
-          updates.description = enrichedData.description;
+        if (companyData.company_status) {
+          form.setValue("company_status", companyData.company_status);
         }
 
-        // Apply updates
-        Object.entries(updates).forEach(([key, value]) => {
-          form.setValue(key as keyof CompanyBillingFormData, value as string);
-        });
-
-        const fieldsUpdated = Object.keys(updates).length;
-        if (fieldsUpdated > 0) {
-          toast.success(data.message || `${fieldsUpdated} campos preenchidos automaticamente`);
-        } else {
-          toast.info("Nenhum campo novo foi encontrado para preencher");
-        }
+        setLookupStatus("success");
+        setLookupMessage("Dados preenchidos automaticamente. Verifique e edite se necessário antes de guardar.");
+        toast.success("Dados da empresa encontrados!");
+      } else {
+        setLookupStatus("error");
+        setLookupMessage("Empresa não encontrada para este NIF");
       }
     } catch (error) {
-      console.error("Error enriching data:", error);
-      toast.error("Erro ao enriquecer dados. Tente novamente.");
+      console.error("Error looking up company:", error);
+      setLookupStatus("error");
+      setLookupMessage("Erro ao pesquisar empresa. Tente novamente.");
+      toast.error("Erro ao pesquisar empresa");
     } finally {
-      setIsEnriching(false);
+      setIsLookingUp(false);
     }
   }
 
@@ -255,31 +229,31 @@ export function CompanyBillingForm() {
     }
   }
 
-  const confidenceBadge = enrichmentConfidence && (
+  const statusBadge = form.watch("company_status") && (
     <Badge 
-      variant={enrichmentConfidence === "high" ? "default" : enrichmentConfidence === "medium" ? "secondary" : "outline"}
+      variant={form.watch("company_status")?.toLowerCase().includes("ativ") ? "default" : "destructive"}
       className="ml-2"
     >
-      Confiança: {enrichmentConfidence === "high" ? "Alta" : enrichmentConfidence === "medium" ? "Média" : "Baixa"}
+      {form.watch("company_status")}
     </Badge>
   );
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* AI Enrichment Card */}
+        {/* NIF Lookup Card */}
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Enriquecimento com IA
-              {confidenceBadge}
+              <Search className="h-4 w-4 text-primary" />
+              Preencher por NIF
+              {statusBadge}
             </CardTitle>
             <CardDescription>
-              Introduza o NIF/NIPC e a IA pesquisará automaticamente os dados da empresa
+              Introduza o NIF e os dados da empresa serão preenchidos automaticamente via Racius
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <div className="flex gap-3">
               <FormField
                 control={form.control}
@@ -287,7 +261,11 @@ export function CompanyBillingForm() {
                 render={({ field }) => (
                   <FormItem className="flex-1">
                     <FormControl>
-                      <Input placeholder="NIF/NIPC (ex: 123456789)" {...field} />
+                      <Input 
+                        placeholder="NIF (9 dígitos)" 
+                        maxLength={9}
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -295,23 +273,34 @@ export function CompanyBillingForm() {
               />
               <Button 
                 type="button" 
-                onClick={handleEnrichData}
-                disabled={isEnriching}
+                onClick={handleLookupByNif}
+                disabled={isLookingUp}
                 className="gap-2"
               >
-                {isEnriching ? (
+                {isLookingUp ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     A pesquisar...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" />
-                    Pesquisar dados
+                    <Search className="h-4 w-4" />
+                    Preencher automaticamente
                   </>
                 )}
               </Button>
             </div>
+
+            {lookupMessage && (
+              <Alert variant={lookupStatus === "success" ? "default" : "destructive"}>
+                {lookupStatus === "success" ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+                <AlertDescription>{lookupMessage}</AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -328,7 +317,7 @@ export function CompanyBillingForm() {
               name="company_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome da Empresa *</FormLabel>
+                  <FormLabel>Nome Legal *</FormLabel>
                   <FormControl>
                     <Input placeholder="Nome legal da empresa" {...field} />
                   </FormControl>
@@ -339,12 +328,12 @@ export function CompanyBillingForm() {
 
             <FormField
               control={form.control}
-              name="industry"
+              name="company_status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Setor / Indústria</FormLabel>
+                  <FormLabel>Estado da Empresa</FormLabel>
                   <FormControl>
-                    <Input placeholder="Tecnologia, Saúde, etc." {...field} />
+                    <Input placeholder="Ativa, Encerrada, etc." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -352,19 +341,35 @@ export function CompanyBillingForm() {
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Descrição</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Breve descrição da empresa..." {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="cae"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CAE</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Código CAE" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="cae_description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Atividade Principal</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Descrição da atividade" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         {/* Contact Information */}
