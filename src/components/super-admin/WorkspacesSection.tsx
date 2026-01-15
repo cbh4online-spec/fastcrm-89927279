@@ -108,7 +108,6 @@ export function WorkspacesSection() {
           owner_id,
           created_at,
           managed_by_workspace_id,
-          managed_by_workspace:workspaces!workspaces_managed_by_workspace_id_fkey(id, name),
           workspace_subscriptions (
             plan,
             status,
@@ -119,6 +118,11 @@ export function WorkspacesSection() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+
+      // Build a map of workspace id -> workspace name for agency lookup
+      const workspaceNameMap = new Map(
+        (workspacesData || []).map((ws: any) => [ws.id, ws.name])
+      );
 
       // Get member counts
       const { data: membersData } = await supabase
@@ -168,7 +172,9 @@ export function WorkspacesSection() {
         owner_id: ws.owner_id,
         created_at: ws.created_at,
         managed_by_workspace_id: ws.managed_by_workspace_id,
-        managed_by_workspace: ws.managed_by_workspace,
+        managed_by_workspace: ws.managed_by_workspace_id 
+          ? { id: ws.managed_by_workspace_id, name: workspaceNameMap.get(ws.managed_by_workspace_id) || "Agência" }
+          : null,
         subscription: ws.workspace_subscriptions?.[0] || undefined,
         usage: {
           leads_count: leadsCounts[ws.id] || 0,
