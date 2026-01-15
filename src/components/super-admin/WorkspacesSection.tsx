@@ -164,27 +164,34 @@ export function WorkspacesSection() {
         return acc;
       }, {}) || {};
 
-      return (workspacesData || []).map((ws: any) => ({
-        id: ws.id,
-        name: ws.name,
-        slug: ws.slug,
-        status: ws.status || "active",
-        owner_id: ws.owner_id,
-        created_at: ws.created_at,
-        managed_by_workspace_id: ws.managed_by_workspace_id,
-        managed_by_workspace: ws.managed_by_workspace_id 
-          ? { id: ws.managed_by_workspace_id, name: workspaceNameMap.get(ws.managed_by_workspace_id) || "Agência" }
-          : null,
-        subscription: ws.workspace_subscriptions?.[0] || undefined,
-        usage: {
-          leads_count: leadsCounts[ws.id] || 0,
-          contacts_count: contactsCounts[ws.id] || 0,
-          companies_count: companiesCounts[ws.id] || 0,
-          ai_calls_used: 0,
-          emails_sent: 0,
-        },
-        members_count: memberCounts[ws.id] || 1,
-      })) as WorkspaceDetails[];
+      return (workspacesData || []).map((ws: any) => {
+        // Handle subscription - can be array or object depending on query result
+        const subscription = Array.isArray(ws.workspace_subscriptions) 
+          ? ws.workspace_subscriptions[0] 
+          : ws.workspace_subscriptions;
+        
+        return {
+          id: ws.id,
+          name: ws.name,
+          slug: ws.slug,
+          status: ws.status || "active",
+          owner_id: ws.owner_id,
+          created_at: ws.created_at,
+          managed_by_workspace_id: ws.managed_by_workspace_id,
+          managed_by_workspace: ws.managed_by_workspace_id 
+            ? { id: ws.managed_by_workspace_id, name: workspaceNameMap.get(ws.managed_by_workspace_id) || "Agência" }
+            : null,
+          subscription: subscription || undefined,
+          usage: {
+            leads_count: leadsCounts[ws.id] || 0,
+            contacts_count: contactsCounts[ws.id] || 0,
+            companies_count: companiesCounts[ws.id] || 0,
+            ai_calls_used: 0,
+            emails_sent: 0,
+          },
+          members_count: memberCounts[ws.id] || 1,
+        };
+      }) as WorkspaceDetails[];
     },
   });
 
