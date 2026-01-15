@@ -94,39 +94,91 @@ Deno.serve(async (req) => {
     const markdown = searchData.data?.markdown || searchData.markdown || '';
     
     console.log('Found links:', links.length);
-    console.log('Markdown preview:', markdown.substring(0, 500));
+    
+    // Log all links for debugging
+    console.log('All links:', JSON.stringify(links.slice(0, 20)));
 
-    // Look for company page URL - it should be like /company-name/ but NOT /pesquisa/
+    // Look for company page URL in the search results
+    // Company pages on Racius follow pattern: https://www.racius.com/company-name/
+    // We need to exclude navigation links and find the actual company result
     let companyPageUrl: string | null = null;
     
+    // Exclusion patterns for navigation/generic pages
+    const excludePatterns = [
+      '/pesquisa',
+      '/observatorio',
+      '/sobre',
+      '/contactos',
+      '/login',
+      '/registo',
+      '/registar',
+      '/faq',
+      '/termos',
+      '/privacidade',
+      '/relatorios',
+      '/servicos',
+      '/empresas',
+      '/apoio-ao-cliente',
+      '/blog',
+      '/prestacao-de-contas',
+      '/base-de-dados',
+      '/planos',
+      '/alertas',
+      '/noticias',
+      '/ajuda',
+      '/cookies',
+      'javascript:',
+      '.svg',
+      '.png',
+      '.jpg',
+      '/static/',
+    ];
+    
     for (const link of links) {
-      if (typeof link === 'string' && 
-          link.includes('racius.com/') && 
-          !link.includes('/pesquisa') &&
-          !link.includes('/observatorio') &&
-          !link.includes('/sobre') &&
-          !link.includes('/contactos') &&
-          !link.includes('/login') &&
-          !link.includes('/registo') &&
-          !link.includes('/faq') &&
-          !link.includes('/termos') &&
-          !link.includes('/privacidade') &&
-          !link.includes('javascript:') &&
-          !link.endsWith('racius.com/') &&
-          !link.endsWith('racius.com')) {
-        // Check if it looks like a company page (has a slug after the domain)
-        const urlPath = link.replace('https://www.racius.com/', '').replace('http://www.racius.com/', '');
-        // Company pages have slugs with hyphens and end with /
-        if (urlPath && urlPath.length > 3 && !urlPath.startsWith('?')) {
-          companyPageUrl = link;
-          console.log('Found company page URL:', companyPageUrl);
-          break;
-        }
+      if (typeof link !== 'string') continue;
+      if (!link.includes('racius.com/')) continue;
+      
+      // Check if link matches any exclusion pattern
+      const isExcluded = excludePatterns.some(pattern => link.toLowerCase().includes(pattern));
+      if (isExcluded) continue;
+      
+      // Skip the base URL
+      if (link === 'https://www.racius.com/' || link === 'https://www.racius.com') continue;
+      
+      // Extract the path after racius.com/
+      const urlMatch = link.match(/racius\.com\/([^?#]+)/);
+      if (!urlMatch) continue;
+      
+      const path = urlMatch[1];
+      
+      // Company pages have slugs with letters and hyphens
+      // They typically look like: company-name-lda/ or company-name-sa/
+      // Must contain at least one hyphen (company names have hyphens)
+      // and end with a common suffix or just be a slug
+      if (path && 
+          path.length > 5 && 
+          path.includes('-') && 
+          !path.includes('/') && // Single path segment
+          /^[a-z0-9-]+\/?$/i.test(path)) {
+        companyPageUrl = link;
+        console.log('Found potential company page URL:', companyPageUrl);
+        break;
+      }
+    }
+
+    // Also try to find company link in the markdown content
+    if (!companyPageUrl) {
+      // Look for a pattern like [Company Name](https://www.racius.com/company-slug/)
+      const markdownLinkMatch = markdown.match(/\[([^\]]+)\]\((https:\/\/www\.racius\.com\/[a-z0-9-]+-(?:lda|sa|unipessoal-lda|limitada|sociedade)[^)]*)\)/i);
+      if (markdownLinkMatch) {
+        companyPageUrl = markdownLinkMatch[2];
+        console.log('Found company URL in markdown:', companyPageUrl);
       }
     }
 
     if (!companyPageUrl) {
       console.log('No company page found in search results');
+      console.log('Markdown preview:', markdown.substring(0, 1000));
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -166,7 +218,7 @@ Deno.serve(async (req) => {
     const companyMarkdown = companyData.data?.markdown || companyData.markdown || '';
     
     console.log('Company markdown length:', companyMarkdown.length);
-    console.log('Company markdown preview:', companyMarkdown.substring(0, 1500));
+    console.log('Company markdown preview:', companyMarkdown.substring(0, 2000));
 
     // Parse the company data from markdown
     const result = parseCompanyData(companyMarkdown, cleanNif);
@@ -181,7 +233,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Parsed company data:', result);
+    console.log('Parsed company data:', JSON.stringify(result));
 
     return new Response(
       JSON.stringify({ success: true, data: result }),
@@ -220,39 +272,63 @@ function parseCompanyData(markdown: string, nif: string): LookupResult {
   
   console.log('Parsing markdown with', lines.length, 'lines');
 
-  // Extract company name - usually the first heading
+  // On Racius company pages, the company name is typically in an h1 heading
+  // Format: # Company Name or ## Company Name
   for (const line of lines) {
-    const headingMatch = line.match(/^#+\s+(.+)/);
-    if (headingMatch && !result.company_name) {
-      const name = headingMatch[1].trim();
-      // Skip if it's a section header or too short
-      if (!name.toLowerCase().includes('informação') && 
-          !name.toLowerCase().includes('dados') &&
+    // Match h1 headings
+    const h1Match = line.match(/^#\s+([^#\n]+)/);
+    if (h1Match && !result.company_name) {
+      const name = h1Match[1].trim();
+      // Skip if it's a generic page title
+      if (!name.toLowerCase().includes('racius') && 
           !name.toLowerCase().includes('pesquisa') &&
-          !name.toLowerCase().includes('racius') &&
-          !name.toLowerCase().includes('empresa') &&
-          name.length > 5) {
+          !name.toLowerCase().includes('resultados') &&
+          name.length > 3 &&
+          name.length < 150) {
         result.company_name = name
-          .replace(/\s*[-–|].*$/, '') // Remove anything after dash
+          .replace(/\s*[-–|].*$/, '')
           .replace(/\s*,\s*$/, '')
           .trim();
-        console.log('Found company name:', result.company_name);
+        console.log('Found company name from h1:', result.company_name);
         break;
       }
     }
   }
 
-  // If no heading found, try other patterns
+  // If no h1, try h2
+  if (!result.company_name) {
+    for (const line of lines) {
+      const h2Match = line.match(/^##\s+([^#\n]+)/);
+      if (h2Match) {
+        const name = h2Match[1].trim();
+        if (!name.toLowerCase().includes('informação') && 
+            !name.toLowerCase().includes('dados') &&
+            !name.toLowerCase().includes('contacto') &&
+            name.length > 3 &&
+            name.length < 150) {
+          result.company_name = name
+            .replace(/\s*[-–|].*$/, '')
+            .replace(/\s*,\s*$/, '')
+            .trim();
+          console.log('Found company name from h2:', result.company_name);
+          break;
+        }
+      }
+    }
+  }
+
+  // Try pattern matching for company name
   if (!result.company_name) {
     const namePatterns = [
-      /Denominação[:\s]*([^\n|]+)/i,
-      /Razão Social[:\s]*([^\n|]+)/i,
-      /Nome[:\s]*([^\n|]+)/i,
+      /Denominação[:\s]+([^\n|]+)/i,
+      /Razão Social[:\s]+([^\n|]+)/i,
+      /Nome[:\s]+([^\n|]+)/i,
+      /Empresa[:\s]+([^\n|]+)/i,
     ];
     
     for (const pattern of namePatterns) {
       const match = cleanContent.match(pattern);
-      if (match && match[1] && match[1].length > 3) {
+      if (match && match[1] && match[1].length > 3 && match[1].length < 150) {
         result.company_name = match[1].trim();
         console.log('Found company name via pattern:', result.company_name);
         break;
@@ -260,22 +336,29 @@ function parseCompanyData(markdown: string, nif: string): LookupResult {
     }
   }
 
-  // Extract NIF to verify
+  // Verify NIF in page
   const nifMatch = cleanContent.match(/(?:NIF|NIPC|Contribuinte)[:\s]*(\d{9})/i);
   if (nifMatch) {
     console.log('Found NIF in page:', nifMatch[1]);
+    if (nifMatch[1] !== nif) {
+      console.log('Warning: NIF mismatch! Expected:', nif, 'Found:', nifMatch[1]);
+    }
   }
 
-  // Extract address - look for "Morada" or "Sede"
+  // Extract address
+  // Common patterns: "Morada: ...", "Sede: ...", "Endereço: ..."
   const addressPatterns = [
-    /(?:Morada|Sede)[:\s]*([^\n|]+)/i,
-    /(?:Endereço)[:\s]*([^\n|]+)/i,
+    /Morada[:\s]+([^\n|]+(?:\n[^\n|#]+)?)/i,
+    /Sede[:\s]+([^\n|]+(?:\n[^\n|#]+)?)/i,
+    /Endereço[:\s]+([^\n|]+)/i,
   ];
 
   for (const pattern of addressPatterns) {
     const match = cleanContent.match(pattern);
     if (match && match[1]) {
-      const addr = match[1].trim();
+      let addr = match[1].trim();
+      // Clean up multi-line addresses
+      addr = addr.replace(/\s+/g, ' ').trim();
       if (addr.length > 5 && !addr.toLowerCase().includes('não disponível')) {
         result.billing_address = addr;
         console.log('Found address:', result.billing_address);
@@ -290,21 +373,29 @@ function parseCompanyData(markdown: string, nif: string): LookupResult {
     result.billing_postal_code = postalMatch[1].replace(/\s/g, '-');
     console.log('Found postal code:', result.billing_postal_code);
     
-    // Try to extract city from same context
+    // Try to extract city - usually follows postal code
     const postalIdx = cleanContent.indexOf(postalMatch[0]);
-    const contextAfter = cleanContent.substring(postalIdx, postalIdx + 100);
-    const cityMatch = contextAfter.match(/\d{4}[-\s]?\d{3}\s+([A-Za-zÀ-ÿ\s]+)/);
+    const contextAfter = cleanContent.substring(postalIdx, postalIdx + 150);
+    
+    // Pattern: XXXX-XXX City Name
+    const cityMatch = contextAfter.match(/\d{4}[-\s]?\d{3}\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]+)/);
     if (cityMatch && cityMatch[1]) {
       result.billing_city = cityMatch[1].trim().split(/[,\n|]/)[0].trim();
-      console.log('Found city:', result.billing_city);
+      // Clean up city name
+      if (result.billing_city.length > 2 && result.billing_city.length < 50) {
+        console.log('Found city:', result.billing_city);
+      } else {
+        result.billing_city = null;
+      }
     }
   }
 
-  // Extract CAE - look for 5 digit code
+  // Extract CAE
+  // Patterns: "CAE: XXXXX", "CAE Principal: XXXXX - Description", "Atividade: XXXXX"
   const caePatterns = [
-    /CAE(?:\s+Principal)?[:\s]*(\d{5})\s*[-–]?\s*([^\n|]+)?/i,
-    /Actividade[:\s]*(\d{5})\s*[-–]?\s*([^\n|]+)?/i,
-    /Atividade[:\s]*(\d{5})\s*[-–]?\s*([^\n|]+)?/i,
+    /CAE(?:\s+Principal)?[:\s]+(\d{5})(?:\s*[-–]\s*([^\n|]+))?/i,
+    /Actividade(?:\s+Principal)?[:\s]+(\d{5})(?:\s*[-–]\s*([^\n|]+))?/i,
+    /Atividade(?:\s+Principal)?[:\s]+(\d{5})(?:\s*[-–]\s*([^\n|]+))?/i,
   ];
 
   for (const pattern of caePatterns) {
@@ -320,9 +411,30 @@ function parseCompanyData(markdown: string, nif: string): LookupResult {
     }
   }
 
+  // If no CAE description found, try to find it separately
+  if (result.cae && !result.cae_description) {
+    const descPatterns = [
+      /Atividade(?:\s+Principal)?[:\s]+([^\n|]+)/i,
+      /Actividade(?:\s+Principal)?[:\s]+([^\n|]+)/i,
+      /Objeto(?:\s+Social)?[:\s]+([^\n|]+)/i,
+      /Objecto(?:\s+Social)?[:\s]+([^\n|]+)/i,
+    ];
+    
+    for (const pattern of descPatterns) {
+      const match = cleanContent.match(pattern);
+      if (match && match[1] && !match[1].match(/^\d{5}/)) {
+        result.cae_description = match[1].trim();
+        console.log('Found CAE description separately:', result.cae_description);
+        break;
+      }
+    }
+  }
+
   // Extract company status
   const statusPatterns = [
-    /(?:Estado|Situação|Situacao)[:\s]*([^\n|]+)/i,
+    /Estado[:\s]+([^\n|]+)/i,
+    /Situação[:\s]+([^\n|]+)/i,
+    /Situacao[:\s]+([^\n|]+)/i,
   ];
 
   for (const pattern of statusPatterns) {
@@ -343,18 +455,21 @@ function parseCompanyData(markdown: string, nif: string): LookupResult {
     }
   }
 
-  // Check for status indicators in content
+  // Check for status keywords in content
   if (!result.company_status) {
-    if (cleanContent.toLowerCase().includes('em actividade') || cleanContent.toLowerCase().includes('em atividade')) {
+    const lowerContent = cleanContent.toLowerCase();
+    if (lowerContent.includes('em actividade') || lowerContent.includes('em atividade') || lowerContent.includes('ativa')) {
       result.company_status = 'Ativa';
-    } else if (cleanContent.toLowerCase().includes('dissolvida') || cleanContent.toLowerCase().includes('encerrada')) {
+      console.log('Found status from keywords: Ativa');
+    } else if (lowerContent.includes('dissolvida') || lowerContent.includes('encerrada')) {
       result.company_status = 'Encerrada';
+      console.log('Found status from keywords: Encerrada');
     }
   }
 
   // Extract capital social
   const capitalPatterns = [
-    /Capital(?:\s+Social)?[:\s]*([€\d\s.,]+(?:€|EUR)?)/i,
+    /Capital(?:\s+Social)?[:\s]+([€\d\s.,]+(?:€|EUR|euros)?)/i,
   ];
 
   for (const pattern of capitalPatterns) {
@@ -368,11 +483,12 @@ function parseCompanyData(markdown: string, nif: string): LookupResult {
 
   // Extract founding date
   const datePatterns = [
-    /Constituição[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
-    /Data de Constituição[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
-    /Fundação[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
-    /Início de Atividade[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
-    /Inicio de Actividade[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
+    /Constituição[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
+    /Data de Constituição[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
+    /Fundação[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
+    /Início de Atividade[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
+    /Inicio de Actividade[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
+    /Constituída em[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
   ];
 
   for (const pattern of datePatterns) {
