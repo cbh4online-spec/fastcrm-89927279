@@ -391,6 +391,7 @@ interface FetchEmailsRequest {
   connectionId: string;
   workspaceId: string;
   limit?: number;
+  forceResync?: boolean;
 }
 
 serve(async (req) => {
@@ -422,7 +423,7 @@ serve(async (req) => {
     }
 
     const body: FetchEmailsRequest = await req.json();
-    const { connectionId, workspaceId, limit = 50 } = body;
+    const { connectionId, workspaceId, limit = 50, forceResync = false } = body;
 
     // Get email connection
     const { data: connection, error: connError } = await supabaseClient
@@ -499,10 +500,12 @@ serve(async (req) => {
         );
       }
 
-      // Determine range to fetch
-      const lastUid = connection.last_sync_uid ? parseInt(connection.last_sync_uid) : 0;
+      // Determine range to fetch - if forceResync, ignore last_sync_uid
+      const lastUid = forceResync ? 0 : (connection.last_sync_uid ? parseInt(connection.last_sync_uid) : 0);
       const startMsg = Math.max(1, mailbox.exists - limit + 1);
       const range = `${startMsg}:${mailbox.exists}`;
+      
+      console.log(`Force resync: ${forceResync}, Last UID: ${lastUid}`);
       
       // Fetch messages
       const messages = await client.fetchMessages(range);
