@@ -37,6 +37,7 @@ import Products from "./pages/Products";
 import Packages from "./pages/Packages";
 import Imports from "./pages/Imports";
 import PublicProductSheet from "./pages/PublicProductSheet";
+import Invoices from "./pages/Invoices";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => (
                   <Route path="/dashboard/packages" element={<Packages />} />
                   <Route path="/dashboard/imports" element={<Imports />} />
                   <Route path="/dashboard/payments" element={<Payments />} />
+                  <Route path="/dashboard/invoices" element={<Invoices />} />
                   <Route path="/dashboard/kpis" element={<KPIs />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />

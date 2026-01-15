@@ -149,12 +149,14 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    name: "Páginas & Pagamentos",
-    icon: Globe,
-    tooltip: "Landing pages e gestão de pagamentos",
+    name: "Financeiro",
+    icon: PaymentIcon,
+    tooltip: "Faturas, pagamentos e receitas",
+    highlight: true,
     items: [
-      { name: "Landing Pages", href: "/dashboard/landing-pages", icon: Globe, tooltip: "Páginas de captura" },
+      { name: "Faturas", href: "/dashboard/invoices", icon: FileText, tooltip: "Gerir faturas", highlight: true },
       { name: "Pagamentos", href: "/dashboard/payments", icon: PaymentIcon, tooltip: "Histórico de pagamentos" },
+      { name: "Landing Pages", href: "/dashboard/landing-pages", icon: Globe, tooltip: "Páginas de captura" },
     ],
   },
   {
