@@ -2103,13 +2103,23 @@ export type Database = {
       }
       opportunities: {
         Row: {
+          ai_analyzed_at: string | null
+          ai_insight: string | null
+          ai_next_action: string | null
+          ai_temperature: string | null
+          company_id: string | null
+          contact_id: string | null
           created_at: string
+          currency: string | null
           expected_close_date: string | null
           id: string
+          last_activity_at: string | null
           lead_id: string | null
           lost_reason: string | null
           notes: string | null
           owner_id: string
+          probability: number | null
+          source: string | null
           stage_id: string
           status: string
           title: string
@@ -2118,13 +2128,23 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          ai_analyzed_at?: string | null
+          ai_insight?: string | null
+          ai_next_action?: string | null
+          ai_temperature?: string | null
+          company_id?: string | null
+          contact_id?: string | null
           created_at?: string
+          currency?: string | null
           expected_close_date?: string | null
           id?: string
+          last_activity_at?: string | null
           lead_id?: string | null
           lost_reason?: string | null
           notes?: string | null
           owner_id: string
+          probability?: number | null
+          source?: string | null
           stage_id: string
           status?: string
           title: string
@@ -2133,13 +2153,23 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          ai_analyzed_at?: string | null
+          ai_insight?: string | null
+          ai_next_action?: string | null
+          ai_temperature?: string | null
+          company_id?: string | null
+          contact_id?: string | null
           created_at?: string
+          currency?: string | null
           expected_close_date?: string | null
           id?: string
+          last_activity_at?: string | null
           lead_id?: string | null
           lost_reason?: string | null
           notes?: string | null
           owner_id?: string
+          probability?: number | null
+          source?: string | null
           stage_id?: string
           status?: string
           title?: string
@@ -2148,6 +2178,20 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "opportunities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "opportunities_lead_id_fkey"
             columns: ["lead_id"]
@@ -2208,33 +2252,90 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          description: string | null
           id: string
           name: string
+          pipeline_id: string | null
           position: number
+          probability: number | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
           color?: string
           created_at?: string
+          description?: string | null
           id?: string
           name: string
+          pipeline_id?: string | null
           position?: number
+          probability?: number | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
           color?: string
           created_at?: string
+          description?: string | null
           id?: string
           name?: string
+          pipeline_id?: string | null
           position?: number
+          probability?: number | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "pipeline_stages_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pipeline_stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipelines: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          type: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          type?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          type?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipelines_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
