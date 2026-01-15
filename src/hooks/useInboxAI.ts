@@ -45,7 +45,7 @@ export interface OpportunityData {
   status?: string;
 }
 
-export type ModifyAction = "shorten" | "direct" | "rewrite" | "formal" | "friendly";
+export type ModifyAction = "shorten" | "direct" | "rewrite" | "formal" | "friendly" | "commercial";
 
 export function useInboxAI() {
   const [isLoading, setIsLoading] = useState(false);

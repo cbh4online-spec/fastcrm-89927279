@@ -51,7 +51,7 @@ interface InboxReplyRequest {
   channel?: string;
   template?: TemplateData;
   currentReply?: string;
-  modifyAction?: "shorten" | "direct" | "rewrite" | "formal" | "friendly";
+  modifyAction?: "shorten" | "direct" | "rewrite" | "formal" | "friendly" | "commercial";
 }
 
 // Channel-specific guidelines
@@ -333,7 +333,8 @@ serve(async (req) => {
         direct: "Make the reply more direct and to the point, remove unnecessary pleasantries",
         rewrite: "Rewrite the reply with a fresh approach while maintaining the intent",
         formal: "Make the reply more formal and professional",
-        friendly: "Make the reply warmer and more friendly"
+        friendly: "Make the reply warmer and more friendly",
+        commercial: "Make the reply more commercial and sales-focused. Add persuasive language, highlight value propositions, include a clear call-to-action, and focus on converting the lead. Use urgency where appropriate but keep it natural and not pushy."
       };
       
       userContent += `Instructions: ${modifyInstructions[modifyAction] || modifyAction}\n`;
