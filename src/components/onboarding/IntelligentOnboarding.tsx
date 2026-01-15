@@ -2,12 +2,13 @@ import { useIntelligentOnboarding } from "@/hooks/useIntelligentOnboarding";
 import { BusinessTypeStep } from "./steps/BusinessTypeStep";
 import { SuccessDefinitionStep } from "./steps/SuccessDefinitionStep";
 import { ProcessDescriptionStep } from "./steps/ProcessDescriptionStep";
+import { ChannelsStep } from "./steps/ChannelsStep";
 import { GeneratingStep } from "./steps/GeneratingStep";
 import { PreviewStep } from "./steps/PreviewStep";
 import { ApplyingStep } from "./steps/ApplyingStep";
 import { CompleteStep } from "./steps/CompleteStep";
 import { Progress } from "@/components/ui/progress";
-import { Building2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 interface IntelligentOnboardingProps {
   workspaceName: string;
@@ -20,10 +21,11 @@ export function IntelligentOnboarding({ workspaceName, onComplete, onSkip }: Int
 
   const getProgress = () => {
     const progressMap = {
-      business: 20,
-      success: 40,
-      process: 60,
-      generating: 70,
+      business: 15,
+      success: 30,
+      process: 50,
+      channels: 65,
+      generating: 75,
       preview: 85,
       applying: 95,
       complete: 100,
@@ -33,9 +35,10 @@ export function IntelligentOnboarding({ workspaceName, onComplete, onSkip }: Int
 
   const getStepTitle = () => {
     const titles = {
-      business: "Tipo de Negócio",
-      success: "Definição de Sucesso",
-      process: "Processo de Vendas",
+      business: "1/4 — Tipo de Negócio",
+      success: "2/4 — Definição de Sucesso",
+      process: "3/4 — Processo de Vendas",
+      channels: "4/4 — Canais de Entrada",
       generating: "A Criar Configuração",
       preview: "Rever Configuração",
       applying: "A Aplicar",
@@ -104,6 +107,15 @@ export function IntelligentOnboarding({ workspaceName, onComplete, onSkip }: Int
             <ProcessDescriptionStep
               value={onboarding.answers.processDescription}
               onChange={(value) => onboarding.updateAnswer("processDescription", value)}
+              onNext={onboarding.nextStep}
+              onBack={onboarding.prevStep}
+            />
+          )}
+
+          {onboarding.step === "channels" && (
+            <ChannelsStep
+              value={onboarding.answers.channels}
+              onChange={(value) => onboarding.updateAnswer("channels", value)}
               onNext={onboarding.generateConfig}
               onBack={onboarding.prevStep}
             />
@@ -121,7 +133,7 @@ export function IntelligentOnboarding({ workspaceName, onComplete, onSkip }: Int
               onRemoveAutomation={onboarding.removeAutomation}
               onRemoveKPI={onboarding.removeKPI}
               onApply={() => onboarding.setStep("applying")}
-              onBack={() => onboarding.setStep("process")}
+              onBack={() => onboarding.setStep("channels")}
             />
           )}
 
