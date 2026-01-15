@@ -16,7 +16,7 @@ import {
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Building2, Save, Search, Loader2, Globe, Linkedin, Facebook, Instagram, Twitter, CheckCircle2, AlertCircle, X, Plus } from "lucide-react";
+import { Building2, Save, Search, Loader2, Globe, Linkedin, Facebook, Instagram, Twitter, CheckCircle2, AlertCircle, X, Plus, MapPin, Phone, ExternalLink, Calendar, Landmark, Briefcase } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,8 +32,16 @@ const companyBillingSchema = z.object({
   cae_codes: z.array(z.string()).optional().default([]),
   cae_description: z.string().optional(),
   company_status: z.string().optional(),
+  legal_nature: z.string().optional(),
+  capital_social: z.string().optional(),
+  founding_date: z.string().optional(),
+  region: z.string().optional(),
+  county: z.string().optional(),
+  parish: z.string().optional(),
   phone: z.string().optional(),
+  fax: z.string().optional(),
   website: z.string().optional(),
+  racius_url: z.string().optional(),
   linkedin_url: z.string().optional(),
   facebook_url: z.string().optional(),
   instagram_url: z.string().optional(),
@@ -44,13 +52,24 @@ type CompanyBillingFormData = z.infer<typeof companyBillingSchema>;
 
 interface LookupResult {
   company_name?: string | null;
-  billing_address?: string | null;
-  billing_city?: string | null;
-  billing_postal_code?: string | null;
-  billing_country?: string | null;
+  tax_id?: string | null;
+  address?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+  region?: string | null;
+  county?: string | null;
+  parish?: string | null;
   cae_codes?: string[];
   cae_description?: string | null;
   company_status?: string | null;
+  legal_nature?: string | null;
+  capital_social?: string | null;
+  founding_date?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  fax?: string | null;
+  racius_url?: string | null;
 }
 
 export function CompanyBillingForm() {
@@ -73,8 +92,16 @@ export function CompanyBillingForm() {
       cae_codes: [],
       cae_description: "",
       company_status: "",
+      legal_nature: "",
+      capital_social: "",
+      founding_date: "",
+      region: "",
+      county: "",
+      parish: "",
       phone: "",
+      fax: "",
       website: "",
+      racius_url: "",
       linkedin_url: "",
       facebook_url: "",
       instagram_url: "",
@@ -89,7 +116,7 @@ export function CompanyBillingForm() {
 
       const { data, error } = await supabase
         .from("workspaces")
-        .select("company_name, tax_id, billing_email, billing_address, billing_city, billing_postal_code, billing_country, cae_codes, cae_description, company_status, phone, website, linkedin_url, facebook_url, instagram_url, twitter_url")
+        .select("company_name, tax_id, billing_email, billing_address, billing_city, billing_postal_code, billing_country, cae_codes, cae_description, company_status, legal_nature, capital_social, founding_date, region, county, parish, phone, fax, website, racius_url, linkedin_url, facebook_url, instagram_url, twitter_url")
         .eq("id", currentWorkspace.id)
         .single();
 
@@ -99,6 +126,7 @@ export function CompanyBillingForm() {
       }
 
       if (data) {
+        const wsData = data as any;
         form.reset({
           company_name: data.company_name || "",
           tax_id: data.tax_id || "",
@@ -107,15 +135,23 @@ export function CompanyBillingForm() {
           billing_city: data.billing_city || "",
           billing_postal_code: data.billing_postal_code || "",
           billing_country: data.billing_country || "Portugal",
-          cae_codes: (data as any).cae_codes || [],
-          cae_description: (data as any).cae_description || "",
-          company_status: (data as any).company_status || "",
-          phone: (data as any).phone || "",
-          website: (data as any).website || "",
-          linkedin_url: (data as any).linkedin_url || "",
-          facebook_url: (data as any).facebook_url || "",
-          instagram_url: (data as any).instagram_url || "",
-          twitter_url: (data as any).twitter_url || "",
+          cae_codes: wsData.cae_codes || [],
+          cae_description: wsData.cae_description || "",
+          company_status: wsData.company_status || "",
+          legal_nature: wsData.legal_nature || "",
+          capital_social: wsData.capital_social || "",
+          founding_date: wsData.founding_date || "",
+          region: wsData.region || "",
+          county: wsData.county || "",
+          parish: wsData.parish || "",
+          phone: wsData.phone || "",
+          fax: wsData.fax || "",
+          website: wsData.website || "",
+          racius_url: wsData.racius_url || "",
+          linkedin_url: wsData.linkedin_url || "",
+          facebook_url: wsData.facebook_url || "",
+          instagram_url: wsData.instagram_url || "",
+          twitter_url: wsData.twitter_url || "",
         });
       }
     }
@@ -156,17 +192,14 @@ export function CompanyBillingForm() {
         if (companyData.company_name) {
           form.setValue("company_name", companyData.company_name);
         }
-        if (companyData.billing_address) {
-          form.setValue("billing_address", companyData.billing_address);
+        if (companyData.address) {
+          form.setValue("billing_address", companyData.address);
         }
-        if (companyData.billing_city) {
-          form.setValue("billing_city", companyData.billing_city);
+        if (companyData.city) {
+          form.setValue("billing_city", companyData.city);
         }
-        if (companyData.billing_postal_code) {
-          form.setValue("billing_postal_code", companyData.billing_postal_code);
-        }
-        if (companyData.billing_country) {
-          form.setValue("billing_country", companyData.billing_country);
+        if (companyData.postal_code) {
+          form.setValue("billing_postal_code", companyData.postal_code);
         }
         if (companyData.cae_codes && companyData.cae_codes.length > 0) {
           form.setValue("cae_codes", companyData.cae_codes);
@@ -176,6 +209,39 @@ export function CompanyBillingForm() {
         }
         if (companyData.company_status) {
           form.setValue("company_status", companyData.company_status);
+        }
+        if (companyData.legal_nature) {
+          form.setValue("legal_nature", companyData.legal_nature);
+        }
+        if (companyData.capital_social) {
+          form.setValue("capital_social", companyData.capital_social);
+        }
+        if (companyData.founding_date) {
+          form.setValue("founding_date", companyData.founding_date);
+        }
+        if (companyData.region) {
+          form.setValue("region", companyData.region);
+        }
+        if (companyData.county) {
+          form.setValue("county", companyData.county);
+        }
+        if (companyData.parish) {
+          form.setValue("parish", companyData.parish);
+        }
+        if (companyData.email) {
+          form.setValue("billing_email", companyData.email);
+        }
+        if (companyData.phone) {
+          form.setValue("phone", companyData.phone);
+        }
+        if (companyData.fax) {
+          form.setValue("fax", companyData.fax);
+        }
+        if (companyData.website) {
+          form.setValue("website", companyData.website);
+        }
+        if (companyData.racius_url) {
+          form.setValue("racius_url", companyData.racius_url);
         }
 
         setLookupStatus("success");
@@ -217,8 +283,16 @@ export function CompanyBillingForm() {
           cae_codes: data.cae_codes || [],
           cae_description: data.cae_description || null,
           company_status: data.company_status || null,
+          legal_nature: data.legal_nature || null,
+          capital_social: data.capital_social || null,
+          founding_date: data.founding_date || null,
+          region: data.region || null,
+          county: data.county || null,
+          parish: data.parish || null,
           phone: data.phone || null,
+          fax: data.fax || null,
           website: data.website || null,
+          racius_url: data.racius_url || null,
           linkedin_url: data.linkedin_url || null,
           facebook_url: data.facebook_url || null,
           instagram_url: data.instagram_url || null,
@@ -353,71 +427,48 @@ export function CompanyBillingForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="cae_codes"
+              name="legal_nature"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Códigos CAE</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    <Landmark className="h-3 w-3" />
+                    Natureza Jurídica
+                  </FormLabel>
                   <FormControl>
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap gap-2">
-                        {(field.value || []).map((code, index) => (
-                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                            {code}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newCodes = [...(field.value || [])];
-                                newCodes.splice(index, 1);
-                                field.onChange(newCodes);
-                              }}
-                              className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Adicionar código CAE (ex: 74900)"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const input = e.currentTarget;
-                              const value = input.value.trim();
-                              if (value && /^\d{5}$/.test(value)) {
-                                const currentCodes = field.value || [];
-                                if (!currentCodes.includes(value)) {
-                                  field.onChange([...currentCodes, value]);
-                                }
-                                input.value = '';
-                              }
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            const input = document.querySelector('input[placeholder*="CAE"]') as HTMLInputElement;
-                            if (input) {
-                              const value = input.value.trim();
-                              if (value && /^\d{5}$/.test(value)) {
-                                const currentCodes = field.value || [];
-                                if (!currentCodes.includes(value)) {
-                                  field.onChange([...currentCodes, value]);
-                                }
-                                input.value = '';
-                              }
-                            }
-                          }}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Pressione Enter ou clique + para adicionar</p>
-                    </div>
+                    <Input placeholder="Ex: Sociedade por Quotas" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="capital_social"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Capital Social</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: €50.000" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="founding_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Calendar className="h-3 w-3" />
+                    Data de Constituição
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="AAAA-MM-DD" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -429,7 +480,10 @@ export function CompanyBillingForm() {
               name="cae_description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Atividade Principal</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    <Briefcase className="h-3 w-3" />
+                    Atividade Principal
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="Descrição da atividade" {...field} />
                   </FormControl>
@@ -438,6 +492,79 @@ export function CompanyBillingForm() {
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="cae_codes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Códigos CAE</FormLabel>
+                <FormControl>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {(field.value || []).map((code, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {code}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newCodes = [...(field.value || [])];
+                              newCodes.splice(index, 1);
+                              field.onChange(newCodes);
+                            }}
+                            className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Adicionar código CAE (ex: 74900)"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const value = input.value.trim();
+                            if (value && /^\d{5}$/.test(value)) {
+                              const currentCodes = field.value || [];
+                              if (!currentCodes.includes(value)) {
+                                field.onChange([...currentCodes, value]);
+                              }
+                              input.value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const input = document.querySelector('input[placeholder*="CAE"]') as HTMLInputElement;
+                          if (input) {
+                            const value = input.value.trim();
+                            if (value && /^\d{5}$/.test(value)) {
+                              const currentCodes = field.value || [];
+                              if (!currentCodes.includes(value)) {
+                                field.onChange([...currentCodes, value]);
+                              }
+                              input.value = '';
+                            }
+                          }
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Pressione Enter ou clique + para adicionar</p>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         {/* Contact Information */}
@@ -474,17 +601,65 @@ export function CompanyBillingForm() {
             />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="fax"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Phone className="h-3 w-3" />
+                    Fax
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="+351 XXX XXX XXX" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Globe className="h-3 w-3" />
+                    Website
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://www.empresa.pt" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
           <FormField
             control={form.control}
-            name="website"
+            name="racius_url"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2">
-                  <Globe className="h-3 w-3" />
-                  Website
+                  <ExternalLink className="h-3 w-3" />
+                  Página Racius
                 </FormLabel>
                 <FormControl>
-                  <Input placeholder="https://www.empresa.pt" {...field} />
+                  <div className="flex gap-2">
+                    <Input placeholder="https://www.racius.com/..." {...field} />
+                    {field.value && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => window.open(field.value, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -494,7 +669,10 @@ export function CompanyBillingForm() {
 
         {/* Address */}
         <div className="space-y-4">
-          <h4 className="font-medium">Morada</h4>
+          <h4 className="font-medium flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Morada
+          </h4>
 
           <FormField
             control={form.control}
@@ -547,6 +725,50 @@ export function CompanyBillingForm() {
                   <FormLabel>País</FormLabel>
                   <FormControl>
                     <Input placeholder="Portugal" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="region"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Região</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Grande Lisboa" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="county"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Concelho</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Lisboa" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="parish"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Freguesia</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Santo António" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

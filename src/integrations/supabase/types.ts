@@ -4927,6 +4927,7 @@ export type Database = {
           owner_id: string | null
           parish: string | null
           phone: string | null
+          racius_url: string | null
           region: string | null
           slug: string
           status: string | null
@@ -4960,6 +4961,7 @@ export type Database = {
           owner_id?: string | null
           parish?: string | null
           phone?: string | null
+          racius_url?: string | null
           region?: string | null
           slug: string
           status?: string | null
@@ -4993,6 +4995,7 @@ export type Database = {
           owner_id?: string | null
           parish?: string | null
           phone?: string | null
+          racius_url?: string | null
           region?: string | null
           slug?: string
           status?: string | null
