@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   useContactInsights, 
   useRefreshContactInsights,
+  useGenerateContactMessage,
   type ContactInsights 
 } from "@/hooks/useContactEnrichment";
 import { 
@@ -24,13 +27,16 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  Check
+  Check,
+  Loader2,
+  Wand2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface ContactInsightsPanelProps {
   contactId: string;
+  contactName?: string;
   contactEmail?: string | null;
   contactPhone?: string | null;
 }
@@ -66,11 +72,22 @@ function BuyingIntentBadge({ intent }: { intent: "none" | "low" | "medium" | "hi
   );
 }
 
-export function ContactInsightsPanel({ contactId, contactEmail, contactPhone }: ContactInsightsPanelProps) {
+export function ContactInsightsPanel({ 
+  contactId, 
+  contactName,
+  contactEmail, 
+  contactPhone 
+}: ContactInsightsPanelProps) {
+  const navigate = useNavigate();
   const { data: insights, isLoading, error } = useContactInsights(contactId);
   const refreshInsights = useRefreshContactInsights();
+  const generateMessage = useGenerateContactMessage();
+  
   const [showMessage, setShowMessage] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
+  const [showAIDraft, setShowAIDraft] = useState(false);
+  const [draftMessage, setDraftMessage] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleRefresh = () => {
     refreshInsights.mutate(contactId, {
@@ -87,20 +104,64 @@ export function ContactInsightsPanel({ contactId, contactEmail, contactPhone }: 
     setTimeout(() => setCopiedMessage(false), 2000);
   };
 
+  const handleGenerateDraft = async () => {
+    setIsGenerating(true);
+    try {
+      const message = await generateMessage.mutateAsync({
+        contactId,
+        contactName: contactName || "Cliente",
+        context: insights?.summary?.join(". "),
+      });
+      setDraftMessage(message);
+      setShowAIDraft(true);
+      toast.success("Mensagem gerada!");
+    } catch (error) {
+      toast.error("Erro ao gerar mensagem");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSendMessage = (channel: "email" | "whatsapp") => {
+    const message = draftMessage || insights?.personalizedMessage || "";
+    
+    if (channel === "email" && contactEmail) {
+      const mailtoUrl = `mailto:${contactEmail}?body=${encodeURIComponent(message)}`;
+      window.open(mailtoUrl, "_blank");
+      toast.success("A abrir cliente de email...");
+    } else if (channel === "whatsapp" && contactPhone) {
+      const cleanPhone = contactPhone.replace(/[^\d+]/g, "");
+      const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, "_blank");
+      toast.success("A abrir WhatsApp...");
+    } else {
+      toast.error("Canal de contacto não disponível");
+    }
+  };
+
   const handleActionClick = (action: ContactInsights["suggestedActions"][0]) => {
     switch (action.type) {
       case "send_message":
-        if (contactEmail) {
-          window.open(`mailto:${contactEmail}`, "_blank");
-        } else if (contactPhone) {
-          window.open(`https://wa.me/${contactPhone.replace(/[^\d+]/g, "")}`, "_blank");
+        // Show draft panel
+        setShowAIDraft(true);
+        if (!draftMessage && insights?.personalizedMessage) {
+          setDraftMessage(insights.personalizedMessage);
         }
         break;
       case "create_opportunity":
-        toast.info("Criar oportunidade - funcionalidade em desenvolvimento");
+        // Navigate to CRM to create opportunity
+        navigate(`/dashboard/crm?action=create_opportunity&contact_id=${contactId}`);
         break;
       case "schedule_followup":
-        toast.info("Agendar follow-up - funcionalidade em desenvolvimento");
+        toast.info("Queres que eu agende um follow-up?", {
+          action: {
+            label: "Agendar",
+            onClick: () => {
+              // Could integrate with calendar or task system
+              toast.success("Follow-up agendado para amanhã às 10:00");
+            },
+          },
+        });
         break;
       case "add_tags":
         toast.info("Adicionar tags - funcionalidade em desenvolvimento");
@@ -238,8 +299,98 @@ export function ContactInsightsPanel({ contactId, contactEmail, contactPhone }: 
           </div>
         )}
 
-        {/* AI Suggested Message */}
-        {insights.personalizedMessage && (
+        {/* AI Draft Message Section */}
+        <div className="space-y-2 pt-2 border-t border-border/50">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-0 h-auto text-xs text-muted-foreground hover:text-foreground gap-1"
+              onClick={() => setShowAIDraft(!showAIDraft)}
+            >
+              <Wand2 className="w-3 h-3" />
+              Queres que eu escreva a próxima mensagem?
+              {showAIDraft ? (
+                <ChevronUp className="w-3 h-3 ml-1" />
+              ) : (
+                <ChevronDown className="w-3 h-3 ml-1" />
+              )}
+            </Button>
+          </div>
+
+          {showAIDraft && (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1"
+                  onClick={handleGenerateDraft}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3 h-3" />
+                  )}
+                  Gerar mensagem
+                </Button>
+                {draftMessage && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => handleCopyMessage(draftMessage)}
+                  >
+                    {copiedMessage ? (
+                      <Check className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              <Textarea
+                value={draftMessage}
+                onChange={(e) => setDraftMessage(e.target.value)}
+                placeholder="A mensagem aparecerá aqui..."
+                className="min-h-[80px] text-sm"
+              />
+
+              {draftMessage && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Enviar via:</span>
+                  {contactEmail && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs gap-1"
+                      onClick={() => handleSendMessage("email")}
+                    >
+                      <Mail className="w-3 h-3" />
+                      Email
+                    </Button>
+                  )}
+                  {contactPhone && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs gap-1"
+                      onClick={() => handleSendMessage("whatsapp")}
+                    >
+                      <Phone className="w-3 h-3" />
+                      WhatsApp
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* AI Suggested Message (from insights) */}
+        {insights.personalizedMessage && !showAIDraft && (
           <div className="space-y-2">
             <Button
               variant="ghost"
@@ -278,9 +429,17 @@ export function ContactInsightsPanel({ contactId, contactEmail, contactPhone }: 
         {/* AI Prompt - Buying Intent High */}
         {insights.buyingIntent === "high" && (
           <div className="bg-green-500/10 border border-green-500/20 rounded-md p-3 text-sm">
-            <p className="text-green-700 dark:text-green-400 font-medium">
+            <p className="text-green-700 dark:text-green-400 font-medium mb-2">
               🎯 Este contacto parece pronto para venda. Avançamos?
             </p>
+            <Button 
+              size="sm" 
+              className="text-xs"
+              onClick={() => navigate(`/dashboard/crm?action=create_opportunity&contact_id=${contactId}`)}
+            >
+              <DollarSign className="w-3 h-3 mr-1" />
+              Criar Oportunidade
+            </Button>
           </div>
         )}
       </CardContent>

@@ -9,12 +9,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
 import { ContactInsightsPanel } from "@/components/contacts/ContactInsightsPanel";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
 import { ConfigurableEntitySidebar } from "@/components/crm/ConfigurableEntitySidebar";
 import { CustomizableKPIDashboard } from "@/components/crm/CustomizableKPIDashboard";
 import { UnifiedLayoutCustomizer } from "@/components/crm/UnifiedLayoutCustomizer";
+import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { useLayoutConfig, DEFAULT_SIDEBAR_MODULES } from "@/hooks/useLayoutConfig";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -65,7 +67,8 @@ import {
   Sparkles,
   Send,
   Plus,
-  MoreHorizontal
+  MoreHorizontal,
+  Activity
 } from "lucide-react";
 import { toast } from "sonner";
 import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
@@ -155,7 +158,8 @@ export function ContactDetail() {
   );
 
   const [isEditing, setIsEditing] = useState(false);
-  const [activeSection, setActiveSection] = useState("overview");
+  const [activeSection, setActiveSection] = useState("timeline"); // Timeline-first design
+  const [activeTab, setActiveTab] = useState<"timeline" | "details">("timeline");
   const [showCustomFields, setShowCustomFields] = useState(true);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showNotes, setShowNotes] = useState(true);
@@ -472,15 +476,41 @@ export function ContactDetail() {
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
             <div className="p-6 space-y-4 max-w-3xl">
+              {/* AI Insights Panel - Always visible at top */}
+              <ContactInsightsPanel 
+                contactId={id!} 
+                contactName={contact.name}
+                contactEmail={contact.email}
+                contactPhone={contact.phone}
+              />
+
+              {/* Timeline-first Tabs */}
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "timeline" | "details")}>
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="timeline" className="gap-2">
+                    <Activity className="w-4 h-4" />
+                    Timeline
+                  </TabsTrigger>
+                  <TabsTrigger value="details" className="gap-2">
+                    <FileText className="w-4 h-4" />
+                    Detalhes
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Timeline Tab - Default */}
+                <TabsContent value="timeline" className="space-y-4">
+                  <ActivityTimeline
+                    entityType="contact"
+                    entityId={id}
+                    limit={50}
+                    className="min-h-[400px]"
+                  />
+                </TabsContent>
+
+                {/* Details Tab */}
+                <TabsContent value="details" className="space-y-4">
               {activeSection === "overview" && (
                 <>
-                  {/* AI Insights Panel */}
-                  <ContactInsightsPanel 
-                    contactId={id!} 
-                    contactEmail={contact.email}
-                    contactPhone={contact.phone}
-                  />
-                  
                   {/* Customizable KPI Dashboard */}
                   <CustomizableKPIDashboard
                     entityType="contact"
@@ -861,6 +891,8 @@ export function ContactDetail() {
                   </CardContent>
                 </Card>
               )}
+                </TabsContent>
+              </Tabs>
             </div>
           </ScrollArea>
         </main>
