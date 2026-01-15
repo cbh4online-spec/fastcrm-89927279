@@ -4724,6 +4724,56 @@ export type Database = {
           },
         ]
       }
+      workspace_onboarding: {
+        Row: {
+          business_type: string | null
+          channels: string[] | null
+          completed_at: string | null
+          created_at: string
+          custom_business_type: string | null
+          id: string
+          process_description: string | null
+          skipped: boolean | null
+          success_definition: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          business_type?: string | null
+          channels?: string[] | null
+          completed_at?: string | null
+          created_at?: string
+          custom_business_type?: string | null
+          id?: string
+          process_description?: string | null
+          skipped?: boolean | null
+          success_definition?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          business_type?: string | null
+          channels?: string[] | null
+          completed_at?: string | null
+          created_at?: string
+          custom_business_type?: string | null
+          id?: string
+          process_description?: string | null
+          skipped?: boolean | null
+          success_definition?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_onboarding_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_overrides: {
         Row: {
           created_at: string

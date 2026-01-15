@@ -53,6 +53,16 @@ import {
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
+interface OnboardingData {
+  business_type?: string;
+  custom_business_type?: string;
+  success_definition?: string;
+  process_description?: string;
+  channels?: string[];
+  completed_at?: string;
+  skipped?: boolean;
+}
+
 interface WorkspaceDetails {
   id: string;
   name: string;
@@ -88,6 +98,7 @@ interface WorkspaceDetails {
     billing_postal_code?: string;
     billing_country?: string;
   };
+  onboarding?: OnboardingData;
 }
 
 export function WorkspacesSection() {
@@ -180,6 +191,24 @@ export function WorkspacesSection() {
         return acc;
       }, {}) || {};
 
+      // Get onboarding data per workspace
+      const { data: onboardingData } = await supabase
+        .from("workspace_onboarding")
+        .select("*");
+
+      const onboardingMap = onboardingData?.reduce((acc: Record<string, OnboardingData>, o: any) => {
+        acc[o.workspace_id] = {
+          business_type: o.business_type,
+          custom_business_type: o.custom_business_type,
+          success_definition: o.success_definition,
+          process_description: o.process_description,
+          channels: o.channels,
+          completed_at: o.completed_at,
+          skipped: o.skipped,
+        };
+        return acc;
+      }, {}) || {};
+
       return (workspacesData || []).map((ws: any) => {
         // Handle subscription - can be array or object depending on query result
         const subscription = Array.isArray(ws.workspace_subscriptions) 
@@ -215,6 +244,7 @@ export function WorkspacesSection() {
             billing_postal_code: ws.billing_postal_code,
             billing_country: ws.billing_country,
           },
+          onboarding: onboardingMap[ws.id] || undefined,
         };
       }) as WorkspaceDetails[];
     },
@@ -715,6 +745,62 @@ export function WorkspacesSection() {
                     <p className="text-xl font-bold">{selectedWorkspace.members_count}</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Onboarding Section */}
+              <div className="border-t pt-4">
+                <p className="font-medium mb-3">Respostas do Onboarding</p>
+                {selectedWorkspace.onboarding ? (
+                  selectedWorkspace.onboarding.skipped ? (
+                    <p className="text-sm text-muted-foreground italic">
+                      Onboarding foi saltado pelo utilizador
+                    </p>
+                  ) : (
+                    <div className="space-y-3 text-sm">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-muted-foreground">Tipo de Negócio</p>
+                          <p className="font-medium">
+                            {selectedWorkspace.onboarding.custom_business_type || selectedWorkspace.onboarding.business_type || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Definição de Sucesso</p>
+                          <p className="font-medium">{selectedWorkspace.onboarding.success_definition || "-"}</p>
+                        </div>
+                      </div>
+                      {selectedWorkspace.onboarding.process_description && (
+                        <div>
+                          <p className="text-muted-foreground">Descrição do Processo</p>
+                          <p className="font-medium text-sm bg-muted p-2 rounded-md mt-1">
+                            {selectedWorkspace.onboarding.process_description}
+                          </p>
+                        </div>
+                      )}
+                      {selectedWorkspace.onboarding.channels && selectedWorkspace.onboarding.channels.length > 0 && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">Canais de Entrada</p>
+                          <div className="flex flex-wrap gap-1">
+                            {selectedWorkspace.onboarding.channels.map((channel, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {channel}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {selectedWorkspace.onboarding.completed_at && (
+                        <p className="text-xs text-muted-foreground">
+                          Completado em: {format(new Date(selectedWorkspace.onboarding.completed_at), "dd/MM/yyyy HH:mm", { locale: pt })}
+                        </p>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    Onboarding ainda não realizado
+                  </p>
+                )}
               </div>
             </div>
           )}
