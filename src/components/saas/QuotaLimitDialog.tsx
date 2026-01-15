@@ -14,7 +14,8 @@ import {
   Crown, 
   TrendingUp, 
   ArrowRight,
-  Sparkles 
+  Sparkles,
+  Check
 } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PLAN_DISPLAY_INFO, RESOURCE_TYPES } from "@/types/saas";
@@ -28,6 +29,28 @@ interface QuotaLimitDialogProps {
   limit: number;
   onUpgrade?: () => void;
 }
+
+// Microcopy baseado nas diretrizes UX - nunca usar "erro" ou linguagem técnica
+const getMicrocopy = (resourceName: string, current: number, limit: number, isAtLimit: boolean, suggestedPlanName: string) => {
+  if (isAtLimit) {
+    return {
+      title: "Limite atingido",
+      description: `Este plano permite até ${limit} ${resourceName.toLowerCase()}. Já usaste ${current === limit ? "todas" : "o limite"}.`,
+      suggestion: `O plano ${suggestedPlanName} desbloqueia mais ${resourceName.toLowerCase()}.`,
+      primaryAction: "Fazer upgrade",
+      secondaryAction: "Talvez mais tarde",
+    };
+  }
+  
+  const percent = Math.round((current / limit) * 100);
+  return {
+    title: "Estás quase a atingir o limite",
+    description: `Tens usado bastante ${resourceName.toLowerCase()}. Estás a ${percent}% do teu plano atual.`,
+    suggestion: `Para não interromper o trabalho, considera o plano ${suggestedPlanName}.`,
+    primaryAction: "Ver planos",
+    secondaryAction: "Continuar assim",
+  };
+};
 
 export function QuotaLimitDialog({
   open,
@@ -50,6 +73,7 @@ export function QuotaLimitDialog({
 
   const suggestedPlan = getSuggestedPlan();
   const suggestedPlanInfo = PLAN_DISPLAY_INFO[suggestedPlan as keyof typeof PLAN_DISPLAY_INFO];
+  const microcopy = getMicrocopy(resource.name, current, limit, isAtLimit, suggestedPlanInfo.name);
 
   const handleUpgrade = () => {
     if (onUpgrade) {
@@ -65,33 +89,30 @@ export function QuotaLimitDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className={cn(
-            "mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center",
+            "mx-auto mb-4 w-14 h-14 rounded-full flex items-center justify-center",
             isAtLimit ? "bg-destructive/10" : "bg-amber-500/10"
           )}>
             {isAtLimit ? (
-              <AlertTriangle className="w-6 h-6 text-destructive" />
+              <AlertTriangle className="w-7 h-7 text-destructive" />
             ) : (
-              <TrendingUp className="w-6 h-6 text-amber-600" />
+              <TrendingUp className="w-7 h-7 text-amber-600" />
             )}
           </div>
           
-          <DialogTitle className="text-center">
-            {isAtLimit ? "Limite Atingido" : "Perto do Limite"}
+          <DialogTitle className="text-center text-xl">
+            {microcopy.title}
           </DialogTitle>
           
-          <DialogDescription className="text-center">
-            {isAtLimit 
-              ? `Atingiu o limite de ${resource.name.toLowerCase()} do seu plano.`
-              : `Está a usar ${Math.round(percent)}% do limite de ${resource.name.toLowerCase()}.`
-            }
+          <DialogDescription className="text-center text-base">
+            {microcopy.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Current usage */}
-          <div className="space-y-2">
+          {/* Current usage - visual claro */}
+          <div className="space-y-3 p-4 rounded-lg bg-muted/50">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{resource.name}</span>
+              <span className="font-medium">{resource.name}</span>
               <span className={cn(
                 "font-medium",
                 isAtLimit && "text-destructive"
@@ -109,27 +130,28 @@ export function QuotaLimitDialog({
             />
           </div>
 
-          {/* Upgrade suggestion */}
-          <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
+          {/* Upgrade suggestion - orientado a valor */}
+          <div className="p-4 rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <div className="p-2.5 rounded-xl bg-primary/10">
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium">Plano {suggestedPlanInfo.name}</span>
-                  <Badge variant="outline" className="text-xs">
+                  <span className="font-semibold text-lg">Plano {suggestedPlanInfo.name}</span>
+                  <Badge className="bg-primary/10 text-primary border-0">
                     €{suggestedPlanInfo.price}/mês
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {suggestedPlanInfo.description}
+                <p className="text-sm text-muted-foreground mb-3">
+                  {microcopy.suggestion}
                 </p>
-                <ul className="mt-2 space-y-1">
+                {/* Benefícios - não só limites */}
+                <ul className="space-y-1.5">
                   {suggestedPlanInfo.features.slice(0, 3).map((feature, i) => (
-                    <li key={i} className="text-xs text-muted-foreground flex items-center gap-1">
-                      <span className="w-1 h-1 rounded-full bg-primary" />
-                      {feature}
+                    <li key={i} className="text-sm flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -139,12 +161,20 @@ export function QuotaLimitDialog({
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-            Mais tarde
+          <Button 
+            variant="ghost" 
+            onClick={() => onOpenChange(false)} 
+            className="flex-1 text-muted-foreground"
+          >
+            {microcopy.secondaryAction}
           </Button>
-          <Button onClick={handleUpgrade} className="flex-1 gap-2">
+          <Button 
+            onClick={handleUpgrade} 
+            className="flex-1 gap-2 bg-gradient-to-r from-primary to-primary/80"
+            size="lg"
+          >
             <Crown className="w-4 h-4" />
-            Fazer Upgrade
+            {microcopy.primaryAction}
             <ArrowRight className="w-4 h-4" />
           </Button>
         </DialogFooter>
