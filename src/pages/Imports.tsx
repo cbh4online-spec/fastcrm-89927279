@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -53,6 +53,27 @@ const importTypes = [
 
 export default function ImportsPage() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
 
   return (
     <DashboardLayout>
@@ -119,19 +140,51 @@ export default function ImportsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                <FileSpreadsheet className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Arrasta o ficheiro aqui ou clica para selecionar
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Formatos suportados: CSV, XLSX, XLS (máx. 10MB)
-                </p>
-                <Button className="mt-4">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Selecionar Ficheiro
-                </Button>
-              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              
+              {selectedFile ? (
+                <div className="border-2 border-primary/50 bg-primary/5 rounded-lg p-8 text-center">
+                  <FileSpreadsheet className="h-12 w-12 mx-auto text-primary mb-4" />
+                  <p className="font-medium text-foreground mb-1">{selectedFile.name}</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {(selectedFile.size / 1024).toFixed(1)} KB
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" onClick={() => setSelectedFile(null)}>
+                      Alterar ficheiro
+                    </Button>
+                    <Button>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Processar Importação
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                >
+                  <FileSpreadsheet className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Arrasta o ficheiro aqui ou clica para selecionar
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Formatos suportados: CSV, XLSX, XLS (máx. 10MB)
+                  </p>
+                  <Button className="mt-4" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Selecionar Ficheiro
+                  </Button>
+                </div>
+              )}
 
               {/* Tips */}
               <div className="mt-6 p-4 bg-muted/50 rounded-lg">
