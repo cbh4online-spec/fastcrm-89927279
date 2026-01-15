@@ -186,6 +186,54 @@ export function WorkspacesSection() {
     },
   });
 
+  const changePlan = useMutation({
+    mutationFn: async ({ workspaceId, plan }: { workspaceId: string; plan: "free" | "basic" | "pro" | "agency" }) => {
+      // Update workspace_subscriptions table
+      const { data: existingSub } = await supabase
+        .from("workspace_subscriptions")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
+
+      if (existingSub) {
+        const { error } = await supabase
+          .from("workspace_subscriptions")
+          .update({ plan, updated_at: new Date().toISOString() })
+          .eq("workspace_id", workspaceId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("workspace_subscriptions")
+          .insert([{ 
+            workspace_id: workspaceId, 
+            plan, 
+            status: "active",
+            current_period_start: new Date().toISOString(),
+            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          }]);
+        if (error) throw error;
+      }
+
+      // Log the action
+      await supabase.rpc("log_admin_action", {
+        p_action_type: "plan_changed",
+        p_target_type: "workspace",
+        p_target_id: workspaceId,
+        p_workspace_id: workspaceId,
+        p_details: { new_plan: plan },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
+      toast.success("Plano alterado com sucesso");
+      setActionDialog({ type: null, workspace: null });
+      setNewPlan("");
+    },
+    onError: (error) => {
+      toast.error("Erro ao alterar plano: " + error.message);
+    },
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -553,6 +601,69 @@ export function WorkspacesSection() {
               }}
             >
               Confirmar Reativação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Plan Dialog */}
+      <Dialog 
+        open={actionDialog.type === "change-plan"} 
+        onOpenChange={() => {
+          setActionDialog({ type: null, workspace: null });
+          setNewPlan("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowUpCircle className="h-5 w-5 text-primary" />
+              Alterar Plano
+            </DialogTitle>
+            <DialogDescription>
+              Alterar o plano de "{actionDialog.workspace?.name}"
+              <br /><br />
+              Plano atual: <strong className="capitalize">{actionDialog.workspace?.subscription?.plan || "Free"}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Select 
+              value={newPlan} 
+              onValueChange={setNewPlan}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleciona o novo plano" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="basic">Basic</SelectItem>
+                <SelectItem value="pro">Pro</SelectItem>
+                <SelectItem value="agency">Agency</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setActionDialog({ type: null, workspace: null });
+                setNewPlan("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              disabled={!newPlan || newPlan === actionDialog.workspace?.subscription?.plan}
+              onClick={() => {
+                if (actionDialog.workspace && newPlan) {
+                  changePlan.mutate({
+                    workspaceId: actionDialog.workspace.id,
+                    plan: newPlan as "free" | "basic" | "pro" | "agency",
+                  });
+                }
+              }}
+            >
+              Confirmar Alteração
             </Button>
           </DialogFooter>
         </DialogContent>
