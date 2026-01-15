@@ -157,6 +157,68 @@ export type Database = {
           },
         ]
       }
+      ai_personas: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          knowledge_base_ids: string[] | null
+          language_style: string | null
+          limitations: string[] | null
+          name: string
+          persona_type: string
+          system_prompt: string | null
+          technical_depth: string
+          tone_of_voice: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          knowledge_base_ids?: string[] | null
+          language_style?: string | null
+          limitations?: string[] | null
+          name: string
+          persona_type: string
+          system_prompt?: string | null
+          technical_depth?: string
+          tone_of_voice?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          knowledge_base_ids?: string[] | null
+          language_style?: string | null
+          limitations?: string[] | null
+          name?: string
+          persona_type?: string
+          system_prompt?: string | null
+          technical_depth?: string
+          tone_of_voice?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_personas_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_actions: {
         Row: {
           action_type: Database["public"]["Enums"]["automation_action_type"]
@@ -1846,6 +1908,353 @@ export type Database = {
             foreignKeyName: "instagram_connections_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_bases: {
+        Row: {
+          allowed_channels: string[] | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allowed_channels?: string[] | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allowed_channels?: string[] | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_bases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_entries: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          entry_type: string
+          expires_at: string | null
+          id: string
+          keywords: string[] | null
+          knowledge_base_id: string
+          last_used_at: string | null
+          question: string | null
+          source_id: string | null
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+          usage_count: number | null
+          validated_at: string | null
+          validated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          entry_type?: string
+          expires_at?: string | null
+          id?: string
+          keywords?: string[] | null
+          knowledge_base_id: string
+          last_used_at?: string | null
+          question?: string | null
+          source_id?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          usage_count?: number | null
+          validated_at?: string | null
+          validated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          entry_type?: string
+          expires_at?: string | null
+          id?: string
+          keywords?: string[] | null
+          knowledge_base_id?: string
+          last_used_at?: string | null
+          question?: string | null
+          source_id?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          usage_count?: number | null
+          validated_at?: string | null
+          validated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_entries_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_entries_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_entries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_faq_suggestions: {
+        Row: {
+          created_at: string
+          frequency: number | null
+          id: string
+          knowledge_base_id: string | null
+          question: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_queries: string[] | null
+          status: string | null
+          suggested_answer: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          frequency?: number | null
+          id?: string
+          knowledge_base_id?: string | null
+          question: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_queries?: string[] | null
+          status?: string | null
+          suggested_answer?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          frequency?: number | null
+          id?: string
+          knowledge_base_id?: string | null
+          question?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_queries?: string[] | null
+          status?: string | null
+          suggested_answer?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_faq_suggestions_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_faq_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_sources: {
+        Row: {
+          created_at: string
+          created_by: string
+          extracted_topics: string[] | null
+          id: string
+          knowledge_base_id: string
+          last_processed_at: string | null
+          original_content: string | null
+          processed_content: string | null
+          processing_error: string | null
+          processing_status: string | null
+          source_file_path: string | null
+          source_type: string
+          source_url: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          extracted_topics?: string[] | null
+          id?: string
+          knowledge_base_id: string
+          last_processed_at?: string | null
+          original_content?: string | null
+          processed_content?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
+          source_file_path?: string | null
+          source_type: string
+          source_url?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          extracted_topics?: string[] | null
+          id?: string
+          knowledge_base_id?: string
+          last_processed_at?: string | null
+          original_content?: string | null
+          processed_content?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
+          source_file_path?: string | null
+          source_type?: string
+          source_url?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_sources_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_usage_logs: {
+        Row: {
+          confidence_score: number | null
+          context: string
+          created_at: string
+          entry_id: string | null
+          feedback: string | null
+          id: string
+          knowledge_base_id: string | null
+          persona_id: string | null
+          query: string
+          response: string | null
+          response_source: string | null
+          response_time_ms: number | null
+          resulted_in_conversion: boolean | null
+          resulted_in_meeting: boolean | null
+          was_helpful: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          context: string
+          created_at?: string
+          entry_id?: string | null
+          feedback?: string | null
+          id?: string
+          knowledge_base_id?: string | null
+          persona_id?: string | null
+          query: string
+          response?: string | null
+          response_source?: string | null
+          response_time_ms?: number | null
+          resulted_in_conversion?: boolean | null
+          resulted_in_meeting?: boolean | null
+          was_helpful?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          context?: string
+          created_at?: string
+          entry_id?: string | null
+          feedback?: string | null
+          id?: string
+          knowledge_base_id?: string | null
+          persona_id?: string | null
+          query?: string
+          response?: string | null
+          response_source?: string | null
+          response_time_ms?: number | null
+          resulted_in_conversion?: boolean | null
+          resulted_in_meeting?: boolean | null
+          was_helpful?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_usage_logs_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_usage_logs_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_usage_logs_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_usage_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
