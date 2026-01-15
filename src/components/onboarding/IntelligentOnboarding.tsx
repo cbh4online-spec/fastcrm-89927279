@@ -140,6 +140,7 @@ export function IntelligentOnboarding({ workspaceName, onComplete, onSkip }: Int
           {onboarding.step === "applying" && onboarding.config && (
             <ApplyingStep
               config={onboarding.config}
+              answers={onboarding.answers}
               onComplete={() => onboarding.setStep("complete")}
             />
           )}

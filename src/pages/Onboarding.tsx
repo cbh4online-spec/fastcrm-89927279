@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { IntelligentOnboarding } from "@/components/onboarding/IntelligentOnboar
 
 export default function Onboarding() {
   const { user } = useAuth();
-  const { createWorkspace, workspaces } = useWorkspace();
+  const { createWorkspace, workspaces, currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [workspaceName, setWorkspaceName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -45,7 +46,15 @@ export default function Onboarding() {
     navigate("/dashboard");
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    // Record that onboarding was skipped
+    if (currentWorkspace) {
+      await supabase.from("workspace_onboarding").upsert({
+        workspace_id: currentWorkspace.id,
+        skipped: true,
+        completed_at: new Date().toISOString(),
+      }, { onConflict: 'workspace_id' });
+    }
     navigate("/dashboard");
   };
 

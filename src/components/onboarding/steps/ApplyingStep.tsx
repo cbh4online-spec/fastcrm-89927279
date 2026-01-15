@@ -12,12 +12,21 @@ interface ApplyStep {
   status: "pending" | "loading" | "done" | "error";
 }
 
+interface OnboardingAnswers {
+  businessType: string;
+  customBusinessType?: string;
+  successDefinition: string;
+  processDescription: string;
+  channels: string[];
+}
+
 interface ApplyingStepProps {
   config: OnboardingConfig;
+  answers: OnboardingAnswers;
   onComplete: () => void;
 }
 
-export function ApplyingStep({ config, onComplete }: ApplyingStepProps) {
+export function ApplyingStep({ config, answers, onComplete }: ApplyingStepProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const [steps, setSteps] = useState<ApplyStep[]>([
@@ -137,9 +146,21 @@ export function ApplyingStep({ config, onComplete }: ApplyingStepProps) {
         await new Promise((resolve) => setTimeout(resolve, 500));
         updateStep("automations", "done");
 
-        // Step 5: Finalize
+        // Step 5: Finalize - Save onboarding answers
         updateStep("finalize", "loading");
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        
+        // Save the onboarding answers to the database
+        await supabase.from("workspace_onboarding").upsert({
+          workspace_id: currentWorkspace.id,
+          business_type: answers.businessType,
+          custom_business_type: answers.customBusinessType || null,
+          success_definition: answers.successDefinition,
+          process_description: answers.processDescription,
+          channels: answers.channels,
+          completed_at: new Date().toISOString(),
+          skipped: false,
+        }, { onConflict: 'workspace_id' });
+        
         updateStep("finalize", "done");
 
         // Complete after a short delay
