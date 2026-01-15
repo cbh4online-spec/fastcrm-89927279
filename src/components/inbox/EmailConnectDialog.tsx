@@ -29,6 +29,7 @@ interface EmailConnectDialogProps {
 const providerOptions = [
   { value: "gmail", label: "Gmail", icon: "🔴" },
   { value: "outlook", label: "Outlook / Microsoft 365", icon: "🔵" },
+  { value: "hostinger", label: "Hostinger", icon: "🟣" },
   { value: "custom", label: "Servidor personalizado (IMAP/SMTP)", icon: "⚙️" },
 ];
 
@@ -69,6 +70,13 @@ export function EmailConnectDialog({ open, onOpenChange }: EmailConnectDialogPro
     setProvider(value);
     if (value === "custom") {
       setStep("custom");
+    } else if (value === "hostinger") {
+      // Pre-fill Hostinger server settings
+      setImapHost("imap.hostinger.com");
+      setImapPort("993");
+      setSmtpHost("smtp.hostinger.com");
+      setSmtpPort("587");
+      setStep("credentials");
     } else {
       setStep("credentials");
     }
@@ -154,6 +162,11 @@ export function EmailConnectDialog({ open, onOpenChange }: EmailConnectDialogPro
                       Criar App Password
                     </a>
                   </>
+                ) : provider === "hostinger" ? (
+                  <>
+                    Para Hostinger, use a password da sua conta de email.
+                    Certifique-se de que o email está ativo no painel Hostinger.
+                  </>
                 ) : (
                   <>
                     Para Outlook, pode usar a sua password normal se não tiver 2FA, 
@@ -168,7 +181,7 @@ export function EmailConnectDialog({ open, onOpenChange }: EmailConnectDialogPro
               <Input
                 id="email"
                 type="email"
-                placeholder={`exemplo@${provider === "gmail" ? "gmail.com" : "outlook.com"}`}
+                placeholder={`exemplo@${provider === "gmail" ? "gmail.com" : provider === "hostinger" ? "seudominio.com" : "outlook.com"}`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
