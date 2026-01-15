@@ -48,17 +48,41 @@ const fieldMappings: Record<string, { field: string; label: string; required?: b
     { field: "job_title", label: "Cargo" },
     { field: "source", label: "Origem" },
     { field: "notes", label: "Notas" },
+    { field: "linkedin_url", label: "LinkedIn" },
+    { field: "facebook_url", label: "Facebook" },
+    { field: "instagram_url", label: "Instagram" },
+    { field: "twitter_url", label: "Twitter" },
+    { field: "tags", label: "Tags" },
   ],
   companies: [
     { field: "name", label: "Nome", required: true },
     { field: "email", label: "Email" },
     { field: "phone", label: "Telefone" },
+    { field: "fax", label: "Fax" },
     { field: "website", label: "Website" },
     { field: "address", label: "Morada" },
+    { field: "postal_code", label: "Código Postal" },
     { field: "city", label: "Cidade" },
+    { field: "parish", label: "Freguesia" },
+    { field: "county", label: "Concelho" },
+    { field: "region", label: "Região" },
     { field: "tax_id", label: "NIF" },
     { field: "industry", label: "Indústria" },
+    { field: "size", label: "Dimensão" },
+    { field: "employee_count", label: "Nº Funcionários" },
+    { field: "annual_revenue", label: "Receita Anual" },
+    { field: "founding_date", label: "Data Fundação" },
+    { field: "legal_nature", label: "Natureza Jurídica" },
+    { field: "capital_social", label: "Capital Social" },
+    { field: "cae_codes", label: "Códigos CAE" },
+    { field: "cae_description", label: "Descrição CAE" },
     { field: "notes", label: "Notas" },
+    { field: "source", label: "Origem" },
+    { field: "linkedin_url", label: "LinkedIn" },
+    { field: "facebook_url", label: "Facebook" },
+    { field: "instagram_url", label: "Instagram" },
+    { field: "twitter_url", label: "Twitter" },
+    { field: "tags", label: "Tags" },
   ],
   leads: [
     { field: "name", label: "Nome", required: true },
@@ -68,6 +92,11 @@ const fieldMappings: Record<string, { field: string; label: string; required?: b
     { field: "source", label: "Origem" },
     { field: "status", label: "Estado" },
     { field: "notes", label: "Notas" },
+    { field: "linkedin_url", label: "LinkedIn" },
+    { field: "facebook_url", label: "Facebook" },
+    { field: "instagram_url", label: "Instagram" },
+    { field: "twitter_url", label: "Twitter" },
+    { field: "tags", label: "Tags" },
   ],
   products: [
     { field: "name", label: "Nome", required: true },
@@ -75,6 +104,9 @@ const fieldMappings: Record<string, { field: string; label: string; required?: b
     { field: "price", label: "Preço" },
     { field: "sku", label: "SKU" },
     { field: "category", label: "Categoria" },
+    { field: "unit", label: "Unidade" },
+    { field: "tax_rate", label: "Taxa IVA" },
+    { field: "cost", label: "Custo" },
   ],
 };
 
@@ -278,36 +310,33 @@ export function ImportWizard({ file, importType, onClose, onComplete }: ImportWi
       }
 
       try {
-        const insertData = {
+        // Build base insert data
+        const insertData: Record<string, unknown> = {
           workspace_id: currentWorkspace.id,
           created_by: user.id,
           name: row.name,
-          email: row.email || null,
-          phone: row.phone || null,
-          notes: row.notes || null,
-          source: row.source || null,
-          ...(importType === "contacts" && { 
-            company: row.company || null,
-            job_title: row.job_title || null,
-          }),
-          ...(importType === "companies" && { 
-            website: row.website || null,
-            address: row.address || null,
-            city: row.city || null,
-            tax_id: row.tax_id || null,
-            industry: row.industry || null,
-          }),
-          ...(importType === "leads" && { 
-            company: row.company || null,
-            status: row.status || "new",
-          }),
-          ...(importType === "products" && { 
-            description: row.description || null,
-            price: row.price ? parseFloat(row.price) : null,
-            sku: row.sku || null,
-            category: row.category || null,
-          }),
         };
+
+        // Add all mapped fields dynamically
+        Object.entries(row).forEach(([field, value]) => {
+          if (field === "name" || !value) return;
+          
+          // Handle special field types
+          if (["price", "cost", "annual_revenue", "employee_count", "tax_rate"].includes(field)) {
+            const numValue = parseFloat(value);
+            insertData[field] = isNaN(numValue) ? null : numValue;
+          } else if (field === "tags" || field === "cae_codes") {
+            // Convert comma-separated string to array
+            insertData[field] = value.split(",").map((s: string) => s.trim()).filter(Boolean);
+          } else {
+            insertData[field] = value || null;
+          }
+        });
+
+        // Set default status for leads
+        if (importType === "leads" && !insertData.status) {
+          insertData.status = "new";
+        }
 
         const { error } = await supabase
           .from(tableName)
