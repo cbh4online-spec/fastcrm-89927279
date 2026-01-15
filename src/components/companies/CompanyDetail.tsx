@@ -64,6 +64,7 @@ import {
   useRejectSuggestion 
 } from "@/hooks/useFieldSuggestions";
 import { cn } from "@/lib/utils";
+import { CompanyInsightsPanel } from "./CompanyInsightsPanel";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
 
@@ -416,6 +417,9 @@ export function CompanyDetail() {
           )}
         </div>
       </div>
+
+      {/* AI Insights Panel */}
+      <CompanyInsightsPanel company={company} />
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
