@@ -556,15 +556,30 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          ai_analyzed_at: string | null
+          ai_company_type: string | null
+          ai_insight: string | null
+          ai_next_action: string | null
+          ai_next_action_type: string | null
+          ai_temperature: string | null
+          annual_revenue: number | null
+          assigned_to: string | null
+          automation_active: boolean | null
+          company_score: number | null
+          conversion_probability: number | null
           created_at: string
           created_by: string
           email: string | null
+          employee_count: number | null
+          estimated_value: number | null
           id: string
           industry: string | null
+          last_contact_at: string | null
           name: string
           notes: string | null
           phone: string | null
           size: string | null
+          source: string | null
           tags: string[] | null
           updated_at: string
           website: string | null
@@ -572,15 +587,30 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          ai_analyzed_at?: string | null
+          ai_company_type?: string | null
+          ai_insight?: string | null
+          ai_next_action?: string | null
+          ai_next_action_type?: string | null
+          ai_temperature?: string | null
+          annual_revenue?: number | null
+          assigned_to?: string | null
+          automation_active?: boolean | null
+          company_score?: number | null
+          conversion_probability?: number | null
           created_at?: string
           created_by: string
           email?: string | null
+          employee_count?: number | null
+          estimated_value?: number | null
           id?: string
           industry?: string | null
+          last_contact_at?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           size?: string | null
+          source?: string | null
           tags?: string[] | null
           updated_at?: string
           website?: string | null
@@ -588,15 +618,30 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          ai_analyzed_at?: string | null
+          ai_company_type?: string | null
+          ai_insight?: string | null
+          ai_next_action?: string | null
+          ai_next_action_type?: string | null
+          ai_temperature?: string | null
+          annual_revenue?: number | null
+          assigned_to?: string | null
+          automation_active?: boolean | null
+          company_score?: number | null
+          conversion_probability?: number | null
           created_at?: string
           created_by?: string
           email?: string | null
+          employee_count?: number | null
+          estimated_value?: number | null
           id?: string
           industry?: string | null
+          last_contact_at?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           size?: string | null
+          source?: string | null
           tags?: string[] | null
           updated_at?: string
           website?: string | null
@@ -614,43 +659,82 @@ export type Database = {
       }
       contacts: {
         Row: {
+          ai_analyzed_at: string | null
+          ai_contact_type: string | null
+          ai_insight: string | null
+          ai_next_action: string | null
+          ai_next_action_type: string | null
+          ai_temperature: string | null
+          assigned_to: string | null
+          automation_active: boolean | null
           company: string | null
+          contact_score: number | null
+          conversion_probability: number | null
           created_at: string
           created_by: string
           email: string | null
+          estimated_value: number | null
           id: string
           job_title: string | null
+          last_contact_at: string | null
           name: string
           notes: string | null
           phone: string | null
+          source: string | null
           tags: string[] | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          ai_analyzed_at?: string | null
+          ai_contact_type?: string | null
+          ai_insight?: string | null
+          ai_next_action?: string | null
+          ai_next_action_type?: string | null
+          ai_temperature?: string | null
+          assigned_to?: string | null
+          automation_active?: boolean | null
           company?: string | null
+          contact_score?: number | null
+          conversion_probability?: number | null
           created_at?: string
           created_by: string
           email?: string | null
+          estimated_value?: number | null
           id?: string
           job_title?: string | null
+          last_contact_at?: string | null
           name: string
           notes?: string | null
           phone?: string | null
+          source?: string | null
           tags?: string[] | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          ai_analyzed_at?: string | null
+          ai_contact_type?: string | null
+          ai_insight?: string | null
+          ai_next_action?: string | null
+          ai_next_action_type?: string | null
+          ai_temperature?: string | null
+          assigned_to?: string | null
+          automation_active?: boolean | null
           company?: string | null
+          contact_score?: number | null
+          conversion_probability?: number | null
           created_at?: string
           created_by?: string
           email?: string | null
+          estimated_value?: number | null
           id?: string
           job_title?: string | null
+          last_contact_at?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
+          source?: string | null
           tags?: string[] | null
           updated_at?: string
           workspace_id?: string

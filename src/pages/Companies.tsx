@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { CompaniesList } from "@/components/companies/CompaniesList";
+import { SmartCompaniesTable } from "@/components/companies/SmartCompaniesTable";
 
 export default function Companies() {
   return (
     <DashboardLayout>
-      <CompaniesList />
+      <SmartCompaniesTable />
     </DashboardLayout>
   );
 }
