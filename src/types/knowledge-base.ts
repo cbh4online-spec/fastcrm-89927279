@@ -14,9 +14,9 @@ export type SourceType = 'url' | 'document' | 'manual' | 'faq';
 
 export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
-export type EntryStatus = 'draft' | 'validated' | 'expired';
+export type EntryStatus = 'draft' | 'validated' | 'archived';
 
-export type EntryType = 'content' | 'faq' | 'procedure' | 'script' | 'protocol';
+export type EntryType = 'faq' | 'article' | 'document' | 'procedure' | 'script' | 'link';
 
 export type PersonaType = 'atendimento' | 'comercial' | 'formador' | 'terapeuta' | 'suporte';
 
@@ -25,6 +25,10 @@ export type ToneOfVoice = 'empático' | 'direto' | 'educativo' | 'técnico';
 export type TechnicalDepth = 'low' | 'medium' | 'high';
 
 export type LanguageStyle = 'formal' | 'conversational' | 'casual';
+
+export type ContentVisibility = 'internal' | 'external';
+
+export type KnowledgeContext = 'atendimento' | 'vendas' | 'suporte' | 'formacao' | 'saude' | 'geral';
 
 export interface KnowledgeBase {
   id: string;
@@ -72,6 +76,11 @@ export interface KnowledgeEntry {
   content: string;
   summary?: string;
   keywords?: string[];
+  category?: string;
+  context?: KnowledgeContext;
+  visibility?: ContentVisibility;
+  responsibleId?: string;
+  internalNotes?: string;
   status: EntryStatus;
   validatedBy?: string;
   validatedAt?: string;
@@ -138,12 +147,16 @@ export interface KnowledgeMetrics {
   totalBases: number;
   totalEntries: number;
   validatedEntries: number;
+  draftEntries: number;
   totalQueries: number;
   aiResolvedQueries: number;
+  fallbackQueries: number;
   avgResponseTimeMs: number;
   conversionsAssisted: number;
   meetingsBooked: number;
   pendingFAQSuggestions: number;
+  topUsedEntries: { id: string; title: string; usageCount: number }[];
+  missingContentQueries: number;
 }
 
 export interface AIResponse {
@@ -163,6 +176,24 @@ export const KNOWLEDGE_BASE_TYPES: Record<KnowledgeBaseType, { label: string; ic
   saude: { label: 'Saúde / Clínica', icon: 'Heart', description: 'Protocolos e procedimentos' },
   produto: { label: 'Produto / Serviço', icon: 'Package', description: 'Informação de produtos' },
   interna: { label: 'Interna (Equipa)', icon: 'Lock', description: 'Documentação interna' }
+};
+
+export const ENTRY_TYPE_CONFIG: Record<EntryType, { label: string; icon: string; description: string }> = {
+  faq: { label: 'FAQ', icon: 'HelpCircle', description: 'Perguntas frequentes' },
+  article: { label: 'Artigo', icon: 'FileText', description: 'Conteúdo informativo' },
+  document: { label: 'Documento', icon: 'File', description: 'Documentação técnica' },
+  procedure: { label: 'Procedimento', icon: 'ClipboardList', description: 'Passos e instruções' },
+  script: { label: 'Script', icon: 'MessageSquare', description: 'Guiões de comunicação' },
+  link: { label: 'Link Externo', icon: 'ExternalLink', description: 'Referência externa' }
+};
+
+export const CONTEXT_CONFIG: Record<KnowledgeContext, { label: string; icon: string; color: string }> = {
+  atendimento: { label: 'Atendimento', icon: 'Headphones', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  vendas: { label: 'Vendas', icon: 'TrendingUp', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  suporte: { label: 'Suporte', icon: 'Wrench', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
+  formacao: { label: 'Formação', icon: 'GraduationCap', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+  saude: { label: 'Saúde', icon: 'Heart', color: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' },
+  geral: { label: 'Geral', icon: 'Globe', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }
 };
 
 export const PERSONA_TYPES: Record<PersonaType, { label: string; icon: string; defaultPrompt: string }> = {
@@ -200,8 +231,13 @@ export const TONE_OPTIONS: Record<ToneOfVoice, string> = {
   'técnico': 'Técnico e preciso'
 };
 
-export const ENTRY_STATUS_CONFIG: Record<EntryStatus, { label: string; color: string; bgColor: string }> = {
-  draft: { label: 'Rascunho', color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-  validated: { label: 'Validado', color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-  expired: { label: 'Expirado', color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' }
+export const ENTRY_STATUS_CONFIG: Record<EntryStatus, { label: string; color: string; bgColor: string; icon: string }> = {
+  draft: { label: 'Rascunho', color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30', icon: 'Edit' },
+  validated: { label: 'Validado', color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30', icon: 'CheckCircle2' },
+  archived: { label: 'Arquivado', color: 'text-gray-500', bgColor: 'bg-gray-100 dark:bg-gray-800', icon: 'Archive' }
+};
+
+export const VISIBILITY_CONFIG: Record<ContentVisibility, { label: string; icon: string }> = {
+  internal: { label: 'Interno', icon: 'Lock' },
+  external: { label: 'Externo', icon: 'Globe' }
 };
