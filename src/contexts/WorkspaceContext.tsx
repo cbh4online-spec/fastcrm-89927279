@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
-export type WorkspaceRole = "owner" | "admin" | "agent" | "viewer";
+export type WorkspaceRole = "owner" | "admin" | "agent" | "viewer" | "agency";
 
 export interface Workspace {
   id: string;
@@ -10,12 +10,16 @@ export interface Workspace {
   slug: string;
   role: WorkspaceRole;
   created_at: string;
+  isAgencyManaged?: boolean;
 }
 
 interface WorkspaceContextType {
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   loading: boolean;
+  isSuperAdmin: boolean;
+  ownWorkspaces: Workspace[];
+  managedWorkspaces: Workspace[];
   setCurrentWorkspace: (workspace: Workspace) => void;
   refreshWorkspaces: () => Promise<void>;
   createWorkspace: (name: string) => Promise<{ error: Error | null; workspace: Workspace | null }>;
@@ -28,35 +32,75 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const fetchWorkspaces = async () => {
     if (!user) {
       setWorkspaces([]);
       setCurrentWorkspace(null);
       setLoading(false);
+      setIsSuperAdmin(false);
       return;
     }
 
     try {
-      const { data, error } = await supabase
-        .from("workspace_members")
-        .select(`
-          role,
-          workspace:workspaces(id, name, slug, created_at)
-        `)
-        .eq("user_id", user.id);
+      // Check if user is super admin
+      const { data: superAdminCheck } = await supabase.rpc('is_super_admin', { _user_id: user.id });
+      const isAdmin = !!superAdminCheck;
+      setIsSuperAdmin(isAdmin);
 
-      if (error) throw error;
+      let workspaceList: Workspace[] = [];
 
-      const workspaceList: Workspace[] = (data || [])
-        .filter((item) => item.workspace)
-        .map((item) => ({
-          id: (item.workspace as any).id,
-          name: (item.workspace as any).name,
-          slug: (item.workspace as any).slug,
-          role: item.role as WorkspaceRole,
-          created_at: (item.workspace as any).created_at,
+      if (isAdmin) {
+        // Super admin: fetch ALL workspaces
+        const { data: allWorkspaces, error: wsError } = await supabase
+          .from("workspaces")
+          .select("id, name, slug, created_at")
+          .order("name");
+
+        if (wsError) throw wsError;
+
+        // Also get user's own memberships to know which are "own" vs "managed"
+        const { data: ownMemberships } = await supabase
+          .from("workspace_members")
+          .select("workspace_id, role")
+          .eq("user_id", user.id);
+
+        const ownMembershipMap = new Map(
+          (ownMemberships || []).map((m) => [m.workspace_id, m.role as WorkspaceRole])
+        );
+
+        workspaceList = (allWorkspaces || []).map((ws) => ({
+          id: ws.id,
+          name: ws.name,
+          slug: ws.slug,
+          created_at: ws.created_at,
+          role: ownMembershipMap.get(ws.id) || ("agency" as WorkspaceRole),
+          isAgencyManaged: !ownMembershipMap.has(ws.id),
         }));
+      } else {
+        // Normal user: fetch only workspaces where they are members
+        const { data, error } = await supabase
+          .from("workspace_members")
+          .select(`
+            role,
+            workspace:workspaces(id, name, slug, created_at)
+          `)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        workspaceList = (data || [])
+          .filter((item) => item.workspace)
+          .map((item) => ({
+            id: (item.workspace as any).id,
+            name: (item.workspace as any).name,
+            slug: (item.workspace as any).slug,
+            role: item.role as WorkspaceRole,
+            created_at: (item.workspace as any).created_at,
+            isAgencyManaged: false,
+          }));
+      }
 
       setWorkspaces(workspaceList);
 
@@ -119,12 +163,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     fetchWorkspaces();
   }, [user]);
 
+  // Separate own workspaces from agency-managed ones
+  const ownWorkspaces = workspaces.filter((w) => !w.isAgencyManaged);
+  const managedWorkspaces = workspaces.filter((w) => w.isAgencyManaged);
+
   return (
     <WorkspaceContext.Provider
       value={{
         workspaces,
         currentWorkspace,
         loading,
+        isSuperAdmin,
+        ownWorkspaces,
+        managedWorkspaces,
         setCurrentWorkspace: handleSetCurrentWorkspace,
         refreshWorkspaces: fetchWorkspaces,
         createWorkspace,
