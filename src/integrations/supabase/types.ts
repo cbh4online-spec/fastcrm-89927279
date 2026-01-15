@@ -458,6 +458,50 @@ export type Database = {
           },
         ]
       }
+      billing_events: {
+        Row: {
+          created_at: string
+          data: Json | null
+          error_message: string | null
+          event_type: string
+          id: string
+          processed: boolean | null
+          processed_at: string | null
+          stripe_event_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          stripe_event_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          stripe_event_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blueprint_apply_logs: {
         Row: {
           applied_by: string
@@ -2151,6 +2195,36 @@ export type Database = {
           },
         ]
       }
+      plan_features: {
+        Row: {
+          created_at: string
+          enabled: boolean | null
+          feature_key: string
+          id: string
+          limit_value: number | null
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean | null
+          feature_key: string
+          id?: string
+          limit_value?: number | null
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean | null
+          feature_key?: string
+          id?: string
+          limit_value?: number | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2839,6 +2913,103 @@ export type Database = {
           },
         ]
       }
+      usage_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          current_usage: number
+          dismissed_at: string | null
+          dismissed_by: string | null
+          id: string
+          is_dismissed: boolean | null
+          limit_value: number
+          message: string
+          resource_type: string
+          threshold_percent: number
+          workspace_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          current_usage: number
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          limit_value: number
+          message: string
+          resource_type: string
+          threshold_percent: number
+          workspace_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          current_usage?: number
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          limit_value?: number
+          message?: string
+          resource_type?: string
+          threshold_percent?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          quantity: number | null
+          resource_id: string | null
+          resource_type: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          quantity?: number | null
+          resource_id?: string | null
+          resource_type: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          quantity?: number | null
+          resource_id?: string | null
+          resource_type?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2948,6 +3119,8 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_price_id: string | null
           stripe_subscription_id: string | null
+          trial_ends_at: string | null
+          trial_started_at: string | null
           updated_at: string
           workspace_id: string
         }
@@ -2962,6 +3135,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_price_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -2976,6 +3151,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_price_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -2991,33 +3168,66 @@ export type Database = {
       }
       workspace_usage: {
         Row: {
+          ai_calls_used: number | null
           ai_insights_used: number | null
           ai_suggestions_used: number | null
+          automations_count: number | null
           automations_executed: number | null
+          companies_count: number | null
+          contacts_count: number | null
           created_at: string
+          emails_sent: number | null
           id: string
+          instagram_sent: number | null
+          leads_count: number | null
+          opportunities_count: number | null
           period_start: string
+          storage_used_mb: number | null
+          templates_count: number | null
           updated_at: string
+          whatsapp_sent: number | null
           workspace_id: string
         }
         Insert: {
+          ai_calls_used?: number | null
           ai_insights_used?: number | null
           ai_suggestions_used?: number | null
+          automations_count?: number | null
           automations_executed?: number | null
+          companies_count?: number | null
+          contacts_count?: number | null
           created_at?: string
+          emails_sent?: number | null
           id?: string
+          instagram_sent?: number | null
+          leads_count?: number | null
+          opportunities_count?: number | null
           period_start?: string
+          storage_used_mb?: number | null
+          templates_count?: number | null
           updated_at?: string
+          whatsapp_sent?: number | null
           workspace_id: string
         }
         Update: {
+          ai_calls_used?: number | null
           ai_insights_used?: number | null
           ai_suggestions_used?: number | null
+          automations_count?: number | null
           automations_executed?: number | null
+          companies_count?: number | null
+          contacts_count?: number | null
           created_at?: string
+          emails_sent?: number | null
           id?: string
+          instagram_sent?: number | null
+          leads_count?: number | null
+          opportunities_count?: number | null
           period_start?: string
+          storage_used_mb?: number | null
+          templates_count?: number | null
           updated_at?: string
+          whatsapp_sent?: number | null
           workspace_id?: string
         }
         Relationships: [
@@ -3063,12 +3273,20 @@ export type Database = {
         Args: { p_custom_field_id: string; p_entity_id: string; p_value: Json }
         Returns: boolean
       }
+      check_workspace_quota: {
+        Args: { p_resource_type: string; p_workspace_id: string }
+        Returns: Json
+      }
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
       }
       get_plan_limits: {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
+        Returns: Json
+      }
+      get_workspace_usage_counts: {
+        Args: { p_workspace_id: string }
         Returns: Json
       }
       has_role: {
@@ -3084,6 +3302,10 @@ export type Database = {
           _user_id: string
           _workspace_id: string
         }
+        Returns: boolean
+      }
+      is_feature_enabled: {
+        Args: { p_feature_key: string; p_workspace_id: string }
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
