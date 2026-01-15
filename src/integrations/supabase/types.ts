@@ -4785,6 +4785,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          managed_by_workspace_id: string | null
           name: string
           owner_id: string | null
           slug: string
@@ -4794,6 +4795,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          managed_by_workspace_id?: string | null
           name: string
           owner_id?: string | null
           slug: string
@@ -4803,13 +4805,22 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          managed_by_workspace_id?: string | null
           name?: string
           owner_id?: string | null
           slug?: string
           status?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_managed_by_workspace_id_fkey"
+            columns: ["managed_by_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

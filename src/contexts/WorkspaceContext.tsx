@@ -84,13 +84,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           .from("workspace_members")
           .select(`
             role,
-            workspace:workspaces(id, name, slug, created_at)
+            workspace:workspaces(id, name, slug, created_at, managed_by_workspace_id)
           `)
           .eq("user_id", user.id);
 
         if (error) throw error;
 
-        workspaceList = (data || [])
+        const ownWorkspacesList = (data || [])
           .filter((item) => item.workspace)
           .map((item) => ({
             id: (item.workspace as any).id,
@@ -100,6 +100,31 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             created_at: (item.workspace as any).created_at,
             isAgencyManaged: false,
           }));
+
+        // Check if user is part of an agency workspace (has agency plan)
+        const userAgencyWorkspaceIds = ownWorkspacesList
+          .filter(ws => ws.role === "owner" || ws.role === "admin")
+          .map(ws => ws.id);
+
+        // Fetch workspaces managed by the user's agency workspaces
+        let managedByAgencyList: Workspace[] = [];
+        if (userAgencyWorkspaceIds.length > 0) {
+          const { data: managedWorkspaces } = await supabase
+            .from("workspaces")
+            .select("id, name, slug, created_at, managed_by_workspace_id")
+            .in("managed_by_workspace_id", userAgencyWorkspaceIds);
+
+          managedByAgencyList = (managedWorkspaces || []).map((ws) => ({
+            id: ws.id,
+            name: ws.name,
+            slug: ws.slug,
+            created_at: ws.created_at,
+            role: "agency" as WorkspaceRole,
+            isAgencyManaged: true,
+          }));
+        }
+
+        workspaceList = [...ownWorkspacesList, ...managedByAgencyList];
       }
 
       setWorkspaces(workspaceList);

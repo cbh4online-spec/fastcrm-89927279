@@ -47,7 +47,8 @@ import {
   ArrowUpCircle,
   AlertTriangle,
   Building2,
-  Filter
+  Filter,
+  Shield
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -59,6 +60,11 @@ interface WorkspaceDetails {
   status: string;
   owner_id: string;
   created_at: string;
+  managed_by_workspace_id?: string | null;
+  managed_by_workspace?: {
+    id: string;
+    name: string;
+  } | null;
   subscription?: {
     plan: string;
     status: string;
@@ -81,10 +87,11 @@ export function WorkspacesSection() {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceDetails | null>(null);
   const [actionDialog, setActionDialog] = useState<{
-    type: "suspend" | "reactivate" | "change-plan" | null;
+    type: "suspend" | "reactivate" | "change-plan" | "assign-agency" | null;
     workspace: WorkspaceDetails | null;
   }>({ type: null, workspace: null });
   const [newPlan, setNewPlan] = useState<string>("");
+  const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
   
   const queryClient = useQueryClient();
 
@@ -100,6 +107,8 @@ export function WorkspacesSection() {
           status,
           owner_id,
           created_at,
+          managed_by_workspace_id,
+          managed_by_workspace:workspaces!workspaces_managed_by_workspace_id_fkey(id, name),
           workspace_subscriptions (
             plan,
             status,
@@ -158,6 +167,8 @@ export function WorkspacesSection() {
         status: ws.status || "active",
         owner_id: ws.owner_id,
         created_at: ws.created_at,
+        managed_by_workspace_id: ws.managed_by_workspace_id,
+        managed_by_workspace: ws.managed_by_workspace,
         subscription: ws.workspace_subscriptions?.[0] || undefined,
         usage: {
           leads_count: leadsCounts[ws.id] || 0,
@@ -170,6 +181,11 @@ export function WorkspacesSection() {
       })) as WorkspaceDetails[];
     },
   });
+
+  // Get agency workspaces (those with agency plan)
+  const agencyWorkspaces = workspaces?.filter(
+    ws => ws.subscription?.plan === "agency"
+  ) || [];
 
   const updateWorkspaceStatus = useMutation({
     mutationFn: async ({ workspaceId, status }: { workspaceId: string; status: string }) => {
@@ -260,6 +276,35 @@ export function WorkspacesSection() {
     },
     onError: (error) => {
       toast.error("Erro ao alterar plano: " + error.message);
+    },
+  });
+
+  const assignAgency = useMutation({
+    mutationFn: async ({ workspaceId, agencyId }: { workspaceId: string; agencyId: string | null }) => {
+      const { error } = await supabase
+        .from("workspaces")
+        .update({ managed_by_workspace_id: agencyId })
+        .eq("id", workspaceId);
+      
+      if (error) throw error;
+
+      // Log the action
+      await supabase.rpc("log_admin_action", {
+        p_action_type: agencyId ? "agency_assigned" : "agency_removed",
+        p_target_type: "workspace",
+        p_target_id: workspaceId,
+        p_workspace_id: workspaceId,
+        p_details: { agency_workspace_id: agencyId },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
+      toast.success("Agência atribuída com sucesso");
+      setActionDialog({ type: null, workspace: null });
+      setSelectedAgencyId("");
+    },
+    onError: (error) => {
+      toast.error("Erro ao atribuir agência: " + error.message);
     },
   });
 
@@ -375,6 +420,7 @@ export function WorkspacesSection() {
             <TableHeader>
               <TableRow>
                 <TableHead>Workspace</TableHead>
+                <TableHead>Agência</TableHead>
                 <TableHead>Plano</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Utilizadores</TableHead>
@@ -391,6 +437,21 @@ export function WorkspacesSection() {
                       <p className="font-medium">{ws.name}</p>
                       <p className="text-xs text-muted-foreground">{ws.slug}</p>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {ws.managed_by_workspace ? (
+                      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                        <Shield className="w-3 h-3 mr-1" />
+                        {ws.managed_by_workspace.name}
+                      </Badge>
+                    ) : ws.subscription?.plan === "agency" ? (
+                      <Badge className="bg-primary/10 text-primary border-primary/30">
+                        <Building2 className="w-3 h-3 mr-1" />
+                        É Agência
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>{getPlanBadge(ws.subscription?.plan)}</TableCell>
                   <TableCell>
@@ -462,6 +523,24 @@ export function WorkspacesSection() {
                             <Lock className="h-4 w-4 mr-2" />
                             Suspender
                           </DropdownMenuItem>
+                        )}
+                        {/* Only show assign agency for non-agency workspaces */}
+                        {ws.subscription?.plan !== "agency" && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                setSelectedAgencyId(ws.managed_by_workspace_id || "");
+                                setActionDialog({ 
+                                  type: "assign-agency", 
+                                  workspace: ws 
+                                });
+                              }}
+                            >
+                              <Shield className="h-4 w-4 mr-2" />
+                              {ws.managed_by_workspace_id ? "Alterar agência" : "Atribuir agência"}
+                            </DropdownMenuItem>
+                          </>
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -694,6 +773,87 @@ export function WorkspacesSection() {
               }}
             >
               Confirmar Alteração
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Agency Dialog */}
+      <Dialog 
+        open={actionDialog.type === "assign-agency"} 
+        onOpenChange={() => {
+          setActionDialog({ type: null, workspace: null });
+          setSelectedAgencyId("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-amber-500" />
+              Atribuir Agência
+            </DialogTitle>
+            <DialogDescription>
+              Atribuir uma agência para gerir "{actionDialog.workspace?.name}"
+              {actionDialog.workspace?.managed_by_workspace && (
+                <>
+                  <br /><br />
+                  Agência atual: <strong>{actionDialog.workspace.managed_by_workspace.name}</strong>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <Select 
+              value={selectedAgencyId} 
+              onValueChange={setSelectedAgencyId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleciona uma agência" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground">Sem agência (remover)</span>
+                </SelectItem>
+                {agencyWorkspaces
+                  .filter(agency => agency.id !== actionDialog.workspace?.id)
+                  .map(agency => (
+                    <SelectItem key={agency.id} value={agency.id}>
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-3 h-3 text-amber-500" />
+                        {agency.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            {agencyWorkspaces.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Não existem workspaces com plano Agency. Primeiro, atribua o plano Agency a um workspace.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setActionDialog({ type: null, workspace: null });
+                setSelectedAgencyId("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              disabled={!selectedAgencyId && !actionDialog.workspace?.managed_by_workspace_id}
+              onClick={() => {
+                if (actionDialog.workspace) {
+                  assignAgency.mutate({
+                    workspaceId: actionDialog.workspace.id,
+                    agencyId: selectedAgencyId === "none" ? null : (selectedAgencyId || null),
+                  });
+                }
+              }}
+            >
+              {selectedAgencyId === "none" ? "Remover Agência" : "Atribuir Agência"}
             </Button>
           </DialogFooter>
         </DialogContent>
