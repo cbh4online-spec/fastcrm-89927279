@@ -49,13 +49,17 @@ const PROVIDER_CONFIGS: Record<string, { imap: { host: string; port: number }; s
     imap: { host: "outlook.office365.com", port: 993 },
     smtp: { host: "smtp.office365.com", port: 587 },
   },
+  hostinger: {
+    imap: { host: "imap.hostinger.com", port: 993 },
+    smtp: { host: "smtp.hostinger.com", port: 587 },
+  },
 };
 
 interface ConnectEmailRequest {
   workspaceId: string;
   emailAddress: string;
   displayName?: string;
-  provider: "gmail" | "outlook" | "custom";
+  provider: "gmail" | "outlook" | "hostinger" | "custom";
   authType: "oauth" | "app_password";
   appPassword?: string;
   oauthCode?: string;

@@ -3,7 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { toast } from "sonner";
 
-export type EmailProvider = "gmail" | "outlook" | "custom";
+export type EmailProvider = "gmail" | "outlook" | "hostinger" | "custom";
 export type EmailAuthType = "oauth" | "app_password";
 
 export interface EmailConnection {
