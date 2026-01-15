@@ -154,3 +154,26 @@ export function useCompanies() {
     deleteCompany,
   };
 }
+
+// Hook to fetch a single company by ID
+export function useCompany(companyId: string | undefined) {
+  return useQuery({
+    queryKey: ["company", companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      
+      const { data, error } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", companyId)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") return null; // Not found
+        throw error;
+      }
+      return data as Company;
+    },
+    enabled: !!companyId,
+  });
+}
