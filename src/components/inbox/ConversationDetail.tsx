@@ -48,6 +48,7 @@ import { ConversationSummary } from "./ConversationSummary";
 import { AIActionSuggestions } from "./AIActionSuggestions";
 import { OpportunityTriggerBanner } from "./OpportunityTriggerBanner";
 import { ConversationAutoTags } from "./ConversationAutoTags";
+import { AiSafetyRulesBanner } from "./AiSafetyRulesBanner";
 import { useInboxActionSuggestions } from "@/hooks/useInboxActionSuggestions";
 import { EmailMessageBubble } from "./EmailMessageBubble";
 import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
@@ -407,6 +408,11 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
           />
         </div>
       )}
+
+      {/* AI Safety Rules Banner (compact) */}
+      <div className="px-3 py-2 border-b border-border">
+        <AiSafetyRulesBanner conversationId={conversationId} compact />
+      </div>
 
       {/* Follow-up Banner */}
       {messages && messages.length > 0 && (

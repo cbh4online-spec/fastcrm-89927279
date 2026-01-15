@@ -35,6 +35,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AiSuggestionBadge } from "./AiSuggestionBadge";
 import { toast } from "sonner";
 import { useCreateOpportunity } from "@/hooks/useOpportunities";
 import { useCreateTask } from "@/hooks/useTasks";
