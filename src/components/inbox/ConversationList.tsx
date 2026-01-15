@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import { useConversations, useDeleteConversations, ConversationChannel, ConversationStatus, Conversation } from "@/hooks/useConversations";
+import { useConversations, useDeleteConversations, useUpdateConversationPriority, ConversationChannel, ConversationStatus, Conversation } from "@/hooks/useConversations";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Building2 } from "lucide-react";
+import { Building2, Pencil, DollarSign, User, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Search,
   MessageSquare,
@@ -85,45 +90,80 @@ interface ConversationListProps {
   defaultChannel?: ConversationChannel | null;
 }
 
-// AI-based priority calculation - uses AI classification if available
-function calculatePriority(conv: any): { priority: ConversationPriority; reason: string } {
-  // Use AI/user classification if available
-  const effectivePriority = conv.user_priority || conv.ai_priority;
-  if (effectivePriority) {
-    const reasonMap = {
-      high: "Classificado como alta prioridade",
-      medium: "Classificado como média prioridade",
-      low: "Classificado como baixa prioridade",
+// Enhanced priority calculation considering multiple factors
+function calculatePriority(conv: Conversation): { priority: ConversationPriority; reason: string; isManual: boolean } {
+  // Manual override takes precedence
+  if (conv.user_priority) {
+    const reasonMap: Record<string, string> = {
+      high: "Prioridade alta (manual)",
+      medium: "Prioridade média (manual)",
+      low: "Prioridade baixa (manual)",
     };
     return { 
-      priority: effectivePriority as ConversationPriority, 
-      reason: conv.user_priority ? `${reasonMap[effectivePriority]} (editado)` : reasonMap[effectivePriority]
+      priority: conv.user_priority as ConversationPriority, 
+      reason: reasonMap[conv.user_priority],
+      isManual: true,
     };
   }
 
-  // Fallback: calculate based on conversation state
+  // Calculate time without response
   const hoursSinceLastMessage = conv.last_message_at 
     ? differenceInHours(new Date(), new Date(conv.last_message_at))
     : 0;
-  
-  // High priority conditions
+
+  // Check for open opportunities (high value indicator)
+  const hasOpenOpportunities = conv.opportunities && conv.opportunities.length > 0;
+  const totalOpportunityValue = conv.opportunities?.reduce((sum, opp) => sum + (opp.value || 0), 0) || 0;
+
+  // Check for buying intent
+  const effectiveIntent = conv.user_intent || conv.ai_intent;
+  const hasBuyingIntent = effectiveIntent === "sales";
+
+  // Check lead status (qualified leads are higher priority)
+  const leadStatus = conv.lead?.status;
+  const isQualifiedLead = leadStatus === "qualified" || leadStatus === "proposal";
+  const isClient = leadStatus === "client" || leadStatus === "won";
+
+  // HIGH PRIORITY conditions (in order of importance)
+  if (hasOpenOpportunities && totalOpportunityValue > 0) {
+    const formattedValue = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(totalOpportunityValue);
+    return { priority: "high", reason: `Oportunidade aberta (${formattedValue})`, isManual: false };
+  }
+  if (hasBuyingIntent && conv.unread_count > 0) {
+    return { priority: "high", reason: "Pedido de preço / Intenção de compra", isManual: false };
+  }
+  if (isClient && conv.unread_count > 0) {
+    return { priority: "high", reason: "Cliente ativo com mensagem", isManual: false };
+  }
+  if (hoursSinceLastMessage > 48 && conv.status === "open") {
+    return { priority: "high", reason: "Sem resposta há mais de 48h", isManual: false };
+  }
   if (conv.unread_count >= 3) {
-    return { priority: "high", reason: "Múltiplas mensagens não lidas" };
+    return { priority: "high", reason: "Múltiplas mensagens não lidas", isManual: false };
+  }
+  if (conv.ai_priority === "high") {
+    return { priority: "high", reason: "Classificado como urgente (AI)", isManual: false };
+  }
+
+  // MEDIUM PRIORITY conditions
+  if (isQualifiedLead) {
+    return { priority: "medium", reason: "Lead qualificado", isManual: false };
+  }
+  if (hasBuyingIntent) {
+    return { priority: "medium", reason: "Intenção de compra identificada", isManual: false };
+  }
+  if (conv.unread_count > 0) {
+    return { priority: "medium", reason: "Mensagem não lida", isManual: false };
   }
   if (hoursSinceLastMessage > 24 && conv.status === "open") {
-    return { priority: "high", reason: "Sem resposta há mais de 24h" };
+    return { priority: "medium", reason: "Aguardando resposta há 24h+", isManual: false };
   }
-  
-  // Medium priority conditions
-  if (conv.unread_count > 0) {
-    return { priority: "medium", reason: "Mensagem não lida" };
+  if (conv.ai_priority === "medium") {
+    return { priority: "medium", reason: "Prioridade média (AI)", isManual: false };
   }
-  if (hoursSinceLastMessage > 2 && hoursSinceLastMessage <= 24 && conv.status === "open") {
-    return { priority: "medium", reason: "Aguardando resposta há algumas horas" };
-  }
-  
-  // Low priority
-  return { priority: "low", reason: "Conversa em dia" };
+
+  // LOW PRIORITY
+  return { priority: "low", reason: "Conversa em dia", isManual: false };
 }
 
 // Check if conversation is waiting for reply (last message was inbound)
@@ -196,6 +236,7 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
     channel: channelFilter === "all" ? undefined : channelFilter,
   });
   const deleteConversations = useDeleteConversations();
+  const updatePriority = useUpdateConversationPriority();
 
   // Filter and sort conversations with priority
   const processedConversations = useMemo(() => {
@@ -554,24 +595,77 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
                             </p>
                           )}
                           
-                          {/* Priority and Intent badges */}
+                          {/* Priority badge with edit capability */}
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className={cn(
+                                  "flex items-center gap-1 text-xs px-1.5 py-0.5 rounded hover:ring-1 hover:ring-primary/30 transition-all",
+                                  priorityInfo.color,
+                                  priorityInfo.bgColor || "bg-muted/50"
+                                )}>
+                                  {PriorityIcon && <PriorityIcon className="w-3 h-3" />}
+                                  <span>{priorityInfo.label}</span>
+                                  {conv.isManual && <Pencil className="w-2.5 h-2.5 ml-0.5" />}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56 p-2" align="start">
+                                <div className="space-y-2">
+                                  <p className="text-xs font-medium text-muted-foreground mb-2">Alterar prioridade</p>
+                                  {(["high", "medium", "low"] as const).map((p) => {
+                                    const pConfig = priorityConfig[p];
+                                    const PIcon = pConfig.icon;
+                                    return (
+                                      <button
+                                        key={p}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          updatePriority.mutate(
+                                            { conversationId: conv.id, priority: p },
+                                            {
+                                              onSuccess: () => toast.success(`Prioridade alterada para ${pConfig.label}`),
+                                              onError: () => toast.error("Erro ao alterar prioridade"),
+                                            }
+                                          );
+                                        }}
+                                        className={cn(
+                                          "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors",
+                                          conv.priority === p && "bg-accent"
+                                        )}
+                                      >
+                                        {PIcon && <PIcon className={cn("w-4 h-4", pConfig.color)} />}
+                                        {!PIcon && <ArrowDown className={cn("w-4 h-4", pConfig.color)} />}
+                                        <span>{pConfig.label}</span>
+                                        {conv.priority === p && <span className="ml-auto text-primary">✓</span>}
+                                      </button>
+                                    );
+                                  })}
+                                  {conv.user_priority && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        updatePriority.mutate(
+                                          { conversationId: conv.id, priority: null },
+                                          {
+                                            onSuccess: () => toast.success("Prioridade automática restaurada"),
+                                            onError: () => toast.error("Erro ao restaurar prioridade"),
+                                          }
+                                        );
+                                      }}
+                                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-accent transition-colors border-t mt-2 pt-2"
+                                    >
+                                      Restaurar prioridade automática
+                                    </button>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            
+                            {/* Reason shown inline for high/medium priority */}
                             {conv.priority !== "low" && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className={cn(
-                                    "flex items-center gap-1 text-xs px-1.5 py-0.5 rounded",
-                                    priorityInfo.color,
-                                    priorityInfo.bgColor
-                                  )}>
-                                    {PriorityIcon && <PriorityIcon className="w-3 h-3" />}
-                                    <span>{priorityInfo.label}</span>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">
-                                  <p className="text-xs">{conv.reason}</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+                                {conv.reason}
+                              </span>
                             )}
                             
                             {/* Intent badge */}
@@ -584,9 +678,39 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
                               </span>
                             )}
 
-                            {/* AI indicator */}
-                            {hasAIClassification && !conv.user_priority && !conv.user_intent && (
-                              <span className="text-[10px] text-muted-foreground">AI</span>
+                            {/* Lead/Client status indicator */}
+                            {conv.lead?.status && (conv.lead.status === "client" || conv.lead.status === "qualified") && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={cn(
+                                    "text-xs px-1.5 py-0.5 rounded flex items-center gap-1",
+                                    conv.lead.status === "client" 
+                                      ? "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30" 
+                                      : "text-blue-600 bg-blue-100 dark:bg-blue-900/30"
+                                  )}>
+                                    {conv.lead.status === "client" ? <Briefcase className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                                    {conv.lead.status === "client" ? "Cliente" : "Qualificado"}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Status do lead: {conv.lead.status}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+
+                            {/* Opportunity indicator */}
+                            {conv.opportunities && conv.opportunities.length > 0 && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-900/30">
+                                    <DollarSign className="w-3 h-3" />
+                                    {conv.opportunities.length}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">{conv.opportunities.length} oportunidade(s) aberta(s)</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                           

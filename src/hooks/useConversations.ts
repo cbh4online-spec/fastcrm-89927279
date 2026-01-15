@@ -19,6 +19,21 @@ export interface ConversationCompany {
   name: string;
 }
 
+export interface ConversationLead {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  status: string;
+}
+
+export interface ConversationOpportunity {
+  id: string;
+  title: string;
+  status: string;
+  value: number | null;
+}
+
 export interface Conversation {
   id: string;
   workspace_id: string;
@@ -34,9 +49,10 @@ export interface Conversation {
   last_message_preview: string | null;
   created_at: string;
   updated_at: string;
-  lead?: Pick<Lead, "id" | "name" | "email" | "phone"> | null;
+  lead?: ConversationLead | null;
   contact?: ConversationContact | null;
   company?: ConversationCompany | null;
+  opportunities?: ConversationOpportunity[];
   // AI Classification fields
   ai_priority?: "high" | "medium" | "low" | null;
   ai_intent?: "support" | "sales" | "question" | "follow_up" | "complaint" | "other" | null;
@@ -69,7 +85,7 @@ export function useConversations(filters?: ConversationFilters) {
         .from("conversations")
         .select(`
           *,
-          lead:leads(id, name, email, phone),
+          lead:leads(id, name, email, phone, status),
           contact:contacts(id, name, email, phone, company),
           company:companies(id, name)
         `)
@@ -92,10 +108,46 @@ export function useConversations(filters?: ConversationFilters) {
         query = query.gt("unread_count", 0);
       }
 
-      const { data, error } = await query;
+      const { data: convData, error: convError } = await query;
+      if (convError) throw convError;
 
-      if (error) throw error;
-      return data as Conversation[];
+      // Get all lead IDs that have conversations
+      const leadIds = convData
+        ?.map(c => c.lead?.id)
+        .filter((id): id is string => !!id) || [];
+
+      // Fetch open opportunities for these leads
+      let opportunitiesMap: Record<string, ConversationOpportunity[]> = {};
+      if (leadIds.length > 0) {
+        const { data: oppsData } = await workspaceClient
+          .from("opportunities")
+          .select("id, title, status, value, lead_id")
+          .in("lead_id", leadIds)
+          .eq("status", "open");
+
+        if (oppsData) {
+          for (const opp of oppsData) {
+            if (!opp.lead_id) continue;
+            if (!opportunitiesMap[opp.lead_id]) {
+              opportunitiesMap[opp.lead_id] = [];
+            }
+            opportunitiesMap[opp.lead_id].push({
+              id: opp.id,
+              title: opp.title,
+              status: opp.status,
+              value: opp.value,
+            });
+          }
+        }
+      }
+
+      // Attach opportunities to conversations
+      const conversationsWithOpps = convData?.map(conv => ({
+        ...conv,
+        opportunities: conv.lead?.id ? opportunitiesMap[conv.lead.id] || [] : [],
+      })) || [];
+
+      return conversationsWithOpps as Conversation[];
     },
     enabled: !!currentWorkspace,
   });
@@ -114,7 +166,9 @@ export function useConversation(id: string | undefined) {
         .from("conversations")
         .select(`
           *,
-          lead:leads(id, name, email, phone)
+          lead:leads(id, name, email, phone, status),
+          contact:contacts(id, name, email, phone, company),
+          company:companies(id, name)
         `)
         .eq("id", id)
         .eq("workspace_id", currentWorkspace.id)
@@ -265,6 +319,43 @@ export function useLinkConversationToCompany() {
       const { data, error } = await workspaceClient
         .from("conversations")
         .update({ company_id: companyId })
+        .eq("id", conversationId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Conversation;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["conversation", data.id] });
+    },
+  });
+}
+
+// Update conversation priority (manual override)
+export function useUpdateConversationPriority() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async ({ 
+      conversationId, 
+      priority,
+      intent,
+    }: { 
+      conversationId: string; 
+      priority?: "high" | "medium" | "low" | null;
+      intent?: "support" | "sales" | "question" | "follow_up" | "complaint" | "other" | null;
+    }) => {
+      const updates: Record<string, unknown> = {};
+      if (priority !== undefined) updates.user_priority = priority;
+      if (intent !== undefined) updates.user_intent = intent;
+
+      const { data, error } = await workspaceClient
+        .from("conversations")
+        .update(updates)
         .eq("id", conversationId)
         .select()
         .single();
