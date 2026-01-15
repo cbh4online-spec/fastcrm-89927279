@@ -186,6 +186,7 @@ class SimpleIMAPClient {
     uid: number;
     subject: string;
     from: string;
+    fromName: string;
     to: string;
     date: string;
     messageId: string;
@@ -196,6 +197,7 @@ class SimpleIMAPClient {
       uid: number;
       subject: string;
       from: string;
+      fromName: string;
       to: string;
       date: string;
       messageId: string;
@@ -227,6 +229,7 @@ class SimpleIMAPClient {
       const envelopeMatch = block.match(/ENVELOPE \((.+)\)/s);
       let subject = "";
       let from = "";
+      let fromName = "";
       let to = "";
       let date = "";
       let messageId = "";
@@ -258,7 +261,8 @@ class SimpleIMAPClient {
           const parsed = parseEnvelopeAddress(fromMatch[0]);
           if (parsed) {
             from = parsed.email;
-            console.log("Parsed FROM:", from, "name:", parsed.name);
+            fromName = parsed.name;
+            console.log("Parsed FROM:", from, "name:", fromName);
           }
         }
         
@@ -270,6 +274,7 @@ class SimpleIMAPClient {
           const fromParsed = parseEnvelopeAddress(addressBlocks[0]);
           if (fromParsed && !from) {
             from = fromParsed.email;
+            fromName = fromParsed.name;
           }
           // Fourth address block (index 3) would be TO if sender and reply-to exist
           // But often they're NIL, so TO might be at index 1, 2, or 3
@@ -315,6 +320,7 @@ class SimpleIMAPClient {
         uid,
         subject,
         from,
+        fromName: fromName || from,
         to,
         date: finalDate,
         messageId,
@@ -507,8 +513,10 @@ serve(async (req) => {
         if (msg.uid > maxUid) maxUid = msg.uid;
 
         const senderEmail = msg.from || "unknown@email.com";
-        const senderName = parseEmailAddress(msg.from).name || senderEmail;
+        const senderName = msg.fromName || senderEmail;
         const isInbound = senderEmail.toLowerCase() !== connection.email_address.toLowerCase();
+        
+        console.log(`Processing email - From: ${senderEmail}, Name: ${senderName}, Subject: ${msg.subject}`);
 
         // Find or create lead by email
         let leadId: string | null = null;
