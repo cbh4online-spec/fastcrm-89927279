@@ -53,7 +53,7 @@ export interface WorkspaceSubscription {
 export interface UsageAlert {
   id: string;
   workspace_id: string;
-  alert_type: "warning" | "critical" | "limit_reached";
+  alert_type: "warning" | "critical" | "limit_reached" | "payment_failed" | "trial_ending" | "trial_expired";
   resource_type: string;
   threshold_percent: number;
   current_usage: number;

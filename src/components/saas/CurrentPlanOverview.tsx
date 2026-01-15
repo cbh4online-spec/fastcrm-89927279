@@ -11,7 +11,8 @@ import {
   ExternalLink,
   CheckCircle2,
   Clock,
-  XCircle
+  XCircle,
+  Sparkles
 } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PLAN_DISPLAY_INFO } from "@/types/saas";
@@ -42,7 +43,7 @@ export function CurrentPlanOverview({ className, showActions = true }: CurrentPl
       return (
         <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 gap-1">
           <Clock className="w-3 h-3" />
-          Cancelada
+          A terminar
         </Badge>
       );
     }
@@ -86,7 +87,7 @@ export function CurrentPlanOverview({ className, showActions = true }: CurrentPl
     <Card className={cn("relative overflow-hidden", className)}>
       {/* Decorative gradient */}
       {plan !== "free" && (
-        <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+        <div className="absolute top-0 right-0 w-40 h-40 opacity-10">
           <div className={cn(
             "absolute inset-0 rounded-full blur-3xl",
             plan === "agency" && "bg-amber-500",
@@ -101,13 +102,10 @@ export function CurrentPlanOverview({ className, showActions = true }: CurrentPl
           <div>
             <CardTitle className="flex items-center gap-2">
               {plan !== "free" && <Crown className="w-5 h-5 text-primary" />}
-              O Seu Plano
+              O Teu Plano
             </CardTitle>
             <CardDescription>
-              {plan === "free" 
-                ? "Plano gratuito com funcionalidades básicas" 
-                : `Subscrição ${planInfo.name}`
-              }
+              Tudo o que precisas saber sobre o teu plano, num só lugar.
             </CardDescription>
           </div>
           {getStatusBadge()}
@@ -115,22 +113,26 @@ export function CurrentPlanOverview({ className, showActions = true }: CurrentPl
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Plan info */}
-        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+        {/* Plan info - visual apelativo */}
+        <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
           <div className="flex items-center gap-3">
             <div className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center",
+              "w-14 h-14 rounded-xl flex items-center justify-center",
               getPlanBadgeColor()
             )}>
-              <Crown className="w-6 h-6" />
+              {plan === "free" ? (
+                <Sparkles className="w-7 h-7" />
+              ) : (
+                <Crown className="w-7 h-7" />
+              )}
             </div>
             <div>
-              <p className="font-semibold text-lg">{planInfo.name}</p>
+              <p className="font-semibold text-xl">{planInfo.name}</p>
               <p className="text-sm text-muted-foreground">{planInfo.description}</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold">€{planInfo.price}</p>
+            <p className="text-3xl font-bold">€{planInfo.price}</p>
             {planInfo.price > 0 && (
               <p className="text-sm text-muted-foreground">/mês</p>
             )}
@@ -143,8 +145,8 @@ export function CurrentPlanOverview({ className, showActions = true }: CurrentPl
             <Separator />
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">
                     {cancelAtPeriodEnd ? "Termina em" : "Renova em"}
@@ -155,8 +157,8 @@ export function CurrentPlanOverview({ className, showActions = true }: CurrentPl
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-muted-foreground" />
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                <CreditCard className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">Próximo pagamento</p>
                   <p className="text-sm font-medium">
@@ -166,16 +168,17 @@ export function CurrentPlanOverview({ className, showActions = true }: CurrentPl
               </div>
             </div>
 
+            {/* Microcopy para subscrição cancelada */}
             {cancelAtPeriodEnd && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5" />
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-amber-700">
-                    Subscrição cancelada
+                  <p className="font-medium text-amber-700">
+                    A tua subscrição está a terminar
                   </p>
-                  <p className="text-xs text-amber-600">
+                  <p className="text-sm text-amber-600 mt-1">
                     O acesso continua até {format(new Date(subscriptionEnd), "d 'de' MMMM", { locale: pt })}. 
-                    Pode reativar a qualquer momento.
+                    Podes reativar a qualquer momento para não perder os teus dados.
                   </p>
                 </div>
               </div>
@@ -206,6 +209,7 @@ export function CurrentPlanOverview({ className, showActions = true }: CurrentPl
                 size="icon"
                 onClick={() => checkSubscription()}
                 disabled={isLoading}
+                title="Atualizar informação"
               >
                 <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
               </Button>

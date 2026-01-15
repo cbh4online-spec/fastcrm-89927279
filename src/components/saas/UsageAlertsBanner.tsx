@@ -9,7 +9,8 @@ import {
   X, 
   ChevronRight, 
   Crown,
-  Bell 
+  Bell,
+  CreditCard
 } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSaasManagement } from "@/hooks/useSaasManagement";
@@ -22,13 +23,53 @@ interface UsageAlertsBannerProps {
   maxAlerts?: number;
 }
 
+// Microcopy baseado nas diretrizes UX
+const getAlertMicrocopy = (alert: UsageAlert) => {
+  const threshold = alert.threshold_percent;
+  
+  // Pagamento falhado - tratamento especial
+  if (alert.alert_type === "payment_failed") {
+    return {
+      title: "Pagamento não concluído",
+      message: "Atualiza o método de pagamento para evitar interrupções.",
+      action: "Atualizar método de pagamento",
+      isPayment: true,
+    };
+  }
+  
+  if (threshold >= 100) {
+    return {
+      title: "Limite atingido",
+      message: "Atingiste o limite do teu plano. Faz upgrade para continuar sem interrupções.",
+      action: "Fazer upgrade",
+      isPayment: false,
+    };
+  }
+  
+  if (threshold >= 90) {
+    return {
+      title: "Quase no limite",
+      message: "Estás quase a atingir o limite. Para não interromper o trabalho, considera um upgrade.",
+      action: "Ver planos",
+      isPayment: false,
+    };
+  }
+  
+  return {
+    title: "A usar bastante",
+    message: `Tens usado bastante este recurso. Estás a ${threshold}% do teu plano atual.`,
+    action: "Ver planos",
+    isPayment: false,
+  };
+};
+
 export function UsageAlertsBanner({ 
   className, 
   compact = false,
   maxAlerts = 3 
 }: UsageAlertsBannerProps) {
   const { alerts, dismissAlert } = useSaasManagement();
-  const { createCheckout, plan } = useSubscription();
+  const { createCheckout, openCustomerPortal, plan } = useSubscription();
   const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set());
 
   const visibleAlerts = alerts.slice(0, maxAlerts);
@@ -51,7 +92,20 @@ export function UsageAlertsBanner({
     }
   };
 
+  const handleAction = (alert: UsageAlert) => {
+    const microcopy = getAlertMicrocopy(alert);
+    if (microcopy.isPayment) {
+      openCustomerPortal();
+    } else {
+      const suggestedPlan = plan === "free" ? "basic" : plan === "basic" ? "pro" : "agency";
+      createCheckout(suggestedPlan as "basic" | "pro" | "agency");
+    }
+  };
+
   const getAlertIcon = (alert: UsageAlert) => {
+    if (alert.alert_type === "payment_failed") {
+      return <CreditCard className="w-4 h-4 text-destructive" />;
+    }
     if (alert.threshold_percent >= 100) {
       return <AlertTriangle className="w-4 h-4 text-destructive" />;
     }
@@ -62,7 +116,7 @@ export function UsageAlertsBanner({
   };
 
   const getAlertColor = (alert: UsageAlert) => {
-    if (alert.threshold_percent >= 100) {
+    if (alert.alert_type === "payment_failed" || alert.threshold_percent >= 100) {
       return "border-destructive/50 bg-destructive/5";
     }
     if (alert.threshold_percent >= 90) {
@@ -71,41 +125,38 @@ export function UsageAlertsBanner({
     return "border-amber-500/30 bg-amber-500/5";
   };
 
-  const getSuggestedPlan = () => {
-    if (plan === "free") return "basic";
-    if (plan === "basic") return "pro";
-    return "agency";
-  };
-
   if (compact) {
     return (
       <div className={cn("space-y-2", className)}>
-        {visibleAlerts.map((alert) => (
-          <Alert 
-            key={alert.id} 
-            className={cn(
-              "py-2",
-              getAlertColor(alert),
-              dismissingIds.has(alert.id) && "opacity-50"
-            )}
-          >
-            <div className="flex items-center gap-2">
-              {getAlertIcon(alert)}
-              <AlertDescription className="flex-1 text-xs">
-                {alert.message}
-              </AlertDescription>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0"
-                onClick={() => handleDismiss(alert.id)}
-                disabled={dismissingIds.has(alert.id)}
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-          </Alert>
-        ))}
+        {visibleAlerts.map((alert) => {
+          const microcopy = getAlertMicrocopy(alert);
+          return (
+            <Alert 
+              key={alert.id} 
+              className={cn(
+                "py-2",
+                getAlertColor(alert),
+                dismissingIds.has(alert.id) && "opacity-50"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                {getAlertIcon(alert)}
+                <AlertDescription className="flex-1 text-xs">
+                  {microcopy.message}
+                </AlertDescription>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0"
+                  onClick={() => handleDismiss(alert.id)}
+                  disabled={dismissingIds.has(alert.id)}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            </Alert>
+          );
+        })}
       </div>
     );
   }
@@ -121,52 +172,70 @@ export function UsageAlertsBanner({
           <div className="flex-1 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium text-foreground">Alertas de Utilização</h4>
+                <h4 className="font-medium text-foreground">Avisos Importantes</h4>
                 <p className="text-sm text-muted-foreground">
-                  {alerts.length} alerta{alerts.length !== 1 ? "s" : ""} ativo{alerts.length !== 1 ? "s" : ""}
+                  Tens {alerts.length} aviso{alerts.length !== 1 ? "s" : ""} que requer{alerts.length === 1 ? "" : "em"} atenção
                 </p>
               </div>
-              <Button
-                size="sm"
-                onClick={() => createCheckout(getSuggestedPlan() as "basic" | "pro" | "agency")}
-                className="gap-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-              >
-                <Crown className="w-3.5 h-3.5" />
-                Fazer Upgrade
-              </Button>
             </div>
 
             <div className="space-y-2">
-              {visibleAlerts.map((alert) => (
-                <div 
-                  key={alert.id}
-                  className={cn(
-                    "flex items-center gap-3 p-2 rounded-lg border",
-                    getAlertColor(alert),
-                    dismissingIds.has(alert.id) && "opacity-50"
-                  )}
-                >
-                  {getAlertIcon(alert)}
-                  <span className="flex-1 text-sm">{alert.message}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {alert.threshold_percent}%
-                  </Badge>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0"
-                    onClick={() => handleDismiss(alert.id)}
-                    disabled={dismissingIds.has(alert.id)}
+              {visibleAlerts.map((alert) => {
+                const microcopy = getAlertMicrocopy(alert);
+                return (
+                  <div 
+                    key={alert.id}
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-lg border",
+                      getAlertColor(alert),
+                      dismissingIds.has(alert.id) && "opacity-50"
+                    )}
                   >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
+                    <div className="mt-0.5">
+                      {getAlertIcon(alert)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{microcopy.title}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {microcopy.message}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={() => handleAction(alert)}
+                        className={cn(
+                          "gap-1",
+                          microcopy.isPayment 
+                            ? "bg-destructive hover:bg-destructive/90" 
+                            : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                        )}
+                      >
+                        {microcopy.isPayment ? (
+                          <CreditCard className="w-3.5 h-3.5" />
+                        ) : (
+                          <Crown className="w-3.5 h-3.5" />
+                        )}
+                        {microcopy.action}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleDismiss(alert.id)}
+                        disabled={dismissingIds.has(alert.id)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {hasMoreAlerts && (
               <Button variant="ghost" size="sm" className="w-full gap-1 text-muted-foreground">
-                Ver todos os {alerts.length} alertas
+                Ver todos os {alerts.length} avisos
                 <ChevronRight className="w-4 h-4" />
               </Button>
             )}
