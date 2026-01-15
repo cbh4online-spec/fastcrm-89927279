@@ -1,9 +1,10 @@
 import { SettingsSection } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Crown, RefreshCw } from "lucide-react";
+import { Building2, CreditCard, Crown, RefreshCw } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { CurrentPlanOverview, UsageDashboard, UsageAlertsBanner } from "@/components/saas";
 import { PricingCards } from "@/components/subscription/PricingCards";
+import { CompanyBillingForm } from "./CompanyBillingForm";
 
 interface BillingSettingsProps {
   searchQuery?: string;
@@ -23,6 +24,17 @@ export function BillingSettings({ searchQuery = "", matchedSections }: BillingSe
     <div className="space-y-6">
       {/* Usage Alerts */}
       <UsageAlertsBanner />
+
+      {/* Company Billing Data */}
+      {shouldShow("billing-company") && (
+        <SettingsSection
+          title="Dados de Faturação"
+          description="Informações da empresa para emissão de faturas"
+          icon={<Building2 className="h-5 w-5" />}
+        >
+          <CompanyBillingForm />
+        </SettingsSection>
+      )}
 
       {/* Current Plan Overview */}
       {shouldShow("billing-plan") && (

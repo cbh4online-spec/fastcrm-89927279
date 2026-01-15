@@ -79,6 +79,15 @@ interface WorkspaceDetails {
     emails_sent: number;
   };
   members_count: number;
+  billing?: {
+    company_name?: string;
+    tax_id?: string;
+    billing_email?: string;
+    billing_address?: string;
+    billing_city?: string;
+    billing_postal_code?: string;
+    billing_country?: string;
+  };
 }
 
 export function WorkspacesSection() {
@@ -108,6 +117,13 @@ export function WorkspacesSection() {
           owner_id,
           created_at,
           managed_by_workspace_id,
+          company_name,
+          tax_id,
+          billing_email,
+          billing_address,
+          billing_city,
+          billing_postal_code,
+          billing_country,
           workspace_subscriptions (
             plan,
             status,
@@ -190,6 +206,15 @@ export function WorkspacesSection() {
             emails_sent: 0,
           },
           members_count: memberCounts[ws.id] || 1,
+          billing: {
+            company_name: ws.company_name,
+            tax_id: ws.tax_id,
+            billing_email: ws.billing_email,
+            billing_address: ws.billing_address,
+            billing_city: ws.billing_city,
+            billing_postal_code: ws.billing_postal_code,
+            billing_country: ws.billing_country,
+          },
         };
       }) as WorkspaceDetails[];
     },
@@ -433,6 +458,7 @@ export function WorkspacesSection() {
             <TableHeader>
               <TableRow>
                 <TableHead>Workspace</TableHead>
+                <TableHead>Faturação</TableHead>
                 <TableHead>Agência</TableHead>
                 <TableHead>Plano</TableHead>
                 <TableHead>Estado</TableHead>
@@ -450,6 +476,18 @@ export function WorkspacesSection() {
                       <p className="font-medium">{ws.name}</p>
                       <p className="text-xs text-muted-foreground">{ws.slug}</p>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {ws.billing?.company_name ? (
+                      <div className="text-xs space-y-0.5">
+                        <p className="font-medium">{ws.billing.company_name}</p>
+                        {ws.billing.tax_id && (
+                          <p className="text-muted-foreground">NIF: {ws.billing.tax_id}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">Não definido</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {ws.managed_by_workspace ? (
@@ -611,6 +649,42 @@ export function WorkspacesSection() {
                       : "-"}
                   </p>
                 </div>
+              </div>
+
+              {/* Billing Info Section */}
+              <div className="border-t pt-4">
+                <p className="font-medium mb-3">Dados de Faturação</p>
+                {selectedWorkspace.billing?.company_name ? (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Empresa</p>
+                      <p className="font-medium">{selectedWorkspace.billing.company_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">NIF</p>
+                      <p className="font-medium">{selectedWorkspace.billing.tax_id || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Email</p>
+                      <p className="font-medium">{selectedWorkspace.billing.billing_email || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Morada</p>
+                      <p className="font-medium">
+                        {[
+                          selectedWorkspace.billing.billing_address,
+                          selectedWorkspace.billing.billing_postal_code,
+                          selectedWorkspace.billing.billing_city,
+                          selectedWorkspace.billing.billing_country
+                        ].filter(Boolean).join(", ") || "-"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    Dados de faturação não definidos pelo cliente
+                  </p>
+                )}
               </div>
 
               <div className="border-t pt-4">
