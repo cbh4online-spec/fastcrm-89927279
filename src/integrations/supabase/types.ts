@@ -2795,10 +2795,13 @@ export type Database = {
           id: string
           images: string[] | null
           name: string
+          operational_cost: number | null
           product_type: string
           short_description: string | null
           sku: string | null
           status: string
+          target_margin_pct: number | null
+          tax_rate_estimate_pct: number | null
           updated_at: string
           workspace_id: string
         }
@@ -2814,10 +2817,13 @@ export type Database = {
           id?: string
           images?: string[] | null
           name: string
+          operational_cost?: number | null
           product_type?: string
           short_description?: string | null
           sku?: string | null
           status?: string
+          target_margin_pct?: number | null
+          tax_rate_estimate_pct?: number | null
           updated_at?: string
           workspace_id: string
         }
@@ -2833,10 +2839,13 @@ export type Database = {
           id?: string
           images?: string[] | null
           name?: string
+          operational_cost?: number | null
           product_type?: string
           short_description?: string | null
           sku?: string | null
           status?: string
+          target_margin_pct?: number | null
+          tax_rate_estimate_pct?: number | null
           updated_at?: string
           workspace_id?: string
         }
@@ -2973,6 +2982,89 @@ export type Database = {
           },
           {
             foreignKeyName: "proposal_analytics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_items: {
+        Row: {
+          commission_pct_snapshot: number | null
+          cost_snapshot: number | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          operational_cost_snapshot: number | null
+          position: number
+          product_id: string | null
+          proposal_id: string
+          quantity: number
+          total_price: number | null
+          unit_price: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          commission_pct_snapshot?: number | null
+          cost_snapshot?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          operational_cost_snapshot?: number | null
+          position?: number
+          product_id?: string | null
+          proposal_id: string
+          quantity?: number
+          total_price?: number | null
+          unit_price: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          commission_pct_snapshot?: number | null
+          cost_snapshot?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          operational_cost_snapshot?: number | null
+          position?: number
+          product_id?: string | null
+          proposal_id?: string
+          quantity?: number
+          total_price?: number | null
+          unit_price?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "proposal_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_items_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -3997,7 +4089,40 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      product_usage_stats: {
+        Row: {
+          acceptance_rate: number | null
+          accepted_proposals: number | null
+          avg_margin_pct: number | null
+          avg_ticket: number | null
+          base_price: number | null
+          commission_default: number | null
+          direct_cost: number | null
+          last_sale_at: string | null
+          operational_cost: number | null
+          product_id: string | null
+          product_name: string | null
+          published_proposals: number | null
+          revenue_1y: number | null
+          revenue_30d: number | null
+          revenue_90d: number | null
+          sales_30d: number | null
+          total_commission: number | null
+          total_proposals: number | null
+          total_revenue: number | null
+          total_sales: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_custom_field_unique_value: {
