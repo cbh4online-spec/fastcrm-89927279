@@ -61,6 +61,55 @@ function decodeMimeWord(str: string): string {
   });
 }
 
+// Safe date parsing - handles invalid dates gracefully
+function parseDateSafe(dateStr: string | undefined | null): string {
+  if (!dateStr || dateStr.trim() === "") {
+    return new Date().toISOString();
+  }
+  
+  try {
+    // Try parsing directly
+    const parsed = new Date(dateStr);
+    
+    // Check if it's a valid date
+    if (isNaN(parsed.getTime())) {
+      console.warn(`Invalid date format: "${dateStr}", using current date`);
+      return new Date().toISOString();
+    }
+    
+    // Check for reasonable date range (1990 to 10 years from now)
+    const year = parsed.getFullYear();
+    if (year < 1990 || year > new Date().getFullYear() + 10) {
+      console.warn(`Date out of range: "${dateStr}", using current date`);
+      return new Date().toISOString();
+    }
+    
+    return parsed.toISOString();
+  } catch (e) {
+    console.warn(`Failed to parse date: "${dateStr}", using current date`);
+    return new Date().toISOString();
+  }
+}
+
+// Parse IMAP INTERNALDATE format: "15-Jan-2026 10:30:00 +0000"
+function parseInternalDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return new Date().toISOString();
+  
+  try {
+    // Remove quotes if present
+    const cleaned = dateStr.replace(/^"|"$/g, "").trim();
+    const parsed = new Date(cleaned);
+    
+    if (isNaN(parsed.getTime())) {
+      return new Date().toISOString();
+    }
+    
+    return parsed.toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
 // IMAP command builder and parser
 class SimpleIMAPClient {
   private conn: Deno.TlsConn | null = null;
@@ -114,7 +163,8 @@ class SimpleIMAPClient {
     }> = [];
 
     const tag = this.getTag();
-    await this.sendCommand(`${tag} FETCH ${range} (UID ENVELOPE BODY.PEEK[TEXT])`);
+    // Include INTERNALDATE for reliable date fallback
+    await this.sendCommand(`${tag} FETCH ${range} (UID FLAGS INTERNALDATE ENVELOPE BODY.PEEK[TEXT])`);
     const resp = await this.readResponse(tag);
 
     // Parse responses - simplified parsing
@@ -127,6 +177,10 @@ class SimpleIMAPClient {
       const uid = uidMatch ? parseInt(uidMatch[1]) : 0;
       if (!uid) continue;
 
+      // Extract INTERNALDATE first (always reliable)
+      const internalDateMatch = block.match(/INTERNALDATE "([^"]+)"/);
+      const internalDate = internalDateMatch ? internalDateMatch[1] : null;
+
       // Extract envelope data
       const envelopeMatch = block.match(/ENVELOPE \(([^)]+(?:\([^)]*\)[^)]*)*)\)/);
       let subject = "";
@@ -138,11 +192,22 @@ class SimpleIMAPClient {
 
       if (envelopeMatch) {
         const envelope = envelopeMatch[1];
-        // Very simplified parsing
-        const parts = envelope.split('" "');
-        if (parts.length > 0) date = parts[0]?.replace(/^"/, "") || "";
-        if (parts.length > 1) subject = decodeMimeWord(parts[1] || "");
+        // Extract date - first quoted string
+        const dateMatch = envelope.match(/^"([^"]*)"/);
+        if (dateMatch && dateMatch[1]) {
+          date = dateMatch[1];
+        }
+        
+        // Extract subject - second quoted string (skip NIL)
+        const afterDate = envelope.replace(/^"[^"]*"\s*/, "");
+        const subjectMatch = afterDate.match(/^(?:NIL|"([^"]*)")/);
+        if (subjectMatch && subjectMatch[1]) {
+          subject = decodeMimeWord(subjectMatch[1]);
+        }
       }
+
+      // Use INTERNALDATE as fallback if envelope date is missing/invalid
+      const finalDate = date || internalDate || "";
 
       // Extract body
       const bodyMatch = block.match(/BODY\[TEXT\] \{(\d+)\}\r?\n([\s\S]*?)(?=\r?\n\)|\r?\n\* |\r?\nA\d+)/);
@@ -153,7 +218,7 @@ class SimpleIMAPClient {
         subject,
         from,
         to,
-        date,
+        date: finalDate,
         messageId,
         inReplyTo,
         body,
@@ -431,7 +496,7 @@ serve(async (req) => {
             workspace_id: workspaceId,
             direction: isInbound ? "inbound" : "outbound",
             content: msg.body || msg.subject || "(Sem conteúdo)",
-            sent_at: msg.date ? new Date(msg.date).toISOString() : new Date().toISOString(),
+            sent_at: parseDateSafe(msg.date),
             email_message_id: msg.messageId || `<${msg.uid}@${connection.imap_host}>`,
             email_in_reply_to: msg.inReplyTo || null,
             email_subject: msg.subject,
