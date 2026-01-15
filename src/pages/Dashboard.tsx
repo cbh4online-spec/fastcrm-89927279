@@ -6,6 +6,7 @@ import { DashboardKPICards } from "@/components/dashboard/DashboardKPICards";
 import { DashboardAIInsights } from "@/components/dashboard/DashboardAIInsights";
 import { DashboardNextActions } from "@/components/dashboard/DashboardNextActions";
 import { DashboardPipelineSnapshot } from "@/components/dashboard/DashboardPipelineSnapshot";
+import { DashboardSmartAlerts } from "@/components/dashboard/DashboardSmartAlerts";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Dashboard() {
@@ -48,10 +49,18 @@ export default function Dashboard() {
             <DashboardKPICards data={kpiData} isLoading={isLoading} />
           </section>
 
-          {/* ZONA 2: Alertas & Prioridades (AI-driven) */}
+          {/* ZONA 2: Smart Alerts - Actionable Alerts */}
           <section>
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Alertas & Prioridades
+              Alertas Inteligentes
+            </h2>
+            <DashboardSmartAlerts maxAlerts={5} />
+          </section>
+
+          {/* ZONA 3: Alertas & Prioridades (AI-driven) */}
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              Resumo & Prioridades
             </h2>
             <DashboardAIInsights
               leadsWithoutResponse={insightsData?.leadsWithoutResponse || 0}
@@ -62,7 +71,7 @@ export default function Dashboard() {
             />
           </section>
 
-          {/* ZONA 3: Ações Recomendadas (1-click) */}
+          {/* ZONA 4: Ações Recomendadas (1-click) */}
           <section>
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
               Ações Recomendadas
@@ -75,7 +84,7 @@ export default function Dashboard() {
             />
           </section>
 
-          {/* ZONA 4: Visão de Pipeline & Receita */}
+          {/* ZONA 5: Visão de Pipeline & Receita */}
           <section>
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
               Pipeline & Receita

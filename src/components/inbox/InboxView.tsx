@@ -5,11 +5,14 @@ import { ConversationDetail } from "./ConversationDetail";
 import { InboxCRMPanel } from "./InboxCRMPanel";
 import { InboxMetricsBar } from "./InboxMetricsBar";
 import { InboxFollowupPanel } from "./InboxFollowupPanel";
+import { SmartAlertsPopover } from "./SmartAlertsPopover";
 import { ConversationChannel } from "@/hooks/useConversations";
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendingFollowups } from "@/hooks/useFollowups";
+import { useSmartAlerts } from "@/hooks/useSmartAlerts";
+import { useAlertDetection } from "@/hooks/useAlertDetection";
 import { Badge } from "@/components/ui/badge";
 
 export function InboxView() {
@@ -20,17 +23,25 @@ export function InboxView() {
   // Get channel filter from URL params
   const channelParam = searchParams.get("channel") as ConversationChannel | null;
 
+  // Run alert detection
+  useAlertDetection();
+
   const { data: pendingFollowups } = usePendingFollowups();
+  const { data: smartAlerts } = useSmartAlerts(5);
   const followupCount = pendingFollowups?.length || 0;
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col rounded-lg border border-border overflow-hidden">
-      {/* Metrics Bar with Follow-up Toggle */}
+      {/* Metrics Bar with Follow-up Toggle and Smart Alerts */}
       <div className="flex items-center border-b border-border">
         <div className="flex-1">
           <InboxMetricsBar />
         </div>
-        <div className="px-4">
+        <div className="flex items-center gap-2 px-4">
+          {/* Smart Alerts Popover */}
+          <SmartAlertsPopover />
+          
+          {/* Follow-ups Toggle */}
           <Button
             variant={showFollowups ? "secondary" : "ghost"}
             size="sm"

@@ -1338,6 +1338,114 @@ export type Database = {
           },
         ]
       }
+      inbox_smart_alerts: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          actioned_at: string | null
+          actioned_by: string | null
+          alert_type: string
+          context_data: Json | null
+          conversation_id: string | null
+          created_at: string
+          description: string
+          expires_at: string | null
+          id: string
+          is_actioned: boolean | null
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          lead_id: string | null
+          opportunity_id: string | null
+          proposal_id: string | null
+          severity: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          alert_type: string
+          context_data?: Json | null
+          conversation_id?: string | null
+          created_at?: string
+          description: string
+          expires_at?: string | null
+          id?: string
+          is_actioned?: boolean | null
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          lead_id?: string | null
+          opportunity_id?: string | null
+          proposal_id?: string | null
+          severity?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          alert_type?: string
+          context_data?: Json | null
+          conversation_id?: string | null
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          is_actioned?: boolean | null
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          lead_id?: string | null
+          opportunity_id?: string | null
+          proposal_id?: string | null
+          severity?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_smart_alerts_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_smart_alerts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_smart_alerts_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_smart_alerts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_smart_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_connections: {
         Row: {
           access_token: string
