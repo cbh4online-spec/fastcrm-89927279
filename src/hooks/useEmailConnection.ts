@@ -39,6 +39,19 @@ interface ConnectEmailParams {
   };
 }
 
+interface UpdateEmailParams {
+  connectionId: string;
+  displayName?: string;
+  newPassword?: string;
+  isActive?: boolean;
+  serverConfig?: {
+    imapHost: string;
+    imapPort: number;
+    smtpHost: string;
+    smtpPort: number;
+  };
+}
+
 interface DisconnectEmailParams {
   connectionId: string;
   deleteData?: boolean;
@@ -118,6 +131,39 @@ export function useConnectEmail() {
     onError: (error) => {
       console.error("Connect email error:", error);
       toast.error(`Erro ao conectar email: ${error.message}`);
+    },
+  });
+}
+
+export function useUpdateEmail() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { mainClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async (params: UpdateEmailParams) => {
+      if (!currentWorkspace) throw new Error("No workspace selected");
+
+      const { data, error } = await mainClient.functions.invoke("email-update", {
+        body: {
+          workspaceId: currentWorkspace.id,
+          ...params,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["email-connections"] });
+      queryClient.invalidateQueries({ queryKey: ["email-connection-active"] });
+      toast.success("Configurações atualizadas!");
+    },
+    onError: (error) => {
+      console.error("Update email error:", error);
+      toast.error(`Erro ao atualizar: ${error.message}`);
     },
   });
 }

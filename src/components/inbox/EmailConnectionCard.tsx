@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Mail, RefreshCw, Trash2, Power, CheckCircle, AlertCircle, Clock, Loader2 } from "lucide-react";
+import { Mail, RefreshCw, Trash2, Power, CheckCircle, AlertCircle, Clock, Loader2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   AlertDialog, 
-  AlertDialogAction, 
   AlertDialogCancel, 
   AlertDialogContent, 
   AlertDialogDescription, 
@@ -15,6 +14,7 @@ import {
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 import { EmailConnection, useDisconnectEmail, useSyncEmail } from "@/hooks/useEmailConnection";
+import { EmailEditDialog } from "./EmailEditDialog";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -25,12 +25,14 @@ interface EmailConnectionCardProps {
 const providerLabels: Record<string, string> = {
   gmail: "Gmail",
   outlook: "Outlook",
+  hostinger: "Hostinger",
   custom: "Custom IMAP",
 };
 
 const providerColors: Record<string, string> = {
   gmail: "bg-red-500",
   outlook: "bg-blue-600",
+  hostinger: "bg-purple-600",
   custom: "bg-gray-500",
 };
 
@@ -43,6 +45,7 @@ const statusConfig = {
 
 export function EmailConnectionCard({ connection }: EmailConnectionCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const disconnectEmail = useDisconnectEmail();
   const syncEmail = useSyncEmail();
 
@@ -82,12 +85,21 @@ export function EmailConnectionCard({ connection }: EmailConnectionCardProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowEditDialog(true)}
+              title="Editar configurações"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={handleSync}
               disabled={syncEmail.isPending || !connection.is_active}
+              title="Sincronizar"
             >
               <RefreshCw className={`w-4 h-4 ${syncEmail.isPending ? "animate-spin" : ""}`} />
             </Button>
@@ -169,6 +181,12 @@ export function EmailConnectionCard({ connection }: EmailConnectionCardProps) {
           <div>SMTP: {connection.smtp_host}:{connection.smtp_port}</div>
         </div>
       </CardContent>
+
+      <EmailEditDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        connection={connection}
+      />
     </Card>
   );
 }
