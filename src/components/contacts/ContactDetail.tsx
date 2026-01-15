@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
+import { ContactInsightsPanel } from "@/components/contacts/ContactInsightsPanel";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
 import { ConfigurableEntitySidebar } from "@/components/crm/ConfigurableEntitySidebar";
 import { CustomizableKPIDashboard } from "@/components/crm/CustomizableKPIDashboard";
@@ -473,6 +474,13 @@ export function ContactDetail() {
             <div className="p-6 space-y-4 max-w-3xl">
               {activeSection === "overview" && (
                 <>
+                  {/* AI Insights Panel */}
+                  <ContactInsightsPanel 
+                    contactId={id!} 
+                    contactEmail={contact.email}
+                    contactPhone={contact.phone}
+                  />
+                  
                   {/* Customizable KPI Dashboard */}
                   <CustomizableKPIDashboard
                     entityType="contact"
