@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FieldSuggestionsPanel } from "@/components/ai/FieldSuggestionsPanel";
 import { ContactInsightsPanel } from "@/components/contacts/ContactInsightsPanel";
+import { InsightsSidebar } from "@/components/insights";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
 import { ConfigurableEntitySidebar } from "@/components/crm/ConfigurableEntitySidebar";
 import { CustomizableKPIDashboard } from "@/components/crm/CustomizableKPIDashboard";
@@ -986,23 +987,11 @@ export function ContactDetail() {
                 }}
               />
 
-              {/* AI Insights Widget */}
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/5 to-primary/10">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                    Insights IA
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Baseado no histórico de interações, este contacto responde melhor a comunicação por e-mail durante a manhã.
-                  </p>
-                  <Button size="sm" variant="outline" className="w-full mt-3 text-xs">
-                    Ver mais insights
-                  </Button>
-                </CardContent>
-              </Card>
+              {/* AI Insights Module */}
+              <InsightsSidebar
+                entityType="contact"
+                entityId={id || ''}
+              />
             </div>
           </ScrollArea>
         </aside>
