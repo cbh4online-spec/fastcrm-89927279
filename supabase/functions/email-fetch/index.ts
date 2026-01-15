@@ -566,15 +566,20 @@ serve(async (req) => {
 
         if (existingConv) {
           conversationId = existingConv.id;
+          // Get message preview (first 100 chars)
+          const messagePreview = (msg.body || msg.subject || "").substring(0, 100);
           await supabaseClient
             .from("conversations")
             .update({
               last_message_at: new Date().toISOString(),
+              last_message_preview: messagePreview,
               lead_id: leadId || undefined,
               unread_count: isInbound ? 1 : 0,
             })
             .eq("id", conversationId);
         } else {
+          // Get message preview (first 100 chars)
+          const messagePreview = (msg.body || msg.subject || "").substring(0, 100);
           const { data: newConv } = await supabaseClient
             .from("conversations")
             .insert({
@@ -585,6 +590,7 @@ serve(async (req) => {
               status: "open",
               unread_count: isInbound ? 1 : 0,
               last_message_at: new Date().toISOString(),
+              last_message_preview: messagePreview,
               channel_metadata: {
                 connection_id: connectionId,
                 subject: msg.subject,

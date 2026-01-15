@@ -167,10 +167,14 @@ export function useSendMessage() {
 
       if (messageError) throw messageError;
 
-      // Update conversation last_message_at
+      // Update conversation last_message_at and preview
+      const messagePreview = content.substring(0, 100);
       await workspaceClient
         .from("conversations")
-        .update({ last_message_at: new Date().toISOString() })
+        .update({ 
+          last_message_at: new Date().toISOString(),
+          last_message_preview: messagePreview,
+        })
         .eq("id", conversationId);
 
       return {
