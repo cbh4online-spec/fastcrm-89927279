@@ -1354,6 +1354,186 @@ export type Database = {
           },
         ]
       }
+      form_submissions: {
+        Row: {
+          ai_next_action: string | null
+          ai_summary: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          enriched_data: Json | null
+          form_id: string
+          id: string
+          ip_address: string | null
+          lead_id: string | null
+          location_data: Json | null
+          opportunity_id: string | null
+          processing_status: string | null
+          raw_data: Json
+          score: number | null
+          temperature: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_next_action?: string | null
+          ai_summary?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          enriched_data?: Json | null
+          form_id: string
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          location_data?: Json | null
+          opportunity_id?: string | null
+          processing_status?: string | null
+          raw_data?: Json
+          score?: number | null
+          temperature?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ai_next_action?: string | null
+          ai_summary?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          enriched_data?: Json | null
+          form_id?: string
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          location_data?: Json | null
+          opportunity_id?: string | null
+          processing_status?: string | null
+          raw_data?: Json
+          score?: number | null
+          temperature?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forms: {
+        Row: {
+          automation_config: Json | null
+          conditions: Json | null
+          conversion_rate: number | null
+          created_at: string
+          created_by: string
+          description: string | null
+          form_type: string
+          id: string
+          is_active: boolean | null
+          is_conversational: boolean | null
+          is_internal: boolean | null
+          name: string
+          schema: Json
+          scoring_rules: Json | null
+          settings: Json | null
+          slug: string | null
+          submission_count: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          automation_config?: Json | null
+          conditions?: Json | null
+          conversion_rate?: number | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          form_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_conversational?: boolean | null
+          is_internal?: boolean | null
+          name: string
+          schema?: Json
+          scoring_rules?: Json | null
+          settings?: Json | null
+          slug?: string | null
+          submission_count?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          automation_config?: Json | null
+          conditions?: Json | null
+          conversion_rate?: number | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          form_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_conversational?: boolean | null
+          is_internal?: boolean | null
+          name?: string
+          schema?: Json
+          scoring_rules?: Json | null
+          settings?: Json | null
+          slug?: string | null
+          submission_count?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forms_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbox_action_logs: {
         Row: {
           action_data: Json | null
