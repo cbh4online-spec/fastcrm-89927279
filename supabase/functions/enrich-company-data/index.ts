@@ -25,29 +25,33 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a company data enrichment assistant. Given a tax identification number (NIF/NIPC for Portugal, or equivalent for other countries), research and provide company information.
+    const systemPrompt = `You are a company data enrichment assistant. Given a tax identification number (NIF/NIPC for Portugal), you must be EXTREMELY CAREFUL and CONSERVATIVE.
 
-IMPORTANT RULES:
-1. Only return data you are confident about
-2. If you cannot find reliable information, return null for those fields
-3. For Portuguese companies (NIF/NIPC with 9 digits), search for information in Portuguese business registries
-4. Return realistic, verifiable data only
-5. Do not invent or fabricate data
+CRITICAL RULES:
+1. You do NOT have access to official Portuguese business registries (Portal das Finanças, Racius, etc.)
+2. NEVER guess or invent company data based on partial matches
+3. If you cannot find VERIFIED, CONFIRMED information for THIS EXACT tax ID, return null for ALL fields
+4. Do not confuse similar-sounding companies or return data for the wrong company
+5. Only return data if you are 100% certain it belongs to the company with this exact tax ID
+6. When in doubt, return null - it's better to have no data than wrong data
+7. Set confidence to "low" unless you have absolute certainty
 
-You must call the extract_company_data function with the information you find.`;
+IMPORTANT: Portuguese NIF/NIPC is a 9-digit number. Each company has a unique NIF. Do NOT return data for a different company.`;
 
-    const userPrompt = `Find company information for tax ID: ${tax_id} in ${country}. 
+    const userPrompt = `Tax ID to research: ${tax_id} (Country: ${country})
 
-Search for:
+IMPORTANT: Only return data if you are 100% CERTAIN this is the correct company for this EXACT tax ID: ${tax_id}
+
+If you cannot confirm with certainty, return null for all fields and set confidence to "low".
+
+Fields to find (only if verified):
 - Official company name
-- Registered address (street, city, postal code)
+- Address, city, postal code
 - Contact email and phone
-- Website URL
-- Social media profiles (LinkedIn, Facebook, Instagram, Twitter)
-- Industry/sector
-- Brief company description
-
-Return only verified information. Use null for any field you cannot confirm.`;
+- Website
+- Social media (LinkedIn, Facebook, Instagram, Twitter)
+- Industry
+- Description`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
