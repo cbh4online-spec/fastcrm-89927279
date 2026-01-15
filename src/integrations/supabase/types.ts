@@ -2036,6 +2036,212 @@ export type Database = {
           },
         ]
       }
+      invoice_items: {
+        Row: {
+          created_at: string
+          description: string
+          discount_percent: number | null
+          id: string
+          invoice_id: string
+          position: number
+          product_id: string | null
+          quantity: number
+          tax_rate: number | null
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          discount_percent?: number | null
+          id?: string
+          invoice_id: string
+          position?: number
+          product_id?: string | null
+          quantity?: number
+          tax_rate?: number | null
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          discount_percent?: number | null
+          id?: string
+          invoice_id?: string
+          position?: number
+          product_id?: string | null
+          quantity?: number
+          tax_rate?: number | null
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_paid: number | null
+          client_address: string | null
+          client_email: string | null
+          client_name: string
+          client_tax_id: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          discount_amount: number | null
+          due_date: string
+          footer_text: string | null
+          id: string
+          invoice_number: string
+          issue_date: string
+          lead_id: string | null
+          notes: string | null
+          opportunity_id: string | null
+          paid_at: string | null
+          proposal_id: string | null
+          sent_at: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          tax_rate: number | null
+          terms: string | null
+          total: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount_paid?: number | null
+          client_address?: string | null
+          client_email?: string | null
+          client_name: string
+          client_tax_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          discount_amount?: number | null
+          due_date?: string
+          footer_text?: string | null
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          paid_at?: string | null
+          proposal_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number | null
+          terms?: string | null
+          total?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount_paid?: number | null
+          client_address?: string | null
+          client_email?: string | null
+          client_name?: string
+          client_tax_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          discount_amount?: number | null
+          due_date?: string
+          footer_text?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          paid_at?: string | null
+          proposal_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number | null
+          terms?: string | null
+          total?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_bases: {
         Row: {
           allowed_channels: string[] | null
@@ -4654,6 +4860,10 @@ export type Database = {
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
+      }
+      generate_invoice_number: {
+        Args: { p_workspace_id: string }
+        Returns: string
       }
       get_plan_limits: {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
