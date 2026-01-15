@@ -10,6 +10,7 @@ interface OnboardingInput {
   customBusinessType?: string;
   successDefinition: string;
   processDescription: string;
+  channels: string[];
 }
 
 serve(async (req) => {
@@ -18,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { businessType, customBusinessType, successDefinition, processDescription }: OnboardingInput = await req.json();
+    const { businessType, customBusinessType, successDefinition, processDescription, channels }: OnboardingInput = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -96,14 +97,31 @@ O JSON deve ter esta estrutura:
   }
 }`;
 
+    const channelNames: Record<string, string> = {
+      forms: "Formulários no site",
+      email: "Email",
+      whatsapp: "WhatsApp",
+      instagram: "Instagram",
+      phone: "Telefone",
+      website: "Chat no site",
+      referrals: "Referências/Boca-a-boca",
+      other: "Outros canais",
+    };
+    
+    const selectedChannels = channels?.map((c: string) => channelNames[c] || c).join(", ") || "Não especificados";
+
     const userPrompt = `Tipo de negócio: ${actualBusinessType}
 
 O que representa uma venda bem-sucedida: ${successDefinition}
 
+Canais de entrada de contactos: ${selectedChannels}
+
 Descrição do processo de vendas:
 ${processDescription}
 
-Com base nestas informações, cria uma configuração completa e personalizada para este CRM. Considera as especificidades deste tipo de negócio e adapta os nomes, etapas e campos para o contexto português/brasileiro.`;
+Com base nestas informações, cria uma configuração completa e personalizada para este CRM. Considera as especificidades deste tipo de negócio e adapta os nomes, etapas e campos para o contexto português/brasileiro. 
+
+Adapta os formulários para capturar leads dos canais indicados. Se usam WhatsApp ou Instagram, cria campos específicos para esses canais.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

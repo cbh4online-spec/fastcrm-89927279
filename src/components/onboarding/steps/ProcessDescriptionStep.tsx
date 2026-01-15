@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Sparkles, Lightbulb } from "lucide-react";
+import { ArrowLeft, ArrowRight, Lightbulb } from "lucide-react";
 
 interface ProcessDescriptionStepProps {
   value: string;
@@ -83,8 +83,8 @@ export function ProcessDescriptionStep({
           Voltar
         </Button>
         <Button onClick={onNext} disabled={!isValid} size="lg">
-          <Sparkles className="mr-2 h-4 w-4" />
-          Gerar Configuração com IA
+          Continuar
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
