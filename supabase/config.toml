@@ -48,6 +48,9 @@ verify_jwt = false
 [functions.conversation-intelligence]
 verify_jwt = false
 
+[functions.ai-followup-draft]
+verify_jwt = true
+
 [functions.generate-proposal-copy]
 verify_jwt = false
 

@@ -6,8 +6,12 @@ import { differenceInHours } from "date-fns";
 import { toast } from "sonner";
 import { Conversation } from "./useConversations";
 import { Message } from "./useMessages";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useCallback } from "react";
 
 export type FollowupStatus = "pending" | "snoozed" | "sent" | "dismissed" | "approved";
+
+export type FollowupTriggerType = "no_reply" | "proposal_viewed" | "hot_stalled" | "general";
 
 export interface ConversationFollowup {
   id: string;
@@ -33,51 +37,181 @@ export interface FollowupSuggestion {
   leadName: string | null;
   hoursSinceReply: number;
   urgencyLevel: "suggest" | "prepare" | "urgent";
+  triggerType: FollowupTriggerType;
   message: string;
+  context?: {
+    proposalTitle?: string;
+    proposalValue?: number;
+    proposalViewCount?: number;
+    temperatureScore?: number;
+  };
   existingFollowup?: ConversationFollowup;
 }
 
-// Check if a conversation needs follow-up
+export interface FollowupDraft {
+  draftMessage: string;
+  subject: string | null;
+  tone: "formal" | "friendly" | "empathetic" | "professional";
+  reasoning: string;
+  triggerType: FollowupTriggerType;
+}
+
+export interface ProposalContext {
+  id: string;
+  title: string;
+  price: number | null;
+  views_count: number;
+  status: string;
+  created_at: string;
+}
+
+// Check if a conversation needs follow-up with enhanced detection
 export function analyzeFollowupNeed(
   conversation: Conversation,
-  messages: Message[]
+  messages: Message[],
+  proposalContext?: ProposalContext,
+  temperatureScore?: number
 ): FollowupSuggestion | null {
   if (conversation.status !== "open") return null;
-  
+
   // Get last outbound message (our reply)
   const lastOutbound = [...messages]
     .reverse()
     .find((m) => m.direction === "outbound");
-  
+
   // Get last inbound message (their message)
   const lastInbound = [...messages]
     .reverse()
     .find((m) => m.direction === "inbound");
-  
+
   if (!lastOutbound) return null;
-  
-  // If we sent the last message and they haven't replied
+
   const lastOutboundTime = new Date(lastOutbound.sent_at).getTime();
   const lastInboundTime = lastInbound ? new Date(lastInbound.sent_at).getTime() : 0;
-  
+
+  // We sent the last message and they haven't replied
   if (lastOutboundTime > lastInboundTime) {
     const hoursSinceReply = differenceInHours(new Date(), new Date(lastOutbound.sent_at));
-    
+
+    // TRIGGER 1: Proposal viewed but no reply
+    if (proposalContext && proposalContext.views_count > 0 && hoursSinceReply >= 12) {
+      return {
+        conversationId: conversation.id,
+        leadId: conversation.lead_id,
+        leadName: conversation.lead?.name || null,
+        hoursSinceReply,
+        urgencyLevel: hoursSinceReply >= 48 ? "urgent" : hoursSinceReply >= 24 ? "prepare" : "suggest",
+        triggerType: "proposal_viewed",
+        message: `Proposta "${proposalContext.title}" visualizada ${proposalContext.views_count}x sem resposta`,
+        context: {
+          proposalTitle: proposalContext.title,
+          proposalValue: proposalContext.price || undefined,
+          proposalViewCount: proposalContext.views_count,
+          temperatureScore,
+        },
+      };
+    }
+
+    // TRIGGER 2: Hot conversation stalled (was hot, now cooling)
+    if (temperatureScore && temperatureScore >= 60 && hoursSinceReply >= 24) {
+      return {
+        conversationId: conversation.id,
+        leadId: conversation.lead_id,
+        leadName: conversation.lead?.name || null,
+        hoursSinceReply,
+        urgencyLevel: hoursSinceReply >= 72 ? "urgent" : hoursSinceReply >= 48 ? "prepare" : "suggest",
+        triggerType: "hot_stalled",
+        message: `Conversa quente (score ${temperatureScore}) parou há ${hoursSinceReply}h`,
+        context: { temperatureScore },
+      };
+    }
+
+    // TRIGGER 3: Standard no reply timeout
     if (hoursSinceReply >= 24) {
       return {
         conversationId: conversation.id,
         leadId: conversation.lead_id,
         leadName: conversation.lead?.name || null,
         hoursSinceReply,
-        urgencyLevel: hoursSinceReply >= 48 ? "prepare" : "suggest",
-        message: hoursSinceReply >= 48 
-          ? "Sem resposta há mais de 48h - automação pode preparar mensagem"
-          : "Sem resposta há mais de 24h - sugerir follow-up",
+        urgencyLevel: hoursSinceReply >= 72 ? "urgent" : hoursSinceReply >= 48 ? "prepare" : "suggest",
+        triggerType: "no_reply",
+        message:
+          hoursSinceReply >= 72
+            ? "Urgente! Sem resposta há mais de 72h"
+            : hoursSinceReply >= 48
+            ? "Automação preparou mensagem - requer aprovação"
+            : "Sem resposta há mais de 24h - sugerir follow-up",
+        context: { temperatureScore },
       };
     }
   }
-  
+
   return null;
+}
+
+// Hook to generate AI follow-up draft
+export function useGenerateFollowupDraft() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateDraft = useCallback(
+    async (
+      messages: Message[],
+      context: {
+        triggerType: FollowupTriggerType;
+        hoursSinceLastMessage: number;
+        proposalTitle?: string;
+        proposalValue?: number;
+        proposalViewCount?: number;
+        temperatureScore?: number;
+        leadName?: string;
+        leadEmail?: string;
+        channel: string;
+      }
+    ): Promise<FollowupDraft | null> => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const formattedMessages = messages.map((m) => ({
+          direction: m.direction,
+          content: m.content,
+        }));
+
+        const { data, error: fnError } = await supabase.functions.invoke("ai-followup-draft", {
+          body: { messages: formattedMessages, context },
+        });
+
+        if (fnError) {
+          throw new Error(fnError.message);
+        }
+
+        if (data?.error) {
+          if (data.error.includes("Rate limit")) {
+            toast.error("Limite de pedidos AI atingido. Tente novamente mais tarde.");
+          } else if (data.error.includes("credits")) {
+            toast.error("Créditos AI esgotados. Adicione créditos para continuar.");
+          } else {
+            toast.error(data.error);
+          }
+          setError(data.error);
+          return null;
+        }
+
+        return data as FollowupDraft;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Erro ao gerar rascunho";
+        setError(message);
+        toast.error(message);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  return { generateDraft, isLoading, error };
 }
 
 // Get all followups for workspace

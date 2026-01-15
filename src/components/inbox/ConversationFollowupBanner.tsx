@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,12 +9,21 @@ import {
   Sparkles,
   Edit3,
   CheckCircle,
+  Eye,
+  Flame,
+  MessageSquare,
+  Loader2,
 } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   analyzeFollowupNeed,
   useFollowups,
@@ -23,17 +32,21 @@ import {
   useDismissFollowup,
   useApproveFollowup,
   useMarkFollowupSent,
+  useGenerateFollowupDraft,
+  FollowupTriggerType,
+  ProposalContext,
 } from "@/hooks/useFollowups";
 import { useSendMessage, Message } from "@/hooks/useMessages";
 import { Conversation } from "@/hooks/useConversations";
 import { cn } from "@/lib/utils";
 import { addHours, addDays } from "date-fns";
-import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 
 interface ConversationFollowupBannerProps {
   conversation: Conversation;
   messages: Message[];
+  proposalContext?: ProposalContext;
+  temperatureScore?: number;
 }
 
 const snoozeOptions = [
@@ -43,13 +56,30 @@ const snoozeOptions = [
   { label: "Amanhã", hours: 24 },
 ];
 
+const triggerIcons: Record<FollowupTriggerType, typeof Clock> = {
+  no_reply: Clock,
+  proposal_viewed: Eye,
+  hot_stalled: Flame,
+  general: MessageSquare,
+};
+
+const triggerLabels: Record<FollowupTriggerType, string> = {
+  no_reply: "Sem resposta",
+  proposal_viewed: "Proposta visualizada",
+  hot_stalled: "Conversa esfriando",
+  general: "Follow-up sugerido",
+};
+
 export function ConversationFollowupBanner({
   conversation,
   messages,
+  proposalContext,
+  temperatureScore,
 }: ConversationFollowupBannerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedMessage, setEditedMessage] = useState("");
   const [showSnooze, setShowSnooze] = useState(false);
+  const [aiReasoning, setAiReasoning] = useState<string | null>(null);
 
   const { data: existingFollowups } = useFollowups(conversation.id);
   const createFollowup = useCreateFollowup();
@@ -58,11 +88,12 @@ export function ConversationFollowupBanner({
   const approveFollowup = useApproveFollowup();
   const markSent = useMarkFollowupSent();
   const sendMessage = useSendMessage();
+  const { generateDraft, isLoading: isGeneratingDraft } = useGenerateFollowupDraft();
 
-  // Analyze if follow-up is needed
+  // Analyze if follow-up is needed with enhanced detection
   const suggestion = useMemo(() => {
-    return analyzeFollowupNeed(conversation, messages);
-  }, [conversation, messages]);
+    return analyzeFollowupNeed(conversation, messages, proposalContext, temperatureScore);
+  }, [conversation, messages, proposalContext, temperatureScore]);
 
   // Get active followup for this conversation
   const activeFollowup = useMemo(() => {
@@ -88,6 +119,8 @@ export function ConversationFollowupBanner({
   const hoursSinceReply = activeFollowup?.hours_since_last_reply || suggestion?.hoursSinceReply || 0;
   const isApproved = activeFollowup?.status === "approved";
   const hasPreparedMessage = !!activeFollowup?.prepared_message;
+  const triggerType: FollowupTriggerType = suggestion?.triggerType || "general";
+  const TriggerIcon = triggerIcons[triggerType];
 
   const urgencyColors = {
     suggest: "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400",
@@ -132,17 +165,54 @@ export function ConversationFollowupBanner({
     }
   };
 
+  const handleGenerateAIDraft = async () => {
+    if (!suggestion) return;
+
+    const draft = await generateDraft(messages, {
+      triggerType: suggestion.triggerType,
+      hoursSinceLastMessage: suggestion.hoursSinceReply,
+      proposalTitle: suggestion.context?.proposalTitle,
+      proposalValue: suggestion.context?.proposalValue,
+      proposalViewCount: suggestion.context?.proposalViewCount,
+      temperatureScore: suggestion.context?.temperatureScore,
+      leadName: conversation.lead?.name || undefined,
+      leadEmail: conversation.lead?.email || undefined,
+      channel: conversation.channel,
+    });
+
+    if (draft) {
+      setEditedMessage(draft.draftMessage);
+      setAiReasoning(draft.reasoning);
+      setIsEditing(true);
+    }
+  };
+
   return (
     <div className={cn("border-b p-3", urgencyColors[urgencyLevel])}>
       {!isEditing ? (
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Clock className="w-4 h-4 flex-shrink-0" />
+            <TriggerIcon className="w-4 h-4 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium">
-                  {hoursSinceReply}h sem resposta
+                  {triggerLabels[triggerType]}
                 </span>
+                <Badge variant="outline" className="text-xs py-0">
+                  {hoursSinceReply}h
+                </Badge>
+                {triggerType === "proposal_viewed" && suggestion?.context?.proposalViewCount && (
+                  <Badge variant="outline" className="text-xs py-0 gap-1">
+                    <Eye className="w-3 h-3" />
+                    {suggestion.context.proposalViewCount}x
+                  </Badge>
+                )}
+                {triggerType === "hot_stalled" && suggestion?.context?.temperatureScore && (
+                  <Badge variant="outline" className="text-xs py-0 gap-1 border-red-500/50">
+                    <Flame className="w-3 h-3 text-red-500" />
+                    {suggestion.context.temperatureScore}
+                  </Badge>
+                )}
                 {urgencyLevel === "prepare" && (
                   <Badge variant="outline" className="text-xs gap-1 py-0">
                     <Sparkles className="w-3 h-3" />
@@ -160,6 +230,9 @@ export function ConversationFollowupBanner({
                 <p className="text-xs truncate mt-1 opacity-80">
                   "{activeFollowup?.prepared_message}"
                 </p>
+              )}
+              {suggestion?.message && !hasPreparedMessage && (
+                <p className="text-xs mt-1 opacity-70">{suggestion.message}</p>
               )}
             </div>
           </div>
@@ -179,16 +252,41 @@ export function ConversationFollowupBanner({
               </Button>
             )}
 
-            {/* Edit/Prepare button */}
+            {/* AI Draft button */}
+            {!hasPreparedMessage && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleGenerateAIDraft}
+                    disabled={isGeneratingDraft}
+                    className="gap-1 h-7"
+                  >
+                    {isGeneratingDraft ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    IA
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Gerar rascunho com IA</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* Manual prepare button */}
             {!hasPreparedMessage && (
               <Button
                 size="sm"
-                variant="secondary"
+                variant="outline"
                 onClick={() => setIsEditing(true)}
                 className="gap-1 h-7"
               >
                 <Edit3 className="w-3 h-3" />
-                Preparar
+                Manual
               </Button>
             )}
 
@@ -243,6 +341,12 @@ export function ConversationFollowupBanner({
         </div>
       ) : (
         <div className="space-y-2">
+          {aiReasoning && (
+            <div className="flex items-start gap-2 p-2 bg-background/50 rounded-md text-xs">
+              <Sparkles className="w-3 h-3 mt-0.5 text-primary flex-shrink-0" />
+              <p className="text-muted-foreground">{aiReasoning}</p>
+            </div>
+          )}
           <Textarea
             value={editedMessage}
             onChange={(e) => setEditedMessage(e.target.value)}
@@ -263,7 +367,10 @@ export function ConversationFollowupBanner({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsEditing(false)}
+              onClick={() => {
+                setIsEditing(false);
+                setAiReasoning(null);
+              }}
             >
               Cancelar
             </Button>
