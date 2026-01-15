@@ -87,6 +87,13 @@ const navigationGroups: NavGroup[] = [
         icon: LayoutDashboard,
         tooltip: "Visão geral com KPIs e ações prioritárias"
       },
+      { 
+        name: "KPIs & Previsões", 
+        href: "/dashboard/kpis", 
+        icon: TrendingUp,
+        tooltip: "Métricas e previsões adaptativas",
+        highlight: true
+      },
     ],
   },
   {
