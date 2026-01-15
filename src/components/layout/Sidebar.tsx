@@ -165,7 +165,7 @@ const settingsItems: NavItem[] = [
   { name: "Campos & Módulos", href: "/dashboard/settings/crm-data", icon: Layers, tooltip: "Personalizar campos" },
   { name: "Pipelines", href: "/dashboard/settings/pipelines", icon: Kanban, tooltip: "Configurar etapas" },
   { name: "Utilizadores", href: "/dashboard/settings/security", icon: UsersRound, tooltip: "Gerir equipa" },
-  { name: "Faturação", href: "/dashboard/billing", icon: CreditCard, tooltip: "Plano e pagamentos" },
+  { name: "Faturação", href: "/dashboard/settings/billing", icon: CreditCard, tooltip: "Plano e pagamentos" },
 ];
 
 export function Sidebar({ open, onClose }: SidebarProps) {
