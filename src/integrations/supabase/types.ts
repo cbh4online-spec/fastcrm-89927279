@@ -4990,7 +4990,7 @@ export type Database = {
         | "other"
       template_tone: "formal" | "direct" | "friendly" | "casual"
       template_type: "email" | "whatsapp" | "instagram_dm" | "proposal" | "sms"
-      workspace_role: "owner" | "admin" | "agent" | "viewer"
+      workspace_role: "owner" | "admin" | "agent" | "viewer" | "agency"
       workspace_status: "active" | "suspended" | "inactive" | "pending"
     }
     CompositeTypes: {
@@ -5200,7 +5200,7 @@ export const Constants = {
       ],
       template_tone: ["formal", "direct", "friendly", "casual"],
       template_type: ["email", "whatsapp", "instagram_dm", "proposal", "sms"],
-      workspace_role: ["owner", "admin", "agent", "viewer"],
+      workspace_role: ["owner", "admin", "agent", "viewer", "agency"],
       workspace_status: ["active", "suspended", "inactive", "pending"],
     },
   },
