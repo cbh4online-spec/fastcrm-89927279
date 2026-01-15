@@ -15,6 +15,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -266,6 +267,9 @@ export function ProductCyclesTabEnhanced({ product }: ProductCyclesTabEnhancedPr
             <DialogTitle>
               {editingCycle ? "Editar Ciclo" : "Novo Ciclo Automático"}
             </DialogTitle>
+            <DialogDescription>
+              Configure ações automáticas baseadas em eventos do produto.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">

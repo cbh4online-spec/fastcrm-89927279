@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -314,6 +315,9 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Imagem por URL</DialogTitle>
+            <DialogDescription>
+              Insira o endereço de uma imagem disponível online.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -353,6 +357,9 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
               <Sparkles className="h-5 w-5 text-primary" />
               Gerar Imagem com IA
             </DialogTitle>
+            <DialogDescription>
+              Descreva a imagem que pretende gerar usando inteligência artificial.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
