@@ -24,6 +24,9 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
   const { workspaceClient } = useWorkspaceInstance();
   const queryClient = useQueryClient();
   
+  // Use untyped client to avoid deep type instantiation errors
+  const db = workspaceClient as any;
+  
   const [settings, setSettings] = useState<InsightsSettings>({
     proactivityLevel: 'medium',
     enabledCategories: ['priority', 'risk', 'opportunity', 'efficiency'],
@@ -36,7 +39,7 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
     queryKey: ['entity-for-insights', entityType, entityId],
     queryFn: async () => {
       const table = entityType === 'lead' ? 'leads' : entityType === 'contact' ? 'contacts' : 'companies';
-      const { data, error } = await workspaceClient
+      const { data, error } = await db
         .from(table)
         .select('*')
         .eq('id', entityId)
@@ -54,7 +57,7 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
     queryFn: async () => {
       const linkField = entityType === 'lead' ? 'lead_id' : entityType === 'contact' ? 'contact_id' : 'company_id';
       
-      const { data: conversations, error } = await workspaceClient
+      const { data: conversations, error } = await db
         .from('conversations')
         .select(`
           id,
@@ -73,9 +76,9 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
       
       if (error) throw error;
       
-      const allMessages = conversations?.flatMap(c => (c as any).messages || []) || [];
+      const allMessages = conversations?.flatMap((c: any) => c.messages || []) || [];
       const lastMessageAt = conversations?.[0]?.last_message_at || null;
-      const unreadCount = conversations?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
+      const unreadCount = conversations?.reduce((sum: number, c: any) => sum + (c.unread_count || 0), 0) || 0;
       
       return {
         messages: allMessages.slice(0, 20),
@@ -89,51 +92,58 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
   // Fetch activity data
   const activityQuery = useQuery({
     queryKey: ['activities-for-insights', entityType, entityId],
-    queryFn: async () => {
-      // Fetch data sequentially to avoid deep type instantiation
-      const tasksData = await workspaceClient
+    queryFn: async (): Promise<{
+      openTasks: number;
+      completedTasks: number;
+      opportunities: Array<{ value: number; status: string; stage: string | null }>;
+      proposals: Array<{ status: string; value: number }>;
+      payments: Array<{ amount: number; status: string }>;
+    }> => {
+      // Use db (untyped) to avoid deep type instantiation errors
+      const { data: tasksData } = await db
         .from('tasks')
         .select('id, status')
         .eq('related_type', entityType)
         .eq('related_id', entityId);
       
-      const tasks = tasksData.data || [];
+      const tasks = tasksData || [];
       
       let opportunities: any[] = [];
       if (entityType !== 'company') {
-        const oppData = await workspaceClient
+        const filterField = entityType === 'lead' ? 'lead_id' : 'contact_id';
+        const { data: oppData } = await db
           .from('opportunities')
           .select('id, value, status, stage_id')
-          .eq(entityType === 'lead' ? 'lead_id' : 'contact_id', entityId);
-        opportunities = oppData.data || [];
+          .eq(filterField, entityId);
+        opportunities = oppData || [];
       }
       
-      const proposalsData = await workspaceClient
+      const { data: proposalsData } = await db
         .from('proposals')
         .select('id, status');
-      const proposals = proposalsData.data || [];
+      const proposals = proposalsData || [];
       
-      const paymentsData = await workspaceClient
+      const { data: paymentsData } = await db
         .from('payments')
         .select('id, amount, status, opportunity_id');
-      const payments = paymentsData.data || [];
+      const payments = paymentsData || [];
       
-      const opportunityIds = opportunities.map((o) => o.id);
-      const relevantPayments = payments.filter((p) => opportunityIds.includes(p.opportunity_id));
+      const opportunityIds = opportunities.map((o: any) => o.id);
+      const relevantPayments = payments.filter((p: any) => opportunityIds.includes(p.opportunity_id));
       
       return {
-        openTasks: tasks.filter((t) => t.status !== 'done').length,
-        completedTasks: tasks.filter((t) => t.status === 'done').length,
-        opportunities: opportunities.map((o) => ({
+        openTasks: tasks.filter((t: any) => t.status !== 'done').length,
+        completedTasks: tasks.filter((t: any) => t.status === 'done').length,
+        opportunities: opportunities.map((o: any) => ({
           value: o.value || 0,
           status: o.status,
           stage: o.stage_id,
         })),
-        proposals: proposals.map((p) => ({
+        proposals: proposals.map((p: any) => ({
           status: p.status,
           value: 0,
         })),
-        payments: relevantPayments.map((p) => ({
+        payments: relevantPayments.map((p: any) => ({
           amount: p.amount,
           status: p.status,
         })),
