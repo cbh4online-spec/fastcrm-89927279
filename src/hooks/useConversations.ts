@@ -178,3 +178,33 @@ export function useMarkConversationRead() {
     },
   });
 }
+
+export function useDeleteConversations() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async (conversationIds: string[]) => {
+      // First delete related messages
+      const { error: messagesError } = await workspaceClient
+        .from("messages")
+        .delete()
+        .in("conversation_id", conversationIds);
+
+      if (messagesError) throw messagesError;
+
+      // Then delete conversations
+      const { error } = await workspaceClient
+        .from("conversations")
+        .delete()
+        .in("id", conversationIds);
+
+      if (error) throw error;
+      return conversationIds;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
+    },
+  });
+}
