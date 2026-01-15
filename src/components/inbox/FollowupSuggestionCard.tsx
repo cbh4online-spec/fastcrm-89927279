@@ -15,6 +15,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Clock,
   Send,
   X,
@@ -22,23 +27,30 @@ import {
   Sparkles,
   CheckCircle,
   Edit3,
+  Eye,
+  Flame,
+  MessageSquare,
+  Loader2,
 } from "lucide-react";
-import { addHours, addDays, format } from "date-fns";
-import { pt } from "date-fns/locale";
+import { addHours, addDays } from "date-fns";
 import {
   ConversationFollowup,
   FollowupSuggestion,
+  FollowupTriggerType,
   useSnoozeFollowup,
   useDismissFollowup,
   useApproveFollowup,
+  useGenerateFollowupDraft,
 } from "@/hooks/useFollowups";
 import { useSendMessage } from "@/hooks/useMessages";
 import { useMarkFollowupSent } from "@/hooks/useFollowups";
+import { useMessages } from "@/hooks/useMessages";
 import { cn } from "@/lib/utils";
 
 interface FollowupSuggestionCardProps {
   suggestion: FollowupSuggestion;
   existingFollowup?: ConversationFollowup;
+  channel?: string;
   onSent?: () => void;
 }
 
@@ -50,9 +62,24 @@ const snoozeOptions = [
   { label: "2 dias", hours: 48 },
 ];
 
+const triggerIcons: Record<FollowupTriggerType, typeof Clock> = {
+  no_reply: Clock,
+  proposal_viewed: Eye,
+  hot_stalled: Flame,
+  general: MessageSquare,
+};
+
+const triggerLabels: Record<FollowupTriggerType, string> = {
+  no_reply: "Sem resposta",
+  proposal_viewed: "Proposta visualizada",
+  hot_stalled: "Conversa esfriando",
+  general: "Follow-up sugerido",
+};
+
 export function FollowupSuggestionCard({
   suggestion,
   existingFollowup,
+  channel = "email",
   onSent,
 }: FollowupSuggestionCardProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -60,12 +87,17 @@ export function FollowupSuggestionCard({
     existingFollowup?.prepared_message || ""
   );
   const [showSnoozeMenu, setShowSnoozeMenu] = useState(false);
+  const [aiReasoning, setAiReasoning] = useState<string | null>(null);
 
   const snoozeFollowup = useSnoozeFollowup();
   const dismissFollowup = useDismissFollowup();
   const approveFollowup = useApproveFollowup();
   const sendMessage = useSendMessage();
   const markSent = useMarkFollowupSent();
+  const { generateDraft, isLoading: isGeneratingDraft } = useGenerateFollowupDraft();
+  const { data: messages } = useMessages(suggestion.conversationId);
+
+  const TriggerIcon = triggerIcons[suggestion.triggerType || "general"];
 
   const urgencyColors = {
     suggest: "border-amber-500/50 bg-amber-500/5",
@@ -102,7 +134,7 @@ export function FollowupSuggestionCard({
 
   const handleSend = async () => {
     if (!existingFollowup?.prepared_message) return;
-    
+
     try {
       await sendMessage.mutateAsync({
         conversationId: suggestion.conversationId,
@@ -115,6 +147,27 @@ export function FollowupSuggestionCard({
     }
   };
 
+  const handleGenerateAIDraft = async () => {
+    if (!messages || messages.length === 0) return;
+
+    const draft = await generateDraft(messages, {
+      triggerType: suggestion.triggerType || "general",
+      hoursSinceLastMessage: suggestion.hoursSinceReply,
+      proposalTitle: suggestion.context?.proposalTitle,
+      proposalValue: suggestion.context?.proposalValue,
+      proposalViewCount: suggestion.context?.proposalViewCount,
+      temperatureScore: suggestion.context?.temperatureScore,
+      leadName: suggestion.leadName || undefined,
+      channel,
+    });
+
+    if (draft) {
+      setEditedMessage(draft.draftMessage);
+      setAiReasoning(draft.reasoning);
+      setIsEditing(true);
+    }
+  };
+
   const isApproved = existingFollowup?.status === "approved";
   const hasPreparedMessage = !!existingFollowup?.prepared_message;
 
@@ -124,8 +177,8 @@ export function FollowupSuggestionCard({
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Follow-up Sugerido
+              <TriggerIcon className="w-4 h-4" />
+              {triggerLabels[suggestion.triggerType || "general"]}
             </CardTitle>
             <CardDescription className="text-xs">
               {suggestion.leadName && (
@@ -134,20 +187,42 @@ export function FollowupSuggestionCard({
               {suggestion.hoursSinceReply}h sem resposta
             </CardDescription>
           </div>
-          <Badge className={cn("text-xs", urgencyBadgeColors[suggestion.urgencyLevel])}>
-            {suggestion.urgencyLevel === "prepare" && (
-              <Sparkles className="w-3 h-3 mr-1" />
+          <div className="flex items-center gap-1">
+            {suggestion.triggerType === "proposal_viewed" && suggestion.context?.proposalViewCount && (
+              <Badge variant="outline" className="text-xs py-0 gap-1">
+                <Eye className="w-3 h-3" />
+                {suggestion.context.proposalViewCount}x
+              </Badge>
             )}
-            {suggestion.urgencyLevel === "suggest" && "Sugerir"}
-            {suggestion.urgencyLevel === "prepare" && "Preparar"}
-            {suggestion.urgencyLevel === "urgent" && "Urgente"}
-          </Badge>
+            {suggestion.triggerType === "hot_stalled" && suggestion.context?.temperatureScore && (
+              <Badge variant="outline" className="text-xs py-0 gap-1 border-red-500/50">
+                <Flame className="w-3 h-3 text-red-500" />
+                {suggestion.context.temperatureScore}
+              </Badge>
+            )}
+            <Badge className={cn("text-xs", urgencyBadgeColors[suggestion.urgencyLevel])}>
+              {suggestion.urgencyLevel === "prepare" && (
+                <Sparkles className="w-3 h-3 mr-1" />
+              )}
+              {suggestion.urgencyLevel === "suggest" && "Sugerir"}
+              {suggestion.urgencyLevel === "prepare" && "Preparar"}
+              {suggestion.urgencyLevel === "urgent" && "Urgente"}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
         {/* Status message */}
         <p className="text-sm text-muted-foreground">{suggestion.message}</p>
+
+        {/* AI Reasoning */}
+        {aiReasoning && isEditing && (
+          <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs">
+            <Sparkles className="w-3 h-3 mt-0.5 text-primary flex-shrink-0" />
+            <p className="text-muted-foreground">{aiReasoning}</p>
+          </div>
+        )}
 
         {/* Prepared message section */}
         {hasPreparedMessage && !isEditing && (
@@ -198,7 +273,10 @@ export function FollowupSuggestionCard({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsEditing(false)}
+                onClick={() => {
+                  setIsEditing(false);
+                  setAiReasoning(null);
+                }}
               >
                 Cancelar
               </Button>
@@ -222,7 +300,32 @@ export function FollowupSuggestionCard({
               </Button>
             )}
 
-            {/* Edit/Prepare button */}
+            {/* AI Draft button */}
+            {!hasPreparedMessage && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={handleGenerateAIDraft}
+                    disabled={isGeneratingDraft}
+                    className="gap-2"
+                  >
+                    {isGeneratingDraft ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    Gerar com IA
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>IA irá redigir follow-up adaptado ao contexto</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* Manual prepare button */}
             {!hasPreparedMessage && (
               <Button
                 size="sm"
@@ -231,7 +334,7 @@ export function FollowupSuggestionCard({
                 className="gap-2"
               >
                 <Edit3 className="w-4 h-4" />
-                Preparar Mensagem
+                Manual
               </Button>
             )}
 
