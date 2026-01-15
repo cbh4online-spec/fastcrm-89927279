@@ -47,6 +47,16 @@ export interface OpportunityCompany {
   website?: string | null;
 }
 
+// Partial stage info returned from joins
+export interface OpportunityStage {
+  id: string;
+  name: string;
+  color: string;
+  probability?: number;
+  position?: number;
+  description?: string | null;
+}
+
 export interface Opportunity {
   id: string;
   workspace_id: string;
@@ -71,7 +81,7 @@ export interface Opportunity {
   lead?: OpportunityLead | null;
   contact?: OpportunityContact | null;
   company?: OpportunityCompany | null;
-  stage?: PipelineStage | null;
+  stage?: OpportunityStage | null;
   // AI fields
   ai_insight: string | null;
   ai_next_action: string | null;
