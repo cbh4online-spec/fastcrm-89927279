@@ -1,6 +1,7 @@
+import { useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Clock } from "lucide-react";
+import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Clock, Calculator } from "lucide-react";
 import { ENIContact, ABCCategory } from "../ENIContactTypes";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,13 @@ const ABC_COLORS: Record<string, string> = {
 };
 
 const ABC_CATEGORIES = ['A', 'B', 'C'];
+
+// ABC thresholds (can be adjusted)
+const ABC_THRESHOLDS = {
+  A: 50000, // >= 50k = A
+  B: 10000, // >= 10k = B
+  // < 10k = C
+};
 
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return "—";
@@ -43,9 +51,54 @@ function getTimeAgo(dateString: string | null | undefined): string {
   return formatDate(dateString);
 }
 
+function formatCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "€ 0,00";
+  return new Intl.NumberFormat('pt-PT', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format(value);
+}
+
+function calculateABCCategory(totalRevenue: number): ABCCategory {
+  if (totalRevenue >= ABC_THRESHOLDS.A) return 'A';
+  if (totalRevenue >= ABC_THRESHOLDS.B) return 'B';
+  return 'C';
+}
+
 export function CommercialHistorySection({ contact, onFieldChange }: CommercialHistorySectionProps) {
-  const abcCategory = contact.abc_category as ABCCategory;
   const lastUpdated = contact.commercial_history_updated_at;
+
+  // Calculate total revenue from yearly sales
+  const calculatedTotalRevenue = useMemo(() => {
+    const sales2023 = contact.sales_2023 || 0;
+    const sales2024 = contact.sales_2024 || 0;
+    const sales2025 = contact.sales_2025 || 0;
+    const sales2026 = contact.sales_2026 || 0;
+    return sales2023 + sales2024 + sales2025 + sales2026;
+  }, [contact.sales_2023, contact.sales_2024, contact.sales_2025, contact.sales_2026]);
+
+  // Calculate ABC category based on total revenue
+  const calculatedABCCategory = useMemo(() => {
+    return calculateABCCategory(calculatedTotalRevenue);
+  }, [calculatedTotalRevenue]);
+
+  // Auto-update total revenue and ABC category when sales change
+  useEffect(() => {
+    const currentTotal = contact.total_revenue || 0;
+    const currentABC = contact.abc_category;
+    
+    // Update total revenue if different
+    if (Math.abs(currentTotal - calculatedTotalRevenue) > 0.01) {
+      onFieldChange('total_revenue', calculatedTotalRevenue);
+    }
+    
+    // Update ABC category if different
+    if (currentABC !== calculatedABCCategory) {
+      onFieldChange('abc_category', calculatedABCCategory);
+    }
+  }, [calculatedTotalRevenue, calculatedABCCategory, contact.total_revenue, contact.abc_category, onFieldChange]);
+
+  const abcCategory = (contact.abc_category || calculatedABCCategory) as ABCCategory;
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
@@ -77,16 +130,24 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
       </CardHeader>
       <CardContent className="pt-0">
         <div className="divide-y divide-border/50">
-          {/* Editable Category */}
-          <InlineEditableField
-            label="Categoria ABC"
-            fieldId="abc_category"
-            fieldType="select"
-            value={contact.abc_category}
-            onChange={(val) => onFieldChange("abc_category", val)}
-            icon={<TrendingUp className="w-4 h-4" />}
-            options={ABC_CATEGORIES}
-          />
+          {/* Calculated Category (read-only display) */}
+          <div className="flex items-start py-3 border-b border-border/50 group">
+            <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
+              <Calculator className="w-4 h-4" />
+              Categoria ABC
+            </div>
+            <div className="flex-1 text-sm flex items-center gap-2">
+              <Badge 
+                variant="outline" 
+                className={cn("text-xs font-bold", ABC_COLORS[abcCategory])}
+              >
+                {abcCategory}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                (calculado automaticamente)
+              </span>
+            </div>
+          </div>
           
           {/* Editable Year Sales */}
           <InlineEditableField
@@ -129,18 +190,24 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
             placeholder="0.00"
           />
           
-          {/* Total Revenue - Editable or Auto */}
-          <InlineEditableField
-            label="Receita Total"
-            fieldId="total_revenue"
-            fieldType="currency"
-            value={contact.total_revenue}
-            onChange={(val) => onFieldChange("total_revenue", val)}
-            icon={<DollarSign className="w-4 h-4" />}
-            placeholder="0.00"
-          />
+          {/* Total Revenue - Calculated automatically */}
+          <div className="flex items-start py-3 border-b border-border/50 group">
+            <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Receita Total
+            </div>
+            <div className="flex-1 text-sm flex items-center gap-2">
+              <span className="font-semibold text-primary">
+                {formatCurrency(calculatedTotalRevenue)}
+              </span>
+              <Badge variant="secondary" className="text-xs gap-1">
+                <Calculator className="w-3 h-3" />
+                Automático
+              </Badge>
+            </div>
+          </div>
           
-          {/* Average Ticket */}
+          {/* Average Ticket - Manual */}
           <InlineEditableField
             label="Ticket Médio"
             fieldId="average_ticket"
@@ -160,6 +227,16 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
             onChange={(val) => onFieldChange("last_purchase_date", val)}
             icon={<Calendar className="w-4 h-4" />}
           />
+        </div>
+        
+        {/* ABC Thresholds Info */}
+        <div className="mt-4 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+          <p className="font-medium mb-1">Classificação ABC:</p>
+          <div className="flex gap-4">
+            <span><Badge variant="outline" className={cn("text-xs mr-1", ABC_COLORS.A)}>A</Badge> ≥ {formatCurrency(ABC_THRESHOLDS.A)}</span>
+            <span><Badge variant="outline" className={cn("text-xs mr-1", ABC_COLORS.B)}>B</Badge> ≥ {formatCurrency(ABC_THRESHOLDS.B)}</span>
+            <span><Badge variant="outline" className={cn("text-xs mr-1", ABC_COLORS.C)}>C</Badge> &lt; {formatCurrency(ABC_THRESHOLDS.B)}</span>
+          </div>
         </div>
       </CardContent>
     </Card>
