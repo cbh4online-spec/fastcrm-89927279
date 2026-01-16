@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Plus, Search, Grid3X3, List, Filter } from 'lucide-react';
+import { Loader2, Plus, Search, Grid3X3, List, Filter, ArrowLeft } from 'lucide-react';
 import { useServices, type Service, type CreateServiceData } from '@/hooks/useServices';
 import { ServiceCard } from './ServiceCard';
 import { ServiceCreateModal } from './ServiceCreateModal';
@@ -108,6 +109,13 @@ export function ServicesDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <Link 
+            to="/dashboard" 
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Dashboard</span>
+          </Link>
           <h1 className="text-2xl font-bold text-foreground">Serviços</h1>
           <p className="text-muted-foreground">
             Gere os serviços que podem ser marcados nos calendários
