@@ -2095,6 +2095,276 @@ export type Database = {
           },
         ]
       }
+      form_builder_submissions: {
+        Row: {
+          ai_score: number | null
+          ai_summary: string | null
+          created_company_id: string | null
+          created_contact_id: string | null
+          created_lead_id: string | null
+          created_opportunity_id: string | null
+          form_id: string
+          id: string
+          ip_address: string | null
+          processed_at: string | null
+          processed_data: Json | null
+          processing_errors: Json | null
+          processing_status: string | null
+          raw_data: Json
+          submitted_at: string | null
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_score?: number | null
+          ai_summary?: string | null
+          created_company_id?: string | null
+          created_contact_id?: string | null
+          created_lead_id?: string | null
+          created_opportunity_id?: string | null
+          form_id: string
+          id?: string
+          ip_address?: string | null
+          processed_at?: string | null
+          processed_data?: Json | null
+          processing_errors?: Json | null
+          processing_status?: string | null
+          raw_data?: Json
+          submitted_at?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ai_score?: number | null
+          ai_summary?: string | null
+          created_company_id?: string | null
+          created_contact_id?: string | null
+          created_lead_id?: string | null
+          created_opportunity_id?: string | null
+          form_id?: string
+          id?: string
+          ip_address?: string | null
+          processed_at?: string | null
+          processed_data?: Json | null
+          processing_errors?: Json | null
+          processing_status?: string | null
+          raw_data?: Json
+          submitted_at?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_builder_submissions_created_company_id_fkey"
+            columns: ["created_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_builder_submissions_created_contact_id_fkey"
+            columns: ["created_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_builder_submissions_created_lead_id_fkey"
+            columns: ["created_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_builder_submissions_created_opportunity_id_fkey"
+            columns: ["created_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_builder_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "form_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_builder_submissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_definitions: {
+        Row: {
+          conditional_logic: Json | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          form_type: string
+          id: string
+          industry_type: string | null
+          is_public: boolean | null
+          last_submission_at: string | null
+          name: string
+          schema: Json
+          slug: string | null
+          status: string
+          styling: Json | null
+          submission_actions: Json | null
+          submissions_count: number | null
+          success_message: string | null
+          target_entity: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          conditional_logic?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          form_type?: string
+          id?: string
+          industry_type?: string | null
+          is_public?: boolean | null
+          last_submission_at?: string | null
+          name: string
+          schema?: Json
+          slug?: string | null
+          status?: string
+          styling?: Json | null
+          submission_actions?: Json | null
+          submissions_count?: number | null
+          success_message?: string | null
+          target_entity?: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          conditional_logic?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          form_type?: string
+          id?: string
+          industry_type?: string | null
+          is_public?: boolean | null
+          last_submission_at?: string | null
+          name?: string
+          schema?: Json
+          slug?: string | null
+          status?: string
+          styling?: Json | null
+          submission_actions?: Json | null
+          submissions_count?: number | null
+          success_message?: string | null
+          target_entity?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_definitions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_fields: {
+        Row: {
+          conditional_visibility: Json | null
+          created_at: string | null
+          custom_field_id: string | null
+          field_key: string
+          field_type: string
+          form_id: string
+          formatting_config: Json | null
+          help_text: string | null
+          id: string
+          is_required: boolean | null
+          is_visible: boolean | null
+          label: string
+          options: Json | null
+          placeholder: string | null
+          position: number | null
+          section: string | null
+          updated_at: string | null
+          validation_rules: Json | null
+          width: string | null
+        }
+        Insert: {
+          conditional_visibility?: Json | null
+          created_at?: string | null
+          custom_field_id?: string | null
+          field_key: string
+          field_type?: string
+          form_id: string
+          formatting_config?: Json | null
+          help_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          is_visible?: boolean | null
+          label: string
+          options?: Json | null
+          placeholder?: string | null
+          position?: number | null
+          section?: string | null
+          updated_at?: string | null
+          validation_rules?: Json | null
+          width?: string | null
+        }
+        Update: {
+          conditional_visibility?: Json | null
+          created_at?: string | null
+          custom_field_id?: string | null
+          field_key?: string
+          field_type?: string
+          form_id?: string
+          formatting_config?: Json | null
+          help_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          is_visible?: boolean | null
+          label?: string
+          options?: Json | null
+          placeholder?: string | null
+          position?: number | null
+          section?: string | null
+          updated_at?: string | null
+          validation_rules?: Json | null
+          width?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_fields_custom_field_id_fkey"
+            columns: ["custom_field_id"]
+            isOneToOne: false
+            referencedRelation: "custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_fields_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "form_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_submissions: {
         Row: {
           ai_next_action: string | null
@@ -2197,6 +2467,97 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_templates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          form_type: string
+          id: string
+          industry_type: string | null
+          is_public: boolean | null
+          is_system: boolean | null
+          name: string
+          schema: Json
+          usage_count: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          form_type: string
+          id?: string
+          industry_type?: string | null
+          is_public?: boolean | null
+          is_system?: boolean | null
+          name: string
+          schema: Json
+          usage_count?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          form_type?: string
+          id?: string
+          industry_type?: string | null
+          is_public?: boolean | null
+          is_system?: boolean | null
+          name?: string
+          schema?: Json
+          usage_count?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_versions: {
+        Row: {
+          change_summary: string | null
+          changed_by: string | null
+          created_at: string | null
+          form_id: string
+          id: string
+          schema: Json
+          version: number
+        }
+        Insert: {
+          change_summary?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          form_id: string
+          id?: string
+          schema: Json
+          version: number
+        }
+        Update: {
+          change_summary?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          form_id?: string
+          id?: string
+          schema?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_versions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "form_definitions"
             referencedColumns: ["id"]
           },
         ]
