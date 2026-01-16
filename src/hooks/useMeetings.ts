@@ -8,6 +8,17 @@ export type MeetingCategory = 'client' | 'internal' | 'hybrid';
 export type MeetingMode = 'online' | 'in_person' | 'phone' | 'whatsapp';
 export type MeetingStatus = 'pending' | 'confirmed' | 'cancelled' | 'no_show' | 'completed';
 export type MeetingProvider = 'zoom' | 'google_meet' | 'custom' | 'none';
+export type MeetingOutcome = 'successful' | 'needs_followup' | 'no_show' | 'cancelled' | 'rescheduled';
+
+export interface MeetingNote {
+  id: string;
+  meeting_id: string;
+  workspace_id: string;
+  content: string;
+  note_type: 'general' | 'action_item' | 'decision' | 'question';
+  created_by: string;
+  created_at: string;
+}
 
 export interface MeetingType {
   id: string;
@@ -65,9 +76,15 @@ export interface Meeting {
   opportunity_id: string | null;
   internal_notes: string | null;
   client_notes: string | null;
-  outcome: string | null;
+  outcome: MeetingOutcome | null;
+  outcome_notes: string | null;
+  next_steps: string | null;
   follow_up_required: boolean;
   follow_up_date: string | null;
+  follow_up_task_id: string | null;
+  crm_activity_id: string | null;
+  // Joined data for notes
+  notes?: MeetingNote[];
   source: string;
   created_by: string;
   created_at: string;
@@ -348,6 +365,126 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
     hybrid: meetings.filter(m => m.category === 'hybrid'),
   };
 
+  // Update meeting outcome (for client meetings - triggers CRM integration)
+  const updateMeetingOutcome = async (
+    id: string,
+    outcome: MeetingOutcome,
+    outcomeNotes?: string,
+    nextSteps?: string,
+    followUpDate?: string
+  ): Promise<boolean> => {
+    try {
+      const updateData: Record<string, unknown> = {
+        outcome,
+        outcome_notes: outcomeNotes || null,
+        next_steps: nextSteps || null,
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+      };
+
+      if (followUpDate) {
+        updateData.follow_up_date = followUpDate;
+        updateData.follow_up_required = true;
+      }
+
+      const { error: updateError } = await supabase
+        .from('meetings')
+        .update(updateData)
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      toast.success('Resultado da reunião registado');
+      await fetchMeetings();
+      return true;
+    } catch (err) {
+      console.error('Error updating meeting outcome:', err);
+      toast.error('Erro ao registar resultado');
+      return false;
+    }
+  };
+
+  // Add note to meeting
+  const addMeetingNote = async (
+    meetingId: string,
+    content: string,
+    noteType: 'general' | 'action_item' | 'decision' | 'question' = 'general'
+  ): Promise<boolean> => {
+    if (!currentWorkspace?.id || !user?.id) return false;
+
+    try {
+      const { error: insertError } = await supabase
+        .from('meeting_notes')
+        .insert({
+          meeting_id: meetingId,
+          workspace_id: currentWorkspace.id,
+          content,
+          note_type: noteType,
+          created_by: user.id,
+        });
+
+      if (insertError) throw insertError;
+
+      toast.success('Nota adicionada');
+      return true;
+    } catch (err) {
+      console.error('Error adding meeting note:', err);
+      toast.error('Erro ao adicionar nota');
+      return false;
+    }
+  };
+
+  // Create follow-up task from meeting
+  const createFollowUpTask = async (
+    meetingId: string,
+    title: string,
+    description?: string,
+    dueDate?: string
+  ): Promise<string | null> => {
+    try {
+      const { data, error: rpcError } = await supabase.rpc('create_meeting_followup_task', {
+        p_meeting_id: meetingId,
+        p_title: title,
+        p_description: description || null,
+        p_due_date: dueDate || null,
+      });
+
+      if (rpcError) throw rpcError;
+
+      toast.success('Tarefa de follow-up criada');
+      await fetchMeetings();
+      return data as string;
+    } catch (err) {
+      console.error('Error creating follow-up task:', err);
+      toast.error('Erro ao criar tarefa');
+      return null;
+    }
+  };
+
+  // Publish internal meeting to team (make activity public)
+  const publishToTeam = async (meetingId: string): Promise<boolean> => {
+    if (!currentWorkspace?.id || !user?.id) return false;
+
+    try {
+      // Update existing activity to be public
+      const { error: updateError } = await supabase
+        .from('user_activity_feed')
+        .update({ is_public: true })
+        .eq('entity_id', meetingId)
+        .eq('entity_type', 'meeting')
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      toast.success('Reunião publicada no mural da equipa');
+      return true;
+    } catch (err) {
+      console.error('Error publishing to team:', err);
+      toast.error('Erro ao publicar');
+      return false;
+    }
+  };
+
   return {
     meetings,
     meetingTypes,
@@ -358,6 +495,10 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
     createMeeting,
     updateMeeting,
     updateMeetingStatus,
+    updateMeetingOutcome,
+    addMeetingNote,
+    createFollowUpTask,
+    publishToTeam,
     deleteMeeting,
     refresh: fetchMeetings,
   };
