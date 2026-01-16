@@ -49,6 +49,25 @@ export interface UpdateCustomFieldInput {
 }
 
 
+// Helper to ensure options is always an array
+function normalizeOptions(options: unknown): string[] {
+  if (Array.isArray(options)) {
+    return options.filter((opt): opt is string => typeof opt === "string");
+  }
+  if (typeof options === "string") {
+    try {
+      const parsed = JSON.parse(options);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((opt): opt is string => typeof opt === "string");
+      }
+    } catch {
+      // If it's a comma-separated string, split it
+      return options.split(",").map(s => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 // Hook to get custom fields for an entity type
 export function useCustomFields(entityType?: CustomFieldEntityType) {
   const { currentWorkspace } = useWorkspace();
@@ -72,7 +91,12 @@ export function useCustomFields(entityType?: CustomFieldEntityType) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as CustomField[];
+      
+      // Normalize options field to ensure it's always an array
+      return (data || []).map((field) => ({
+        ...field,
+        options: normalizeOptions(field.options),
+      })) as CustomField[];
     },
     enabled: !!currentWorkspace,
   });
