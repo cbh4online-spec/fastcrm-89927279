@@ -1714,6 +1714,161 @@ export type Database = {
           },
         ]
       }
+      credit_consumption_logs: {
+        Row: {
+          action_description: string | null
+          action_key: string
+          created_at: string
+          credits_consumed: number
+          entity_id: string | null
+          entity_type: string | null
+          from_included: boolean | null
+          id: string
+          metadata: Json | null
+          module_id: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_description?: string | null
+          action_key: string
+          created_at?: string
+          credits_consumed: number
+          entity_id?: string | null
+          entity_type?: string | null
+          from_included?: boolean | null
+          id?: string
+          metadata?: Json | null
+          module_id: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_description?: string | null
+          action_key?: string
+          created_at?: string
+          credits_consumed?: number
+          entity_id?: string | null
+          entity_type?: string | null
+          from_included?: boolean | null
+          id?: string
+          metadata?: Json | null
+          module_id?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_consumption_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_packages: {
+        Row: {
+          created_at: string
+          credits_amount: number
+          currency: string | null
+          description: string | null
+          discount_percent: number | null
+          id: string
+          is_active: boolean | null
+          module_ids: string[] | null
+          name: string
+          price: number
+          stripe_price_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits_amount: number
+          currency?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          id?: string
+          is_active?: boolean | null
+          module_ids?: string[] | null
+          name: string
+          price: number
+          stripe_price_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits_amount?: number
+          currency?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          id?: string
+          is_active?: boolean | null
+          module_ids?: string[] | null
+          name?: string
+          price?: number
+          stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
+      credit_purchases: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          credits_purchased: number
+          currency: string | null
+          id: string
+          module_id: string | null
+          package_id: string | null
+          purchased_by: string | null
+          status: string | null
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string
+          credits_purchased: number
+          currency?: string | null
+          id?: string
+          module_id?: string | null
+          package_id?: string | null
+          purchased_by?: string | null
+          status?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          credits_purchased?: number
+          currency?: string | null
+          id?: string
+          module_id?: string | null
+          package_id?: string | null
+          purchased_by?: string | null
+          status?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_purchases_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_purchases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activities: {
         Row: {
           activity_type: string
@@ -4315,6 +4470,42 @@ export type Database = {
           },
         ]
       }
+      module_action_costs: {
+        Row: {
+          action_description: string | null
+          action_key: string
+          action_name: string
+          created_at: string
+          credits_cost: number
+          id: string
+          internal_cost: number | null
+          module_id: string
+          visible_to_customer: boolean | null
+        }
+        Insert: {
+          action_description?: string | null
+          action_key: string
+          action_name: string
+          created_at?: string
+          credits_cost?: number
+          id?: string
+          internal_cost?: number | null
+          module_id: string
+          visible_to_customer?: boolean | null
+        }
+        Update: {
+          action_description?: string | null
+          action_key?: string
+          action_name?: string
+          created_at?: string
+          credits_cost?: number
+          id?: string
+          internal_cost?: number | null
+          module_id?: string
+          visible_to_customer?: boolean | null
+        }
+        Relationships: []
+      }
       module_action_logs: {
         Row: {
           action_type: string
@@ -4368,6 +4559,102 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      module_bundles: {
+        Row: {
+          bundle_price: number
+          created_at: string
+          description: string | null
+          discount_percent: number | null
+          id: string
+          industry: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          module_ids: string[]
+          name: string
+          original_price: number | null
+          slug: string | null
+          stripe_price_id: string | null
+        }
+        Insert: {
+          bundle_price: number
+          created_at?: string
+          description?: string | null
+          discount_percent?: number | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          module_ids: string[]
+          name: string
+          original_price?: number | null
+          slug?: string | null
+          stripe_price_id?: string | null
+        }
+        Update: {
+          bundle_price?: number
+          created_at?: string
+          description?: string | null
+          discount_percent?: number | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          module_ids?: string[]
+          name?: string
+          original_price?: number | null
+          slug?: string | null
+          stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
+      module_pricing: {
+        Row: {
+          base_price_monthly: number | null
+          base_price_yearly: number | null
+          created_at: string
+          credit_price: number | null
+          credits_included: number | null
+          currency: string | null
+          id: string
+          internal_cost_per_credit: number | null
+          is_active: boolean | null
+          module_id: string
+          pricing_model: string
+          trial_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          base_price_monthly?: number | null
+          base_price_yearly?: number | null
+          created_at?: string
+          credit_price?: number | null
+          credits_included?: number | null
+          currency?: string | null
+          id?: string
+          internal_cost_per_credit?: number | null
+          is_active?: boolean | null
+          module_id: string
+          pricing_model?: string
+          trial_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          base_price_monthly?: number | null
+          base_price_yearly?: number | null
+          created_at?: string
+          credit_price?: number | null
+          credits_included?: number | null
+          currency?: string | null
+          id?: string
+          internal_cost_per_credit?: number | null
+          is_active?: boolean | null
+          module_id?: string
+          pricing_model?: string
+          trial_days?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       module_sso_sessions: {
         Row: {
@@ -4562,6 +4849,56 @@ export type Database = {
           },
           {
             foreignKeyName: "module_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_usage_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          current_usage: number | null
+          dismissed_at: string | null
+          dismissed_by: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          module_id: string
+          usage_limit: number | null
+          workspace_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          current_usage?: number | null
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          module_id: string
+          usage_limit?: number | null
+          workspace_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          current_usage?: number | null
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          module_id?: string
+          usage_limit?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_usage_alerts_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6337,6 +6674,59 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_credit_balances: {
+        Row: {
+          created_at: string
+          credits_remaining: number | null
+          credits_total: number
+          credits_used: number
+          extra_credits: number | null
+          extra_credits_used: number | null
+          id: string
+          module_id: string
+          period_end: string
+          period_start: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_remaining?: number | null
+          credits_total?: number
+          credits_used?: number
+          extra_credits?: number | null
+          extra_credits_used?: number | null
+          id?: string
+          module_id: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_remaining?: number | null
+          credits_total?: number
+          credits_used?: number
+          extra_credits?: number | null
+          extra_credits_used?: number | null
+          id?: string
+          module_id?: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_credit_balances_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_industry_labels: {
         Row: {
           created_at: string
@@ -6450,6 +6840,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_module_subscriptions: {
+        Row: {
+          activated_at: string | null
+          billing_cycle: string | null
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          module_id: string
+          status: string
+          stripe_subscription_id: string | null
+          stripe_subscription_item_id: string | null
+          trial_end: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          billing_cycle?: string | null
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          module_id: string
+          status?: string
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          trial_end?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          billing_cycle?: string | null
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          module_id?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          trial_end?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_module_subscriptions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6898,6 +7347,30 @@ export type Database = {
       }
     }
     Functions: {
+      add_module_credits: {
+        Args: {
+          p_credits: number
+          p_is_extra?: boolean
+          p_module_id: string
+          p_workspace_id: string
+        }
+        Returns: boolean
+      }
+      calculate_module_margin: {
+        Args: {
+          p_end_date?: string
+          p_module_id: string
+          p_start_date?: string
+        }
+        Returns: {
+          gross_margin: number
+          margin_percent: number
+          total_credits_consumed: number
+          total_internal_cost: number
+          total_revenue: number
+          total_subscriptions: number
+        }[]
+      }
       check_custom_field_unique_value: {
         Args: { p_custom_field_id: string; p_entity_id: string; p_value: Json }
         Returns: boolean
@@ -6906,11 +7379,41 @@ export type Database = {
         Args: { p_module_id: string; p_user_id: string; p_workspace_id: string }
         Returns: Json
       }
+      check_module_credits: {
+        Args: {
+          p_action_key: string
+          p_module_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          can_execute: boolean
+          credits_available: number
+          credits_required: number
+          message: string
+        }[]
+      }
       check_workspace_quota: {
         Args: { p_resource_type: string; p_workspace_id: string }
         Returns: Json
       }
       cleanup_expired_sso_tokens: { Args: never; Returns: undefined }
+      consume_module_credits: {
+        Args: {
+          p_action_key: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_metadata?: Json
+          p_module_id: string
+          p_user_id?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          credits_consumed: number
+          credits_remaining: number
+          message: string
+          success: boolean
+        }[]
+      }
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
