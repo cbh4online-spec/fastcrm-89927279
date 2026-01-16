@@ -52,6 +52,7 @@ import ReportsSales from "./pages/ReportsSales";
 import Marketplace from "./pages/Marketplace";
 import MarketplaceAdmin from "./pages/admin/MarketplaceAdmin";
 import GoogleLocalProspecting from "./pages/GoogleLocalProspecting";
+import WebSearchProspecting from "./pages/WebSearchProspecting";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => (
                   <Route path="/dashboard/leads" element={<Leads />} />
                   <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
                   <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
+                  <Route path="/dashboard/prospecting/web-search" element={<WebSearchProspecting />} />
                   <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
                   <Route path="/dashboard/inbox" element={<Inbox />} />
                   <Route path="/dashboard/automations" element={<Automations />} />
