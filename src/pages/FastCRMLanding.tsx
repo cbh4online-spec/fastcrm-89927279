@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import dashboardMockup from "@/assets/dashboard-mockup.png";
 import DemoRequestForm from "@/components/landing/DemoRequestForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -192,23 +193,15 @@ export default function FastCRMLanding() {
             </div>
           </div>
           
-          {/* Product Mockup Placeholder */}
+          {/* Product Mockup */}
           <div className="mt-16 relative">
             <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 pointer-events-none" />
-            <div className="rounded-xl border border-border/50 bg-gradient-to-b from-muted/50 to-muted overflow-hidden shadow-2xl">
-              <div className="h-8 bg-muted border-b border-border/50 flex items-center px-4 gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                <div className="w-3 h-3 rounded-full bg-green-400" />
-              </div>
-              <div className="aspect-[16/9] bg-gradient-to-br from-card to-muted/50 flex items-center justify-center">
-                <div className="text-center space-y-4 p-8">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                    <BarChart3 className="w-8 h-8 text-primary" />
-                  </div>
-                  <p className="text-muted-foreground">Dashboard FastCRM</p>
-                </div>
-              </div>
+            <div className="rounded-xl border border-border/50 overflow-hidden shadow-2xl">
+              <img 
+                src={dashboardMockup} 
+                alt="Dashboard FastCRM - Gestão de vendas, leads e receita" 
+                className="w-full h-auto"
+              />
             </div>
           </div>
         </div>
