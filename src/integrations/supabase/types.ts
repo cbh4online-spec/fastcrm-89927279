@@ -4090,6 +4090,93 @@ export type Database = {
           },
         ]
       }
+      marketplace_modules: {
+        Row: {
+          category: string
+          cover_image: string | null
+          created_at: string
+          description: string
+          embedded_config: Json | null
+          expected_results: Json | null
+          icon: string
+          id: string
+          installs_count: number | null
+          internal_type: string
+          is_featured: boolean | null
+          is_new: boolean | null
+          name: string
+          permissions: Json
+          pricing: Json
+          published_at: string | null
+          publisher: string
+          rating: number | null
+          reviews_count: number | null
+          slug: string
+          status: string
+          tagline: string
+          target_audience: string | null
+          updated_at: string
+          use_cases: Json | null
+          version: string
+        }
+        Insert: {
+          category: string
+          cover_image?: string | null
+          created_at?: string
+          description: string
+          embedded_config?: Json | null
+          expected_results?: Json | null
+          icon?: string
+          id?: string
+          installs_count?: number | null
+          internal_type?: string
+          is_featured?: boolean | null
+          is_new?: boolean | null
+          name: string
+          permissions?: Json
+          pricing?: Json
+          published_at?: string | null
+          publisher?: string
+          rating?: number | null
+          reviews_count?: number | null
+          slug: string
+          status?: string
+          tagline: string
+          target_audience?: string | null
+          updated_at?: string
+          use_cases?: Json | null
+          version?: string
+        }
+        Update: {
+          category?: string
+          cover_image?: string | null
+          created_at?: string
+          description?: string
+          embedded_config?: Json | null
+          expected_results?: Json | null
+          icon?: string
+          id?: string
+          installs_count?: number | null
+          internal_type?: string
+          is_featured?: boolean | null
+          is_new?: boolean | null
+          name?: string
+          permissions?: Json
+          pricing?: Json
+          published_at?: string | null
+          publisher?: string
+          rating?: number | null
+          reviews_count?: number | null
+          slug?: string
+          status?: string
+          tagline?: string
+          target_audience?: string | null
+          updated_at?: string
+          use_cases?: Json | null
+          version?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachments: Json | null
@@ -4155,6 +4242,129 @@ export type Database = {
           },
           {
             foreignKeyName: "messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_action_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          credits_consumed: number | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          module_id: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          credits_consumed?: number | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          module_id: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          credits_consumed?: number | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          module_id?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_action_logs_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_action_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_usage: {
+        Row: {
+          contacts_created: number | null
+          created_at: string
+          credits_used: number | null
+          id: string
+          leads_created: number | null
+          module_id: string
+          opportunities_created: number | null
+          period_end: string
+          period_start: string
+          revenue_attributed: number | null
+          total_calls: number | null
+          total_records_created: number | null
+          total_records_updated: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          contacts_created?: number | null
+          created_at?: string
+          credits_used?: number | null
+          id?: string
+          leads_created?: number | null
+          module_id: string
+          opportunities_created?: number | null
+          period_end: string
+          period_start: string
+          revenue_attributed?: number | null
+          total_calls?: number | null
+          total_records_created?: number | null
+          total_records_updated?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          contacts_created?: number | null
+          created_at?: string
+          credits_used?: number | null
+          id?: string
+          leads_created?: number | null
+          module_id?: string
+          opportunities_created?: number | null
+          period_end?: string
+          period_start?: string
+          revenue_attributed?: number | null
+          total_calls?: number | null
+          total_records_created?: number | null
+          total_records_updated?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_usage_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_usage_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6043,6 +6253,69 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_modules: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string
+          id: string
+          module_id: string
+          settings: Json | null
+          status: string
+          subscribed_at: string
+          subscribed_by: string
+          trial_ends_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          id?: string
+          module_id: string
+          settings?: Json | null
+          status?: string
+          subscribed_at?: string
+          subscribed_by: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          id?: string
+          module_id?: string
+          settings?: Json | null
+          status?: string
+          subscribed_at?: string
+          subscribed_by?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_modules_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_modules_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
