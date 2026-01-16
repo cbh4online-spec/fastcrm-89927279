@@ -12,7 +12,8 @@ import {
   FileText,
   ArrowRight,
 } from "lucide-react";
-import { ImportWizard } from "@/components/imports/ImportWizard";
+import { SmartImportWizard } from "@/components/imports/SmartImportWizard";
+import { ImportEntityType } from "@/types/import";
 
 const importTypes = [
   {
@@ -118,9 +119,9 @@ export default function ImportsPage() {
 
         {/* Show wizard when processing */}
         {showWizard && selectedFile && selectedType ? (
-          <ImportWizard
+          <SmartImportWizard
             file={selectedFile}
-            importType={selectedType}
+            importType={selectedType as ImportEntityType}
             onClose={handleWizardClose}
             onComplete={handleWizardComplete}
           />
