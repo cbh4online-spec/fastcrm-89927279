@@ -1,164 +1,108 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCard, Euro, Clock, Lock } from "lucide-react";
+import { Wallet, CreditCard, Clock, AlertCircle, Lock } from "lucide-react";
 import { ENIContact, PAYMENT_CONDITIONS, PAYMENT_METHODS } from "../ENIContactTypes";
+import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { useContactPermissions } from "../useContactPermissions";
+import { cn } from "@/lib/utils";
 
 interface FinancialSectionProps {
   contact: ENIContact;
-  isEditing: boolean;
-  editedData: Partial<ENIContact>;
-  onFieldChange: (field: keyof ENIContact, value: unknown) => void;
+  onFieldChange: (field: keyof ENIContact, value: unknown) => Promise<void>;
 }
 
 export function FinancialSection({ 
   contact, 
-  isEditing, 
-  editedData, 
-  onFieldChange 
+  onFieldChange,
 }: FinancialSectionProps) {
-  const { canView, canEdit } = useContactPermissions();
+  const { canEdit } = useContactPermissions();
+  const canEditFinancial = canEdit('financial');
 
-  // Check permissions
-  if (!canView("financial")) {
+  // If user can't view financial data, show restricted message
+  if (!canEditFinancial) {
     return (
-      <Card className="border-muted bg-muted/30">
+      <Card className="border-border/50 bg-gradient-to-br from-card to-card/80 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2 text-muted-foreground">
-            <Lock className="h-4 w-4" />
+          <CardTitle className="text-base flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-purple-500/10">
+              <Wallet className="h-4 w-4 text-purple-500" />
+            </div>
             Financeiro & Pagamentos
           </CardTitle>
-          <CardDescription>
-            <Badge variant="outline" className="text-xs">Acesso restrito</Badge>
-          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Não tem permissões para ver esta secção.
-          </p>
+          <div className="flex items-center gap-3 py-8 justify-center text-muted-foreground">
+            <Lock className="h-5 w-5" />
+            <p className="text-sm">Acesso restrito à equipa financeira</p>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  const canEditSection = canEdit("financial");
-  const effectiveIsEditing = isEditing && canEditSection;
-
-  const getValue = <K extends keyof ENIContact>(field: K): ENIContact[K] => {
-    return effectiveIsEditing && field in editedData ? editedData[field] as ENIContact[K] : contact[field];
-  };
-
   return (
-    <Card className="border-blue-200/50 bg-blue-50/30 dark:bg-blue-950/10 dark:border-blue-800/30">
+    <Card className="border-purple-500/20 bg-gradient-to-br from-purple-50/50 to-card dark:from-purple-950/20 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-base flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-blue-600" />
-              Financeiro & Pagamentos
-            </CardTitle>
-            <CardDescription>Condições financeiras e métodos de pagamento.</CardDescription>
-          </div>
-          {!canEditSection && (
-            <Badge variant="outline" className="text-xs gap-1">
-              <Lock className="h-3 w-3" />
-              Só leitura
+          <CardTitle className="text-base flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-purple-500/10">
+              <Wallet className="h-4 w-4 text-purple-500" />
+            </div>
+            Financeiro & Pagamentos
+          </CardTitle>
+          {contact.credit_active && (
+            <Badge 
+              variant="outline" 
+              className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30"
+            >
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Crédito Ativo
             </Badge>
           )}
         </div>
+        <CardDescription>Condições de pagamento e crédito.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-0 divide-y divide-border/50">
         {/* Payment Conditions */}
-        <div className="space-y-2">
-          <Label htmlFor="payment_conditions" className="flex items-center gap-2">
-            <Clock className="h-3.5 w-3.5" />
-            Condições de Pagamento
-          </Label>
-          {effectiveIsEditing ? (
-            <Select
-              value={getValue('payment_conditions') || ''}
-              onValueChange={(value) => onFieldChange('payment_conditions', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione as condições" />
-              </SelectTrigger>
-              <SelectContent>
-                {PAYMENT_CONDITIONS.map((condition) => (
-                  <SelectItem key={condition} value={condition}>{condition}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <p className="text-sm">{getValue('payment_conditions') || '—'}</p>
-          )}
-        </div>
+        <InlineEditableField
+          label="Condições Pagamento"
+          fieldId="payment_conditions"
+          fieldType="select"
+          value={contact.payment_conditions || ''}
+          onChange={(value) => onFieldChange('payment_conditions', value)}
+          options={PAYMENT_CONDITIONS}
+          icon={<Clock className="h-3.5 w-3.5" />}
+        />
 
         {/* Preferred Payment Method */}
-        <div className="space-y-2">
-          <Label htmlFor="preferred_payment_method">Forma de Pagamento Preferida</Label>
-          {effectiveIsEditing ? (
-            <Select
-              value={getValue('preferred_payment_method') || ''}
-              onValueChange={(value) => onFieldChange('preferred_payment_method', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o método" />
-              </SelectTrigger>
-              <SelectContent>
-                {PAYMENT_METHODS.map((method) => (
-                  <SelectItem key={method} value={method}>{method}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <p className="text-sm">{getValue('preferred_payment_method') || '—'}</p>
-          )}
-        </div>
+        <InlineEditableField
+          label="Forma de Pagamento"
+          fieldId="preferred_payment_method"
+          fieldType="select"
+          value={contact.preferred_payment_method || ''}
+          onChange={(value) => onFieldChange('preferred_payment_method', value)}
+          options={PAYMENT_METHODS}
+          icon={<CreditCard className="h-3.5 w-3.5" />}
+        />
 
         {/* Credit Limit */}
-        <div className="space-y-2">
-          <Label htmlFor="credit_limit" className="flex items-center gap-2">
-            <Euro className="h-3.5 w-3.5" />
-            Plafond de Crédito
-          </Label>
-          {effectiveIsEditing ? (
-            <Input
-              id="credit_limit"
-              type="number"
-              min="0"
-              step="100"
-              value={getValue('credit_limit') || ''}
-              onChange={(e) => onFieldChange('credit_limit', parseFloat(e.target.value) || null)}
-              placeholder="0.00"
-            />
-          ) : (
-            <p className="text-sm">
-              {getValue('credit_limit') 
-                ? `€ ${Number(getValue('credit_limit')).toLocaleString('pt-PT', { minimumFractionDigits: 2 })}`
-                : '—'}
-            </p>
-          )}
-        </div>
+        <InlineEditableField
+          label="Plafond de Crédito"
+          fieldId="credit_limit"
+          fieldType="number"
+          value={contact.credit_limit}
+          onChange={(value) => onFieldChange('credit_limit', value)}
+          placeholder="0.00"
+        />
 
         {/* Credit Active */}
-        <div className="flex items-center justify-between py-2">
-          <div className="space-y-0.5">
-            <Label htmlFor="credit_active">Plafond Ativo</Label>
-            <p className="text-xs text-muted-foreground">
-              Ativar limite de crédito para este cliente
-            </p>
-          </div>
-          <Switch
-            id="credit_active"
-            checked={getValue('credit_active') || false}
-            onCheckedChange={(checked) => onFieldChange('credit_active', checked)}
-            disabled={!effectiveIsEditing}
-          />
-        </div>
+        <InlineEditableField
+          label="Plafond Ativo"
+          fieldId="credit_active"
+          fieldType="boolean"
+          value={contact.credit_active || false}
+          onChange={(value) => onFieldChange('credit_active', value)}
+        />
       </CardContent>
     </Card>
   );

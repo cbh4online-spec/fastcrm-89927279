@@ -1,163 +1,95 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, Calendar } from "lucide-react";
-import { ENIContact, BUSINESS_AREAS, FISCAL_REGIMES, CLIENT_TYPES_LABELS, ClientTypes } from "../ENIContactTypes";
+import { Briefcase, Building, Calendar, Users } from "lucide-react";
+import { ENIContact, BUSINESS_AREAS, FISCAL_REGIMES, CLIENT_TYPES_LABELS } from "../ENIContactTypes";
+import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 
 interface ProfessionalProfileSectionProps {
   contact: ENIContact;
-  isEditing: boolean;
-  editedData: Partial<ENIContact>;
-  onFieldChange: (field: keyof ENIContact, value: unknown) => void;
+  onFieldChange: (field: keyof ENIContact, value: unknown) => Promise<void>;
 }
 
 export function ProfessionalProfileSection({ 
   contact, 
-  isEditing, 
-  editedData, 
-  onFieldChange 
+  onFieldChange,
 }: ProfessionalProfileSectionProps) {
-  const getValue = <K extends keyof ENIContact>(field: K): ENIContact[K] => {
-    return isEditing && field in editedData ? editedData[field] as ENIContact[K] : contact[field];
-  };
-
-  // Only show for ENI
-  const entityType = getValue('entity_type');
-  if (entityType !== 'eni') {
+  // Only show for ENI entity type
+  if (contact.entity_type !== 'eni') {
     return null;
   }
 
   return (
-    <Card className="border-amber-200/50 bg-amber-50/30 dark:bg-amber-950/10 dark:border-amber-800/30">
+    <Card className="border-amber-500/20 bg-gradient-to-br from-amber-50/50 to-card dark:from-amber-950/20 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <Briefcase className="h-4 w-4 text-amber-600" />
+          <div className="p-1.5 rounded-md bg-amber-500/10">
+            <Briefcase className="h-4 w-4 text-amber-500" />
+          </div>
           Perfil Profissional (ENI)
         </CardTitle>
         <CardDescription>Informação profissional associada à atividade do ENI.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* CAE */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="cae_code">Código CAE</Label>
-            {isEditing ? (
-              <Input
-                id="cae_code"
-                value={getValue('cae_code') || ''}
-                onChange={(e) => onFieldChange('cae_code', e.target.value)}
-                placeholder="ex: 85591"
-              />
-            ) : (
-              <p className="text-sm font-mono">{getValue('cae_code') || '—'}</p>
-            )}
-          </div>
+      <CardContent className="space-y-0 divide-y divide-border/50">
+        {/* CAE Code */}
+        <InlineEditableField
+          label="Código CAE"
+          fieldId="cae_code"
+          fieldType="text"
+          value={contact.cae_code || ''}
+          onChange={(value) => onFieldChange('cae_code', value)}
+          placeholder="Código de atividade económica"
+        />
 
-          <div className="space-y-2">
-            <Label htmlFor="cae_description">Descrição CAE</Label>
-            {isEditing ? (
-              <Input
-                id="cae_description"
-                value={getValue('cae_description') || ''}
-                onChange={(e) => onFieldChange('cae_description', e.target.value)}
-                placeholder="Outras atividades educativas"
-              />
-            ) : (
-              <p className="text-sm">{getValue('cae_description') || '—'}</p>
-            )}
-          </div>
-        </div>
+        {/* CAE Description */}
+        <InlineEditableField
+          label="Descrição CAE"
+          fieldId="cae_description"
+          fieldType="text"
+          value={contact.cae_description || ''}
+          onChange={(value) => onFieldChange('cae_description', value)}
+          placeholder="Descrição da atividade"
+        />
 
         {/* Business Area */}
-        <div className="space-y-2">
-          <Label htmlFor="business_area">Área de Atuação</Label>
-          {isEditing ? (
-            <Select
-              value={getValue('business_area') || ''}
-              onValueChange={(value) => onFieldChange('business_area', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a área" />
-              </SelectTrigger>
-              <SelectContent>
-                {BUSINESS_AREAS.map((area) => (
-                  <SelectItem key={area} value={area}>{area}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <p className="text-sm">{getValue('business_area') || '—'}</p>
-          )}
-        </div>
+        <InlineEditableField
+          label="Área de Atuação"
+          fieldId="business_area"
+          fieldType="select"
+          value={contact.business_area || ''}
+          onChange={(value) => onFieldChange('business_area', value)}
+          options={BUSINESS_AREAS}
+          icon={<Building className="h-3.5 w-3.5" />}
+        />
 
         {/* Fiscal Regime */}
-        <div className="space-y-2">
-          <Label htmlFor="fiscal_regime">Regime Fiscal</Label>
-          {isEditing ? (
-            <Select
-              value={getValue('fiscal_regime') || ''}
-              onValueChange={(value) => onFieldChange('fiscal_regime', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o regime" />
-              </SelectTrigger>
-              <SelectContent>
-                {FISCAL_REGIMES.map((regime) => (
-                  <SelectItem key={regime} value={regime}>{regime}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <p className="text-sm">{getValue('fiscal_regime') || '—'}</p>
-          )}
-        </div>
+        <InlineEditableField
+          label="Regime Fiscal"
+          fieldId="fiscal_regime"
+          fieldType="select"
+          value={contact.fiscal_regime || ''}
+          onChange={(value) => onFieldChange('fiscal_regime', value)}
+          options={FISCAL_REGIMES}
+        />
 
         {/* Activity Start Date */}
-        <div className="space-y-2">
-          <Label htmlFor="activity_start_date" className="flex items-center gap-2">
-            <Calendar className="h-3.5 w-3.5" />
-            Início de Atividade
-          </Label>
-          {isEditing ? (
-            <Input
-              id="activity_start_date"
-              type="date"
-              value={getValue('activity_start_date') || ''}
-              onChange={(e) => onFieldChange('activity_start_date', e.target.value)}
-            />
-          ) : (
-            <p className="text-sm">
-              {getValue('activity_start_date') 
-                ? new Date(getValue('activity_start_date') as string).toLocaleDateString('pt-PT')
-                : '—'}
-            </p>
-          )}
-        </div>
+        <InlineEditableField
+          label="Início de Atividade"
+          fieldId="activity_start_date"
+          fieldType="date"
+          value={contact.activity_start_date || ''}
+          onChange={(value) => onFieldChange('activity_start_date', value)}
+          icon={<Calendar className="h-3.5 w-3.5" />}
+        />
 
         {/* Client Types */}
-        <div className="space-y-2">
-          <Label htmlFor="client_types">Tipo de Clientes</Label>
-          {isEditing ? (
-            <Select
-              value={getValue('client_types') || 'ambos'}
-              onValueChange={(value) => onFieldChange('client_types', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(CLIENT_TYPES_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <p className="text-sm">
-              {CLIENT_TYPES_LABELS[getValue('client_types') as ClientTypes] || 'Ambos'}
-            </p>
-          )}
-        </div>
+        <InlineEditableField
+          label="Tipo de Clientes"
+          fieldId="client_types"
+          fieldType="select"
+          value={contact.client_types || ''}
+          onChange={(value) => onFieldChange('client_types', value)}
+          options={Object.keys(CLIENT_TYPES_LABELS)}
+          icon={<Users className="h-3.5 w-3.5" />}
+        />
       </CardContent>
     </Card>
   );

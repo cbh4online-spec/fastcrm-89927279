@@ -1,60 +1,37 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { StickyNote } from "lucide-react";
+import { FileText } from "lucide-react";
 import { ENIContact } from "../ENIContactTypes";
+import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 
 interface NotesSectionProps {
   contact: ENIContact;
-  isEditing: boolean;
-  editedData: Partial<ENIContact>;
-  onFieldChange: (field: keyof ENIContact, value: unknown) => void;
+  onFieldChange: (field: keyof ENIContact, value: unknown) => Promise<void>;
 }
 
 export function NotesSection({ 
   contact, 
-  isEditing, 
-  editedData, 
-  onFieldChange 
+  onFieldChange,
 }: NotesSectionProps) {
-  const getValue = <K extends keyof ENIContact>(field: K): ENIContact[K] => {
-    return isEditing && field in editedData ? editedData[field] as ENIContact[K] : contact[field];
-  };
-
   return (
-    <Card>
+    <Card className="border-border/50 bg-gradient-to-br from-card to-card/80 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <StickyNote className="h-4 w-4 text-primary" />
+          <div className="p-1.5 rounded-md bg-slate-500/10">
+            <FileText className="h-4 w-4 text-slate-500" />
+          </div>
           Notas & Observações
         </CardTitle>
-        <CardDescription>
-          Campo livre para informação não estruturada e contexto humano.
-        </CardDescription>
+        <CardDescription>Notas internas e contexto do cliente.</CardDescription>
       </CardHeader>
       <CardContent>
-        {isEditing ? (
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="sr-only">Notas</Label>
-            <Textarea
-              id="notes"
-              value={getValue('notes') || ''}
-              onChange={(e) => onFieldChange('notes', e.target.value)}
-              placeholder="Adicione notas internas sobre este contacto..."
-              className="min-h-[120px] resize-y"
-            />
-          </div>
-        ) : (
-          <div className="min-h-[60px]">
-            {getValue('notes') ? (
-              <p className="text-sm whitespace-pre-wrap">{getValue('notes')}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                Sem notas. Clique em Editar para adicionar observações.
-              </p>
-            )}
-          </div>
-        )}
+        <InlineEditableField
+          label=""
+          fieldId="notes"
+          fieldType="textarea"
+          value={contact.notes || ''}
+          onChange={(value) => onFieldChange('notes', value)}
+          placeholder="Adicione notas, contexto ou observações importantes sobre este cliente..."
+        />
       </CardContent>
     </Card>
   );
