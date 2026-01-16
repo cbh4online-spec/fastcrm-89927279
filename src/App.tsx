@@ -42,6 +42,10 @@ import KnowledgeBase from "./pages/KnowledgeBase";
 import AIProfiles from "./pages/AIProfiles";
 import FastCRMLanding from "./pages/FastCRMLanding";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
+import ReportsOverview from "./pages/ReportsOverview";
+import ReportsForecasts from "./pages/ReportsForecasts";
+import ReportsConsumption from "./pages/ReportsConsumption";
+import ReportsRetention from "./pages/ReportsRetention";
 
 const queryClient = new QueryClient();
 
