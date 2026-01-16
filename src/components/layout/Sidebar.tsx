@@ -139,12 +139,19 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
+    name: "Comunicação",
+    icon: MessageSquare,
+    tooltip: "Templates e mensagens automatizadas",
+    items: [
+      { name: "Templates", href: "/dashboard/communication/templates", icon: FileCode, tooltip: "Modelos de mensagens reutilizáveis" },
+    ],
+  },
+  {
     name: "Automações",
     icon: Zap,
     tooltip: "Automatize tarefas repetitivas",
     items: [
       { name: "Workflows", href: "/dashboard/automations", icon: Workflow, tooltip: "Regras de automação" },
-      { name: "Templates", href: "/dashboard/settings/templates", icon: FileCode, tooltip: "Modelos de mensagens" },
       { name: "AI Insights", href: "/dashboard/ai-suggestions", icon: Brain, tooltip: "Sugestões inteligentes", premiumFeature: "ai_suggestions" },
     ],
   },

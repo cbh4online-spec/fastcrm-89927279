@@ -829,6 +829,71 @@ export type Database = {
           },
         ]
       }
+      communication_templates: {
+        Row: {
+          body: string
+          body_html: string | null
+          channel: string
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          journey_contexts: string[] | null
+          language: string
+          name: string
+          response_rate: number | null
+          subject: string | null
+          tone: string | null
+          updated_at: string | null
+          usage_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          body: string
+          body_html?: string | null
+          channel: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          journey_contexts?: string[] | null
+          language?: string
+          name: string
+          response_rate?: number | null
+          subject?: string | null
+          tone?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          body?: string
+          body_html?: string | null
+          channel?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          journey_contexts?: string[] | null
+          language?: string
+          name?: string
+          response_rate?: number | null
+          subject?: string | null
+          tone?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -5506,6 +5571,70 @@ export type Database = {
           },
           {
             foreignKeyName: "template_folders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_usage_logs: {
+        Row: {
+          automation_id: string | null
+          channel: string
+          converted: boolean | null
+          entity_id: string
+          entity_type: string
+          id: string
+          response_received: boolean | null
+          template_id: string
+          used_at: string | null
+          used_by: string
+          workspace_id: string
+        }
+        Insert: {
+          automation_id?: string | null
+          channel: string
+          converted?: boolean | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          response_received?: boolean | null
+          template_id: string
+          used_at?: string | null
+          used_by: string
+          workspace_id: string
+        }
+        Update: {
+          automation_id?: string | null
+          channel?: string
+          converted?: boolean | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          response_received?: boolean | null
+          template_id?: string
+          used_at?: string | null
+          used_by?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_usage_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "journey_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_usage_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_usage_logs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

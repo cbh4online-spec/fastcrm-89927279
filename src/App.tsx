@@ -41,6 +41,7 @@ import Invoices from "./pages/Invoices";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import AIProfiles from "./pages/AIProfiles";
 import FastCRMLanding from "./pages/FastCRMLanding";
+import CommunicationTemplates from "./pages/CommunicationTemplates";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,7 @@ const App = () => (
                   <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
                   <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
                   <Route path="/dashboard/kpis" element={<KPIs />} />
+                  <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />
                   <Route path="/p/:slug" element={<PublicProposalPage />} />
