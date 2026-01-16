@@ -76,7 +76,8 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
   const { createContact } = useContacts();
   const enrichment = useCompanyEnrichment();
   const nifLookup = useNifLookup({ showToasts: false });
-  const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
+  const customFieldsPrimaryRef = useRef<CustomFieldsFormCreateRef>(null);
+  const customFieldsSecondaryRef = useRef<CustomFieldsFormCreateRef>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
@@ -232,9 +233,10 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
 
       const result = await createCompany.mutateAsync(finalData as any);
 
-      // Save custom fields if any
-      if (result?.id && customFieldsRef.current) {
-        await customFieldsRef.current.saveCustomFields(result.id);
+      // Save custom fields if any (from both primary and secondary refs)
+      if (result?.id) {
+        await customFieldsPrimaryRef.current?.saveCustomFields(result.id);
+        await customFieldsSecondaryRef.current?.saveCustomFields(result.id);
       }
 
       // Create associated contact if checkbox is checked (forced for ENI)
@@ -677,6 +679,13 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
               )}
             </div>
 
+            {/* Primary Custom Fields (position 0-1) - shown outside collapsible */}
+            <CustomFieldsFormCreate 
+              ref={customFieldsPrimaryRef} 
+              entityType="company" 
+              positionFilter="primary"
+            />
+
             {/* Optional Fields - Collapsible */}
             <Collapsible open={showOptionalFields} onOpenChange={setShowOptionalFields}>
               <CollapsibleTrigger asChild>
@@ -728,7 +737,13 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                     rows={2}
                   />
                 </div>
-                <CustomFieldsFormCreate ref={customFieldsRef} entityType="company" />
+                {/* Secondary Custom Fields (position > 1) */}
+                <CustomFieldsFormCreate 
+                  ref={customFieldsSecondaryRef} 
+                  entityType="company" 
+                  positionFilter="secondary"
+                  hideLabel
+                />
               </CollapsibleContent>
             </Collapsible>
 
