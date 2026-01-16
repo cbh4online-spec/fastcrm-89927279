@@ -22,6 +22,7 @@ import { AIInsightsSection } from "./sections/AIInsightsSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
+import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
 import { useAnalyzeContact } from "@/hooks/useSmartContacts";
 import { useContactPermissions } from "./useContactPermissions";
 import { NifLookupResult } from "@/hooks/useNifLookup";
@@ -250,8 +251,15 @@ export function ENIContactDetail() {
       {/* Content */}
       <ScrollArea className="flex-1">
         <div className="p-6 max-w-5xl mx-auto space-y-6">
-          {/* Customer Journey - Top priority */}
-          <CustomerJourneySection contactId={id} />
+          {/* Customer Journey & AI Suggestions */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CustomerJourneySection contactId={id} />
+            <AIJourneySuggestionsPanel 
+              entityType="contact" 
+              entityId={id!} 
+              entityName={contact.name}
+            />
+          </div>
 
           {/* AI Insights */}
           <AIInsightsSection 
