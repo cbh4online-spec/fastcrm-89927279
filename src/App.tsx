@@ -40,6 +40,7 @@ import PublicProductSheet from "./pages/PublicProductSheet";
 import Invoices from "./pages/Invoices";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import AIProfiles from "./pages/AIProfiles";
+import FastCRMLanding from "./pages/FastCRMLanding";
 
 const queryClient = new QueryClient();
 
@@ -54,7 +55,7 @@ const App = () => (
             <WorkspaceInstanceProvider>
               <SubscriptionProvider>
                 <Routes>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<FastCRMLanding />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/onboarding" element={<Onboarding />} />
