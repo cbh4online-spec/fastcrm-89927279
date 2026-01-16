@@ -17,6 +17,7 @@ export interface Contact {
   job_title: string | null;
   notes: string | null;
   tags: string[];
+  tax_id: string | null;
   linkedin_url: string | null;
   facebook_url: string | null;
   instagram_url: string | null;
@@ -35,6 +36,7 @@ export interface CreateContactData {
   job_title?: string;
   notes?: string;
   tags?: string[];
+  tax_id?: string;
   linkedin_url?: string;
   facebook_url?: string;
   instagram_url?: string;
@@ -85,6 +87,7 @@ export function useContacts() {
           job_title: data.job_title || null,
           notes: data.notes || null,
           tags: data.tags || [],
+          tax_id: data.tax_id || null,
           linkedin_url: data.linkedin_url || null,
           facebook_url: data.facebook_url || null,
           instagram_url: data.instagram_url || null,
@@ -118,6 +121,7 @@ export function useContacts() {
       if (data.job_title !== undefined) updateData.job_title = data.job_title || null;
       if (data.notes !== undefined) updateData.notes = data.notes || null;
       if (data.tags !== undefined) updateData.tags = data.tags || [];
+      if (data.tax_id !== undefined) updateData.tax_id = data.tax_id || null;
       if (data.linkedin_url !== undefined) updateData.linkedin_url = data.linkedin_url || null;
       if (data.facebook_url !== undefined) updateData.facebook_url = data.facebook_url || null;
       if (data.instagram_url !== undefined) updateData.instagram_url = data.instagram_url || null;

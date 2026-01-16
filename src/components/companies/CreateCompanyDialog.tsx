@@ -237,8 +237,9 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
         await customFieldsRef.current.saveCustomFields(result.id);
       }
 
-      // Create associated contact if checkbox is checked
-      if (result?.id && createAssociatedContact) {
+      // Create associated contact if checkbox is checked (forced for ENI)
+      const shouldCreateContact = createAssociatedContact || isIndividual;
+      if (result?.id && shouldCreateContact) {
         try {
           await createContact.mutateAsync({
             name: formData.name.trim(),
@@ -247,8 +248,14 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
             company: formData.name.trim(),
             company_id: result.id,
             is_primary_contact: true,
+            tax_id: isIndividual ? formData.tax_id.trim() : undefined,
+            job_title: isIndividual ? "Empresário em Nome Individual" : undefined,
           });
-          toast.success("Empresa e contacto criados com sucesso");
+          if (isIndividual) {
+            toast.success("Empresário individual e contacto criados automaticamente");
+          } else {
+            toast.success("Empresa e contacto criados com sucesso");
+          }
         } catch (error) {
           console.error("Error creating associated contact:", error);
           toast.success("Empresa criada. Erro ao criar contacto associado.");
@@ -445,28 +452,67 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                 </div>
               </div>
 
-              {/* Create Associated Contact Option */}
-              <div className="flex items-start space-x-3 py-3 px-4 rounded-lg border border-border/50 bg-muted/30">
-                <Checkbox
-                  id="createContact"
-                  checked={createAssociatedContact}
-                  onCheckedChange={(checked) => setCreateAssociatedContact(checked === true)}
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label
-                    htmlFor="createContact"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    Criar contacto associado automaticamente
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    {isIndividual 
-                      ? "Este NIF pertence a um empresário individual. Recomendamos criar um contacto associado."
-                      : "Cria um contacto principal vinculado a esta empresa."}
-                  </p>
+              {/* Create Associated Contact Option - ENI Visual Enhancement */}
+              {isIndividual ? (
+                <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <User className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                        Empresário em Nome Individual Detectado
+                      </span>
+                      <Badge variant="outline" className="ml-auto border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300">
+                        ENI
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Este NIF pertence a uma pessoa singular com atividade comercial. 
+                      Serão criados automaticamente:
+                    </p>
+                    <div className="flex flex-col gap-1 text-xs text-amber-700 dark:text-amber-300">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>Registo de empresa (para faturação)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>Registo de contacto com NIF (para comunicação)</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Checkbox
+                        id="createContact"
+                        checked={true}
+                        disabled
+                        className="data-[state=checked]:bg-amber-600"
+                      />
+                      <label className="text-xs text-amber-600 dark:text-amber-400">
+                        Contacto será criado automaticamente (obrigatório para ENI)
+                      </label>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="flex items-start space-x-3 py-3 px-4 rounded-lg border border-border/50 bg-muted/30">
+                  <Checkbox
+                    id="createContact"
+                    checked={createAssociatedContact}
+                    onCheckedChange={(checked) => setCreateAssociatedContact(checked === true)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="createContact"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Criar contacto associado automaticamente
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Cria um contacto principal vinculado a esta empresa.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Enrichment CTA */}
               {canEnrich && !enrichmentData && !enrichment.isPending && (
