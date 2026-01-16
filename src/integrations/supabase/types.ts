@@ -934,6 +934,13 @@ export type Database = {
             referencedRelation: "calendars"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "calendar_service_assignments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
         ]
       }
       calendar_team_assignments: {
@@ -5243,6 +5250,7 @@ export type Database = {
           phone_number: string | null
           reminder_sent: boolean | null
           reminder_sent_at: string | null
+          service_id: string | null
           source: string | null
           start_time: string
           status: string
@@ -5288,6 +5296,7 @@ export type Database = {
           phone_number?: string | null
           reminder_sent?: boolean | null
           reminder_sent_at?: string | null
+          service_id?: string | null
           source?: string | null
           start_time: string
           status?: string
@@ -5333,6 +5342,7 @@ export type Database = {
           phone_number?: string | null
           reminder_sent?: boolean | null
           reminder_sent_at?: string | null
+          service_id?: string | null
           source?: string | null
           start_time?: string
           status?: string
@@ -5382,6 +5392,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
           {
@@ -7264,6 +7281,340 @@ export type Database = {
           },
           {
             foreignKeyName: "proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean | null
+          service_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          service_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          service_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_availability_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          position: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          position?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          position?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_locations: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean | null
+          location_address: string | null
+          location_name: string | null
+          location_type: string
+          meeting_url: string | null
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          location_address?: string | null
+          location_name?: string | null
+          location_type: string
+          meeting_url?: string | null
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          location_address?: string | null
+          location_name?: string | null
+          location_type?: string
+          meeting_url?: string | null
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_locations_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_resources: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean | null
+          quantity: number | null
+          resource_id: string
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean | null
+          quantity?: number | null
+          resource_id: string
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean | null
+          quantity?: number | null
+          resource_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_resources_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_resources_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_team_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          routing_mode: string | null
+          service_id: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          routing_mode?: string | null
+          service_id: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          routing_mode?: string | null
+          service_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_team_assignments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_user_assignments: {
+        Row: {
+          created_at: string
+          custom_duration: number | null
+          custom_price: number | null
+          id: string
+          is_primary: boolean | null
+          service_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_duration?: number | null
+          custom_price?: number | null
+          id?: string
+          is_primary?: boolean | null
+          service_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_duration?: number | null
+          custom_price?: number | null
+          id?: string
+          is_primary?: boolean | null
+          service_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_user_assignments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          allow_cancellation: boolean | null
+          buffer_after: number | null
+          buffer_before: number | null
+          cancellation_hours: number | null
+          category_id: string | null
+          color: string | null
+          created_at: string
+          created_by: string
+          currency: string | null
+          description: string | null
+          duration: number
+          form_id: string | null
+          id: string
+          is_active: boolean | null
+          is_public: boolean | null
+          max_booking_days: number | null
+          max_per_day: number | null
+          metadata: Json | null
+          min_notice_hours: number | null
+          name: string
+          price: number | null
+          requires_confirmation: boolean | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allow_cancellation?: boolean | null
+          buffer_after?: number | null
+          buffer_before?: number | null
+          cancellation_hours?: number | null
+          category_id?: string | null
+          color?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string | null
+          description?: string | null
+          duration?: number
+          form_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          max_booking_days?: number | null
+          max_per_day?: number | null
+          metadata?: Json | null
+          min_notice_hours?: number | null
+          name: string
+          price?: number | null
+          requires_confirmation?: boolean | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allow_cancellation?: boolean | null
+          buffer_after?: number | null
+          buffer_before?: number | null
+          cancellation_hours?: number | null
+          category_id?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string | null
+          description?: string | null
+          duration?: number
+          form_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          max_booking_days?: number | null
+          max_per_day?: number | null
+          metadata?: Json | null
+          min_notice_hours?: number | null
+          name?: string
+          price?: number | null
+          requires_confirmation?: boolean | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
