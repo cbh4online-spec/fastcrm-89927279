@@ -46,6 +46,9 @@ import ReportsOverview from "./pages/ReportsOverview";
 import ReportsForecasts from "./pages/ReportsForecasts";
 import ReportsConsumption from "./pages/ReportsConsumption";
 import ReportsRetention from "./pages/ReportsRetention";
+import ReportsKPIs from "./pages/ReportsKPIs";
+import ReportsGrowth from "./pages/ReportsGrowth";
+import ReportsSales from "./pages/ReportsSales";
 
 const queryClient = new QueryClient();
 
@@ -88,12 +91,15 @@ const App = () => (
                   <Route path="/dashboard/invoices" element={<Invoices />} />
                   <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
                   <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
-                  <Route path="/dashboard/kpis" element={<KPIs />} />
+                  <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
                   <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
                   <Route path="/dashboard/reports" element={<ReportsOverview />} />
                   <Route path="/dashboard/reports/forecasts" element={<ReportsForecasts />} />
                   <Route path="/dashboard/reports/consumption" element={<ReportsConsumption />} />
                   <Route path="/dashboard/reports/retention" element={<ReportsRetention />} />
+                  <Route path="/dashboard/reports/kpis" element={<ReportsKPIs />} />
+                  <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
+                  <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />
                   <Route path="/p/:slug" element={<PublicProposalPage />} />
