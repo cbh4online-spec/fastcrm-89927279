@@ -1,110 +1,78 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { MapPin } from "lucide-react";
+import { MapPin, Home, Flag } from "lucide-react";
 import { ENIContact } from "../ENIContactTypes";
+import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 
 interface AddressSectionProps {
   contact: ENIContact;
-  isEditing: boolean;
-  editedData: Partial<ENIContact>;
-  onFieldChange: (field: keyof ENIContact, value: unknown) => void;
+  onFieldChange: (field: keyof ENIContact, value: unknown) => Promise<void>;
 }
 
 export function AddressSection({ 
   contact, 
-  isEditing, 
-  editedData, 
-  onFieldChange 
+  onFieldChange,
 }: AddressSectionProps) {
-  const getValue = <K extends keyof ENIContact>(field: K): ENIContact[K] => {
-    return isEditing && field in editedData ? editedData[field] as ENIContact[K] : contact[field];
-  };
-
   return (
-    <Card>
+    <Card className="border-border/50 bg-gradient-to-br from-card to-card/80 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-primary" />
+          <div className="p-1.5 rounded-md bg-orange-500/10">
+            <MapPin className="h-4 w-4 text-orange-500" />
+          </div>
           Morada
         </CardTitle>
-        <CardDescription>Endereço de contacto e faturação.</CardDescription>
+        <CardDescription>Endereço e localização do cliente.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-0 divide-y divide-border/50">
         {/* Address */}
-        <div className="space-y-2">
-          <Label htmlFor="address">Endereço</Label>
-          {isEditing ? (
-            <Input
-              id="address"
-              value={getValue('address') || ''}
-              onChange={(e) => onFieldChange('address', e.target.value)}
-              placeholder="Rua, número, andar..."
-            />
-          ) : (
-            <p className="text-sm">{getValue('address') || '—'}</p>
-          )}
-        </div>
+        <InlineEditableField
+          label="Endereço"
+          fieldId="address"
+          fieldType="textarea"
+          value={contact.address || ''}
+          onChange={(value) => onFieldChange('address', value)}
+          icon={<Home className="h-3.5 w-3.5" />}
+          placeholder="Rua, número, andar..."
+        />
 
-        {/* City & Postal Code */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="city">Localidade</Label>
-            {isEditing ? (
-              <Input
-                id="city"
-                value={getValue('city') || ''}
-                onChange={(e) => onFieldChange('city', e.target.value)}
-                placeholder="Lisboa"
-              />
-            ) : (
-              <p className="text-sm">{getValue('city') || '—'}</p>
-            )}
-          </div>
+        {/* City */}
+        <InlineEditableField
+          label="Localidade"
+          fieldId="city"
+          fieldType="text"
+          value={contact.city || ''}
+          onChange={(value) => onFieldChange('city', value)}
+          placeholder="Cidade ou vila"
+        />
 
-          <div className="space-y-2">
-            <Label htmlFor="postal_code">Código Postal</Label>
-            {isEditing ? (
-              <Input
-                id="postal_code"
-                value={getValue('postal_code') || ''}
-                onChange={(e) => onFieldChange('postal_code', e.target.value)}
-                placeholder="1000-001"
-              />
-            ) : (
-              <p className="text-sm">{getValue('postal_code') || '—'}</p>
-            )}
-          </div>
-        </div>
+        {/* Postal Code */}
+        <InlineEditableField
+          label="Código Postal"
+          fieldId="postal_code"
+          fieldType="text"
+          value={contact.postal_code || ''}
+          onChange={(value) => onFieldChange('postal_code', value)}
+          placeholder="0000-000"
+        />
 
         {/* Country */}
-        <div className="space-y-2">
-          <Label htmlFor="country">País</Label>
-          {isEditing ? (
-            <Input
-              id="country"
-              value={getValue('country') || 'Portugal'}
-              onChange={(e) => onFieldChange('country', e.target.value)}
-              placeholder="Portugal"
-            />
-          ) : (
-            <p className="text-sm">{getValue('country') || 'Portugal'}</p>
-          )}
-        </div>
+        <InlineEditableField
+          label="País"
+          fieldId="country"
+          fieldType="text"
+          value={contact.country || 'Portugal'}
+          onChange={(value) => onFieldChange('country', value)}
+          icon={<Flag className="h-3.5 w-3.5" />}
+        />
 
-        {/* Is Fiscal Address */}
-        <div className="flex items-center space-x-2 pt-2">
-          <Checkbox
-            id="is_fiscal_address"
-            checked={getValue('is_fiscal_address') !== false}
-            onCheckedChange={(checked) => onFieldChange('is_fiscal_address', checked)}
-            disabled={!isEditing}
-          />
-          <Label htmlFor="is_fiscal_address" className="cursor-pointer text-sm">
-            Usar como morada fiscal
-          </Label>
-        </div>
+        {/* Fiscal Address Toggle */}
+        <InlineEditableField
+          label="Morada Fiscal"
+          fieldId="is_fiscal_address"
+          fieldType="boolean"
+          value={contact.is_fiscal_address ?? true}
+          onChange={(value) => onFieldChange('is_fiscal_address', value)}
+        />
       </CardContent>
     </Card>
   );
