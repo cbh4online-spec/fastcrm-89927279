@@ -3584,6 +3584,62 @@ export type Database = {
           },
         ]
       }
+      inactivity_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          alert_type: string
+          created_at: string
+          days_inactive: number
+          entity_count: number
+          entity_ids: Json
+          entity_type: string
+          id: string
+          message: string | null
+          sent_at: string | null
+          status: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          alert_type: string
+          created_at?: string
+          days_inactive?: number
+          entity_count?: number
+          entity_ids?: Json
+          entity_type: string
+          id?: string
+          message?: string | null
+          sent_at?: string | null
+          status?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          alert_type?: string
+          created_at?: string
+          days_inactive?: number
+          entity_count?: number
+          entity_ids?: Json
+          entity_type?: string
+          id?: string
+          message?: string | null
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inactivity_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbox_action_logs: {
         Row: {
           action_data: Json | null
@@ -5130,6 +5186,63 @@ export type Database = {
           },
         ]
       }
+      meeting_automation_events: {
+        Row: {
+          actions_executed: Json | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          meeting_id: string
+          processed_at: string | null
+          status: string
+          trigger_source: string
+          workspace_id: string
+        }
+        Insert: {
+          actions_executed?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          meeting_id: string
+          processed_at?: string | null
+          status?: string
+          trigger_source?: string
+          workspace_id: string
+        }
+        Update: {
+          actions_executed?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          meeting_id?: string
+          processed_at?: string | null
+          status?: string
+          trigger_source?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_automation_events_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_automation_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_notes: {
         Row: {
           content: string
@@ -5224,6 +5337,73 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "meeting_preparations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_reschedule_requests: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          message_channel: string | null
+          message_sent_at: string | null
+          new_meeting_id: string | null
+          original_meeting_id: string
+          reschedule_token: string
+          responded_at: string | null
+          status: string
+          suggested_slots: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          message_channel?: string | null
+          message_sent_at?: string | null
+          new_meeting_id?: string | null
+          original_meeting_id: string
+          reschedule_token?: string
+          responded_at?: string | null
+          status?: string
+          suggested_slots?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          message_channel?: string | null
+          message_sent_at?: string | null
+          new_meeting_id?: string | null
+          original_meeting_id?: string
+          reschedule_token?: string
+          responded_at?: string | null
+          status?: string
+          suggested_slots?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_reschedule_requests_new_meeting_id_fkey"
+            columns: ["new_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_reschedule_requests_original_meeting_id_fkey"
+            columns: ["original_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_reschedule_requests_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -8450,6 +8630,111 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: []
+      }
+      team_feed_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          parent_comment_id: string | null
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          parent_comment_id?: string | null
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          parent_comment_id?: string | null
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_feed_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "team_feed_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_feed_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "team_feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_feed_posts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean | null
+          meeting_id: string | null
+          metadata: Json | null
+          post_type: string
+          reactions: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean | null
+          meeting_id?: string | null
+          metadata?: Json | null
+          post_type?: string
+          reactions?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean | null
+          meeting_id?: string | null
+          metadata?: Json | null
+          post_type?: string
+          reactions?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_feed_posts_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_feed_posts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       template_activity_logs: {
         Row: {
