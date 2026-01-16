@@ -40,6 +40,7 @@ import { NotesSection } from "./sections/NotesSection";
 import { TagsSection } from "./sections/TagsSection";
 import { SocialMediaSection } from "./sections/SocialMediaSection";
 import { CompanyContactsHistory } from "./sections/CompanyContactsHistory";
+import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 
 // Helper function for time ago
 function getTimeAgo(date: Date): string {
@@ -305,12 +306,14 @@ export function CompanyDetail() {
           />
         </div>
 
-        {/* Right Column - Tags & Contacts */}
+        {/* Right Column - Tags, Products & Contacts */}
         <div className="space-y-4">
           <TagsSection 
             company={company} 
             onFieldChange={handleFieldChange}
           />
+          
+          <AcquiredProductsSection companyId={id} />
           
           <CompanyContacts companyId={id || ''} companyName={company.name} />
         </div>

@@ -1047,12 +1047,15 @@ export type Database = {
       contact_products: {
         Row: {
           acquisition_date: string | null
-          contact_id: string
+          company_id: string | null
+          consumed_quantity: number | null
+          contact_id: string | null
           created_at: string
           expiry_date: string | null
           id: string
           notes: string | null
           product_id: string
+          purchased_quantity: number | null
           quantity: number | null
           status: string | null
           total_value: number | null
@@ -1062,12 +1065,15 @@ export type Database = {
         }
         Insert: {
           acquisition_date?: string | null
-          contact_id: string
+          company_id?: string | null
+          consumed_quantity?: number | null
+          contact_id?: string | null
           created_at?: string
           expiry_date?: string | null
           id?: string
           notes?: string | null
           product_id: string
+          purchased_quantity?: number | null
           quantity?: number | null
           status?: string | null
           total_value?: number | null
@@ -1077,12 +1083,15 @@ export type Database = {
         }
         Update: {
           acquisition_date?: string | null
-          contact_id?: string
+          company_id?: string | null
+          consumed_quantity?: number | null
+          contact_id?: string | null
           created_at?: string
           expiry_date?: string | null
           id?: string
           notes?: string | null
           product_id?: string
+          purchased_quantity?: number | null
           quantity?: number | null
           status?: string | null
           total_value?: number | null
@@ -1091,6 +1100,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contact_products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contact_products_contact_id_fkey"
             columns: ["contact_id"]
