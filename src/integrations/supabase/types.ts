@@ -4278,6 +4278,63 @@ export type Database = {
           },
         ]
       }
+      marketplace_bundles: {
+        Row: {
+          bundle_price: number
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          discount_percent: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          module_ids: string[]
+          name: string
+          original_price: number
+          slug: string
+          tagline: string | null
+          target_audience: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bundle_price: number
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          module_ids: string[]
+          name: string
+          original_price: number
+          slug: string
+          tagline?: string | null
+          target_audience?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bundle_price?: number
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          module_ids?: string[]
+          name?: string
+          original_price?: number
+          slug?: string
+          tagline?: string | null
+          target_audience?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       marketplace_modules: {
         Row: {
           category: string
@@ -6892,6 +6949,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workspace_bundles: {
+        Row: {
+          bundle_id: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          purchased_at: string | null
+          status: string | null
+          stripe_subscription_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          purchased_at?: string | null
+          status?: string | null
+          stripe_subscription_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          purchased_at?: string | null
+          status?: string | null
+          stripe_subscription_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_bundles_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_bundles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_credit_balances: {
         Row: {
