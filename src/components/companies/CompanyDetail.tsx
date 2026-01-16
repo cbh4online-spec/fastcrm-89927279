@@ -1,20 +1,11 @@
 import { useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useCompanies, Company, UpdateCompanyData } from "@/hooks/useCompanies";
+import { useCompanies } from "@/hooks/useCompanies";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Collapsible,
   CollapsibleContent,
@@ -36,12 +27,8 @@ import {
   Building2, 
   Mail, 
   Phone, 
-  Edit2, 
   Trash2, 
-  Save, 
-  X, 
   ChevronDown,
-  ExternalLink,
   Clock,
   Globe,
   Users,
@@ -50,13 +37,14 @@ import {
   Tag,
   FileText,
   MoreHorizontal,
-  Sparkles
+  Sparkles,
+  Hash
 } from "lucide-react";
 import { toast } from "sonner";
-import { InlineCustomFieldRow } from "@/components/custom-fields/InlineCustomFieldRow";
+import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
 import { getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
-import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
+import { getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
 import { 
   useFieldSuggestions, 
   useGenerateFieldSuggestions,
@@ -64,52 +52,56 @@ import {
   useRejectSuggestion 
 } from "@/hooks/useFieldSuggestions";
 import { cn } from "@/lib/utils";
-import { CompanyInsightsPanel } from "./CompanyInsightsPanel";
 import { InsightsSidebar } from "@/components/insights";
+import { useFormFieldOrder, FieldConfig } from "@/hooks/useFormFieldOrder";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
 
-// Reusable row component for label-value display
+// Field icons mapping
+const FIELD_ICONS: Record<string, React.ReactNode> = {
+  name: <Building2 className="w-4 h-4" />,
+  tax_id: <Hash className="w-4 h-4" />,
+  website: <Globe className="w-4 h-4" />,
+  email: <Mail className="w-4 h-4" />,
+  phone: <Phone className="w-4 h-4" />,
+  industry: <Factory className="w-4 h-4" />,
+  size: <Users className="w-4 h-4" />,
+  address: <MapPin className="w-4 h-4" />,
+  tags: <Tag className="w-4 h-4" />,
+  notes: <FileText className="w-4 h-4" />,
+};
+
+// Map field types from layout to InlineEditableField types
+const getFieldType = (fieldConfig: FieldConfig): "text" | "email" | "phone" | "number" | "date" | "boolean" | "select" | "textarea" | "tags" => {
+  const type = fieldConfig.fieldType;
+  switch (type) {
+    case "email": return "email";
+    case "phone": return "phone";
+    case "number": return "number";
+    case "date": return "date";
+    case "boolean": return "boolean";
+    case "select": return "select";
+    case "textarea": return "textarea";
+    default: 
+      if (fieldConfig.id === "tags") return "tags";
+      return "text";
+  }
+};
+
+// Simple row for static display (metadata)
 interface DetailRowProps {
   label: string;
   value?: string | React.ReactNode;
-  isEditing?: boolean;
-  editComponent?: React.ReactNode;
-  icon?: React.ReactNode;
-  isLink?: boolean;
-  linkType?: "email" | "phone" | "url";
 }
 
-function DetailRow({ label, value, isEditing, editComponent, icon, isLink, linkType = "email" }: DetailRowProps) {
-  const getHref = () => {
-    if (!value || typeof value !== 'string') return '#';
-    if (linkType === "email") return `mailto:${value}`;
-    if (linkType === "phone") return `tel:${value}`;
-    return value.startsWith('http') ? value : `https://${value}`;
-  };
-
+function DetailRow({ label, value }: DetailRowProps) {
   return (
     <div className="flex items-start py-3 border-b border-border/50 last:border-0">
-      <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
-        {icon}
+      <div className="w-40 flex-shrink-0 text-sm text-muted-foreground">
         {label}
       </div>
       <div className="flex-1 text-sm">
-        {isEditing && editComponent ? (
-          editComponent
-        ) : isLink && value ? (
-          <a 
-            href={getHref()}
-            target={linkType === "url" ? "_blank" : undefined}
-            rel={linkType === "url" ? "noopener noreferrer" : undefined}
-            className="text-primary hover:underline flex items-center gap-1"
-          >
-            {value}
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        ) : (
-          <span className={cn(!value && "text-muted-foreground")}>{value || "—"}</span>
-        )}
+        <span className={cn(!value && "text-muted-foreground")}>{value || "—"}</span>
       </div>
     </div>
   );
@@ -122,6 +114,9 @@ export function CompanyDetail() {
   const { data: customFieldValues = [] } = useCustomFieldValues(id);
   const { data: customFields = [] } = useCustomFields("company");
   const setCustomFieldValue = useSetCustomFieldValue();
+
+  // Get ordered fields from layout configuration
+  const { getVisibleFields } = useFormFieldOrder("company");
 
   const company = companies.find(c => c.id === id);
 
@@ -137,61 +132,31 @@ export function CompanyDetail() {
     customFieldValues.map(cfv => [cfv.custom_field_id, cfv.value])
   );
 
-  const [isEditing, setIsEditing] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(true);
-  const [showNotes, setShowNotes] = useState(true);
-  const [showAddress, setShowAddress] = useState(true);
-  const [editedCompany, setEditedCompany] = useState<{
-    name: string;
-    website: string;
-    industry: string;
-    size: string;
-    email: string;
-    phone: string;
-    address: string;
-    notes: string;
-    tags: string[];
-  } | null>(null);
 
-  const handleEdit = () => {
-    if (company) {
-      setEditedCompany({
-        name: company.name,
-        website: company.website || "",
-        industry: company.industry || "",
-        size: company.size || "",
-        email: company.email || "",
-        phone: company.phone || "",
-        address: company.address || "",
-        notes: company.notes || "",
-        tags: company.tags || [],
-      });
-      setIsEditing(true);
-    }
-  };
+  // Handler for inline native field change
+  const handleNativeFieldChange = useCallback(async (fieldId: string, value: unknown) => {
+    if (!company) return;
+    await updateCompany.mutateAsync({
+      id: company.id,
+      [fieldId]: value || undefined,
+    });
+    toast.success("Campo atualizado");
+  }, [company, updateCompany]);
 
-  const handleSave = async () => {
-    if (!company || !editedCompany) return;
-
-    try {
-      await updateCompany.mutateAsync({
-        id: company.id,
-        name: editedCompany.name,
-        website: editedCompany.website || undefined,
-        industry: editedCompany.industry || undefined,
-        size: editedCompany.size || undefined,
-        email: editedCompany.email || undefined,
-        phone: editedCompany.phone || undefined,
-        address: editedCompany.address || undefined,
-        notes: editedCompany.notes || undefined,
-        tags: editedCompany.tags,
-      });
-      toast.success("Empresa atualizada com sucesso");
-      setIsEditing(false);
-    } catch (error) {
-      toast.error("Erro ao atualizar empresa");
-    }
-  };
+  // Handler for inline custom field change
+  const handleCustomFieldChange = useCallback(async (customFieldId: string, value: unknown) => {
+    if (!company) return;
+    const field = customFields.find(f => f.id === customFieldId);
+    await setCustomFieldValue.mutateAsync({
+      customFieldId,
+      entityId: company.id,
+      value,
+      fieldName: field?.name,
+      isUnique: field?.is_unique,
+    });
+    toast.success("Campo atualizado");
+  }, [company, customFields, setCustomFieldValue]);
 
   const handleDelete = async () => {
     if (!company) return;
@@ -272,23 +237,81 @@ export function CompanyDetail() {
     }
   }, [suggestions, rejectSuggestion]);
 
-  // Handler for inline custom field value change
-  const handleCustomFieldChange = useCallback(async (customFieldId: string, value: unknown) => {
-    if (!company) return;
-    const field = customFields.find(f => f.id === customFieldId);
-    await setCustomFieldValue.mutateAsync({
-      customFieldId,
-      entityId: company.id,
-      value,
-      fieldName: field?.name,
-      isUnique: field?.is_unique,
-    });
-  }, [company, customFields, setCustomFieldValue]);
-
   // Generate suggestions handler
   const handleGenerateSuggestions = async () => {
     if (!id) return;
     await generateSuggestions.mutateAsync({ entityType: "company", entityId: id });
+  };
+
+  // Get value for a field
+  const getFieldValue = (fieldConfig: FieldConfig): unknown => {
+    if (fieldConfig.type === "custom") {
+      const customFieldId = fieldConfig.id.replace("custom_", "");
+      return customFieldValuesMap.get(customFieldId);
+    }
+    // Native field - access from company object
+    if (!company) return undefined;
+    const companyData = company as unknown as Record<string, unknown>;
+    return companyData[fieldConfig.id];
+  };
+
+  // Render a field based on its configuration
+  const renderField = (fieldConfig: FieldConfig) => {
+    // Skip name field as it's shown in the header
+    if (fieldConfig.id === "name") return null;
+    // Skip notes and address - they have their own sections
+    if (fieldConfig.id === "notes" || fieldConfig.id === "address") return null;
+
+    const value = getFieldValue(fieldConfig);
+    const fieldType = getFieldType(fieldConfig);
+    const icon = FIELD_ICONS[fieldConfig.id];
+
+    if (fieldConfig.type === "custom") {
+      const customFieldId = fieldConfig.id.replace("custom_", "");
+      const customField = customFields.find(f => f.id === customFieldId);
+      if (!customField) return null;
+
+      return (
+        <InlineEditableField
+          key={fieldConfig.id}
+          label={fieldConfig.name}
+          fieldId={fieldConfig.id}
+          fieldType={fieldType}
+          value={value}
+          onChange={(val) => handleCustomFieldChange(customFieldId, val)}
+          required={fieldConfig.required}
+          options={customField.options || []}
+          suggestion={getCustomFieldSuggestion(suggestions, customFieldId)}
+          onAcceptSuggestion={(val) => handleAcceptCustomFieldSuggestion(customFieldId, val)}
+          onRejectSuggestion={() => handleRejectCustomFieldSuggestion(customFieldId)}
+          isAcceptingSuggestion={acceptingField === customFieldId}
+        />
+      );
+    }
+
+    // Native field
+    const isLinkField = ["website", "email", "phone"].includes(fieldConfig.id);
+    const linkType = fieldConfig.id === "website" ? "url" : fieldConfig.id === "email" ? "email" : "phone";
+
+    return (
+      <InlineEditableField
+        key={fieldConfig.id}
+        label={fieldConfig.name}
+        fieldId={fieldConfig.id}
+        fieldType={fieldType}
+        value={value}
+        onChange={(val) => handleNativeFieldChange(fieldConfig.id, val)}
+        icon={icon}
+        required={fieldConfig.required}
+        options={fieldConfig.id === "size" ? COMPANY_SIZES : undefined}
+        isLink={isLinkField && !!value}
+        linkType={isLinkField ? linkType : undefined}
+        suggestion={getSuggestionForField(suggestions, fieldConfig.id)}
+        onAcceptSuggestion={(val) => handleAcceptInlineSuggestion(fieldConfig.id, val)}
+        onRejectSuggestion={() => handleRejectInlineSuggestion(fieldConfig.id)}
+        isAcceptingSuggestion={acceptingField === fieldConfig.id}
+      />
+    );
   };
 
   if (isLoading) {
@@ -322,6 +345,8 @@ export function CompanyDetail() {
     .toUpperCase()
     .slice(0, 2);
 
+  const orderedFields = getVisibleFields();
+
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
@@ -353,17 +378,7 @@ export function CompanyDetail() {
           
           <div>
             <div className="flex items-center gap-3">
-              {isEditing ? (
-                <Input
-                  value={editedCompany?.name}
-                  onChange={(e) =>
-                    setEditedCompany((prev) => prev && { ...prev, name: e.target.value })
-                  }
-                  className="text-2xl font-semibold h-auto py-1 px-2"
-                />
-              ) : (
-                <h1 className="text-2xl font-semibold text-foreground">{company.name}</h1>
-              )}
+              <h1 className="text-2xl font-semibold text-foreground">{company.name}</h1>
               {company.industry && (
                 <Badge variant="outline" className="font-normal">
                   {company.industry}
@@ -378,56 +393,37 @@ export function CompanyDetail() {
         </div>
 
         <div className="flex items-center gap-2">
-          {isEditing ? (
-            <>
-              <Button variant="outline" onClick={() => setIsEditing(false)}>
-                <X className="w-4 h-4 mr-2" />
-                Cancelar
+          <Button 
+            variant="outline" 
+            onClick={handleGenerateSuggestions}
+            disabled={generateSuggestions.isPending}
+            className="gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            {generateSuggestions.isPending ? "A analisar..." : "Sugestões IA"}
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreHorizontal className="w-4 h-4" />
               </Button>
-              <Button onClick={handleSave} disabled={updateCompany.isPending}>
-                <Save className="w-4 h-4 mr-2" />
-                {updateCompany.isPending ? "A guardar..." : "Guardar"}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button 
-                variant="outline" 
-                onClick={handleGenerateSuggestions}
-                disabled={generateSuggestions.isPending}
-                className="gap-2"
-              >
-                <Sparkles className="w-4 h-4" />
-                {generateSuggestions.isPending ? "A analisar..." : "Sugestões IA"}
-              </Button>
-              <Button onClick={handleEdit}>
-                <Edit2 className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Eliminar Empresa</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Tem a certeza que deseja eliminar esta empresa? Esta ação não pode ser revertida.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Eliminar
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
-          )}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Eliminar Empresa</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem a certeza que deseja eliminar esta empresa? Esta ação não pode ser revertida.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
@@ -441,246 +437,61 @@ export function CompanyDetail() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column - Main Details */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Description Card */}
+          {/* Description Card - Fields in configured order */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-medium">Descrição Geral</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="divide-y divide-border/50">
-                <DetailRowWithSuggestion
-                  label="Website"
-                  fieldName="website"
-                  value={company.website}
-                  icon={<Globe className="w-4 h-4" />}
-                  isEditing={isEditing}
-                  isLink={!!company.website}
-                  suggestion={getSuggestionForField(suggestions, "website")}
-                  onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("website", value)}
-                  onRejectSuggestion={() => handleRejectInlineSuggestion("website")}
-                  isAcceptingSuggestion={acceptingField === "website"}
-                  editComponent={
-                    <Input
-                      value={editedCompany?.website}
-                      onChange={(e) =>
-                        setEditedCompany((prev) => prev && { ...prev, website: e.target.value })
-                      }
-                      placeholder="https://..."
-                    />
-                  }
-                />
-                <DetailRowWithSuggestion
-                  label="E-mail"
-                  fieldName="email"
-                  value={company.email}
-                  icon={<Mail className="w-4 h-4" />}
-                  isEditing={isEditing}
-                  isLink={!!company.email}
-                  suggestion={getSuggestionForField(suggestions, "email")}
-                  onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("email", value)}
-                  onRejectSuggestion={() => handleRejectInlineSuggestion("email")}
-                  isAcceptingSuggestion={acceptingField === "email"}
-                  editComponent={
-                    <Input
-                      type="email"
-                      value={editedCompany?.email}
-                      onChange={(e) =>
-                        setEditedCompany((prev) => prev && { ...prev, email: e.target.value })
-                      }
-                    />
-                  }
-                />
-                <DetailRowWithSuggestion
-                  label="Telefone"
-                  fieldName="phone"
-                  value={company.phone}
-                  icon={<Phone className="w-4 h-4" />}
-                  isEditing={isEditing}
-                  isLink={!!company.phone}
-                  suggestion={getSuggestionForField(suggestions, "phone")}
-                  onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("phone", value)}
-                  onRejectSuggestion={() => handleRejectInlineSuggestion("phone")}
-                  isAcceptingSuggestion={acceptingField === "phone"}
-                  editComponent={
-                    <Input
-                      value={editedCompany?.phone}
-                      onChange={(e) =>
-                        setEditedCompany((prev) => prev && { ...prev, phone: e.target.value })
-                      }
-                    />
-                  }
-                />
-                <DetailRowWithSuggestion
-                  label="Indústria"
-                  fieldName="industry"
-                  value={company.industry}
-                  icon={<Factory className="w-4 h-4" />}
-                  isEditing={isEditing}
-                  suggestion={getSuggestionForField(suggestions, "industry")}
-                  onAcceptSuggestion={(value) => handleAcceptInlineSuggestion("industry", value)}
-                  onRejectSuggestion={() => handleRejectInlineSuggestion("industry")}
-                  isAcceptingSuggestion={acceptingField === "industry"}
-                  editComponent={
-                    <Input
-                      value={editedCompany?.industry}
-                      onChange={(e) =>
-                        setEditedCompany((prev) => prev && { ...prev, industry: e.target.value })
-                      }
-                      placeholder="Setor de atividade"
-                    />
-                  }
-                />
-                <DetailRow
-                  label="Tamanho"
-                  value={company.size}
-                  icon={<Users className="w-4 h-4" />}
-                  isEditing={isEditing}
-                  editComponent={
-                    <Select
-                      value={editedCompany?.size}
-                      onValueChange={(value) =>
-                        setEditedCompany((prev) => prev && { ...prev, size: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecionar tamanho" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COMPANY_SIZES.map((size) => (
-                          <SelectItem key={size} value={size}>
-                            {size} funcionários
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  }
-                />
-                <DetailRow
-                  label="Tags"
-                  value={
-                    company.tags && company.tags.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {company.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : null
-                  }
-                  icon={<Tag className="w-4 h-4" />}
-                  isEditing={isEditing}
-                  editComponent={
-                    <Input
-                      value={editedCompany?.tags.join(", ")}
-                      onChange={(e) =>
-                        setEditedCompany((prev) => prev && { 
-                          ...prev, 
-                          tags: e.target.value.split(",").map(t => t.trim()).filter(Boolean)
-                        })
-                      }
-                      placeholder="tag1, tag2, tag3"
-                    />
-                  }
-                />
-                
-                {/* Custom Fields - Inline editable */}
-                {customFields.map((field) => (
-                  <InlineCustomFieldRow
-                    key={field.id}
-                    field={field}
-                    value={customFieldValuesMap.get(field.id)}
-                    onChange={(value) => handleCustomFieldChange(field.id, value)}
-                    suggestion={getCustomFieldSuggestion(suggestions, field.id)}
-                    onAcceptSuggestion={(value) => handleAcceptCustomFieldSuggestion(field.id, value)}
-                    onRejectSuggestion={() => handleRejectCustomFieldSuggestion(field.id)}
-                    isAcceptingSuggestion={acceptingField === field.id}
-                  />
-                ))}
+                {orderedFields.map(renderField)}
               </div>
             </CardContent>
           </Card>
 
-          {/* Address Section - Collapsible */}
-          {(company.address || isEditing) && (
-            <Collapsible open={showAddress} onOpenChange={setShowAddress}>
-              <Card>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base font-medium flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Morada
-                      </CardTitle>
-                      <ChevronDown className={cn(
-                        "w-4 h-4 text-muted-foreground transition-transform",
-                        showAddress && "rotate-180"
-                      )} />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="pt-0">
-                    {isEditing ? (
-                      <Textarea
-                        value={editedCompany?.address}
-                        onChange={(e) =>
-                          setEditedCompany((prev) => prev && { ...prev, address: e.target.value })
-                        }
-                        placeholder="Morada completa..."
-                        className="min-h-[80px]"
-                      />
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">
-                        {company.address || <span className="text-muted-foreground">Sem morada</span>}
-                      </p>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
+          {/* Address Section */}
+          {company.address && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Morada
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <InlineEditableField
+                  label=""
+                  fieldId="address"
+                  fieldType="textarea"
+                  value={company.address}
+                  onChange={(val) => handleNativeFieldChange("address", val)}
+                  placeholder="Morada completa..."
+                />
+              </CardContent>
+            </Card>
           )}
 
-          {/* Notes Section - Collapsible */}
-          {(company.notes || isEditing) && (
-            <Collapsible open={showNotes} onOpenChange={setShowNotes}>
-              <Card>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base font-medium flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        Notas
-                      </CardTitle>
-                      <ChevronDown className={cn(
-                        "w-4 h-4 text-muted-foreground transition-transform",
-                        showNotes && "rotate-180"
-                      )} />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="pt-0">
-                    {isEditing ? (
-                      <Textarea
-                        value={editedCompany?.notes}
-                        onChange={(e) =>
-                          setEditedCompany((prev) => prev && { ...prev, notes: e.target.value })
-                        }
-                        placeholder="Adicionar notas..."
-                        className="min-h-[100px]"
-                      />
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">
-                        {company.notes || <span className="text-muted-foreground">Sem notas</span>}
-                      </p>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
+          {/* Notes Section */}
+          {company.notes && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Notas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <InlineEditableField
+                  label=""
+                  fieldId="notes"
+                  fieldType="textarea"
+                  value={company.notes}
+                  onChange={(val) => handleNativeFieldChange("notes", val)}
+                  placeholder="Adicionar notas..."
+                />
+              </CardContent>
+            </Card>
           )}
-
 
           {/* More Details Section - Collapsible */}
           <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
