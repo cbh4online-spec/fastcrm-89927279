@@ -10181,6 +10181,8 @@ export type Database = {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
         Returns: Json
       }
+      get_user_calendar_ids: { Args: never; Returns: string[] }
+      get_user_workspace_ids: { Args: never; Returns: string[] }
       get_workspace_usage_counts: {
         Args: { p_workspace_id: string }
         Returns: Json
