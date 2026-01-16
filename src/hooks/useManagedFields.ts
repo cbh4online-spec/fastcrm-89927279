@@ -126,13 +126,13 @@ export function useCreateManagedField() {
         .replace(/[^a-z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "");
 
-      const insertData = {
+      const insertData: Record<string, unknown> = {
         workspace_id: currentWorkspace.id,
-        entity_type: input.entity_type,
+        entity_type: input.entity_type as string,
         name: input.name,
         label: input.label || input.name,
         internal_name,
-        field_type: input.field_type,
+        field_type: input.field_type as string,
         options: input.options || [],
         required: input.required || false,
         is_unique: input.is_unique || false,
@@ -140,10 +140,10 @@ export function useCreateManagedField() {
         origin: input.origin || 'manual',
         is_visible: input.is_visible !== false,
         section: input.section || 'general',
-        formatting_config: (input.formatting_config || {}) as Record<string, unknown>,
+        formatting_config: JSON.parse(JSON.stringify(input.formatting_config || {})),
         auto_format: input.auto_format !== false,
-        industry_labels: (input.industry_labels || {}) as Record<string, unknown>,
-        permissions: (input.permissions || { view: [], edit: [] }) as Record<string, unknown>,
+        industry_labels: JSON.parse(JSON.stringify(input.industry_labels || {})),
+        permissions: JSON.parse(JSON.stringify(input.permissions || { view: [], edit: [] })),
         is_system: false,
         is_archived: false,
         created_by: userId,
@@ -151,7 +151,7 @@ export function useCreateManagedField() {
 
       const { data, error } = await workspaceClient
         .from("custom_fields")
-        .insert(insertData)
+        .insert(insertData as never)
         .select()
         .single();
 
@@ -200,21 +200,35 @@ export function useUpdateManagedField() {
         .eq("id", id)
         .single();
 
-      // Cast complex types for Supabase
-      const updateData: Record<string, unknown> = { ...updates };
+      // Cast complex types for Supabase using JSON serialization
+      const updateData: Record<string, unknown> = {};
+      
+      // Copy simple fields
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.label !== undefined) updateData.label = updates.label;
+      if (updates.options !== undefined) updateData.options = updates.options;
+      if (updates.required !== undefined) updateData.required = updates.required;
+      if (updates.is_unique !== undefined) updateData.is_unique = updates.is_unique;
+      if (updates.position !== undefined) updateData.position = updates.position;
+      if (updates.is_visible !== undefined) updateData.is_visible = updates.is_visible;
+      if (updates.section !== undefined) updateData.section = updates.section;
+      if (updates.auto_format !== undefined) updateData.auto_format = updates.auto_format;
+      if (updates.is_archived !== undefined) updateData.is_archived = updates.is_archived;
+      
+      // Handle JSONB fields with proper serialization
       if (updates.formatting_config) {
-        updateData.formatting_config = updates.formatting_config as Record<string, unknown>;
+        updateData.formatting_config = JSON.parse(JSON.stringify(updates.formatting_config));
       }
       if (updates.industry_labels) {
-        updateData.industry_labels = updates.industry_labels as Record<string, unknown>;
+        updateData.industry_labels = JSON.parse(JSON.stringify(updates.industry_labels));
       }
       if (updates.permissions) {
-        updateData.permissions = updates.permissions as Record<string, unknown>;
+        updateData.permissions = JSON.parse(JSON.stringify(updates.permissions));
       }
 
       const { data, error } = await workspaceClient
         .from("custom_fields")
-        .update(updateData)
+        .update(updateData as never)
         .eq("id", id)
         .select()
         .single();
