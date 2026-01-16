@@ -2191,6 +2191,80 @@ export type Database = {
           },
         ]
       }
+      import_history: {
+        Row: {
+          column_mapping: Json | null
+          completed_at: string | null
+          conflict_policy: string | null
+          created_at: string
+          created_by: string | null
+          created_fields: Json | null
+          error_count: number | null
+          errors: Json | null
+          field_transformations: Json | null
+          file_name: string
+          file_size: number | null
+          id: string
+          import_type: string
+          skip_count: number | null
+          started_at: string | null
+          status: string | null
+          success_count: number | null
+          total_rows: number | null
+          workspace_id: string
+        }
+        Insert: {
+          column_mapping?: Json | null
+          completed_at?: string | null
+          conflict_policy?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_fields?: Json | null
+          error_count?: number | null
+          errors?: Json | null
+          field_transformations?: Json | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          import_type: string
+          skip_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          success_count?: number | null
+          total_rows?: number | null
+          workspace_id: string
+        }
+        Update: {
+          column_mapping?: Json | null
+          completed_at?: string | null
+          conflict_policy?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_fields?: Json | null
+          error_count?: number | null
+          errors?: Json | null
+          field_transformations?: Json | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          import_type?: string
+          skip_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          success_count?: number | null
+          total_rows?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbox_action_logs: {
         Row: {
           action_data: Json | null
@@ -4965,6 +5039,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workspace_industry_labels: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entity_labels: Json
+          field_labels: Json
+          id: string
+          industry_type: string
+          is_active: boolean | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entity_labels?: Json
+          field_labels?: Json
+          id?: string
+          industry_type?: string
+          is_active?: boolean | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entity_labels?: Json
+          field_labels?: Json
+          id?: string
+          industry_type?: string
+          is_active?: boolean | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_industry_labels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_instances: {
         Row: {
