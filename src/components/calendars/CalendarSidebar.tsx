@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Calendar, Plus, ChevronDown, ChevronRight, Eye, EyeOff, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -44,40 +44,52 @@ export function CalendarSidebar({
     );
   };
 
-  const groupedCalendars = calendars.reduce((acc, calendar) => {
-    const groupId = calendar.group_id || 'ungrouped';
-    if (!acc[groupId]) acc[groupId] = [];
-    acc[groupId].push(calendar);
-    return acc;
-  }, {} as Record<string, CalendarType[]>);
+  const groupedCalendars = useMemo(() => {
+    return calendars.reduce((acc, calendar) => {
+      const groupId = calendar.group_id || 'ungrouped';
+      if (!acc[groupId]) acc[groupId] = [];
+      acc[groupId].push(calendar);
+      return acc;
+    }, {} as Record<string, CalendarType[]>);
+  }, [calendars]);
 
   const allSelected = calendars.filter(c => c.status === 'active').length === selectedCalendarIds.length;
 
   return (
-    <div className="w-64 border-r bg-card/50 p-4 flex flex-col h-full">
+    <div className="w-64 border-r border-border/50 bg-gradient-to-b from-card/80 to-card/60 backdrop-blur-sm p-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-sm text-foreground">Calendários</h3>
-        <Button size="sm" variant="ghost" onClick={onCreateCalendar}>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Calendar className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="font-semibold text-foreground">Calendários</h3>
+        </div>
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          onClick={onCreateCalendar}
+          className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200"
+        >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="mb-4">
         <Button
           size="sm"
           variant="outline"
-          className="flex-1 text-xs"
+          className="w-full text-xs rounded-xl border-border/50 hover:bg-accent/50 transition-all duration-200"
           onClick={allSelected ? onDeselectAll : onSelectAll}
         >
           {allSelected ? (
             <>
-              <EyeOff className="h-3 w-3 mr-1" />
-              Ocultar
+              <EyeOff className="h-3 w-3 mr-2" />
+              Ocultar todos
             </>
           ) : (
             <>
-              <Eye className="h-3 w-3 mr-1" />
-              Mostrar
+              <Eye className="h-3 w-3 mr-2" />
+              Mostrar todos
             </>
           )}
         </Button>
@@ -90,18 +102,22 @@ export function CalendarSidebar({
             open={expandedGroups.includes('ungrouped')}
             onOpenChange={() => toggleGroup('ungrouped')}
           >
-            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-1 px-2 rounded hover:bg-accent/50">
-              {expandedGroups.includes('ungrouped') ? (
+            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 px-3 rounded-xl hover:bg-accent/50 transition-all duration-200 group">
+              <div className={cn(
+                "transition-transform duration-200",
+                expandedGroups.includes('ungrouped') ? "rotate-0" : "-rotate-90"
+              )}>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )}
+              </div>
               <span className="text-sm font-medium text-muted-foreground">Sem grupo</span>
-              <Badge variant="secondary" className="ml-auto text-xs">
+              <Badge 
+                variant="secondary" 
+                className="ml-auto text-xs rounded-lg bg-muted/80"
+              >
                 {groupedCalendars['ungrouped'].length}
               </Badge>
             </CollapsibleTrigger>
-            <CollapsibleContent className="pl-6 space-y-1 mt-1">
+            <CollapsibleContent className="pl-4 space-y-1 mt-1">
               {groupedCalendars['ungrouped'].map(calendar => (
                 <CalendarItem
                   key={calendar.id}
@@ -126,22 +142,29 @@ export function CalendarSidebar({
               open={expandedGroups.includes(group.id)}
               onOpenChange={() => toggleGroup(group.id)}
             >
-              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-1 px-2 rounded hover:bg-accent/50">
-                {expandedGroups.includes(group.id) ? (
+              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 px-3 rounded-xl hover:bg-accent/50 transition-all duration-200 group">
+                <div className={cn(
+                  "transition-transform duration-200",
+                  expandedGroups.includes(group.id) ? "rotate-0" : "-rotate-90"
+                )}>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                )}
+                </div>
                 <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: group.color }}
+                  className="w-3 h-3 rounded-full ring-2 ring-offset-1 ring-offset-background transition-all duration-200"
+                  style={{ 
+                    backgroundColor: group.color,
+                    boxShadow: `0 0 8px ${group.color}40`
+                  }}
                 />
                 <span className="text-sm font-medium">{group.name}</span>
-                <Badge variant="secondary" className="ml-auto text-xs">
+                <Badge 
+                  variant="secondary" 
+                  className="ml-auto text-xs rounded-lg bg-muted/80"
+                >
                   {groupCalendars.length}
                 </Badge>
               </CollapsibleTrigger>
-              <CollapsibleContent className="pl-6 space-y-1 mt-1">
+              <CollapsibleContent className="pl-4 space-y-1 mt-1">
                 {groupCalendars.map(calendar => (
                   <CalendarItem
                     key={calendar.id}
@@ -171,7 +194,8 @@ function CalendarItem({ calendar, isSelected, onToggle, onEdit }: CalendarItemPr
   return (
     <div
       className={cn(
-        "flex items-center gap-2 py-1.5 px-2 rounded group",
+        "flex items-center gap-3 py-2 px-3 rounded-xl group transition-all duration-200",
+        "hover:bg-accent/40 hover:shadow-sm",
         calendar.status === 'inactive' && "opacity-50"
       )}
     >
@@ -179,25 +203,26 @@ function CalendarItem({ calendar, isSelected, onToggle, onEdit }: CalendarItemPr
         checked={isSelected}
         onCheckedChange={onToggle}
         disabled={calendar.status === 'inactive'}
-        className="border-2"
+        className="border-2 rounded-md transition-all duration-200 data-[state=checked]:shadow-md"
         style={{ 
           borderColor: calendar.color,
-          backgroundColor: isSelected ? calendar.color : 'transparent'
+          backgroundColor: isSelected ? calendar.color : 'transparent',
+          boxShadow: isSelected ? `0 2px 8px ${calendar.color}40` : 'none'
         }}
       />
       <div className="flex-1 min-w-0">
-        <span className="text-sm truncate block">{calendar.name}</span>
+        <span className="text-sm font-medium truncate block">{calendar.name}</span>
         <span className="text-xs text-muted-foreground">
-          {calendarTypeLabels[calendar.calendar_type]}
+          {calendarTypeLabels[calendar.calendar_type as keyof typeof calendarTypeLabels]}
         </span>
       </div>
       <Button
         size="icon"
         variant="ghost"
-        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-background/80"
         onClick={onEdit}
       >
-        <Settings className="h-3 w-3" />
+        <Settings className="h-3.5 w-3.5" />
       </Button>
     </div>
   );
