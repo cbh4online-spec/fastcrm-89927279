@@ -146,8 +146,8 @@ const navigationGroups: NavGroup[] = [
     tooltip: "Encontrar novos potenciais clientes",
     highlight: true,
     items: [
-      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar empresas no Google Maps", highlight: true, moduleSlug: "google-local-prospecting" },
-      { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar empresas na web", moduleSlug: "web-search-prospecting" },
+      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar empresas no Google Maps", highlight: true, moduleSlug: "google-local-services" },
+      { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar empresas na web", moduleSlug: "web-search-services" },
     ],
   },
   {
