@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSmartCompanies, useAnalyzeCompany, useBulkAnalyzeCompanies, SmartCompaniesFilters } from "@/hooks/useSmartCompanies";
+import { useCompanies } from "@/hooks/useCompanies";
 import { SmartCompaniesKPIs } from "./SmartCompaniesKPIs";
 import { SmartCompaniesFilters as FiltersComponent } from "./SmartCompaniesFilters";
 import { SmartCompanyRow } from "./SmartCompanyRow";
@@ -31,6 +32,7 @@ export function SmartCompaniesTable() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
 
   const { data: companies, isLoading, refetch } = useSmartCompanies(filters);
+  const { deleteCompany } = useCompanies();
   const analyze = useAnalyzeCompany();
   const bulkAnalyze = useBulkAnalyzeCompanies();
 
@@ -51,6 +53,24 @@ export function SmartCompaniesTable() {
     toast.loading(`A analisar ${selectedIds.size}...`);
     try { const r = await bulkAnalyze.mutateAsync(Array.from(selectedIds)); toast.dismiss(); toast.success(`${r.successful} analisadas`); setSelectedIds(new Set()); }
     catch { toast.dismiss(); toast.error("Erro"); }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    toast.loading(`A eliminar ${ids.length} empresas...`);
+    try {
+      for (const id of ids) {
+        await deleteCompany.mutateAsync(id);
+      }
+      toast.dismiss();
+      toast.success(`${ids.length} empresa(s) eliminada(s)`);
+      setSelectedIds(new Set());
+      setShowDeleteDialog(false);
+      refetch();
+    } catch (error) {
+      toast.dismiss();
+      toast.error("Erro ao eliminar empresas");
+    }
   };
 
   const shouldShowAdvanced = showAdvanced || activeView === "sales" || activeView === "manager";
@@ -121,8 +141,19 @@ export function SmartCompaniesTable() {
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Eliminar {selectedIds.size} empresa(s)?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Eliminar</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar {selectedIds.size} empresa(s)?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
