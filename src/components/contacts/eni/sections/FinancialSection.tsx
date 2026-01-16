@@ -2,9 +2,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCard, Euro, Clock } from "lucide-react";
+import { CreditCard, Euro, Clock, Lock } from "lucide-react";
 import { ENIContact, PAYMENT_CONDITIONS, PAYMENT_METHODS } from "../ENIContactTypes";
+import { useContactPermissions } from "../useContactPermissions";
 
 interface FinancialSectionProps {
   contact: ENIContact;
@@ -19,18 +21,55 @@ export function FinancialSection({
   editedData, 
   onFieldChange 
 }: FinancialSectionProps) {
+  const { canView, canEdit } = useContactPermissions();
+
+  // Check permissions
+  if (!canView("financial")) {
+    return (
+      <Card className="border-muted bg-muted/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2 text-muted-foreground">
+            <Lock className="h-4 w-4" />
+            Financeiro & Pagamentos
+          </CardTitle>
+          <CardDescription>
+            <Badge variant="outline" className="text-xs">Acesso restrito</Badge>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Não tem permissões para ver esta secção.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const canEditSection = canEdit("financial");
+  const effectiveIsEditing = isEditing && canEditSection;
+
   const getValue = <K extends keyof ENIContact>(field: K): ENIContact[K] => {
-    return isEditing && field in editedData ? editedData[field] as ENIContact[K] : contact[field];
+    return effectiveIsEditing && field in editedData ? editedData[field] as ENIContact[K] : contact[field];
   };
 
   return (
     <Card className="border-blue-200/50 bg-blue-50/30 dark:bg-blue-950/10 dark:border-blue-800/30">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <CreditCard className="h-4 w-4 text-blue-600" />
-          Financeiro & Pagamentos
-        </CardTitle>
-        <CardDescription>Condições financeiras e métodos de pagamento.</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-blue-600" />
+              Financeiro & Pagamentos
+            </CardTitle>
+            <CardDescription>Condições financeiras e métodos de pagamento.</CardDescription>
+          </div>
+          {!canEditSection && (
+            <Badge variant="outline" className="text-xs gap-1">
+              <Lock className="h-3 w-3" />
+              Só leitura
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Payment Conditions */}
@@ -39,7 +78,7 @@ export function FinancialSection({
             <Clock className="h-3.5 w-3.5" />
             Condições de Pagamento
           </Label>
-          {isEditing ? (
+          {effectiveIsEditing ? (
             <Select
               value={getValue('payment_conditions') || ''}
               onValueChange={(value) => onFieldChange('payment_conditions', value)}
@@ -61,7 +100,7 @@ export function FinancialSection({
         {/* Preferred Payment Method */}
         <div className="space-y-2">
           <Label htmlFor="preferred_payment_method">Forma de Pagamento Preferida</Label>
-          {isEditing ? (
+          {effectiveIsEditing ? (
             <Select
               value={getValue('preferred_payment_method') || ''}
               onValueChange={(value) => onFieldChange('preferred_payment_method', value)}
@@ -86,7 +125,7 @@ export function FinancialSection({
             <Euro className="h-3.5 w-3.5" />
             Plafond de Crédito
           </Label>
-          {isEditing ? (
+          {effectiveIsEditing ? (
             <Input
               id="credit_limit"
               type="number"
@@ -117,7 +156,7 @@ export function FinancialSection({
             id="credit_active"
             checked={getValue('credit_active') || false}
             onCheckedChange={(checked) => onFieldChange('credit_active', checked)}
-            disabled={!isEditing}
+            disabled={!effectiveIsEditing}
           />
         </div>
       </CardContent>

@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
-import { ArrowLeft, Edit2, Save, X, Trash2, User, Clock, Building2 } from "lucide-react";
+import { ArrowLeft, Edit2, Save, X, Trash2, User, Clock, Building2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ENIContact, ENTITY_TYPE_LABELS, EntityType } from "./ENIContactTypes";
@@ -21,7 +22,16 @@ import { AIInsightsSection } from "./sections/AIInsightsSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
 import { ProductsSection } from "./sections/ProductsSection";
 import { useAnalyzeContact } from "@/hooks/useSmartContacts";
+import { useContactPermissions } from "./useContactPermissions";
 import { cn } from "@/lib/utils";
+
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Proprietário",
+  admin: "Administrador",
+  agency: "Agência",
+  agent: "Vendas",
+  viewer: "Suporte",
+};
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -39,9 +49,13 @@ export function ENIContactDetail() {
   const analyzeContact = useAnalyzeContact();
   
   const contact = contacts.find(c => c.id === id) as unknown as ENIContact | undefined;
+  const { role, canEdit, isLoading: permissionsLoading } = useContactPermissions();
   
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState<Partial<ENIContact>>({});
+
+  // Check if user can edit anything
+  const canEditAnything = role && (role === 'owner' || role === 'admin' || role === 'agency' || role === 'agent');
 
   const handleFieldChange = useCallback((field: keyof ENIContact, value: unknown) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
@@ -150,10 +164,25 @@ export function ENIContactDetail() {
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5" />
-                Atualizado há {getTimeAgo(new Date(contact.updated_at))}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5" />
+                  Atualizado há {getTimeAgo(new Date(contact.updated_at))}
+                </p>
+                {role && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="gap-1 text-xs cursor-help">
+                        <Shield className="w-3 h-3" />
+                        {ROLE_LABELS[role] || role}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>O seu nível de acesso nesta ficha</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
             </div>
           </div>
 
@@ -167,22 +196,28 @@ export function ENIContactDetail() {
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={handleEdit}><Edit2 className="w-4 h-4 mr-2" />Editar</Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="icon"><Trash2 className="w-4 h-4" /></Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Eliminar Contacto</AlertDialogTitle>
-                      <AlertDialogDescription>Tem a certeza? Esta ação não pode ser revertida.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                {canEditAnything && (
+                  <Button variant="outline" onClick={handleEdit}>
+                    <Edit2 className="w-4 h-4 mr-2" />Editar
+                  </Button>
+                )}
+                {(role === 'owner' || role === 'admin') && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="icon"><Trash2 className="w-4 h-4" /></Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Eliminar Contacto</AlertDialogTitle>
+                        <AlertDialogDescription>Tem a certeza? Esta ação não pode ser revertida.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </>
             )}
           </div>
