@@ -640,5 +640,67 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2023-03-01T00:00:00Z",
     updated_at: "2024-12-20T00:00:00Z",
     published_at: "2023-03-15T00:00:00Z"
+  },
+  {
+    id: "google-local-services",
+    slug: "google-local-services",
+    name: "Google Local Services",
+    tagline: "Prospecção inteligente com dados do Google Places",
+    description: "Pesquise e importe dados de empresas locais diretamente do Google. Obtenha automaticamente nome, rating, avaliações, morada, telefone, website, horários, serviços e imagens para enriquecer os seus leads e contactos.",
+    category: "prospecting",
+    icon: "MapPin",
+    cover_image: undefined,
+    screenshots: [],
+    video_url: undefined,
+    target_audience: "Equipas de vendas B2B, agências de marketing local e empresas de serviços",
+    expected_results: [
+      "Prospecção 10x mais rápida",
+      "Dados de contacto verificados pelo Google",
+      "Enriquecimento automático de leads",
+      "+50% mais leads qualificados por mês"
+    ],
+    use_cases: [
+      "Encontrar empresas por localização e setor",
+      "Enriquecer leads com dados do Google",
+      "Analisar concorrência local",
+      "Importar avaliações e ratings",
+      "Descobrir serviços oferecidos"
+    ],
+    internal_type: "connector",
+    status: "active",
+    version: "1.0.0",
+    embedded_config: undefined,
+    permissions: {
+      data_permissions: [
+        { entity: "leads", read: true, write: true, delete: false },
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "companies", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "credits",
+      base_price: 39,
+      currency: "EUR",
+      usage_unit: "pesquisa",
+      price_per_unit: 0.05,
+      credits_included: 500,
+      price_per_credit: 0.08,
+      trial_days: 7,
+      trial_credits: 50
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.7,
+    reviews_count: 42,
+    installs_count: 380,
+    created_at: "2025-01-10T00:00:00Z",
+    updated_at: "2025-01-16T00:00:00Z",
+    published_at: "2025-01-15T00:00:00Z"
   }
 ];
