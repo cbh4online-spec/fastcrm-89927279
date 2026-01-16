@@ -4098,6 +4098,8 @@ export type Database = {
           ai_temperature: string | null
           assigned_to: string | null
           automation_active: boolean | null
+          business_category: string | null
+          business_hours: Json | null
           cae_codes: string[] | null
           cae_description: string | null
           capital_social: string | null
@@ -4117,17 +4119,26 @@ export type Database = {
           facebook_url: string | null
           fax: string | null
           founding_date: string | null
+          google_place_id: string | null
           id: string
           instagram_url: string | null
           last_contact_at: string | null
+          latitude: number | null
           lead_score: number | null
           legal_nature: string | null
           linkedin_url: string | null
+          longitude: number | null
           name: string
           parish: string | null
           phone: string | null
+          photos: string[] | null
           postal_code: string | null
+          price_level: number | null
+          rating: number | null
           region: string | null
+          reviews: Json | null
+          reviews_count: number | null
+          services: string[] | null
           source: string | null
           status: string
           tags: string[] | null
@@ -4147,6 +4158,8 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          business_category?: string | null
+          business_hours?: Json | null
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
@@ -4166,17 +4179,26 @@ export type Database = {
           facebook_url?: string | null
           fax?: string | null
           founding_date?: string | null
+          google_place_id?: string | null
           id?: string
           instagram_url?: string | null
           last_contact_at?: string | null
+          latitude?: number | null
           lead_score?: number | null
           legal_nature?: string | null
           linkedin_url?: string | null
+          longitude?: number | null
           name: string
           parish?: string | null
           phone?: string | null
+          photos?: string[] | null
           postal_code?: string | null
+          price_level?: number | null
+          rating?: number | null
           region?: string | null
+          reviews?: Json | null
+          reviews_count?: number | null
+          services?: string[] | null
           source?: string | null
           status?: string
           tags?: string[] | null
@@ -4196,6 +4218,8 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          business_category?: string | null
+          business_hours?: Json | null
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
@@ -4215,17 +4239,26 @@ export type Database = {
           facebook_url?: string | null
           fax?: string | null
           founding_date?: string | null
+          google_place_id?: string | null
           id?: string
           instagram_url?: string | null
           last_contact_at?: string | null
+          latitude?: number | null
           lead_score?: number | null
           legal_nature?: string | null
           linkedin_url?: string | null
+          longitude?: number | null
           name?: string
           parish?: string | null
           phone?: string | null
+          photos?: string[] | null
           postal_code?: string | null
+          price_level?: number | null
+          rating?: number | null
           region?: string | null
+          reviews?: Json | null
+          reviews_count?: number | null
+          services?: string[] | null
           source?: string | null
           status?: string
           tags?: string[] | null
