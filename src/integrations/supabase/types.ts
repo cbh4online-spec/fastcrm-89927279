@@ -567,6 +567,118 @@ export type Database = {
           },
         ]
       }
+      availability_calendar_assignments: {
+        Row: {
+          availability_id: string
+          calendar_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          availability_id: string
+          calendar_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          availability_id?: string
+          calendar_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_calendar_assignments_availability_id_fkey"
+            columns: ["availability_id"]
+            isOneToOne: false
+            referencedRelation: "user_availability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_calendar_assignments_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      availability_exceptions: {
+        Row: {
+          availability_id: string
+          created_at: string
+          end_time: string | null
+          exception_date: string
+          exception_type: string
+          id: string
+          reason: string | null
+          start_time: string | null
+        }
+        Insert: {
+          availability_id: string
+          created_at?: string
+          end_time?: string | null
+          exception_date: string
+          exception_type: string
+          id?: string
+          reason?: string | null
+          start_time?: string | null
+        }
+        Update: {
+          availability_id?: string
+          created_at?: string
+          end_time?: string | null
+          exception_date?: string
+          exception_type?: string
+          id?: string
+          reason?: string | null
+          start_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_exceptions_availability_id_fkey"
+            columns: ["availability_id"]
+            isOneToOne: false
+            referencedRelation: "user_availability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      availability_slots: {
+        Row: {
+          availability_id: string
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          start_time: string
+        }
+        Insert: {
+          availability_id: string
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          start_time: string
+        }
+        Update: {
+          availability_id?: string
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_slots_availability_id_fkey"
+            columns: ["availability_id"]
+            isOneToOne: false
+            referencedRelation: "user_availability"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_events: {
         Row: {
           created_at: string
@@ -8242,6 +8354,50 @@ export type Database = {
           },
         ]
       }
+      user_availability: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          timezone: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          timezone?: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_availability_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -9063,6 +9219,15 @@ export type Database = {
           credits_required: number
           message: string
         }[]
+      }
+      check_user_availability: {
+        Args: {
+          p_end_time: string
+          p_start_time: string
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: boolean
       }
       check_workspace_quota: {
         Args: { p_resource_type: string; p_workspace_id: string }
