@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,9 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, X, AlertTriangle } from "lucide-react";
+import { Pencil, X, AlertTriangle, Search } from "lucide-react";
 import { CrmEntityType } from "@/hooks/useCrmViews";
 
 export interface BulkEditField {
@@ -28,6 +34,7 @@ export interface BulkEditField {
   label: string;
   type: "text" | "select" | "number" | "boolean";
   options?: { value: string; label: string }[];
+  section?: string;
 }
 
 interface BulkEditDialogProps {
@@ -38,6 +45,74 @@ interface BulkEditDialogProps {
   fields: BulkEditField[];
   onApply: (changes: Record<string, unknown>) => Promise<void>;
 }
+
+// Map fields to sections
+const fieldSections: Record<string, string> = {
+  name: "info",
+  email: "info",
+  phone: "info",
+  whatsapp_number: "info",
+  has_whatsapp: "info",
+  company: "info",
+  job_title: "info",
+  commercial_name: "info",
+  address: "location",
+  city: "location",
+  postal_code: "location",
+  country: "location",
+  source: "classification",
+  lead_source: "classification",
+  client_status: "classification",
+  client_types: "classification",
+  abc_category: "classification",
+  ai_temperature: "ai",
+  ai_contact_type: "ai",
+  ai_next_action_type: "ai",
+  contact_score: "ai",
+  conversion_probability: "ai",
+  estimated_value: "ai",
+  automation_active: "automation",
+  assigned_to: "automation",
+  is_primary_contact: "automation",
+  tax_id: "fiscal",
+  entity_type: "fiscal",
+  fiscal_regime: "fiscal",
+  is_fiscal_address: "fiscal",
+  business_area: "business",
+  cae_code: "business",
+  cae_description: "business",
+  credit_active: "financial",
+  credit_limit: "financial",
+  payment_conditions: "financial",
+  preferred_payment_method: "financial",
+  average_ticket: "financial",
+  total_revenue: "financial",
+  sales_2023: "sales",
+  sales_2024: "sales",
+  sales_2025: "sales",
+  sales_2026: "sales",
+  linkedin_url: "social",
+  facebook_url: "social",
+  instagram_url: "social",
+  twitter_url: "social",
+  notes: "other",
+};
+
+const sectionLabels: Record<string, string> = {
+  info: "Informação Básica",
+  location: "Localização",
+  classification: "Classificação e Status",
+  ai: "IA e Análise",
+  automation: "Automação e Atribuição",
+  fiscal: "Dados Fiscais",
+  business: "Negócio",
+  financial: "Financeiro",
+  sales: "Histórico de Vendas",
+  social: "Redes Sociais",
+  other: "Outros",
+};
+
+const sectionOrder = ["info", "location", "classification", "ai", "automation", "fiscal", "business", "financial", "sales", "social", "other"];
 
 export function BulkEditDialog({
   open,
@@ -50,6 +125,7 @@ export function BulkEditDialog({
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
   const [fieldValues, setFieldValues] = useState<Record<string, unknown>>({});
   const [isApplying, setIsApplying] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const getEntityLabel = () => {
     if (entityType === "contacts") return { singular: "contacto", plural: "contactos" };
@@ -57,6 +133,41 @@ export function BulkEditDialog({
     return { singular: "registo", plural: "registos" };
   };
   const { singular: entityLabel, plural: entityLabelPlural } = getEntityLabel();
+
+  // Group fields by section
+  const fieldsBySection = useMemo(() => {
+    const grouped: Record<string, BulkEditField[]> = {};
+    
+    fields.forEach((field) => {
+      const section = fieldSections[field.key] || "other";
+      if (!grouped[section]) {
+        grouped[section] = [];
+      }
+      grouped[section].push(field);
+    });
+    
+    return grouped;
+  }, [fields]);
+
+  // Filter fields by search term
+  const filteredFieldsBySection = useMemo(() => {
+    if (!searchTerm.trim()) return fieldsBySection;
+    
+    const term = searchTerm.toLowerCase();
+    const filtered: Record<string, BulkEditField[]> = {};
+    
+    Object.entries(fieldsBySection).forEach(([section, sectionFields]) => {
+      const matchingFields = sectionFields.filter((field) => 
+        field.label.toLowerCase().includes(term) || 
+        field.key.toLowerCase().includes(term)
+      );
+      if (matchingFields.length > 0) {
+        filtered[section] = matchingFields;
+      }
+    });
+    
+    return filtered;
+  }, [fieldsBySection, searchTerm]);
 
   const toggleField = (key: string) => {
     const newSelected = new Set(selectedFields);
@@ -90,9 +201,9 @@ export function BulkEditDialog({
     setIsApplying(true);
     try {
       await onApply(changes);
-      // Reset state
       setSelectedFields(new Set());
       setFieldValues({});
+      setSearchTerm("");
       onOpenChange(false);
     } finally {
       setIsApplying(false);
@@ -102,6 +213,7 @@ export function BulkEditDialog({
   const handleClose = () => {
     setSelectedFields(new Set());
     setFieldValues({});
+    setSearchTerm("");
     onOpenChange(false);
   };
 
@@ -119,7 +231,7 @@ export function BulkEditDialog({
             <SelectTrigger className={!isSelected ? "opacity-50" : ""}>
               <SelectValue placeholder="Selecionar..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover z-50">
               {field.options?.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -151,7 +263,7 @@ export function BulkEditDialog({
             <SelectTrigger className={!isSelected ? "opacity-50" : ""}>
               <SelectValue placeholder="Selecionar..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover z-50">
               <SelectItem value="true">Sim</SelectItem>
               <SelectItem value="false">Não</SelectItem>
             </SelectContent>
@@ -171,9 +283,48 @@ export function BulkEditDialog({
     }
   };
 
+  const renderFieldRow = (field: BulkEditField) => {
+    const isSelected = selectedFields.has(field.key);
+    
+    return (
+      <div key={field.key} className="py-2 border-b border-border/50 last:border-0">
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id={`field-${field.key}`}
+            checked={isSelected}
+            onCheckedChange={() => toggleField(field.key)}
+            className="mt-1"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Label
+                htmlFor={`field-${field.key}`}
+                className="text-sm font-medium cursor-pointer"
+              >
+                {field.label}
+              </Label>
+              {isSelected && (
+                <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                  Selecionado
+                </Badge>
+              )}
+            </div>
+            {isSelected && (
+              <div className="mt-2">
+                {renderFieldInput(field)}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const sectionsWithFields = sectionOrder.filter((section) => filteredFieldsBySection[section]?.length > 0);
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-5 w-5" />
@@ -181,13 +332,25 @@ export function BulkEditDialog({
           </DialogTitle>
           <DialogDescription>
             Edite campos de {selectedCount} {selectedCount === 1 ? entityLabel : entityLabelPlural} selecionado{selectedCount === 1 ? "" : "s"}.
-            Selecione os campos que pretende alterar.
+            Marque os campos que pretende alterar.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-2">
+        <div className="flex-1 overflow-hidden flex flex-col gap-3 py-2">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar campos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {/* Warning */}
           {selectedFields.size > 0 && (
-            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-2">
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
               <div className="text-sm text-amber-700 dark:text-amber-300">
                 <p className="font-medium">Atenção</p>
@@ -198,56 +361,55 @@ export function BulkEditDialog({
             </div>
           )}
 
-          <ScrollArea className="max-h-[400px] pr-4">
-            <div className="space-y-4">
-              {fields.map((field) => (
-                <div key={field.key} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id={`field-${field.key}`}
-                      checked={selectedFields.has(field.key)}
-                      onCheckedChange={() => toggleField(field.key)}
+          {/* Selected fields summary */}
+          {selectedFields.size > 0 && (
+            <div className="flex flex-wrap gap-1 p-2 bg-muted/50 rounded-lg">
+              <span className="text-xs text-muted-foreground mr-1">Campos a editar:</span>
+              {Array.from(selectedFields).map((key) => {
+                const field = fields.find((f) => f.key === key);
+                return (
+                  <Badge key={key} variant="secondary" className="text-xs flex items-center gap-1">
+                    {field?.label}
+                    <X
+                      className="h-3 w-3 cursor-pointer hover:text-destructive"
+                      onClick={() => toggleField(key)}
                     />
-                    <Label
-                      htmlFor={`field-${field.key}`}
-                      className="text-sm font-medium cursor-pointer flex-1"
-                    >
-                      {field.label}
-                    </Label>
-                    {selectedFields.has(field.key) && (
-                      <Badge variant="secondary" className="text-xs">
-                        A editar
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="pl-6">
-                    {renderFieldInput(field)}
-                  </div>
-                </div>
-              ))}
+                  </Badge>
+                );
+              })}
             </div>
+          )}
+
+          {/* Fields accordion */}
+          <ScrollArea className="flex-1 pr-4">
+            <Accordion type="multiple" defaultValue={["info", "classification"]} className="w-full">
+              {sectionsWithFields.map((section) => (
+                <AccordionItem key={section} value={section}>
+                  <AccordionTrigger className="hover:no-underline py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{sectionLabels[section]}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {filteredFieldsBySection[section]?.length || 0}
+                      </Badge>
+                      {filteredFieldsBySection[section]?.some((f) => selectedFields.has(f.key)) && (
+                        <Badge variant="default" className="text-xs">
+                          {filteredFieldsBySection[section]?.filter((f) => selectedFields.has(f.key)).length} selecionado(s)
+                        </Badge>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-0">
+                      {filteredFieldsBySection[section]?.map(renderFieldRow)}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </ScrollArea>
         </div>
 
-        {selectedFields.size > 0 && (
-          <div className="flex flex-wrap gap-1 pb-2">
-            <span className="text-xs text-muted-foreground mr-1">Campos a editar:</span>
-            {Array.from(selectedFields).map((key) => {
-              const field = fields.find((f) => f.key === key);
-              return (
-                <Badge key={key} variant="outline" className="text-xs flex items-center gap-1">
-                  {field?.label}
-                  <X
-                    className="h-3 w-3 cursor-pointer hover:text-destructive"
-                    onClick={() => toggleField(key)}
-                  />
-                </Badge>
-              );
-            })}
-          </div>
-        )}
-
-        <DialogFooter>
+        <DialogFooter className="mt-4">
           <Button variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
