@@ -53,9 +53,9 @@ import {
   Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
-import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
+import { InlineCustomFieldRow } from "@/components/custom-fields/InlineCustomFieldRow";
 import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
-import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
+import { getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
 import { DetailRowWithSuggestion, getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
 import { 
   useFieldSuggestions, 
@@ -139,7 +139,6 @@ export function CompanyDetail() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(true);
-  const [showCustomFields, setShowCustomFields] = useState(true);
   const [showNotes, setShowNotes] = useState(true);
   const [showAddress, setShowAddress] = useState(true);
   const [editedCompany, setEditedCompany] = useState<{
@@ -272,6 +271,19 @@ export function CompanyDetail() {
       rejectSuggestion.mutate(suggestion);
     }
   }, [suggestions, rejectSuggestion]);
+
+  // Handler for inline custom field value change
+  const handleCustomFieldChange = useCallback(async (customFieldId: string, value: unknown) => {
+    if (!company) return;
+    const field = customFields.find(f => f.id === customFieldId);
+    await setCustomFieldValue.mutateAsync({
+      customFieldId,
+      entityId: company.id,
+      value,
+      fieldName: field?.name,
+      isUnique: field?.is_unique,
+    });
+  }, [company, customFields, setCustomFieldValue]);
 
   // Generate suggestions handler
   const handleGenerateSuggestions = async () => {
@@ -571,6 +583,20 @@ export function CompanyDetail() {
                     />
                   }
                 />
+                
+                {/* Custom Fields - Inline editable */}
+                {customFields.map((field) => (
+                  <InlineCustomFieldRow
+                    key={field.id}
+                    field={field}
+                    value={customFieldValuesMap.get(field.id)}
+                    onChange={(value) => handleCustomFieldChange(field.id, value)}
+                    suggestion={getCustomFieldSuggestion(suggestions, field.id)}
+                    onAcceptSuggestion={(value) => handleAcceptCustomFieldSuggestion(field.id, value)}
+                    onRejectSuggestion={() => handleRejectCustomFieldSuggestion(field.id)}
+                    isAcceptingSuggestion={acceptingField === field.id}
+                  />
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -655,52 +681,6 @@ export function CompanyDetail() {
             </Collapsible>
           )}
 
-          {/* Custom Fields Section - Show if there are fields defined or values exist */}
-          {(customFields.length > 0 || customFieldValues.length > 0) && (
-            <Collapsible open={showCustomFields} onOpenChange={setShowCustomFields}>
-              <Card>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base font-medium">Campos Personalizados</CardTitle>
-                      <ChevronDown className={cn(
-                        "w-4 h-4 text-muted-foreground transition-transform",
-                        showCustomFields && "rotate-180"
-                      )} />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="pt-0">
-                    {isEditing ? (
-                      <CustomFieldsForm entityType="company" entityId={company.id} />
-                    ) : (
-                      <div className="divide-y divide-border/50">
-                        {customFields.map((field) => (
-                          <CustomFieldWithSuggestion
-                            key={field.id}
-                            field={field}
-                            value={customFieldValuesMap.get(field.id)}
-                            onChange={() => {}}
-                            isEditing={false}
-                            suggestion={getCustomFieldSuggestion(suggestions, field.id)}
-                            onAcceptSuggestion={(value) => handleAcceptCustomFieldSuggestion(field.id, value)}
-                            onRejectSuggestion={() => handleRejectCustomFieldSuggestion(field.id)}
-                            isAcceptingSuggestion={acceptingField === field.id}
-                          />
-                        ))}
-                        {customFields.length === 0 && (
-                          <p className="text-sm text-muted-foreground py-3">
-                            Sem campos personalizados definidos
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          )}
 
           {/* More Details Section - Collapsible */}
           <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
