@@ -243,6 +243,8 @@ function CustomFieldInput({ field, value, onChange }: CustomFieldInputProps) {
       );
 
     case "select":
+      // Ensure options is always an array
+      const options = Array.isArray(field.options) ? field.options : [];
       return (
         <div className="space-y-2">
           <Label htmlFor={fieldId}>
@@ -257,7 +259,7 @@ function CustomFieldInput({ field, value, onChange }: CustomFieldInputProps) {
               <SelectValue placeholder={`Selecionar ${field.name.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent>
-              {field.options?.map((option) => (
+              {options.map((option) => (
                 <SelectItem key={option} value={option}>
                   {option}
                 </SelectItem>
