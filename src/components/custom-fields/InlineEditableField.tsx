@@ -23,7 +23,7 @@ import { InlineFieldSuggestion } from "@/components/ai/InlineFieldSuggestion";
 export interface InlineEditableFieldProps {
   label: string;
   fieldId: string;
-  fieldType: "text" | "email" | "phone" | "number" | "date" | "boolean" | "select" | "textarea" | "tags";
+  fieldType: "text" | "email" | "phone" | "number" | "currency" | "date" | "boolean" | "select" | "textarea" | "tags";
   value: unknown;
   onChange: (value: unknown) => Promise<void>;
   icon?: ReactNode;
@@ -99,6 +99,16 @@ export function InlineEditableField({
     }
   };
 
+  // Format currency value for display
+  const formatCurrency = (val: number): string => {
+    return new Intl.NumberFormat('pt-PT', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(val);
+  };
+
   // Format display value based on field type
   const formatValue = (val: unknown): ReactNode => {
     if (val === undefined || val === null || val === "") return "—";
@@ -113,7 +123,9 @@ export function InlineEditableField({
           return String(val);
         }
       case "number":
-        return String(val);
+        return new Intl.NumberFormat('pt-PT').format(Number(val));
+      case "currency":
+        return formatCurrency(Number(val));
       case "tags":
         if (Array.isArray(val) && val.length > 0) {
           return (
@@ -157,15 +169,17 @@ export function InlineEditableField({
         );
 
       case "number":
+      case "currency":
         return (
           <Input
             type="number"
+            step={fieldType === "currency" ? "0.01" : "1"}
             value={(editedValue as number) ?? ""}
             onChange={(e) => setEditedValue(e.target.value ? Number(e.target.value) : null)}
             onKeyDown={handleKeyDown}
             className="h-8 text-sm"
             autoFocus
-            placeholder={placeholder || "0"}
+            placeholder={placeholder || (fieldType === "currency" ? "0.00" : "0")}
           />
         );
 

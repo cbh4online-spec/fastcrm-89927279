@@ -110,22 +110,16 @@ export function useContacts() {
   });
 
   const updateContact = useMutation({
-    mutationFn: async ({ id, ...data }: UpdateContactData) => {
+    mutationFn: async (input: { id: string } & Record<string, unknown>) => {
+      const { id, ...data } = input;
+      // Build update data dynamically - include all fields except 'id'
       const updateData: Record<string, unknown> = {};
-      if (data.name !== undefined) updateData.name = data.name;
-      if (data.email !== undefined) updateData.email = data.email || null;
-      if (data.phone !== undefined) updateData.phone = data.phone || null;
-      if (data.company !== undefined) updateData.company = data.company || null;
-      if (data.company_id !== undefined) updateData.company_id = data.company_id || null;
-      if (data.is_primary_contact !== undefined) updateData.is_primary_contact = data.is_primary_contact;
-      if (data.job_title !== undefined) updateData.job_title = data.job_title || null;
-      if (data.notes !== undefined) updateData.notes = data.notes || null;
-      if (data.tags !== undefined) updateData.tags = data.tags || [];
-      if (data.tax_id !== undefined) updateData.tax_id = data.tax_id || null;
-      if (data.linkedin_url !== undefined) updateData.linkedin_url = data.linkedin_url || null;
-      if (data.facebook_url !== undefined) updateData.facebook_url = data.facebook_url || null;
-      if (data.instagram_url !== undefined) updateData.instagram_url = data.instagram_url || null;
-      if (data.twitter_url !== undefined) updateData.twitter_url = data.twitter_url || null;
+      
+      Object.keys(data).forEach((key) => {
+        const value = data[key];
+        // Convert undefined to null for database
+        updateData[key] = value === undefined ? null : value;
+      });
 
       const { data: contact, error } = await supabase
         .from("contacts")

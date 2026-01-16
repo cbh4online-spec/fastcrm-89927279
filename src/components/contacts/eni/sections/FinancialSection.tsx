@@ -89,7 +89,7 @@ export function FinancialSection({
         <InlineEditableField
           label="Plafond de Crédito"
           fieldId="credit_limit"
-          fieldType="number"
+          fieldType="currency"
           value={contact.credit_limit}
           onChange={(value) => onFieldChange('credit_limit', value)}
           placeholder="0.00"
