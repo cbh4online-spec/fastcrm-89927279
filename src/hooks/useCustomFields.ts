@@ -49,16 +49,31 @@ export interface UpdateCustomFieldInput {
 }
 
 
-// Helper to ensure options is always an array
+// Helper to ensure options is always an array of strings
 function normalizeOptions(options: unknown): string[] {
+  // If it's already an array, filter for strings
   if (Array.isArray(options)) {
     return options.filter((opt): opt is string => typeof opt === "string");
   }
+  // If it's an object with a 'choices' property (common DB format)
+  if (options && typeof options === "object" && "choices" in options) {
+    const choices = (options as { choices: unknown }).choices;
+    if (Array.isArray(choices)) {
+      return choices.filter((opt): opt is string => typeof opt === "string");
+    }
+  }
+  // If it's a JSON string
   if (typeof options === "string") {
     try {
       const parsed = JSON.parse(options);
       if (Array.isArray(parsed)) {
         return parsed.filter((opt): opt is string => typeof opt === "string");
+      }
+      if (parsed && typeof parsed === "object" && "choices" in parsed) {
+        const choices = parsed.choices;
+        if (Array.isArray(choices)) {
+          return choices.filter((opt): opt is string => typeof opt === "string");
+        }
       }
     } catch {
       // If it's a comma-separated string, split it
