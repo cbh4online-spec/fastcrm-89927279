@@ -89,13 +89,6 @@ const navigationGroups: NavGroup[] = [
         icon: LayoutDashboard,
         tooltip: "Visão geral com KPIs e ações prioritárias"
       },
-      { 
-        name: "KPIs & Previsões", 
-        href: "/dashboard/kpis", 
-        icon: TrendingUp,
-        tooltip: "Métricas e previsões adaptativas",
-        highlight: true
-      },
     ],
   },
   {
@@ -143,12 +136,15 @@ const navigationGroups: NavGroup[] = [
   {
     name: "Relatórios",
     icon: BarChart3,
-    tooltip: "Previsões e análises de negócio",
+    tooltip: "Previsões, métricas e análises de negócio",
     highlight: true,
     items: [
       { name: "Visão Geral", href: "/dashboard/reports", icon: PieChart, tooltip: "KPIs executivos" },
-      { name: "Previsões", href: "/dashboard/reports/forecasts", icon: TrendingUp, tooltip: "Receita prevista", highlight: true },
+      { name: "KPIs Operacionais", href: "/dashboard/reports/kpis", icon: TrendingUp, tooltip: "Métricas detalhadas", highlight: true },
+      { name: "Previsões", href: "/dashboard/reports/forecasts", icon: TrendingUp, tooltip: "Receita prevista" },
+      { name: "Vendas", href: "/dashboard/reports/sales", icon: Target, tooltip: "Pipeline e propostas" },
       { name: "Consumo", href: "/dashboard/reports/consumption", icon: BarChart3, tooltip: "Sessões e capacidade" },
+      { name: "Crescimento", href: "/dashboard/reports/growth", icon: Users, tooltip: "Top clientes e vendedores" },
       { name: "Retenção & Churn", href: "/dashboard/reports/retention", icon: Users, tooltip: "Clientes em risco" },
     ],
   },
