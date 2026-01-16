@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Package, Plus, Calendar, TrendingUp, Minus, MoreHorizontal, Trash2 } from "lucide-react";
+import { Package, Plus, Calendar, TrendingUp, Minus, MoreHorizontal, Trash2, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Loader2 } from "lucide-react";
+import { ConsumptionLogsPanel } from "@/components/consumption/ConsumptionLogsPanel";
 import { useProducts } from "@/hooks/useProducts";
 import { 
   useContactAcquiredProducts, 
@@ -235,6 +237,8 @@ export function AcquiredProductsSection({ contactId, companyId }: AcquiredProduc
                   <ProductRow 
                     key={product.id} 
                     product={product}
+                    contactId={contactId}
+                    companyId={companyId}
                     onRegisterConsumption={handleRegisterConsumption}
                     onDelete={handleDelete}
                     isRegisteringConsumption={registerConsumption.isPending}
@@ -252,6 +256,8 @@ export function AcquiredProductsSection({ contactId, companyId }: AcquiredProduc
                     <ProductRow 
                       key={product.id} 
                       product={product}
+                      contactId={contactId}
+                      companyId={companyId}
                       onRegisterConsumption={handleRegisterConsumption}
                       onDelete={handleDelete}
                       isRegisteringConsumption={registerConsumption.isPending}
@@ -270,6 +276,8 @@ export function AcquiredProductsSection({ contactId, companyId }: AcquiredProduc
 
 interface ProductRowProps {
   product: AcquiredProduct;
+  contactId?: string;
+  companyId?: string;
   onRegisterConsumption: (id: string) => void;
   onDelete: (id: string) => void;
   isRegisteringConsumption: boolean;
@@ -278,11 +286,14 @@ interface ProductRowProps {
 
 function ProductRow({ 
   product, 
+  contactId,
+  companyId,
   onRegisterConsumption, 
   onDelete,
   isRegisteringConsumption,
   isHistorical 
 }: ProductRowProps) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const consumptionPercentage = getConsumptionPercentage(product);
   const remaining = getRemainingQuantity(product);
   const status = (product.status || 'ativo') as AcquiredProductStatus;
@@ -355,9 +366,16 @@ function ProductRow({
                 disabled={isRegisteringConsumption}
               >
                 <Minus className="h-4 w-4 mr-2" />
-                Registar consumo
+                Registar consumo (+1)
               </DropdownMenuItem>
             )}
+            {isTrackable && (
+              <DropdownMenuItem onClick={() => setIsHistoryOpen(true)}>
+                <History className="h-4 w-4 mr-2" />
+                Ver histórico
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
@@ -387,6 +405,22 @@ function ProductRow({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+
+      {/* Consumption History Sheet */}
+      <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <SheetContent className="w-[400px] sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle>Histórico de Consumo</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            <ConsumptionLogsPanel 
+              acquiredProduct={product}
+              contactId={contactId}
+              companyId={companyId}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -987,6 +987,97 @@ export type Database = {
           },
         ]
       }
+      consumption_logs: {
+        Row: {
+          acquired_product_id: string
+          company_id: string | null
+          consumption_date: string
+          consumption_type: string
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          source: string
+          workspace_id: string
+        }
+        Insert: {
+          acquired_product_id: string
+          company_id?: string | null
+          consumption_date?: string
+          consumption_type?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity?: number
+          source?: string
+          workspace_id: string
+        }
+        Update: {
+          acquired_product_id?: string
+          company_id?: string | null
+          consumption_date?: string
+          consumption_type?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          source?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_logs_acquired_product_id_fkey"
+            columns: ["acquired_product_id"]
+            isOneToOne: false
+            referencedRelation: "contact_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "consumption_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_documents: {
         Row: {
           contact_id: string
