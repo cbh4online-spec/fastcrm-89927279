@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { MarketplaceModule, CATEGORY_INFO } from "@/types/marketplace";
-import { Star, Users, Check, Shield, Sparkles, Clock, Building2, ExternalLink, Play, Key, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Star, Users, Check, Shield, Sparkles, Clock, Building2, ExternalLink, Play, Key, Eye, EyeOff, CheckCircle2, Loader2 } from "lucide-react";
 import { getIconByName } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 
 // API Key Field Component
 interface ApiKeyFieldProps {
@@ -85,6 +85,9 @@ interface ModuleDetailSheetProps {
 }
 
 export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }: ModuleDetailSheetProps) {
+  const { installModule, uninstallModule, refresh } = useWorkspaceModules();
+  const [isInstalling, setIsInstalling] = useState(false);
+
   if (!module) return null;
 
   const category = CATEGORY_INFO[module.category];
@@ -97,9 +100,17 @@ export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }
     return `${module.pricing.base_price}€`;
   };
 
-  const handleInstall = () => {
-    toast.success(`Módulo "${module.name}" instalado com sucesso!`);
-    onClose();
+  const handleInstall = async () => {
+    setIsInstalling(true);
+    try {
+      const success = await installModule(module.slug);
+      if (success) {
+        await refresh();
+        onClose();
+      }
+    } finally {
+      setIsInstalling(false);
+    }
   };
 
   return (
@@ -147,8 +158,12 @@ export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }
           {isInstalled ? (
             <Button className="w-full" variant="outline"><ExternalLink className="w-4 h-4 mr-2" />Abrir</Button>
           ) : (
-            <Button className="w-full" size="lg" onClick={handleInstall}>
-              <Play className="w-4 h-4 mr-2" />{module.pricing.trial_days ? "Começar teste grátis" : "Instalar agora"}
+            <Button className="w-full" size="lg" onClick={handleInstall} disabled={isInstalling}>
+              {isInstalling ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />A instalar...</>
+              ) : (
+                <><Play className="w-4 h-4 mr-2" />{module.pricing.trial_days ? "Começar teste grátis" : "Instalar agora"}</>
+              )}
             </Button>
           )}
         </div>

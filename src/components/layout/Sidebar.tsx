@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
 import {
@@ -71,6 +72,7 @@ interface NavItem {
   tooltip?: string;
   highlight?: boolean;
   requiresAdmin?: boolean;
+  moduleSlug?: string; // Required module slug for this item
 }
 
 interface NavGroup {
@@ -79,6 +81,7 @@ interface NavGroup {
   items: NavItem[];
   tooltip?: string;
   highlight?: boolean;
+  moduleSlug?: string; // Required module slug for the entire group
 }
 
 // Navigation structure based on operational flow
@@ -102,8 +105,8 @@ const navigationGroups: NavGroup[] = [
     tooltip: "Todas as suas comunicações num só lugar",
     items: [
       { name: "Inbox", href: "/dashboard/inbox", icon: Inbox, tooltip: "Mensagens unificadas" },
-      { name: "Instagram", href: "/dashboard/inbox?channel=instagram", icon: Instagram, tooltip: "DMs do Instagram" },
-      { name: "WhatsApp", href: "/dashboard/inbox?channel=whatsapp", icon: Phone, tooltip: "Mensagens WhatsApp" },
+      { name: "Instagram", href: "/dashboard/inbox?channel=instagram", icon: Instagram, tooltip: "DMs do Instagram", moduleSlug: "instagram-integration" },
+      { name: "WhatsApp", href: "/dashboard/inbox?channel=whatsapp", icon: Phone, tooltip: "Mensagens WhatsApp", moduleSlug: "whatsapp-business" },
       { name: "Email", href: "/dashboard/inbox?channel=email", icon: Mail, tooltip: "Emails recebidos" },
     ],
   },
@@ -123,8 +126,8 @@ const navigationGroups: NavGroup[] = [
     tooltip: "Encontrar novos potenciais clientes",
     highlight: true,
     items: [
-      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar empresas no Google Maps", highlight: true },
-      { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar empresas na web" },
+      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar empresas no Google Maps", highlight: true, moduleSlug: "google-local-prospecting" },
+      { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar empresas na web", moduleSlug: "web-search-prospecting" },
     ],
   },
   {
@@ -226,12 +229,38 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
   const { currentWorkspace } = useWorkspace();
   const { plan, canUseFeature } = useSubscription();
+  const { installedModuleIds } = useWorkspaceModules();
+  
+  // Filter navigation based on installed modules
+  const filteredNavigationGroups = useMemo(() => {
+    return navigationGroups
+      .map(group => {
+        // Filter items based on moduleSlug
+        const filteredItems = group.items.filter(item => {
+          // If item has no moduleSlug requirement, always show it
+          if (!item.moduleSlug) return true;
+          // Otherwise, check if the module is installed
+          return installedModuleIds.includes(item.moduleSlug);
+        });
+
+        // If group requires a module and it's not installed, hide entire group
+        if (group.moduleSlug && !installedModuleIds.includes(group.moduleSlug)) {
+          return null;
+        }
+
+        // If group has no items after filtering, hide it (except if it never had module-dependent items)
+        if (filteredItems.length === 0) return null;
+
+        return { ...group, items: filteredItems };
+      })
+      .filter((group): group is NavGroup => group !== null);
+  }, [installedModuleIds]);
   
   // Track which groups are open
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     // Open groups that contain the current active route
     const initial: Record<string, boolean> = {};
-    navigationGroups.forEach(group => {
+    filteredNavigationGroups.forEach(group => {
       const isActive = group.items.some(item => {
         const basePath = item.href.split('?')[0];
         return location.pathname === basePath || location.pathname.startsWith(basePath + '/');
@@ -385,7 +414,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto"
               style={{ colorScheme: 'dark' }}
             >
-              {navigationGroups.map(renderNavGroup)}
+              {filteredNavigationGroups.map(renderNavGroup)}
               
               {/* Settings Group */}
               <div className="pt-4 mt-4 border-t border-white/10">
