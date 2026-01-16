@@ -112,7 +112,10 @@ export function useCalendars() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchCalendars = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
+    if (!currentWorkspace?.id) {
+      setIsLoading(false);
+      return;
+    }
     
     setIsLoading(true);
     setError(null);
