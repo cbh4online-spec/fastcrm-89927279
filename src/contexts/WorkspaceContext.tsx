@@ -136,8 +136,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (savedWorkspace) {
         setCurrentWorkspace(savedWorkspace);
       } else if (workspaceList.length > 0) {
+        // Clear invalid workspace ID from localStorage
+        if (savedWorkspaceId) {
+          console.warn("Saved workspace ID not found in user's workspaces, clearing:", savedWorkspaceId);
+          localStorage.removeItem("currentWorkspaceId");
+        }
         setCurrentWorkspace(workspaceList[0]);
         localStorage.setItem("currentWorkspaceId", workspaceList[0].id);
+      } else {
+        // No workspaces available, clear localStorage
+        localStorage.removeItem("currentWorkspaceId");
+        setCurrentWorkspace(null);
       }
     } catch (error) {
       console.error("Error fetching workspaces:", error);
