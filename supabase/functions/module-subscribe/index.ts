@@ -90,7 +90,7 @@ serve(async (req) => {
       const periodEnd = new Date(now);
       periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-      // Create or update subscription
+      // Create or update subscription in workspace_module_subscriptions
       const { error: subError } = await supabase
         .from('workspace_module_subscriptions')
         .upsert({
@@ -106,6 +106,25 @@ serve(async (req) => {
         });
 
       if (subError) throw subError;
+
+      // Also insert into workspace_modules for the new hook to find
+      const { error: moduleError } = await supabase
+        .from('workspace_modules')
+        .upsert({
+          workspace_id: workspaceId,
+          module_id: moduleId,
+          status: 'active',
+          subscribed_at: now.toISOString(),
+          subscribed_by: user.id,
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd.toISOString()
+        }, {
+          onConflict: 'workspace_id,module_id'
+        });
+
+      if (moduleError) {
+        logStep("Warning: Could not insert into workspace_modules", { error: moduleError.message });
+      }
 
       // Initialize credit balance
       if (pricing.credits_included > 0) {
@@ -123,7 +142,7 @@ serve(async (req) => {
           });
       }
 
-      logStep("Free module activated", { moduleId });
+      logStep("Free module activated", { moduleId, workspaceId });
 
       return new Response(JSON.stringify({ 
         success: true,

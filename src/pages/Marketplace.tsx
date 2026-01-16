@@ -7,7 +7,8 @@ import { CategoryFilter } from "@/components/marketplace/CategoryFilter";
 import { ModuleDetailSheet } from "@/components/marketplace/ModuleDetailSheet";
 import { FeaturedModules } from "@/components/marketplace/FeaturedModules";
 import { MarketplaceModule, ModuleCategory, SAMPLE_MODULES } from "@/types/marketplace";
-import { Search, Store, Package, Sparkles } from "lucide-react";
+import { Search, Store, Package, Sparkles, Loader2 } from "lucide-react";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,8 +16,8 @@ export default function Marketplace() {
   const [selectedModule, setSelectedModule] = useState<MarketplaceModule | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "installed">("all");
 
-  // Simulated installed modules (in real app, this would come from the backend)
-  const installedModuleIds = ["whatsapp-business", "zapier-integration"];
+  // Fetch installed modules from the database for the current workspace
+  const { installedModuleIds, isLoading: isLoadingModules } = useWorkspaceModules();
 
   const filteredModules = useMemo(() => {
     let modules = SAMPLE_MODULES;
