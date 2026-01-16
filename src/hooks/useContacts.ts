@@ -12,6 +12,8 @@ export interface Contact {
   email: string | null;
   phone: string | null;
   company: string | null;
+  company_id: string | null;
+  is_primary_contact: boolean;
   job_title: string | null;
   notes: string | null;
   tags: string[];
@@ -28,6 +30,8 @@ export interface CreateContactData {
   email?: string;
   phone?: string;
   company?: string;
+  company_id?: string;
+  is_primary_contact?: boolean;
   job_title?: string;
   notes?: string;
   tags?: string[];
@@ -76,6 +80,8 @@ export function useContacts() {
           email: data.email || null,
           phone: data.phone || null,
           company: data.company || null,
+          company_id: data.company_id || null,
+          is_primary_contact: data.is_primary_contact || false,
           job_title: data.job_title || null,
           notes: data.notes || null,
           tags: data.tags || [],
@@ -107,6 +113,8 @@ export function useContacts() {
       if (data.email !== undefined) updateData.email = data.email || null;
       if (data.phone !== undefined) updateData.phone = data.phone || null;
       if (data.company !== undefined) updateData.company = data.company || null;
+      if (data.company_id !== undefined) updateData.company_id = data.company_id || null;
+      if (data.is_primary_contact !== undefined) updateData.is_primary_contact = data.is_primary_contact;
       if (data.job_title !== undefined) updateData.job_title = data.job_title || null;
       if (data.notes !== undefined) updateData.notes = data.notes || null;
       if (data.tags !== undefined) updateData.tags = data.tags || [];

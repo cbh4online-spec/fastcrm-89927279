@@ -22,6 +22,7 @@ export interface Company {
   facebook_url: string | null;
   instagram_url: string | null;
   twitter_url: string | null;
+  entity_type: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +42,7 @@ export interface CreateCompanyData {
   facebook_url?: string;
   instagram_url?: string;
   twitter_url?: string;
+  entity_type?: string;
 }
 
 export interface UpdateCompanyData extends Partial<CreateCompanyData> {
@@ -79,6 +81,7 @@ export function useCompanies() {
           workspace_id: currentWorkspace.id,
           created_by: user.id,
           name: data.name,
+          tax_id: data.tax_id || null,
           website: data.website || null,
           industry: data.industry || null,
           size: data.size || null,
@@ -91,6 +94,7 @@ export function useCompanies() {
           facebook_url: data.facebook_url || null,
           instagram_url: data.instagram_url || null,
           twitter_url: data.twitter_url || null,
+          entity_type: data.entity_type || 'company',
         })
         .select()
         .single();
@@ -126,6 +130,7 @@ export function useCompanies() {
       if (data.facebook_url !== undefined) updateData.facebook_url = data.facebook_url;
       if (data.instagram_url !== undefined) updateData.instagram_url = data.instagram_url;
       if (data.twitter_url !== undefined) updateData.twitter_url = data.twitter_url;
+      if (data.entity_type !== undefined) updateData.entity_type = data.entity_type;
 
       const { data: company, error } = await supabase
         .from("companies")
