@@ -1,16 +1,11 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useCompanies } from "@/hooks/useCompanies";
+import { useCompanies, Company } from "@/hooks/useCompanies";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,124 +20,55 @@ import {
 import { 
   ArrowLeft, 
   Building2, 
-  Mail, 
-  Phone, 
   Trash2, 
-  ChevronDown,
   Clock,
-  Globe,
-  Users,
-  Factory,
-  MapPin,
-  Tag,
-  FileText,
-  MoreHorizontal,
   Sparkles,
-  Hash
+  Globe,
+  Mail,
+  Phone
 } from "lucide-react";
 import { toast } from "sonner";
-import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
-import { InlineNifField } from "@/components/custom-fields/InlineNifField";
 import { NifLookupResult } from "@/hooks/useNifLookup";
-import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
-import { getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
-import { getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
 import { 
-  useFieldSuggestions, 
   useGenerateFieldSuggestions,
-  useAcceptSuggestion, 
-  useRejectSuggestion 
 } from "@/hooks/useFieldSuggestions";
-import { cn } from "@/lib/utils";
 import { InsightsSidebar } from "@/components/insights";
-import { useFormFieldOrder, FieldConfig } from "@/hooks/useFormFieldOrder";
 import { CompanyContacts } from "./CompanyContacts";
+import { IdentificationSection } from "./sections/IdentificationSection";
+import { AddressSection } from "./sections/AddressSection";
+import { NotesSection } from "./sections/NotesSection";
+import { TagsSection } from "./sections/TagsSection";
+import { SocialMediaSection } from "./sections/SocialMediaSection";
 
-const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
-
-// Field icons mapping
-const FIELD_ICONS: Record<string, React.ReactNode> = {
-  name: <Building2 className="w-4 h-4" />,
-  tax_id: <Hash className="w-4 h-4" />,
-  website: <Globe className="w-4 h-4" />,
-  email: <Mail className="w-4 h-4" />,
-  phone: <Phone className="w-4 h-4" />,
-  industry: <Factory className="w-4 h-4" />,
-  size: <Users className="w-4 h-4" />,
-  address: <MapPin className="w-4 h-4" />,
-  tags: <Tag className="w-4 h-4" />,
-  notes: <FileText className="w-4 h-4" />,
-};
-
-// Map field types from layout to InlineEditableField types
-const getFieldType = (fieldConfig: FieldConfig): "text" | "email" | "phone" | "number" | "date" | "boolean" | "select" | "textarea" | "tags" => {
-  const type = fieldConfig.fieldType;
-  switch (type) {
-    case "email": return "email";
-    case "phone": return "phone";
-    case "number": return "number";
-    case "date": return "date";
-    case "boolean": return "boolean";
-    case "select": return "select";
-    case "textarea": return "textarea";
-    default: 
-      if (fieldConfig.id === "tags") return "tags";
-      return "text";
-  }
-};
-
-// Simple row for static display (metadata)
-interface DetailRowProps {
-  label: string;
-  value?: string | React.ReactNode;
-}
-
-function DetailRow({ label, value }: DetailRowProps) {
-  return (
-    <div className="flex items-start py-3 border-b border-border/50 last:border-0">
-      <div className="w-40 flex-shrink-0 text-sm text-muted-foreground">
-        {label}
-      </div>
-      <div className="flex-1 text-sm">
-        <span className={cn(!value && "text-muted-foreground")}>{value || "—"}</span>
-      </div>
-    </div>
-  );
+// Helper function for time ago
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return "agora mesmo";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} horas`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} dias`;
+  
+  return date.toLocaleDateString('pt-PT');
 }
 
 export function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { companies, isLoading, updateCompany, deleteCompany } = useCompanies();
-  const { data: customFieldValues = [] } = useCustomFieldValues(id);
-  const { data: customFields = [] } = useCustomFields("company");
-  const setCustomFieldValue = useSetCustomFieldValue();
-
-  // Get ordered fields from layout configuration
-  const { getVisibleFields } = useFormFieldOrder("company");
 
   const company = companies.find(c => c.id === id);
 
   // AI field suggestions
-  const { data: suggestions = [] } = useFieldSuggestions("company", id);
   const generateSuggestions = useGenerateFieldSuggestions();
-  const acceptSuggestion = useAcceptSuggestion();
-  const rejectSuggestion = useRejectSuggestion();
-  const [acceptingField, setAcceptingField] = useState<string | null>(null);
 
-  // Custom field values map for easy lookup
-  const customFieldValuesMap = new Map(
-    customFieldValues.map(cfv => [cfv.custom_field_id, cfv.value])
-  );
-
-  const [showMoreDetails, setShowMoreDetails] = useState(true);
-
-  // Handler for inline native field change
-  const handleNativeFieldChange = useCallback(async (fieldId: string, value: unknown) => {
+  // Handler for inline field change
+  const handleFieldChange = useCallback(async (field: keyof Company, value: unknown) => {
     if (!company) return;
     await updateCompany.mutateAsync({
       id: company.id,
-      [fieldId]: value || undefined,
+      [field]: value || undefined,
     });
     toast.success("Campo atualizado");
   }, [company, updateCompany]);
@@ -151,7 +77,6 @@ export function CompanyDetail() {
   const handleNifDataReceived = useCallback(async (data: NifLookupResult) => {
     if (!company) return;
     
-    // Update company with received data
     const updateData: Record<string, unknown> = {
       id: company.id,
     };
@@ -163,26 +88,11 @@ export function CompanyDetail() {
     if (data.website && !company.website) updateData.website = data.website;
     if (data.cae_description && !company.industry) updateData.industry = data.cae_description;
 
-    // Only update if we have new data
     if (Object.keys(updateData).length > 1) {
       await updateCompany.mutateAsync(updateData as { id: string });
       toast.success("Dados da empresa preenchidos automaticamente!");
     }
   }, [company, updateCompany]);
-
-  // Handler for inline custom field change
-  const handleCustomFieldChange = useCallback(async (customFieldId: string, value: unknown) => {
-    if (!company) return;
-    const field = customFields.find(f => f.id === customFieldId);
-    await setCustomFieldValue.mutateAsync({
-      customFieldId,
-      entityId: company.id,
-      value,
-      fieldName: field?.name,
-      isUnique: field?.is_unique,
-    });
-    toast.success("Campo atualizado");
-  }, [company, customFields, setCustomFieldValue]);
 
   const handleDelete = async () => {
     if (!company) return;
@@ -196,164 +106,9 @@ export function CompanyDetail() {
     }
   };
 
-  // Helper to accept inline suggestion for standard fields
-  const handleAcceptInlineSuggestion = useCallback(async (fieldName: string, value: unknown) => {
-    if (!company) return;
-    
-    const suggestion = suggestions.find(s => s.field_name === fieldName && s.field_type === "standard");
-    if (!suggestion) return;
-    
-    setAcceptingField(fieldName);
-    try {
-      await acceptSuggestion.mutateAsync({
-        suggestion,
-        onApply: async () => {
-          await updateCompany.mutateAsync({
-            id: company.id,
-            [fieldName]: value,
-          });
-        },
-      });
-    } finally {
-      setAcceptingField(null);
-    }
-  }, [company, suggestions, acceptSuggestion, updateCompany]);
-
-  // Helper to reject inline suggestion for standard fields
-  const handleRejectInlineSuggestion = useCallback((fieldName: string) => {
-    const suggestion = suggestions.find(s => s.field_name === fieldName && s.field_type === "standard");
-    if (suggestion) {
-      rejectSuggestion.mutate(suggestion);
-    }
-  }, [suggestions, rejectSuggestion]);
-
-  // Handler for accepting custom field suggestions
-  const handleAcceptCustomFieldSuggestion = useCallback(async (customFieldId: string, value: unknown) => {
-    if (!company) return;
-    
-    const suggestion = suggestions.find(
-      s => s.field_type === "custom" && s.custom_field_id === customFieldId
-    );
-    if (!suggestion) return;
-    
-    setAcceptingField(customFieldId);
-    try {
-      await acceptSuggestion.mutateAsync({
-        suggestion,
-        onApply: async () => {
-          await setCustomFieldValue.mutateAsync({
-            customFieldId,
-            entityId: company.id,
-            value,
-          });
-        },
-      });
-    } finally {
-      setAcceptingField(null);
-    }
-  }, [company, suggestions, acceptSuggestion, setCustomFieldValue]);
-
-  // Handler for rejecting custom field suggestions
-  const handleRejectCustomFieldSuggestion = useCallback((customFieldId: string) => {
-    const suggestion = suggestions.find(
-      s => s.field_type === "custom" && s.custom_field_id === customFieldId
-    );
-    if (suggestion) {
-      rejectSuggestion.mutate(suggestion);
-    }
-  }, [suggestions, rejectSuggestion]);
-
-  // Generate suggestions handler
   const handleGenerateSuggestions = async () => {
     if (!id) return;
     await generateSuggestions.mutateAsync({ entityType: "company", entityId: id });
-  };
-
-  // Get value for a field
-  const getFieldValue = (fieldConfig: FieldConfig): unknown => {
-    if (fieldConfig.type === "custom") {
-      const customFieldId = fieldConfig.id.replace("custom_", "");
-      return customFieldValuesMap.get(customFieldId);
-    }
-    // Native field - access from company object
-    if (!company) return undefined;
-    const companyData = company as unknown as Record<string, unknown>;
-    return companyData[fieldConfig.id];
-  };
-
-  // Render a field based on its configuration
-  const renderField = (fieldConfig: FieldConfig) => {
-    // Skip name field as it's shown in the header
-    if (fieldConfig.id === "name") return null;
-    // Skip notes and address - they have their own sections
-    if (fieldConfig.id === "notes" || fieldConfig.id === "address") return null;
-
-    const value = getFieldValue(fieldConfig);
-    const fieldType = getFieldType(fieldConfig);
-    const icon = FIELD_ICONS[fieldConfig.id];
-
-    if (fieldConfig.type === "custom") {
-      const customFieldId = fieldConfig.id.replace("custom_", "");
-      const customField = customFields.find(f => f.id === customFieldId);
-      if (!customField) return null;
-
-      return (
-        <InlineEditableField
-          key={fieldConfig.id}
-          label={fieldConfig.name}
-          fieldId={fieldConfig.id}
-          fieldType={fieldType}
-          value={value}
-          onChange={(val) => handleCustomFieldChange(customFieldId, val)}
-          required={fieldConfig.required}
-          options={customField.options || []}
-          suggestion={getCustomFieldSuggestion(suggestions, customFieldId)}
-          onAcceptSuggestion={(val) => handleAcceptCustomFieldSuggestion(customFieldId, val)}
-          onRejectSuggestion={() => handleRejectCustomFieldSuggestion(customFieldId)}
-          isAcceptingSuggestion={acceptingField === customFieldId}
-        />
-      );
-    }
-
-    // Special handling for NIF/tax_id field with lookup
-    if (fieldConfig.id === "tax_id") {
-      return (
-        <InlineNifField
-          key={fieldConfig.id}
-          label={fieldConfig.name}
-          value={value as string | null | undefined}
-          onChange={async (val) => {
-            await handleNativeFieldChange("tax_id", val);
-          }}
-          onDataReceived={handleNifDataReceived}
-          icon={icon}
-        />
-      );
-    }
-
-    // Native field
-    const isLinkField = ["website", "email", "phone"].includes(fieldConfig.id);
-    const linkType = fieldConfig.id === "website" ? "url" : fieldConfig.id === "email" ? "email" : "phone";
-
-    return (
-      <InlineEditableField
-        key={fieldConfig.id}
-        label={fieldConfig.name}
-        fieldId={fieldConfig.id}
-        fieldType={fieldType}
-        value={value}
-        onChange={(val) => handleNativeFieldChange(fieldConfig.id, val)}
-        icon={icon}
-        required={fieldConfig.required}
-        options={fieldConfig.id === "size" ? COMPANY_SIZES : undefined}
-        isLink={isLinkField && !!value}
-        linkType={isLinkField ? linkType : undefined}
-        suggestion={getSuggestionForField(suggestions, fieldConfig.id)}
-        onAcceptSuggestion={(val) => handleAcceptInlineSuggestion(fieldConfig.id, val)}
-        onRejectSuggestion={() => handleRejectInlineSuggestion(fieldConfig.id)}
-        isAcceptingSuggestion={acceptingField === fieldConfig.id}
-      />
-    );
   };
 
   if (isLoading) {
@@ -387,8 +142,6 @@ export function CompanyDetail() {
     .toUpperCase()
     .slice(0, 2);
 
-  const orderedFields = getVisibleFields();
-
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
@@ -400,7 +153,7 @@ export function CompanyDetail() {
         ]}
       />
       
-      {/* Header */}
+      {/* Header - Same style as ENIContactDetail */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button
@@ -412,8 +165,8 @@ export function CompanyDetail() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           
-          <Avatar className="h-16 w-16 text-xl">
-            <AvatarFallback className="bg-gradient-to-br from-blue-500/80 to-blue-600 text-white font-semibold">
+          <Avatar className="h-16 w-16 text-xl ring-2 ring-blue-500/20">
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -421,20 +174,67 @@ export function CompanyDetail() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-foreground">{company.name}</h1>
+              <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30 font-medium">
+                Empresa
+              </Badge>
               {company.industry && (
-                <Badge variant="outline" className="font-normal">
+                <Badge variant="secondary" className="font-normal">
                   {company.industry}
                 </Badge>
               )}
             </div>
             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
               <Clock className="w-3.5 h-3.5" />
-              Última atualização: {new Date(company.updated_at).toLocaleDateString('pt-PT')}
+              Atualizado há {getTimeAgo(new Date(company.updated_at))}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Quick Actions */}
+          {company.website && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" asChild>
+                    <a href={company.website.startsWith('http') ? company.website : `https://${company.website}`} target="_blank" rel="noopener noreferrer">
+                      <Globe className="w-4 h-4" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Visitar Website</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {company.email && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" asChild>
+                    <a href={`mailto:${company.email}`}>
+                      <Mail className="w-4 h-4" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Enviar E-mail</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {company.phone && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" asChild>
+                    <a href={`tel:${company.phone}`}>
+                      <Phone className="w-4 h-4" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Ligar</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          
           <Button 
             variant="outline" 
             onClick={handleGenerateSuggestions}
@@ -442,12 +242,13 @@ export function CompanyDetail() {
             className="gap-2"
           >
             <Sparkles className="w-4 h-4" />
-            {generateSuggestions.isPending ? "A analisar..." : "Sugestões IA"}
+            {generateSuggestions.isPending ? "A analisar..." : "Analisar com IA"}
           </Button>
+          
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="icon">
-                <MoreHorizontal className="w-4 h-4" />
+              <Button variant="outline" size="icon" className="text-destructive hover:text-destructive">
+                <Trash2 className="w-4 h-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -469,162 +270,46 @@ export function CompanyDetail() {
         </div>
       </div>
 
-      {/* AI Insights Module */}
+      {/* AI Insights */}
       <InsightsSidebar
         entityType="company"
         entityId={id || ''}
       />
 
-      {/* Main Content Grid */}
+      {/* Main Content - 2 Column Layout like Contact */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column - Main Details */}
+        {/* Left Column - Main Sections */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Description Card - Fields in configured order */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium">Descrição Geral</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="divide-y divide-border/50">
-                {orderedFields.map(renderField)}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Address Section */}
-          {company.address && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Morada
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <InlineEditableField
-                  label=""
-                  fieldId="address"
-                  fieldType="textarea"
-                  value={company.address}
-                  onChange={(val) => handleNativeFieldChange("address", val)}
-                  placeholder="Morada completa..."
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Notes Section */}
-          {company.notes && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Notas
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <InlineEditableField
-                  label=""
-                  fieldId="notes"
-                  fieldType="textarea"
-                  value={company.notes}
-                  onChange={(val) => handleNativeFieldChange("notes", val)}
-                  placeholder="Adicionar notas..."
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* More Details Section - Collapsible */}
-          <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-medium">
-                      {showMoreDetails ? "Ocultar detalhes" : "Mostrar mais detalhes"}
-                    </CardTitle>
-                    <ChevronDown className={cn(
-                      "w-4 h-4 text-muted-foreground transition-transform",
-                      showMoreDetails && "rotate-180"
-                    )} />
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="pt-0">
-                  <div className="divide-y divide-border/50">
-                    <DetailRow
-                      label="Data de Criação"
-                      value={new Date(company.created_at).toLocaleDateString('pt-PT', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    />
-                    <DetailRow
-                      label="Última Atualização"
-                      value={new Date(company.updated_at).toLocaleDateString('pt-PT', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    />
-                    <DetailRow
-                      label="ID"
-                      value={
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
-                          {company.id}
-                        </code>
-                      }
-                    />
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+          <IdentificationSection 
+            company={company} 
+            onFieldChange={handleFieldChange}
+            onNifDataReceived={handleNifDataReceived}
+          />
+          
+          <AddressSection 
+            company={company} 
+            onFieldChange={handleFieldChange}
+          />
+          
+          <SocialMediaSection 
+            company={company} 
+            onFieldChange={handleFieldChange}
+          />
+          
+          <NotesSection 
+            company={company} 
+            onFieldChange={handleFieldChange}
+          />
         </div>
 
-        {/* Right Column - Quick Actions & Contacts */}
+        {/* Right Column - Tags & Contacts */}
         <div className="space-y-4">
-          {/* Associated Contacts */}
+          <TagsSection 
+            company={company} 
+            onFieldChange={handleFieldChange}
+          />
+          
           <CompanyContacts companyId={id || ''} companyName={company.name} />
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium">Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {company.website && (
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <a href={company.website.startsWith('http') ? company.website : `https://${company.website}`} target="_blank" rel="noopener noreferrer">
-                    <Globe className="w-4 h-4 mr-2" />
-                    Visitar Website
-                  </a>
-                </Button>
-              )}
-              {company.email && (
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <a href={`mailto:${company.email}`}>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Enviar E-mail
-                  </a>
-                </Button>
-              )}
-              {company.phone && (
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <a href={`tel:${company.phone}`}>
-                    <Phone className="w-4 h-4 mr-2" />
-                    Ligar
-                  </a>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
