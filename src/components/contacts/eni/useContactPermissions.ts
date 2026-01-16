@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export type WorkspaceRole = "owner" | "admin" | "agent" | "viewer" | "agency";
 
@@ -97,24 +98,7 @@ const PERMISSION_MATRIX: Record<WorkspaceRole, Record<ContactSection, { view: bo
 export function useContactPermissions(): ContactPermissions {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
-
-  // Check if user is super admin
-  const { data: isSuperAdmin, isLoading: isSuperAdminLoading } = useQuery({
-    queryKey: ["is-super-admin", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return false;
-
-      const { data, error } = await supabase.rpc('is_super_admin', { _user_id: user.id });
-      
-      if (error) {
-        console.error("Error checking super admin:", error);
-        return false;
-      }
-
-      return !!data;
-    },
-    enabled: !!user?.id,
-  });
+  const { isSuperAdmin, isLoading: roleLoading } = useUserRole();
 
   const { data: membership, isLoading: membershipLoading } = useQuery({
     queryKey: ["workspace-membership", currentWorkspace?.id, user?.id],
@@ -139,18 +123,17 @@ export function useContactPermissions(): ContactPermissions {
   });
 
   const role = (membership?.role as WorkspaceRole) || null;
-  const superAdmin = isSuperAdmin ?? false;
 
   const canView = (section: ContactSection): boolean => {
     // Super admin has access to everything
-    if (superAdmin) return true;
+    if (isSuperAdmin) return true;
     if (!role) return false;
     return PERMISSION_MATRIX[role]?.[section]?.view ?? false;
   };
 
   const canEdit = (section: ContactSection): boolean => {
     // Super admin has access to everything
-    if (superAdmin) return true;
+    if (isSuperAdmin) return true;
     if (!role) return false;
     return PERMISSION_MATRIX[role]?.[section]?.edit ?? false;
   };
@@ -159,8 +142,8 @@ export function useContactPermissions(): ContactPermissions {
     canView,
     canEdit,
     role,
-    isSuperAdmin: superAdmin,
-    isLoading: isSuperAdminLoading || membershipLoading,
+    isSuperAdmin,
+    isLoading: roleLoading || membershipLoading,
   };
 }
 
