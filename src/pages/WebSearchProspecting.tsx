@@ -3,14 +3,16 @@ import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Globe, Building2, ExternalLink, Plus, Loader2 } from "lucide-react";
+import { Search, Globe, Building2, ExternalLink, Plus, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { firecrawlApi } from "@/lib/api/firecrawl";
+import { useCreateLead } from "@/hooks/useLeads";
 
 interface WebResult {
   url: string;
   title: string;
   description: string;
+  added?: boolean;
 }
 
 export default function WebSearchProspecting() {
@@ -18,6 +20,8 @@ export default function WebSearchProspecting() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<WebResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  
+  const createLead = useCreateLead();
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -41,6 +45,7 @@ export default function WebSearchProspecting() {
           url: item.url || "",
           title: item.title || item.url || "Sem título",
           description: item.description || item.markdown?.substring(0, 200) || "",
+          added: false,
         }));
         setResults(searchResults);
         toast.success(`${searchResults.length} resultados encontrados`);
@@ -55,8 +60,24 @@ export default function WebSearchProspecting() {
     }
   };
 
-  const handleAddToLeads = (result: WebResult) => {
-    toast.success(`"${result.title}" adicionado aos leads`);
+  const handleAddToLeads = async (result: WebResult, index: number) => {
+    try {
+      await createLead.mutateAsync({
+        name: result.title,
+        source: "web_search",
+        status: "new",
+      });
+      
+      // Mark as added
+      setResults(prev => prev.map((r, i) => 
+        i === index ? { ...r, added: true } : r
+      ));
+      
+      toast.success(`"${result.title}" adicionado aos leads`);
+    } catch (error) {
+      console.error("Error creating lead:", error);
+      toast.error("Erro ao adicionar lead");
+    }
   };
 
   return (
@@ -151,10 +172,21 @@ export default function WebSearchProspecting() {
 
                       <Button
                         size="sm"
-                        onClick={() => handleAddToLeads(result)}
+                        variant={result.added ? "outline" : "default"}
+                        onClick={() => handleAddToLeads(result, index)}
+                        disabled={result.added || createLead.isPending}
                       >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Adicionar
+                        {result.added ? (
+                          <>
+                            <Check className="h-4 w-4 mr-1" />
+                            Adicionado
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Adicionar
+                          </>
+                        )}
                       </Button>
                     </div>
                   </CardContent>
