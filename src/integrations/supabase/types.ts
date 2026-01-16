@@ -706,6 +706,372 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          all_day: boolean | null
+          attendees: Json | null
+          calendar_id: string
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          end_time: string
+          id: string
+          lead_id: string | null
+          location: string | null
+          meeting_url: string | null
+          metadata: Json | null
+          opportunity_id: string | null
+          recurrence_id: string | null
+          recurrence_rule: string | null
+          reminders: Json | null
+          start_time: string
+          status: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          all_day?: boolean | null
+          attendees?: Json | null
+          calendar_id: string
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_time: string
+          id?: string
+          lead_id?: string | null
+          location?: string | null
+          meeting_url?: string | null
+          metadata?: Json | null
+          opportunity_id?: string | null
+          recurrence_id?: string | null
+          recurrence_rule?: string | null
+          reminders?: Json | null
+          start_time: string
+          status?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          all_day?: boolean | null
+          attendees?: Json | null
+          calendar_id?: string
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_time?: string
+          id?: string
+          lead_id?: string | null
+          location?: string | null
+          meeting_url?: string | null
+          metadata?: Json | null
+          opportunity_id?: string | null
+          recurrence_id?: string | null
+          recurrence_rule?: string | null
+          reminders?: Json | null
+          start_time?: string
+          status?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_recurrence_id_fkey"
+            columns: ["recurrence_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_groups: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_groups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_permissions: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          id: string
+          permission_type: string
+          team_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          id?: string
+          permission_type: string
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          id?: string
+          permission_type?: string
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_permissions_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_service_assignments: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          id: string
+          service_id: string
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          id?: string
+          service_id: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_service_assignments_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_team_assignments: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          id: string
+          team_id: string
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          id?: string
+          team_id: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_team_assignments_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_user_assignments: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          id: string
+          is_owner: boolean | null
+          user_id: string
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          id?: string
+          is_owner?: boolean | null
+          user_id: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          id?: string
+          is_owner?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_user_assignments_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendars: {
+        Row: {
+          buffer_after: number | null
+          buffer_before: number | null
+          calendar_type: string
+          color: string | null
+          created_at: string
+          created_by: string
+          default_duration: number | null
+          description: string | null
+          group_id: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          settings: Json | null
+          status: string
+          timezone: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          buffer_after?: number | null
+          buffer_before?: number | null
+          calendar_type?: string
+          color?: string | null
+          created_at?: string
+          created_by: string
+          default_duration?: number | null
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          settings?: Json | null
+          status?: string
+          timezone?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          buffer_after?: number | null
+          buffer_before?: number | null
+          calendar_type?: string
+          color?: string | null
+          created_at?: string
+          created_by?: string
+          default_duration?: number | null
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          settings?: Json | null
+          status?: string
+          timezone?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendars_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendars_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_entitlements: {
         Row: {
           company_id: string | null
