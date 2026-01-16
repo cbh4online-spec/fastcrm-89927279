@@ -23,22 +23,56 @@ const viewPresets: Record<ViewPreset, { label: string; icon: React.ReactNode }> 
   manager: { label: "Gestor", icon: <BarChart3 className="w-4 h-4" /> },
 };
 
-// Campos editáveis em massa para contactos
+// Todos os campos editáveis em massa para contactos
 const contactBulkEditFields: BulkEditField[] = [
+  // Informação básica
+  { key: "name", label: "Nome", type: "text" },
+  { key: "email", label: "Email", type: "text" },
+  { key: "phone", label: "Telefone", type: "text" },
+  { key: "whatsapp_number", label: "WhatsApp", type: "text" },
+  { key: "has_whatsapp", label: "Tem WhatsApp", type: "boolean" },
+  { key: "company", label: "Empresa", type: "text" },
+  { key: "job_title", label: "Cargo", type: "text" },
+  { key: "commercial_name", label: "Nome Comercial", type: "text" },
+  
+  // Localização
+  { key: "address", label: "Morada", type: "text" },
+  { key: "city", label: "Cidade", type: "text" },
+  { key: "postal_code", label: "Código Postal", type: "text" },
+  { key: "country", label: "País", type: "text" },
+  
+  // Classificação e Status
   { key: "source", label: "Origem", type: "select", options: [
     { value: "website", label: "Website" },
     { value: "referral", label: "Referência" },
     { value: "linkedin", label: "LinkedIn" },
     { value: "cold_call", label: "Cold Call" },
     { value: "event", label: "Evento" },
+    { value: "import", label: "Importação" },
     { value: "other", label: "Outro" },
   ]},
-  { key: "ai_temperature", label: "Temperatura", type: "select", options: [
+  { key: "lead_source", label: "Fonte do Lead", type: "text" },
+  { key: "client_status", label: "Estado do Cliente", type: "select", options: [
+    { value: "prospect", label: "Prospeto" },
+    { value: "lead", label: "Lead" },
+    { value: "active", label: "Ativo" },
+    { value: "churned", label: "Perdido" },
+    { value: "inactive", label: "Inativo" },
+  ]},
+  { key: "client_types", label: "Tipo de Cliente", type: "text" },
+  { key: "abc_category", label: "Categoria ABC", type: "select", options: [
+    { value: "A", label: "A - Alto valor" },
+    { value: "B", label: "B - Médio valor" },
+    { value: "C", label: "C - Baixo valor" },
+  ]},
+  
+  // IA e Análise
+  { key: "ai_temperature", label: "Temperatura (IA)", type: "select", options: [
     { value: "cold", label: "Frio" },
     { value: "warm", label: "Morno" },
     { value: "hot", label: "Quente" },
   ]},
-  { key: "ai_contact_type", label: "Tipo de Contacto", type: "select", options: [
+  { key: "ai_contact_type", label: "Tipo de Contacto (IA)", type: "select", options: [
     { value: "decision_maker", label: "Decisor" },
     { value: "influencer", label: "Influenciador" },
     { value: "champion", label: "Champion" },
@@ -46,18 +80,68 @@ const contactBulkEditFields: BulkEditField[] = [
     { value: "end_user", label: "Utilizador Final" },
     { value: "unknown", label: "Desconhecido" },
   ]},
+  { key: "ai_next_action_type", label: "Próxima Ação (IA)", type: "select", options: [
+    { value: "reply_manual", label: "Responder manualmente" },
+    { value: "send_template", label: "Enviar template" },
+    { value: "create_opportunity", label: "Criar oportunidade" },
+    { value: "activate_automation", label: "Ativar automação" },
+    { value: "archive", label: "Arquivar" },
+    { value: "follow_up", label: "Follow-up" },
+    { value: "schedule_meeting", label: "Agendar reunião" },
+    { value: "nurture", label: "Nutrir" },
+  ]},
+  { key: "contact_score", label: "Score do Contacto", type: "number" },
+  { key: "conversion_probability", label: "Probabilidade de Conversão (%)", type: "number" },
+  { key: "estimated_value", label: "Valor Estimado (€)", type: "number" },
+  
+  // Automação e Atribuição
   { key: "automation_active", label: "Automação Ativa", type: "boolean" },
   { key: "assigned_to", label: "Responsável", type: "text" },
-  { key: "job_title", label: "Cargo", type: "text" },
-  { key: "company", label: "Empresa", type: "text" },
-  { key: "city", label: "Cidade", type: "text" },
-  { key: "country", label: "País", type: "text" },
-  { key: "client_status", label: "Estado do Cliente", type: "select", options: [
-    { value: "prospect", label: "Prospeto" },
-    { value: "lead", label: "Lead" },
-    { value: "active", label: "Ativo" },
-    { value: "churned", label: "Perdido" },
+  { key: "is_primary_contact", label: "Contacto Principal", type: "boolean" },
+  
+  // Dados fiscais
+  { key: "tax_id", label: "NIF", type: "text" },
+  { key: "entity_type", label: "Tipo de Entidade", type: "select", options: [
+    { value: "individual", label: "Pessoa Singular" },
+    { value: "company", label: "Empresa" },
+    { value: "freelancer", label: "Freelancer" },
   ]},
+  { key: "fiscal_regime", label: "Regime Fiscal", type: "text" },
+  { key: "is_fiscal_address", label: "Morada Fiscal", type: "boolean" },
+  
+  // Negócio
+  { key: "business_area", label: "Área de Negócio", type: "text" },
+  { key: "cae_code", label: "Código CAE", type: "text" },
+  { key: "cae_description", label: "Descrição CAE", type: "text" },
+  
+  // Financeiro
+  { key: "credit_active", label: "Crédito Ativo", type: "boolean" },
+  { key: "credit_limit", label: "Limite de Crédito (€)", type: "number" },
+  { key: "payment_conditions", label: "Condições de Pagamento", type: "text" },
+  { key: "preferred_payment_method", label: "Método de Pagamento Preferido", type: "select", options: [
+    { value: "transfer", label: "Transferência" },
+    { value: "card", label: "Cartão" },
+    { value: "mbway", label: "MB Way" },
+    { value: "check", label: "Cheque" },
+    { value: "cash", label: "Dinheiro" },
+  ]},
+  { key: "average_ticket", label: "Ticket Médio (€)", type: "number" },
+  { key: "total_revenue", label: "Receita Total (€)", type: "number" },
+  
+  // Histórico de vendas
+  { key: "sales_2023", label: "Vendas 2023 (€)", type: "number" },
+  { key: "sales_2024", label: "Vendas 2024 (€)", type: "number" },
+  { key: "sales_2025", label: "Vendas 2025 (€)", type: "number" },
+  { key: "sales_2026", label: "Vendas 2026 (€)", type: "number" },
+  
+  // Redes sociais
+  { key: "linkedin_url", label: "LinkedIn", type: "text" },
+  { key: "facebook_url", label: "Facebook", type: "text" },
+  { key: "instagram_url", label: "Instagram", type: "text" },
+  { key: "twitter_url", label: "Twitter/X", type: "text" },
+  
+  // Notas
+  { key: "notes", label: "Notas", type: "text" },
 ];
 
 export function SmartContactsTable() {
