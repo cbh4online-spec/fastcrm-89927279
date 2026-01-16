@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { 
   MapPin, 
@@ -243,6 +245,11 @@ export default function GoogleLocalProspecting() {
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
   const [importedIds, setImportedIds] = useState<string[]>([]);
   
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [autoImport, setAutoImport] = useState(false);
+  const [defaultStatus, setDefaultStatus] = useState("new");
+  const [minRating, setMinRating] = useState("4");
+  
   const createLead = useCreateLead();
   const { data: recentLeads = [] } = useLeads({ 
     status: undefined 
@@ -370,10 +377,70 @@ export default function GoogleLocalProspecting() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
-            <Settings className="mr-2 h-4 w-4" />
-            Configurações
-          </Button>
+          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings className="mr-2 h-4 w-4" />
+                Configurações
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Configurações de Prospecção</DialogTitle>
+                <DialogDescription>
+                  Configure as opções de pesquisa e importação de leads
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                <div className="space-y-2">
+                  <Label>Estado padrão dos leads importados</Label>
+                  <Select value={defaultStatus} onValueChange={setDefaultStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">Novo</SelectItem>
+                      <SelectItem value="contacted">Contactado</SelectItem>
+                      <SelectItem value="qualified">Qualificado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Rating mínimo para mostrar</Label>
+                  <Select value={minRating} onValueChange={setMinRating}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Todos</SelectItem>
+                      <SelectItem value="3">3+ estrelas</SelectItem>
+                      <SelectItem value="4">4+ estrelas</SelectItem>
+                      <SelectItem value="4.5">4.5+ estrelas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Importação automática</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Importar leads automaticamente ao pesquisar
+                    </p>
+                  </div>
+                  <Switch checked={autoImport} onCheckedChange={setAutoImport} />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => {
+                  setSettingsOpen(false);
+                  toast.success("Configurações guardadas");
+                }}>
+                  Guardar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Badge variant="outline" className="gap-2 py-2 px-3">
             <CreditCard className="h-4 w-4" />
             {creditsUsed}/{creditsTotal} créditos
