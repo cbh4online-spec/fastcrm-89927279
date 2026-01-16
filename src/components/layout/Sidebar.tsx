@@ -37,6 +37,8 @@ import {
   Layers,
   UsersRound,
   Phone,
+  BarChart3,
+  PieChart,
 } from "lucide-react";
 import {
   Collapsible,
@@ -136,6 +138,18 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Pessoas", href: "/dashboard/contacts", icon: UsersRound, tooltip: "Contactos individuais" },
       { name: "Empresas", href: "/dashboard/companies", icon: Building2, tooltip: "Organizações e empresas" },
+    ],
+  },
+  {
+    name: "Relatórios",
+    icon: BarChart3,
+    tooltip: "Previsões e análises de negócio",
+    highlight: true,
+    items: [
+      { name: "Visão Geral", href: "/dashboard/reports", icon: PieChart, tooltip: "KPIs executivos" },
+      { name: "Previsões", href: "/dashboard/reports/forecasts", icon: TrendingUp, tooltip: "Receita prevista", highlight: true },
+      { name: "Consumo", href: "/dashboard/reports/consumption", icon: BarChart3, tooltip: "Sessões e capacidade" },
+      { name: "Retenção & Churn", href: "/dashboard/reports/retention", icon: Users, tooltip: "Clientes em risco" },
     ],
   },
   {
