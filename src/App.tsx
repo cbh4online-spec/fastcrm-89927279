@@ -53,6 +53,7 @@ import Marketplace from "./pages/Marketplace";
 import MarketplaceAdmin from "./pages/admin/MarketplaceAdmin";
 import GoogleLocalProspecting from "./pages/GoogleLocalProspecting";
 import WebSearchProspecting from "./pages/WebSearchProspecting";
+import SchedulingPage from "./pages/SchedulingPage";
 import CalendarsPage from "./pages/CalendarsPage";
 import MeetingsPage from "./pages/MeetingsPage";
 import ServicesPage from "./pages/ServicesPage";
@@ -114,10 +115,11 @@ const App = () => (
                   <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
                   <Route path="/dashboard/marketplace" element={<Marketplace />} />
                   <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
-                  <Route path="/dashboard/calendars" element={<CalendarsPage />} />
-                  <Route path="/dashboard/meetings" element={<MeetingsPage />} />
-                  <Route path="/dashboard/services" element={<ServicesPage />} />
-                  <Route path="/dashboard/availability" element={<AvailabilityPage />} />
+                  <Route path="/dashboard/scheduling" element={<SchedulingPage />} />
+                  <Route path="/dashboard/calendars" element={<Navigate to="/dashboard/scheduling" replace />} />
+                  <Route path="/dashboard/meetings" element={<Navigate to="/dashboard/scheduling" replace />} />
+                  <Route path="/dashboard/services" element={<Navigate to="/dashboard/scheduling" replace />} />
+                  <Route path="/dashboard/availability" element={<Navigate to="/dashboard/scheduling" replace />} />
                   <Route path="/dashboard/feed" element={<FeedPage />} />
                   <Route path="/dashboard/productivity" element={<ProductivityPage />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
