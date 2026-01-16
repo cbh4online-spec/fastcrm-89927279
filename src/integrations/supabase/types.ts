@@ -3748,6 +3748,86 @@ export type Database = {
           },
         ]
       }
+      internal_posts: {
+        Row: {
+          ai_generated: boolean | null
+          ai_source: string | null
+          attachments: Json | null
+          author_id: string
+          checklist_items: Json | null
+          content: string
+          created_at: string
+          feed_type: Database["public"]["Enums"]["feed_type"]
+          id: string
+          is_pinned: boolean | null
+          is_resolved: boolean | null
+          metadata: Json | null
+          post_type: Database["public"]["Enums"]["post_type"]
+          resolved_at: string | null
+          resolved_by: string | null
+          target_client_id: string | null
+          target_team_id: string | null
+          target_user_id: string | null
+          title: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          ai_source?: string | null
+          attachments?: Json | null
+          author_id: string
+          checklist_items?: Json | null
+          content: string
+          created_at?: string
+          feed_type?: Database["public"]["Enums"]["feed_type"]
+          id?: string
+          is_pinned?: boolean | null
+          is_resolved?: boolean | null
+          metadata?: Json | null
+          post_type?: Database["public"]["Enums"]["post_type"]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          target_client_id?: string | null
+          target_team_id?: string | null
+          target_user_id?: string | null
+          title?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_generated?: boolean | null
+          ai_source?: string | null
+          attachments?: Json | null
+          author_id?: string
+          checklist_items?: Json | null
+          content?: string
+          created_at?: string
+          feed_type?: Database["public"]["Enums"]["feed_type"]
+          id?: string
+          is_pinned?: boolean | null
+          is_resolved?: boolean | null
+          metadata?: Json | null
+          post_type?: Database["public"]["Enums"]["post_type"]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          target_client_id?: string | null
+          target_team_id?: string | null
+          target_user_id?: string | null
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_posts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           created_at: string
@@ -6601,6 +6681,150 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      post_comments: {
+        Row: {
+          attachments: Json | null
+          author_id: string
+          content: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          is_edited: boolean | null
+          parent_comment_id: string | null
+          post_id: string
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json | null
+          author_id: string
+          content: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          is_edited?: boolean | null
+          parent_comment_id?: string | null
+          post_id: string
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json | null
+          author_id?: string
+          content?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          is_edited?: boolean | null
+          parent_comment_id?: string | null
+          post_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "internal_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_mentions: {
+        Row: {
+          comment_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean | null
+          mentioned_by: string
+          mentioned_user_id: string
+          post_id: string | null
+          read_at: string | null
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          mentioned_by: string
+          mentioned_user_id: string
+          post_id?: string | null
+          read_at?: string | null
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          mentioned_by?: string
+          mentioned_user_id?: string
+          post_id?: string | null
+          read_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_mentions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_mentions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "internal_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reactions: {
+        Row: {
+          comment_id: string | null
+          created_at: string
+          id: string
+          post_id: string | null
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "internal_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_components: {
         Row: {
@@ -9545,7 +9769,14 @@ export type Database = {
       crm_entity_type: "contacts" | "opportunities"
       crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
+      feed_type: "workspace" | "team" | "user" | "client"
       integration_mode: "embed" | "redirect" | "headless"
+      post_type:
+        | "update"
+        | "help_request"
+        | "daily_checklist"
+        | "winners"
+        | "ai_alert"
       sso_token_status: "pending" | "active" | "used" | "expired" | "revoked"
       subscription_plan: "free" | "basic" | "pro" | "agency"
       template_goal:
@@ -9757,7 +9988,15 @@ export const Constants = {
       crm_entity_type: ["contacts", "opportunities"],
       crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
+      feed_type: ["workspace", "team", "user", "client"],
       integration_mode: ["embed", "redirect", "headless"],
+      post_type: [
+        "update",
+        "help_request",
+        "daily_checklist",
+        "winners",
+        "ai_alert",
+      ],
       sso_token_status: ["pending", "active", "used", "expired", "revoked"],
       subscription_plan: ["free", "basic", "pro", "agency"],
       template_goal: [

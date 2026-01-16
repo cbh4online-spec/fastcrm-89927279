@@ -48,6 +48,7 @@ import {
   Compass,
   Briefcase,
   CalendarClock,
+  Newspaper,
 } from "lucide-react";
 import {
   Collapsible,
@@ -100,6 +101,13 @@ const navigationGroups: NavGroup[] = [
         href: "/dashboard", 
         icon: LayoutDashboard,
         tooltip: "Visão geral com KPIs e ações prioritárias"
+      },
+      { 
+        name: "Mural Interno", 
+        href: "/dashboard/feed", 
+        icon: Newspaper,
+        tooltip: "Comunicação interna da equipa",
+        highlight: true
       },
     ],
   },

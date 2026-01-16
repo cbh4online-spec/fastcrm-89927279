@@ -57,6 +57,7 @@ import CalendarsPage from "./pages/CalendarsPage";
 import MeetingsPage from "./pages/MeetingsPage";
 import ServicesPage from "./pages/ServicesPage";
 import AvailabilityPage from "./pages/AvailabilityPage";
+import FeedPage from "./pages/FeedPage";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +117,7 @@ const App = () => (
                   <Route path="/dashboard/meetings" element={<MeetingsPage />} />
                   <Route path="/dashboard/services" element={<ServicesPage />} />
                   <Route path="/dashboard/availability" element={<AvailabilityPage />} />
+                  <Route path="/dashboard/feed" element={<FeedPage />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />
                   <Route path="/p/:slug" element={<PublicProposalPage />} />
