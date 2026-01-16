@@ -194,6 +194,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Form Studio", href: "/dashboard/form-studio", icon: FileEdit, tooltip: "Construtor de formulários" },
       { name: "Importações", href: "/dashboard/imports", icon: Download, tooltip: "Importar dados" },
       { name: "Integrações", href: "/dashboard/settings/integrations", icon: Link2, tooltip: "Conectar apps externos" },
+      { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, tooltip: "Módulos e extensões", highlight: true },
     ],
   },
 ];
