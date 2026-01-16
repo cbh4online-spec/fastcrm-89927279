@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -100,6 +100,38 @@ export function CalendarCreateModal({
           is_public: false,
         },
   });
+
+  // Reset form when calendar changes (for editing)
+  useEffect(() => {
+    if (open) {
+      if (calendar) {
+        form.reset({
+          name: calendar.name,
+          description: calendar.description || '',
+          calendar_type: calendar.calendar_type,
+          group_id: calendar.group_id || undefined,
+          color: calendar.color,
+          timezone: calendar.timezone,
+          default_duration: calendar.default_duration,
+          buffer_before: calendar.buffer_before,
+          buffer_after: calendar.buffer_after,
+          is_public: calendar.is_public,
+        });
+      } else {
+        form.reset({
+          name: '',
+          description: '',
+          calendar_type: 'internal',
+          color: '#3B82F6',
+          timezone: 'Europe/Lisbon',
+          default_duration: 60,
+          buffer_before: 0,
+          buffer_after: 0,
+          is_public: false,
+        });
+      }
+    }
+  }, [open, calendar, form]);
 
   const handleSubmit = async (data: CalendarFormData) => {
     setIsSubmitting(true);
