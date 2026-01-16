@@ -46,6 +46,7 @@ import {
   CalendarDays,
   Clock,
   Compass,
+  Briefcase,
 } from "lucide-react";
 import {
   Collapsible,
@@ -143,6 +144,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Propostas", href: "/dashboard/proposals", icon: FileText, tooltip: "Propostas enviadas e pendentes", highlight: true },
       { name: "Calendários", href: "/dashboard/calendars", icon: CalendarDays, tooltip: "Gestão de calendários e eventos", highlight: true },
       { name: "Reuniões", href: "/dashboard/meetings", icon: Clock, tooltip: "Bookings e reuniões", highlight: true },
+      { name: "Serviços", href: "/dashboard/services", icon: Briefcase, tooltip: "Serviços e tipos de marcação", highlight: true },
       { name: "Produtos", href: "/dashboard/products", icon: Target, tooltip: "Catálogo de produtos e serviços" },
     ],
   },
