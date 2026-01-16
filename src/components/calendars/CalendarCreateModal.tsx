@@ -51,6 +51,7 @@ interface CalendarCreateModalProps {
   groups: CalendarGroup[];
   calendar?: Calendar | null;
   onSubmit: (data: CreateCalendarData) => Promise<void>;
+  onDelete?: (id: string) => Promise<boolean>;
 }
 
 const colorOptions = [
@@ -70,7 +71,24 @@ export function CalendarCreateModal({
   groups,
   calendar,
   onSubmit,
+  onDelete,
 }: CalendarCreateModalProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!calendar || !onDelete) return;
+    
+    const confirmed = window.confirm('Tem a certeza que deseja eliminar este calendário? Esta ação não pode ser revertida.');
+    if (!confirmed) return;
+    
+    setIsDeleting(true);
+    try {
+      await onDelete(calendar.id);
+      onOpenChange(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CalendarFormData>({
@@ -361,13 +379,27 @@ export function CalendarCreateModal({
               )}
             />
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'A guardar...' : calendar ? 'Guardar' : 'Criar'}
-              </Button>
+            <DialogFooter className="flex justify-between">
+              {calendar && onDelete ? (
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'A eliminar...' : 'Eliminar'}
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'A guardar...' : calendar ? 'Guardar' : 'Criar'}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </Form>
