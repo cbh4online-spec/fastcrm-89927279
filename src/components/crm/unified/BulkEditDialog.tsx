@@ -188,15 +188,26 @@ export function BulkEditDialog({
 
   const handleApply = async () => {
     const changes: Record<string, unknown> = {};
+    
+    // Só incluir campos que estão selecionados E têm valores definidos
     selectedFields.forEach((key) => {
-      if (fieldValues[key] !== undefined) {
-        changes[key] = fieldValues[key];
+      const value = fieldValues[key];
+      
+      // Verificar se o valor está realmente definido (não undefined, null ou string vazia)
+      const hasValue = value !== undefined && value !== null && value !== "";
+      
+      if (hasValue) {
+        changes[key] = value;
       }
     });
 
     if (Object.keys(changes).length === 0) {
+      // Nenhum campo com valor foi selecionado
       return;
     }
+    
+    console.log("Bulk edit - campos a atualizar:", Object.keys(changes));
+    console.log("Bulk edit - valores:", changes);
 
     setIsApplying(true);
     try {
