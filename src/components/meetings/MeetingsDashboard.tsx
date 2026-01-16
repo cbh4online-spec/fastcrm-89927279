@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, isToday, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { Link } from 'react-router-dom';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -13,6 +14,7 @@ import {
   User,
   Building2,
   Brain,
+  ArrowLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -175,6 +177,17 @@ export function MeetingsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-card">
         <div className="flex items-center gap-4">
+          {/* Back to Dashboard link */}
+          <Link 
+            to="/dashboard" 
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Dashboard</span>
+          </Link>
+
+          <div className="h-6 w-px bg-border" />
+
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={() => navigate('prev')}>
               <ChevronLeft className="h-4 w-4" />
