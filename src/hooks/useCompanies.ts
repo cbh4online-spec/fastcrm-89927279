@@ -9,6 +9,7 @@ export interface Company {
   workspace_id: string;
   created_by: string;
   name: string;
+  tax_id: string | null;
   website: string | null;
   industry: string | null;
   size: string | null;
@@ -27,6 +28,7 @@ export interface Company {
 
 export interface CreateCompanyData {
   name: string;
+  tax_id?: string;
   website?: string;
   industry?: string;
   size?: string;
@@ -108,23 +110,26 @@ export function useCompanies() {
 
   const updateCompany = useMutation({
     mutationFn: async ({ id, ...data }: UpdateCompanyData) => {
+      // Build update object only with defined fields
+      const updateData: Record<string, unknown> = {};
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.tax_id !== undefined) updateData.tax_id = data.tax_id;
+      if (data.website !== undefined) updateData.website = data.website;
+      if (data.industry !== undefined) updateData.industry = data.industry;
+      if (data.size !== undefined) updateData.size = data.size;
+      if (data.phone !== undefined) updateData.phone = data.phone;
+      if (data.email !== undefined) updateData.email = data.email;
+      if (data.address !== undefined) updateData.address = data.address;
+      if (data.notes !== undefined) updateData.notes = data.notes;
+      if (data.tags !== undefined) updateData.tags = data.tags;
+      if (data.linkedin_url !== undefined) updateData.linkedin_url = data.linkedin_url;
+      if (data.facebook_url !== undefined) updateData.facebook_url = data.facebook_url;
+      if (data.instagram_url !== undefined) updateData.instagram_url = data.instagram_url;
+      if (data.twitter_url !== undefined) updateData.twitter_url = data.twitter_url;
+
       const { data: company, error } = await supabase
         .from("companies")
-        .update({
-          name: data.name,
-          website: data.website,
-          industry: data.industry,
-          size: data.size,
-          phone: data.phone,
-          email: data.email,
-          address: data.address,
-          notes: data.notes,
-          tags: data.tags,
-          linkedin_url: data.linkedin_url,
-          facebook_url: data.facebook_url,
-          instagram_url: data.instagram_url,
-          twitter_url: data.twitter_url,
-        })
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
@@ -134,7 +139,6 @@ export function useCompanies() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
-      toast.success("Empresa atualizada com sucesso");
     },
     onError: (error) => {
       console.error("Error updating company:", error);

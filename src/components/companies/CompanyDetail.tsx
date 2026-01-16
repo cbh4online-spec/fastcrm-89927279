@@ -42,6 +42,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
+import { InlineNifField } from "@/components/custom-fields/InlineNifField";
+import { NifLookupResult } from "@/hooks/useNifLookup";
 import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
 import { getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
 import { getSuggestionForField } from "@/components/ai/InlineFieldSuggestion";
@@ -142,6 +144,29 @@ export function CompanyDetail() {
       [fieldId]: value || undefined,
     });
     toast.success("Campo atualizado");
+  }, [company, updateCompany]);
+
+  // Handler for NIF lookup data received
+  const handleNifDataReceived = useCallback(async (data: NifLookupResult) => {
+    if (!company) return;
+    
+    // Update company with received data
+    const updateData: Record<string, unknown> = {
+      id: company.id,
+    };
+
+    if (data.company_name && !company.name) updateData.name = data.company_name;
+    if (data.address) updateData.address = data.address;
+    if (data.email && !company.email) updateData.email = data.email;
+    if (data.phone && !company.phone) updateData.phone = data.phone;
+    if (data.website && !company.website) updateData.website = data.website;
+    if (data.cae_description && !company.industry) updateData.industry = data.cae_description;
+
+    // Only update if we have new data
+    if (Object.keys(updateData).length > 1) {
+      await updateCompany.mutateAsync(updateData as { id: string });
+      toast.success("Dados da empresa preenchidos automaticamente!");
+    }
   }, [company, updateCompany]);
 
   // Handler for inline custom field change
@@ -285,6 +310,22 @@ export function CompanyDetail() {
           onAcceptSuggestion={(val) => handleAcceptCustomFieldSuggestion(customFieldId, val)}
           onRejectSuggestion={() => handleRejectCustomFieldSuggestion(customFieldId)}
           isAcceptingSuggestion={acceptingField === customFieldId}
+        />
+      );
+    }
+
+    // Special handling for NIF/tax_id field with lookup
+    if (fieldConfig.id === "tax_id") {
+      return (
+        <InlineNifField
+          key={fieldConfig.id}
+          label={fieldConfig.name}
+          value={value as string | null | undefined}
+          onChange={async (val) => {
+            await handleNativeFieldChange("tax_id", val);
+          }}
+          onDataReceived={handleNifDataReceived}
+          icon={icon}
         />
       );
     }
