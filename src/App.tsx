@@ -50,6 +50,7 @@ import ReportsKPIs from "./pages/ReportsKPIs";
 import ReportsGrowth from "./pages/ReportsGrowth";
 import ReportsSales from "./pages/ReportsSales";
 import Marketplace from "./pages/Marketplace";
+import MarketplaceAdmin from "./pages/admin/MarketplaceAdmin";
 
 const queryClient = new QueryClient();
 
@@ -102,6 +103,7 @@ const App = () => (
                   <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
                   <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
                   <Route path="/dashboard/marketplace" element={<Marketplace />} />
+                  <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />
                   <Route path="/p/:slug" element={<PublicProposalPage />} />

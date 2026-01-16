@@ -39,6 +39,7 @@ import {
   Phone,
   BarChart3,
   PieChart,
+  Package,
 } from "lucide-react";
 import {
   Collapsible,
@@ -66,6 +67,7 @@ interface NavItem {
   premiumFeature?: FeatureKey;
   tooltip?: string;
   highlight?: boolean;
+  requiresAdmin?: boolean;
 }
 
 interface NavGroup {
@@ -195,6 +197,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Importações", href: "/dashboard/imports", icon: Download, tooltip: "Importar dados" },
       { name: "Integrações", href: "/dashboard/settings/integrations", icon: Link2, tooltip: "Conectar apps externos" },
       { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, tooltip: "Módulos e extensões", highlight: true },
+      { name: "Gestão Módulos", href: "/dashboard/admin/marketplace", icon: Package, tooltip: "Administrar módulos", requiresAdmin: true },
     ],
   },
 ];
