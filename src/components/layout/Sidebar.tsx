@@ -47,6 +47,7 @@ import {
   Clock,
   Compass,
   Briefcase,
+  CalendarClock,
 } from "lucide-react";
 import {
   Collapsible,
@@ -145,6 +146,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Calendários", href: "/dashboard/calendars", icon: CalendarDays, tooltip: "Gestão de calendários e eventos", highlight: true },
       { name: "Reuniões", href: "/dashboard/meetings", icon: Clock, tooltip: "Bookings e reuniões", highlight: true },
       { name: "Serviços", href: "/dashboard/services", icon: Briefcase, tooltip: "Serviços e tipos de marcação", highlight: true },
+      { name: "Disponibilidade", href: "/dashboard/availability", icon: CalendarClock, tooltip: "Gerir horários de trabalho", highlight: true },
       { name: "Produtos", href: "/dashboard/products", icon: Target, tooltip: "Catálogo de produtos e serviços" },
     ],
   },
