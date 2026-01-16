@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Clock, Calculator } from "lucide-react";
@@ -67,6 +67,9 @@ function calculateABCCategory(totalRevenue: number): ABCCategory {
 
 export function CommercialHistorySection({ contact, onFieldChange }: CommercialHistorySectionProps) {
   const lastUpdated = contact.commercial_history_updated_at;
+  const isUpdatingRef = useRef(false);
+  const onFieldChangeRef = useRef(onFieldChange);
+  onFieldChangeRef.current = onFieldChange;
 
   // Calculate total revenue from yearly sales
   const calculatedTotalRevenue = useMemo(() => {
@@ -84,19 +87,33 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
 
   // Auto-update total revenue and ABC category when sales change
   useEffect(() => {
+    if (isUpdatingRef.current) return;
+    
     const currentTotal = contact.total_revenue || 0;
     const currentABC = contact.abc_category;
     
-    // Update total revenue if different
-    if (Math.abs(currentTotal - calculatedTotalRevenue) > 0.01) {
-      onFieldChange('total_revenue', calculatedTotalRevenue);
-    }
+    const needsRevenueUpdate = Math.abs(currentTotal - calculatedTotalRevenue) > 0.01;
+    const needsABCUpdate = currentABC !== calculatedABCCategory;
     
-    // Update ABC category if different
-    if (currentABC !== calculatedABCCategory) {
-      onFieldChange('abc_category', calculatedABCCategory);
+    if (needsRevenueUpdate || needsABCUpdate) {
+      isUpdatingRef.current = true;
+      
+      const updates = async () => {
+        if (needsRevenueUpdate) {
+          await onFieldChangeRef.current('total_revenue', calculatedTotalRevenue);
+        }
+        if (needsABCUpdate) {
+          await onFieldChangeRef.current('abc_category', calculatedABCCategory);
+        }
+        // Reset after a small delay to allow state to settle
+        setTimeout(() => {
+          isUpdatingRef.current = false;
+        }, 500);
+      };
+      
+      updates();
     }
-  }, [calculatedTotalRevenue, calculatedABCCategory, contact.total_revenue, contact.abc_category, onFieldChange]);
+  }, [calculatedTotalRevenue, calculatedABCCategory, contact.total_revenue, contact.abc_category]);
 
   const abcCategory = (contact.abc_category || calculatedABCCategory) as ABCCategory;
 
