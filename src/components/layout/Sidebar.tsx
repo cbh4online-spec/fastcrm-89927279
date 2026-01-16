@@ -49,6 +49,7 @@ import {
   Briefcase,
   CalendarClock,
   Newspaper,
+  Sparkles,
 } from "lucide-react";
 import {
   Collapsible,
@@ -107,6 +108,13 @@ const navigationGroups: NavGroup[] = [
         href: "/dashboard/feed", 
         icon: Newspaper,
         tooltip: "Comunicação interna da equipa",
+        highlight: true
+      },
+      { 
+        name: "Coach IA", 
+        href: "/dashboard/productivity", 
+        icon: Sparkles,
+        tooltip: "Coach de produtividade com IA",
         highlight: true
       },
     ],
