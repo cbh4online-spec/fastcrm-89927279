@@ -19,6 +19,7 @@ import {
   FileText,
   Share2,
   ClipboardCheck,
+  Brain,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,7 @@ interface MeetingCardProps {
   onClick: (meeting: Meeting) => void;
   onRegisterOutcome?: (meeting: Meeting) => void;
   onPublishToTeam?: (meetingId: string) => void;
+  onPrepare?: (meeting: Meeting) => void;
 }
 
 const statusConfig: Record<MeetingStatus, { label: string; color: string; icon: typeof Check }> = {
@@ -63,7 +65,7 @@ const modeConfig: Record<MeetingMode, { label: string; icon: typeof Video }> = {
   whatsapp: { label: 'WhatsApp', icon: MessageCircle },
 };
 
-export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam }: MeetingCardProps) {
+export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare }: MeetingCardProps) {
   const startTime = new Date(meeting.start_time);
   const endTime = new Date(meeting.end_time);
   const duration = differenceInMinutes(endTime, startTime);
@@ -130,6 +132,16 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegis
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {/* AI Preparation for client meetings */}
+            {(meeting.category === 'client' || meeting.category === 'hybrid') && onPrepare && (
+              <>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPrepare(meeting); }}>
+                  <Brain className="h-4 w-4 mr-2 text-primary" />
+                  Preparar com IA
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             {meeting.status === 'pending' && (
               <DropdownMenuItem onClick={() => onStatusChange(meeting.id, 'confirmed')}>
                 <Check className="h-4 w-4 mr-2 text-green-500" />
@@ -219,6 +231,16 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegis
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {/* AI Preparation for client meetings */}
+            {(meeting.category === 'client' || meeting.category === 'hybrid') && onPrepare && (
+              <>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPrepare(meeting); }}>
+                  <Brain className="h-4 w-4 mr-2 text-primary" />
+                  Preparar com IA
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             {meeting.status === 'pending' && (
               <DropdownMenuItem onClick={() => onStatusChange(meeting.id, 'confirmed')}>
                 <Check className="h-4 w-4 mr-2 text-green-500" />

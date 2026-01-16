@@ -11,7 +11,8 @@ import {
   Filter,
   Users,
   User,
-  Building2
+  Building2,
+  Brain,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,6 +27,7 @@ import {
 import { MeetingCard } from './MeetingCard';
 import { MeetingCreateModal } from './MeetingCreateModal';
 import { MeetingOutcomeModal } from './MeetingOutcomeModal';
+import { MeetingPreparationPanel } from './MeetingPreparationPanel';
 import { useMeetings, type Meeting, type MeetingStatus, type MeetingCategory, type MeetingOutcome, type CreateMeetingData } from '@/hooks/useMeetings';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +59,8 @@ export function MeetingsDashboard() {
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [meetingForOutcome, setMeetingForOutcome] = useState<Meeting | null>(null);
+  const [showPreparation, setShowPreparation] = useState(false);
+  const [meetingForPreparation, setMeetingForPreparation] = useState<Meeting | null>(null);
 
   // Get date range for current week
   const dateRange = useMemo(() => ({
@@ -129,6 +133,11 @@ export function MeetingsDashboard() {
 
   const handlePublishToTeam = async (meetingId: string) => {
     await publishToTeam(meetingId);
+  };
+
+  const handlePrepare = (meeting: Meeting) => {
+    setMeetingForPreparation(meeting);
+    setShowPreparation(true);
   };
 
   const title = `${format(dateRange.start, 'd MMM', { locale: pt })} - ${format(dateRange.end, 'd MMM yyyy', { locale: pt })}`;
@@ -217,6 +226,7 @@ export function MeetingsDashboard() {
             onClick={handleMeetingClick}
             onRegisterOutcome={handleRegisterOutcome}
             onPublishToTeam={handlePublishToTeam}
+            onPrepare={handlePrepare}
           />
         )}
 
@@ -228,6 +238,7 @@ export function MeetingsDashboard() {
             onClick={handleMeetingClick}
             onRegisterOutcome={handleRegisterOutcome}
             onPublishToTeam={handlePublishToTeam}
+            onPrepare={handlePrepare}
           />
         )}
       </div>
@@ -254,6 +265,18 @@ export function MeetingsDashboard() {
           onCreateTask={handleCreateTask}
         />
       )}
+
+      {/* AI Preparation Panel */}
+      {meetingForPreparation && (
+        <MeetingPreparationPanel
+          meeting={meetingForPreparation}
+          isOpen={showPreparation}
+          onClose={() => {
+            setShowPreparation(false);
+            setMeetingForPreparation(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -264,9 +287,10 @@ interface ListViewProps {
   onClick: (meeting: Meeting) => void;
   onRegisterOutcome: (meeting: Meeting) => void;
   onPublishToTeam: (meetingId: string) => void;
+  onPrepare: (meeting: Meeting) => void;
 }
 
-function ListView({ meetings, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam }: ListViewProps) {
+function ListView({ meetings, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare }: ListViewProps) {
   // Group by date
   const groupedByDate = useMemo(() => {
     const groups: Record<string, Meeting[]> = {};
@@ -313,6 +337,7 @@ function ListView({ meetings, onStatusChange, onClick, onRegisterOutcome, onPubl
                 onClick={onClick}
                 onRegisterOutcome={onRegisterOutcome}
                 onPublishToTeam={onPublishToTeam}
+                onPrepare={onPrepare}
               />
             ))}
           </div>
@@ -329,9 +354,10 @@ interface BoardViewProps {
   onClick: (meeting: Meeting) => void;
   onRegisterOutcome: (meeting: Meeting) => void;
   onPublishToTeam: (meetingId: string) => void;
+  onPrepare: (meeting: Meeting) => void;
 }
 
-function BoardView({ meetingsByStatus, categoryFilter, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam }: BoardViewProps) {
+function BoardView({ meetingsByStatus, categoryFilter, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare }: BoardViewProps) {
   const filteredByStatus = useMemo(() => {
     const filtered: Record<MeetingStatus, Meeting[]> = {} as Record<MeetingStatus, Meeting[]>;
     
@@ -361,6 +387,7 @@ function BoardView({ meetingsByStatus, categoryFilter, onStatusChange, onClick, 
                 onClick={onClick}
                 onRegisterOutcome={onRegisterOutcome}
                 onPublishToTeam={onPublishToTeam}
+                onPrepare={onPrepare}
               />
             ))}
           </div>
