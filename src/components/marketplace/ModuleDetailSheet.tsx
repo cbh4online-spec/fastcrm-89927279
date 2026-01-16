@@ -1,13 +1,81 @@
+import { useState } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { MarketplaceModule, CATEGORY_INFO } from "@/types/marketplace";
-import { Star, Users, Check, Shield, Sparkles, Clock, Building2, ExternalLink, Play } from "lucide-react";
+import { Star, Users, Check, Shield, Sparkles, Clock, Building2, ExternalLink, Play, Key, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { getIconByName } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+// API Key Field Component
+interface ApiKeyFieldProps {
+  label: string;
+  description: string;
+  isConfigured?: boolean;
+}
+
+function ApiKeyField({ label, description, isConfigured = false }: ApiKeyFieldProps) {
+  const [showKey, setShowKey] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [isSaved, setIsSaved] = useState(isConfigured);
+
+  const handleSave = () => {
+    if (apiKey.trim()) {
+      setIsSaved(true);
+      toast.success(`${label} configurada com sucesso!`);
+    }
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-muted/50 border space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="text-sm font-medium">{label}</span>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        {isSaved && (
+          <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-300 bg-emerald-50">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Configurada
+          </Badge>
+        )}
+      </div>
+      {!isSaved && (
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              type={showKey ? "text" : "password"}
+              placeholder="Introduza a sua API Key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <Button size="sm" onClick={handleSave} disabled={!apiKey.trim()}>
+            Guardar
+          </Button>
+        </div>
+      )}
+      {isSaved && (
+        <Button variant="outline" size="sm" onClick={() => setIsSaved(false)}>
+          Alterar Key
+        </Button>
+      )}
+    </div>
+  );
+}
 
 interface ModuleDetailSheetProps {
   module: MarketplaceModule | null;
@@ -134,6 +202,23 @@ export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }
           </TabsContent>
 
           <TabsContent value="permissions" className="mt-4 space-y-6">
+            {/* API Credentials Section */}
+            {module.internal_type === "connector" && (
+              <div>
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <Key className="w-4 h-4 text-primary" />
+                  Credenciais de API
+                </h4>
+                <div className="space-y-3">
+                  <ApiKeyField 
+                    label="SerpAPI Key" 
+                    description="Chave de API para aceder aos dados do Google Local Services"
+                    isConfigured={isInstalled}
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <h4 className="font-medium mb-3 flex items-center gap-2"><Shield className="w-4 h-4 text-primary" />Acesso a dados</h4>
               <div className="space-y-2">
