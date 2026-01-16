@@ -1017,6 +1017,7 @@ export type Database = {
           phone: string | null
           source: string | null
           tags: string[] | null
+          tax_id: string | null
           twitter_url: string | null
           updated_at: string
           workspace_id: string
@@ -1050,6 +1051,7 @@ export type Database = {
           phone?: string | null
           source?: string | null
           tags?: string[] | null
+          tax_id?: string | null
           twitter_url?: string | null
           updated_at?: string
           workspace_id: string
@@ -1083,6 +1085,7 @@ export type Database = {
           phone?: string | null
           source?: string | null
           tags?: string[] | null
+          tax_id?: string | null
           twitter_url?: string | null
           updated_at?: string
           workspace_id?: string
