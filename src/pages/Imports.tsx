@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { SmartImportWizard } from "@/components/imports/SmartImportWizard";
+import { ImportHistory } from "@/components/imports/ImportHistory";
 import { ImportEntityType } from "@/types/import";
 
 const importTypes = [
@@ -231,20 +232,7 @@ export default function ImportsPage() {
             )}
 
             {/* Recent Imports */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Importações Recentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileSpreadsheet className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">Nenhuma importação realizada</p>
-                  <p className="text-xs mt-1">
-                    As tuas importações aparecerão aqui
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <ImportHistory />
           </>
         )}
       </div>

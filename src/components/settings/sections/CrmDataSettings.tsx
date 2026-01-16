@@ -3,6 +3,7 @@ import { SettingsSection, SettingsItem } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
 import { CustomFieldsManager } from "@/components/custom-fields/CustomFieldsManager";
 import { FormLayoutEditor } from "@/components/custom-fields/FormLayoutEditor";
+import { IndustryLabelsSettings } from "../IndustryLabelsSettings";
 import {
   Users,
   SlidersHorizontal,
@@ -17,6 +18,7 @@ import {
   GripVertical,
   Edit2,
   LayoutList,
+  Sparkles,
 } from "lucide-react";
 import {
   Dialog,
@@ -162,6 +164,7 @@ export function CrmDataSettings({ searchQuery = "", matchedSections }: CrmDataSe
   const navigate = useNavigate();
   const hasSearch = searchQuery.trim().length > 0;
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
+  const [industryLabelsOpen, setIndustryLabelsOpen] = useState(false);
   
   // State for configurations
   const [requiredFields, setRequiredFields] = useState(requiredFieldsConfig);
@@ -613,6 +616,25 @@ export function CrmDataSettings({ searchQuery = "", matchedSections }: CrmDataSe
 
   return (
     <div className="space-y-6">
+      {/* Industry Labels / Business Model */}
+      {shouldShow("crm-contacts") && (
+        <SettingsSection
+          title="Modelo de Negócio"
+          description="Personalizar a terminologia usada no CRM por tipo de negócio"
+          icon={<Sparkles className="h-5 w-5" />}
+        >
+          <SettingsItem
+            title="Linguagem do Negócio"
+            description="Adaptar labels como 'Contactos' → 'Pacientes' (Saúde) ou 'Alunos' (Formação)"
+            action={
+              <Button variant="outline" onClick={() => setIndustryLabelsOpen(true)}>
+                Configurar
+              </Button>
+            }
+          />
+        </SettingsSection>
+      )}
+
       {/* Contacts & Opportunities Settings */}
       {shouldShow("crm-contacts") && (
         <SettingsSection
@@ -649,6 +671,9 @@ export function CrmDataSettings({ searchQuery = "", matchedSections }: CrmDataSe
           />
         </SettingsSection>
       )}
+
+      {/* Industry Labels Dialog */}
+      <IndustryLabelsSettings open={industryLabelsOpen} onOpenChange={setIndustryLabelsOpen} />
 
       {/* Form Layout Editor */}
       {shouldShow("crm-custom-fields") && (
