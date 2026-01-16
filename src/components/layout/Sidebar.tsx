@@ -240,15 +240,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
               isSubItem && "ml-4 text-[13px]",
               isActive(item.href)
-                ? "bg-sidebar-accent text-sidebar-primary"
+                ? "bg-white/20 text-white"
                 : item.highlight
-                  ? "text-primary hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  ? "text-white/90 hover:bg-white/10 hover:text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
             )}
           >
             <item.icon className={cn("w-4 h-4", isSubItem && "w-4 h-4")} />
             <span className="flex-1">{item.name}</span>
-            {isPremium && <Crown className="w-4 h-4 text-amber-500" />}
+            {isPremium && <Crown className="w-4 h-4 text-amber-300" />}
           </Link>
         </TooltipTrigger>
         {item.tooltip && (
@@ -273,13 +273,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   groupActive
-                    ? "bg-sidebar-accent/50 text-sidebar-primary"
+                    ? "bg-white/15 text-white"
                     : group.highlight
-                      ? "text-primary hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      ? "text-white/90 hover:bg-white/10 hover:text-white"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
                 )}
               >
-                <group.icon className={cn("w-5 h-5", group.highlight && "text-primary")} />
+                <group.icon className={cn("w-5 h-5", group.highlight && "text-white")} />
                 <span className={cn("flex-1 text-left", group.highlight && "font-semibold")}>{group.name}</span>
                 {isOpen ? (
                   <ChevronDown className="w-4 h-4" />
@@ -316,43 +316,45 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* Sidebar */}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+            "fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-indigo-600 via-purple-600 to-indigo-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0",
             open ? "translate-x-0" : "-translate-x-full"
           )}
         >
           <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
+            <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-primary-foreground" />
+                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-white" />
                 </div>
-                <span className="font-semibold text-sidebar-foreground">FastCRM</span>
+                <span className="font-semibold text-white">FastCRM</span>
               </div>
               <button
                 onClick={onClose}
-                className="lg:hidden p-1 rounded-md hover:bg-sidebar-accent text-sidebar-foreground"
+                className="lg:hidden p-1 rounded-md hover:bg-white/10 text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Workspace Switcher */}
-            <div className="p-4 border-b border-sidebar-border">
+            <div className="p-4 border-b border-white/10">
               <WorkspaceSwitcher />
             </div>
 
             {/* Plan Badge */}
-            <div className="px-4 py-2 border-b border-sidebar-border">
-              <PlanBadge plan={plan} className="w-full justify-center" />
+            <div className="px-4 py-2 border-b border-white/10">
+              <PlanBadge plan={plan} className="w-full justify-center bg-white/10 text-white border-white/20" />
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+            <nav className="flex-1 p-3 space-y-1 overflow-y-auto"
+              style={{ colorScheme: 'dark' }}
+            >
               {navigationGroups.map(renderNavGroup)}
               
               {/* Settings Group */}
-              <div className="pt-4 mt-4 border-t border-sidebar-border">
+              <div className="pt-4 mt-4 border-t border-white/10">
                 <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -361,8 +363,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                           className={cn(
                             "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                             settingsOpen
-                              ? "bg-sidebar-accent/50 text-sidebar-primary"
-                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                              ? "bg-white/15 text-white"
+                              : "text-white/70 hover:bg-white/10 hover:text-white"
                           )}
                         >
                           <Settings className="w-5 h-5" />
@@ -388,10 +390,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
             {/* Role indicator */}
             {currentWorkspace && (
-              <div className="p-4 border-t border-sidebar-border">
-                <div className="px-3 py-2 rounded-lg bg-sidebar-accent">
-                  <p className="text-xs text-sidebar-foreground/60">O seu cargo</p>
-                  <p className="text-sm font-medium text-sidebar-foreground capitalize">
+              <div className="p-4 border-t border-white/10">
+                <div className="px-3 py-2 rounded-lg bg-white/10">
+                  <p className="text-xs text-white/60">O seu cargo</p>
+                  <p className="text-sm font-medium text-white capitalize">
                     {currentWorkspace.role}
                   </p>
                 </div>

@@ -2,136 +2,85 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useOperationalDashboard, useDashboardAIInsights } from "@/hooks/useOperationalDashboard";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { OperationalKPICards } from "@/components/dashboard/OperationalKPICards";
-import { DashboardAIInsightsPanel } from "@/components/dashboard/DashboardAIInsightsPanel";
-import { DashboardNextActionsPanel } from "@/components/dashboard/DashboardNextActionsPanel";
-import { DashboardPipelineSummary } from "@/components/dashboard/DashboardPipelineSummary";
-import { DashboardEfficiencyBlock } from "@/components/dashboard/DashboardEfficiencyBlock";
-import { DashboardSmartAlerts } from "@/components/dashboard/DashboardSmartAlerts";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PipelineKanban } from "@/components/dashboard/PipelineKanban";
+import { RevenueWidget } from "@/components/dashboard/RevenueWidget";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { SalesProgressionChart } from "@/components/dashboard/SalesProgressionChart";
+import { LeadManagementTable } from "@/components/dashboard/LeadManagementTable";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Users, HeadsetIcon, BarChart3 } from "lucide-react";
-import { useUserRole } from "@/hooks/useUserRole";
 
-type ViewPreset = "sales" | "support" | "manager";
-
-const viewPresets: Record<ViewPreset, { label: string; icon: React.ReactNode }> = {
-  sales: { label: "Vendas", icon: <Users className="w-4 h-4" /> },
-  support: { label: "Suporte", icon: <HeadsetIcon className="w-4 h-4" /> },
-  manager: { label: "Gestor", icon: <BarChart3 className="w-4 h-4" /> },
-};
+// Demo team avatars
+const teamMembers = [
+  { name: "Maria Costa", initials: "MC" },
+  { name: "Pedro Santos", initials: "PS" },
+  { name: "Ana Ferreira", initials: "AF" },
+  { name: "Carlos Mendes", initials: "CM" },
+];
 
 export default function Dashboard() {
-  const { isAdmin, isSuperAdmin } = useUserRole();
-  const [activeView, setActiveView] = useState<ViewPreset>(() => {
-    // Default view based on user role
-    if (isAdmin || isSuperAdmin) return "manager";
-    return "sales";
-  });
-
   const {
     kpis,
-    pipelineSummary,
-    efficiencyMetrics,
     userName,
     workspaceName,
-    recentLeadNames,
-    topOpportunity,
     isLoading,
   } = useOperationalDashboard();
 
   const {
     data: aiInsights,
     isLoading: aiLoading,
-    refetch: refetchAI,
-    isFetching: isRefreshingAI,
   } = useDashboardAIInsights(kpis, userName, workspaceName);
 
-  // Get greeting and status from AI or fallback
   const greeting = aiInsights?.greeting || `Olá, ${userName}!`;
-  const dayStatus = aiInsights?.dayStatus || "A carregar o resumo do dia...";
-  const insights = aiInsights?.insights || [];
-  const nextActions = aiInsights?.nextActions || [];
+  const dayStatus = aiInsights?.dayStatus || "Aqui está o resumo do seu dia...";
 
   return (
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-5rem)]">
         <div className="space-y-6 pb-8">
-          {/* Header Inteligente */}
-          <DashboardHeader
-            greeting={greeting}
-            dayStatus={dayStatus}
-            isLoading={isLoading || aiLoading}
-          />
-
-          {/* Vistas por Função */}
-          <Tabs value={activeView} onValueChange={(v) => setActiveView(v as ViewPreset)}>
-            <TabsList>
-              {Object.entries(viewPresets).map(([key, preset]) => (
-                <TabsTrigger key={key} value={key} className="gap-2">
-                  {preset.icon}
-                  {preset.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-
-          {/* KPIs Operacionais */}
-          <section>
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Status Rápido
-            </h2>
-            <OperationalKPICards data={kpis} isLoading={isLoading} />
-          </section>
-
-          {/* Layout em grid para Insights e Ações */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Insights da IA */}
-            <section>
-              <DashboardAIInsightsPanel
-                data={aiInsights}
-                isLoading={aiLoading}
-                onRefresh={() => refetchAI()}
-                isRefreshing={isRefreshingAI}
-              />
-            </section>
-
-            {/* Próximas Ações */}
-            <section>
-              <DashboardNextActionsPanel
-                actions={nextActions}
-                isLoading={aiLoading}
-              />
-            </section>
+          {/* Header with Team Avatars */}
+          <div className="flex items-center justify-between">
+            <DashboardHeader
+              greeting={greeting}
+              dayStatus={dayStatus}
+              isLoading={isLoading || aiLoading}
+            />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground mr-2">Equipa:</span>
+              <div className="flex -space-x-2">
+                {teamMembers.map((member, i) => (
+                  <Avatar key={i} className="h-8 w-8 border-2 border-background">
+                    <AvatarImage src="" />
+                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                      {member.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Alertas Inteligentes (se existirem) */}
-          <section>
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Alertas
-            </h2>
-            <DashboardSmartAlerts maxAlerts={3} />
-          </section>
+          {/* Main Grid Layout */}
+          <div className="grid grid-cols-12 gap-6">
+            {/* Pipeline Kanban - Main Area */}
+            <div className="col-span-12 lg:col-span-8">
+              <PipelineKanban />
+            </div>
 
-          {/* Pipeline Resumido (visível para Vendas e Gestor) */}
-          {(activeView === "sales" || activeView === "manager") && (
-            <section>
-              <DashboardPipelineSummary
-                data={pipelineSummary}
-                isLoading={isLoading}
-              />
-            </section>
-          )}
+            {/* Right Sidebar - Revenue & Activity */}
+            <div className="col-span-12 lg:col-span-4 space-y-6">
+              <RevenueWidget isLoading={isLoading} />
+              <ActivityFeed maxItems={5} isLoading={isLoading} />
+            </div>
 
-          {/* Eficiência PARE (visível para Gestor) */}
-          {activeView === "manager" && (
-            <section>
-              <DashboardEfficiencyBlock
-                data={efficiencyMetrics}
-                isLoading={isLoading}
-              />
-            </section>
-          )}
+            {/* Bottom Row */}
+            <div className="col-span-12 lg:col-span-6">
+              <SalesProgressionChart isLoading={isLoading} />
+            </div>
+            <div className="col-span-12 lg:col-span-6">
+              <LeadManagementTable maxItems={5} isLoading={isLoading} />
+            </div>
+          </div>
         </div>
       </ScrollArea>
     </DashboardLayout>
