@@ -4303,6 +4303,9 @@ export type Database = {
           status: string
           tagline: string
           target_audience: string | null
+          trial_start_event: string | null
+          trial_time_limit_days: number | null
+          trial_uses_limit: number | null
           updated_at: string
           use_cases: Json | null
           version: string
@@ -4331,6 +4334,9 @@ export type Database = {
           status?: string
           tagline: string
           target_audience?: string | null
+          trial_start_event?: string | null
+          trial_time_limit_days?: number | null
+          trial_uses_limit?: number | null
           updated_at?: string
           use_cases?: Json | null
           version?: string
@@ -4359,6 +4365,9 @@ export type Database = {
           status?: string
           tagline?: string
           target_audience?: string | null
+          trial_start_event?: string | null
+          trial_time_limit_days?: number | null
+          trial_uses_limit?: number | null
           updated_at?: string
           use_cases?: Json | null
           version?: string
@@ -4641,6 +4650,69 @@ export type Database = {
         }
         Relationships: []
       }
+      module_conversions: {
+        Row: {
+          conversion_type: string
+          converted_at: string
+          currency: string | null
+          id: string
+          module_id: string
+          price_paid: number | null
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          trial_days_used: number | null
+          trial_uses_consumed: number | null
+          user_id: string | null
+          value_generated: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          conversion_type: string
+          converted_at?: string
+          currency?: string | null
+          id?: string
+          module_id: string
+          price_paid?: number | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_days_used?: number | null
+          trial_uses_consumed?: number | null
+          user_id?: string | null
+          value_generated?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          conversion_type?: string
+          converted_at?: string
+          currency?: string | null
+          id?: string
+          module_id?: string
+          price_paid?: number | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_days_used?: number | null
+          trial_uses_consumed?: number | null
+          user_id?: string | null
+          value_generated?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_conversions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_conversions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_pricing: {
         Row: {
           base_price_monthly: number | null
@@ -4813,6 +4885,120 @@ export type Database = {
           },
           {
             foreignKeyName: "module_sso_tokens_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_trial_alerts: {
+        Row: {
+          alert_message: string
+          alert_type: string
+          days_remaining: number | null
+          dismissed_at: string | null
+          id: string
+          is_dismissed: boolean | null
+          module_id: string
+          shown_at: string
+          shown_date: string
+          user_id: string | null
+          uses_remaining: number | null
+          workspace_id: string
+        }
+        Insert: {
+          alert_message: string
+          alert_type: string
+          days_remaining?: number | null
+          dismissed_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          module_id: string
+          shown_at?: string
+          shown_date?: string
+          user_id?: string | null
+          uses_remaining?: number | null
+          workspace_id: string
+        }
+        Update: {
+          alert_message?: string
+          alert_type?: string
+          days_remaining?: number | null
+          dismissed_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          module_id?: string
+          shown_at?: string
+          shown_date?: string
+          user_id?: string | null
+          uses_remaining?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_trial_alerts_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_trial_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_trial_logs: {
+        Row: {
+          action_key: string | null
+          action_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          module_id: string
+          user_id: string | null
+          uses_after: number | null
+          uses_before: number | null
+          workspace_id: string
+        }
+        Insert: {
+          action_key?: string | null
+          action_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          module_id: string
+          user_id?: string | null
+          uses_after?: number | null
+          uses_before?: number | null
+          workspace_id: string
+        }
+        Update: {
+          action_key?: string | null
+          action_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          module_id?: string
+          user_id?: string | null
+          uses_after?: number | null
+          uses_before?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_trial_logs_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_trial_logs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6945,14 +7131,20 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           current_period_start: string
+          grace_period_ends_at: string | null
           id: string
+          last_alert_at: string | null
+          last_alert_shown: string | null
           module_id: string
           settings: Json | null
           status: string
           subscribed_at: string
           subscribed_by: string
           trial_ends_at: string | null
+          trial_started_at: string | null
+          trial_uses_consumed: number | null
           updated_at: string
+          value_generated: Json | null
           workspace_id: string
         }
         Insert: {
@@ -6960,14 +7152,20 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
+          grace_period_ends_at?: string | null
           id?: string
+          last_alert_at?: string | null
+          last_alert_shown?: string | null
           module_id: string
           settings?: Json | null
           status?: string
           subscribed_at?: string
           subscribed_by: string
           trial_ends_at?: string | null
+          trial_started_at?: string | null
+          trial_uses_consumed?: number | null
           updated_at?: string
+          value_generated?: Json | null
           workspace_id: string
         }
         Update: {
@@ -6975,14 +7173,20 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
+          grace_period_ends_at?: string | null
           id?: string
+          last_alert_at?: string | null
+          last_alert_shown?: string | null
           module_id?: string
           settings?: Json | null
           status?: string
           subscribed_at?: string
           subscribed_by?: string
           trial_ends_at?: string | null
+          trial_started_at?: string | null
+          trial_uses_consumed?: number | null
           updated_at?: string
+          value_generated?: Json | null
           workspace_id?: string
         }
         Relationships: [
@@ -7447,6 +7651,26 @@ export type Database = {
           success: boolean
         }[]
       }
+      consume_trial_usage: {
+        Args: {
+          p_action_key: string
+          p_metadata?: Json
+          p_module_id: string
+          p_user_id?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      convert_trial_to_paid: {
+        Args: {
+          p_module_id: string
+          p_price_paid?: number
+          p_stripe_subscription_id?: string
+          p_user_id?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
@@ -7454,6 +7678,10 @@ export type Database = {
       generate_invoice_number: {
         Args: { p_workspace_id: string }
         Returns: string
+      }
+      get_module_trial_status: {
+        Args: { p_module_id: string; p_workspace_id: string }
+        Returns: Json
       }
       get_plan_limits: {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
@@ -7508,6 +7736,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: number
+      }
+      start_module_trial: {
+        Args: {
+          p_module_id: string
+          p_user_id?: string
+          p_workspace_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {
