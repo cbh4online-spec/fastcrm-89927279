@@ -1142,6 +1142,8 @@ export type Database = {
           client_since: string | null
           client_status: string | null
           client_types: string | null
+          commercial_history_updated_at: string | null
+          commercial_history_updated_by: string | null
           commercial_name: string | null
           company: string | null
           company_id: string | null
@@ -1173,8 +1175,10 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           preferred_payment_method: string | null
+          sales_2023: number | null
           sales_2024: number | null
           sales_2025: number | null
+          sales_2026: number | null
           source: string | null
           tags: string[] | null
           tax_id: string | null
@@ -1204,6 +1208,8 @@ export type Database = {
           client_since?: string | null
           client_status?: string | null
           client_types?: string | null
+          commercial_history_updated_at?: string | null
+          commercial_history_updated_by?: string | null
           commercial_name?: string | null
           company?: string | null
           company_id?: string | null
@@ -1235,8 +1241,10 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           preferred_payment_method?: string | null
+          sales_2023?: number | null
           sales_2024?: number | null
           sales_2025?: number | null
+          sales_2026?: number | null
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
@@ -1266,6 +1274,8 @@ export type Database = {
           client_since?: string | null
           client_status?: string | null
           client_types?: string | null
+          commercial_history_updated_at?: string | null
+          commercial_history_updated_by?: string | null
           commercial_name?: string | null
           company?: string | null
           company_id?: string | null
@@ -1297,8 +1307,10 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           preferred_payment_method?: string | null
+          sales_2023?: number | null
           sales_2024?: number | null
           sales_2025?: number | null
+          sales_2026?: number | null
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null

@@ -52,11 +52,24 @@ export function ENIContactDetail() {
   const contact = contacts.find(c => c.id === id) as unknown as ENIContact | undefined;
   const { role } = useContactPermissions();
 
+  // Commercial history fields that should update the tracking timestamp
+  const commercialHistoryFields = [
+    'sales_2023', 'sales_2024', 'sales_2025', 'sales_2026',
+    'total_revenue', 'average_ticket', 'last_purchase_date', 'abc_category'
+  ];
+
   // Inline field change handler - saves immediately
   const handleFieldChange = useCallback(async (field: keyof ENIContact, value: unknown) => {
     if (!contact) return;
     try {
-      await updateContact.mutateAsync({ id: contact.id, [field]: value });
+      const updateData: Record<string, unknown> = { id: contact.id, [field]: value };
+      
+      // If updating commercial history fields, also update the tracking timestamp
+      if (commercialHistoryFields.includes(field)) {
+        updateData.commercial_history_updated_at = new Date().toISOString();
+      }
+      
+      await updateContact.mutateAsync(updateData as { id: string });
       toast.success("Campo atualizado");
     } catch {
       toast.error("Erro ao atualizar campo");
@@ -276,7 +289,10 @@ export function ENIContactDetail() {
             <DocumentsSection contactId={id!} />
           </div>
 
-          <CommercialHistorySection contact={contact} />
+          <CommercialHistorySection 
+            contact={contact} 
+            onFieldChange={handleFieldChange}
+          />
           <NotesSection 
             contact={contact} 
             onFieldChange={handleFieldChange}

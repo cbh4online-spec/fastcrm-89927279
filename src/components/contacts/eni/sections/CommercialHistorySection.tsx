@@ -1,11 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart } from "lucide-react";
+import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Clock } from "lucide-react";
 import { ENIContact, ABCCategory } from "../ENIContactTypes";
+import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
 
 interface CommercialHistorySectionProps {
   contact: ENIContact;
+  onFieldChange: (field: keyof ENIContact, value: unknown) => Promise<void>;
 }
 
 const ABC_COLORS: Record<string, string> = {
@@ -14,50 +16,44 @@ const ABC_COLORS: Record<string, string> = {
   C: "bg-slate-500/10 text-slate-600 border-slate-500/30",
 };
 
-function formatCurrency(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
-  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(value);
-}
+const ABC_CATEGORIES = ['A', 'B', 'C'];
 
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return "—";
-  return new Date(dateString).toLocaleDateString('pt-PT');
+  return new Date(dateString).toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-interface StatCardProps {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  className?: string;
+function getTimeAgo(dateString: string | null | undefined): string {
+  if (!dateString) return "";
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return "agora mesmo";
+  if (diffInSeconds < 3600) return `há ${Math.floor(diffInSeconds / 60)} min`;
+  if (diffInSeconds < 86400) return `há ${Math.floor(diffInSeconds / 3600)} horas`;
+  if (diffInSeconds < 604800) return `há ${Math.floor(diffInSeconds / 86400)} dias`;
+  
+  return formatDate(dateString);
 }
 
-function StatCard({ label, value, icon, className }: StatCardProps) {
-  return (
-    <div className={cn(
-      "flex items-center gap-3 p-4 rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors",
-      className
-    )}>
-      <div className="p-2 rounded-md bg-primary/10">
-        {icon}
-      </div>
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-lg font-semibold">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-export function CommercialHistorySection({ contact }: CommercialHistorySectionProps) {
+export function CommercialHistorySection({ contact, onFieldChange }: CommercialHistorySectionProps) {
   const abcCategory = contact.abc_category as ABCCategory;
+  const lastUpdated = contact.commercial_history_updated_at;
 
   return (
-    <Card className="border-border/50 bg-gradient-to-br from-card to-card/80 shadow-sm">
-      <CardHeader className="pb-3">
+    <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
+      <CardHeader className="pb-3 bg-gradient-to-r from-blue-500/10 via-transparent to-transparent">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-blue-500/10">
-              <TrendingUp className="h-4 w-4 text-blue-500" />
+          <CardTitle className="text-base font-semibold flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400">
+              <TrendingUp className="w-4 h-4" />
             </div>
             Histórico Comercial
           </CardTitle>
@@ -70,38 +66,99 @@ export function CommercialHistorySection({ contact }: CommercialHistorySectionPr
                 Categoria {abcCategory}
               </Badge>
             )}
-            <Badge variant="secondary" className="text-xs">automático</Badge>
           </div>
         </div>
-        <CardDescription>Dados automáticos de vendas e faturação.</CardDescription>
+        {lastUpdated && (
+          <CardDescription className="flex items-center gap-1.5 mt-1">
+            <Clock className="w-3 h-3" />
+            Atualizado {getTimeAgo(lastUpdated)}
+          </CardDescription>
+        )}
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <StatCard
-            label="Receita Total"
-            value={formatCurrency(contact.total_revenue)}
-            icon={<DollarSign className="h-4 w-4 text-emerald-500" />}
+      <CardContent className="pt-0">
+        <div className="divide-y divide-border/50">
+          {/* Editable Category */}
+          <InlineEditableField
+            label="Categoria ABC"
+            fieldId="abc_category"
+            fieldType="select"
+            value={contact.abc_category}
+            onChange={(val) => onFieldChange("abc_category", val)}
+            icon={<TrendingUp className="w-4 h-4" />}
+            options={ABC_CATEGORIES}
           />
-          <StatCard
-            label="Vendas 2024"
-            value={formatCurrency(contact.sales_2024)}
-            icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
+          
+          {/* Editable Year Sales */}
+          <InlineEditableField
+            label="Vendas 2026"
+            fieldId="sales_2026"
+            fieldType="number"
+            value={contact.sales_2026}
+            onChange={(val) => onFieldChange("sales_2026", val)}
+            icon={<BarChart3 className="w-4 h-4" />}
+            placeholder="0.00"
           />
-          <StatCard
+          
+          <InlineEditableField
             label="Vendas 2025"
-            value={formatCurrency(contact.sales_2025)}
-            icon={<BarChart3 className="h-4 w-4 text-indigo-500" />}
+            fieldId="sales_2025"
+            fieldType="number"
+            value={contact.sales_2025}
+            onChange={(val) => onFieldChange("sales_2025", val)}
+            icon={<BarChart3 className="w-4 h-4" />}
+            placeholder="0.00"
           />
-          <StatCard
+          
+          <InlineEditableField
+            label="Vendas 2024"
+            fieldId="sales_2024"
+            fieldType="number"
+            value={contact.sales_2024}
+            onChange={(val) => onFieldChange("sales_2024", val)}
+            icon={<BarChart3 className="w-4 h-4" />}
+            placeholder="0.00"
+          />
+          
+          <InlineEditableField
+            label="Vendas 2023"
+            fieldId="sales_2023"
+            fieldType="number"
+            value={contact.sales_2023}
+            onChange={(val) => onFieldChange("sales_2023", val)}
+            icon={<BarChart3 className="w-4 h-4" />}
+            placeholder="0.00"
+          />
+          
+          {/* Total Revenue - Editable or Auto */}
+          <InlineEditableField
+            label="Receita Total"
+            fieldId="total_revenue"
+            fieldType="number"
+            value={contact.total_revenue}
+            onChange={(val) => onFieldChange("total_revenue", val)}
+            icon={<DollarSign className="w-4 h-4" />}
+            placeholder="0.00"
+          />
+          
+          {/* Average Ticket */}
+          <InlineEditableField
             label="Ticket Médio"
-            value={formatCurrency(contact.average_ticket)}
-            icon={<ShoppingCart className="h-4 w-4 text-purple-500" />}
+            fieldId="average_ticket"
+            fieldType="number"
+            value={contact.average_ticket}
+            onChange={(val) => onFieldChange("average_ticket", val)}
+            icon={<ShoppingCart className="w-4 h-4" />}
+            placeholder="0.00"
           />
-          <StatCard
+          
+          {/* Last Purchase Date */}
+          <InlineEditableField
             label="Última Compra"
-            value={formatDate(contact.last_purchase_date)}
-            icon={<Calendar className="h-4 w-4 text-amber-500" />}
-            className="col-span-2 md:col-span-1"
+            fieldId="last_purchase_date"
+            fieldType="date"
+            value={contact.last_purchase_date}
+            onChange={(val) => onFieldChange("last_purchase_date", val)}
+            icon={<Calendar className="w-4 h-4" />}
           />
         </div>
       </CardContent>

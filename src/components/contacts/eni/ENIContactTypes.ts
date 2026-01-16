@@ -51,10 +51,14 @@ export interface ENIContact {
   
   // Commercial History
   total_revenue?: number | null;
+  sales_2023?: number | null;
   sales_2024?: number | null;
   sales_2025?: number | null;
+  sales_2026?: number | null;
   average_ticket?: number | null;
   last_purchase_date?: string | null;
+  commercial_history_updated_at?: string | null;
+  commercial_history_updated_by?: string | null;
   
   // AI Fields
   ai_temperature?: string | null;
