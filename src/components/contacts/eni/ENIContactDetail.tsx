@@ -18,6 +18,8 @@ import { FinancialSection } from "./sections/FinancialSection";
 import { CommercialHistorySection } from "./sections/CommercialHistorySection";
 import { NotesSection } from "./sections/NotesSection";
 import { AIInsightsSection } from "./sections/AIInsightsSection";
+import { DocumentsSection } from "./sections/DocumentsSection";
+import { ProductsSection } from "./sections/ProductsSection";
 import { useAnalyzeContact } from "@/hooks/useSmartContacts";
 import { cn } from "@/lib/utils";
 
@@ -207,6 +209,11 @@ export function ENIContactDetail() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CommercialProfileSection contact={contact} isEditing={isEditing} editedData={editedData} onFieldChange={handleFieldChange} />
             <FinancialSection contact={contact} isEditing={isEditing} editedData={editedData} onFieldChange={handleFieldChange} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ProductsSection contactId={id!} />
+            <DocumentsSection contactId={id!} />
           </div>
 
           <CommercialHistorySection contact={contact} />
