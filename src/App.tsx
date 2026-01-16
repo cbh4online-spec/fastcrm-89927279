@@ -86,6 +86,10 @@ const App = () => (
                   <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
                   <Route path="/dashboard/kpis" element={<KPIs />} />
                   <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
+                  <Route path="/dashboard/reports" element={<ReportsOverview />} />
+                  <Route path="/dashboard/reports/forecasts" element={<ReportsForecasts />} />
+                  <Route path="/dashboard/reports/consumption" element={<ReportsConsumption />} />
+                  <Route path="/dashboard/reports/retention" element={<ReportsRetention />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />
                   <Route path="/p/:slug" element={<PublicProposalPage />} />
