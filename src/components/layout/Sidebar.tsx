@@ -44,6 +44,7 @@ import {
   MapPin,
   Search,
   CalendarDays,
+  Clock,
   Compass,
 } from "lucide-react";
 import {
@@ -141,6 +142,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Pipeline", href: "/dashboard/crm", icon: Layers, tooltip: "Vista do funil de vendas", highlight: true },
       { name: "Propostas", href: "/dashboard/proposals", icon: FileText, tooltip: "Propostas enviadas e pendentes", highlight: true },
       { name: "Calendários", href: "/dashboard/calendars", icon: CalendarDays, tooltip: "Gestão de calendários e eventos", highlight: true },
+      { name: "Reuniões", href: "/dashboard/meetings", icon: Clock, tooltip: "Bookings e reuniões", highlight: true },
       { name: "Produtos", href: "/dashboard/products", icon: Target, tooltip: "Catálogo de produtos e serviços" },
     ],
   },

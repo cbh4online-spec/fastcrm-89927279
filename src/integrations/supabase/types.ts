@@ -4797,6 +4797,602 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_attendees: {
+        Row: {
+          attended: boolean | null
+          contact_id: string | null
+          created_at: string
+          external_email: string | null
+          external_name: string | null
+          external_phone: string | null
+          id: string
+          joined_at: string | null
+          left_at: string | null
+          meeting_id: string
+          notification_sent: boolean | null
+          reminder_sent: boolean | null
+          responded_at: string | null
+          response_status: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attended?: boolean | null
+          contact_id?: string | null
+          created_at?: string
+          external_email?: string | null
+          external_name?: string | null
+          external_phone?: string | null
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          meeting_id: string
+          notification_sent?: boolean | null
+          reminder_sent?: boolean | null
+          responded_at?: string | null
+          response_status?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attended?: boolean | null
+          contact_id?: string | null
+          created_at?: string
+          external_email?: string | null
+          external_name?: string | null
+          external_phone?: string | null
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          meeting_id?: string
+          notification_sent?: boolean | null
+          reminder_sent?: boolean | null
+          responded_at?: string | null
+          response_status?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_attendees_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_resource_bookings: {
+        Row: {
+          created_at: string
+          id: string
+          meeting_id: string
+          resource_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meeting_id: string
+          resource_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          resource_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_resource_bookings_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_resource_bookings_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_resources: {
+        Row: {
+          amenities: Json | null
+          capacity: number | null
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          location: string | null
+          name: string
+          resource_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amenities?: Json | null
+          capacity?: number | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          name: string
+          resource_type?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amenities?: Json | null
+          capacity?: number | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          name?: string
+          resource_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_resources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_settings: {
+        Row: {
+          allow_same_day_booking: boolean | null
+          auto_create_calendar_event: boolean | null
+          blocked_dates: Json | null
+          created_at: string
+          default_buffer_after: number | null
+          default_buffer_before: number | null
+          default_duration: number | null
+          default_timezone: string | null
+          global_daily_limit: number | null
+          global_weekly_limit: number | null
+          id: string
+          max_advance_days: number | null
+          min_notice_hours: number | null
+          reminder_hours_before: number | null
+          send_confirmations: boolean | null
+          send_reminders: boolean | null
+          sync_with_google_calendar: boolean | null
+          sync_with_outlook: boolean | null
+          updated_at: string
+          working_hours: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          allow_same_day_booking?: boolean | null
+          auto_create_calendar_event?: boolean | null
+          blocked_dates?: Json | null
+          created_at?: string
+          default_buffer_after?: number | null
+          default_buffer_before?: number | null
+          default_duration?: number | null
+          default_timezone?: string | null
+          global_daily_limit?: number | null
+          global_weekly_limit?: number | null
+          id?: string
+          max_advance_days?: number | null
+          min_notice_hours?: number | null
+          reminder_hours_before?: number | null
+          send_confirmations?: boolean | null
+          send_reminders?: boolean | null
+          sync_with_google_calendar?: boolean | null
+          sync_with_outlook?: boolean | null
+          updated_at?: string
+          working_hours?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          allow_same_day_booking?: boolean | null
+          auto_create_calendar_event?: boolean | null
+          blocked_dates?: Json | null
+          created_at?: string
+          default_buffer_after?: number | null
+          default_buffer_before?: number | null
+          default_duration?: number | null
+          default_timezone?: string | null
+          global_daily_limit?: number | null
+          global_weekly_limit?: number | null
+          id?: string
+          max_advance_days?: number | null
+          min_notice_hours?: number | null
+          reminder_hours_before?: number | null
+          send_confirmations?: boolean | null
+          send_reminders?: boolean | null
+          sync_with_google_calendar?: boolean | null
+          sync_with_outlook?: boolean | null
+          updated_at?: string
+          working_hours?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_templates: {
+        Row: {
+          agenda_template: string | null
+          created_at: string
+          created_by: string
+          default_description: string | null
+          default_duration: number | null
+          default_mode: string | null
+          default_title: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          meeting_type_id: string | null
+          name: string
+          updated_at: string
+          usage_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          agenda_template?: string | null
+          created_at?: string
+          created_by: string
+          default_description?: string | null
+          default_duration?: number | null
+          default_mode?: string | null
+          default_title?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          meeting_type_id?: string | null
+          name: string
+          updated_at?: string
+          usage_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          agenda_template?: string | null
+          created_at?: string
+          created_by?: string
+          default_description?: string | null
+          default_duration?: number | null
+          default_mode?: string | null
+          default_title?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          meeting_type_id?: string | null
+          name?: string
+          updated_at?: string
+          usage_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_templates_meeting_type_id_fkey"
+            columns: ["meeting_type_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_types: {
+        Row: {
+          availability_windows: Json | null
+          buffer_after: number | null
+          buffer_before: number | null
+          category: string
+          color: string | null
+          created_at: string
+          created_by: string
+          custom_meeting_link: string | null
+          daily_limit: number | null
+          default_duration: number
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_public: boolean | null
+          max_advance_days: number | null
+          meeting_provider: string | null
+          min_notice_hours: number | null
+          mode: string
+          name: string
+          public_slug: string | null
+          require_company: boolean | null
+          require_contact: boolean | null
+          require_opportunity: boolean | null
+          updated_at: string
+          weekly_limit: number | null
+          workspace_id: string
+        }
+        Insert: {
+          availability_windows?: Json | null
+          buffer_after?: number | null
+          buffer_before?: number | null
+          category?: string
+          color?: string | null
+          created_at?: string
+          created_by: string
+          custom_meeting_link?: string | null
+          daily_limit?: number | null
+          default_duration?: number
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          max_advance_days?: number | null
+          meeting_provider?: string | null
+          min_notice_hours?: number | null
+          mode?: string
+          name: string
+          public_slug?: string | null
+          require_company?: boolean | null
+          require_contact?: boolean | null
+          require_opportunity?: boolean | null
+          updated_at?: string
+          weekly_limit?: number | null
+          workspace_id: string
+        }
+        Update: {
+          availability_windows?: Json | null
+          buffer_after?: number | null
+          buffer_before?: number | null
+          category?: string
+          color?: string | null
+          created_at?: string
+          created_by?: string
+          custom_meeting_link?: string | null
+          daily_limit?: number | null
+          default_duration?: number
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_public?: boolean | null
+          max_advance_days?: number | null
+          meeting_provider?: string | null
+          min_notice_hours?: number | null
+          mode?: string
+          name?: string
+          public_slug?: string | null
+          require_company?: boolean | null
+          require_contact?: boolean | null
+          require_opportunity?: boolean | null
+          updated_at?: string
+          weekly_limit?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_types_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          booked_at: string | null
+          booked_by: string | null
+          buffer_after: number | null
+          buffer_before: number | null
+          calendar_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          category: string
+          client_notes: string | null
+          company_id: string | null
+          completed_at: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          end_time: string
+          external_id: string | null
+          follow_up_date: string | null
+          follow_up_required: boolean | null
+          id: string
+          internal_notes: string | null
+          lead_id: string | null
+          location: string | null
+          meeting_provider: string | null
+          meeting_type_id: string | null
+          meeting_url: string | null
+          metadata: Json | null
+          mode: string
+          opportunity_id: string | null
+          outcome: string | null
+          phone_number: string | null
+          reminder_sent: boolean | null
+          reminder_sent_at: string | null
+          source: string | null
+          start_time: string
+          status: string
+          timezone: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          booked_at?: string | null
+          booked_by?: string | null
+          buffer_after?: number | null
+          buffer_before?: number | null
+          calendar_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          category?: string
+          client_notes?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_time: string
+          external_id?: string | null
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          internal_notes?: string | null
+          lead_id?: string | null
+          location?: string | null
+          meeting_provider?: string | null
+          meeting_type_id?: string | null
+          meeting_url?: string | null
+          metadata?: Json | null
+          mode?: string
+          opportunity_id?: string | null
+          outcome?: string | null
+          phone_number?: string | null
+          reminder_sent?: boolean | null
+          reminder_sent_at?: string | null
+          source?: string | null
+          start_time: string
+          status?: string
+          timezone?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          booked_at?: string | null
+          booked_by?: string | null
+          buffer_after?: number | null
+          buffer_before?: number | null
+          calendar_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          category?: string
+          client_notes?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_time?: string
+          external_id?: string | null
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          internal_notes?: string | null
+          lead_id?: string | null
+          location?: string | null
+          meeting_provider?: string | null
+          meeting_type_id?: string | null
+          meeting_url?: string | null
+          metadata?: Json | null
+          mode?: string
+          opportunity_id?: string | null
+          outcome?: string | null
+          phone_number?: string | null
+          reminder_sent?: boolean | null
+          reminder_sent_at?: string | null
+          source?: string | null
+          start_time?: string
+          status?: string
+          timezone?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_meeting_type_id_fkey"
+            columns: ["meeting_type_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           attachments: Json | null
@@ -8083,6 +8679,23 @@ export type Database = {
         Args: { p_custom_field_id: string; p_entity_id: string; p_value: Json }
         Returns: boolean
       }
+      check_meeting_conflicts: {
+        Args: {
+          p_end_time: string
+          p_exclude_meeting_id?: string
+          p_resource_ids?: string[]
+          p_start_time: string
+          p_user_ids?: string[]
+          p_workspace_id: string
+        }
+        Returns: {
+          conflict_end: string
+          conflict_id: string
+          conflict_start: string
+          conflict_title: string
+          conflict_type: string
+        }[]
+      }
       check_module_access: {
         Args: { p_module_id: string; p_user_id: string; p_workspace_id: string }
         Returns: Json
@@ -8149,6 +8762,20 @@ export type Database = {
       generate_invoice_number: {
         Args: { p_workspace_id: string }
         Returns: string
+      }
+      get_available_meeting_slots: {
+        Args: {
+          p_date: string
+          p_duration_minutes?: number
+          p_meeting_type_id?: string
+          p_user_ids?: string[]
+          p_workspace_id: string
+        }
+        Returns: {
+          is_available: boolean
+          slot_end: string
+          slot_start: string
+        }[]
       }
       get_module_trial_status: {
         Args: { p_module_id: string; p_workspace_id: string }
