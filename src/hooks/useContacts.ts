@@ -208,6 +208,25 @@ export function useContacts() {
     },
   });
 
+  const bulkUpdateContacts = useMutation({
+    mutationFn: async ({ ids, changes }: { ids: string[]; changes: Record<string, unknown> }) => {
+      const { error } = await supabase
+        .from("contacts")
+        .update(changes)
+        .in("id", ids);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-contacts"] });
+    },
+    onError: (error) => {
+      console.error("Error bulk updating contacts:", error);
+      toast.error("Erro ao atualizar contactos em massa");
+    },
+  });
+
   return {
     contacts: contactsQuery.data || [],
     isLoading: contactsQuery.isLoading,
@@ -217,6 +236,7 @@ export function useContacts() {
     deleteContact,
     deleteContacts,
     addTagsToContacts,
+    bulkUpdateContacts,
   };
 }
 
