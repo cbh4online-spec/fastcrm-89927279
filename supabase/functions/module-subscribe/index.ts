@@ -46,11 +46,17 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { workspaceId, moduleId, billingCycle = 'monthly' } = await req.json();
+    const body = await req.json();
+    // Support both camelCase and snake_case for compatibility
+    const workspaceId = body.workspaceId || body.workspace_id;
+    const moduleId = body.moduleId || body.module_id;
+    const billingCycle = body.billingCycle || body.billing_cycle || 'monthly';
 
     if (!workspaceId || !moduleId) {
       throw new Error("Missing required parameters: workspaceId, moduleId");
     }
+
+    logStep("Request params", { workspaceId, moduleId, billingCycle });
 
     // Check if already subscribed
     const { data: existingSub } = await supabase
