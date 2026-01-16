@@ -54,6 +54,8 @@ export function AvailabilityDashboard() {
     timezone: string;
     is_default: boolean;
     slots: CreateSlotData[];
+    pendingExceptions?: CreateExceptionData[];
+    pendingCalendarIds?: string[];
   }) => {
     if (selectedAvailability) {
       await updateAvailability(selectedAvailability.id, {
@@ -69,7 +71,22 @@ export function AvailabilityDashboard() {
         is_default: data.is_default,
       });
       if (newAvailability) {
+        // Save slots
         await updateSlots(newAvailability.id, data.slots);
+        
+        // Save pending exceptions
+        if (data.pendingExceptions && data.pendingExceptions.length > 0) {
+          for (const exception of data.pendingExceptions) {
+            await addException(newAvailability.id, exception);
+          }
+        }
+        
+        // Save pending calendar assignments
+        if (data.pendingCalendarIds && data.pendingCalendarIds.length > 0) {
+          for (const calendarId of data.pendingCalendarIds) {
+            await assignToCalendar(newAvailability.id, calendarId);
+          }
+        }
       }
     }
   };
