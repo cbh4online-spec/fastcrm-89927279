@@ -143,10 +143,15 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
     setStep("importing");
     setImportStatus("processing");
     
-    // Save industry labels
-    await setIndustryLabels.mutateAsync({
-      industryType: selectedIndustry,
-    });
+    // Save industry labels (optional, doesn't block import)
+    try {
+      await setIndustryLabels.mutateAsync({
+        industryType: selectedIndustry,
+      });
+    } catch (error) {
+      console.warn("Não foi possível guardar preferências de indústria:", error);
+      // Continue with import even if this fails
+    }
 
     const tableName = importType === "contacts" ? "contacts" : 
                       importType === "companies" ? "companies" :
