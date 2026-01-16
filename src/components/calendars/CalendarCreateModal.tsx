@@ -108,7 +108,7 @@ export function CalendarCreateModal({
         name: data.name,
         description: data.description,
         calendar_type: data.calendar_type,
-        group_id: data.group_id,
+        group_id: data.group_id === 'none' ? undefined : data.group_id,
         color: data.color,
         timezone: data.timezone,
         default_duration: data.default_duration,
@@ -202,7 +202,7 @@ export function CalendarCreateModal({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sem grupo</SelectItem>
+                        <SelectItem value="none">Sem grupo</SelectItem>
                         {groups.map(group => (
                           <SelectItem key={group.id} value={group.id}>
                             <div className="flex items-center gap-2">
