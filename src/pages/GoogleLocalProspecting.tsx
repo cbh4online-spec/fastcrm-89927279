@@ -115,18 +115,10 @@ export default function GoogleLocalProspecting() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<GooglePlaceResult[]>([]);
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
-  const [hasApiKey, setHasApiKey] = useState(false); // Simulated - would check from settings
 
   const handleSearch = async () => {
     if (!searchQuery.trim() && !location.trim()) {
       toast.error("Introduza um termo de pesquisa ou localização");
-      return;
-    }
-
-    if (!hasApiKey) {
-      toast.error("Configure a API Key primeiro", {
-        description: "Vá às definições do módulo para configurar a sua chave SerpAPI"
-      });
       return;
     }
 
@@ -175,8 +167,8 @@ export default function GoogleLocalProspecting() {
     <div className="space-y-6">
       <PageBreadcrumbs 
         items={[
-          { label: "Leads", href: "/dashboard/leads" },
-          { label: "Prospecção Google" }
+          { label: "Prospecção", href: "/dashboard/prospecting/google-local" },
+          { label: "Google Local" }
         ]}
       />
 
@@ -202,32 +194,6 @@ export default function GoogleLocalProspecting() {
         </div>
       </div>
 
-      {/* API Key Warning */}
-      {!hasApiKey && (
-        <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600" />
-              <div className="flex-1">
-                <p className="font-medium text-amber-800 dark:text-amber-200">
-                  API Key não configurada
-                </p>
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Para usar esta funcionalidade, configure a sua chave SerpAPI nas definições do módulo.
-                </p>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setHasApiKey(true)}
-                className="border-amber-300 hover:bg-amber-100"
-              >
-                Configurar Agora
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Search Form */}
       <Card>
