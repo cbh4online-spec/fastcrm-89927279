@@ -5,12 +5,13 @@ import { SmartContactsKPIs } from "./SmartContactsKPIs";
 import { SmartContactsFilters as FiltersComponent } from "./SmartContactsFilters";
 import { SmartContactRow } from "./SmartContactRow";
 import { CreateContactDialog } from "./CreateContactDialog";
+import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
+import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Sparkles, Trash2, Users, UserCog, HeadsetIcon, BarChart3, RefreshCw } from "lucide-react";
+import { Plus, Users, UserCog, HeadsetIcon, BarChart3, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 type ViewPreset = "all" | "sales" | "support" | "manager";
@@ -22,16 +23,53 @@ const viewPresets: Record<ViewPreset, { label: string; icon: React.ReactNode }> 
   manager: { label: "Gestor", icon: <BarChart3 className="w-4 h-4" /> },
 };
 
+// Campos editáveis em massa para contactos
+const contactBulkEditFields: BulkEditField[] = [
+  { key: "source", label: "Origem", type: "select", options: [
+    { value: "website", label: "Website" },
+    { value: "referral", label: "Referência" },
+    { value: "linkedin", label: "LinkedIn" },
+    { value: "cold_call", label: "Cold Call" },
+    { value: "event", label: "Evento" },
+    { value: "other", label: "Outro" },
+  ]},
+  { key: "ai_temperature", label: "Temperatura", type: "select", options: [
+    { value: "cold", label: "Frio" },
+    { value: "warm", label: "Morno" },
+    { value: "hot", label: "Quente" },
+  ]},
+  { key: "ai_contact_type", label: "Tipo de Contacto", type: "select", options: [
+    { value: "decision_maker", label: "Decisor" },
+    { value: "influencer", label: "Influenciador" },
+    { value: "champion", label: "Champion" },
+    { value: "blocker", label: "Blocker" },
+    { value: "end_user", label: "Utilizador Final" },
+    { value: "unknown", label: "Desconhecido" },
+  ]},
+  { key: "automation_active", label: "Automação Ativa", type: "boolean" },
+  { key: "assigned_to", label: "Responsável", type: "text" },
+  { key: "job_title", label: "Cargo", type: "text" },
+  { key: "company", label: "Empresa", type: "text" },
+  { key: "city", label: "Cidade", type: "text" },
+  { key: "country", label: "País", type: "text" },
+  { key: "client_status", label: "Estado do Cliente", type: "select", options: [
+    { value: "prospect", label: "Prospeto" },
+    { value: "lead", label: "Lead" },
+    { value: "active", label: "Ativo" },
+    { value: "churned", label: "Perdido" },
+  ]},
+];
+
 export function SmartContactsTable() {
   const [filters, setFilters] = useState<SmartContactsFilters>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeView, setActiveView] = useState<ViewPreset>("all");
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
 
   const { data: contacts, isLoading, refetch } = useSmartContacts(filters);
+  const { deleteContacts, addTagsToContacts, bulkUpdateContacts } = useContacts();
   const analyze = useAnalyzeContact();
   const bulkAnalyze = useBulkAnalyzeContacts();
 
@@ -52,6 +90,41 @@ export function SmartContactsTable() {
     toast.loading(`A analisar ${selectedIds.size}...`);
     try { const r = await bulkAnalyze.mutateAsync(Array.from(selectedIds)); toast.dismiss(); toast.success(`${r.successful} analisados`); setSelectedIds(new Set()); }
     catch { toast.dismiss(); toast.error("Erro"); }
+  };
+
+  const handleBulkDelete = async () => {
+    await deleteContacts.mutateAsync(Array.from(selectedIds));
+    setSelectedIds(new Set());
+  };
+
+  const handleAddTags = async (tags: string[]) => {
+    await addTagsToContacts.mutateAsync({ ids: Array.from(selectedIds), tags });
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkEdit = async (changes: Record<string, unknown>) => {
+    await bulkUpdateContacts.mutateAsync({ ids: Array.from(selectedIds), changes });
+    toast.success(`${selectedIds.size} contactos atualizados`);
+    setSelectedIds(new Set());
+    refetch();
+  };
+
+  const handleExport = () => {
+    // Export selected contacts as CSV
+    const selected = contacts?.filter(c => selectedIds.has(c.id)) || [];
+    const csv = [
+      ["Nome", "Email", "Telefone", "Empresa", "Temperatura", "Score"].join(","),
+      ...selected.map(c => [c.name, c.email || "", c.phone || "", c.company || "", c.ai_temperature || "", c.contact_score || ""].join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contactos-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Exportação concluída");
   };
 
   const shouldShowAdvanced = showAdvanced || activeView === "sales" || activeView === "manager";
@@ -82,11 +155,16 @@ export function SmartContactsTable() {
       <FiltersComponent filters={filters} onFiltersChange={setFilters} showAdvanced={shouldShowAdvanced} onToggleAdvanced={() => setShowAdvanced(!showAdvanced)} />
 
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-          <span className="text-sm text-muted-foreground">{selectedIds.size} selecionado(s)</span>
-          <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />Analisar com IA</Button>
-          <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}><Trash2 className="w-4 h-4 mr-2" />Eliminar</Button>
-        </div>
+        <BulkActionsBar
+          entityType="contacts"
+          selectedCount={selectedIds.size}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onDelete={handleBulkDelete}
+          onExport={handleExport}
+          onAddTags={handleAddTags}
+          onBulkEdit={handleBulkEdit}
+          editableFields={contactBulkEditFields}
+        />
       )}
 
       <div className="rounded-lg border border-border bg-card overflow-x-auto">
@@ -119,13 +197,6 @@ export function SmartContactsTable() {
       </div>
 
       <CreateContactDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Eliminar {selectedIds.size} contacto(s)?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Eliminar</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

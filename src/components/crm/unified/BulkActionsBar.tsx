@@ -17,9 +17,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Trash2, Download, Tag, X, Plus } from "lucide-react";
+import { Trash2, Download, Tag, X, Plus, Pencil } from "lucide-react";
 import { CrmEntityType } from "@/hooks/useCrmViews";
 import { toast } from "sonner";
+import { BulkEditDialog, BulkEditField } from "./BulkEditDialog";
 
 interface BulkActionsBarProps {
   entityType: CrmEntityType;
@@ -28,7 +29,9 @@ interface BulkActionsBarProps {
   onDelete: () => Promise<void>;
   onExport: () => void;
   onAddTags: (tags: string[]) => Promise<void>;
+  onBulkEdit?: (changes: Record<string, unknown>) => Promise<void>;
   availableTags?: string[];
+  editableFields?: BulkEditField[];
 }
 
 export function BulkActionsBar({
@@ -38,10 +41,13 @@ export function BulkActionsBar({
   onDelete,
   onExport,
   onAddTags,
+  onBulkEdit,
   availableTags = [],
+  editableFields = [],
 }: BulkActionsBarProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -204,6 +210,19 @@ export function BulkActionsBar({
             </Popover>
           )}
 
+          {/* Bulk Edit */}
+          {onBulkEdit && editableFields.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBulkEditOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Pencil className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar campos</span>
+            </Button>
+          )}
+
           {/* Export */}
           <Button variant="outline" size="sm" onClick={onExport} className="flex items-center gap-2">
             <Download className="h-4 w-4" />
@@ -222,6 +241,18 @@ export function BulkActionsBar({
           </Button>
         </div>
       </div>
+
+      {/* Bulk Edit Dialog */}
+      {onBulkEdit && (
+        <BulkEditDialog
+          open={bulkEditOpen}
+          onOpenChange={setBulkEditOpen}
+          entityType={entityType}
+          selectedCount={selectedCount}
+          fields={editableFields}
+          onApply={onBulkEdit}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
