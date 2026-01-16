@@ -25,6 +25,7 @@ export default function CalendarsPage() {
     isLoading: calendarsLoading,
     createCalendar,
     updateCalendar,
+    deleteCalendar,
     toggleCalendarSelection,
     selectAllCalendars,
     deselectAllCalendars,
@@ -159,6 +160,7 @@ export default function CalendarsPage() {
         groups={groups}
         calendar={editingCalendar}
         onSubmit={handleSubmitCalendar}
+        onDelete={deleteCalendar}
       />
 
       <CalendarEventModal
