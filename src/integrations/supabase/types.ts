@@ -3249,6 +3249,200 @@ export type Database = {
           },
         ]
       }
+      journey_ai_suggestions: {
+        Row: {
+          action_type: string | null
+          automation_id: string | null
+          created_at: string | null
+          description: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          priority: string
+          reasoning: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggested_action: string | null
+          suggestion_type: string
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type?: string | null
+          automation_id?: string | null
+          created_at?: string | null
+          description: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          priority?: string
+          reasoning?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_action?: string | null
+          suggestion_type: string
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string | null
+          automation_id?: string | null
+          created_at?: string | null
+          description?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          priority?: string
+          reasoning?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_action?: string | null
+          suggestion_type?: string
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_ai_suggestions_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "journey_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_ai_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_automation_logs: {
+        Row: {
+          actions_executed: Json | null
+          automation_id: string
+          automation_name: string
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          status: string
+          trigger_data: Json | null
+          trigger_type: string
+          workspace_id: string
+        }
+        Insert: {
+          actions_executed?: Json | null
+          automation_id: string
+          automation_name: string
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          status?: string
+          trigger_data?: Json | null
+          trigger_type: string
+          workspace_id: string
+        }
+        Update: {
+          actions_executed?: Json | null
+          automation_id?: string
+          automation_name?: string
+          entity_id?: string
+          entity_name?: string
+          entity_type?: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          status?: string
+          trigger_data?: Json | null
+          trigger_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "journey_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_automation_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_automations: {
+        Row: {
+          actions: Json | null
+          affected_clients_count: number | null
+          conditions: Json | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          actions?: Json | null
+          affected_clients_count?: number | null
+          conditions?: Json | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          trigger_config?: Json | null
+          trigger_type: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          actions?: Json | null
+          affected_clients_count?: number | null
+          conditions?: Json | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_automations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_bases: {
         Row: {
           allowed_channels: string[] | null
