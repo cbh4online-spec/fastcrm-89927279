@@ -381,32 +381,34 @@ export function BulkEditDialog({
           )}
 
           {/* Fields accordion */}
-          <ScrollArea className="flex-1 pr-4">
-            <Accordion type="multiple" defaultValue={["info", "classification"]} className="w-full">
-              {sectionsWithFields.map((section) => (
-                <AccordionItem key={section} value={section}>
-                  <AccordionTrigger className="hover:no-underline py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{sectionLabels[section]}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {filteredFieldsBySection[section]?.length || 0}
-                      </Badge>
-                      {filteredFieldsBySection[section]?.some((f) => selectedFields.has(f.key)) && (
-                        <Badge variant="default" className="text-xs">
-                          {filteredFieldsBySection[section]?.filter((f) => selectedFields.has(f.key)).length} selecionado(s)
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ScrollArea className="h-[350px]">
+              <Accordion type="multiple" defaultValue={["info", "classification"]} className="w-full pr-4">
+                {sectionsWithFields.map((section) => (
+                  <AccordionItem key={section} value={section}>
+                    <AccordionTrigger className="hover:no-underline py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{sectionLabels[section]}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {filteredFieldsBySection[section]?.length || 0}
                         </Badge>
-                      )}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-0">
-                      {filteredFieldsBySection[section]?.map(renderFieldRow)}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </ScrollArea>
+                        {filteredFieldsBySection[section]?.some((f) => selectedFields.has(f.key)) && (
+                          <Badge variant="default" className="text-xs">
+                            {filteredFieldsBySection[section]?.filter((f) => selectedFields.has(f.key)).length} selecionado(s)
+                          </Badge>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-0">
+                        {filteredFieldsBySection[section]?.map(renderFieldRow)}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </ScrollArea>
+          </div>
         </div>
 
         <DialogFooter className="mt-4">
