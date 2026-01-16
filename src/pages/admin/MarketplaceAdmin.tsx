@@ -177,11 +177,20 @@ export default function MarketplaceAdmin() {
     <div className="container py-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Gestão do Marketplace</h1>
-          <p className="text-muted-foreground">
-            Criar, editar e gerir módulos do marketplace
-          </p>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate("/dashboard")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Gestão do Marketplace</h1>
+            <p className="text-muted-foreground">
+              Criar, editar e gerir módulos do marketplace
+            </p>
+          </div>
         </div>
         <Button onClick={() => setIsCreating(true)}>
           <Plus className="mr-2 h-4 w-4" />
