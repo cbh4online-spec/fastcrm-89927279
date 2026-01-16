@@ -56,6 +56,7 @@ import {
 import { cn } from "@/lib/utils";
 import { InsightsSidebar } from "@/components/insights";
 import { useFormFieldOrder, FieldConfig } from "@/hooks/useFormFieldOrder";
+import { CompanyContacts } from "./CompanyContacts";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
 
@@ -588,8 +589,11 @@ export function CompanyDetail() {
           </Collapsible>
         </div>
 
-        {/* Right Column - Quick Actions */}
+        {/* Right Column - Quick Actions & Contacts */}
         <div className="space-y-4">
+          {/* Associated Contacts */}
+          <CompanyContacts companyId={id || ''} companyName={company.name} />
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-medium">Ações Rápidas</CardTitle>

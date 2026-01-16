@@ -853,6 +853,7 @@ export type Database = {
           created_by: string
           email: string | null
           employee_count: number | null
+          entity_type: string | null
           estimated_value: number | null
           facebook_url: string | null
           fax: string | null
@@ -901,6 +902,7 @@ export type Database = {
           created_by: string
           email?: string | null
           employee_count?: number | null
+          entity_type?: string | null
           estimated_value?: number | null
           facebook_url?: string | null
           fax?: string | null
@@ -949,6 +951,7 @@ export type Database = {
           created_by?: string
           email?: string | null
           employee_count?: number | null
+          entity_type?: string | null
           estimated_value?: number | null
           facebook_url?: string | null
           fax?: string | null
@@ -995,6 +998,7 @@ export type Database = {
           assigned_to: string | null
           automation_active: boolean | null
           company: string | null
+          company_id: string | null
           contact_score: number | null
           conversion_probability: number | null
           created_at: string
@@ -1004,6 +1008,7 @@ export type Database = {
           facebook_url: string | null
           id: string
           instagram_url: string | null
+          is_primary_contact: boolean | null
           job_title: string | null
           last_contact_at: string | null
           linkedin_url: string | null
@@ -1026,6 +1031,7 @@ export type Database = {
           assigned_to?: string | null
           automation_active?: boolean | null
           company?: string | null
+          company_id?: string | null
           contact_score?: number | null
           conversion_probability?: number | null
           created_at?: string
@@ -1035,6 +1041,7 @@ export type Database = {
           facebook_url?: string | null
           id?: string
           instagram_url?: string | null
+          is_primary_contact?: boolean | null
           job_title?: string | null
           last_contact_at?: string | null
           linkedin_url?: string | null
@@ -1057,6 +1064,7 @@ export type Database = {
           assigned_to?: string | null
           automation_active?: boolean | null
           company?: string | null
+          company_id?: string | null
           contact_score?: number | null
           conversion_probability?: number | null
           created_at?: string
@@ -1066,6 +1074,7 @@ export type Database = {
           facebook_url?: string | null
           id?: string
           instagram_url?: string | null
+          is_primary_contact?: boolean | null
           job_title?: string | null
           last_contact_at?: string | null
           linkedin_url?: string | null
@@ -1079,6 +1088,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contacts_workspace_id_fkey"
             columns: ["workspace_id"]

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useCompanies } from "@/hooks/useCompanies";
+import { useContacts } from "@/hooks/useContacts";
 import { useCompanyEnrichment, EnrichmentResult } from "@/hooks/useCompanyEnrichment";
 import { useCompanyDuplicateCheck, DuplicateMatch } from "@/hooks/useCompanyDuplicates";
 import { useNifLookup, NifLookupResult } from "@/hooks/useNifLookup";
+import { isIndividualNif, getEntityTypeFromNif } from "@/hooks/useCompanyContacts";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Collapsible,
   CollapsibleContent,
@@ -49,6 +52,8 @@ import {
   Search,
   X,
   Plus,
+  User,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -68,6 +73,7 @@ const confidenceColors = {
 export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogProps) {
   const navigate = useNavigate();
   const { createCompany } = useCompanies();
+  const { createContact } = useContacts();
   const enrichment = useCompanyEnrichment();
   const nifLookup = useNifLookup({ showToasts: false });
   const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
@@ -78,7 +84,8 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
   const [enrichmentStarted, setEnrichmentStarted] = useState(false);
   const [selectedDuplicate, setSelectedDuplicate] = useState<DuplicateMatch | null>(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  
+  const [createAssociatedContact, setCreateAssociatedContact] = useState(false);
+  const [isIndividual, setIsIndividual] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     website: "",
@@ -197,13 +204,19 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
 
     setIsSubmitting(true);
     try {
+      // Determine entity type based on NIF
+      const entityType = formData.tax_id ? getEntityTypeFromNif(formData.tax_id) : 'company';
+
       // Build final data with accepted enriched fields
       const finalData: Record<string, unknown> = {
         name: formData.name.trim(),
+        tax_id: formData.tax_id.trim() || undefined,
         website: formData.website.trim() || undefined,
         email: formData.email.trim() || (acceptedFields.has("email") ? enrichedFields.email : undefined),
         phone: formData.phone.trim() || (acceptedFields.has("phone") ? enrichedFields.phone : undefined),
         notes: formData.notes.trim() || (acceptedFields.has("description") ? enrichedFields.description : undefined),
+        address: formData.address.trim() || (acceptedFields.has("address") ? enrichedFields.address : undefined),
+        entity_type: entityType,
         tags: formData.tags
           .split(",")
           .map((t) => t.trim())
@@ -216,9 +229,6 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
       if (acceptedFields.has("size") && enrichedFields.size) {
         finalData.size = enrichedFields.size;
       }
-      if (acceptedFields.has("address") && enrichedFields.address) {
-        finalData.address = enrichedFields.address;
-      }
 
       const result = await createCompany.mutateAsync(finalData as any);
 
@@ -227,7 +237,26 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
         await customFieldsRef.current.saveCustomFields(result.id);
       }
 
-      toast.success("Empresa criada com sucesso");
+      // Create associated contact if checkbox is checked
+      if (result?.id && createAssociatedContact) {
+        try {
+          await createContact.mutateAsync({
+            name: formData.name.trim(),
+            email: formData.email.trim() || undefined,
+            phone: formData.phone.trim() || undefined,
+            company: formData.name.trim(),
+            company_id: result.id,
+            is_primary_contact: true,
+          });
+          toast.success("Empresa e contacto criados com sucesso");
+        } catch (error) {
+          console.error("Error creating associated contact:", error);
+          toast.success("Empresa criada. Erro ao criar contacto associado.");
+        }
+      } else {
+        toast.success("Empresa criada com sucesso");
+      }
+
       resetForm();
       onOpenChange(false);
       
@@ -269,6 +298,8 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
     setEnrichmentStarted(false);
     setSelectedDuplicate(null);
     setShowOptionalFields(false);
+    setCreateAssociatedContact(false);
+    setIsIndividual(false);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -358,6 +389,13 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                           fax: result.fax || prev.fax,
                         }));
                         setShowOptionalFields(true);
+                        
+                        // Check if it's an individual NIF
+                        const individual = isIndividualNif(formData.tax_id);
+                        setIsIndividual(individual);
+                        if (individual) {
+                          setCreateAssociatedContact(true);
+                        }
                       }
                     }}
                     disabled={nifLookup.isLoading || formData.tax_id.length !== 9}
@@ -404,6 +442,29 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="geral@empresa.pt"
                   />
+                </div>
+              </div>
+
+              {/* Create Associated Contact Option */}
+              <div className="flex items-start space-x-3 py-3 px-4 rounded-lg border border-border/50 bg-muted/30">
+                <Checkbox
+                  id="createContact"
+                  checked={createAssociatedContact}
+                  onCheckedChange={(checked) => setCreateAssociatedContact(checked === true)}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="createContact"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Criar contacto associado automaticamente
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    {isIndividual 
+                      ? "Este NIF pertence a um empresário individual. Recomendamos criar um contacto associado."
+                      : "Cria um contacto principal vinculado a esta empresa."}
+                  </p>
                 </div>
               </div>
 
