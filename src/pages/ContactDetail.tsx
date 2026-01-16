@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ContactDetail as ContactDetailComponent } from "@/components/contacts/ContactDetail";
+import { ENIContactDetail } from "@/components/contacts/eni/ENIContactDetail";
 
 export default function ContactDetailPage() {
   return (
     <DashboardLayout>
-      <ContactDetailComponent />
+      <ENIContactDetail />
     </DashboardLayout>
   );
 }

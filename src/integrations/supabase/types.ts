@@ -987,8 +987,145 @@ export type Database = {
           },
         ]
       }
+      contact_documents: {
+        Row: {
+          contact_id: string
+          created_at: string
+          document_type: string
+          file_name: string
+          file_size: number | null
+          file_url: string | null
+          id: string
+          notes: string | null
+          updated_at: string
+          uploaded_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          document_type: string
+          file_name: string
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          document_type?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_products: {
+        Row: {
+          acquisition_date: string | null
+          contact_id: string
+          created_at: string
+          expiry_date: string | null
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number | null
+          status: string | null
+          total_value: number | null
+          unit_price: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          acquisition_date?: string | null
+          contact_id: string
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity?: number | null
+          status?: string | null
+          total_value?: number | null
+          unit_price?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          acquisition_date?: string | null
+          contact_id?: string
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number | null
+          status?: string | null
+          total_value?: number | null
+          unit_price?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_products_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "contact_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_products_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
+          abc_category: string | null
+          activity_start_date: string | null
+          address: string | null
           ai_analyzed_at: string | null
           ai_contact_type: string | null
           ai_insight: string | null
@@ -997,32 +1134,60 @@ export type Database = {
           ai_temperature: string | null
           assigned_to: string | null
           automation_active: boolean | null
+          average_ticket: number | null
+          business_area: string | null
+          cae_code: string | null
+          cae_description: string | null
+          city: string | null
+          client_since: string | null
+          client_status: string | null
+          client_types: string | null
+          commercial_name: string | null
           company: string | null
           company_id: string | null
           contact_score: number | null
           conversion_probability: number | null
+          country: string | null
           created_at: string
           created_by: string
+          credit_active: boolean | null
+          credit_limit: number | null
           email: string | null
+          entity_type: string | null
           estimated_value: number | null
           facebook_url: string | null
+          fiscal_regime: string | null
+          has_whatsapp: boolean | null
           id: string
           instagram_url: string | null
+          is_fiscal_address: boolean | null
           is_primary_contact: boolean | null
           job_title: string | null
           last_contact_at: string | null
+          last_purchase_date: string | null
+          lead_source: string | null
           linkedin_url: string | null
           name: string
           notes: string | null
+          payment_conditions: string | null
           phone: string | null
+          postal_code: string | null
+          preferred_payment_method: string | null
+          sales_2024: number | null
+          sales_2025: number | null
           source: string | null
           tags: string[] | null
           tax_id: string | null
+          total_revenue: number | null
           twitter_url: string | null
           updated_at: string
+          whatsapp_number: string | null
           workspace_id: string
         }
         Insert: {
+          abc_category?: string | null
+          activity_start_date?: string | null
+          address?: string | null
           ai_analyzed_at?: string | null
           ai_contact_type?: string | null
           ai_insight?: string | null
@@ -1031,32 +1196,60 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          average_ticket?: number | null
+          business_area?: string | null
+          cae_code?: string | null
+          cae_description?: string | null
+          city?: string | null
+          client_since?: string | null
+          client_status?: string | null
+          client_types?: string | null
+          commercial_name?: string | null
           company?: string | null
           company_id?: string | null
           contact_score?: number | null
           conversion_probability?: number | null
+          country?: string | null
           created_at?: string
           created_by: string
+          credit_active?: boolean | null
+          credit_limit?: number | null
           email?: string | null
+          entity_type?: string | null
           estimated_value?: number | null
           facebook_url?: string | null
+          fiscal_regime?: string | null
+          has_whatsapp?: boolean | null
           id?: string
           instagram_url?: string | null
+          is_fiscal_address?: boolean | null
           is_primary_contact?: boolean | null
           job_title?: string | null
           last_contact_at?: string | null
+          last_purchase_date?: string | null
+          lead_source?: string | null
           linkedin_url?: string | null
           name: string
           notes?: string | null
+          payment_conditions?: string | null
           phone?: string | null
+          postal_code?: string | null
+          preferred_payment_method?: string | null
+          sales_2024?: number | null
+          sales_2025?: number | null
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
           workspace_id: string
         }
         Update: {
+          abc_category?: string | null
+          activity_start_date?: string | null
+          address?: string | null
           ai_analyzed_at?: string | null
           ai_contact_type?: string | null
           ai_insight?: string | null
@@ -1065,29 +1258,54 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          average_ticket?: number | null
+          business_area?: string | null
+          cae_code?: string | null
+          cae_description?: string | null
+          city?: string | null
+          client_since?: string | null
+          client_status?: string | null
+          client_types?: string | null
+          commercial_name?: string | null
           company?: string | null
           company_id?: string | null
           contact_score?: number | null
           conversion_probability?: number | null
+          country?: string | null
           created_at?: string
           created_by?: string
+          credit_active?: boolean | null
+          credit_limit?: number | null
           email?: string | null
+          entity_type?: string | null
           estimated_value?: number | null
           facebook_url?: string | null
+          fiscal_regime?: string | null
+          has_whatsapp?: boolean | null
           id?: string
           instagram_url?: string | null
+          is_fiscal_address?: boolean | null
           is_primary_contact?: boolean | null
           job_title?: string | null
           last_contact_at?: string | null
+          last_purchase_date?: string | null
+          lead_source?: string | null
           linkedin_url?: string | null
           name?: string
           notes?: string | null
+          payment_conditions?: string | null
           phone?: string | null
+          postal_code?: string | null
+          preferred_payment_method?: string | null
+          sales_2024?: number | null
+          sales_2025?: number | null
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -5318,6 +5536,7 @@ export type Database = {
         | "less_than"
         | "is_empty"
         | "is_not_empty"
+      contact_entity_type: "consumidor_final" | "eni" | "empresa"
       crm_entity_type: "contacts" | "opportunities"
       crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
@@ -5527,6 +5746,7 @@ export const Constants = {
         "is_empty",
         "is_not_empty",
       ],
+      contact_entity_type: ["consumidor_final", "eni", "empresa"],
       crm_entity_type: ["contacts", "opportunities"],
       crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
