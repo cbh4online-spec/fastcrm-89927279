@@ -42,6 +42,7 @@ import { SocialMediaSection } from "./sections/SocialMediaSection";
 import { CompanyContactsHistory } from "./sections/CompanyContactsHistory";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
+import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
 
 // Helper function for time ago
 function getTimeAgo(date: Date): string {
@@ -310,6 +311,12 @@ export function CompanyDetail() {
         {/* Right Column - Tags, Products & Contacts */}
         <div className="space-y-4">
           <CustomerJourneySection companyId={id} />
+          
+          <AIJourneySuggestionsPanel 
+            entityType="company" 
+            entityId={id!} 
+            entityName={company.name}
+          />
           
           <TagsSection 
             company={company} 
