@@ -169,10 +169,20 @@ export function SmartContactRow({
       {/* Company */}
       <TableCell>
         {contact.company ? (
-          <div className="flex items-center gap-1.5 text-sm">
-            <Building2 className="w-3 h-3 text-muted-foreground" />
-            <span className="truncate max-w-[120px]">{contact.company}</span>
-          </div>
+          contact.company_id ? (
+            <Link 
+              to={`/dashboard/companies/${contact.company_id}`}
+              className="flex items-center gap-1.5 text-sm hover:text-primary hover:underline transition-colors"
+            >
+              <Building2 className="w-3 h-3 text-muted-foreground" />
+              <span className="truncate max-w-[120px]">{contact.company}</span>
+            </Link>
+          ) : (
+            <div className="flex items-center gap-1.5 text-sm">
+              <Building2 className="w-3 h-3 text-muted-foreground" />
+              <span className="truncate max-w-[120px]">{contact.company}</span>
+            </div>
+          )
         ) : (
           <span className="text-muted-foreground">—</span>
         )}

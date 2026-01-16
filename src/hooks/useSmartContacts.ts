@@ -17,6 +17,7 @@ export interface SmartContact {
   email: string | null;
   phone: string | null;
   company: string | null;
+  company_id: string | null;
   job_title: string | null;
   notes: string | null;
   tags: string[] | null;
