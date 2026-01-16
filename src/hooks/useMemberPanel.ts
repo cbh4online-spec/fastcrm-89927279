@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, format, differenceInDays, isToday } from 'date-fns';
-import { pt } from 'date-fns/locale';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
+import { useAIPriorities, AIPriority, AIInsights } from './useAIPriorities';
+import { useDashboardRole, DashboardRole } from './useDashboardRole';
 
 export interface MeetingToday {
   id: string;
@@ -16,39 +17,12 @@ export interface MeetingToday {
   contact_id: string | null;
   company_id: string | null;
   lead_id: string | null;
+  contact_name?: string;
+  company_name?: string;
   calendar?: {
     name: string;
     calendar_type: string;
   };
-}
-
-export interface PriorityAction {
-  id: string;
-  type: 'follow_up' | 'meeting_prep' | 'message' | 'call' | 'close_deal' | 'task';
-  title: string;
-  description: string;
-  reason: string;
-  priority: 'high' | 'medium' | 'low';
-  entityId?: string;
-  entityType?: 'lead' | 'contact' | 'opportunity' | 'company';
-  dueDate?: string;
-  status: 'pending' | 'completed' | 'deferred' | 'ignored';
-}
-
-export interface FollowUpTask {
-  id: string;
-  title: string;
-  description: string | null;
-  due_date: string | null;
-  priority: string;
-  status: string;
-  entity_type: string;
-  entity_id: string;
-  entity_name?: string;
-  is_overdue: boolean;
-  days_overdue?: number;
-  created_at: string;
-  source: 'manual' | 'auto' | 'ai';
 }
 
 export interface OpportunityAtRisk {
@@ -105,30 +79,44 @@ export interface AlertItem {
   actionUrl?: string;
 }
 
+// Re-export types from useAIPriorities
+export type { AIPriority, AIInsights };
+export type PriorityAction = AIPriority;
+
 export function useMemberPanel() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const { defaultRole, availableRoles, canSwitchRole } = useDashboardRole();
+  const { 
+    insights, 
+    isLoading: aiLoading, 
+    fetchAIPriorities, 
+    updatePriorityStatus: updateAIPriorityStatus, 
+    error: aiError 
+  } = useAIPriorities();
+  
   const [isLoading, setIsLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [currentRole, setCurrentRole] = useState<DashboardRole>(defaultRole);
   const [meetings, setMeetings] = useState<MeetingToday[]>([]);
-  const [priorities, setPriorities] = useState<PriorityAction[]>([]);
-  const [followUps, setFollowUps] = useState<FollowUpTask[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityAtRisk[]>([]);
   const [performance, setPerformance] = useState<PerformanceMetrics | null>(null);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [stats, setStats] = useState({
+    pendingFollowups: 0,
+    overdueFollowups: 0,
+    unreadConversations: 0,
+  });
 
   const today = new Date();
-  const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'Comercial';
 
-  // Greeting based on time of day
-  const greeting = useMemo(() => {
-    const hour = today.getHours();
-    if (hour < 12) return `Bom dia, ${userName}!`;
-    if (hour < 19) return `Boa tarde, ${userName}!`;
-    return `Boa noite, ${userName}!`;
-  }, [userName, today]);
+  // Update role when default changes
+  useEffect(() => {
+    setCurrentRole(defaultRole);
+  }, [defaultRole]);
 
-  const fetchMeetings = async () => {
-    if (!currentWorkspace?.id || !user?.id) return;
+  const fetchMeetings = useCallback(async () => {
+    if (!currentWorkspace?.id || !user?.id) return [];
 
     const dayStart = startOfDay(today).toISOString();
     const dayEnd = endOfDay(today).toISOString();
@@ -138,7 +126,9 @@ export function useMemberPanel() {
       .select(`
         id, title, start_time, end_time, location, meeting_url, status,
         contact_id, company_id, lead_id,
-        calendar:calendars(name, calendar_type)
+        calendar:calendars(name, calendar_type),
+        contact:contacts(name),
+        company:companies(name)
       `)
       .eq('workspace_id', currentWorkspace.id)
       .gte('start_time', dayStart)
@@ -146,12 +136,19 @@ export function useMemberPanel() {
       .order('start_time');
 
     if (!error && data) {
-      setMeetings(data as unknown as MeetingToday[]);
+      const formattedMeetings = (data as any[]).map(m => ({
+        ...m,
+        contact_name: m.contact?.name,
+        company_name: m.company?.name,
+      }));
+      setMeetings(formattedMeetings);
+      return formattedMeetings;
     }
-  };
+    return [];
+  }, [currentWorkspace?.id, user?.id]);
 
-  const fetchOpportunities = async () => {
-    if (!currentWorkspace?.id || !user?.id) return;
+  const fetchOpportunities = useCallback(async () => {
+    if (!currentWorkspace?.id || !user?.id) return [];
 
     const { data, error } = await supabase
       .from('opportunities')
@@ -197,13 +194,14 @@ export function useMemberPanel() {
       });
 
       setOpportunities(oppsWithRisk);
+      return oppsWithRisk;
     }
-  };
+    return [];
+  }, [currentWorkspace?.id, user?.id]);
 
-  const fetchPerformance = async () => {
-    if (!currentWorkspace?.id || !user?.id) return;
+  const fetchPerformance = useCallback(async () => {
+    if (!currentWorkspace?.id || !user?.id) return null;
 
-    // Get closed opportunities for this user (status = 'won')
     const monthStart = startOfMonth(today).toISOString();
     const monthEnd = endOfMonth(today).toISOString();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }).toISOString();
@@ -223,16 +221,15 @@ export function useMemberPanel() {
       d.updated_at && d.updated_at >= weekStart && d.updated_at <= weekEnd
     ).reduce((sum, d) => sum + (d.value || 0), 0) || 0;
 
-    // Demo targets - in real app, these come from user settings
     const monthlyTarget = 50000;
     const weeklyTarget = 12500;
     const dailyTarget = 2500;
     const yearlyTarget = 600000;
 
-    setPerformance({
+    const perf: PerformanceMetrics = {
       daily: {
         target: dailyTarget,
-        current: 0, // Would need daily tracking
+        current: 0,
         percentage: 0,
       },
       weekly: {
@@ -247,86 +244,44 @@ export function useMemberPanel() {
       },
       yearly: {
         target: yearlyTarget,
-        current: monthlyValue * 12, // Simplified projection
+        current: monthlyValue * 12,
         percentage: Math.round((monthlyValue * 12 / yearlyTarget) * 100),
       },
       comparison: {
-        vsLastWeek: 12, // Demo data
+        vsLastWeek: 12,
         vsLastMonth: -5,
       },
       dealsToClose: Math.ceil((monthlyTarget - monthlyValue) / 5000),
       meetingsNeeded: Math.ceil((monthlyTarget - monthlyValue) / 2000),
-    });
-  };
+    };
 
-  const generatePriorities = async () => {
-    if (!currentWorkspace?.id || !user?.id) return;
+    setPerformance(perf);
+    return perf;
+  }, [currentWorkspace?.id, user?.id]);
 
-    // Generate priorities based on data
-    const generatedPriorities: PriorityAction[] = [];
+  const fetchStats = useCallback(async () => {
+    if (!currentWorkspace?.id) return;
 
-    // Add meeting preps
-    meetings.forEach((meeting, index) => {
-      if (index < 2) {
-        generatedPriorities.push({
-          id: `prep-${meeting.id}`,
-          type: 'meeting_prep',
-          title: `Preparar reunião: ${meeting.title}`,
-          description: `Às ${format(new Date(meeting.start_time), 'HH:mm')}`,
-          reason: 'Reunião em breve - preparação aumenta taxa de sucesso em 40%',
-          priority: 'high',
-          entityId: meeting.id,
-          entityType: 'lead',
-          status: 'pending',
-        });
-      }
-    });
+    // Get conversation stats
+    const { count: unreadCount } = await supabase
+      .from('conversations')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace.id)
+      .gt('unread_count', 0);
 
-    // Add high-risk opportunities as follow-ups
-    opportunities
-      .filter(o => o.risk_level === 'high')
-      .slice(0, 2)
-      .forEach(opp => {
-        generatedPriorities.push({
-          id: `follow-${opp.id}`,
-          type: 'follow_up',
-          title: `Follow-up urgente: ${opp.title}`,
-          description: `Sem atividade há ${opp.days_inactive} dias`,
-          reason: `Negócio de ${new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(opp.value)} em risco`,
-          priority: 'high',
-          entityId: opp.id,
-          entityType: 'opportunity',
-          status: 'pending',
-        });
-      });
+    setStats(prev => ({
+      ...prev,
+      unreadConversations: unreadCount || 0,
+    }));
+  }, [currentWorkspace?.id]);
 
-    // Add close deals if any are hot
-    opportunities
-      .filter(o => o.probability >= 80 && o.stage === 'Negociação')
-      .slice(0, 1)
-      .forEach(opp => {
-        generatedPriorities.push({
-          id: `close-${opp.id}`,
-          type: 'close_deal',
-          title: `Fechar negócio: ${opp.title}`,
-          description: `${opp.probability}% de probabilidade de fecho`,
-          reason: 'Alta probabilidade - foco para bater meta',
-          priority: 'high',
-          entityId: opp.id,
-          entityType: 'opportunity',
-          status: 'pending',
-        });
-      });
-
-    setPriorities(generatedPriorities.slice(0, 5));
-  };
-
-  const generateAlerts = () => {
+  const generateAlerts = useCallback((opps: OpportunityAtRisk[], perf: PerformanceMetrics | null) => {
     const generatedAlerts: AlertItem[] = [];
 
     // Add alerts for high-risk opportunities
-    opportunities
+    opps
       .filter(o => o.risk_level === 'high')
+      .slice(0, 3)
       .forEach(opp => {
         generatedAlerts.push({
           id: `alert-opp-${opp.id}`,
@@ -340,25 +295,20 @@ export function useMemberPanel() {
       });
 
     // Performance insights
-    if (performance && performance.weekly.percentage < 50) {
+    if (perf && perf.weekly.percentage < 50) {
       generatedAlerts.push({
         id: 'alert-performance',
         type: 'ai_insight',
         title: 'Insight de Performance',
-        message: `Estás a ${performance.weekly.percentage}% da meta semanal. Precisas de ${performance.dealsToClose} negócios para recuperar.`,
+        message: `Estás a ${perf.weekly.percentage}% da meta semanal. Precisas de ${perf.dealsToClose} negócios para recuperar.`,
         timestamp: new Date().toISOString(),
       });
     }
 
     setAlerts(generatedAlerts);
-  };
+  }, []);
 
-  const updatePriorityStatus = (id: string, status: PriorityAction['status']) => {
-    setPriorities(prev => 
-      prev.map(p => p.id === id ? { ...p, status } : p)
-    );
-  };
-
+  // Load initial data
   useEffect(() => {
     const loadData = async () => {
       if (!currentWorkspace?.id || !user?.id) {
@@ -367,23 +317,60 @@ export function useMemberPanel() {
       }
 
       setIsLoading(true);
-      await Promise.all([
+      const [meetingsData, oppsData, perfData] = await Promise.all([
         fetchMeetings(),
         fetchOpportunities(),
         fetchPerformance(),
+        fetchStats(),
       ]);
+
+      generateAlerts(oppsData || [], perfData);
+      setDataLoaded(true);
       setIsLoading(false);
     };
 
     loadData();
   }, [currentWorkspace?.id, user?.id]);
 
+  // Fetch AI priorities after data is loaded
   useEffect(() => {
-    if (!isLoading && meetings.length >= 0 && opportunities.length >= 0) {
-      generatePriorities();
-      generateAlerts();
-    }
-  }, [isLoading, meetings, opportunities, performance]);
+    if (!dataLoaded || !performance) return;
+
+    const meetingsForAI = meetings.map(m => ({
+      id: m.id,
+      title: m.title,
+      start_time: m.start_time,
+      end_time: m.end_time,
+      contact_name: m.contact_name,
+      company_name: m.company_name,
+    }));
+
+    const oppsForAI = opportunities.map(o => ({
+      id: o.id,
+      title: o.title,
+      value: o.value,
+      stage: o.stage,
+      days_inactive: o.days_inactive,
+      probability: o.probability,
+      contact_name: o.contact_name,
+      company_name: o.company_name,
+    }));
+
+    const perfForAI = {
+      weekly_target: performance.weekly.target,
+      weekly_current: performance.weekly.current,
+      monthly_target: performance.monthly.target,
+      monthly_current: performance.monthly.current,
+      deals_to_close: performance.dealsToClose,
+    };
+
+    fetchAIPriorities(currentRole, meetingsForAI, oppsForAI, perfForAI, stats);
+  }, [dataLoaded, performance, currentRole]);
+
+  // Derived values from AI insights
+  const greeting = insights?.greeting || `Olá!`;
+  const priorities = insights?.priorities || [];
+  const coachTip = insights?.coachTip;
 
   const daySummary = useMemo(() => {
     const criticalTasks = priorities.filter(p => p.priority === 'high' && p.status === 'pending').length;
@@ -395,27 +382,60 @@ export function useMemberPanel() {
       criticalTasks,
       riskyOpps,
       weeklyProgress,
-      summaryText: `Hoje tens ${meetings.length} reunião${meetings.length !== 1 ? 'ões' : ''}, ${criticalTasks} tarefa${criticalTasks !== 1 ? 's' : ''} crítica${criticalTasks !== 1 ? 's' : ''} e estás a ${weeklyProgress}% da meta semanal.`,
+      summaryText: insights?.daySummary || 
+        `Hoje tens ${meetings.length} reunião${meetings.length !== 1 ? 'ões' : ''}, ${criticalTasks} tarefa${criticalTasks !== 1 ? 's' : ''} crítica${criticalTasks !== 1 ? 's' : ''} e estás a ${weeklyProgress}% da meta semanal.`,
     };
-  }, [meetings, priorities, opportunities, performance]);
+  }, [meetings, priorities, opportunities, performance, insights]);
+
+  const updatePriorityStatus = useCallback((id: string, status: AIPriority['status']) => {
+    updateAIPriorityStatus(id, status);
+  }, [updateAIPriorityStatus]);
+
+  const switchRole = useCallback((role: DashboardRole) => {
+    if (availableRoles.includes(role)) {
+      setCurrentRole(role);
+    }
+  }, [availableRoles]);
+
+  const refresh = useCallback(async () => {
+    setDataLoaded(false);
+    const [meetingsData, oppsData, perfData] = await Promise.all([
+      fetchMeetings(),
+      fetchOpportunities(),
+      fetchPerformance(),
+      fetchStats(),
+    ]);
+    generateAlerts(oppsData || [], perfData);
+    setDataLoaded(true);
+  }, [fetchMeetings, fetchOpportunities, fetchPerformance, fetchStats, generateAlerts]);
 
   return {
-    isLoading,
+    // Loading states
+    isLoading: isLoading || aiLoading,
+    aiLoading,
+    aiError,
+    
+    // Role management
+    currentRole,
+    availableRoles,
+    canSwitchRole,
+    switchRole,
+    
+    // AI-generated content
     greeting,
     daySummary,
-    meetings,
     priorities,
-    followUps,
+    coachTip,
+    
+    // Data
+    meetings,
     opportunities,
     performance,
     alerts,
+    stats,
+    
+    // Actions
     updatePriorityStatus,
-    refresh: async () => {
-      await Promise.all([
-        fetchMeetings(),
-        fetchOpportunities(),
-        fetchPerformance(),
-      ]);
-    },
+    refresh,
   };
 }

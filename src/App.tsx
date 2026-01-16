@@ -60,6 +60,7 @@ import ServicesPage from "./pages/ServicesPage";
 import AvailabilityPage from "./pages/AvailabilityPage";
 import FeedPage from "./pages/FeedPage";
 import ProductivityPage from "./pages/ProductivityPage";
+import MemberPanelPage from "./pages/MemberPanelPage";
 
 const queryClient = new QueryClient();
 
@@ -122,6 +123,8 @@ const App = () => (
                   <Route path="/dashboard/availability" element={<Navigate to="/dashboard/scheduling" replace />} />
                   <Route path="/dashboard/feed" element={<FeedPage />} />
                   <Route path="/dashboard/productivity" element={<ProductivityPage />} />
+                  <Route path="/dashboard/member" element={<MemberPanelPage />} />
+                  <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />
                   <Route path="/p/:slug" element={<PublicProposalPage />} />
