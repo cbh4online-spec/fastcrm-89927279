@@ -29,6 +29,7 @@ import { MeetingCreateModal } from './MeetingCreateModal';
 import { MeetingOutcomeModal } from './MeetingOutcomeModal';
 import { MeetingCloseModal } from './MeetingCloseModal';
 import { MeetingPreparationPanel } from './MeetingPreparationPanel';
+import { NoShowModal } from './NoShowModal';
 import { useMeetings, type Meeting, type MeetingStatus, type MeetingCategory, type MeetingOutcome, type CreateMeetingData } from '@/hooks/useMeetings';
 import { cn } from '@/lib/utils';
 
@@ -64,6 +65,8 @@ export function MeetingsDashboard() {
   const [meetingForClose, setMeetingForClose] = useState<Meeting | null>(null);
   const [showPreparation, setShowPreparation] = useState(false);
   const [meetingForPreparation, setMeetingForPreparation] = useState<Meeting | null>(null);
+  const [showNoShowModal, setShowNoShowModal] = useState(false);
+  const [meetingForNoShow, setMeetingForNoShow] = useState<Meeting | null>(null);
 
   // Get date range for current week
   const dateRange = useMemo(() => ({
@@ -154,6 +157,17 @@ export function MeetingsDashboard() {
     setShowPreparation(true);
   };
 
+  const handleNoShow = (meeting: Meeting) => {
+    // For client/hybrid meetings, use the NoShow modal with automations
+    if (meeting.category === 'client' || meeting.category === 'hybrid') {
+      setMeetingForNoShow(meeting);
+      setShowNoShowModal(true);
+    } else {
+      // For internal meetings, just update status
+      updateMeetingStatus(meeting.id, 'no_show');
+    }
+  };
+
   const title = `${format(dateRange.start, 'd MMM', { locale: pt })} - ${format(dateRange.end, 'd MMM yyyy', { locale: pt })}`;
 
   return (
@@ -241,6 +255,7 @@ export function MeetingsDashboard() {
             onRegisterOutcome={handleRegisterOutcome}
             onPublishToTeam={handlePublishToTeam}
             onPrepare={handlePrepare}
+            onNoShow={handleNoShow}
           />
         )}
 
@@ -253,6 +268,7 @@ export function MeetingsDashboard() {
             onRegisterOutcome={handleRegisterOutcome}
             onPublishToTeam={handlePublishToTeam}
             onPrepare={handlePrepare}
+            onNoShow={handleNoShow}
           />
         )}
       </div>
@@ -305,6 +321,21 @@ export function MeetingsDashboard() {
           }}
         />
       )}
+
+      {/* No-Show Modal */}
+      {meetingForNoShow && (
+        <NoShowModal
+          isOpen={showNoShowModal}
+          onClose={() => {
+            setShowNoShowModal(false);
+            setMeetingForNoShow(null);
+          }}
+          meeting={meetingForNoShow}
+          onStatusUpdated={() => {
+            updateMeetingStatus(meetingForNoShow.id, 'no_show');
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -316,9 +347,10 @@ interface ListViewProps {
   onRegisterOutcome: (meeting: Meeting) => void;
   onPublishToTeam: (meetingId: string) => void;
   onPrepare: (meeting: Meeting) => void;
+  onNoShow: (meeting: Meeting) => void;
 }
 
-function ListView({ meetings, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare }: ListViewProps) {
+function ListView({ meetings, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare, onNoShow }: ListViewProps) {
   // Group by date
   const groupedByDate = useMemo(() => {
     const groups: Record<string, Meeting[]> = {};
@@ -366,6 +398,7 @@ function ListView({ meetings, onStatusChange, onClick, onRegisterOutcome, onPubl
                 onRegisterOutcome={onRegisterOutcome}
                 onPublishToTeam={onPublishToTeam}
                 onPrepare={onPrepare}
+                onNoShow={onNoShow}
               />
             ))}
           </div>
@@ -383,9 +416,10 @@ interface BoardViewProps {
   onRegisterOutcome: (meeting: Meeting) => void;
   onPublishToTeam: (meetingId: string) => void;
   onPrepare: (meeting: Meeting) => void;
+  onNoShow: (meeting: Meeting) => void;
 }
 
-function BoardView({ meetingsByStatus, categoryFilter, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare }: BoardViewProps) {
+function BoardView({ meetingsByStatus, categoryFilter, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare, onNoShow }: BoardViewProps) {
   const filteredByStatus = useMemo(() => {
     const filtered: Record<MeetingStatus, Meeting[]> = {} as Record<MeetingStatus, Meeting[]>;
     
@@ -416,6 +450,7 @@ function BoardView({ meetingsByStatus, categoryFilter, onStatusChange, onClick, 
                 onRegisterOutcome={onRegisterOutcome}
                 onPublishToTeam={onPublishToTeam}
                 onPrepare={onPrepare}
+                onNoShow={onNoShow}
               />
             ))}
           </div>

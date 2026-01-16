@@ -7,6 +7,7 @@ import { RevenueWidget } from "@/components/dashboard/RevenueWidget";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { SalesProgressionChart } from "@/components/dashboard/SalesProgressionChart";
 import { LeadManagementTable } from "@/components/dashboard/LeadManagementTable";
+import { InactivityAlertsBanner } from "@/components/productivity/InactivityAlertsBanner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -38,6 +39,9 @@ export default function Dashboard() {
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-5rem)]">
         <div className="space-y-6 pb-8">
+          {/* Inactivity Alerts */}
+          <InactivityAlertsBanner className="mx-0" />
+
           {/* Header with Team Avatars */}
           <div className="flex items-center justify-between">
             <DashboardHeader

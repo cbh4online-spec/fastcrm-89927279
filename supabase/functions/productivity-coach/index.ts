@@ -663,6 +663,154 @@ Gera um fecho completo da reunião. Responde APENAS com JSON válido:
         break;
       }
 
+      case "generate-noshow-message": {
+        const { meetingId } = data;
+
+        // Get meeting details
+        const { data: meeting } = await supabaseClient
+          .from('meetings')
+          .select('*, leads(*), contacts(*), companies(*)')
+          .eq('id', meetingId)
+          .single();
+
+        if (!meeting) {
+          return new Response(JSON.stringify({ error: "Meeting not found" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const client = meeting.leads || meeting.contacts || meeting.companies;
+        const clientName = client?.name || meeting.attendee_name || 'Cliente';
+
+        // Get available slots for rescheduling
+        const today = new Date();
+        const endOfWeek = new Date(today);
+        endOfWeek.setDate(today.getDate() + 7);
+
+        const { data: existingMeetings } = await supabaseClient
+          .from('meetings')
+          .select('start_time, end_time')
+          .eq('workspace_id', workspaceId)
+          .gte('start_time', today.toISOString())
+          .lte('start_time', endOfWeek.toISOString());
+
+        const noShowPrompt = `
+Gera uma mensagem de follow-up para um cliente que não compareceu a uma reunião:
+
+REUNIÃO:
+- Título: ${meeting.title}
+- Data/Hora original: ${new Date(meeting.start_time).toLocaleString('pt-PT')}
+- Cliente: ${clientName}
+
+CONTEXTO:
+- O cliente não compareceu e não deu justificação
+- Queremos facilitar a remarcação
+- O tom deve ser compreensivo e profissional
+
+Sugere também 3-4 slots para remarcação, considerando reuniões existentes:
+${existingMeetings?.map(m => `- ${new Date(m.start_time).toLocaleString('pt-PT')}`).join('\n') || 'Sem reuniões esta semana'}
+
+Responde APENAS com JSON válido:
+{
+  "message": "Mensagem completa para WhatsApp/SMS, empática e profissional (máx 300 chars)",
+  "email_subject": "Assunto para email",
+  "email_body": "Corpo do email mais formal",
+  "suggested_slots": [
+    { "date": "YYYY-MM-DD", "start_time": "HH:MM", "end_time": "HH:MM", "reason": "Bom horário porque..." }
+  ]
+}`;
+
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              {
+                role: "system",
+                content: "És um assistente de comunicação comercial. Geras mensagens empáticas para situações de no-show, facilitando a remarcação. Responde em português de Portugal e apenas com JSON válido.",
+              },
+              { role: "user", content: noShowPrompt },
+            ],
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          // Fallback to default message
+          result = {
+            message: `Olá ${clientName}, notámos que não foi possível contar consigo na reunião agendada. Esperamos que esteja tudo bem! Se desejar, podemos remarcar para um horário mais conveniente.`,
+            email_subject: `Reunião não realizada - ${meeting.title}`,
+            email_body: `Caro(a) ${clientName},\n\nNotámos que não foi possível contar com a sua presença na reunião agendada para ${new Date(meeting.start_time).toLocaleString('pt-PT')}.\n\nEsperamos que esteja tudo bem consigo. Se desejar, podemos facilmente remarcar a reunião para um horário mais conveniente.\n\nAguardamos o seu contacto.\n\nCumprimentos`,
+            suggested_slots: [],
+          };
+          break;
+        }
+
+        const aiData = await aiResponse.json();
+        const content = aiData.choices?.[0]?.message?.content || "";
+        
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        result = jsonMatch ? JSON.parse(jsonMatch[0]) : {
+          message: `Olá ${clientName}, notámos que não foi possível contar consigo na reunião. Podemos remarcar?`,
+          suggested_slots: [],
+        };
+        break;
+      }
+
+      case "check-inactivity": {
+        // Check for contacts without follow-up
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const { data: inactiveContacts } = await supabaseClient
+          .from('contacts')
+          .select('id, name, last_contact_at')
+          .eq('workspace_id', workspaceId)
+          .lt('last_contact_at', sevenDaysAgo.toISOString())
+          .limit(50);
+
+        const { data: inactiveLeads } = await supabaseClient
+          .from('leads')
+          .select('id, name, last_contact_at')
+          .eq('workspace_id', workspaceId)
+          .lt('last_contact_at', sevenDaysAgo.toISOString())
+          .limit(50);
+
+        const contactCount = inactiveContacts?.length || 0;
+        const leadCount = inactiveLeads?.length || 0;
+
+        if (contactCount > 0 || leadCount > 0) {
+          // Create inactivity alert
+          await supabaseClient
+            .from('inactivity_alerts')
+            .insert({
+              workspace_id: workspaceId,
+              user_id: user.id,
+              alert_type: 'no_followup',
+              entity_type: contactCount > 0 ? 'contact' : 'lead',
+              entity_ids: contactCount > 0 
+                ? inactiveContacts?.map(c => c.id) || []
+                : inactiveLeads?.map(l => l.id) || [],
+              entity_count: contactCount > 0 ? contactCount : leadCount,
+              days_inactive: 7,
+              message: contactCount > 0 
+                ? `${contactCount} contactos sem follow-up há 7 dias`
+                : `${leadCount} leads sem follow-up há 7 dias`,
+            });
+        }
+
+        result = {
+          inactive_contacts: contactCount,
+          inactive_leads: leadCount,
+          alert_created: contactCount > 0 || leadCount > 0,
+        };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Invalid action" }), {
           status: 400,

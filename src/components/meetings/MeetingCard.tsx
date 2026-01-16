@@ -42,6 +42,7 @@ interface MeetingCardProps {
   onRegisterOutcome?: (meeting: Meeting) => void;
   onPublishToTeam?: (meetingId: string) => void;
   onPrepare?: (meeting: Meeting) => void;
+  onNoShow?: (meeting: Meeting) => void;
 }
 
 const statusConfig: Record<MeetingStatus, { label: string; color: string; icon: typeof Check }> = {
@@ -65,7 +66,7 @@ const modeConfig: Record<MeetingMode, { label: string; icon: typeof Video }> = {
   whatsapp: { label: 'WhatsApp', icon: MessageCircle },
 };
 
-export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare }: MeetingCardProps) {
+export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare, onNoShow }: MeetingCardProps) {
   const startTime = new Date(meeting.start_time);
   const endTime = new Date(meeting.end_time);
   const duration = differenceInMinutes(endTime, startTime);
@@ -167,7 +168,7 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegis
                       <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
                       Marcar como concluída
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onStatusChange(meeting.id, 'no_show')}>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onNoShow ? onNoShow(meeting) : onStatusChange(meeting.id, 'no_show'); }}>
                       <AlertTriangle className="h-4 w-4 mr-2 text-orange-500" />
                       Sem comparência
                     </DropdownMenuItem>
@@ -266,7 +267,7 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegis
                   <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
                   Marcar como concluída
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onStatusChange(meeting.id, 'no_show')}>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onNoShow ? onNoShow(meeting) : onStatusChange(meeting.id, 'no_show'); }}>
                   <AlertTriangle className="h-4 w-4 mr-2 text-orange-500" />
                   Sem comparência
                 </DropdownMenuItem>
