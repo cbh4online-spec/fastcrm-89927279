@@ -1623,6 +1623,75 @@ export type Database = {
           },
         ]
       }
+      demo_leads: {
+        Row: {
+          ai_summary: string | null
+          business_type: string
+          business_type_other: string | null
+          company: string | null
+          converted_to_lead_id: string | null
+          created_at: string
+          demo_focus: string | null
+          email: string
+          id: string
+          lead_score: number | null
+          name: string
+          notes: string | null
+          objectives: string[]
+          source: string | null
+          status: string | null
+          tags: string[] | null
+          team_size: string
+          temperature: string | null
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          business_type: string
+          business_type_other?: string | null
+          company?: string | null
+          converted_to_lead_id?: string | null
+          created_at?: string
+          demo_focus?: string | null
+          email: string
+          id?: string
+          lead_score?: number | null
+          name: string
+          notes?: string | null
+          objectives?: string[]
+          source?: string | null
+          status?: string | null
+          tags?: string[] | null
+          team_size: string
+          temperature?: string | null
+          updated_at?: string
+          urgency: string
+        }
+        Update: {
+          ai_summary?: string | null
+          business_type?: string
+          business_type_other?: string | null
+          company?: string | null
+          converted_to_lead_id?: string | null
+          created_at?: string
+          demo_focus?: string | null
+          email?: string
+          id?: string
+          lead_score?: number | null
+          name?: string
+          notes?: string | null
+          objectives?: string[]
+          source?: string | null
+          status?: string | null
+          tags?: string[] | null
+          team_size?: string
+          temperature?: string | null
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: []
+      }
       email_connections: {
         Row: {
           auth_type: string

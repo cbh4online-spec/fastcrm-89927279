@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
+import DemoRequestForm from "@/components/landing/DemoRequestForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -487,12 +487,13 @@ export default function FastCRMLanding() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
+      {/* Final CTA Section with Demo Form */}
       <section id="demo" className="py-24 px-4">
-        <div className="container mx-auto max-w-3xl">
-          <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent overflow-hidden">
-            <CardContent className="p-8 md:p-12 text-center space-y-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto">
+        <div className="container mx-auto max-w-4xl">
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            {/* Left: Text */}
+            <div className="space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
                 <Zap className="w-8 h-8 text-primary-foreground" />
               </div>
               
@@ -500,29 +501,30 @@ export default function FastCRMLanding() {
                 Vê como seria gerir o teu negócio com clareza total.
               </h2>
               
-              <Button size="lg" className="h-14 px-10 text-base" asChild>
-                <Link to="/signup">
-                  Pedir demonstração personalizada
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
+              <p className="text-lg text-muted-foreground">
+                Preenche o formulário e recebe uma demonstração personalizada, 
+                adaptada ao teu tipo de negócio e objetivos.
+              </p>
               
-              <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Configuração assistida
-                </span>
-                <span className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Sem compromisso
-                </span>
-                <span className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Adaptado ao teu negócio
-                </span>
+              <div className="space-y-3 pt-4">
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <Check className="w-5 h-5 text-primary" />
+                  <span>Configuração assistida</span>
+                </div>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <Check className="w-5 h-5 text-primary" />
+                  <span>Sem compromisso</span>
+                </div>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <Check className="w-5 h-5 text-primary" />
+                  <span>Adaptado ao teu negócio</span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            
+            {/* Right: Form */}
+            <DemoRequestForm />
+          </div>
         </div>
       </section>
 
