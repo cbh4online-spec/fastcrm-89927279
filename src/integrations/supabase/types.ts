@@ -4249,6 +4249,72 @@ export type Database = {
           },
         ]
       }
+      module_access_logs: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          ip_address: unknown
+          module_id: string
+          request_path: string | null
+          session_id: string | null
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown
+          module_id: string
+          request_path?: string | null
+          session_id?: string | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown
+          module_id?: string
+          request_path?: string | null
+          session_id?: string | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_access_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "module_sso_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_access_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_action_logs: {
         Row: {
           action_type: string
@@ -4296,6 +4362,137 @@ export type Database = {
           },
           {
             foreignKeyName: "module_action_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_sso_sessions: {
+        Row: {
+          context_snapshot: Json
+          created_at: string
+          expires_at: string
+          granted_scopes: string[]
+          id: string
+          integration_mode: Database["public"]["Enums"]["integration_mode"]
+          ip_address: unknown
+          is_active: boolean
+          last_activity_at: string | null
+          module_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          context_snapshot?: Json
+          created_at?: string
+          expires_at: string
+          granted_scopes?: string[]
+          id?: string
+          integration_mode?: Database["public"]["Enums"]["integration_mode"]
+          ip_address?: unknown
+          is_active?: boolean
+          last_activity_at?: string | null
+          module_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          context_snapshot?: Json
+          created_at?: string
+          expires_at?: string
+          granted_scopes?: string[]
+          id?: string
+          integration_mode?: Database["public"]["Enums"]["integration_mode"]
+          ip_address?: unknown
+          is_active?: boolean
+          last_activity_at?: string | null
+          module_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_sso_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_sso_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: unknown
+          module_id: string
+          nonce: string
+          session_id: string
+          status: Database["public"]["Enums"]["sso_token_status"]
+          token: string
+          token_hash: string
+          used_at: string | null
+          user_agent: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address?: unknown
+          module_id: string
+          nonce: string
+          session_id: string
+          status?: Database["public"]["Enums"]["sso_token_status"]
+          token: string
+          token_hash: string
+          used_at?: string | null
+          user_agent?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          module_id?: string
+          nonce?: string
+          session_id?: string
+          status?: Database["public"]["Enums"]["sso_token_status"]
+          token?: string
+          token_hash?: string
+          used_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_sso_tokens_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "module_sso_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_sso_tokens_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6705,10 +6902,15 @@ export type Database = {
         Args: { p_custom_field_id: string; p_entity_id: string; p_value: Json }
         Returns: boolean
       }
+      check_module_access: {
+        Args: { p_module_id: string; p_user_id: string; p_workspace_id: string }
+        Returns: Json
+      }
       check_workspace_quota: {
         Args: { p_resource_type: string; p_workspace_id: string }
         Returns: Json
       }
+      cleanup_expired_sso_tokens: { Args: never; Returns: undefined }
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
@@ -6762,6 +6964,14 @@ export type Database = {
           p_workspace_id?: string
         }
         Returns: string
+      }
+      revoke_module_sessions: {
+        Args: {
+          p_module_id: string
+          p_revoked_by?: string
+          p_workspace_id: string
+        }
+        Returns: number
       }
     }
     Enums: {
@@ -6833,6 +7043,8 @@ export type Database = {
       crm_entity_type: "contacts" | "opportunities"
       crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
+      integration_mode: "embed" | "redirect" | "headless"
+      sso_token_status: "pending" | "active" | "used" | "expired" | "revoked"
       subscription_plan: "free" | "basic" | "pro" | "agency"
       template_goal:
         | "qualification"
@@ -7043,6 +7255,8 @@ export const Constants = {
       crm_entity_type: ["contacts", "opportunities"],
       crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
+      integration_mode: ["embed", "redirect", "headless"],
+      sso_token_status: ["pending", "active", "used", "expired", "revoked"],
       subscription_plan: ["free", "basic", "pro", "agency"],
       template_goal: [
         "qualification",
