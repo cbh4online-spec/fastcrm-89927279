@@ -3,7 +3,7 @@ import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths 
 import { useCalendars, type Calendar, type CalendarEvent, type CreateCalendarData, type CreateEventData } from '@/hooks/useCalendars';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarSidebar } from '@/components/calendars/CalendarSidebar';
-import { CalendarView } from '@/components/calendars/CalendarView';
+import { CalendarGlobalView } from '@/components/calendars/CalendarGlobalView';
 import { CalendarCreateModal } from '@/components/calendars/CalendarCreateModal';
 import { CalendarEventModal } from '@/components/calendars/CalendarEventModal';
 import { Loader2 } from 'lucide-react';
@@ -108,9 +108,10 @@ export default function CalendarsPage() {
         onEditCalendar={handleEditCalendar}
       />
 
-      <CalendarView
+      <CalendarGlobalView
         events={events}
         calendars={calendars}
+        groups={groups}
         selectedCalendarIds={selectedCalendarIds}
         onCreateEvent={handleCreateEvent}
         onEventClick={handleEventClick}
