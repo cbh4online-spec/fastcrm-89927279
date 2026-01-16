@@ -1,10 +1,12 @@
-export type ProductType = 'simple' | 'recurring' | 'sessions' | 'composite';
+export type ProductType = 'simple' | 'recurring' | 'sessions' | 'composite' | 'formacao' | 'programa' | 'physical';
 export type ProductStatus = 'active' | 'archived';
 export type BillingType = 'one-off' | 'recurring';
 export type BundlePriceMode = 'auto' | 'manual';
 export type BillingFrequency = 'monthly' | 'quarterly' | 'yearly';
 export type DeliveryMode = 'online' | 'presencial' | 'hybrid';
 export type EntitlementStatus = 'active' | 'completed' | 'expired' | 'cancelled';
+export type ConsumptionModel = 'sessions' | 'units' | 'time' | 'free';
+export type RecommendedFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
 export type CycleTriggerType = 'days_after_purchase' | 'days_without_session' | 'consumption_percent' | 'days_before_expiry' | 'custom';
 export type CycleActionType = 'create_task' | 'send_email' | 'send_whatsapp' | 'create_opportunity' | 'notify_owner' | 'start_automation';
 export type ProgressionAction = 'task' | 'opportunity' | 'campaign' | 'automation';
@@ -46,6 +48,12 @@ export interface Product {
   sheet_published: boolean | null;
   sheet_slug: string | null;
   primary_image_index: number | null;
+  // Consumption model fields
+  consumption_model: ConsumptionModel | null;
+  included_quantity: number | null;
+  recommended_frequency: RecommendedFrequency | null;
+  typical_duration_days: number | null;
+  is_trackable: boolean | null;
 }
 
 export interface ProductWithMargins extends Product {
@@ -136,6 +144,12 @@ export interface CreateProductInput {
   conditions?: string;
   sheet_published?: boolean;
   sheet_slug?: string;
+  // Consumption model fields
+  consumption_model?: ConsumptionModel;
+  included_quantity?: number;
+  recommended_frequency?: RecommendedFrequency;
+  typical_duration_days?: number;
+  is_trackable?: boolean;
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {
@@ -147,6 +161,26 @@ export const productTypeLabels: Record<ProductType, string> = {
   recurring: 'Recorrente',
   sessions: 'Sessões',
   composite: 'Composto',
+  formacao: 'Formação',
+  programa: 'Programa / Pack',
+  physical: 'Produto Físico',
+};
+
+export const consumptionModelLabels: Record<ConsumptionModel, string> = {
+  sessions: 'Sessões',
+  units: 'Unidades',
+  time: 'Tempo',
+  free: 'Livre',
+};
+
+export const recommendedFrequencyLabels: Record<RecommendedFrequency, string> = {
+  daily: 'Diária',
+  weekly: 'Semanal',
+  biweekly: 'Quinzenal',
+  monthly: 'Mensal',
+  quarterly: 'Trimestral',
+  yearly: 'Anual',
+  custom: 'Personalizada',
 };
 
 export const productStatusLabels: Record<ProductStatus, string> = {

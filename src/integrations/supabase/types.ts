@@ -4375,6 +4375,7 @@ export type Database = {
           commercial_description: string | null
           commission_default: number | null
           conditions: string | null
+          consumption_model: string | null
           created_at: string
           created_by: string
           currency: string
@@ -4382,10 +4383,13 @@ export type Database = {
           direct_cost: number | null
           id: string
           images: string[] | null
+          included_quantity: number | null
+          is_trackable: boolean | null
           name: string
           operational_cost: number | null
           primary_image_index: number | null
           product_type: string
+          recommended_frequency: string | null
           recurring_fee: number | null
           setup_fee: number | null
           sheet_published: boolean | null
@@ -4396,6 +4400,7 @@ export type Database = {
           target_margin_pct: number | null
           tax_rate_estimate_pct: number | null
           total_units: number | null
+          typical_duration_days: number | null
           unit_duration: number | null
           unit_name: string | null
           updated_at: string
@@ -4412,6 +4417,7 @@ export type Database = {
           commercial_description?: string | null
           commission_default?: number | null
           conditions?: string | null
+          consumption_model?: string | null
           created_at?: string
           created_by: string
           currency?: string
@@ -4419,10 +4425,13 @@ export type Database = {
           direct_cost?: number | null
           id?: string
           images?: string[] | null
+          included_quantity?: number | null
+          is_trackable?: boolean | null
           name: string
           operational_cost?: number | null
           primary_image_index?: number | null
           product_type?: string
+          recommended_frequency?: string | null
           recurring_fee?: number | null
           setup_fee?: number | null
           sheet_published?: boolean | null
@@ -4433,6 +4442,7 @@ export type Database = {
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
+          typical_duration_days?: number | null
           unit_duration?: number | null
           unit_name?: string | null
           updated_at?: string
@@ -4449,6 +4459,7 @@ export type Database = {
           commercial_description?: string | null
           commission_default?: number | null
           conditions?: string | null
+          consumption_model?: string | null
           created_at?: string
           created_by?: string
           currency?: string
@@ -4456,10 +4467,13 @@ export type Database = {
           direct_cost?: number | null
           id?: string
           images?: string[] | null
+          included_quantity?: number | null
+          is_trackable?: boolean | null
           name?: string
           operational_cost?: number | null
           primary_image_index?: number | null
           product_type?: string
+          recommended_frequency?: string | null
           recurring_fee?: number | null
           setup_fee?: number | null
           sheet_published?: boolean | null
@@ -4470,6 +4484,7 @@ export type Database = {
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
+          typical_duration_days?: number | null
           unit_duration?: number | null
           unit_name?: string | null
           updated_at?: string

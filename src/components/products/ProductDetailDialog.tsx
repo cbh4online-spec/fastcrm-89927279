@@ -23,6 +23,10 @@ import {
   Layers,
   Info,
   Clock,
+  BarChart3,
+  RefreshCw,
+  Calendar,
+  CheckCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -32,6 +36,8 @@ import {
   productTypeLabels,
   productStatusLabels,
   billingTypeLabels,
+  consumptionModelLabels,
+  recommendedFrequencyLabels,
 } from "@/types/product";
 import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductFinancialSection } from "./ProductFinancialSection";
@@ -282,6 +288,59 @@ export function ProductDetailDialog({
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Descrição</p>
                       <p className="text-sm">{product.short_description}</p>
+                    </div>
+                  </>
+                )}
+
+                {/* Consumption Model Section */}
+                {(product.consumption_model || product.included_quantity || product.recommended_frequency || product.typical_duration_days) && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        Modelo de Consumo
+                      </p>
+                      <div className="grid grid-cols-2 gap-y-3 text-sm">
+                        {product.consumption_model && (
+                          <>
+                            <p className="text-muted-foreground">Modelo</p>
+                            <p>{consumptionModelLabels[product.consumption_model as keyof typeof consumptionModelLabels] || product.consumption_model}</p>
+                          </>
+                        )}
+                        {product.included_quantity && (
+                          <>
+                            <p className="text-muted-foreground flex items-center gap-1">
+                              <RefreshCw className="h-3 w-3" />
+                              Quantidade Incluída
+                            </p>
+                            <p>{product.included_quantity} {product.consumption_model === 'sessions' ? 'sessões' : 'unidades'}</p>
+                          </>
+                        )}
+                        {product.recommended_frequency && (
+                          <>
+                            <p className="text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              Frequência Recomendada
+                            </p>
+                            <p>{recommendedFrequencyLabels[product.recommended_frequency as keyof typeof recommendedFrequencyLabels] || product.recommended_frequency}</p>
+                          </>
+                        )}
+                        {product.typical_duration_days && (
+                          <>
+                            <p className="text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Duração Típica
+                            </p>
+                            <p>{product.typical_duration_days} dias</p>
+                          </>
+                        )}
+                        <p className="text-muted-foreground flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          Rastreável
+                        </p>
+                        <p>{product.is_trackable !== false ? 'Sim' : 'Não'}</p>
+                      </div>
                     </div>
                   </>
                 )}
