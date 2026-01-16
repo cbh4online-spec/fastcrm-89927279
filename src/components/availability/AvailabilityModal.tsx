@@ -55,6 +55,21 @@ const DEFAULT_SLOTS: CreateSlotData[] = [
   { day_of_week: 5, start_time: '14:00', end_time: '18:00' },
 ];
 
+interface PendingException {
+  id: string;
+  exception_date: string;
+  exception_type: 'unavailable' | 'custom';
+  start_time?: string;
+  end_time?: string;
+  reason?: string;
+}
+
+interface PendingCalendarAssignment {
+  id: string;
+  calendar_id: string;
+  calendar?: CalendarType;
+}
+
 interface AvailabilityModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -65,6 +80,8 @@ interface AvailabilityModalProps {
     timezone: string;
     is_default: boolean;
     slots: CreateSlotData[];
+    pendingExceptions?: CreateExceptionData[];
+    pendingCalendarIds?: string[];
   }) => Promise<void>;
   onUpdateSlots?: (availabilityId: string, slots: CreateSlotData[]) => Promise<void>;
   onAddException?: (availabilityId: string, data: CreateExceptionData) => Promise<void>;
@@ -102,6 +119,10 @@ export function AvailabilityModal({
   // Calendar assignment
   const [selectedCalendarId, setSelectedCalendarId] = useState('');
 
+  // Pending items for creation mode
+  const [pendingExceptions, setPendingExceptions] = useState<PendingException[]>([]);
+  const [pendingCalendarAssignments, setPendingCalendarAssignments] = useState<PendingCalendarAssignment[]>([]);
+
   const isEditing = !!availability;
 
   useEffect(() => {
@@ -116,11 +137,15 @@ export function AvailabilityModal({
           end_time: s.end_time.slice(0, 5),
         }))
       );
+      setPendingExceptions([]);
+      setPendingCalendarAssignments([]);
     } else {
       setName('Horário Principal');
       setTimezone('Europe/Lisbon');
       setIsDefault(true);
       setSlots([...DEFAULT_SLOTS]);
+      setPendingExceptions([]);
+      setPendingCalendarAssignments([]);
     }
     setActiveTab('basic');
   }, [availability, isOpen]);
@@ -130,7 +155,20 @@ export function AvailabilityModal({
 
     setIsSubmitting(true);
     try {
-      await onSave({ name, timezone, is_default: isDefault, slots });
+      await onSave({ 
+        name, 
+        timezone, 
+        is_default: isDefault, 
+        slots,
+        pendingExceptions: pendingExceptions.map(e => ({
+          exception_date: e.exception_date,
+          exception_type: e.exception_type,
+          start_time: e.start_time,
+          end_time: e.end_time,
+          reason: e.reason,
+        })),
+        pendingCalendarIds: pendingCalendarAssignments.map(a => a.calendar_id),
+      });
       onClose();
     } finally {
       setIsSubmitting(false);
@@ -170,28 +208,69 @@ export function AvailabilityModal({
   };
 
   const handleAddException = async () => {
-    if (!availability?.id || !onAddException || !exceptionDate) return;
+    if (!exceptionDate) return;
 
-    await onAddException(availability.id, {
-      exception_date: format(exceptionDate, 'yyyy-MM-dd'),
-      exception_type: exceptionType,
-      start_time: exceptionType === 'custom' ? exceptionStart : undefined,
-      end_time: exceptionType === 'custom' ? exceptionEnd : undefined,
-      reason: exceptionReason || undefined,
-    });
+    if (isEditing && availability?.id && onAddException) {
+      // Edit mode: save directly to DB
+      await onAddException(availability.id, {
+        exception_date: format(exceptionDate, 'yyyy-MM-dd'),
+        exception_type: exceptionType,
+        start_time: exceptionType === 'custom' ? exceptionStart : undefined,
+        end_time: exceptionType === 'custom' ? exceptionEnd : undefined,
+        reason: exceptionReason || undefined,
+      });
+    } else {
+      // Create mode: add to pending list
+      setPendingExceptions([
+        ...pendingExceptions,
+        {
+          id: crypto.randomUUID(),
+          exception_date: format(exceptionDate, 'yyyy-MM-dd'),
+          exception_type: exceptionType,
+          start_time: exceptionType === 'custom' ? exceptionStart : undefined,
+          end_time: exceptionType === 'custom' ? exceptionEnd : undefined,
+          reason: exceptionReason || undefined,
+        },
+      ]);
+    }
 
     setExceptionDate(undefined);
     setExceptionReason('');
   };
 
-  const handleAssignCalendar = async () => {
-    if (!availability?.id || !onAssignCalendar || !selectedCalendarId) return;
+  const handleRemovePendingException = (id: string) => {
+    setPendingExceptions(pendingExceptions.filter(e => e.id !== id));
+  };
 
-    await onAssignCalendar(availability.id, selectedCalendarId);
+  const handleAssignCalendar = async () => {
+    if (!selectedCalendarId) return;
+
+    if (isEditing && availability?.id && onAssignCalendar) {
+      // Edit mode: save directly to DB
+      await onAssignCalendar(availability.id, selectedCalendarId);
+    } else {
+      // Create mode: add to pending list
+      const calendar = calendars.find(c => c.id === selectedCalendarId);
+      setPendingCalendarAssignments([
+        ...pendingCalendarAssignments,
+        {
+          id: crypto.randomUUID(),
+          calendar_id: selectedCalendarId,
+          calendar,
+        },
+      ]);
+    }
     setSelectedCalendarId('');
   };
 
-  const assignedCalendarIds = (availability?.calendar_assignments || []).map(a => a.calendar_id);
+  const handleRemovePendingCalendarAssignment = (id: string) => {
+    setPendingCalendarAssignments(pendingCalendarAssignments.filter(a => a.id !== id));
+  };
+
+  const assignedCalendarIds = [
+    ...(availability?.calendar_assignments || []).map(a => a.calendar_id),
+    ...pendingCalendarAssignments.map(a => a.calendar_id),
+  ];
   const availableCalendars = calendars.filter(c => !assignedCalendarIds.includes(c.id));
 
   return (
@@ -207,11 +286,21 @@ export function AvailabilityModal({
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basic">Básico</TabsTrigger>
             <TabsTrigger value="schedule">Horários</TabsTrigger>
-            <TabsTrigger value="exceptions" disabled={!isEditing}>
+            <TabsTrigger value="exceptions">
               Exceções
+              {pendingExceptions.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 text-xs">
+                  {pendingExceptions.length}
+                </Badge>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="calendars" disabled={!isEditing}>
+            <TabsTrigger value="calendars">
               Calendários
+              {pendingCalendarAssignments.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 text-xs">
+                  {pendingCalendarAssignments.length}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -418,6 +507,44 @@ export function AvailabilityModal({
                 </Button>
               </div>
 
+              {/* Pending exceptions (create mode) */}
+              {pendingExceptions.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium">Exceções a Adicionar</h4>
+                  <div className="space-y-2">
+                    {pendingExceptions
+                      .sort((a, b) => a.exception_date.localeCompare(b.exception_date))
+                      .map(exception => (
+                        <div
+                          key={exception.id}
+                          className="flex items-center justify-between rounded-lg border border-dashed p-3"
+                        >
+                          <div>
+                            <div className="font-medium">
+                              {format(new Date(exception.exception_date), 'PPP', { locale: pt })}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {exception.exception_type === 'unavailable'
+                                ? 'Indisponível'
+                                : `${exception.start_time?.slice(0, 5)} - ${exception.end_time?.slice(0, 5)}`}
+                              {exception.reason && ` • ${exception.reason}`}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemovePendingException(exception.id)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Existing exceptions (edit mode) */}
               {(availability?.exceptions || []).length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-medium">Exceções Configuradas</h4>
@@ -483,7 +610,39 @@ export function AvailabilityModal({
                 </div>
               )}
 
-              {(availability?.calendar_assignments || []).length > 0 ? (
+              {/* Pending calendar assignments (create mode) */}
+              {pendingCalendarAssignments.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium">Calendários a Associar</h4>
+                  <div className="space-y-2">
+                    {pendingCalendarAssignments.map(assignment => (
+                      <div
+                        key={assignment.id}
+                        className="flex items-center justify-between rounded-lg border border-dashed p-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: assignment.calendar?.color || '#3B82F6' }}
+                          />
+                          <span>{assignment.calendar?.name || 'Calendário'}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemovePendingCalendarAssignment(assignment.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Existing calendar assignments (edit mode) */}
+              {(availability?.calendar_assignments || []).length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-medium">Calendários Associados</h4>
                   <div className="space-y-2">
@@ -511,7 +670,9 @@ export function AvailabilityModal({
                     ))}
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {(availability?.calendar_assignments || []).length === 0 && pendingCalendarAssignments.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                   Nenhum calendário associado. Associe esta disponibilidade a calendários para controlar quando pode ser marcado.
                 </p>
@@ -524,9 +685,14 @@ export function AvailabilityModal({
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          {activeTab === 'basic' && (
+          {!isEditing && (
             <Button onClick={handleSubmit} disabled={isSubmitting || !name.trim()}>
-              {isEditing ? 'Guardar' : 'Criar'}
+              {isSubmitting ? 'A criar...' : 'Criar'}
+            </Button>
+          )}
+          {isEditing && activeTab === 'basic' && (
+            <Button onClick={handleSubmit} disabled={isSubmitting || !name.trim()}>
+              {isSubmitting ? 'A guardar...' : 'Guardar'}
             </Button>
           )}
         </div>
