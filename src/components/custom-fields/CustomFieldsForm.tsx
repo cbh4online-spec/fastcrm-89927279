@@ -94,19 +94,30 @@ export interface CustomFieldsFormCreateRef {
 interface CustomFieldsFormCreateProps {
   entityType: CustomFieldEntityType;
   className?: string;
+  /** Filter fields by position: 'primary' (0-1), 'secondary' (>1), 'all' (default) */
+  positionFilter?: 'primary' | 'secondary' | 'all';
+  /** Hide the "Campos Personalizados" label */
+  hideLabel?: boolean;
 }
 
 export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, CustomFieldsFormCreateProps>(
-  function CustomFieldsFormCreate({ entityType, className }, ref) {
-    const { data: fields = [] } = useCustomFields(entityType);
+  function CustomFieldsFormCreate({ entityType, className, positionFilter = 'all', hideLabel = false }, ref) {
+    const { data: allFields = [] } = useCustomFields(entityType);
     const setFieldValue = useSetCustomFieldValue();
 
     const [values, setValues] = useState<Record<string, unknown>>({});
 
-    // Expose methods to parent
+    // Filter fields based on position
+    const fields = allFields.filter((field) => {
+      if (positionFilter === 'primary') return field.position <= 1;
+      if (positionFilter === 'secondary') return field.position > 1;
+      return true;
+    });
+
+    // Expose methods to parent - uses allFields to save all values
     useImperativeHandle(ref, () => ({
       saveCustomFields: async (entityId: string) => {
-        // Save all field values
+        // Save all field values (only those managed by this instance)
         for (const field of fields) {
           const value = values[field.id];
           if (value !== undefined && value !== null && value !== "") {
@@ -133,7 +144,9 @@ export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, Cust
 
     return (
       <div className={cn("space-y-4", className)}>
-        <h4 className="text-sm font-medium text-muted-foreground">Campos Personalizados</h4>
+        {!hideLabel && (
+          <h4 className="text-sm font-medium text-muted-foreground">Campos Personalizados</h4>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           {fields.map((field) => (
             <CustomFieldInput
