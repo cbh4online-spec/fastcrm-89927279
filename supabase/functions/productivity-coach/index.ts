@@ -182,55 +182,142 @@ Responde APENAS com um JSON válido no formato:
           });
         }
 
-        // Get recent activities with this client
+        // Get client info
         const clientId = meeting.lead_id || meeting.contact_id || meeting.company_id;
         const clientType = meeting.lead_id ? 'lead' : meeting.contact_id ? 'contact' : 'company';
+        const client = meeting.leads || meeting.contacts || meeting.companies;
 
+        // Get recent activities with this client
         const { data: activities } = await supabaseClient
           .from('crm_activities')
           .select('*')
           .eq('entity_id', clientId)
           .eq('entity_type', clientType)
           .order('created_at', { ascending: false })
-          .limit(10);
+          .limit(15);
 
-        // Get recent messages if any
+        // Get recent conversations/messages
         const { data: conversations } = await supabaseClient
           .from('conversations')
           .select('*, messages(*)')
           .eq(clientType === 'lead' ? 'lead_id' : clientType === 'contact' ? 'contact_id' : 'company_id', clientId)
+          .order('last_message_at', { ascending: false })
           .limit(1);
 
-        const client = meeting.leads || meeting.contacts || meeting.companies;
+        // Get purchases/products if contact or company
+        let purchases: any[] = [];
+        if (meeting.contact_id || meeting.company_id) {
+          const { data: contactProducts } = await supabaseClient
+            .from('contact_products')
+            .select('*, product:products(name, category)')
+            .eq(meeting.contact_id ? 'contact_id' : 'company_id', meeting.contact_id || meeting.company_id)
+            .order('acquisition_date', { ascending: false })
+            .limit(10);
+          purchases = contactProducts || [];
+        }
+
+        // Get opportunities
+        const { data: opportunities } = await supabaseClient
+          .from('opportunities')
+          .select('*')
+          .eq(clientType === 'lead' ? 'lead_id' : clientType === 'contact' ? 'contact_id' : 'company_id', clientId)
+          .order('updated_at', { ascending: false })
+          .limit(5);
+
+        // Get support tickets if any (from crm_activities with type 'ticket')
+        const { data: tickets } = await supabaseClient
+          .from('crm_activities')
+          .select('*')
+          .eq('entity_id', clientId)
+          .in('activity_type', ['ticket', 'support', 'complaint', 'issue'])
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        // Calculate risk factors
+        const lastContactDate = client?.last_contact_at ? new Date(client.last_contact_at) : null;
+        const daysSinceContact = lastContactDate 
+          ? Math.floor((Date.now() - lastContactDate.getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        const hasRecentTickets = tickets && tickets.length > 0;
+        const hasOpenOpportunities = opportunities?.some((o: any) => !['won', 'lost'].includes(o.stage));
         
         const prepPrompt = `
-Prepara uma briefing para uma reunião:
+Prepara uma briefing completa para uma reunião com cliente:
 
 DETALHES DA REUNIÃO:
 - Título: ${meeting.title}
 - Data/Hora: ${new Date(meeting.start_time).toLocaleString('pt-PT')}
-- Tipo: ${meeting.meeting_type}
-- Notas: ${meeting.notes || 'Sem notas'}
+- Tipo: ${meeting.category || 'cliente'}
+- Notas existentes: ${meeting.notes || 'Sem notas'}
 
-CLIENTE:
+PERFIL DO CLIENTE:
 - Nome: ${client?.name || meeting.attendee_name || 'Desconhecido'}
 - Email: ${client?.email || meeting.attendee_email || 'N/A'}
 - Empresa: ${client?.company || client?.name || 'N/A'}
-- Fonte: ${client?.source || 'N/A'}
+- Telefone: ${client?.phone || 'N/A'}
+- Fonte/Origem: ${client?.source || 'N/A'}
+- Cliente desde: ${client?.client_since || client?.created_at || 'N/A'}
+- Último contacto: ${client?.last_contact_at ? new Date(client.last_contact_at).toLocaleDateString('pt-PT') : 'N/A'}
+- Dias sem contacto: ${daysSinceContact !== null ? daysSinceContact : 'N/A'}
+- Score/Temperatura: ${client?.ai_temperature || client?.contact_score || 'N/A'}
+- Tags: ${client?.tags?.join(', ') || 'Nenhuma'}
+
+HISTÓRICO DE COMPRAS (${purchases.length}):
+${purchases.length > 0 
+  ? purchases.slice(0, 5).map((p: any) => `- ${p.product?.name || 'Produto'}: ${p.quantity || 1} unid. (${p.acquisition_date ? new Date(p.acquisition_date).toLocaleDateString('pt-PT') : 'N/A'}) - €${p.total_value || 0}`).join('\n')
+  : 'Sem histórico de compras'}
+Total gasto estimado: €${purchases.reduce((acc: number, p: any) => acc + (p.total_value || 0), 0)}
+
+OPORTUNIDADES (${opportunities?.length || 0}):
+${opportunities?.slice(0, 3).map((o: any) => `- ${o.name}: €${o.value} (${o.stage})`).join('\n') || 'Nenhuma oportunidade registada'}
 
 ÚLTIMAS INTERAÇÕES (${activities?.length || 0}):
-${activities?.slice(0, 5).map(a => `- ${a.title} (${new Date(a.created_at).toLocaleDateString('pt-PT')})`).join('\n') || 'Nenhuma registada'}
+${activities?.slice(0, 7).map((a: any) => `- [${a.activity_type}] ${a.title} (${new Date(a.created_at).toLocaleDateString('pt-PT')}): ${a.description?.substring(0, 80) || ''}`).join('\n') || 'Nenhuma interação registada'}
+
+TICKETS/SUPORTE (${tickets?.length || 0}):
+${tickets?.map((t: any) => `- ${t.title} (${new Date(t.created_at).toLocaleDateString('pt-PT')}): ${t.description?.substring(0, 60) || ''}`).join('\n') || 'Sem tickets registados'}
 
 ÚLTIMAS MENSAGENS:
-${conversations?.[0]?.messages?.slice(0, 3).map((m: any) => `- ${m.direction}: ${m.content?.substring(0, 100)}...`).join('\n') || 'Nenhuma'}
+${conversations?.[0]?.messages?.slice(0, 5).map((m: any) => `- [${m.direction}] ${m.content?.substring(0, 100)}...`).join('\n') || 'Sem mensagens recentes'}
 
-Gera uma preparação completa para esta reunião. Responde APENAS com JSON válido:
+INDICADORES DE RISCO:
+- Cliente inativo há mais de 30 dias: ${daysSinceContact && daysSinceContact > 30 ? 'SIM ⚠️' : 'NÃO'}
+- Tickets recentes: ${hasRecentTickets ? 'SIM ⚠️' : 'NÃO'}
+- Oportunidades abertas: ${hasOpenOpportunities ? 'SIM' : 'NÃO'}
+
+Com base nesta informação, gera uma preparação COMPLETA para a reunião. Responde APENAS com JSON válido:
 {
-  "client_summary": "Resumo do cliente e contexto",
-  "recent_interactions": "Resumo das interações recentes relevantes",
-  "key_points": ["Ponto chave 1", "Ponto chave 2", "Ponto chave 3"],
-  "suggested_agenda": ["Item de agenda 1", "Item de agenda 2"],
-  "warnings": ["Alerta ou cuidado a ter, se aplicável"]
+  "client_summary": "Resumo executivo do cliente (quem é, há quanto tempo é cliente, padrão de compra, situação atual)",
+  "last_interactions_summary": "Resumo das últimas interações relevantes e contexto das comunicações recentes",
+  "purchase_summary": "Resumo do histórico de compras e valor total do cliente",
+  "tickets_summary": "Resumo de tickets/problemas recentes (se existirem) e como foram resolvidos",
+  "suggested_objective": "Objetivo principal sugerido para esta reunião",
+  "suggested_questions": [
+    "Pergunta estratégica 1 baseada no contexto",
+    "Pergunta estratégica 2",
+    "Pergunta estratégica 3",
+    "Pergunta estratégica 4",
+    "Pergunta estratégica 5"
+  ],
+  "risk_alerts": [
+    "Alerta de risco 1 (se aplicável - ex: cliente inativo, ticket não resolvido, etc.)",
+    "Alerta de risco 2"
+  ],
+  "suggested_agenda": [
+    "1. Abertura e rapport (sugestão concreta)",
+    "2. Ponto de agenda 2",
+    "3. Ponto de agenda 3",
+    "4. Próximos passos e fecho"
+  ],
+  "talking_points": [
+    "Ponto a abordar 1 baseado no histórico",
+    "Ponto a abordar 2",
+    "Ponto a abordar 3"
+  ],
+  "opportunities_to_explore": [
+    "Oportunidade de upsell/cross-sell 1",
+    "Oportunidade 2"
+  ]
 }`;
 
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -244,7 +331,7 @@ Gera uma preparação completa para esta reunião. Responde APENAS com JSON vál
             messages: [
               {
                 role: "system",
-                content: "És um assistente de preparação de reuniões de vendas. Ajudas a preparar briefings concisos e acionáveis. Responde em português de Portugal e apenas com JSON válido.",
+                content: "És um assistente de preparação de reuniões de vendas especializado em B2B. O teu trabalho é analisar toda a informação disponível sobre um cliente e gerar um briefing completo e acionável que permita ao comercial entrar na reunião totalmente preparado. Identificas riscos, oportunidades e sugeres perguntas estratégicas baseadas no contexto. Responde em português de Portugal e apenas com JSON válido.",
               },
               { role: "user", content: prepPrompt },
             ],
@@ -255,6 +342,12 @@ Gera uma preparação completa para esta reunião. Responde APENAS com JSON vál
           if (aiResponse.status === 429) {
             return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
               status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          if (aiResponse.status === 402) {
+            return new Response(JSON.stringify({ error: "Payment required. Add credits." }), {
+              status: 402,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
@@ -276,12 +369,21 @@ Gera uma preparação completa para esta reunião. Responde APENAS com JSON vál
               user_id: user.id,
               meeting_id: meetingId,
               preparation_date: new Date().toISOString().split('T')[0],
-              ...preparation,
-            })
+              client_summary: preparation.client_summary,
+              recent_interactions: preparation.last_interactions_summary,
+              key_points: preparation.talking_points,
+              suggested_agenda: preparation.suggested_agenda,
+              warnings: preparation.risk_alerts,
+            }, { onConflict: 'meeting_id' })
             .select()
             .single();
 
-          result = savedPrep || preparation;
+          result = {
+            ...preparation,
+            id: savedPrep?.id,
+            meeting_id: meetingId,
+            saved: !saveError,
+          };
         } else {
           result = { error: "Could not parse AI response" };
         }
