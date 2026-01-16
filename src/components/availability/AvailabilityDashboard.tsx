@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Plus, Clock, AlertCircle } from 'lucide-react';
+import { Loader2, Plus, Clock, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAvailability, type UserAvailability, type CreateSlotData, type CreateExceptionData } from '@/hooks/useAvailability';
 import { useCalendars } from '@/hooks/useCalendars';
 import { AvailabilityCard } from './AvailabilityCard';
@@ -133,6 +134,13 @@ export function AvailabilityDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
+          <Link 
+            to="/dashboard" 
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">Dashboard</span>
+          </Link>
           <h1 className="text-2xl font-bold">Disponibilidade</h1>
           <p className="text-muted-foreground">
             Gerir os seus horários de trabalho e exceções
