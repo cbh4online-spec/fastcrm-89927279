@@ -156,18 +156,19 @@ export function useMemberPanel() {
     const { data, error } = await supabase
       .from('opportunities')
       .select(`
-        id, title, value, stage, probability, updated_at,
+        id, title, value, stage_id, probability, updated_at, status,
         contact:contacts(name),
-        company:companies(name)
+        company:companies(name),
+        stage:pipeline_stages(name)
       `)
       .eq('workspace_id', currentWorkspace.id)
-      .eq('assigned_to', user.id)
-      .in('stage', ['Proposta Enviada', 'Negociação', 'Qualificado', 'Em Análise'])
+      .eq('owner_id', user.id)
+      .eq('status', 'open')
       .order('value', { ascending: false })
       .limit(10);
 
     if (!error && data) {
-      const oppsWithRisk = data.map(opp => {
+      const oppsWithRisk = (data as any[]).map(opp => {
         const daysInactive = differenceInDays(today, new Date(opp.updated_at));
         let riskLevel: 'high' | 'medium' | 'low' = 'low';
         let actionNeeded = 'Manter acompanhamento';
@@ -184,7 +185,7 @@ export function useMemberPanel() {
           id: opp.id,
           title: opp.title,
           value: opp.value || 0,
-          stage: opp.stage,
+          stage: opp.stage?.name || 'N/A',
           days_inactive: daysInactive,
           probability: opp.probability || 50,
           contact_name: opp.contact?.name,
@@ -202,7 +203,7 @@ export function useMemberPanel() {
   const fetchPerformance = async () => {
     if (!currentWorkspace?.id || !user?.id) return;
 
-    // Get closed opportunities for this user
+    // Get closed opportunities for this user (status = 'won')
     const monthStart = startOfMonth(today).toISOString();
     const monthEnd = endOfMonth(today).toISOString();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }).toISOString();
@@ -210,16 +211,16 @@ export function useMemberPanel() {
 
     const { data: closedDeals } = await supabase
       .from('opportunities')
-      .select('value, closed_at')
+      .select('value, updated_at')
       .eq('workspace_id', currentWorkspace.id)
-      .eq('assigned_to', user.id)
-      .eq('stage', 'Fechado Ganho')
-      .gte('closed_at', monthStart)
-      .lte('closed_at', monthEnd);
+      .eq('owner_id', user.id)
+      .eq('status', 'won')
+      .gte('updated_at', monthStart)
+      .lte('updated_at', monthEnd);
 
-    const monthlyValue = closedDeals?.reduce((sum, d) => sum + (d.value || 0), 0) || 0;
-    const weeklyValue = closedDeals?.filter(d => 
-      d.closed_at && d.closed_at >= weekStart && d.closed_at <= weekEnd
+    const monthlyValue = (closedDeals as any[] | null)?.reduce((sum, d) => sum + (d.value || 0), 0) || 0;
+    const weeklyValue = (closedDeals as any[] | null)?.filter(d => 
+      d.updated_at && d.updated_at >= weekStart && d.updated_at <= weekEnd
     ).reduce((sum, d) => sum + (d.value || 0), 0) || 0;
 
     // Demo targets - in real app, these come from user settings
