@@ -84,3 +84,6 @@ verify_jwt = false
 
 [functions.module-checkout]
 verify_jwt = false
+
+[functions.bundle-checkout]
+verify_jwt = false
