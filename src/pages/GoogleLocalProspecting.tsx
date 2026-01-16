@@ -21,13 +21,12 @@ import {
   Loader2,
   Settings,
   CreditCard,
-  AlertCircle,
   CheckCircle2,
-  Image as ImageIcon
+  History
 } from "lucide-react";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
+import { useCreateLead, useLeads } from "@/hooks/useLeads";
 
-// Simulated search results for demo
 interface GooglePlaceResult {
   id: string;
   title: string;
@@ -39,11 +38,9 @@ interface GooglePlaceResult {
   category: string;
   hours?: string;
   description?: string;
-  images?: string[];
   services?: string[];
 }
 
-// Mock database organized by category
 const MOCK_DATABASE: Record<string, GooglePlaceResult[]> = {
   health: [
     {
@@ -244,6 +241,17 @@ export default function GoogleLocalProspecting() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<GooglePlaceResult[]>([]);
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
+  const [importedIds, setImportedIds] = useState<string[]>([]);
+  
+  const createLead = useCreateLead();
+  const { data: recentLeads = [] } = useLeads({ 
+    status: undefined 
+  });
+  
+  // Filter leads from google_local source
+  const prospectionLeads = recentLeads
+    .filter(lead => lead.source === "google_local")
+    .slice(0, 10);
 
   const handleSearch = async () => {
     if (!searchQuery.trim() && !location.trim()) {
@@ -252,22 +260,16 @@ export default function GoogleLocalProspecting() {
     }
 
     setIsSearching(true);
-    
-    // Simulated API call delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Filter results based on category and search query
     let filteredResults: GooglePlaceResult[] = [];
     
     if (category === "all") {
-      // Get all results from all categories
       filteredResults = Object.values(MOCK_DATABASE).flat();
     } else {
-      // Get results from specific category
       filteredResults = MOCK_DATABASE[category] || [];
     }
     
-    // Filter by search query if provided
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filteredResults = filteredResults.filter(result => 
@@ -278,7 +280,6 @@ export default function GoogleLocalProspecting() {
       );
     }
     
-    // Filter by location if provided
     if (location.trim()) {
       const loc = location.toLowerCase();
       filteredResults = filteredResults.filter(result =>
@@ -288,13 +289,12 @@ export default function GoogleLocalProspecting() {
     
     setResults(filteredResults);
     setIsSearching(false);
+    setImportedIds([]);
     
     if (filteredResults.length > 0) {
       toast.success(`Encontrados ${filteredResults.length} resultados`);
     } else {
-      toast.info("Nenhum resultado encontrado", {
-        description: "Tente ajustar os filtros de pesquisa"
-      });
+      toast.info("Nenhum resultado encontrado");
     }
   };
 
@@ -306,28 +306,49 @@ export default function GoogleLocalProspecting() {
     );
   };
 
-  const handleImportSelected = () => {
+  const importLeads = async (leadsToImport: GooglePlaceResult[]) => {
+    let successCount = 0;
+    
+    for (const result of leadsToImport) {
+      try {
+        await createLead.mutateAsync({
+          name: result.title,
+          phone: result.phone || undefined,
+          source: "google_local",
+          status: "new",
+        });
+        setImportedIds(prev => [...prev, result.id]);
+        successCount++;
+      } catch (error) {
+        console.error("Error importing lead:", error);
+      }
+    }
+    
+    return successCount;
+  };
+
+  const handleImportSelected = async () => {
     if (selectedResults.length === 0) {
       toast.error("Selecione pelo menos um resultado para importar");
       return;
     }
     
-    toast.success(`${selectedResults.length} leads importados com sucesso!`, {
-      description: "Os leads foram adicionados à sua lista"
-    });
+    const leadsToImport = results.filter(r => selectedResults.includes(r.id));
+    const count = await importLeads(leadsToImport);
+    
+    toast.success(`${count} leads importados com sucesso!`);
     setSelectedResults([]);
   };
 
-  const handleImportAll = () => {
-    toast.success(`${results.length} leads importados com sucesso!`, {
-      description: "Todos os resultados foram adicionados como leads"
-    });
-    setResults([]);
+  const handleImportAll = async () => {
+    const leadsToImport = results.filter(r => !importedIds.includes(r.id));
+    const count = await importLeads(leadsToImport);
+    
+    toast.success(`${count} leads importados com sucesso!`);
   };
 
   const creditsUsed = 45;
   const creditsTotal = 500;
-  const creditsPercent = (creditsUsed / creditsTotal) * 100;
 
   return (
     <div className="space-y-6">
@@ -360,216 +381,228 @@ export default function GoogleLocalProspecting() {
         </div>
       </div>
 
-
-      {/* Search Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Pesquisar Empresas
-          </CardTitle>
-          <CardDescription>
-            Pesquise por tipo de negócio, nome ou serviço e filtre por localização
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="md:col-span-2">
-              <Input
-                placeholder="Ex: restaurantes, advogados, oficinas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              />
-            </div>
-            <div>
-              <Input
-                placeholder="Localização (ex: Lisboa)"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              />
-            </div>
-            <div>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex justify-end mt-4">
-            <Button onClick={handleSearch} disabled={isSearching}>
-              {isSearching ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  A pesquisar...
-                </>
-              ) : (
-                <>
-                  <Search className="mr-2 h-4 w-4" />
-                  Pesquisar (1 crédito)
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Results */}
-      {results.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Resultados ({results.length})</CardTitle>
-                <CardDescription>
-                  {selectedResults.length > 0 
-                    ? `${selectedResults.length} selecionados`
-                    : "Selecione os resultados que pretende importar como leads"
-                  }
-                </CardDescription>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Search Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                Pesquisar Empresas
+              </CardTitle>
+              <CardDescription>
+                Pesquise por tipo de negócio, nome ou serviço e filtre por localização
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <Input
+                    placeholder="Ex: restaurantes, advogados..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  />
+                </div>
+                <div>
+                  <Input
+                    placeholder="Localização (ex: Lisboa)"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  />
+                </div>
+                <div>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map(cat => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={handleImportSelected}
-                  disabled={selectedResults.length === 0}
-                >
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Importar Selecionados ({selectedResults.length})
-                </Button>
-                <Button onClick={handleImportAll}>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Importar Todos
+              <div className="flex justify-end mt-4">
+                <Button onClick={handleSearch} disabled={isSearching}>
+                  {isSearching ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      A pesquisar...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mr-2 h-4 w-4" />
+                      Pesquisar (1 crédito)
+                    </>
+                  )}
                 </Button>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[500px]">
-              <div className="space-y-4">
-                {results.map((result) => (
-                  <div
-                    key={result.id}
-                    className={`p-4 rounded-lg border transition-colors ${
-                      selectedResults.includes(result.id)
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <Checkbox
-                        checked={selectedResults.includes(result.id)}
-                        onCheckedChange={() => toggleSelection(result.id)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-semibold text-lg flex items-center gap-2">
-                              {result.title}
-                              {result.rating >= 4.5 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  <Star className="h-3 w-3 mr-1 fill-amber-400 text-amber-400" />
-                                  Top
-                                </Badge>
-                              )}
-                            </h3>
-                            <Badge variant="outline" className="mt-1">
-                              {result.category}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-1 text-amber-500">
-                            <Star className="h-4 w-4 fill-current" />
-                            <span className="font-medium">{result.rating}</span>
-                            <span className="text-muted-foreground text-sm">
-                              ({result.reviews_count} avaliações)
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground">
-                          {result.description}
-                        </p>
+            </CardContent>
+          </Card>
 
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <MapPin className="h-4 w-4" />
-                            {result.address}
-                          </div>
-                          {result.phone && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Phone className="h-4 w-4" />
-                              {result.phone}
-                            </div>
-                          )}
-                          {result.hours && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Clock className="h-4 w-4" />
-                              {result.hours}
-                            </div>
-                          )}
-                        </div>
-
-                        {result.services && result.services.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {result.services.map((service, i) => (
-                              <Badge key={i} variant="secondary" className="text-xs">
-                                {service}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-
-                        {result.website && (
-                          <a 
-                            href={result.website} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                          >
-                            <Globe className="h-4 w-4" />
-                            {result.website.replace('https://', '')}
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
+          {/* Results */}
+          {results.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Resultados ({results.length})</CardTitle>
+                    <CardDescription>
+                      {selectedResults.length > 0 
+                        ? `${selectedResults.length} selecionados`
+                        : "Selecione os resultados que pretende importar"
+                      }
+                    </CardDescription>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleImportSelected}
+                      disabled={selectedResults.length === 0 || createLead.isPending}
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Importar ({selectedResults.length})
+                    </Button>
+                    <Button 
+                      onClick={handleImportAll}
+                      disabled={createLead.isPending}
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Importar Todos
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-3">
+                    {results.map((result) => (
+                      <div
+                        key={result.id}
+                        className={`p-4 rounded-lg border transition-colors ${
+                          importedIds.includes(result.id)
+                            ? "border-green-500 bg-green-500/5"
+                            : selectedResults.includes(result.id)
+                            ? "border-primary bg-primary/5"
+                            : "hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <Checkbox
+                            checked={selectedResults.includes(result.id)}
+                            onCheckedChange={() => toggleSelection(result.id)}
+                            disabled={importedIds.includes(result.id)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h3 className="font-semibold flex items-center gap-2">
+                                  {result.title}
+                                  {importedIds.includes(result.id) && (
+                                    <Badge variant="outline" className="text-green-600 border-green-600">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      Importado
+                                    </Badge>
+                                  )}
+                                </h3>
+                                <Badge variant="outline" className="mt-1 text-xs">
+                                  {result.category}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-1 text-amber-500">
+                                <Star className="h-4 w-4 fill-current" />
+                                <span className="font-medium">{result.rating}</span>
+                                <span className="text-muted-foreground text-xs">
+                                  ({result.reviews_count})
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {result.description}
+                            </p>
 
-      {/* Empty State */}
-      {results.length === 0 && !isSearching && (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <MapPin className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-2">Comece a prospectar</h3>
-            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              Pesquise por tipo de negócio ou nome de empresa para encontrar leads qualificados na sua zona.
-            </p>
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span>Dados verificados pelo Google</span>
-              <span className="mx-2">•</span>
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span>Contactos e ratings incluídos</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                            <div className="flex flex-wrap gap-3 text-xs">
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <MapPin className="h-3 w-3" />
+                                {result.address}
+                              </span>
+                              {result.phone && (
+                                <span className="flex items-center gap-1 text-muted-foreground">
+                                  <Phone className="h-3 w-3" />
+                                  {result.phone}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Empty State */}
+          {results.length === 0 && !isSearching && (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <MapPin className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium mb-2">Comece a prospectar</h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  Pesquise por tipo de negócio para encontrar leads qualificados.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* History Sidebar */}
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <History className="h-4 w-4" />
+                Leads Importados
+              </CardTitle>
+              <CardDescription>
+                Últimos leads importados do Google Local
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {prospectionLeads.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhum lead importado ainda
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {prospectionLeads.map((lead) => (
+                    <div key={lead.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
+                      <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{lead.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(lead.created_at).toLocaleDateString('pt-PT')}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="text-xs shrink-0">
+                        {lead.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
