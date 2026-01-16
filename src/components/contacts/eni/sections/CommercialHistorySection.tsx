@@ -92,7 +92,7 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
           <InlineEditableField
             label="Vendas 2026"
             fieldId="sales_2026"
-            fieldType="number"
+            fieldType="currency"
             value={contact.sales_2026}
             onChange={(val) => onFieldChange("sales_2026", val)}
             icon={<BarChart3 className="w-4 h-4" />}
@@ -102,7 +102,7 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
           <InlineEditableField
             label="Vendas 2025"
             fieldId="sales_2025"
-            fieldType="number"
+            fieldType="currency"
             value={contact.sales_2025}
             onChange={(val) => onFieldChange("sales_2025", val)}
             icon={<BarChart3 className="w-4 h-4" />}
@@ -112,7 +112,7 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
           <InlineEditableField
             label="Vendas 2024"
             fieldId="sales_2024"
-            fieldType="number"
+            fieldType="currency"
             value={contact.sales_2024}
             onChange={(val) => onFieldChange("sales_2024", val)}
             icon={<BarChart3 className="w-4 h-4" />}
@@ -122,7 +122,7 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
           <InlineEditableField
             label="Vendas 2023"
             fieldId="sales_2023"
-            fieldType="number"
+            fieldType="currency"
             value={contact.sales_2023}
             onChange={(val) => onFieldChange("sales_2023", val)}
             icon={<BarChart3 className="w-4 h-4" />}
@@ -133,7 +133,7 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
           <InlineEditableField
             label="Receita Total"
             fieldId="total_revenue"
-            fieldType="number"
+            fieldType="currency"
             value={contact.total_revenue}
             onChange={(val) => onFieldChange("total_revenue", val)}
             icon={<DollarSign className="w-4 h-4" />}
@@ -144,7 +144,7 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
           <InlineEditableField
             label="Ticket Médio"
             fieldId="average_ticket"
-            fieldType="number"
+            fieldType="currency"
             value={contact.average_ticket}
             onChange={(val) => onFieldChange("average_ticket", val)}
             icon={<ShoppingCart className="w-4 h-4" />}
