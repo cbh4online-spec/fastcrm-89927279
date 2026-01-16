@@ -41,6 +41,7 @@ import { TagsSection } from "./sections/TagsSection";
 import { SocialMediaSection } from "./sections/SocialMediaSection";
 import { CompanyContactsHistory } from "./sections/CompanyContactsHistory";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
+import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
 
 // Helper function for time ago
 function getTimeAgo(date: Date): string {
@@ -308,6 +309,8 @@ export function CompanyDetail() {
 
         {/* Right Column - Tags, Products & Contacts */}
         <div className="space-y-4">
+          <CustomerJourneySection companyId={id} />
+          
           <TagsSection 
             company={company} 
             onFieldChange={handleFieldChange}
