@@ -47,7 +47,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { 
-  ArrowLeft, 
+  ArrowLeft,
+  ArrowRight,
   User, 
   Mail, 
   Phone, 
@@ -82,6 +83,7 @@ import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/component
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { ContextualTemplatePanel } from "@/components/templates/ContextualTemplatePanel";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
+import { ConvertLeadDialog } from "@/components/crm/ConvertLeadDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { VariableContext } from "@/lib/templateVariables";
 import { cn } from "@/lib/utils";
@@ -492,6 +494,15 @@ export function LeadDetail() {
                   <Edit2 className="w-4 h-4 mr-2" />
                   Editar
                 </Button>
+                <ConvertLeadDialog 
+                  lead={lead}
+                  trigger={
+                    <Button className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
+                      <ArrowRight className="w-4 h-4" />
+                      Converter
+                    </Button>
+                  }
+                />
                 <Button variant="outline" className="gap-2">
                   <Plus className="w-4 h-4" />
                   Nova Tarefa
