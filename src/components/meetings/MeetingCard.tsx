@@ -15,7 +15,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   Calendar as CalendarIcon,
-  ExternalLink
+  ExternalLink,
+  FileText,
+  Share2,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,13 +31,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import type { Meeting, MeetingStatus, MeetingCategory, MeetingMode } from '@/hooks/useMeetings';
+import type { Meeting, MeetingStatus, MeetingCategory, MeetingMode, MeetingOutcome } from '@/hooks/useMeetings';
 
 interface MeetingCardProps {
   meeting: Meeting;
   compact?: boolean;
   onStatusChange: (id: string, status: MeetingStatus, reason?: string) => void;
   onClick: (meeting: Meeting) => void;
+  onRegisterOutcome?: (meeting: Meeting) => void;
+  onPublishToTeam?: (meetingId: string) => void;
 }
 
 const statusConfig: Record<MeetingStatus, { label: string; color: string; icon: typeof Check }> = {
@@ -58,7 +63,7 @@ const modeConfig: Record<MeetingMode, { label: string; icon: typeof Video }> = {
   whatsapp: { label: 'WhatsApp', icon: MessageCircle },
 };
 
-export function MeetingCard({ meeting, compact, onStatusChange, onClick }: MeetingCardProps) {
+export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam }: MeetingCardProps) {
   const startTime = new Date(meeting.start_time);
   const endTime = new Date(meeting.end_time);
   const duration = differenceInMinutes(endTime, startTime);
@@ -140,6 +145,12 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick }: Meeti
                 {isPastMeeting && (
                   <>
                     <DropdownMenuSeparator />
+                    {onRegisterOutcome && !meeting.outcome && (
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRegisterOutcome(meeting); }}>
+                        <ClipboardCheck className="h-4 w-4 mr-2 text-primary" />
+                        Registar resultado
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => onStatusChange(meeting.id, 'completed')}>
                       <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
                       Marcar como concluída
@@ -147,6 +158,15 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick }: Meeti
                     <DropdownMenuItem onClick={() => onStatusChange(meeting.id, 'no_show')}>
                       <AlertTriangle className="h-4 w-4 mr-2 text-orange-500" />
                       Sem comparência
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {meeting.category === 'internal' && onPublishToTeam && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPublishToTeam(meeting.id); }}>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Publicar no mural da equipa
                     </DropdownMenuItem>
                   </>
                 )}
@@ -214,6 +234,12 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick }: Meeti
             {isPastMeeting && meeting.status !== 'completed' && meeting.status !== 'cancelled' && (
               <>
                 <DropdownMenuSeparator />
+                {onRegisterOutcome && !meeting.outcome && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRegisterOutcome(meeting); }}>
+                    <ClipboardCheck className="h-4 w-4 mr-2 text-primary" />
+                    Registar resultado
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => onStatusChange(meeting.id, 'completed')}>
                   <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
                   Marcar como concluída
@@ -221,6 +247,15 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick }: Meeti
                 <DropdownMenuItem onClick={() => onStatusChange(meeting.id, 'no_show')}>
                   <AlertTriangle className="h-4 w-4 mr-2 text-orange-500" />
                   Sem comparência
+                </DropdownMenuItem>
+              </>
+            )}
+            {meeting.category === 'internal' && onPublishToTeam && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPublishToTeam(meeting.id); }}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Publicar no mural da equipa
                 </DropdownMenuItem>
               </>
             )}

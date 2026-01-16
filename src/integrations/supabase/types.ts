@@ -4988,6 +4988,51 @@ export type Database = {
           },
         ]
       }
+      meeting_notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          meeting_id: string
+          note_type: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          meeting_id: string
+          note_type?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          meeting_id?: string
+          note_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_notes_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_notes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_resource_bookings: {
         Row: {
           created_at: string
@@ -5343,11 +5388,13 @@ export type Database = {
           contact_id: string | null
           created_at: string
           created_by: string
+          crm_activity_id: string | null
           description: string | null
           end_time: string
           external_id: string | null
           follow_up_date: string | null
           follow_up_required: boolean | null
+          follow_up_task_id: string | null
           id: string
           internal_notes: string | null
           lead_id: string | null
@@ -5357,8 +5404,10 @@ export type Database = {
           meeting_url: string | null
           metadata: Json | null
           mode: string
+          next_steps: string | null
           opportunity_id: string | null
           outcome: string | null
+          outcome_notes: string | null
           phone_number: string | null
           reminder_sent: boolean | null
           reminder_sent_at: string | null
@@ -5389,11 +5438,13 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by: string
+          crm_activity_id?: string | null
           description?: string | null
           end_time: string
           external_id?: string | null
           follow_up_date?: string | null
           follow_up_required?: boolean | null
+          follow_up_task_id?: string | null
           id?: string
           internal_notes?: string | null
           lead_id?: string | null
@@ -5403,8 +5454,10 @@ export type Database = {
           meeting_url?: string | null
           metadata?: Json | null
           mode?: string
+          next_steps?: string | null
           opportunity_id?: string | null
           outcome?: string | null
+          outcome_notes?: string | null
           phone_number?: string | null
           reminder_sent?: boolean | null
           reminder_sent_at?: string | null
@@ -5435,11 +5488,13 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string
+          crm_activity_id?: string | null
           description?: string | null
           end_time?: string
           external_id?: string | null
           follow_up_date?: string | null
           follow_up_required?: boolean | null
+          follow_up_task_id?: string | null
           id?: string
           internal_notes?: string | null
           lead_id?: string | null
@@ -5449,8 +5504,10 @@ export type Database = {
           meeting_url?: string | null
           metadata?: Json | null
           mode?: string
+          next_steps?: string | null
           opportunity_id?: string | null
           outcome?: string | null
+          outcome_notes?: string | null
           phone_number?: string | null
           reminder_sent?: boolean | null
           reminder_sent_at?: string | null
@@ -8354,6 +8411,56 @@ export type Database = {
           },
         ]
       }
+      user_activity_feed: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          is_public: boolean | null
+          metadata: Json | null
+          title: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_public?: boolean | null
+          metadata?: Json | null
+          title: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_public?: boolean | null
+          metadata?: Json | null
+          title?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_feed_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_availability: {
         Row: {
           created_at: string
@@ -9270,6 +9377,15 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: Json
+      }
+      create_meeting_followup_task: {
+        Args: {
+          p_description?: string
+          p_due_date?: string
+          p_meeting_id: string
+          p_title: string
+        }
+        Returns: string
       }
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
