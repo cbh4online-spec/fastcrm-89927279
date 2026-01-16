@@ -24,6 +24,7 @@ interface ContactPermissions {
   canView: (section: ContactSection) => boolean;
   canEdit: (section: ContactSection) => boolean;
   role: WorkspaceRole | null;
+  isSuperAdmin: boolean;
   isLoading: boolean;
 }
 
@@ -97,7 +98,25 @@ export function useContactPermissions(): ContactPermissions {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
 
-  const { data: membership, isLoading } = useQuery({
+  // Check if user is super admin
+  const { data: isSuperAdmin, isLoading: isSuperAdminLoading } = useQuery({
+    queryKey: ["is-super-admin", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+
+      const { data, error } = await supabase.rpc('is_super_admin', { _user_id: user.id });
+      
+      if (error) {
+        console.error("Error checking super admin:", error);
+        return false;
+      }
+
+      return !!data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: membership, isLoading: membershipLoading } = useQuery({
     queryKey: ["workspace-membership", currentWorkspace?.id, user?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id || !user?.id) return null;
@@ -120,13 +139,18 @@ export function useContactPermissions(): ContactPermissions {
   });
 
   const role = (membership?.role as WorkspaceRole) || null;
+  const superAdmin = isSuperAdmin ?? false;
 
   const canView = (section: ContactSection): boolean => {
+    // Super admin has access to everything
+    if (superAdmin) return true;
     if (!role) return false;
     return PERMISSION_MATRIX[role]?.[section]?.view ?? false;
   };
 
   const canEdit = (section: ContactSection): boolean => {
+    // Super admin has access to everything
+    if (superAdmin) return true;
     if (!role) return false;
     return PERMISSION_MATRIX[role]?.[section]?.edit ?? false;
   };
@@ -135,7 +159,8 @@ export function useContactPermissions(): ContactPermissions {
     canView,
     canEdit,
     role,
-    isLoading,
+    isSuperAdmin: superAdmin,
+    isLoading: isSuperAdminLoading || membershipLoading,
   };
 }
 
