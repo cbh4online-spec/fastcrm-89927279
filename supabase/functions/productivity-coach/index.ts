@@ -560,6 +560,109 @@ Analisa o progresso e dá feedback acionável. Responde APENAS com JSON:
         break;
       }
 
+      case "close-meeting": {
+        const { meetingId, bullets, outcome } = data;
+
+        // Get meeting details
+        const { data: meeting } = await supabaseClient
+          .from('meetings')
+          .select('*, leads(*), contacts(*), companies(*)')
+          .eq('id', meetingId)
+          .single();
+
+        if (!meeting) {
+          return new Response(JSON.stringify({ error: "Meeting not found" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const client = meeting.leads || meeting.contacts || meeting.companies;
+        const clientName = client?.name || meeting.attendee_name || 'Cliente';
+
+        const closePrompt = `
+Estás a ajudar a fechar uma reunião de forma eficiente. Com base nos 3 pontos-chave fornecidos pelo utilizador, gera:
+
+REUNIÃO:
+- Título: ${meeting.title}
+- Data: ${new Date(meeting.start_time).toLocaleString('pt-PT')}
+- Cliente: ${clientName}
+- Empresa: ${client?.company || client?.name || 'N/A'}
+- Resultado: ${outcome || 'successful'}
+
+3 PONTOS-CHAVE DO UTILIZADOR:
+${bullets.map((b: string, i: number) => `${i + 1}. ${b}`).join('\n')}
+
+Gera um fecho completo da reunião. Responde APENAS com JSON válido:
+{
+  "official_summary": "Resumo oficial da reunião em 2-3 parágrafos profissionais, pronto para ser partilhado ou arquivado",
+  "key_decisions": ["Decisão tomada 1", "Decisão tomada 2"],
+  "tasks": [
+    {
+      "title": "Título da tarefa",
+      "description": "Descrição breve",
+      "priority": "high|medium|low",
+      "suggested_due_days": 3
+    }
+  ],
+  "next_steps": ["Próximo passo 1", "Próximo passo 2", "Próximo passo 3"],
+  "followup_email": {
+    "subject": "Assunto do email de follow-up",
+    "body": "Corpo do email profissional de follow-up, personalizado para ${clientName}"
+  },
+  "followup_whatsapp": "Mensagem curta e profissional para WhatsApp (máx 200 caracteres)",
+  "internal_notes": "Notas internas para o CRM (insights, alertas, observações)",
+  "suggested_followup_date": "YYYY-MM-DD (data sugerida para próximo contacto)"
+}`;
+
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              {
+                role: "system",
+                content: "És um assistente de vendas especializado em fechar reuniões de forma eficiente. Geras resumos profissionais, tarefas acionáveis e mensagens de follow-up personalizadas. Responde em português de Portugal e apenas com JSON válido.",
+              },
+              { role: "user", content: closePrompt },
+            ],
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          if (aiResponse.status === 429) {
+            return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          if (aiResponse.status === 402) {
+            return new Response(JSON.stringify({ error: "Payment required" }), {
+              status: 402,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          throw new Error("AI gateway error");
+        }
+
+        const aiData = await aiResponse.json();
+        const content = aiData.choices?.[0]?.message?.content || "";
+        
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          result = JSON.parse(jsonMatch[0]);
+          result.meeting_id = meetingId;
+          result.client_name = clientName;
+        } else {
+          result = { error: "Could not parse AI response" };
+        }
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Invalid action" }), {
           status: 400,

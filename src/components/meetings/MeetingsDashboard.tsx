@@ -27,6 +27,7 @@ import {
 import { MeetingCard } from './MeetingCard';
 import { MeetingCreateModal } from './MeetingCreateModal';
 import { MeetingOutcomeModal } from './MeetingOutcomeModal';
+import { MeetingCloseModal } from './MeetingCloseModal';
 import { MeetingPreparationPanel } from './MeetingPreparationPanel';
 import { useMeetings, type Meeting, type MeetingStatus, type MeetingCategory, type MeetingOutcome, type CreateMeetingData } from '@/hooks/useMeetings';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,8 @@ export function MeetingsDashboard() {
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [meetingForOutcome, setMeetingForOutcome] = useState<Meeting | null>(null);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [meetingForClose, setMeetingForClose] = useState<Meeting | null>(null);
   const [showPreparation, setShowPreparation] = useState(false);
   const [meetingForPreparation, setMeetingForPreparation] = useState<Meeting | null>(null);
 
@@ -104,8 +107,15 @@ export function MeetingsDashboard() {
   };
 
   const handleRegisterOutcome = (meeting: Meeting) => {
-    setMeetingForOutcome(meeting);
-    setShowOutcomeModal(true);
+    // For client meetings, use the AI-powered close modal
+    if (meeting.category === 'client' || meeting.category === 'hybrid') {
+      setMeetingForClose(meeting);
+      setShowCloseModal(true);
+    } else {
+      // For internal meetings, use the simple outcome modal
+      setMeetingForOutcome(meeting);
+      setShowOutcomeModal(true);
+    }
   };
 
   const handleSaveOutcome = async (
@@ -114,9 +124,10 @@ export function MeetingsDashboard() {
     nextSteps?: string,
     followUpDate?: string
   ) => {
-    if (!meetingForOutcome) return;
+    const targetMeeting = meetingForOutcome || meetingForClose;
+    if (!targetMeeting) return;
     await updateMeetingOutcome(
-      meetingForOutcome.id,
+      targetMeeting.id,
       outcome,
       outcomeNotes,
       nextSteps,
@@ -124,11 +135,14 @@ export function MeetingsDashboard() {
     );
     setShowOutcomeModal(false);
     setMeetingForOutcome(null);
+    setShowCloseModal(false);
+    setMeetingForClose(null);
   };
 
   const handleCreateTask = async (title: string, description?: string, dueDate?: string) => {
-    if (!meetingForOutcome) return;
-    await createFollowUpTask(meetingForOutcome.id, title, description, dueDate);
+    const targetMeeting = meetingForOutcome || meetingForClose;
+    if (!targetMeeting) return;
+    await createFollowUpTask(targetMeeting.id, title, description, dueDate);
   };
 
   const handlePublishToTeam = async (meetingId: string) => {
@@ -261,6 +275,20 @@ export function MeetingsDashboard() {
             setMeetingForOutcome(null);
           }}
           meeting={meetingForOutcome}
+          onSaveOutcome={handleSaveOutcome}
+          onCreateTask={handleCreateTask}
+        />
+      )}
+
+      {/* AI Close Modal for client meetings */}
+      {meetingForClose && (
+        <MeetingCloseModal
+          isOpen={showCloseModal}
+          onClose={() => {
+            setShowCloseModal(false);
+            setMeetingForClose(null);
+          }}
+          meeting={meetingForClose}
           onSaveOutcome={handleSaveOutcome}
           onCreateTask={handleCreateTask}
         />
