@@ -74,8 +74,8 @@ const App = () => (
                   <Route path="/dashboard/settings" element={<Settings />} />
                   <Route path="/dashboard/settings/:section" element={<Settings />} />
                   <Route path="/dashboard/leads" element={<Leads />} />
-                  <Route path="/dashboard/leads/google-local" element={<GoogleLocalProspecting />} />
                   <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
+                  <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
                   <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
                   <Route path="/dashboard/inbox" element={<Inbox />} />
                   <Route path="/dashboard/automations" element={<Automations />} />

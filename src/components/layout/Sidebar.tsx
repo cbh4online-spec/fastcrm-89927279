@@ -41,6 +41,8 @@ import {
   PieChart,
   Package,
   MapPin,
+  Search,
+  Compass,
 } from "lucide-react";
 import {
   Collapsible,
@@ -113,7 +115,16 @@ const navigationGroups: NavGroup[] = [
       { name: "Todos os Leads", href: "/dashboard/leads", icon: Target, tooltip: "Ver todos os leads" },
       { name: "Novos Leads", href: "/dashboard/leads?status=new", icon: UserPlus, tooltip: "Leads ainda não contactados" },
       { name: "Qualificados", href: "/dashboard/leads?status=qualified", icon: UserCheck, tooltip: "Leads prontos para venda" },
-      { name: "Prospecção Google", href: "/dashboard/leads/google-local", icon: MapPin, tooltip: "Pesquisar empresas no Google", highlight: true },
+    ],
+  },
+  {
+    name: "Prospecção",
+    icon: Compass,
+    tooltip: "Encontrar novos potenciais clientes",
+    highlight: true,
+    items: [
+      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar empresas no Google Maps", highlight: true },
+      { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar empresas na web" },
     ],
   },
   {
