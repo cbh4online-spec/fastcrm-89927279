@@ -14,6 +14,7 @@ import {
   Crown,
   FileText,
   CreditCard,
+  SlidersHorizontal,
 } from "lucide-react";
 
 export type SettingsCategory =
