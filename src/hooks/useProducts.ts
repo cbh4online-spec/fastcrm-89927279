@@ -135,6 +135,12 @@ export function useUpdateProduct() {
       if (input.unit_name !== undefined) updateData.unit_name = input.unit_name;
       if (input.setup_fee !== undefined) updateData.setup_fee = input.setup_fee;
       if (input.recurring_fee !== undefined) updateData.recurring_fee = input.recurring_fee;
+      // Consumption model fields
+      if (input.consumption_model !== undefined) updateData.consumption_model = input.consumption_model;
+      if (input.included_quantity !== undefined) updateData.included_quantity = input.included_quantity;
+      if (input.recommended_frequency !== undefined) updateData.recommended_frequency = input.recommended_frequency;
+      if (input.typical_duration_days !== undefined) updateData.typical_duration_days = input.typical_duration_days;
+      if (input.is_trackable !== undefined) updateData.is_trackable = input.is_trackable;
 
       const { data, error } = await supabase
         .from("products")

@@ -24,9 +24,11 @@ import {
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info } from "lucide-react";
+import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
-import type { Product, ProductType, BillingType } from "@/types/product";
+import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFrequency } from "@/types/product";
+import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/product";
 
 interface CreateProductDialogProps {
   open: boolean;
@@ -54,6 +56,13 @@ export function CreateProductDialog({
   const [targetMargin, setTargetMargin] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [bundlePriceMode, setBundlePriceMode] = useState<"auto" | "manual">("auto");
+  // Consumption model fields
+  const [consumptionModel, setConsumptionModel] = useState<ConsumptionModel>("units");
+  const [includedQuantity, setIncludedQuantity] = useState("");
+  const [recommendedFrequency, setRecommendedFrequency] = useState<RecommendedFrequency | "">("");
+  const [typicalDurationDays, setTypicalDurationDays] = useState("");
+  const [isTrackable, setIsTrackable] = useState(true);
+  const [showConsumption, setShowConsumption] = useState(false);
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -94,6 +103,18 @@ export function CreateProductDialog({
           !!product.tax_rate_estimate_pct ||
           !!product.target_margin_pct
       );
+      // Consumption model fields
+      setConsumptionModel(product.consumption_model || "units");
+      setIncludedQuantity(product.included_quantity?.toString() || "");
+      setRecommendedFrequency(product.recommended_frequency || "");
+      setTypicalDurationDays(product.typical_duration_days?.toString() || "");
+      setIsTrackable(product.is_trackable ?? true);
+      setShowConsumption(
+        !!product.consumption_model ||
+          !!product.included_quantity ||
+          !!product.recommended_frequency ||
+          !!product.typical_duration_days
+      );
     } else {
       resetForm();
     }
@@ -115,6 +136,13 @@ export function CreateProductDialog({
     setTargetMargin("");
     setShowAdvanced(false);
     setBundlePriceMode("auto");
+    // Reset consumption fields
+    setConsumptionModel("units");
+    setIncludedQuantity("");
+    setRecommendedFrequency("");
+    setTypicalDurationDays("");
+    setIsTrackable(true);
+    setShowConsumption(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,6 +168,13 @@ export function CreateProductDialog({
     if (productType === "composite") {
       data.bundle_price_mode = bundlePriceMode;
     }
+
+    // Consumption model fields
+    data.consumption_model = consumptionModel;
+    data.included_quantity = includedQuantity ? parseInt(includedQuantity) : undefined;
+    data.recommended_frequency = recommendedFrequency || undefined;
+    data.typical_duration_days = typicalDurationDays ? parseInt(typicalDurationDays) : undefined;
+    data.is_trackable = isTrackable;
 
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product.id, ...data });
@@ -195,6 +230,15 @@ export function CreateProductDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="simple">Simples</SelectItem>
+                  <SelectItem value="formacao">Formação</SelectItem>
+                  <SelectItem value="sessions">Sessões</SelectItem>
+                  <SelectItem value="physical">Produto Físico</SelectItem>
+                  <SelectItem value="programa">
+                    <span className="flex items-center gap-2">
+                      <Layers className="h-4 w-4" />
+                      Programa / Pack
+                    </span>
+                  </SelectItem>
                   <SelectItem value="recurring">Recorrente</SelectItem>
                   <SelectItem value="composite">
                     <span className="flex items-center gap-2">
@@ -202,7 +246,6 @@ export function CreateProductDialog({
                       Bundle / Composto
                     </span>
                   </SelectItem>
-                  <SelectItem value="sessions">Sessões</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -442,6 +485,110 @@ export function CreateProductDialog({
                   </div>
                 </Card>
               )}
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Consumption Model Section */}
+          <Collapsible open={showConsumption} onOpenChange={setShowConsumption}>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="ghost" size="sm" className="w-full justify-between">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Modelo de Consumo
+                </span>
+                {showConsumption ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-4">
+              <p className="text-xs text-muted-foreground">
+                Define como este produto é consumido. A IA usa estes dados para prever e sugerir ações.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Modelo de Consumo</Label>
+                  <Select value={consumptionModel} onValueChange={(v) => setConsumptionModel(v as ConsumptionModel)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sessions">{consumptionModelLabels.sessions}</SelectItem>
+                      <SelectItem value="units">{consumptionModelLabels.units}</SelectItem>
+                      <SelectItem value="time">{consumptionModelLabels.time}</SelectItem>
+                      <SelectItem value="free">{consumptionModelLabels.free}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="includedQuantity">
+                    {consumptionModel === "sessions" ? "Sessões Incluídas" : 
+                     consumptionModel === "units" ? "Unidades Incluídas" : 
+                     "Quantidade Incluída"}
+                  </Label>
+                  <Input
+                    id="includedQuantity"
+                    type="number"
+                    min="0"
+                    value={includedQuantity}
+                    onChange={(e) => setIncludedQuantity(e.target.value)}
+                    placeholder={consumptionModel === "free" ? "Ilimitado" : "ex: 10"}
+                    disabled={consumptionModel === "free"}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Frequência Recomendada</Label>
+                  <Select 
+                    value={recommendedFrequency} 
+                    onValueChange={(v) => setRecommendedFrequency(v as RecommendedFrequency)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">{recommendedFrequencyLabels.daily}</SelectItem>
+                      <SelectItem value="weekly">{recommendedFrequencyLabels.weekly}</SelectItem>
+                      <SelectItem value="biweekly">{recommendedFrequencyLabels.biweekly}</SelectItem>
+                      <SelectItem value="monthly">{recommendedFrequencyLabels.monthly}</SelectItem>
+                      <SelectItem value="quarterly">{recommendedFrequencyLabels.quarterly}</SelectItem>
+                      <SelectItem value="yearly">{recommendedFrequencyLabels.yearly}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="typicalDuration">Duração Típica (dias)</Label>
+                  <Input
+                    id="typicalDuration"
+                    type="number"
+                    min="0"
+                    value={typicalDurationDays}
+                    onChange={(e) => setTypicalDurationDays(e.target.value)}
+                    placeholder="ex: 30, 90, 365"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between py-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="trackable">Rastreável</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Permite acompanhar uso e consumo deste produto
+                  </p>
+                </div>
+                <Switch
+                  id="trackable"
+                  checked={isTrackable}
+                  onCheckedChange={setIsTrackable}
+                />
+              </div>
             </CollapsibleContent>
           </Collapsible>
 
