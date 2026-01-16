@@ -10200,6 +10200,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_calendar_owner: { Args: { cal_id: string }; Returns: boolean }
       is_feature_enabled: {
         Args: { p_feature_key: string; p_workspace_id: string }
         Returns: boolean
