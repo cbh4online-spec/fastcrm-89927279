@@ -959,6 +959,103 @@ export function ModuleTemplateForm({ initialData, onSave, onPreview }: ModuleTem
 
         {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-6">
+          {/* API Credentials Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Credenciais de API</CardTitle>
+              <CardDescription>
+                Configure as chaves de API necessárias para o módulo funcionar.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  <strong>Nota:</strong> Estas credenciais serão solicitadas ao cliente quando ativar o módulo e guardadas de forma segura.
+                </p>
+              </div>
+              
+              {/* Add API Key fields */}
+              {(template.settings_schema?.settings || []).filter(s => s.key.includes('api_key') || s.key.includes('API_KEY')).length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  <p className="text-sm">Nenhuma credencial configurada</p>
+                </div>
+              )}
+              
+              {(template.settings_schema?.settings || []).filter(s => s.key.includes('api_key') || s.key.includes('API_KEY')).map((setting, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <Label>{setting.label}</Label>
+                    <p className="text-xs text-muted-foreground">{setting.description}</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      const newSettings = (template.settings_schema?.settings || []).filter(s => s.key !== setting.key);
+                      updateTemplate({
+                        settings_schema: {
+                          ...template.settings_schema!,
+                          settings: newSettings
+                        }
+                      });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <Label>Adicionar Credencial</Label>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Input
+                    id="new_api_key_name"
+                    placeholder="Nome (ex: SERPAPI_API_KEY)"
+                  />
+                  <Input
+                    id="new_api_key_label"
+                    placeholder="Label (ex: SerpAPI Key)"
+                  />
+                  <Button 
+                    type="button"
+                    onClick={() => {
+                      const nameInput = document.getElementById('new_api_key_name') as HTMLInputElement;
+                      const labelInput = document.getElementById('new_api_key_label') as HTMLInputElement;
+                      const keyName = nameInput?.value?.trim();
+                      const keyLabel = labelInput?.value?.trim();
+                      
+                      if (keyName && keyLabel) {
+                        const newSetting = {
+                          key: keyName,
+                          label: keyLabel,
+                          description: `Chave de API para ${keyLabel}`,
+                          type: "text" as const,
+                          default_value: "",
+                          required: true,
+                          visible_to_admin_only: true
+                        };
+                        updateTemplate({
+                          settings_schema: {
+                            ...template.settings_schema,
+                            settings: [...(template.settings_schema?.settings || []), newSetting]
+                          }
+                        });
+                        nameInput.value = "";
+                        labelInput.value = "";
+                        toast.success(`Credencial ${keyLabel} adicionada`);
+                      }
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Logs & Governança</CardTitle>
