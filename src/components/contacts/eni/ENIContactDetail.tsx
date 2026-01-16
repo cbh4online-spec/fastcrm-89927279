@@ -20,7 +20,7 @@ import { CommercialHistorySection } from "./sections/CommercialHistorySection";
 import { NotesSection } from "./sections/NotesSection";
 import { AIInsightsSection } from "./sections/AIInsightsSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
-import { ProductsSection } from "./sections/ProductsSection";
+import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 import { useAnalyzeContact } from "@/hooks/useSmartContacts";
 import { useContactPermissions } from "./useContactPermissions";
 import { NifLookupResult } from "@/hooks/useNifLookup";
@@ -285,7 +285,7 @@ export function ENIContactDetail() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ProductsSection contactId={id!} />
+            <AcquiredProductsSection contactId={id!} />
             <DocumentsSection contactId={id!} />
           </div>
 
