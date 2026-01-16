@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { useCreateLead, useLeads } from "@/hooks/useLeads";
+import { useCredits } from "@/hooks/useCredits";
 
 interface GooglePlaceResult {
   id: string;
@@ -251,6 +252,7 @@ export default function GoogleLocalProspecting() {
   const [minRating, setMinRating] = useState("4");
   
   const createLead = useCreateLead();
+  const { usage, consumeCredits, hasCredits } = useCredits("google_local");
   const { data: recentLeads = [] } = useLeads({ 
     status: undefined 
   });
@@ -266,7 +268,26 @@ export default function GoogleLocalProspecting() {
       return;
     }
 
+    if (!hasCredits) {
+      toast.error("Sem créditos disponíveis", {
+        description: "Adquira mais créditos para continuar a pesquisar"
+      });
+      return;
+    }
+
     setIsSearching(true);
+    
+    // Consume 1 credit for the search
+    try {
+      await consumeCredits.mutateAsync({
+        credits: 1,
+        actionKey: "search",
+        actionDescription: `Pesquisa: ${searchQuery} em ${location || "Portugal"}`,
+      });
+    } catch (error) {
+      console.error("Error consuming credits:", error);
+    }
+    
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     let filteredResults: GooglePlaceResult[] = [];
@@ -350,12 +371,8 @@ export default function GoogleLocalProspecting() {
   const handleImportAll = async () => {
     const leadsToImport = results.filter(r => !importedIds.includes(r.id));
     const count = await importLeads(leadsToImport);
-    
     toast.success(`${count} leads importados com sucesso!`);
   };
-
-  const creditsUsed = 45;
-  const creditsTotal = 500;
 
   return (
     <div className="space-y-6">
@@ -443,7 +460,7 @@ export default function GoogleLocalProspecting() {
           </Dialog>
           <Badge variant="outline" className="gap-2 py-2 px-3">
             <CreditCard className="h-4 w-4" />
-            {creditsUsed}/{creditsTotal} créditos
+            {usage.used}/{usage.total} créditos
           </Badge>
         </div>
       </div>
