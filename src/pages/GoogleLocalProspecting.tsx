@@ -43,60 +43,189 @@ interface GooglePlaceResult {
   services?: string[];
 }
 
-const SAMPLE_RESULTS: GooglePlaceResult[] = [
-  {
-    id: "1",
-    title: "Restaurante O Pescador",
-    rating: 4.5,
-    reviews_count: 234,
-    address: "Rua da Praia 123, Lisboa",
-    phone: "+351 21 123 4567",
-    website: "https://opescador.pt",
-    category: "Restaurante",
-    hours: "12:00 - 23:00",
-    description: "Restaurante de marisco tradicional com vista para o mar",
-    services: ["Entrega ao domicílio", "Reservas", "Wi-Fi grátis"]
-  },
-  {
-    id: "2",
-    title: "Auto Mecânica Silva",
-    rating: 4.8,
-    reviews_count: 156,
-    address: "Av. da Liberdade 456, Porto",
-    phone: "+351 22 987 6543",
-    website: "https://automecanicasilva.pt",
-    category: "Oficina Automóvel",
-    hours: "08:00 - 18:00",
-    description: "Oficina especializada em manutenção e reparação automóvel",
-    services: ["Revisões", "Pneus", "Ar condicionado", "Diagnóstico"]
-  },
-  {
-    id: "3",
-    title: "Clínica Dentária Sorriso",
-    rating: 4.7,
-    reviews_count: 89,
-    address: "Praça do Município 78, Braga",
-    phone: "+351 253 456 789",
-    website: "https://clinicasorriso.pt",
-    category: "Clínica Dentária",
-    hours: "09:00 - 19:00",
-    description: "Clínica moderna com especialidades em ortodontia e implantes",
-    services: ["Ortodontia", "Implantes", "Branqueamento", "Limpeza"]
-  },
-  {
-    id: "4",
-    title: "Contabilidade & Consultoria Lda",
-    rating: 4.3,
-    reviews_count: 45,
-    address: "Rua do Comércio 321, Coimbra",
-    phone: "+351 239 111 222",
-    website: "https://contabilidadeconsultoria.pt",
-    category: "Contabilidade",
-    hours: "09:00 - 18:00",
-    description: "Serviços de contabilidade, fiscalidade e consultoria empresarial",
-    services: ["Contabilidade", "IRS", "IRC", "Apoio a empresas"]
-  }
-];
+// Mock database organized by category
+const MOCK_DATABASE: Record<string, GooglePlaceResult[]> = {
+  health: [
+    {
+      id: "h1",
+      title: "Clínica Médica São Lucas",
+      rating: 4.8,
+      reviews_count: 312,
+      address: "Av. da Liberdade 45, Lisboa",
+      phone: "+351 21 345 6789",
+      website: "https://clinicasaolucas.pt",
+      category: "Clínica Médica",
+      hours: "08:00 - 20:00",
+      description: "Clínica multidisciplinar com especialidades em medicina geral, cardiologia e dermatologia",
+      services: ["Medicina Geral", "Cardiologia", "Dermatologia", "Análises Clínicas"]
+    },
+    {
+      id: "h2",
+      title: "Centro de Fisioterapia Lisboa",
+      rating: 4.6,
+      reviews_count: 187,
+      address: "Rua Augusta 123, Lisboa",
+      phone: "+351 21 456 7890",
+      website: "https://fisioterapialisboa.pt",
+      category: "Fisioterapia",
+      hours: "09:00 - 19:00",
+      description: "Centro especializado em reabilitação física e desportiva",
+      services: ["Fisioterapia", "Reabilitação", "Massagem Terapêutica", "Pilates Clínico"]
+    },
+    {
+      id: "h3",
+      title: "Clínica Dentária Sorriso Perfeito",
+      rating: 4.9,
+      reviews_count: 423,
+      address: "Praça do Comércio 67, Lisboa",
+      phone: "+351 21 567 8901",
+      website: "https://sorrisoperfeito.pt",
+      category: "Clínica Dentária",
+      hours: "09:00 - 19:00",
+      description: "Clínica moderna especializada em ortodontia, implantes e estética dentária",
+      services: ["Ortodontia", "Implantes", "Branqueamento", "Higiene Oral"]
+    },
+    {
+      id: "h4",
+      title: "Hospital Veterinário do Lumiar",
+      rating: 4.7,
+      reviews_count: 256,
+      address: "Alameda das Linhas de Torres 200, Lisboa",
+      phone: "+351 21 678 9012",
+      website: "https://hvlumiar.pt",
+      category: "Veterinário",
+      hours: "24 horas",
+      description: "Hospital veterinário com serviço de urgência 24 horas",
+      services: ["Consultas", "Cirurgia", "Urgências", "Internamento"]
+    },
+    {
+      id: "h5",
+      title: "Farmácia Central Lisboa",
+      rating: 4.5,
+      reviews_count: 178,
+      address: "Rossio 45, Lisboa",
+      phone: "+351 21 789 0123",
+      website: "https://farmaciacentral.pt",
+      category: "Farmácia",
+      hours: "08:00 - 22:00",
+      description: "Farmácia com serviços de aconselhamento farmacêutico e medição de tensão",
+      services: ["Medicamentos", "Dermofarmácia", "Ortopedia", "Veterinária"]
+    }
+  ],
+  restaurant: [
+    {
+      id: "r1",
+      title: "Restaurante O Pescador",
+      rating: 4.5,
+      reviews_count: 234,
+      address: "Rua da Praia 123, Lisboa",
+      phone: "+351 21 123 4567",
+      website: "https://opescador.pt",
+      category: "Restaurante",
+      hours: "12:00 - 23:00",
+      description: "Restaurante de marisco tradicional com vista para o mar",
+      services: ["Entrega ao domicílio", "Reservas", "Wi-Fi grátis"]
+    },
+    {
+      id: "r2",
+      title: "Tasca do Chico",
+      rating: 4.7,
+      reviews_count: 567,
+      address: "Bairro Alto, Lisboa",
+      phone: "+351 21 234 5678",
+      website: "https://tascadochico.pt",
+      category: "Restaurante Tradicional",
+      hours: "19:00 - 02:00",
+      description: "Tasca típica portuguesa com fado ao vivo",
+      services: ["Fado ao Vivo", "Reservas", "Grupos"]
+    }
+  ],
+  auto: [
+    {
+      id: "a1",
+      title: "Auto Mecânica Lisboa",
+      rating: 4.8,
+      reviews_count: 156,
+      address: "Av. Almirante Reis 456, Lisboa",
+      phone: "+351 21 345 6789",
+      website: "https://automecanicalisboa.pt",
+      category: "Oficina Automóvel",
+      hours: "08:00 - 18:00",
+      description: "Oficina especializada em manutenção e reparação automóvel",
+      services: ["Revisões", "Pneus", "Ar condicionado", "Diagnóstico"]
+    },
+    {
+      id: "a2",
+      title: "Centro de Inspeções Lisboa",
+      rating: 4.3,
+      reviews_count: 890,
+      address: "Zona Industrial, Lisboa",
+      phone: "+351 21 456 7890",
+      category: "Centro de Inspeções",
+      hours: "08:00 - 19:00",
+      description: "Centro de inspeções automóveis certificado",
+      services: ["Inspeção Periódica", "Inspeção Extraordinária"]
+    }
+  ],
+  services: [
+    {
+      id: "s1",
+      title: "Contabilidade & Consultoria Lda",
+      rating: 4.3,
+      reviews_count: 45,
+      address: "Rua do Comércio 321, Lisboa",
+      phone: "+351 21 111 2222",
+      website: "https://contabilidadeconsultoria.pt",
+      category: "Contabilidade",
+      hours: "09:00 - 18:00",
+      description: "Serviços de contabilidade, fiscalidade e consultoria empresarial",
+      services: ["Contabilidade", "IRS", "IRC", "Apoio a empresas"]
+    },
+    {
+      id: "s2",
+      title: "Advogados Associados Lisboa",
+      rating: 4.6,
+      reviews_count: 123,
+      address: "Av. da República 100, Lisboa",
+      phone: "+351 21 222 3333",
+      website: "https://advogadoslisboa.pt",
+      category: "Escritório de Advogados",
+      hours: "09:00 - 18:00",
+      description: "Escritório de advogados especializado em direito comercial e laboral",
+      services: ["Direito Comercial", "Direito Laboral", "Contratos", "Litígios"]
+    }
+  ],
+  retail: [
+    {
+      id: "rt1",
+      title: "Loja de Eletrónica TechZone",
+      rating: 4.2,
+      reviews_count: 234,
+      address: "Centro Comercial Colombo, Lisboa",
+      phone: "+351 21 333 4444",
+      website: "https://techzone.pt",
+      category: "Loja de Eletrónica",
+      hours: "10:00 - 23:00",
+      description: "Loja especializada em eletrónica e informática",
+      services: ["Reparações", "Garantia", "Assistência Técnica"]
+    }
+  ],
+  construction: [
+    {
+      id: "c1",
+      title: "Construções Lisboa Lda",
+      rating: 4.4,
+      reviews_count: 78,
+      address: "Zona Industrial Sacavém, Lisboa",
+      phone: "+351 21 444 5555",
+      website: "https://construcoeslisboa.pt",
+      category: "Construção Civil",
+      hours: "08:00 - 17:00",
+      description: "Empresa de construção civil especializada em remodelações",
+      services: ["Construção", "Remodelação", "Pintura", "Canalização"]
+    }
+  ]
+};
 
 const CATEGORIES = [
   { value: "all", label: "Todas as categorias" },
@@ -127,9 +256,46 @@ export default function GoogleLocalProspecting() {
     // Simulated API call delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    setResults(SAMPLE_RESULTS);
+    // Filter results based on category and search query
+    let filteredResults: GooglePlaceResult[] = [];
+    
+    if (category === "all") {
+      // Get all results from all categories
+      filteredResults = Object.values(MOCK_DATABASE).flat();
+    } else {
+      // Get results from specific category
+      filteredResults = MOCK_DATABASE[category] || [];
+    }
+    
+    // Filter by search query if provided
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filteredResults = filteredResults.filter(result => 
+        result.title.toLowerCase().includes(query) ||
+        result.category.toLowerCase().includes(query) ||
+        result.description?.toLowerCase().includes(query) ||
+        result.services?.some(s => s.toLowerCase().includes(query))
+      );
+    }
+    
+    // Filter by location if provided
+    if (location.trim()) {
+      const loc = location.toLowerCase();
+      filteredResults = filteredResults.filter(result =>
+        result.address.toLowerCase().includes(loc)
+      );
+    }
+    
+    setResults(filteredResults);
     setIsSearching(false);
-    toast.success(`Encontrados ${SAMPLE_RESULTS.length} resultados`);
+    
+    if (filteredResults.length > 0) {
+      toast.success(`Encontrados ${filteredResults.length} resultados`);
+    } else {
+      toast.info("Nenhum resultado encontrado", {
+        description: "Tente ajustar os filtros de pesquisa"
+      });
+    }
   };
 
   const toggleSelection = (id: string) => {
