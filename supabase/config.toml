@@ -87,3 +87,6 @@ verify_jwt = false
 
 [functions.bundle-checkout]
 verify_jwt = false
+
+[functions.productivity-coach]
+verify_jwt = false

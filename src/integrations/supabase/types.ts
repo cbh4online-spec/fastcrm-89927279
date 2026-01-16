@@ -2708,6 +2708,68 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_priorities: {
+        Row: {
+          ai_generated: boolean | null
+          ai_reasoning: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_completed: boolean | null
+          linked_entity_id: string | null
+          linked_entity_type: string | null
+          position: number
+          priority_date: string
+          title: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          ai_reasoning?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          position?: number
+          priority_date?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          ai_generated?: boolean | null
+          ai_reasoning?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          position?: number
+          priority_date?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_priorities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_layouts: {
         Row: {
           created_at: string
@@ -5113,6 +5175,62 @@ export type Database = {
           },
         ]
       }
+      meeting_preparations: {
+        Row: {
+          ai_generated: boolean | null
+          client_summary: string | null
+          created_at: string
+          id: string
+          key_points: string[] | null
+          meeting_id: string
+          preparation_date: string
+          recent_interactions: string | null
+          suggested_agenda: string[] | null
+          updated_at: string
+          user_id: string
+          warnings: string[] | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          client_summary?: string | null
+          created_at?: string
+          id?: string
+          key_points?: string[] | null
+          meeting_id: string
+          preparation_date?: string
+          recent_interactions?: string | null
+          suggested_agenda?: string[] | null
+          updated_at?: string
+          user_id: string
+          warnings?: string[] | null
+          workspace_id: string
+        }
+        Update: {
+          ai_generated?: boolean | null
+          client_summary?: string | null
+          created_at?: string
+          id?: string
+          key_points?: string[] | null
+          meeting_id?: string
+          preparation_date?: string
+          recent_interactions?: string | null
+          suggested_agenda?: string[] | null
+          updated_at?: string
+          user_id?: string
+          warnings?: string[] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_preparations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_resource_bookings: {
         Row: {
           created_at: string
@@ -7115,6 +7233,143 @@ export type Database = {
           },
           {
             foreignKeyName: "product_progressions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      productivity_goals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_value: number | null
+          description: string | null
+          id: string
+          metric_type: string | null
+          parent_goal_id: string | null
+          period: Database["public"]["Enums"]["goal_period"]
+          period_end: string
+          period_start: string
+          priority: number | null
+          status: Database["public"]["Enums"]["goal_status"]
+          target_value: number | null
+          team_id: string | null
+          title: string
+          unit: string | null
+          updated_at: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          metric_type?: string | null
+          parent_goal_id?: string | null
+          period: Database["public"]["Enums"]["goal_period"]
+          period_end: string
+          period_start: string
+          priority?: number | null
+          status?: Database["public"]["Enums"]["goal_status"]
+          target_value?: number | null
+          team_id?: string | null
+          title: string
+          unit?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          metric_type?: string | null
+          parent_goal_id?: string | null
+          period?: Database["public"]["Enums"]["goal_period"]
+          period_end?: string
+          period_start?: string
+          priority?: number | null
+          status?: Database["public"]["Enums"]["goal_status"]
+          target_value?: number | null
+          team_id?: string | null
+          title?: string
+          unit?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "productivity_goals_parent_goal_id_fkey"
+            columns: ["parent_goal_id"]
+            isOneToOne: false
+            referencedRelation: "productivity_goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productivity_goals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      productivity_insights: {
+        Row: {
+          action_url: string | null
+          content: string
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          insight_date: string
+          insight_type: string
+          is_dismissed: boolean | null
+          metadata: Json | null
+          priority: string | null
+          title: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          content: string
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          insight_date?: string
+          insight_type: string
+          is_dismissed?: boolean | null
+          metadata?: Json | null
+          priority?: string | null
+          title: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action_url?: string | null
+          content?: string
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          insight_date?: string
+          insight_type?: string
+          is_dismissed?: boolean | null
+          metadata?: Json | null
+          priority?: string | null
+          title?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "productivity_insights_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -9770,6 +10025,8 @@ export type Database = {
       crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
       feed_type: "workspace" | "team" | "user" | "client"
+      goal_period: "daily" | "weekly" | "monthly" | "annual"
+      goal_status: "not_started" | "in_progress" | "completed" | "failed"
       integration_mode: "embed" | "redirect" | "headless"
       post_type:
         | "update"
@@ -9989,6 +10246,8 @@ export const Constants = {
       crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
       feed_type: ["workspace", "team", "user", "client"],
+      goal_period: ["daily", "weekly", "monthly", "annual"],
+      goal_status: ["not_started", "in_progress", "completed", "failed"],
       integration_mode: ["embed", "redirect", "headless"],
       post_type: [
         "update",
