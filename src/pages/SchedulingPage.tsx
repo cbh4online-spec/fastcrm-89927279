@@ -1,5 +1,10 @@
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SchedulingHub } from '@/components/scheduling/SchedulingHub';
 
 export default function SchedulingPage() {
-  return <SchedulingHub />;
+  return (
+    <DashboardLayout>
+      <SchedulingHub />
+    </DashboardLayout>
+  );
 }
