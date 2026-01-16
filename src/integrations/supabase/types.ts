@@ -1735,6 +1735,54 @@ export type Database = {
           },
         ]
       }
+      custom_field_audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          custom_field_id: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          performed_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          custom_field_id?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          custom_field_id?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_audit_logs_custom_field_id_fkey"
+            columns: ["custom_field_id"]
+            isOneToOne: false
+            referencedRelation: "custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_field_audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_field_values: {
         Row: {
           created_at: string
@@ -1772,41 +1820,77 @@ export type Database = {
       }
       custom_fields: {
         Row: {
+          auto_format: boolean | null
           created_at: string
+          created_by: string | null
           entity_type: string
           field_type: string
+          formatting_config: Json | null
           id: string
+          industry_labels: Json | null
+          internal_name: string | null
+          is_archived: boolean | null
+          is_system: boolean | null
           is_unique: boolean
+          is_visible: boolean | null
+          label: string | null
           name: string
           options: Json | null
+          origin: string | null
+          permissions: Json | null
           position: number
           required: boolean
+          section: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          auto_format?: boolean | null
           created_at?: string
+          created_by?: string | null
           entity_type: string
           field_type: string
+          formatting_config?: Json | null
           id?: string
+          industry_labels?: Json | null
+          internal_name?: string | null
+          is_archived?: boolean | null
+          is_system?: boolean | null
           is_unique?: boolean
+          is_visible?: boolean | null
+          label?: string | null
           name: string
           options?: Json | null
+          origin?: string | null
+          permissions?: Json | null
           position?: number
           required?: boolean
+          section?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          auto_format?: boolean | null
           created_at?: string
+          created_by?: string | null
           entity_type?: string
           field_type?: string
+          formatting_config?: Json | null
           id?: string
+          industry_labels?: Json | null
+          internal_name?: string | null
+          is_archived?: boolean | null
+          is_system?: boolean | null
           is_unique?: boolean
+          is_visible?: boolean | null
+          label?: string | null
           name?: string
           options?: Json | null
+          origin?: string | null
+          permissions?: Json | null
           position?: number
           required?: boolean
+          section?: string | null
           updated_at?: string
           workspace_id?: string
         }
