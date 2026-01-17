@@ -41,7 +41,6 @@ import {
   ChevronRight,
   Layers,
   Calendar,
-  Tag,
   CircleDollarSign,
   Repeat,
   FileBox,
@@ -50,6 +49,7 @@ import {
   GraduationCap,
   Boxes,
   Box,
+  Tag,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -57,6 +57,7 @@ import { useProducts, useProductCategories, useArchiveProduct } from "@/hooks/us
 import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductDetailDialog } from "./ProductDetailDialog";
 import { BatchSKUImportDialog } from "./BatchSKUImportDialog";
+import { CategoriesTabContent } from "./CategoriesTabContent";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
@@ -320,17 +321,6 @@ export function ProductsList() {
     setSelectedIds([]);
     toast.success(`${selected.length} produtos arquivados`);
   };
-
-  // Placeholder for Categories tab
-  const CategoriesTabContent = () => (
-    <Card className="flex-1 p-12 text-center">
-      <Tag className="h-16 w-16 mx-auto mb-4 opacity-30" />
-      <h3 className="text-lg font-medium mb-2">Gestão de Categorias</h3>
-      <p className="text-sm text-muted-foreground">
-        Em breve poderás criar e gerir categorias de produtos aqui.
-      </p>
-    </Card>
-  );
 
   // Placeholder for Pricing tab
   const PricingTabContent = () => (
