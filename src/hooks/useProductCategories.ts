@@ -10,6 +10,7 @@ export interface ProductCategory {
   description: string | null;
   color: string | null;
   icon: string | null;
+  image_url: string | null;
   position: number;
   is_active: boolean;
   created_at: string;
@@ -21,6 +22,7 @@ export interface CreateProductCategoryInput {
   description?: string;
   color?: string;
   icon?: string;
+  image_url?: string;
   is_active?: boolean;
 }
 
