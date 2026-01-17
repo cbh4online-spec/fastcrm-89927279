@@ -179,13 +179,14 @@ export function ProductsList() {
   ];
 
   // Add category filter group if categories exist
-  if (categories && categories.length > 0) {
+  const validCategories = categories?.filter((cat): cat is string => typeof cat === "string" && cat.length > 0) || [];
+  if (validCategories.length > 0) {
     filterGroups.splice(2, 0, {
       id: "category",
       label: "Categoria",
       icon: <Tag className="h-4 w-4" />,
       defaultOpen: false,
-      items: categories.map((cat) => ({
+      items: validCategories.map((cat) => ({
         id: `cat_${cat}`,
         label: cat,
       })),
