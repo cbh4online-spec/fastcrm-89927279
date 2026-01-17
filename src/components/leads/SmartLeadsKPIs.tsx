@@ -1,6 +1,4 @@
 import { useLeadsKPIs } from "@/hooks/useSmartLeads";
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users, 
   Flame, 
@@ -9,56 +7,14 @@ import {
   TrendingUp,
   Euro
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface KPICardProps {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  trend?: "up" | "down" | "neutral";
-  highlight?: boolean;
-  description?: string;
-}
-
-function KPICard({ title, value, icon, trend, highlight, description }: KPICardProps) {
-  return (
-    <Card className={cn(
-      "p-4 flex items-center gap-3 transition-all hover:shadow-md",
-      highlight && "border-destructive/50 bg-destructive/5"
-    )}>
-      <div className={cn(
-        "p-2.5 rounded-lg",
-        highlight ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
-      )}>
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-muted-foreground truncate">{title}</p>
-        <p className={cn(
-          "text-xl font-bold",
-          highlight && "text-destructive"
-        )}>
-          {value}
-        </p>
-        {description && (
-          <p className="text-[10px] text-muted-foreground mt-0.5">{description}</p>
-        )}
-      </div>
-    </Card>
-  );
-}
+// Design System imports
+import { KPICard, KPIGrid, KPIGridSkeleton } from "@/components/design-system";
 
 export function SmartLeadsKPIs() {
   const { data: kpis, isLoading } = useLeadsKPIs();
 
   if (isLoading) {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-[88px] rounded-lg" />
-        ))}
-      </div>
-    );
+    return <KPIGridSkeleton count={6} />;
   }
 
   if (!kpis) return null;
@@ -70,7 +26,7 @@ export function SmartLeadsKPIs() {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <KPIGrid columns={4} className="grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
       <KPICard
         title="Leads Hoje"
         value={kpis.receivedToday}
@@ -81,14 +37,14 @@ export function SmartLeadsKPIs() {
         title="Leads Quentes"
         value={kpis.hotLeads}
         icon={<Flame className="w-4 h-4" />}
-        highlight={kpis.hotLeads > 0}
+        variant={kpis.hotLeads > 0 ? "destructive" : "default"}
         description="Prontos para converter"
       />
       <KPICard
         title="Sem Resposta >24h"
         value={kpis.noResponseOver24h}
         icon={<Clock className="w-4 h-4" />}
-        highlight={kpis.noResponseOver24h > 0}
+        variant={kpis.noResponseOver24h > 0 ? "warning" : "default"}
         description="Precisam de atenção"
       />
       <KPICard
@@ -101,14 +57,16 @@ export function SmartLeadsKPIs() {
         title="Conversões"
         value={kpis.conversionsThisWeek}
         icon={<TrendingUp className="w-4 h-4" />}
+        variant="success"
         description="Esta semana"
       />
       <KPICard
         title="Pipeline"
         value={formatCurrency(kpis.totalPipelineValue)}
         icon={<Euro className="w-4 h-4" />}
+        variant="primary"
         description="Valor total"
       />
-    </div>
+    </KPIGrid>
   );
 }
