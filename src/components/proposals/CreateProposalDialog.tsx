@@ -20,10 +20,12 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, FileText, Eye, Save, Sparkles, Wand2, PenLine } from "lucide-react";
+import { Loader2, FileText, Eye, Save, Sparkles, Wand2, PenLine, ShoppingCart } from "lucide-react";
 import { ProposalContentBlocks } from "./ProposalContentBlocks";
 import { ProposalPreview } from "./ProposalPreview";
 import { AIProposalGenerator, GeneratedProposalData } from "./AIProposalGenerator";
+import { POSProposalBuilder } from "./POSProposalBuilder";
+import type { CartItem } from "./ProposalCart";
 import {
   useProposalTemplates,
   useCreateProposal,
@@ -91,7 +93,7 @@ export function CreateProposalDialog({
   conversationContext,
 }: CreateProposalDialogProps) {
   const [creationMode, setCreationMode] = useState<"ai" | "manual">("ai");
-  const [tab, setTab] = useState<"edit" | "preview">("edit");
+  const [tab, setTab] = useState<"products" | "edit" | "preview">("products");
   const [title, setTitle] = useState("Proposta Comercial");
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(
     opportunityId || ""
@@ -105,6 +107,7 @@ export function CreateProposalDialog({
   const [offerDescription, setOfferDescription] = useState("");
   const [selectedTone, setSelectedTone] = useState<ProposalTone>("comercial");
   const [aiGenerated, setAiGenerated] = useState(false);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { data: templates, isLoading: loadingTemplates } =
     useProposalTemplates();
   const { data: opportunities, isLoading: loadingOpportunities } =
@@ -250,9 +253,10 @@ export function CreateProposalDialog({
     setPrice("");
     setExpiresAt("");
     setOfferDescription("");
-    setTab("edit");
+    setTab("products");
     setCreationMode("ai");
     setAiGenerated(false);
+    setCartItems([]);
   };
 
   const handleAIProposalGenerated = (data: GeneratedProposalData) => {
@@ -347,16 +351,48 @@ export function CreateProposalDialog({
         ) : (
           <Tabs
             value={tab}
-            onValueChange={(v) => setTab(v as "edit" | "preview")}
+            onValueChange={(v) => setTab(v as "products" | "edit" | "preview")}
             className="flex-1 flex flex-col min-h-0"
           >
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="edit">Editar</TabsTrigger>
+            <TabsList className="grid w-full max-w-lg grid-cols-3">
+              <TabsTrigger value="products" className="gap-1.5">
+                <ShoppingCart className="h-4 w-4" />
+                Produtos
+                {cartItems.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+                    {cartItems.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="edit">Conteúdo</TabsTrigger>
               <TabsTrigger value="preview">
                 <Eye className="h-4 w-4 mr-2" />
                 Pré-visualizar
               </TabsTrigger>
             </TabsList>
+
+            {/* Products Tab - POS Interface */}
+            <TabsContent value="products" className="flex-1 min-h-0 mt-4">
+              <POSProposalBuilder
+                opportunityTitle={selectedOpportunity?.title}
+                opportunityValue={selectedOpportunity?.value || undefined}
+                leadName={propContactName || selectedOpportunity?.lead?.name}
+                companyName={propCompanyName}
+                onItemsChange={(items) => {
+                  setCartItems(items);
+                  // Auto-update price based on cart total
+                  const total = items.reduce((acc, item) => {
+                    const basePrice = item.priceOverride ?? item.product.base_price ?? 0;
+                    const discountAmount = item.discount ? basePrice * (item.discount / 100) : 0;
+                    return acc + (basePrice - discountAmount) * item.quantity;
+                  }, 0);
+                  if (total > 0) {
+                    setPrice(total.toString());
+                  }
+                }}
+                initialItems={cartItems}
+              />
+            </TabsContent>
 
             <TabsContent value="edit" className="flex-1 min-h-0 mt-4">
               <ScrollArea className="h-full pr-4">
