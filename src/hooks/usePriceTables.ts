@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 export type PriceTableType = "segment" | "volume" | "promotional";
 
@@ -244,9 +245,18 @@ export function useCreatePriceTableItem() {
 
   return useMutation({
     mutationFn: async (input: CreatePriceTableItemInput) => {
+      const insertData = {
+        price_table_id: input.price_table_id,
+        product_id: input.product_id,
+        unit_price: input.unit_price,
+        discount_percent: input.discount_percent,
+        volume_tiers: input.volume_tiers as unknown as Json,
+        notes: input.notes,
+      };
+      
       const { data, error } = await supabase
         .from("price_table_items")
-        .insert(input)
+        .insert(insertData)
         .select()
         .single();
 
