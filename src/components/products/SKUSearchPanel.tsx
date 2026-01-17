@@ -2,8 +2,11 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Check, ExternalLink, Package } from "lucide-react";
+import { Loader2, Search, Check, ExternalLink, Package, ChevronDown, ChevronUp, Sparkles, FileText, Image as ImageIcon } from "lucide-react";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface SKUSearchPanelProps {
   sku: string;
@@ -28,6 +31,9 @@ export function SKUSearchPanel({
   onApplyAll,
 }: SKUSearchPanelProps) {
   const [appliedItems, setAppliedItems] = useState<Set<string>>(new Set());
+  const [specsOpen, setSpecsOpen] = useState(false);
+  const [nameVersion, setNameVersion] = useState<"commercial" | "technical">("commercial");
+  const [descVersion, setDescVersion] = useState<"commercial" | "technical">("commercial");
   const { searchBySKU } = useProductAIAssistant();
 
   const handleSearch = () => {
@@ -37,9 +43,24 @@ export function SKUSearchPanel({
     }
   };
 
+  const getCurrentName = () => {
+    if (!searchBySKU.data) return "";
+    return nameVersion === "commercial" 
+      ? (searchBySKU.data.commercialName || searchBySKU.data.name || searchBySKU.data.technicalName)
+      : (searchBySKU.data.technicalName || searchBySKU.data.name);
+  };
+
+  const getCurrentDescription = () => {
+    if (!searchBySKU.data) return "";
+    return descVersion === "commercial"
+      ? (searchBySKU.data.commercialDescription || searchBySKU.data.description || searchBySKU.data.technicalDescription)
+      : (searchBySKU.data.technicalDescription || searchBySKU.data.description);
+  };
+
   const handleApplyName = () => {
-    if (searchBySKU.data?.name) {
-      onApplyName(searchBySKU.data.name);
+    const name = getCurrentName();
+    if (name) {
+      onApplyName(name);
       setAppliedItems((prev) => new Set(prev).add("name"));
     }
   };
@@ -52,8 +73,9 @@ export function SKUSearchPanel({
   };
 
   const handleApplyDescription = () => {
-    if (searchBySKU.data?.description) {
-      onApplyDescription(searchBySKU.data.description);
+    const description = getCurrentDescription();
+    if (description) {
+      onApplyDescription(description);
       setAppliedItems((prev) => new Set(prev).add("description"));
     }
   };
@@ -65,17 +87,31 @@ export function SKUSearchPanel({
     }
   };
 
-  const handleApplyAll = () => {
+  const handleApplyAll = (version: "commercial" | "technical") => {
     if (searchBySKU.data) {
+      const name = version === "commercial" 
+        ? (searchBySKU.data.commercialName || searchBySKU.data.name)
+        : (searchBySKU.data.technicalName || searchBySKU.data.name);
+      const description = version === "commercial"
+        ? (searchBySKU.data.commercialDescription || searchBySKU.data.description)
+        : (searchBySKU.data.technicalDescription || searchBySKU.data.description);
+      
       onApplyAll({
-        name: searchBySKU.data.name,
+        name,
         price: searchBySKU.data.suggestedPrice,
-        description: searchBySKU.data.description,
+        description,
         category: searchBySKU.data.category,
       });
       setAppliedItems(new Set(["name", "price", "description", "category"]));
     }
   };
+
+  const hasSpecifications = searchBySKU.data?.specifications && 
+    Object.values(searchBySKU.data.specifications).some(v => v);
+
+  const hasImages = searchBySKU.data?.images && searchBySKU.data.images.length > 0;
+
+  const hasBothVersions = searchBySKU.data?.commercialName && searchBySKU.data?.technicalName;
 
   if (!sku || sku.length < 3) {
     return (
@@ -127,112 +163,229 @@ export function SKUSearchPanel({
       ) : searchBySKU.data ? (
         searchBySKU.data.found ? (
           <div className="space-y-4">
-            {/* Product Found */}
+            {/* Product Found Header */}
             <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
               <div className="p-2 bg-primary/10 rounded">
                 <Package className="h-8 w-8 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="secondary" className="text-xs">
-                    Encontrado
+                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                    ✓ Encontrado
                   </Badge>
+                  {hasBothVersions && (
+                    <Badge variant="outline" className="text-xs">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      2 versões
+                    </Badge>
+                  )}
                 </div>
-                {searchBySKU.data.name && (
-                  <h4 className="font-medium text-sm truncate">{searchBySKU.data.name}</h4>
-                )}
-                {searchBySKU.data.priceRange && (
-                  <p className="text-sm text-muted-foreground">
-                    €{searchBySKU.data.priceRange.min} - €{searchBySKU.data.priceRange.max}
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground font-mono">{sku}</p>
                 {searchBySKU.data.category && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Categoria: {searchBySKU.data.category}
                   </p>
                 )}
-                {searchBySKU.data.source && (
-                  <a
-                    href={searchBySKU.data.source}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1"
-                  >
-                    Ver fonte <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
               </div>
+              {searchBySKU.data.priceRange && (searchBySKU.data.priceRange.min > 0 || searchBySKU.data.priceRange.max > 0) && (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Preço mercado</p>
+                  <p className="font-semibold text-sm text-primary">
+                    €{searchBySKU.data.priceRange.min} - €{searchBySKU.data.priceRange.max}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Description */}
-            {searchBySKU.data.description && (
-              <div className="space-y-1">
-                <span className="text-xs text-muted-foreground">Descrição:</span>
-                <p className="text-sm text-muted-foreground bg-muted/50 rounded p-2 line-clamp-3">
-                  {searchBySKU.data.description}
-                </p>
+            {/* Images Gallery */}
+            {hasImages && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <ImageIcon className="h-3 w-3" />
+                  <span>Imagens ({searchBySKU.data.images!.length})</span>
+                </div>
+                <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+                  <div className="flex w-max space-x-2 p-2">
+                    {searchBySKU.data.images!.slice(0, 6).map((img, idx) => (
+                      <a
+                        key={idx}
+                        href={img}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0"
+                      >
+                        <div className="h-16 w-16 rounded border bg-muted/50 overflow-hidden hover:border-primary transition-colors">
+                          <img
+                            src={img}
+                            alt={`Produto ${idx + 1}`}
+                            className="h-full w-full object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
               </div>
             )}
 
-            {/* Apply buttons */}
-            <div className="flex flex-wrap gap-2">
-              {searchBySKU.data.name && (
-                <Button
-                  type="button"
-                  variant={appliedItems.has("name") ? "secondary" : "outline"}
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={handleApplyName}
-                >
-                  {appliedItems.has("name") ? <Check className="h-3 w-3 mr-1" /> : null}
-                  Usar Nome
-                </Button>
-              )}
-              {searchBySKU.data.suggestedPrice && (
-                <Button
-                  type="button"
-                  variant={appliedItems.has("price") ? "secondary" : "outline"}
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={handleApplyPrice}
-                >
-                  {appliedItems.has("price") ? <Check className="h-3 w-3 mr-1" /> : null}
-                  Usar Preço
-                </Button>
-              )}
-              {searchBySKU.data.description && (
-                <Button
-                  type="button"
-                  variant={appliedItems.has("description") ? "secondary" : "outline"}
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={handleApplyDescription}
-                >
-                  {appliedItems.has("description") ? <Check className="h-3 w-3 mr-1" /> : null}
-                  Usar Descrição
-                </Button>
-              )}
-              {searchBySKU.data.category && (
-                <Button
-                  type="button"
-                  variant={appliedItems.has("category") ? "secondary" : "outline"}
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={handleApplyCategory}
-                >
-                  {appliedItems.has("category") ? <Check className="h-3 w-3 mr-1" /> : null}
-                  Usar Categoria
-                </Button>
-              )}
+            {/* Name Section */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <FileText className="h-3 w-3" />
+                  <span>Nome do Produto</span>
+                </div>
+                {hasBothVersions && (
+                  <Tabs value={nameVersion} onValueChange={(v) => setNameVersion(v as typeof nameVersion)} className="h-6">
+                    <TabsList className="h-6">
+                      <TabsTrigger value="commercial" className="text-xs h-5 px-2">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Comercial
+                      </TabsTrigger>
+                      <TabsTrigger value="technical" className="text-xs h-5 px-2">
+                        Técnico
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                )}
+              </div>
+              <div className="bg-muted/50 rounded p-3 text-sm">
+                {getCurrentName()}
+              </div>
               <Button
                 type="button"
-                variant="default"
+                variant={appliedItems.has("name") ? "secondary" : "outline"}
                 size="sm"
-                className="h-7 text-xs"
-                onClick={handleApplyAll}
+                className="h-7 text-xs w-full"
+                onClick={handleApplyName}
               >
-                Usar Tudo
+                {appliedItems.has("name") ? <Check className="h-3 w-3 mr-1" /> : null}
+                Usar Este Nome
               </Button>
+            </div>
+
+            {/* Description Section */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <FileText className="h-3 w-3" />
+                  <span>Descrição</span>
+                </div>
+                {hasBothVersions && (
+                  <Tabs value={descVersion} onValueChange={(v) => setDescVersion(v as typeof descVersion)} className="h-6">
+                    <TabsList className="h-6">
+                      <TabsTrigger value="commercial" className="text-xs h-5 px-2">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Comercial
+                      </TabsTrigger>
+                      <TabsTrigger value="technical" className="text-xs h-5 px-2">
+                        Técnico
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                )}
+              </div>
+              <div className="bg-muted/50 rounded p-3 text-sm whitespace-pre-line">
+                {getCurrentDescription()}
+              </div>
+              <Button
+                type="button"
+                variant={appliedItems.has("description") ? "secondary" : "outline"}
+                size="sm"
+                className="h-7 text-xs w-full"
+                onClick={handleApplyDescription}
+              >
+                {appliedItems.has("description") ? <Check className="h-3 w-3 mr-1" /> : null}
+                Usar Esta Descrição
+              </Button>
+            </div>
+
+            {/* Specifications Collapsible */}
+            {hasSpecifications && (
+              <Collapsible open={specsOpen} onOpenChange={setSpecsOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-full justify-between h-8 text-xs">
+                    <span className="flex items-center gap-2">
+                      📊 Especificações Técnicas
+                    </span>
+                    {specsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-muted/50 rounded p-3">
+                    {Object.entries(searchBySKU.data.specifications || {}).map(([key, value]) => 
+                      value ? (
+                        <div key={key} className="flex flex-col">
+                          <span className="text-muted-foreground capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
+                          <span className="font-medium">{value}</span>
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* Sources */}
+            {searchBySKU.data.sources && searchBySKU.data.sources.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                <span className="text-xs text-muted-foreground">Fontes:</span>
+                {searchBySKU.data.sources.slice(0, 3).map((src, idx) => (
+                  <a
+                    key={idx}
+                    href={src}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
+                  >
+                    {new URL(src).hostname.replace('www.', '')}
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* Apply All Buttons */}
+            <div className="flex gap-2 pt-2 border-t">
+              {hasBothVersions ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-8 text-xs"
+                    onClick={() => handleApplyAll("technical")}
+                  >
+                    Usar Versão Técnica
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="flex-1 h-8 text-xs"
+                    onClick={() => handleApplyAll("commercial")}
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Usar Versão Comercial
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  className="w-full h-8 text-xs"
+                  onClick={() => handleApplyAll("commercial")}
+                >
+                  Usar Tudo
+                </Button>
+              )}
             </div>
           </div>
         ) : (

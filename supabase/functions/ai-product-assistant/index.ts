@@ -23,15 +23,40 @@ interface ProductSuggestion {
   productType?: string;
 }
 
+interface ProductSpecifications {
+  brand?: string;
+  resolution?: string;
+  sensor?: string;
+  lens?: string;
+  nightVision?: string;
+  audio?: string;
+  connectivity?: string;
+  storage?: string;
+  protection?: string;
+  wdr?: string;
+  compression?: string;
+  temperature?: string;
+  compatibility?: string;
+  power?: string;
+  [key: string]: string | undefined;
+}
+
 interface SKUSearchResult {
   found: boolean;
+  technicalName?: string;
+  technicalDescription?: string;
+  commercialName?: string;
+  commercialDescription?: string;
   name?: string;
   description?: string;
   priceRange?: { min: number; max: number };
   suggestedPrice?: number;
   category?: string;
   imageUrl?: string;
+  images?: string[];
   source?: string;
+  sources?: string[];
+  specifications?: ProductSpecifications;
 }
 
 serve(async (req) => {
@@ -194,26 +219,66 @@ Responda no formato JSON:
 
       console.log('Total unique results:', uniqueResults.length);
 
-      // Use AI to extract structured data from search results
-      const extractPrompt = `Analise os seguintes resultados de pesquisa para o SKU "${sku}" e extraia informações do produto.
+      // Use AI to extract comprehensive structured data with both technical and commercial versions
+      const extractPrompt = `Analise os seguintes resultados de pesquisa para o SKU "${sku}" e extraia informações COMPLETAS do produto.
 
 Resultados:
-${uniqueResults.slice(0, 3).map((r: any) => `
+${uniqueResults.slice(0, 4).map((r: any) => `
 Título: ${r.title || 'N/A'}
 URL: ${r.url || 'N/A'}
-Conteúdo: ${(r.markdown || r.description || '').substring(0, 500)}
+Conteúdo: ${(r.markdown || r.description || '').substring(0, 800)}
 `).join('\n---\n')}
 
-Extraia e responda APENAS em JSON válido:
+IMPORTANTE: Crie DUAS versões do nome e descrição:
+1. TÉCNICA: Focada em especificações (como aparece no fabricante)
+2. COMERCIAL: Estilo Amazon, focada em BENEFÍCIOS para o cliente, mais apelativa para vendas
+
+Extraia TODAS as especificações técnicas disponíveis.
+Identifique TODAS as imagens do produto (URLs).
+Liste TODOS os preços encontrados para calcular range.
+
+Responda APENAS em JSON válido:
 {
-  "found": true/false,
-  "name": "Nome do produto",
-  "description": "Descrição do produto (máximo 200 caracteres)",
+  "found": true,
+  "technicalName": "Nome técnico completo com modelo/SKU",
+  "commercialName": "Nome apelativo estilo Amazon focado em benefícios principais (máx 150 chars, inclui características chave como resolução, features principais)",
+  "technicalDescription": "Descrição técnica com especificações (máx 200 chars)",
+  "commercialDescription": "Descrição comercial focada em benefícios para o cliente, pode usar emojis (máx 300 chars)",
   "priceRange": { "min": 0, "max": 0 },
   "suggestedPrice": 0,
-  "category": "Categoria do produto",
-  "source": "URL fonte principal"
-}`;
+  "category": "Categoria principal do produto",
+  "images": ["url1", "url2"],
+  "sources": ["url_fonte1", "url_fonte2"],
+  "specifications": {
+    "brand": "Marca",
+    "resolution": "Resolução",
+    "sensor": "Tipo de sensor",
+    "lens": "Lente",
+    "nightVision": "Alcance visão noturna",
+    "audio": "Capacidades áudio",
+    "connectivity": "Conectividade",
+    "storage": "Armazenamento",
+    "protection": "Nível proteção IP",
+    "wdr": "WDR",
+    "compression": "Compressão vídeo",
+    "temperature": "Temperatura operação",
+    "compatibility": "Compatibilidade",
+    "power": "Alimentação"
+  }
+}
+
+REGRAS para nome comercial:
+- Começa com o tipo de produto (ex: "Câmara Vigilância WiFi")
+- Inclui marca
+- Destaca resolução de forma apelativa (1080P Full HD > 2MP)
+- Menciona 2-3 features principais separadas por vírgula
+- Ex: "Câmara Vigilância WiFi Safire 1080P Full HD - Visão Noturna 30m, Áudio Bidirecional, Exterior IP66"
+
+REGRAS para descrição comercial:
+- Foca em BENEFÍCIOS (o que o cliente ganha)
+- Pode usar emojis para destaque visual
+- Menciona facilidade de uso
+- Ex: "🔒 Proteja a sua casa 24/7 com imagem Full HD. 🌙 Visão noturna até 30m. 🎙️ Fale através da câmara via app. ☔ Pronta para exterior."`;
 
       const extractResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -224,10 +289,10 @@ Extraia e responda APENAS em JSON válido:
         body: JSON.stringify({
           model: 'google/gemini-3-flash-preview',
           messages: [
-            { role: 'system', content: 'Você é um assistente especializado em extração de dados de produtos. Responda apenas em JSON válido.' },
+            { role: 'system', content: 'Você é um especialista em catálogo de produtos e marketing. Extrai dados técnicos completos e cria versões comerciais apelativas. Responda apenas em JSON válido.' },
             { role: 'user', content: extractPrompt }
           ],
-          temperature: 0.3,
+          temperature: 0.4,
         }),
       });
 
@@ -241,10 +306,21 @@ Extraia e responda APENAS em JSON válido:
       let result: SKUSearchResult;
       try {
         const jsonMatch = extractContent.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { found: false };
+        const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { found: false };
+        
+        // Ensure backward compatibility
+        result = {
+          ...parsed,
+          name: parsed.commercialName || parsed.technicalName,
+          description: parsed.commercialDescription || parsed.technicalDescription,
+          imageUrl: parsed.images?.[0],
+          source: parsed.sources?.[0]
+        };
       } catch {
         result = { found: false };
       }
+
+      console.log('Extraction result:', JSON.stringify(result, null, 2));
 
       return new Response(JSON.stringify({
         success: true,
