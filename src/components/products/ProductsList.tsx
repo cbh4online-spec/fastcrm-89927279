@@ -22,8 +22,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Plus,
   MoreHorizontal,
@@ -50,10 +61,11 @@ import {
   Boxes,
   Box,
   Tag,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useProducts, useProductCategories, useArchiveProduct } from "@/hooks/useProducts";
+import { useProducts, useProductCategories, useArchiveProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductDetailDialog } from "./ProductDetailDialog";
 import { BatchSKUImportDialog } from "./BatchSKUImportDialog";
@@ -125,6 +137,8 @@ export function ProductsList() {
 
   const { data: categories } = useProductCategories();
   const archiveProduct = useArchiveProduct();
+  const deleteProduct = useDeleteProduct();
+  const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
 
   // Filter groups for sidebar
   const filterGroups: FilterGroup[] = [
@@ -228,6 +242,12 @@ export function ProductsList() {
       id: product.id,
       archive: product.status === "active",
     });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmProduct) return;
+    await deleteProduct.mutateAsync(deleteConfirmProduct.id);
+    setDeleteConfirmProduct(null);
   };
 
   const handleFilterSelect = (filterId: string) => {
@@ -551,6 +571,14 @@ export function ProductsList() {
                                   </>
                                 )}
                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => setDeleteConfirmProduct(product)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Eliminar
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -642,6 +670,32 @@ export function ProductsList() {
         open={batchImportOpen}
         onOpenChange={setBatchImportOpen}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={!!deleteConfirmProduct} 
+        onOpenChange={(open) => !open && setDeleteConfirmProduct(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar produto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que pretende eliminar o produto "{deleteConfirmProduct?.name}"? 
+              Esta ação é irreversível e irá remover permanentemente o produto do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

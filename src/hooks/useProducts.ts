@@ -196,6 +196,31 @@ export function useArchiveProduct() {
   });
 }
 
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+      toast.success("Produto eliminado com sucesso!");
+    },
+    onError: (error) => {
+      toast.error("Erro ao eliminar produto: " + error.message);
+    },
+  });
+}
+
 export function useProductCategories() {
   const { currentWorkspace } = useWorkspace();
 
