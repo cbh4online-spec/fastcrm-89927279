@@ -31,6 +31,7 @@ import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFr
 import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/product";
 import { AIProductAssistant } from "./AIProductAssistant";
 import { SKUSearchPanel } from "./SKUSearchPanel";
+import { useProductCategoriesList } from "@/hooks/useProductCategories";
 
 interface CreateProductDialogProps {
   open: boolean;
@@ -69,6 +70,7 @@ export function CreateProductDialog({
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
+  const { data: existingCategories } = useProductCategoriesList();
 
   const isEditing = !!product;
   const isLoading = createProduct.isPending || updateProduct.isPending;
@@ -633,7 +635,9 @@ export function CreateProductDialog({
                     productName={name}
                     currentCategory={category}
                     currentProductType={productType}
+                    existingCategories={existingCategories}
                     onApplyCategory={handleApplyCategory}
+                    onApplyExistingCategory={(cat) => setCategory(cat.name)}
                     onApplyPrice={handleApplyPrice}
                     onApplyDescription={handleApplyDescription}
                     onApplyProductType={handleApplyProductType}
