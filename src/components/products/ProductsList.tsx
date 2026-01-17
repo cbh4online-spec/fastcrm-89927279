@@ -567,6 +567,11 @@ export function ProductsList() {
           productId={detailProduct.id}
         />
       )}
+
+      <BatchSKUImportDialog
+        open={batchImportOpen}
+        onOpenChange={setBatchImportOpen}
+      />
     </div>
   );
 }
