@@ -93,3 +93,6 @@ verify_jwt = false
 
 [functions.suggest-proposal-products]
 verify_jwt = false
+
+[functions.ai-product-assistant]
+verify_jwt = false
