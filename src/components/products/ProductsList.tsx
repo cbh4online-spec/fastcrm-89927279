@@ -47,12 +47,14 @@ import {
   Repeat,
   FileBox,
   Clock,
+  Upload,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useProducts, useProductCategories, useArchiveProduct } from "@/hooks/useProducts";
 import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductDetailDialog } from "./ProductDetailDialog";
+import { BatchSKUImportDialog } from "./BatchSKUImportDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
@@ -87,6 +89,7 @@ export function ProductsList() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
+  const [batchImportOpen, setBatchImportOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   
@@ -301,6 +304,12 @@ export function ProductsList() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           actions={[
+            {
+              label: "Importar SKUs",
+              icon: <Upload className="h-4 w-4" />,
+              onClick: () => setBatchImportOpen(true),
+              variant: "outline" as const,
+            },
             {
               label: "Criar Produto",
               icon: <Plus className="h-4 w-4" />,
