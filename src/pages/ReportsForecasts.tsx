@@ -1,23 +1,26 @@
+import { useState, useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Toolbar } from "@/components/common/Toolbar";
 import { useRevenueMetrics, useExecutiveKPIs } from "@/hooks/useForecastsReports";
-import { useState } from "react";
 import { 
   TrendingUp, 
   TrendingDown, 
   Euro,
   Calendar,
-  Filter,
   Download,
   ArrowRight,
   Target,
   CheckCircle,
-  Clock
+  Clock,
+  RefreshCw,
+  Percent,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -28,9 +31,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  Legend,
 } from "recharts";
 
 function formatCurrency(value: number): string {
@@ -39,7 +39,6 @@ function formatCurrency(value: number): string {
   return `€${value.toFixed(0)}`;
 }
 
-// Generate forecast chart data
 function generateForecastData(kpis: any) {
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
   const currentMonth = new Date().getMonth();
@@ -55,132 +54,174 @@ function generateForecastData(kpis: any) {
   });
 }
 
+type ActiveTab = "overview" | "pipeline" | "analysis";
+
 export default function ReportsForecasts() {
+  const queryClient = useQueryClient();
   const { data: revenue, isLoading: revenueLoading } = useRevenueMetrics();
   const { data: kpis, isLoading: kpisLoading } = useExecutiveKPIs();
   const [period, setPeriod] = useState("90d");
-  const [filter, setFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isLoading = revenueLoading || kpisLoading;
   const chartData = kpis ? generateForecastData(kpis) : [];
 
+  // Stats
+  const stats = useMemo(() => {
+    const forecast = period === '30d' ? revenue?.forecast30d || 0 :
+                     period === '60d' ? revenue?.forecast60d || 0 :
+                     revenue?.forecast90d || 0;
+    const guaranteed = revenue?.guaranteedRevenue || 0;
+    const probable = revenue?.probableRevenue || 0;
+    const upsell = kpis?.upsellPotential || 0;
+
+    return { forecast, guaranteed, probable, upsell };
+  }, [revenue, kpis, period]);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["revenue-metrics"] }),
+      queryClient.invalidateQueries({ queryKey: ["executive-kpis"] }),
+    ]);
+    setIsRefreshing(false);
+  }, [queryClient]);
+
+  // Page tabs
+  const pageTabs = [
+    { id: "overview", label: "Visão Geral", icon: <Euro className="h-4 w-4" /> },
+    { id: "pipeline", label: "Por Pipeline" },
+    { id: "analysis", label: "Análise IA" },
+  ];
+
+  // Period options for toolbar
+  const sortOptions = [
+    { value: "30d", label: "30 dias" },
+    { value: "60d", label: "60 dias" },
+    { value: "90d", label: "90 dias" },
+  ];
+
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Previsões de Receita</h1>
-            <p className="text-muted-foreground">
-              Projeções baseadas em produtos ativos e oportunidades
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-[130px]">
-                <Calendar className="w-4 h-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="30d">30 dias</SelectItem>
-                <SelectItem value="60d">60 dias</SelectItem>
-                <SelectItem value="90d">90 dias</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-[150px]">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filtrar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="products">Por Produto</SelectItem>
-                <SelectItem value="owner">Por Owner</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="icon">
-              <Download className="w-4 h-4" />
+        {/* Page Header */}
+        <PageHeader
+          title="Previsões de Receita"
+          description="Projeções baseadas em produtos ativos e oportunidades"
+          tabs={pageTabs}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as ActiveTab)}
+          actions={[
+            {
+              label: "Exportar",
+              icon: <Download className="h-4 w-4" />,
+              onClick: () => {},
+              variant: "outline",
+            },
+          ]}
+        />
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="hover:border-primary/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Previsão Total</p>
+                  {isLoading ? (
+                    <Skeleton className="h-7 w-20 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold">{formatCurrency(stats.forecast)}</p>
+                  )}
+                </div>
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Euro className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
+                <TrendingUp className="w-3 h-3" />
+                <span>+12% vs período anterior</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:border-green-500/50 transition-colors border-green-200 bg-green-50/50 dark:bg-green-900/10">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Garantida</p>
+                  {isLoading ? (
+                    <Skeleton className="h-7 w-20 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-400">{formatCurrency(stats.guaranteed)}</p>
+                  )}
+                </div>
+                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Probabilidade &gt;80%</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:border-amber-500/50 transition-colors border-amber-200 bg-amber-50/50 dark:bg-amber-900/10">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Provável</p>
+                  {isLoading ? (
+                    <Skeleton className="h-7 w-20 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{formatCurrency(stats.probable)}</p>
+                  )}
+                </div>
+                <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-amber-600" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Probabilidade 40-80%</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:border-primary/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Potencial Upsell</p>
+                  {isLoading ? (
+                    <Skeleton className="h-7 w-20 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold">{formatCurrency(stats.upsell)}</p>
+                  )}
+                </div>
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Target className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Prontos para renovar</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Toolbar */}
+        <Toolbar
+          showFilters={false}
+          sortOptions={sortOptions}
+          sortValue={period}
+          onSortChange={setPeriod}
+          rightActions={
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Atualizar
             </Button>
-          </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-[120px]" />
-            ))
-          ) : (
-            <>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-muted-foreground">Previsão Total</p>
-                    <Badge variant="outline" className="text-[10px]">
-                      {period}
-                    </Badge>
-                  </div>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(
-                      period === '30d' ? revenue?.forecast30d || 0 :
-                      period === '60d' ? revenue?.forecast60d || 0 :
-                      revenue?.forecast90d || 0
-                    )}
-                  </p>
-                  <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
-                    <TrendingUp className="w-3 h-3" />
-                    <span>+12% vs período anterior</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-green-200 bg-green-50/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-muted-foreground">Garantida</p>
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  </div>
-                  <p className="text-2xl font-bold text-green-700">
-                    {formatCurrency(revenue?.guaranteedRevenue || 0)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Probabilidade &gt;80%
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-amber-200 bg-amber-50/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-muted-foreground">Provável</p>
-                    <Clock className="w-4 h-4 text-amber-600" />
-                  </div>
-                  <p className="text-2xl font-bold text-amber-700">
-                    {formatCurrency(revenue?.probableRevenue || 0)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Probabilidade 40-80%
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-muted-foreground">Potencial Upsell</p>
-                    <Target className="w-4 h-4 text-primary" />
-                  </div>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(kpis?.upsellPotential || 0)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Clientes prontos para renovar
-                  </p>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
+          }
+        />
 
         {/* Chart */}
         <Card>
@@ -218,7 +259,6 @@ export default function ReportsForecasts() {
                       borderRadius: '8px'
                     }}
                   />
-                  <Legend />
                   <Area 
                     type="monotone" 
                     dataKey="realizado" 
