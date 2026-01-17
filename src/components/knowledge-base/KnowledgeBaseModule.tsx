@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
 import { KnowledgeBaseList } from './KnowledgeBaseList';
 import { PersonaList } from './PersonaList';
 import { AddSourcePanel } from './AddSourcePanel';
 import { AIQueryPanel } from './AIQueryPanel';
 import { KnowledgeMetricsCard } from './KnowledgeMetricsCard';
+import { PageHeader } from '@/components/common/PageHeader';
+import { Toolbar } from '@/components/common/Toolbar';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,10 +19,21 @@ import {
   BookOpen, 
   RefreshCw, 
   Brain,
-  Plus
+  Plus,
+  FileText,
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import { KNOWLEDGE_BASE_TYPES, PERSONA_TYPES, TONE_OPTIONS } from '@/types/knowledge-base';
 import { toast } from 'sonner';
+
+type ActiveTab = "bases" | "personas" | "query";
+
+const pageTabs = [
+  { id: "bases", label: "Bases", icon: <BookOpen className="h-4 w-4" /> },
+  { id: "personas", label: "Personas", icon: <Users className="h-4 w-4" /> },
+  { id: "query", label: "Testar IA", icon: <MessageSquare className="h-4 w-4" /> },
+];
 
 export function KnowledgeBaseModule() {
   const {
@@ -34,7 +49,9 @@ export function KnowledgeBaseModule() {
     refresh
   } = useKnowledgeBase();
 
+  const [activeTab, setActiveTab] = useState<ActiveTab>("bases");
   const [selectedKB, setSelectedKB] = useState<string | null>(null);
+  const [searchValue, setSearchValue] = useState("");
   const [showCreateKB, setShowCreateKB] = useState(false);
   const [showCreatePersona, setShowCreatePersona] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -50,6 +67,28 @@ export function KnowledgeBaseModule() {
   const [personaDescription, setPersonaDescription] = useState('');
   const [personaType, setPersonaType] = useState('atendimento');
   const [personaTone, setPersonaTone] = useState('empático');
+
+  // Tabs with counts
+  const tabsWithCounts = useMemo(() => {
+    return pageTabs.map(tab => ({
+      ...tab,
+      count: tab.id === "bases" 
+        ? knowledgeBases.length 
+        : tab.id === "personas" 
+          ? personas.length 
+          : undefined
+    }));
+  }, [knowledgeBases.length, personas.length]);
+
+  // Quick stats
+  const quickStats = useMemo(() => {
+    return {
+      totalBases: knowledgeBases.length,
+      totalPersonas: personas.length,
+      totalEntries: metrics?.totalEntries || 0,
+      totalQueries: metrics?.totalQueries || 0,
+    };
+  }, [knowledgeBases.length, personas.length, metrics]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -119,81 +158,195 @@ export function KnowledgeBaseModule() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Brain className="h-6 w-6 text-primary" />
-            Bases de Conhecimento & IA Especialista
-          </h1>
-          <p className="text-muted-foreground">
-            Transforme a IA num verdadeiro especialista do seu negócio
-          </p>
-        </div>
-        <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+    <div className="space-y-4">
+      {/* Page Header */}
+      <PageHeader
+        title="Bases de Conhecimento & IA"
+        count={knowledgeBases.length}
+        description="Transforme a IA num verdadeiro especialista do seu negócio"
+        tabs={tabsWithCounts}
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as ActiveTab)}
+      />
+
+      {/* Quick KPIs Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="hover:border-primary/50 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Bases</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-12 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{quickStats.totalBases}</p>
+                )}
+              </div>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:border-primary/50 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Personas</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-12 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{quickStats.totalPersonas}</p>
+                )}
+              </div>
+              <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-purple-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:border-primary/50 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Entradas</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-12 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{quickStats.totalEntries}</p>
+                )}
+              </div>
+              <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-blue-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:border-primary/50 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Consultas</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-12 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{quickStats.totalQueries}</p>
+                )}
+              </div>
+              <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Brain className="h-5 w-5 text-green-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Metrics */}
-      <KnowledgeMetricsCard metrics={metrics} isLoading={isLoading} />
+      {/* Toolbar */}
+      <Toolbar
+        searchValue={searchValue}
+        searchPlaceholder={
+          activeTab === "bases" 
+            ? "Pesquisar bases..." 
+            : activeTab === "personas" 
+              ? "Pesquisar personas..." 
+              : "Pesquisar..."
+        }
+        onSearchChange={setSearchValue}
+        showFilters={false}
+        rightActions={
+          <div className="flex items-center gap-2">
+            {activeTab === "bases" && (
+              <Button size="sm" onClick={() => setShowCreateKB(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Nova Base
+              </Button>
+            )}
+            {activeTab === "personas" && (
+              <Button size="sm" onClick={() => setShowCreatePersona(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Nova Persona
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+        }
+      />
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Knowledge Bases */}
-        <div className="lg:col-span-1">
-          <KnowledgeBaseList 
-            knowledgeBases={knowledgeBases}
-            isLoading={isLoading}
-            onSelect={(kb) => setSelectedKB(kb.id)}
-            onCreateNew={() => setShowCreateKB(true)}
-          />
-        </div>
+      {/* Tab Content */}
+      {activeTab === "bases" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Knowledge Bases */}
+          <div className="lg:col-span-1">
+            <KnowledgeBaseList 
+              knowledgeBases={knowledgeBases.filter(kb => 
+                kb.name.toLowerCase().includes(searchValue.toLowerCase())
+              )}
+              isLoading={isLoading}
+              onSelect={(kb) => setSelectedKB(kb.id)}
+              onCreateNew={() => setShowCreateKB(true)}
+            />
+          </div>
 
-        {/* Add Source & Test */}
-        <div className="lg:col-span-2 space-y-6">
-          {selectedKB ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Add Source */}
+          <div className="lg:col-span-2">
+            {selectedKB ? (
               <AddSourcePanel 
                 onAddUrl={handleAddUrl}
                 onAddManual={handleAddManual}
                 isProcessing={isProcessing}
               />
-              <AIQueryPanel 
-                personas={personas}
-                onQuery={queryKnowledge}
-                context="test"
-              />
-            </div>
-          ) : (
-            <div className="text-center py-12 border rounded-lg bg-muted/30">
-              <BookOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-              <p className="font-medium text-muted-foreground">
-                Seleciona uma base de conhecimento
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Ou cria uma nova para começar
-              </p>
-              <Button 
-                className="mt-4" 
-                onClick={() => setShowCreateKB(true)}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Criar Base
-              </Button>
-            </div>
-          )}
-
-          {/* Personas */}
-          <PersonaList 
-            personas={personas}
-            isLoading={isLoading}
-            onCreateNew={() => setShowCreatePersona(true)}
-          />
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="py-12">
+                  <div className="text-center text-muted-foreground">
+                    <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium">Seleciona uma base de conhecimento</p>
+                    <p className="text-sm mt-1">Ou cria uma nova para começar</p>
+                    <Button 
+                      className="mt-4" 
+                      onClick={() => setShowCreateKB(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Criar Base
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {activeTab === "personas" && (
+        <PersonaList 
+          personas={personas.filter(p => 
+            p.name.toLowerCase().includes(searchValue.toLowerCase())
+          )}
+          isLoading={isLoading}
+          onCreateNew={() => setShowCreatePersona(true)}
+        />
+      )}
+
+      {activeTab === "query" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AIQueryPanel 
+            personas={personas}
+            onQuery={queryKnowledge}
+            context="test"
+          />
+          <KnowledgeMetricsCard metrics={metrics} isLoading={isLoading} />
+        </div>
+      )}
 
       {/* Create KB Dialog */}
       <Dialog open={showCreateKB} onOpenChange={setShowCreateKB}>
