@@ -40,7 +40,7 @@ import PublicProductSheet from "./pages/PublicProductSheet";
 import Invoices from "./pages/Invoices";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import AIProfiles from "./pages/AIProfiles";
-import FastCRMLanding from "./pages/FastCRMLanding";
+import MarketingHomepage from "./pages/MarketingHomepage";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
 import ReportsOverview from "./pages/ReportsOverview";
 import ReportsForecasts from "./pages/ReportsForecasts";
@@ -75,7 +75,7 @@ const App = () => (
             <WorkspaceInstanceProvider>
               <SubscriptionProvider>
                 <Routes>
-                  <Route path="/" element={<FastCRMLanding />} />
+                  <Route path="/" element={<MarketingHomepage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/onboarding" element={<Onboarding />} />
