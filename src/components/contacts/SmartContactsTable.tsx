@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartContactsFilters } from "@/hooks/useSmartContacts";
 import { useContacts } from "@/hooks/useContacts";
 import { SmartContactsKPIs } from "./SmartContactsKPIs";
@@ -11,8 +11,17 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, UserCog, HeadsetIcon, BarChart3, RefreshCw } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Users, UserCog, HeadsetIcon, BarChart3, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 type ViewPreset = "all" | "sales" | "support" | "manager";
 
@@ -151,16 +160,45 @@ export function SmartContactsTable() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeView, setActiveView] = useState<ViewPreset>("all");
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: contacts, isLoading, refetch } = useSmartContacts(filters);
   const { deleteContacts, addTagsToContacts, bulkUpdateContacts } = useContacts();
   const analyze = useAnalyzeContact();
   const bulkAnalyze = useBulkAnalyzeContacts();
 
-  const allSelected = contacts && contacts.length > 0 && selectedIds.size === contacts.length;
+  // Paginação
+  const totalContacts = contacts?.length || 0;
+  const totalPages = Math.ceil(totalContacts / pageSize);
+  const paginatedContacts = useMemo(() => {
+    if (!contacts) return [];
+    const startIndex = (currentPage - 1) * pageSize;
+    return contacts.slice(startIndex, startIndex + pageSize);
+  }, [contacts, currentPage, pageSize]);
+
+  // Reset para página 1 quando mudar o filtro ou tamanho da página
+  const handlePageSizeChange = (newSize: string) => {
+    setPageSize(Number(newSize));
+    setCurrentPage(1);
+  };
+
+  const allSelected = paginatedContacts.length > 0 && paginatedContacts.every(c => selectedIds.has(c.id));
   const someSelected = selectedIds.size > 0 && !allSelected;
 
-  const toggleSelectAll = () => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(contacts?.map(c => c.id) || []));
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      // Desselecionar todos da página atual
+      const newSelected = new Set(selectedIds);
+      paginatedContacts.forEach(c => newSelected.delete(c.id));
+      setSelectedIds(newSelected);
+    } else {
+      // Selecionar todos da página atual
+      const newSelected = new Set(selectedIds);
+      paginatedContacts.forEach(c => newSelected.add(c.id));
+      setSelectedIds(newSelected);
+    }
+  };
   const toggleSelect = (id: string) => { const n = new Set(selectedIds); n.has(id) ? n.delete(id) : n.add(id); setSelectedIds(n); };
 
   const handleAnalyze = async (id: string) => {
@@ -273,12 +311,83 @@ export function SmartContactsTable() {
               <TableRow><TableCell colSpan={shouldShowAdvanced ? 14 : 10} className="text-center py-12"><div className="flex flex-col items-center gap-2 text-muted-foreground"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />A carregar...</div></TableCell></TableRow>
             ) : !contacts?.length ? (
               <TableRow><TableCell colSpan={shouldShowAdvanced ? 14 : 10} className="text-center py-12"><div className="flex flex-col items-center gap-3 text-muted-foreground"><Users className="w-12 h-12 opacity-50" /><p className="text-lg font-medium">Quando entrarem contactos, a IA vai organizá-los por ti</p><Button onClick={() => setIsCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />Adicionar Contacto</Button></div></TableCell></TableRow>
-            ) : contacts.map(c => (
+            ) : paginatedContacts.map(c => (
               <SmartContactRow key={c.id} contact={c} isSelected={selectedIds.has(c.id)} onToggleSelect={() => toggleSelect(c.id)} onAnalyze={() => handleAnalyze(c.id)} isAnalyzing={analyzingId === c.id} showAdvanced={shouldShowAdvanced} />
             ))}
           </TableBody>
         </Table>
       </div>
+
+      {/* Paginação */}
+      {totalContacts > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Mostrar</span>
+            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+              <SelectTrigger className="w-[70px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>por página</span>
+            <span className="text-muted-foreground/70 ml-2">
+              ({totalContacts} contacto{totalContacts !== 1 ? "s" : ""} no total)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              Página {currentPage} de {totalPages}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 -ml-2" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 -ml-2" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CreateContactDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </div>
