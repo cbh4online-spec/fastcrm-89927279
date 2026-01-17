@@ -321,34 +321,58 @@ export function ProductsList() {
     toast.success(`${selected.length} produtos arquivados`);
   };
 
+  // Placeholder for Categories tab
+  const CategoriesTabContent = () => (
+    <Card className="flex-1 p-12 text-center">
+      <Tag className="h-16 w-16 mx-auto mb-4 opacity-30" />
+      <h3 className="text-lg font-medium mb-2">Gestão de Categorias</h3>
+      <p className="text-sm text-muted-foreground">
+        Em breve poderás criar e gerir categorias de produtos aqui.
+      </p>
+    </Card>
+  );
+
+  // Placeholder for Pricing tab
+  const PricingTabContent = () => (
+    <Card className="flex-1 p-12 text-center">
+      <CircleDollarSign className="h-16 w-16 mx-auto mb-4 opacity-30" />
+      <h3 className="text-lg font-medium mb-2">Tabelas de Preço</h3>
+      <p className="text-sm text-muted-foreground">
+        Em breve poderás criar tabelas de preço personalizadas aqui.
+      </p>
+    </Card>
+  );
+
   return (
     <div className="flex h-full -m-6">
-      {/* Filter Sidebar */}
-      <FilterSidebar
-        filterGroups={filterGroups}
-        activeFilterId={activeFilterId}
-        onFilterSelect={handleFilterSelect}
-        onClearFilter={() => {
-          setActiveFilterId(undefined);
-          setStatusFilter("active");
-          setTypeFilter("all");
-          setCategoryFilter("all");
-        }}
-        isOpen={showFilterSidebar}
-        onClose={() => setShowFilterSidebar(false)}
-      />
+      {/* Filter Sidebar - only show on products tab */}
+      {activeTab === "products" && (
+        <FilterSidebar
+          filterGroups={filterGroups}
+          activeFilterId={activeFilterId}
+          onFilterSelect={handleFilterSelect}
+          onClearFilter={() => {
+            setActiveFilterId(undefined);
+            setStatusFilter("active");
+            setTypeFilter("all");
+            setCategoryFilter("all");
+          }}
+          isOpen={showFilterSidebar}
+          onClose={() => setShowFilterSidebar(false)}
+        />
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 p-6">
         {/* Page Header */}
         <PageHeader
           title="Produtos"
-          count={totalProducts}
+          count={activeTab === "products" ? totalProducts : undefined}
           description="Gerencie os seus produtos e serviços"
           tabs={pageTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          actions={[
+          actions={activeTab === "products" ? [
             {
               label: "Importar SKUs",
               icon: <Upload className="h-4 w-4" />,
@@ -360,240 +384,251 @@ export function ProductsList() {
               icon: <Plus className="h-4 w-4" />,
               onClick: () => setCreateOpen(true),
             },
-          ]}
+          ] : undefined}
         />
 
-        {/* Toolbar */}
-        <Toolbar
-          searchValue={searchValue}
-          searchPlaceholder="Pesquisar produtos..."
-          onSearchChange={(value) => {
-            setSearchValue(value);
-            // Debounce for API
-            setTimeout(() => setDebouncedSearch(value), 300);
-          }}
-          showFilters={true}
-          filtersActive={filtersActive}
-          onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
-          onClearFilters={handleClearFilters}
-          sortOptions={sortOptions}
-          sortValue={sortValue}
-          onSortChange={setSortValue}
-          leftActions={
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFilterSidebar(!showFilterSidebar)}
-              className="gap-2"
-            >
-              {showFilterSidebar ? (
-                <PanelLeftClose className="h-4 w-4" />
+        {/* Products Tab Content */}
+        {activeTab === "products" && (
+          <>
+            {/* Toolbar */}
+            <Toolbar
+              searchValue={searchValue}
+              searchPlaceholder="Pesquisar produtos..."
+              onSearchChange={(value) => {
+                setSearchValue(value);
+                // Debounce for API
+                setTimeout(() => setDebouncedSearch(value), 300);
+              }}
+              showFilters={true}
+              filtersActive={filtersActive}
+              onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
+              onClearFilters={handleClearFilters}
+              sortOptions={sortOptions}
+              sortValue={sortValue}
+              onSortChange={setSortValue}
+              leftActions={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFilterSidebar(!showFilterSidebar)}
+                  className="gap-2"
+                >
+                  {showFilterSidebar ? (
+                    <PanelLeftClose className="h-4 w-4" />
+                  ) : (
+                    <PanelLeft className="h-4 w-4" />
+                  )}
+                </Button>
+              }
+              rightActions={
+                <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              }
+            />
+
+            {/* Bulk Actions */}
+            {selectedIds.length > 0 && (
+              <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
+                <span className="text-sm text-muted-foreground">
+                  {selectedIds.length} {selectedIds.length === 1 ? "selecionado" : "selecionados"}
+                </span>
+                <div className="flex-1" />
+                <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleBulkArchive} className="gap-2">
+                  <Archive className="h-4 w-4" />
+                  Arquivar
+                </Button>
+              </div>
+            )}
+
+            {/* Table */}
+            <Card className="flex-1 overflow-hidden">
+              {isLoading ? (
+                <div className="p-8 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                </div>
+              ) : !paginatedProducts?.length ? (
+                <div className="p-12 text-center text-muted-foreground">
+                  <Package className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                  <h3 className="text-lg font-medium mb-2">Ainda não tens produtos.</h3>
+                  <p className="text-sm mb-4">
+                    Cria o primeiro produto para usares em propostas e negócios.
+                  </p>
+                  <Button onClick={() => setCreateOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Criar Produto
+                  </Button>
+                </div>
               ) : (
-                <PanelLeft className="h-4 w-4" />
-              )}
-            </Button>
-          }
-          rightActions={
-            <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          }
-        />
-
-        {/* Bulk Actions */}
-        {selectedIds.length > 0 && (
-          <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
-            <span className="text-sm text-muted-foreground">
-              {selectedIds.length} {selectedIds.length === 1 ? "selecionado" : "selecionados"}
-            </span>
-            <div className="flex-1" />
-            <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
-              <Download className="h-4 w-4" />
-              Exportar
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleBulkArchive} className="gap-2">
-              <Archive className="h-4 w-4" />
-              Arquivar
-            </Button>
-          </div>
-        )}
-
-        {/* Table */}
-        <Card className="flex-1 overflow-hidden">
-          {isLoading ? (
-            <div className="p-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-            </div>
-          ) : !paginatedProducts?.length ? (
-            <div className="p-12 text-center text-muted-foreground">
-              <Package className="h-16 w-16 mx-auto mb-4 opacity-30" />
-              <h3 className="text-lg font-medium mb-2">Ainda não tens produtos.</h3>
-              <p className="text-sm mb-4">
-                Cria o primeiro produto para usares em propostas e negócios.
-              </p>
-              <Button onClick={() => setCreateOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Produto
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={
-                        paginatedProducts.length > 0 &&
-                        paginatedProducts.every((p) => selectedIds.includes(p.id))
-                      }
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Preço</TableHead>
-                  <TableHead>Cobrança</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Atualizado</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedIds.includes(product.id)}
-                        onCheckedChange={(checked) =>
-                          handleSelectOne(product.id, checked as boolean)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {product.images?.[0] && (
-                          <img
-                            src={product.images[0]}
-                            alt={product.name}
-                            className="w-8 h-8 rounded object-cover"
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox
+                          checked={
+                            paginatedProducts.length > 0 &&
+                            paginatedProducts.every((p) => selectedIds.includes(p.id))
+                          }
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Preço</TableHead>
+                      <TableHead>Cobrança</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Atualizado</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.includes(product.id)}
+                            onCheckedChange={(checked) =>
+                              handleSelectOne(product.id, checked as boolean)
+                            }
                           />
-                        )}
-                        {product.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {productTypeLabels[product.product_type]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{product.category || "-"}</TableCell>
-                    <TableCell>
-                      {formatCurrency(product.base_price, product.currency)}
-                    </TableCell>
-                    <TableCell>{billingTypeLabels[product.billing_type]}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={product.status === "active" ? "default" : "secondary"}
-                      >
-                        {productStatusLabels[product.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(product.updated_at), "dd/MM/yyyy", {
-                        locale: pt,
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setDetailProduct(product)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setEditProduct(product)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleArchive(product)}>
-                            {product.status === "active" ? (
-                              <>
-                                <Archive className="h-4 w-4 mr-2" />
-                                Arquivar
-                              </>
-                            ) : (
-                              <>
-                                <RotateCcw className="h-4 w-4 mr-2" />
-                                Reativar
-                              </>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {product.images?.[0] && (
+                              <img
+                                src={product.images[0]}
+                                alt={product.name}
+                                className="w-8 h-8 rounded object-cover"
+                              />
                             )}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </Card>
+                            {product.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {productTypeLabels[product.product_type]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{product.category || "-"}</TableCell>
+                        <TableCell>
+                          {formatCurrency(product.base_price, product.currency)}
+                        </TableCell>
+                        <TableCell>{billingTypeLabels[product.billing_type]}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={product.status === "active" ? "default" : "secondary"}
+                          >
+                            {productStatusLabels[product.status]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(product.updated_at), "dd/MM/yyyy", {
+                            locale: pt,
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setDetailProduct(product)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver detalhes
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setEditProduct(product)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleArchive(product)}>
+                                {product.status === "active" ? (
+                                  <>
+                                    <Archive className="h-4 w-4 mr-2" />
+                                    Arquivar
+                                  </>
+                                ) : (
+                                  <>
+                                    <RotateCcw className="h-4 w-4 mr-2" />
+                                    Reativar
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
 
-        {/* Pagination */}
-        {totalPages > 0 && (
-          <div className="flex items-center justify-between pt-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Mostrar</span>
-              <Select
-                value={pageSize.toString()}
-                onValueChange={(v) => {
-                  setPageSize(Number(v));
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[70px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZE_OPTIONS.map((size) => (
-                    <SelectItem key={size} value={size.toString()}>
-                      {size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">por página</span>
-            </div>
+            {/* Pagination */}
+            {totalPages > 0 && (
+              <div className="flex items-center justify-between pt-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Mostrar</span>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={(v) => {
+                      setPageSize(Number(v));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-[70px] h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAGE_SIZE_OPTIONS.map((size) => (
+                        <SelectItem key={size} value={size.toString()}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm text-muted-foreground">por página</span>
+                </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Página {currentPage} de {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
+
+        {/* Categories Tab Content */}
+        {activeTab === "categories" && <CategoriesTabContent />}
+
+        {/* Pricing Tab Content */}
+        {activeTab === "pricing" && <PricingTabContent />}
       </div>
 
       <CreateProductDialog open={createOpen} onOpenChange={setCreateOpen} />
