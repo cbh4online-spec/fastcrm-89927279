@@ -7,12 +7,16 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources";
+  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details";
   productName?: string;
   sku?: string;
   category?: string;
   productType?: string;
   context?: string;
+  theme?: string;
+  categoryName?: string;
+  description?: string;
+  existingCategories?: string[];
 }
 
 interface ProductSuggestion {
@@ -65,7 +69,7 @@ serve(async (req) => {
   }
 
   try {
-    const { mode, productName, sku, category, productType, context } = await req.json() as AssistantRequest;
+    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories } = await req.json() as AssistantRequest;
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
@@ -78,6 +82,8 @@ serve(async (req) => {
 
     if (mode === 'suggest' && productName) {
       // Use Lovable AI to suggest categories, price, description
+      const hasExistingCategories = existingCategories && existingCategories.length > 0;
+      
       const systemPrompt = `Você é um assistente especializado em catálogo de produtos e serviços B2B/B2C.
 Analise o nome do produto fornecido e sugira:
 1. Categorias apropriadas (máximo 4)
@@ -85,6 +91,7 @@ Analise o nome do produto fornecido e sugira:
 3. Um preço sugerido dentro do range
 4. Uma descrição curta profissional (máximo 100 caracteres)
 5. Tipo de produto mais adequado
+${hasExistingCategories ? '6. Se alguma das categorias existentes for adequada, identifique-a' : ''}
 
 Responda APENAS em JSON válido sem markdown.`;
 
@@ -92,6 +99,7 @@ Responda APENAS em JSON válido sem markdown.`;
 ${category ? `Categoria atual: ${category}` : ''}
 ${productType ? `Tipo atual: ${productType}` : ''}
 ${context ? `Contexto adicional: ${context}` : ''}
+${hasExistingCategories ? `Categorias existentes no sistema: ${existingCategories.join(', ')}` : ''}
 
 Responda no formato JSON:
 {
@@ -99,7 +107,8 @@ Responda no formato JSON:
   "priceRange": { "min": 100, "max": 500 },
   "suggestedPrice": 300,
   "description": "Descrição curta do produto",
-  "productType": "simple|formacao|sessions|physical|programa|recurring|composite"
+  "productType": "simple|formacao|sessions|physical|programa|recurring|composite"${hasExistingCategories ? `,
+  "matchedCategoryName": "Nome da categoria existente que melhor se aplica (ou null se nenhuma for adequada)"` : ''}
 }`;
 
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -608,6 +617,188 @@ REGRAS:
           highestPrice,
           averagePrice,
         }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } else if (mode === 'generate-category' && theme) {
+      // Generate a complete category from a theme
+      const systemPrompt = `Você é um especialista em organização de catálogos de produtos e serviços.
+Crie uma categoria profissional baseada no tema fornecido.
+
+REGRAS:
+- Nome: curto, profissional, máximo 30 caracteres
+- Descrição: explicativa, máximo 100 caracteres
+- Cor: hexadecimal que represente visualmente a categoria (evite cores muito claras)
+- Evite duplicar categorias existentes se fornecidas
+
+Responda APENAS em JSON válido sem markdown.`;
+
+      const userPrompt = `Tema: "${theme}"
+${existingCategories && existingCategories.length > 0 ? `Categorias já existentes (evite duplicar): ${existingCategories.join(', ')}` : ''}
+
+Responda no formato JSON:
+{
+  "name": "Nome da Categoria",
+  "description": "Descrição breve da categoria",
+  "color": "#3B82F6"
+}`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+
+      let suggestion;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        suggestion = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      } catch {
+        suggestion = {
+          name: theme.charAt(0).toUpperCase() + theme.slice(1),
+          description: `Categoria para ${theme}`,
+          color: '#3B82F6'
+        };
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: suggestion
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } else if (mode === 'generate-category-image' && categoryName) {
+      // Generate an image for a category using the image model
+      const imagePrompt = `Create a simple, professional icon or illustration for a product category called "${categoryName}".
+${description ? `Category description: ${description}` : ''}
+
+Style: Modern, clean, minimalist icon style suitable for a business catalog.
+Colors: Use vibrant but professional colors.
+Composition: Centered, simple background, no text.
+Format: Square aspect ratio, suitable as a category thumbnail.`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image-preview',
+          messages: [
+            { role: 'user', content: imagePrompt }
+          ],
+          modalities: ['image', 'text'],
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const images = data.choices?.[0]?.message?.images || [];
+      const imageBase64 = images[0]?.image_url?.url || null;
+
+      if (!imageBase64) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Não foi possível gerar a imagem'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: { imageBase64 }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } else if (mode === 'suggest-category-details' && categoryName) {
+      // Suggest description and color for an existing category name
+      const systemPrompt = `Você é um especialista em organização de catálogos de produtos.
+Sugira uma descrição e cor para a categoria fornecida.
+
+Responda APENAS em JSON válido sem markdown.`;
+
+      const userPrompt = `Categoria: "${categoryName}"
+
+Responda no formato JSON:
+{
+  "description": "Descrição breve e profissional (máximo 100 chars)",
+  "color": "#hexadecimal"
+}`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.5,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+
+      let suggestion;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        suggestion = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      } catch {
+        suggestion = {
+          description: `Categoria para ${categoryName}`,
+          color: '#3B82F6'
+        };
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: suggestion
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

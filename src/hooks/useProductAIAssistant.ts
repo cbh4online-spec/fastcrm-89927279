@@ -7,6 +7,7 @@ interface ProductSuggestion {
   suggestedPrice: number;
   description: string;
   productType?: string;
+  matchedCategoryName?: string;
 }
 
 interface ProductSpecifications {
@@ -68,10 +69,12 @@ export function useProductAIAssistant() {
       productName,
       category,
       productType,
+      existingCategories,
     }: {
       productName: string;
       category?: string;
       productType?: string;
+      existingCategories?: string[];
     }): Promise<ProductSuggestion> => {
       const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
         body: {
@@ -79,6 +82,7 @@ export function useProductAIAssistant() {
           productName,
           category,
           productType,
+          existingCategories,
         },
       });
 

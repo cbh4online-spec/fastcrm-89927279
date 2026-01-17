@@ -2,16 +2,19 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Check, RefreshCw } from "lucide-react";
+import { Loader2, Sparkles, Check, RefreshCw, Tag } from "lucide-react";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { ProductType } from "@/types/product";
+import type { ProductCategory } from "@/hooks/useProductCategories";
 
 interface AIProductAssistantProps {
   productName: string;
   currentCategory?: string;
   currentProductType?: ProductType;
+  existingCategories?: ProductCategory[];
   onApplyCategory: (category: string) => void;
+  onApplyExistingCategory?: (category: ProductCategory) => void;
   onApplyPrice: (price: number) => void;
   onApplyDescription: (description: string) => void;
   onApplyProductType: (type: ProductType) => void;
@@ -31,7 +34,9 @@ export function AIProductAssistant({
   productName,
   currentCategory,
   currentProductType,
+  existingCategories,
   onApplyCategory,
+  onApplyExistingCategory,
   onApplyPrice,
   onApplyDescription,
   onApplyProductType,
@@ -43,10 +48,12 @@ export function AIProductAssistant({
 
   useEffect(() => {
     if (debouncedName && debouncedName.length >= 3 && isActive) {
+      const categoryNames = existingCategories?.map(c => c.name) || [];
       suggestFromName.mutate({
         productName: debouncedName,
         category: currentCategory,
         productType: currentProductType,
+        existingCategories: categoryNames,
       });
       setAppliedItems(new Set());
     }
@@ -55,6 +62,20 @@ export function AIProductAssistant({
   const handleApplyCategory = (cat: string) => {
     onApplyCategory(cat);
     setAppliedItems((prev) => new Set(prev).add(`category-${cat}`));
+  };
+
+  const handleApplyExistingCategory = (matchedName: string) => {
+    const matchedCategory = existingCategories?.find(
+      c => c.name.toLowerCase() === matchedName.toLowerCase()
+    );
+    if (matchedCategory && onApplyExistingCategory) {
+      onApplyExistingCategory(matchedCategory);
+      setAppliedItems((prev) => new Set(prev).add("existingCategory"));
+    } else {
+      // Fallback to just setting the name
+      onApplyCategory(matchedName);
+      setAppliedItems((prev) => new Set(prev).add(`category-${matchedName}`));
+    }
   };
 
   const handleApplyPrice = () => {
@@ -80,10 +101,12 @@ export function AIProductAssistant({
 
   const handleRefresh = () => {
     if (productName && productName.length >= 3) {
+      const categoryNames = existingCategories?.map(c => c.name) || [];
       suggestFromName.mutate({
         productName,
         category: currentCategory,
         productType: currentProductType,
+        existingCategories: categoryNames,
       });
       setAppliedItems(new Set());
     }
@@ -133,10 +156,42 @@ export function AIProductAssistant({
         </div>
       ) : suggestFromName.data ? (
         <div className="space-y-4">
-          {/* Categories */}
+          {/* Matched Existing Category - Priority */}
+          {suggestFromName.data.matchedCategoryName && (
+            <div className="space-y-2">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Tag className="h-3 w-3" />
+                Categoria existente sugerida:
+              </span>
+              <Button
+                type="button"
+                variant={appliedItems.has("existingCategory") ? "secondary" : "default"}
+                size="sm"
+                className="h-8 text-sm"
+                onClick={() => handleApplyExistingCategory(suggestFromName.data!.matchedCategoryName!)}
+              >
+                {appliedItems.has("existingCategory") ? (
+                  <>
+                    <Check className="h-3 w-3 mr-1" /> Aplicado
+                  </>
+                ) : (
+                  <>
+                    <Tag className="h-3 w-3 mr-1" />
+                    Usar "{suggestFromName.data.matchedCategoryName}"
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Suggested New Categories */}
           {suggestFromName.data.categories && suggestFromName.data.categories.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs text-muted-foreground">Categorias sugeridas:</span>
+              <span className="text-xs text-muted-foreground">
+                {suggestFromName.data.matchedCategoryName 
+                  ? "Ou criar nova categoria:" 
+                  : "Categorias sugeridas:"}
+              </span>
               <div className="flex flex-wrap gap-1.5">
                 {suggestFromName.data.categories.map((cat) => (
                   <Badge
