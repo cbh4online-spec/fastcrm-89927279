@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useActivities } from "@/hooks/useActivities";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -15,6 +14,8 @@ import {
   Calendar,
   TrendingUp
 } from "lucide-react";
+// Design System imports
+import { ListSkeleton, EmptyState } from "@/components/design-system";
 
 const activityIcons: Record<string, typeof Phone> = {
   call: Phone,
@@ -52,18 +53,10 @@ export function ActivityFeed({ maxItems = 6, isLoading = false }: ActivityFeedPr
     return (
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-3">
-          <Skeleton className="h-5 w-32" />
+          <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <Skeleton className="h-8 w-8 rounded-full" />
-              <div className="flex-1 space-y-1">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
-              </div>
-            </div>
-          ))}
+        <CardContent>
+          <ListSkeleton count={4} showAvatar />
         </CardContent>
       </Card>
     );
@@ -81,11 +74,12 @@ export function ActivityFeed({ maxItems = 6, isLoading = false }: ActivityFeedPr
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <CheckCircle className="w-10 h-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">Sem atividades recentes</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">As atividades aparecerão aqui</p>
-          </div>
+          <EmptyState
+            type="tasks"
+            title="Sem atividades recentes"
+            description="As atividades aparecerão aqui"
+            size="sm"
+          />
         </CardContent>
       </Card>
     );

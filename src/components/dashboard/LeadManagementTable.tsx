@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useLeads } from "@/hooks/useLeads";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, TrendingUp, TrendingDown, Minus, Target } from "lucide-react";
+import { ChevronRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
+// Design System imports
+import { ListSkeleton, EmptyState } from "@/components/design-system";
 
 const temperatureConfig: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
   hot: { label: "Quente", color: "bg-red-500/10 text-red-600 border-red-200", icon: TrendingUp },
@@ -35,24 +36,20 @@ export function LeadManagementTable({ maxItems = 5, isLoading = false }: LeadMan
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-6 w-20" />
+            <CardTitle className="text-base font-semibold">Gestão de Leads</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs gap-1 text-primary hover:text-primary"
+              onClick={() => navigate("/dashboard/leads")}
+            >
+              Ver todos
+              <ChevronRight className="w-3 h-3" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-9 w-9 rounded-full" />
-                <div className="flex-1 space-y-1">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-                <Skeleton className="h-6 w-16" />
-                <Skeleton className="h-6 w-16" />
-              </div>
-            ))}
-          </div>
+          <ListSkeleton count={4} showAvatar />
         </CardContent>
       </Card>
     );
@@ -76,11 +73,12 @@ export function LeadManagementTable({ maxItems = 5, isLoading = false }: LeadMan
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Target className="w-10 h-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">Sem leads registados</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">Os leads aparecerão aqui</p>
-          </div>
+          <EmptyState
+            type="leads"
+            title="Sem leads registados"
+            description="Os leads aparecerão aqui"
+            size="sm"
+          />
         </CardContent>
       </Card>
     );
