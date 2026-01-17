@@ -69,17 +69,27 @@ export function ActivityFeed({ maxItems = 6, isLoading = false }: ActivityFeedPr
     );
   }
 
-  // Demo activities if no real data
-  const demoActivities = [
-    { id: "1", activity_type: "call", title: "Chamada com João Silva", created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(), performed_by: "Maria Costa" },
-    { id: "2", activity_type: "email", title: "Email enviado para TechCorp", created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(), performed_by: "Pedro Santos" },
-    { id: "3", activity_type: "proposal", title: "Proposta criada - €15.000", created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(), performed_by: "Ana Ferreira" },
-    { id: "4", activity_type: "lead", title: "Novo lead qualificado", created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(), performed_by: "Carlos Mendes" },
-    { id: "5", activity_type: "meeting", title: "Reunião agendada", created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString(), performed_by: "Sofia Lima" },
-    { id: "6", activity_type: "opportunity", title: "Oportunidade fechada - €8.500", created_at: new Date(Date.now() - 1000 * 60 * 300).toISOString(), performed_by: "Rui Oliveira" },
-  ];
-
-  const displayActivities = activities && activities.length > 0 ? activities : demoActivities;
+  if (!activities || activities.length === 0) {
+    return (
+      <Card className="border-0 shadow-lg bg-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
+            <Badge variant="secondary" className="text-xs">
+              Hoje
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <CheckCircle className="w-10 h-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">Sem atividades recentes</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">As atividades aparecerão aqui</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-0 shadow-lg bg-card">
@@ -92,7 +102,7 @@ export function ActivityFeed({ maxItems = 6, isLoading = false }: ActivityFeedPr
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {displayActivities.slice(0, maxItems).map((activity: any) => {
+        {activities.slice(0, maxItems).map((activity: any) => {
           const activityType = activity.activity_type || "task";
           const Icon = activityIcons[activityType] || CheckCircle;
           const colorClass = activityColors[activityType] || "bg-muted text-muted-foreground";
