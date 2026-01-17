@@ -37,7 +37,7 @@ import {
   PanelLeftClose,
   RefreshCw,
   Download,
-  Trash2,
+  
   ChevronLeft,
   ChevronRight,
   Layers,
@@ -84,7 +84,6 @@ const sortOptions = [
 ];
 
 export function ProductsList() {
-  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -103,11 +102,22 @@ export function ProductsList() {
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("updated_desc");
 
+  // Debounce search for API calls
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  // Use searchValue for sidebar filtering
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    // Debounce the API search
+    const timeout = setTimeout(() => setDebouncedSearch(value), 300);
+    return () => clearTimeout(timeout);
+  };
+
   const { data: products, isLoading, refetch } = useProducts({
     status: statusFilter,
     productType: typeFilter,
     category: categoryFilter,
-    search: search || undefined,
+    search: debouncedSearch || undefined,
   });
 
   const { data: categories } = useProductCategories();
@@ -214,15 +224,45 @@ export function ProductsList() {
   };
 
   const handleFilterSelect = (filterId: string) => {
+    // Toggle off if clicking the same filter
+    if (activeFilterId === filterId) {
+      setActiveFilterId(undefined);
+      // Reset the corresponding filter
+      if (filterId.startsWith("type_")) {
+        setTypeFilter("all");
+      } else if (filterId.startsWith("status_")) {
+        setStatusFilter("active");
+      } else if (filterId.startsWith("cat_")) {
+        setCategoryFilter("all");
+      } else if (filterId.startsWith("smart_")) {
+        // Reset smart filters
+      }
+      return;
+    }
+
     setActiveFilterId(filterId);
     // Apply filter logic based on filterId
     if (filterId.startsWith("type_")) {
-      setTypeFilter(filterId.replace("type_", ""));
+      const type = filterId.replace("type_", "");
+      setTypeFilter(type);
     } else if (filterId.startsWith("status_")) {
-      setStatusFilter(filterId.replace("status_", ""));
+      const status = filterId.replace("status_", "");
+      setStatusFilter(status);
     } else if (filterId.startsWith("cat_")) {
-      setCategoryFilter(filterId.replace("cat_", ""));
+      const cat = filterId.replace("cat_", "");
+      setCategoryFilter(cat);
+    } else if (filterId.startsWith("smart_")) {
+      // Handle smart filters locally
     }
+  };
+
+  const handleClearFilters = () => {
+    setActiveFilterId(undefined);
+    setStatusFilter("active");
+    setTypeFilter("all");
+    setCategoryFilter("all");
+    setSearchValue("");
+    setDebouncedSearch("");
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -322,16 +362,15 @@ export function ProductsList() {
         <Toolbar
           searchValue={searchValue}
           searchPlaceholder="Pesquisar produtos..."
-          onSearchChange={setSearchValue}
+          onSearchChange={(value) => {
+            setSearchValue(value);
+            // Debounce for API
+            setTimeout(() => setDebouncedSearch(value), 300);
+          }}
           showFilters={true}
           filtersActive={filtersActive}
           onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
-          onClearFilters={() => {
-            setActiveFilterId(undefined);
-            setStatusFilter("active");
-            setTypeFilter("all");
-            setCategoryFilter("all");
-          }}
+          onClearFilters={handleClearFilters}
           sortOptions={sortOptions}
           sortValue={sortValue}
           onSortChange={setSortValue}
