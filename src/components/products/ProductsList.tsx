@@ -70,7 +70,11 @@ import { toast } from "sonner";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-// Tabs removed until Categories and Pricing are implemented
+const pageTabs = [
+  { id: "products", label: "Produtos" },
+  { id: "categories", label: "Categorias" },
+  { id: "pricing", label: "Tabelas de Preço" },
+];
 
 const sortOptions = [
   { value: "name_asc", label: "Nome (A-Z)" },
@@ -341,6 +345,9 @@ export function ProductsList() {
           title="Produtos"
           count={totalProducts}
           description="Gerencie os seus produtos e serviços"
+          tabs={pageTabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
           actions={[
             {
               label: "Importar SKUs",
