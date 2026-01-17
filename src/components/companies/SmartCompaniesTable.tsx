@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Sparkles, Trash2, Building2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, Users, Factory, Briefcase } from "lucide-react";
+import { TableSkeleton, SearchEmptyState, EmptyState } from "@/components/design-system";
 import { toast } from "sonner";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -362,26 +363,26 @@ export function SmartCompaniesTable() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 15 : 10} className="text-center py-12">
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      A carregar...
-                    </div>
+                  <TableCell colSpan={showAdvanced ? 15 : 10} className="p-0">
+                    <TableSkeleton rows={5} columns={showAdvanced ? 15 : 10} showHeader={false} />
                   </TableCell>
                 </TableRow>
               ) : !filteredCompanies.length ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 15 : 10} className="text-center py-12">
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                      <Building2 className="w-12 h-12 opacity-50" />
-                      <p className="text-lg font-medium">
-                        {searchValue ? "Nenhuma empresa encontrada" : "Quando entrarem empresas, a IA vai organizá-las por ti"}
-                      </p>
-                      <Button onClick={() => setIsCreateOpen(true)}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar Empresa
-                      </Button>
-                    </div>
+                  <TableCell colSpan={showAdvanced ? 15 : 10} className="text-center py-8">
+                    {searchValue ? (
+                      <SearchEmptyState query={searchValue} />
+                    ) : (
+                      <EmptyState
+                        type="companies"
+                        title="Ainda não há empresas"
+                        description="Quando entrarem empresas, a IA vai organizá-las por ti"
+                        action={{
+                          label: "Adicionar Empresa",
+                          onClick: () => setIsCreateOpen(true),
+                        }}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (

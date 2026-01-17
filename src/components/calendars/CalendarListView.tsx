@@ -3,16 +3,12 @@ import { format, parseISO, isAfter, isBefore, isSameDay } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
   Calendar as CalendarIcon, 
-  Clock, 
   MapPin, 
   Video, 
-  User, 
-  Building2,
-  Filter,
   SortAsc,
   SortDesc,
-  ChevronDown
 } from 'lucide-react';
+import { EmptyState } from '@/components/design-system';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -188,9 +184,12 @@ export function CalendarListView({
       {/* Event list */}
       <div className="flex-1 overflow-auto">
         {groupedByDate.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <CalendarIcon className="h-12 w-12 mb-4 opacity-50" />
-            <p>Nenhum evento encontrado</p>
+          <div className="flex items-center justify-center h-full">
+            <EmptyState
+              type="calendar"
+              title="Nenhum evento encontrado"
+              description="Não há eventos para os filtros selecionados"
+            />
           </div>
         ) : (
           <div className="divide-y">
