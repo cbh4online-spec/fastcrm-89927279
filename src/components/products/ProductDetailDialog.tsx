@@ -5,6 +5,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,10 +37,11 @@ import {
   RefreshCw,
   Calendar,
   CheckCircle,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useProduct, useUpdateProduct, useArchiveProduct } from "@/hooks/useProducts";
+import { useProduct, useUpdateProduct, useArchiveProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useProductStats, generateProductAlerts } from "@/hooks/useProductStats";
 import {
   productTypeLabels,
@@ -64,11 +75,13 @@ export function ProductDetailDialog({
 }: ProductDetailDialogProps) {
   const [tab, setTab] = useState("details");
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: product, isLoading } = useProduct(productId);
   const { data: stats } = useProductStats(productId);
   const updateProduct = useUpdateProduct();
   const archiveProduct = useArchiveProduct();
+  const deleteProduct = useDeleteProduct();
 
   const formatCurrency = (value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
@@ -83,6 +96,13 @@ export function ProductDetailDialog({
       id: product.id,
       archive: product.status === "active",
     });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!product) return;
+    await deleteProduct.mutateAsync(product.id);
+    setDeleteOpen(false);
+    onOpenChange(false);
   };
 
   if (isLoading) {
@@ -155,6 +175,15 @@ export function ProductDetailDialog({
                       Reativar
                     </>
                   )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDeleteOpen(true)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Eliminar
                 </Button>
               </div>
             </div>
@@ -391,6 +420,29 @@ export function ProductDetailDialog({
         onOpenChange={setEditOpen}
         product={product}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar produto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que pretende eliminar o produto "{product?.name}"? 
+              Esta ação é irreversível e irá remover permanentemente o produto do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
