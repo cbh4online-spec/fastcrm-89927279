@@ -90,151 +90,93 @@ interface NavGroup {
   moduleSlug?: string; // Required module slug for the entire group
 }
 
-// Navigation structure based on operational flow
+// Navigation structure - Simplified and organized
 const navigationGroups: NavGroup[] = [
+  // PRINCIPAL
   {
-    name: "Comando",
-    icon: Brain,
-    tooltip: "Centro de controlo com insights de IA",
+    name: "Principal",
+    icon: LayoutDashboard,
+    tooltip: "Área principal do sistema",
     items: [
-      { 
-        name: "Dashboard", 
-        href: "/dashboard", 
-        icon: LayoutDashboard,
-        tooltip: "Visão geral com KPIs e ações prioritárias"
-      },
-      { 
-        name: "Mural Interno", 
-        href: "/dashboard/feed", 
-        icon: Newspaper,
-        tooltip: "Comunicação interna da equipa",
-        highlight: true
-      },
-      { 
-        name: "Coach IA", 
-        href: "/dashboard/productivity", 
-        icon: Sparkles,
-        tooltip: "Coach de produtividade com IA",
-        highlight: true
-      },
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, tooltip: "Visão geral com KPIs" },
+      { name: "Mural Interno", href: "/dashboard/feed", icon: Newspaper, tooltip: "Comunicação interna" },
+      { name: "Coach IA", href: "/dashboard/productivity", icon: Sparkles, tooltip: "Produtividade com IA", highlight: true },
     ],
   },
-  {
-    name: "Conversas",
-    icon: MessageSquare,
-    tooltip: "Todas as suas comunicações num só lugar",
-    items: [
-      { name: "Inbox", href: "/dashboard/inbox", icon: Inbox, tooltip: "Mensagens unificadas" },
-      { name: "Instagram", href: "/dashboard/inbox?channel=instagram", icon: Instagram, tooltip: "DMs do Instagram", moduleSlug: "instagram-integration" },
-      { name: "WhatsApp", href: "/dashboard/inbox?channel=whatsapp", icon: Phone, tooltip: "Mensagens WhatsApp", moduleSlug: "whatsapp-business" },
-      { name: "Email", href: "/dashboard/inbox?channel=email", icon: Mail, tooltip: "Emails recebidos" },
-    ],
-  },
-  {
-    name: "Leads",
-    icon: Target,
-    tooltip: "Gestão de potenciais clientes",
-    items: [
-      { name: "Todos os Leads", href: "/dashboard/leads", icon: Target, tooltip: "Ver todos os leads" },
-      { name: "Novos Leads", href: "/dashboard/leads?status=new", icon: UserPlus, tooltip: "Leads ainda não contactados" },
-      { name: "Qualificados", href: "/dashboard/leads?status=qualified", icon: UserCheck, tooltip: "Leads prontos para venda" },
-    ],
-  },
-  {
-    name: "Prospecção",
-    icon: Compass,
-    tooltip: "Encontrar novos potenciais clientes",
-    highlight: true,
-    items: [
-      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar empresas no Google Maps", highlight: true, moduleSlug: "google-local-services" },
-      { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar empresas na web", moduleSlug: "web-search-services" },
-    ],
-  },
-  {
-    name: "Vendas",
-    icon: TrendingUp,
-    tooltip: "Acompanhe oportunidades e feche negócios",
-    highlight: true,
-    items: [
-      { name: "Oportunidades", href: "/dashboard/opportunities", icon: Kanban, tooltip: "Negócios em curso", highlight: true },
-      { name: "Pipeline", href: "/dashboard/crm", icon: Layers, tooltip: "Vista do funil de vendas", highlight: true },
-      { name: "Propostas", href: "/dashboard/proposals", icon: FileText, tooltip: "Propostas enviadas e pendentes", highlight: true },
-      { name: "Agendamento", href: "/dashboard/scheduling", icon: CalendarDays, tooltip: "Calendários, reuniões e disponibilidade", highlight: true },
-      { name: "Produtos", href: "/dashboard/products", icon: Target, tooltip: "Catálogo de produtos e serviços" },
-    ],
-  },
-  {
-    name: "Contactos",
-    icon: Users,
-    tooltip: "Base de dados de pessoas e empresas",
-    items: [
-      { name: "Pessoas", href: "/dashboard/contacts", icon: UsersRound, tooltip: "Contactos individuais" },
-      { name: "Empresas", href: "/dashboard/companies", icon: Building2, tooltip: "Organizações e empresas" },
-    ],
-  },
-  {
-    name: "Relatórios",
-    icon: BarChart3,
-    tooltip: "Previsões, métricas e análises de negócio",
-    highlight: true,
-    items: [
-      { name: "Visão Geral", href: "/dashboard/reports", icon: PieChart, tooltip: "KPIs executivos" },
-      { name: "KPIs Operacionais", href: "/dashboard/reports/kpis", icon: TrendingUp, tooltip: "Métricas detalhadas", highlight: true },
-      { name: "Previsões", href: "/dashboard/reports/forecasts", icon: TrendingUp, tooltip: "Receita prevista" },
-      { name: "Vendas", href: "/dashboard/reports/sales", icon: Target, tooltip: "Pipeline e propostas" },
-      { name: "Consumo", href: "/dashboard/reports/consumption", icon: BarChart3, tooltip: "Sessões e capacidade" },
-      { name: "Crescimento", href: "/dashboard/reports/growth", icon: Users, tooltip: "Top clientes e vendedores" },
-      { name: "Retenção & Churn", href: "/dashboard/reports/retention", icon: Users, tooltip: "Clientes em risco" },
-    ],
-  },
+  // COMUNICAÇÃO
   {
     name: "Comunicação",
     icon: MessageSquare,
-    tooltip: "Templates e mensagens automatizadas",
+    tooltip: "Mensagens e conversas",
     items: [
-      { name: "Templates", href: "/dashboard/communication/templates", icon: FileCode, tooltip: "Modelos de mensagens reutilizáveis" },
+      { name: "Inbox", href: "/dashboard/inbox", icon: Inbox, tooltip: "Mensagens unificadas" },
+      { name: "Instagram", href: "/dashboard/inbox?channel=instagram", icon: Instagram, tooltip: "DMs Instagram", moduleSlug: "instagram-integration" },
+      { name: "WhatsApp", href: "/dashboard/inbox?channel=whatsapp", icon: Phone, tooltip: "Mensagens WhatsApp", moduleSlug: "whatsapp-business" },
+      { name: "Email", href: "/dashboard/inbox?channel=email", icon: Mail, tooltip: "Emails" },
+      { name: "Templates", href: "/dashboard/communication/templates", icon: FileCode, tooltip: "Modelos de mensagens" },
     ],
   },
+  // CRM
   {
-    name: "Automações",
-    icon: Zap,
-    tooltip: "Automatize tarefas repetitivas",
+    name: "CRM",
+    icon: Users,
+    tooltip: "Gestão de relacionamentos",
     items: [
-      { name: "Workflows", href: "/dashboard/automations", icon: Workflow, tooltip: "Regras de automação" },
-      { name: "AI Insights", href: "/dashboard/ai-suggestions", icon: Brain, tooltip: "Sugestões inteligentes", premiumFeature: "ai_suggestions" },
+      { name: "Leads", href: "/dashboard/leads", icon: Target, tooltip: "Potenciais clientes" },
+      { name: "Contactos", href: "/dashboard/contacts", icon: UsersRound, tooltip: "Pessoas" },
+      { name: "Empresas", href: "/dashboard/companies", icon: Building2, tooltip: "Organizações" },
+      { name: "Oportunidades", href: "/dashboard/opportunities", icon: Kanban, tooltip: "Negócios em curso" },
     ],
   },
+  // VENDAS
   {
-    name: "IA & Conhecimento",
-    icon: Brain,
-    tooltip: "Bases de conhecimento e especialistas IA",
+    name: "Vendas",
+    icon: TrendingUp,
+    tooltip: "Pipeline e propostas",
     highlight: true,
     items: [
-      { name: "Perfis de IA", href: "/dashboard/ai-profiles", icon: Brain, tooltip: "Comportamento da IA por contexto", highlight: true },
-      { name: "Bases de Conhecimento", href: "/dashboard/knowledge-base", icon: Brain, tooltip: "Treinar a IA com conteúdo" },
+      { name: "Pipeline", href: "/dashboard/crm", icon: Layers, tooltip: "Funil de vendas" },
+      { name: "Propostas", href: "/dashboard/proposals", icon: FileText, tooltip: "Propostas comerciais" },
+      { name: "Agendamento", href: "/dashboard/scheduling", icon: CalendarDays, tooltip: "Calendários e reuniões" },
+      { name: "Produtos", href: "/dashboard/products", icon: Package, tooltip: "Catálogo de produtos" },
     ],
   },
+  // MARKETING
   {
-    name: "Financeiro",
-    icon: PaymentIcon,
-    tooltip: "Faturas, pagamentos e receitas",
-    highlight: true,
+    name: "Marketing",
+    icon: Compass,
+    tooltip: "Prospecção e automação",
     items: [
-      { name: "Faturas", href: "/dashboard/invoices", icon: FileText, tooltip: "Gerir faturas", highlight: true },
-      { name: "Pagamentos", href: "/dashboard/payments", icon: PaymentIcon, tooltip: "Histórico de pagamentos" },
+      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar no Google Maps", moduleSlug: "google-local-services" },
+      { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar na web", moduleSlug: "web-search-services" },
+      { name: "Automações", href: "/dashboard/automations", icon: Zap, tooltip: "Workflows automáticos" },
       { name: "Landing Pages", href: "/dashboard/landing-pages", icon: Globe, tooltip: "Páginas de captura" },
     ],
   },
+  // RELATÓRIOS
+  {
+    name: "Relatórios",
+    icon: BarChart3,
+    tooltip: "Métricas e análises",
+    items: [
+      { name: "Visão Geral", href: "/dashboard/reports", icon: PieChart, tooltip: "KPIs executivos" },
+      { name: "KPIs", href: "/dashboard/reports/kpis", icon: TrendingUp, tooltip: "Métricas detalhadas" },
+      { name: "Previsões", href: "/dashboard/reports/forecasts", icon: TrendingUp, tooltip: "Receita prevista" },
+      { name: "Consumo", href: "/dashboard/reports/consumption", icon: BarChart3, tooltip: "Sessões e capacidade" },
+    ],
+  },
+  // FERRAMENTAS
   {
     name: "Ferramentas",
     icon: FileEdit,
-    tooltip: "Utilitários e integrações",
+    tooltip: "Utilitários do sistema",
     items: [
       { name: "Form Studio", href: "/dashboard/form-studio", icon: FileEdit, tooltip: "Construtor de formulários" },
       { name: "Importações", href: "/dashboard/imports", icon: Download, tooltip: "Importar dados" },
-      { name: "Integrações", href: "/dashboard/settings/integrations", icon: Link2, tooltip: "Conectar apps externos" },
-      { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, tooltip: "Módulos e extensões", highlight: true },
-      { name: "Gestão Módulos", href: "/dashboard/admin/marketplace", icon: Package, tooltip: "Administrar módulos", requiresAdmin: true },
+      { name: "Integrações", href: "/dashboard/settings/integrations", icon: Link2, tooltip: "Conectar apps" },
+      { name: "Perfis IA", href: "/dashboard/ai-profiles", icon: Brain, tooltip: "Comportamento da IA" },
+      { name: "Bases Conhecimento", href: "/dashboard/knowledge-base", icon: Brain, tooltip: "Treinar a IA" },
+      { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, tooltip: "Módulos", highlight: true },
     ],
   },
 ];
@@ -435,42 +377,61 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto"
               style={{ colorScheme: 'dark' }}
             >
-              {filteredNavigationGroups.map(renderNavGroup)}
-              
-              {/* Settings Group */}
-              <div className="pt-4 mt-4 border-t border-white/10">
-                <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <CollapsibleTrigger asChild>
-                        <button
-                          className={cn(
-                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                            settingsOpen
-                              ? "bg-white/15 text-white"
-                              : "text-white/70 hover:bg-white/10 hover:text-white"
-                          )}
-                        >
-                          <Settings className="w-5 h-5" />
-                          <span className="flex-1 text-left">Definições</span>
-                          {settingsOpen ? (
-                            <ChevronDown className="w-4 h-4" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4" />
-                          )}
-                        </button>
-                      </CollapsibleTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-[200px]">
-                      <p>Configurações do sistema</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <CollapsibleContent className="space-y-0.5 mt-1">
-                    {settingsItems.map((item) => renderNavItem(item, true))}
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-            </nav>
+            {/* Navigation Groups */}
+            <div className="space-y-1">
+              {filteredNavigationGroups.slice(0, 3).map(renderNavGroup)}
+            </div>
+            
+            {/* Visual Separator */}
+            <div className="my-3 mx-3 border-t border-white/10" />
+            
+            {/* More Groups */}
+            <div className="space-y-1">
+              {filteredNavigationGroups.slice(3, 5).map(renderNavGroup)}
+            </div>
+            
+            {/* Visual Separator */}
+            <div className="my-3 mx-3 border-t border-white/10" />
+            
+            {/* Remaining Groups */}
+            <div className="space-y-1">
+              {filteredNavigationGroups.slice(5).map(renderNavGroup)}
+            </div>
+          </nav>
+
+          {/* Settings at Bottom - Outside scroll area */}
+          <div className="mt-auto border-t border-white/10 p-3">
+            <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                        settingsOpen
+                          ? "bg-white/15 text-white"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
+                      )}
+                    >
+                      <Settings className="w-5 h-5" />
+                      <span className="flex-1 text-left">Definições</span>
+                      {settingsOpen ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </button>
+                  </CollapsibleTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[200px]">
+                  <p>Configurações do sistema</p>
+                </TooltipContent>
+              </Tooltip>
+              <CollapsibleContent className="space-y-0.5 mt-1">
+                {settingsItems.map((item) => renderNavItem(item, true))}
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
 
             {/* Role indicator */}
             {currentWorkspace && (
