@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,10 +8,11 @@ import { CategoryFilter } from "@/components/marketplace/CategoryFilter";
 import { ModuleDetailSheet } from "@/components/marketplace/ModuleDetailSheet";
 import { FeaturedModules } from "@/components/marketplace/FeaturedModules";
 import { MarketplaceModule, ModuleCategory, SAMPLE_MODULES } from "@/types/marketplace";
-import { Search, Store, Package, Sparkles, Loader2 } from "lucide-react";
+import { Search, Store, Package, Sparkles, ArrowLeft } from "lucide-react";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 
 export default function Marketplace() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategory | "all">("all");
   const [selectedModule, setSelectedModule] = useState<MarketplaceModule | null>(null);
@@ -77,6 +79,15 @@ export default function Marketplace() {
       {/* Header */}
       <div className="border-b bg-gradient-to-r from-primary/5 via-primary/3 to-background">
         <div className="container mx-auto px-4 py-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/dashboard")}
+            className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Voltar ao Dashboard
+          </Button>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-xl bg-primary/10">
               <Store className="w-6 h-6 text-primary" />
