@@ -5,6 +5,36 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Product, CreateProductInput, UpdateProductInput } from "@/types/product";
 
+// Helper function to ensure category exists in product_categories table
+async function ensureCategoryExists(categoryName: string | undefined, workspaceId: string): Promise<void> {
+  if (!categoryName || !categoryName.trim()) return;
+
+  const trimmedName = categoryName.trim();
+
+  // Check if category already exists
+  const { data: existingCategory } = await supabase
+    .from("product_categories")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("name", trimmedName)
+    .maybeSingle();
+
+  // If category doesn't exist, create it
+  if (!existingCategory) {
+    const { error } = await supabase
+      .from("product_categories")
+      .insert({
+        name: trimmedName,
+        workspace_id: workspaceId,
+        is_active: true,
+      });
+
+    if (error && !error.message.includes("duplicate")) {
+      console.warn("Failed to create category:", error);
+    }
+  }
+}
+
 export function useProducts(filters?: {
   status?: string;
   productType?: string;
@@ -82,6 +112,9 @@ export function useCreateProduct() {
         throw new Error("Workspace ou utilizador não encontrado");
       }
 
+      // Ensure category exists in product_categories table
+      await ensureCategoryExists(input.category, currentWorkspace.id);
+
       const { data, error } = await supabase
         .from("products")
         .insert({
@@ -97,6 +130,7 @@ export function useCreateProduct() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       toast.success("Produto criado com sucesso!");
     },
     onError: (error) => {
@@ -107,9 +141,15 @@ export function useCreateProduct() {
 
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdateProductInput) => {
+      // Ensure category exists if being updated
+      if (input.category && currentWorkspace?.id) {
+        await ensureCategoryExists(input.category, currentWorkspace.id);
+      }
+
       const updateData: Record<string, any> = {
         updated_at: new Date().toISOString(),
       };
@@ -155,6 +195,7 @@ export function useUpdateProduct() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       toast.success("Produto atualizado com sucesso!");
     },
     onError: (error) => {
