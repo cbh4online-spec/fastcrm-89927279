@@ -86,8 +86,31 @@ export function useCreateProductCategory() {
 
   return useMutation({
     mutationFn: async (input: CreateProductCategoryInput) => {
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Utilizador não autenticado. Por favor, faça login novamente.");
+      }
+
       if (!currentWorkspace?.id) {
-        throw new Error("Workspace não encontrado");
+        throw new Error("Workspace não encontrado. Por favor, selecione um workspace.");
+      }
+
+      // Verify user has access to this workspace
+      const { data: membership, error: membershipError } = await supabase
+        .from("workspace_members")
+        .select("id")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (membershipError) {
+        console.error("Error checking membership:", membershipError);
+        throw new Error("Erro ao verificar permissões");
+      }
+
+      if (!membership) {
+        throw new Error("Não tem permissões para criar categorias neste workspace");
       }
 
       const { data, error } = await supabase
@@ -99,7 +122,10 @@ export function useCreateProductCategory() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating category:", error);
+        throw error;
+      }
       return data as ProductCategory;
     },
     onSuccess: () => {
@@ -109,6 +135,8 @@ export function useCreateProductCategory() {
     onError: (error) => {
       if (error.message.includes("duplicate")) {
         toast.error("Já existe uma categoria com este nome");
+      } else if (error.message.includes("row-level security")) {
+        toast.error("Sem permissões. Por favor, faça login novamente.");
       } else {
         toast.error("Erro ao criar categoria: " + error.message);
       }
