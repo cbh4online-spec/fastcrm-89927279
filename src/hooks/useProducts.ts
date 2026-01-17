@@ -266,7 +266,7 @@ export function useProductCategories() {
   const { currentWorkspace } = useWorkspace();
 
   return useQuery({
-    queryKey: ["product-categories", currentWorkspace?.id],
+    queryKey: ["product-category-names", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
