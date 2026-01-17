@@ -37,7 +37,6 @@ import {
   PanelLeftClose,
   RefreshCw,
   Download,
-  
   ChevronLeft,
   ChevronRight,
   Layers,
@@ -48,6 +47,9 @@ import {
   FileBox,
   Clock,
   Upload,
+  GraduationCap,
+  Boxes,
+  Box,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -68,11 +70,7 @@ import { toast } from "sonner";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-const pageTabs = [
-  { id: "products", label: "Produtos" },
-  { id: "categories", label: "Categorias" },
-  { id: "pricing", label: "Tabelas de Preço" },
-];
+// Tabs removed until Categories and Pricing are implemented
 
 const sortOptions = [
   { value: "name_asc", label: "Nome (A-Z)" },
@@ -135,6 +133,9 @@ export function ProductsList() {
         { id: "type_recurring", label: "Recorrente", icon: <Repeat className="h-4 w-4" /> },
         { id: "type_composite", label: "Bundle", icon: <FileBox className="h-4 w-4" /> },
         { id: "type_sessions", label: "Sessões", icon: <Clock className="h-4 w-4" /> },
+        { id: "type_formacao", label: "Formação", icon: <GraduationCap className="h-4 w-4" /> },
+        { id: "type_programa", label: "Programa / Pack", icon: <Boxes className="h-4 w-4" /> },
+        { id: "type_physical", label: "Produto Físico", icon: <Box className="h-4 w-4" /> },
       ],
     },
     {
@@ -340,9 +341,6 @@ export function ProductsList() {
           title="Produtos"
           count={totalProducts}
           description="Gerencie os seus produtos e serviços"
-          tabs={pageTabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
           actions={[
             {
               label: "Importar SKUs",
