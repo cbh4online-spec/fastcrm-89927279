@@ -139,48 +139,66 @@ Responda no formato JSON:
         });
       }
 
-      // Search web for SKU
-      const searchQuery = `"${sku}" produto preço especificações`;
-      const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: searchQuery,
-          limit: 5,
-          scrapeOptions: { formats: ['markdown'] }
-        }),
-      });
+      // Try multiple search queries for better results
+      const searchQueries = [
+        `${sku} produto preço ficha técnica`,
+        `"${sku}" specifications price`,
+        sku.replace(/-/g, ' ') + ' produto',
+      ];
 
-      if (!searchResponse.ok) {
-        console.error('Firecrawl search failed:', searchResponse.status);
+      let allResults: any[] = [];
+      
+      for (const searchQuery of searchQueries) {
+        try {
+          console.log('Searching with query:', searchQuery);
+          const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              query: searchQuery,
+              limit: 5,
+              scrapeOptions: { formats: ['markdown'] }
+            }),
+          });
+
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            const results = searchData.data || [];
+            console.log(`Query "${searchQuery}" returned ${results.length} results`);
+            allResults = [...allResults, ...results];
+          }
+        } catch (e) {
+          console.error('Search query failed:', searchQuery, e);
+        }
+        
+        // If we have enough results, stop searching
+        if (allResults.length >= 5) break;
+      }
+
+      // Remove duplicates by URL
+      const uniqueResults = allResults.filter((r, i, arr) => 
+        arr.findIndex(x => x.url === r.url) === i
+      ).slice(0, 5);
+
+      if (uniqueResults.length === 0) {
         return new Response(JSON.stringify({
           success: true,
-          data: { found: false, message: 'Search failed' }
+          data: { found: false, message: 'Nenhum resultado encontrado para este SKU' }
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const searchData = await searchResponse.json();
-      const searchResults = searchData.data || [];
-
-      if (searchResults.length === 0) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: { found: false }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      console.log('Total unique results:', uniqueResults.length);
 
       // Use AI to extract structured data from search results
       const extractPrompt = `Analise os seguintes resultados de pesquisa para o SKU "${sku}" e extraia informações do produto.
 
 Resultados:
-${searchResults.slice(0, 3).map((r: any) => `
+${uniqueResults.slice(0, 3).map((r: any) => `
 Título: ${r.title || 'N/A'}
 URL: ${r.url || 'N/A'}
 Conteúdo: ${(r.markdown || r.description || '').substring(0, 500)}
