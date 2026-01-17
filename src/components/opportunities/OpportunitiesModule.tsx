@@ -33,6 +33,8 @@ import { CreateOpportunityEnhancedDialog } from "./CreateOpportunityEnhancedDial
 import { OpportunityDetailDialog } from "./OpportunityDetailDialog";
 import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog";
 import { toast } from "sonner";
+// Design System imports
+import { PageLoading, EmptyState } from "@/components/design-system";
 
 type ViewMode = "kanban" | "list";
 type StatusFilter = "all" | "open" | "won" | "lost";
@@ -126,11 +128,7 @@ export function OpportunitiesModule() {
   const isLoading = oppLoading || stagesLoading;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoading message="A carregar oportunidades..." />;
   }
 
   return (
@@ -202,17 +200,15 @@ export function OpportunitiesModule() {
 
       {/* Main Content */}
       {!stages?.length ? (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <SlidersHorizontal className="w-12 h-12 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Sem etapas de pipeline</h2>
-          <p className="text-muted-foreground mb-4">
-            Configure as etapas do pipeline para começar a acompanhar oportunidades.
-          </p>
-          <Button onClick={() => setIsSettingsDialogOpen(true)}>
-            <Settings className="w-4 h-4 mr-2" />
-            Configurar Pipeline
-          </Button>
-        </div>
+        <EmptyState
+          type="opportunities"
+          title="Sem etapas de pipeline"
+          description="Configure as etapas do pipeline para começar a acompanhar oportunidades."
+          action={{
+            label: "Configurar Pipeline",
+            onClick: () => setIsSettingsDialogOpen(true),
+          }}
+        />
       ) : viewMode === "kanban" ? (
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="flex gap-4 pb-4">
