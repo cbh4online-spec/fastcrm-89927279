@@ -1,18 +1,19 @@
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns';
 import { 
   CalendarDays, 
   Clock, 
   Briefcase, 
   CalendarClock,
-  LayoutDashboard,
-  ChevronRight,
-  Sparkles,
+  Plus,
+  PanelLeft,
+  PanelLeftClose,
+  RefreshCw,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 // Calendar components
 import { useCalendars, type Calendar, type CalendarEvent, type CreateCalendarData, type CreateEventData } from '@/hooks/useCalendars';
@@ -31,15 +32,63 @@ import { ServicesDashboard } from '@/components/services/ServicesDashboard';
 // Availability components
 import { AvailabilityDashboard } from '@/components/availability/AvailabilityDashboard';
 
+// Common components
+import { PageHeader } from '@/components/common/PageHeader';
+import { Toolbar } from '@/components/common/Toolbar';
+import { FilterSidebar, FilterGroup } from '@/components/common/FilterSidebar';
+
 import { Loader2 } from 'lucide-react';
 
 type TabValue = 'calendar' | 'meetings' | 'services' | 'availability';
 
-const tabs: { value: TabValue; label: string; icon: React.ElementType; description: string }[] = [
-  { value: 'calendar', label: 'Agenda', icon: CalendarDays, description: 'Vista global de eventos' },
-  { value: 'meetings', label: 'Reuniões', icon: Clock, description: 'Gestão de reuniões' },
-  { value: 'services', label: 'Serviços', icon: Briefcase, description: 'Tipos de agendamento' },
-  { value: 'availability', label: 'Disponibilidade', icon: CalendarClock, description: 'Horários de trabalho' },
+const pageTabs = [
+  { id: 'calendar', label: 'Agenda', icon: <CalendarDays className="h-4 w-4" /> },
+  { id: 'meetings', label: 'Reuniões', icon: <Clock className="h-4 w-4" /> },
+  { id: 'services', label: 'Serviços', icon: <Briefcase className="h-4 w-4" /> },
+  { id: 'availability', label: 'Disponibilidade', icon: <CalendarClock className="h-4 w-4" /> },
+];
+
+const sortOptions = [
+  { value: 'date_asc', label: 'Data (próximos)' },
+  { value: 'date_desc', label: 'Data (recentes)' },
+  { value: 'name_asc', label: 'Nome (A-Z)' },
+];
+
+const filterGroups: FilterGroup[] = [
+  {
+    id: 'type',
+    label: 'Tipo de Evento',
+    icon: <CalendarDays className="h-4 w-4" />,
+    defaultOpen: true,
+    items: [
+      { id: 'type_meeting', label: 'Reuniões', icon: <Clock className="h-4 w-4" /> },
+      { id: 'type_task', label: 'Tarefas' },
+      { id: 'type_reminder', label: 'Lembretes' },
+      { id: 'type_block', label: 'Bloqueios' },
+    ],
+  },
+  {
+    id: 'status',
+    label: 'Estado',
+    icon: <Clock className="h-4 w-4" />,
+    defaultOpen: false,
+    items: [
+      { id: 'status_confirmed', label: 'Confirmado' },
+      { id: 'status_pending', label: 'Pendente' },
+      { id: 'status_cancelled', label: 'Cancelado' },
+    ],
+  },
+  {
+    id: 'timing',
+    label: 'Período',
+    icon: <CalendarClock className="h-4 w-4" />,
+    defaultOpen: false,
+    items: [
+      { id: 'timing_today', label: 'Hoje' },
+      { id: 'timing_week', label: 'Esta semana' },
+      { id: 'timing_month', label: 'Este mês' },
+    ],
+  },
 ];
 
 export function SchedulingHub() {
@@ -50,6 +99,12 @@ export function SchedulingHub() {
   const [editingCalendar, setEditingCalendar] = useState<Calendar | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [defaultEventDate, setDefaultEventDate] = useState<Date>(new Date());
+
+  // New state for reorganized UI
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
+  const [searchValue, setSearchValue] = useState('');
+  const [sortValue, setSortValue] = useState('date_asc');
 
   const {
     calendars,
@@ -123,11 +178,17 @@ export function SchedulingHub() {
     await deleteEvent(id);
   };
 
+  const handleFilterSelect = (filterId: string) => {
+    setActiveFilterId(filterId);
+  };
+
   // Stats for badges
   const stats = useMemo(() => ({
     events: events.length,
     calendars: calendars.length,
   }), [events, calendars]);
+
+  const filtersActive = !!activeFilterId;
 
   if (calendarsLoading) {
     return (
@@ -137,102 +198,205 @@ export function SchedulingHub() {
     );
   }
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header with glassmorphism effect */}
-      <div className="relative px-6 py-4 border-b bg-background/80 backdrop-blur-xl">
-        {/* Decorative gradient line */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-        
-        <div className="flex items-center justify-between">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/dashboard" className="hover:text-foreground transition-colors flex items-center gap-1.5 group">
-              <LayoutDashboard className="h-4 w-4 group-hover:text-primary transition-colors" />
-              <span>Dashboard</span>
-            </Link>
-            <ChevronRight className="h-4 w-4" />
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-foreground font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                Centro de Agendamento
-              </span>
-            </div>
-          </div>
+  const getActionForTab = () => {
+    switch (activeTab) {
+      case 'calendar':
+        return {
+          label: 'Novo Evento',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: () => handleCreateEvent(new Date()),
+        };
+      case 'meetings':
+        return {
+          label: 'Nova Reunião',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: () => {},
+        };
+      case 'services':
+        return {
+          label: 'Novo Serviço',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: () => {},
+        };
+      case 'availability':
+        return {
+          label: 'Nova Disponibilidade',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: () => {},
+        };
+      default:
+        return undefined;
+    }
+  };
 
-          {/* Quick stats */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-              <CalendarDays className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-medium">{stats.calendars} calendários</span>
+  return (
+    <div className="flex h-full -m-6">
+      {/* Filter Sidebar - Only shown for calendar tab */}
+      {activeTab === 'calendar' && (
+        <FilterSidebar
+          filterGroups={filterGroups}
+          activeFilterId={activeFilterId}
+          onFilterSelect={handleFilterSelect}
+          onClearFilter={() => setActiveFilterId(undefined)}
+          isOpen={showFilterSidebar}
+          onClose={() => setShowFilterSidebar(false)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0 p-6">
+        {/* Page Header */}
+        <PageHeader
+          title="Centro de Agendamento"
+          count={stats.events}
+          description={`${stats.calendars} calendários ativos`}
+          tabs={pageTabs}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as TabValue)}
+          actions={getActionForTab() ? [getActionForTab()!] : []}
+        />
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Eventos</p>
+                <p className="text-2xl font-bold">{stats.events}</p>
+              </div>
+              <CalendarDays className="h-8 w-8 text-primary/50" />
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/50 border border-accent">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-medium">{stats.events} eventos</span>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Calendários</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.calendars}</p>
+              </div>
+              <CalendarClock className="h-8 w-8 text-blue-500/50" />
             </div>
-          </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Hoje</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {events.filter(e => {
+                    const eventDate = new Date(e.start_time);
+                    const today = new Date();
+                    return eventDate.toDateString() === today.toDateString();
+                  }).length}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-green-500/50" />
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Esta Semana</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {events.filter(e => {
+                    const eventDate = new Date(e.start_time);
+                    const now = new Date();
+                    const weekEnd = new Date(now);
+                    weekEnd.setDate(weekEnd.getDate() + 7);
+                    return eventDate >= now && eventDate <= weekEnd;
+                  }).length}
+                </p>
+              </div>
+              <Briefcase className="h-8 w-8 text-purple-500/50" />
+            </div>
+          </Card>
+        </div>
+
+        {/* Toolbar - Only shown for calendar tab */}
+        {activeTab === 'calendar' && (
+          <Toolbar
+            searchValue={searchValue}
+            searchPlaceholder="Pesquisar eventos..."
+            onSearchChange={setSearchValue}
+            showFilters={true}
+            filtersActive={filtersActive}
+            onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
+            onClearFilters={() => setActiveFilterId(undefined)}
+            sortOptions={sortOptions}
+            sortValue={sortValue}
+            onSortChange={setSortValue}
+            leftActions={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFilterSidebar(!showFilterSidebar)}
+                className="gap-2"
+              >
+                {showFilterSidebar ? (
+                  <PanelLeftClose className="h-4 w-4" />
+                ) : (
+                  <PanelLeft className="h-4 w-4" />
+                )}
+              </Button>
+            }
+            rightActions={
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={handleCreateCalendar} className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Calendários
+                </Button>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+            }
+          />
+        )}
+
+        {/* Tab Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'calendar' && (
+            <div className="flex h-full gap-4">
+              <CalendarSidebar
+                calendars={calendars}
+                groups={groups}
+                selectedCalendarIds={selectedCalendarIds}
+                onToggleCalendar={toggleCalendarSelection}
+                onSelectAll={selectAllCalendars}
+                onDeselectAll={deselectAllCalendars}
+                onCreateCalendar={handleCreateCalendar}
+                onEditCalendar={handleEditCalendar}
+              />
+              <div className="flex-1">
+                <CalendarGlobalView
+                  events={events}
+                  calendars={calendars}
+                  groups={groups}
+                  selectedCalendarIds={selectedCalendarIds}
+                  onCreateEvent={handleCreateEvent}
+                  onEventClick={handleEventClick}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'meetings' && (
+            <div className="h-full overflow-auto">
+              <MeetingsDashboard />
+            </div>
+          )}
+
+          {activeTab === 'services' && (
+            <div className="h-full overflow-auto">
+              <ServicesDashboard />
+            </div>
+          )}
+
+          {activeTab === 'availability' && (
+            <div className="h-full overflow-auto">
+              <AvailabilityDashboard />
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Futuristic Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-6 py-3 border-b bg-muted/30 backdrop-blur-sm">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl mx-auto bg-background/50 backdrop-blur-sm p-1.5 rounded-xl border shadow-lg shadow-primary/5">
-            {tabs.map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className={cn(
-                  "relative flex items-center gap-2 py-3 px-4 rounded-lg font-medium transition-all duration-300",
-                  "data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80",
-                  "data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25",
-                  "hover:bg-muted/50"
-                )}
-              >
-                <tab.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-
-        {/* Calendar Tab */}
-        <TabsContent value="calendar" className="flex-1 flex overflow-hidden mt-0 p-0">
-          <CalendarSidebar
-            calendars={calendars}
-            groups={groups}
-            selectedCalendarIds={selectedCalendarIds}
-            onToggleCalendar={toggleCalendarSelection}
-            onSelectAll={selectAllCalendars}
-            onDeselectAll={deselectAllCalendars}
-            onCreateCalendar={handleCreateCalendar}
-            onEditCalendar={handleEditCalendar}
-          />
-          <CalendarGlobalView
-            events={events}
-            calendars={calendars}
-            groups={groups}
-            selectedCalendarIds={selectedCalendarIds}
-            onCreateEvent={handleCreateEvent}
-            onEventClick={handleEventClick}
-          />
-        </TabsContent>
-
-        {/* Meetings Tab */}
-        <TabsContent value="meetings" className="flex-1 overflow-auto mt-0">
-          <MeetingsTabContent />
-        </TabsContent>
-
-        {/* Services Tab */}
-        <TabsContent value="services" className="flex-1 overflow-auto mt-0">
-          <ServicesTabContent />
-        </TabsContent>
-
-        {/* Availability Tab */}
-        <TabsContent value="availability" className="flex-1 overflow-auto mt-0">
-          <AvailabilityTabContent />
-        </TabsContent>
-      </Tabs>
 
       {/* Modals */}
       <CalendarCreateModal
@@ -253,31 +417,6 @@ export function SchedulingHub() {
         onSubmit={handleSubmitEvent}
         onDelete={handleDeleteEvent}
       />
-    </div>
-  );
-}
-
-// Wrapper components to embed the existing dashboards without their headers
-function MeetingsTabContent() {
-  return (
-    <div className="h-full [&>div>div:first-child]:hidden">
-      <MeetingsDashboard />
-    </div>
-  );
-}
-
-function ServicesTabContent() {
-  return (
-    <div className="h-full [&>div>div:first-child]:hidden">
-      <ServicesDashboard />
-    </div>
-  );
-}
-
-function AvailabilityTabContent() {
-  return (
-    <div className="h-full [&>div>div:first-child]:hidden">
-      <AvailabilityDashboard />
     </div>
   );
 }
