@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details";
+  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image";
   productName?: string;
   sku?: string;
   category?: string;
@@ -799,6 +799,63 @@ Responda no formato JSON:
       return new Response(JSON.stringify({
         success: true,
         data: suggestion
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } else if (mode === 'generate-product-image' && productName) {
+      // Generate an image for a product using the image model
+      const imagePrompt = `Create a professional product photo for "${productName}".
+${category ? `Product category: ${category}` : ''}
+${description ? `Product description: ${description}` : ''}
+
+Style: Clean, professional product photography on a clean background.
+Lighting: Professional studio lighting with soft shadows.
+Composition: Centered product, suitable as a product listing image.
+Format: Square aspect ratio, e-commerce style.
+DO NOT include any text or labels in the image.`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image-preview',
+          messages: [
+            { role: 'user', content: imagePrompt }
+          ],
+          modalities: ['image', 'text'],
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const images = data.choices?.[0]?.message?.images || [];
+      const imageBase64 = images[0]?.image_url?.url || null;
+
+      if (!imageBase64) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Não foi possível gerar a imagem'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: { imageBase64 }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

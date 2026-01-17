@@ -157,15 +157,42 @@ export function useProductAIAssistant() {
     },
   });
 
+  const generateProductImage = useMutation({
+    mutationFn: async ({
+      productName,
+      category,
+      description,
+    }: {
+      productName: string;
+      category?: string;
+      description?: string;
+    }): Promise<{ imageBase64: string }> => {
+      const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
+        body: {
+          mode: "generate-product-image",
+          productName,
+          category,
+          description,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || "Failed to generate image");
+      return data.data;
+    },
+  });
+
   return {
     suggestFromName,
     searchBySKU,
     generateDescription,
     analyzePrice,
+    generateProductImage,
     isLoading:
       suggestFromName.isPending ||
       searchBySKU.isPending ||
       generateDescription.isPending ||
-      analyzePrice.isPending,
+      analyzePrice.isPending ||
+      generateProductImage.isPending,
   };
 }
