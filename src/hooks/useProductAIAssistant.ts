@@ -9,15 +9,45 @@ interface ProductSuggestion {
   productType?: string;
 }
 
+interface ProductSpecifications {
+  brand?: string;
+  resolution?: string;
+  sensor?: string;
+  lens?: string;
+  nightVision?: string;
+  audio?: string;
+  connectivity?: string;
+  storage?: string;
+  protection?: string;
+  wdr?: string;
+  compression?: string;
+  temperature?: string;
+  compatibility?: string;
+  power?: string;
+  [key: string]: string | undefined;
+}
+
 interface SKUSearchResult {
   found: boolean;
+  // Technical version
+  technicalName?: string;
+  technicalDescription?: string;
+  // Commercial version (Amazon-style)
+  commercialName?: string;
+  commercialDescription?: string;
+  // Legacy fields for backward compatibility
   name?: string;
   description?: string;
+  // Price info
   priceRange?: { min: number; max: number };
   suggestedPrice?: number;
+  // Other info
   category?: string;
   imageUrl?: string;
+  images?: string[];
   source?: string;
+  sources?: string[];
+  specifications?: ProductSpecifications;
 }
 
 interface DescriptionResult {
