@@ -2,14 +2,17 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Check, ExternalLink, Package, ChevronDown, ChevronUp, Sparkles, FileText, Image as ImageIcon } from "lucide-react";
+import { Loader2, Search, Check, ExternalLink, Package, ChevronDown, ChevronUp, Sparkles, FileText, Image as ImageIcon, Globe } from "lucide-react";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { PriceValidationIndicator } from "./PriceValidationIndicator";
+import { CompareSourcesDialog } from "./CompareSourcesDialog";
 
 interface SKUSearchPanelProps {
   sku: string;
+  currentPrice?: number;
   onApplyName: (name: string) => void;
   onApplyPrice: (price: number) => void;
   onApplyDescription: (description: string) => void;
@@ -24,6 +27,7 @@ interface SKUSearchPanelProps {
 
 export function SKUSearchPanel({
   sku,
+  currentPrice,
   onApplyName,
   onApplyPrice,
   onApplyDescription,
@@ -34,6 +38,7 @@ export function SKUSearchPanel({
   const [specsOpen, setSpecsOpen] = useState(false);
   const [nameVersion, setNameVersion] = useState<"commercial" | "technical">("commercial");
   const [descVersion, setDescVersion] = useState<"commercial" | "technical">("commercial");
+  const [compareOpen, setCompareOpen] = useState(false);
   const { searchBySKU } = useProductAIAssistant();
 
   const handleSearch = () => {
@@ -188,11 +193,19 @@ export function SKUSearchPanel({
                 )}
               </div>
               {searchBySKU.data.priceRange && (searchBySKU.data.priceRange.min > 0 || searchBySKU.data.priceRange.max > 0) && (
-                <div className="text-right">
+                <div className="text-right space-y-1">
                   <p className="text-xs text-muted-foreground">Preço mercado</p>
                   <p className="font-semibold text-sm text-primary">
                     €{searchBySKU.data.priceRange.min} - €{searchBySKU.data.priceRange.max}
                   </p>
+                  {currentPrice && currentPrice > 0 && (
+                    <PriceValidationIndicator
+                      currentPrice={currentPrice}
+                      marketMin={searchBySKU.data.priceRange.min}
+                      marketMax={searchBySKU.data.priceRange.max}
+                      suggestedPrice={searchBySKU.data.suggestedPrice}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -332,24 +345,36 @@ export function SKUSearchPanel({
               </Collapsible>
             )}
 
-            {/* Sources */}
-            {searchBySKU.data.sources && searchBySKU.data.sources.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                <span className="text-xs text-muted-foreground">Fontes:</span>
-                {searchBySKU.data.sources.slice(0, 3).map((src, idx) => (
-                  <a
-                    key={idx}
-                    href={src}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
-                  >
-                    {new URL(src).hostname.replace('www.', '')}
-                    <ExternalLink className="h-2.5 w-2.5" />
-                  </a>
-                ))}
-              </div>
-            )}
+            {/* Sources + Compare Button */}
+            <div className="flex items-center justify-between">
+              {searchBySKU.data.sources && searchBySKU.data.sources.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  <span className="text-xs text-muted-foreground">Fontes:</span>
+                  {searchBySKU.data.sources.slice(0, 3).map((src, idx) => (
+                    <a
+                      key={idx}
+                      href={src}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
+                    >
+                      {new URL(src).hostname.replace('www.', '')}
+                      <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  ))}
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setCompareOpen(true)}
+              >
+                <Globe className="h-3 w-3 mr-1" />
+                Comparar Fontes
+              </Button>
+            </div>
 
             {/* Apply All Buttons */}
             <div className="flex gap-2 pt-2 border-t">
@@ -398,6 +423,13 @@ export function SKUSearchPanel({
           Erro na pesquisa. Tente novamente.
         </div>
       ) : null}
+
+      {/* Compare Sources Dialog */}
+      <CompareSourcesDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        initialSku={sku}
+      />
     </Card>
   );
 }

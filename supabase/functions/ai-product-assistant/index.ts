@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis";
+  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources";
   productName?: string;
   sku?: string;
   category?: string;
@@ -445,6 +445,169 @@ Responda em JSON:
       return new Response(JSON.stringify({
         success: true,
         data: priceAnalysis
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } else if (mode === 'compare-sources' && sku) {
+      // Compare prices across multiple sources
+      if (!FIRECRAWL_API_KEY) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: { sku, sources: [], message: 'Firecrawl API key not configured' }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Search across multiple platforms
+      const searchPlatforms = [
+        { name: "Amazon", query: `site:amazon.es OR site:amazon.pt "${sku}" preço` },
+        { name: "AliExpress", query: `site:aliexpress.com "${sku}"` },
+        { name: "Kuantokusta", query: `site:kuantokusta.pt "${sku}"` },
+        { name: "PCDiga", query: `site:pcdiga.com "${sku}"` },
+        { name: "Worten", query: `site:worten.pt "${sku}"` },
+        { name: "Global", query: `"${sku}" preço comprar stock` },
+      ];
+
+      const allResults: any[] = [];
+
+      for (const platform of searchPlatforms) {
+        try {
+          console.log(`Searching ${platform.name}:`, platform.query);
+          const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              query: platform.query,
+              limit: 3,
+              scrapeOptions: { formats: ['markdown'] }
+            }),
+          });
+
+          if (searchResponse.ok) {
+            const data = await searchResponse.json();
+            const results = (data.data || []).map((r: any) => ({
+              ...r,
+              platform: platform.name,
+            }));
+            allResults.push(...results);
+          }
+        } catch (e) {
+          console.error(`Search failed for ${platform.name}:`, e);
+        }
+      }
+
+      console.log(`Total results found: ${allResults.length}`);
+
+      if (allResults.length === 0) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: { 
+            sku, 
+            sources: [], 
+            message: 'Nenhuma fonte encontrada' 
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Use AI to extract structured price comparison data
+      const comparePrompt = `Analise os seguintes resultados de pesquisa para o SKU "${sku}" e extraia informações de preço de cada fonte.
+
+Resultados:
+${allResults.slice(0, 10).map((r: any) => `
+Plataforma: ${r.platform}
+Título: ${r.title || 'N/A'}
+URL: ${r.url || 'N/A'}
+Conteúdo: ${(r.markdown || r.description || '').substring(0, 500)}
+`).join('\n---\n')}
+
+Extraia informações de CADA fonte encontrada. Responda em JSON:
+{
+  "sources": [
+    {
+      "source": "Nome da loja/plataforma",
+      "url": "URL completo",
+      "name": "Nome do produto encontrado",
+      "price": 99.99,
+      "currency": "EUR",
+      "inStock": true,
+      "imageUrl": "URL da imagem se disponível",
+      "rating": 4.5,
+      "reviews": 123
+    }
+  ]
+}
+
+REGRAS:
+- Inclui APENAS resultados com preços válidos
+- Converte todos os preços para números (sem símbolos)
+- Se não encontrar preço, não inclui essa fonte
+- Agrupa resultados do mesmo site
+- Ordena por preço (menor primeiro)`;
+
+      const extractResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: 'Você é um especialista em comparação de preços. Extrai dados de preço de resultados de pesquisa. Responda apenas em JSON válido.' },
+            { role: 'user', content: comparePrompt }
+          ],
+          temperature: 0.3,
+        }),
+      });
+
+      if (!extractResponse.ok) {
+        throw new Error(`AI extraction failed: ${extractResponse.status}`);
+      }
+
+      const extractData = await extractResponse.json();
+      const extractContent = extractData.choices?.[0]?.message?.content || '';
+
+      let compareResult: { sources: any[] } = { sources: [] };
+      try {
+        const jsonMatch = extractContent.match(/\{[\s\S]*\}/);
+        compareResult = jsonMatch ? JSON.parse(jsonMatch[0]) : { sources: [] };
+      } catch {
+        compareResult = { sources: [] };
+      }
+
+      // Calculate price statistics
+      const validPrices = compareResult.sources
+        .filter((s: any) => s.price && s.price > 0)
+        .sort((a: any, b: any) => a.price - b.price);
+
+      const lowestPrice = validPrices[0] 
+        ? { source: validPrices[0].source, price: validPrices[0].price }
+        : undefined;
+      
+      const highestPrice = validPrices[validPrices.length - 1]
+        ? { source: validPrices[validPrices.length - 1].source, price: validPrices[validPrices.length - 1].price }
+        : undefined;
+
+      const averagePrice = validPrices.length > 0
+        ? validPrices.reduce((sum: number, s: any) => sum + s.price, 0) / validPrices.length
+        : undefined;
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: {
+          sku,
+          sources: compareResult.sources,
+          lowestPrice,
+          highestPrice,
+          averagePrice,
+        }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
