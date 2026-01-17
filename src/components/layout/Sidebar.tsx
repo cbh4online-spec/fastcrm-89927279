@@ -137,6 +137,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Pipeline", href: "/dashboard/crm", icon: Layers, tooltip: "Funil de vendas" },
       { name: "Propostas", href: "/dashboard/proposals", icon: FileText, tooltip: "Propostas comerciais" },
+      { name: "Faturas", href: "/dashboard/invoices", icon: PaymentIcon, tooltip: "Gestão de faturas" },
       { name: "Agendamento", href: "/dashboard/scheduling", icon: CalendarDays, tooltip: "Calendários e reuniões" },
       { name: "Produtos", href: "/dashboard/products", icon: Package, tooltip: "Catálogo de produtos" },
     ],
