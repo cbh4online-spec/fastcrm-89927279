@@ -102,9 +102,9 @@ const contactBulkEditFields: BulkEditField[] = [
   // Dados fiscais
   { key: "tax_id", label: "NIF", type: "text" },
   { key: "entity_type", label: "Tipo de Entidade", type: "select", options: [
-    { value: "individual", label: "Pessoa Singular" },
-    { value: "company", label: "Empresa" },
-    { value: "freelancer", label: "Freelancer" },
+    { value: "consumidor_final", label: "Consumidor Final" },
+    { value: "eni", label: "ENI" },
+    { value: "empresa", label: "Empresa" },
   ]},
   { key: "fiscal_regime", label: "Regime Fiscal", type: "text" },
   { key: "is_fiscal_address", label: "Morada Fiscal", type: "boolean" },
