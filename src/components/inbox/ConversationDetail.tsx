@@ -58,6 +58,8 @@ import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
 import { useProposals } from "@/hooks/useProposals";
 import { calculateTemperature } from "@/lib/conversationTemperature";
+// Design System imports
+import { EmptyState, LoadingSpinner } from "@/components/design-system";
 
 const channelIcons = {
   whatsapp: Phone,
@@ -254,13 +256,11 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   if (!conversationId) {
     return (
       <div className="h-full flex items-center justify-center bg-muted/20">
-        <div className="text-center">
-          <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium text-foreground">Nenhuma conversa selecionada</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Selecione uma conversa da lista para ver as mensagens
-          </p>
-        </div>
+        <EmptyState
+          type="messages"
+          title="Nenhuma conversa selecionada"
+          description="Selecione uma conversa da lista para ver as mensagens"
+        />
       </div>
     );
   }
@@ -268,7 +268,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   if (convLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <LoadingSpinner size="lg" label="A carregar conversa..." />
       </div>
     );
   }

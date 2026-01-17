@@ -42,7 +42,6 @@ import {
   Plus, 
   Sparkles, 
   Trash2, 
-  Users,
   RefreshCw,
   Download,
   ChevronLeft,
@@ -53,13 +52,19 @@ import {
   Thermometer,
   Snowflake,
   Clock,
-  UserCheck,
   UserX,
   MessageSquare,
   Target,
   Activity,
 } from "lucide-react";
 import { toast } from "sonner";
+// Design System imports
+import { 
+  EmptyState, 
+  SearchEmptyState, 
+  LoadingSpinner,
+  TableSkeleton,
+} from "@/components/design-system";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -406,26 +411,26 @@ export function SmartLeadsTable() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 13 : 9} className="text-center py-12">
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      A carregar...
-                    </div>
+                  <TableCell colSpan={showAdvanced ? 13 : 9} className="p-0">
+                    <TableSkeleton rows={5} columns={showAdvanced ? 13 : 9} showHeader={false} />
                   </TableCell>
                 </TableRow>
               ) : !filteredLeads.length ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 13 : 9} className="text-center py-12">
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                      <Users className="w-12 h-12 opacity-50" />
-                      <p className="text-lg font-medium">
-                        {searchValue ? "Nenhum lead encontrado" : "Quando entrarem leads, a IA vai organizá-los por ti"}
-                      </p>
-                      <Button onClick={() => setIsCreateDialogOpen(true)}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar Lead
-                      </Button>
-                    </div>
+                  <TableCell colSpan={showAdvanced ? 13 : 9} className="text-center py-8">
+                    {searchValue ? (
+                      <SearchEmptyState query={searchValue} />
+                    ) : (
+                      <EmptyState
+                        type="leads"
+                        title="Ainda não há leads"
+                        description="Quando entrarem leads, a IA vai organizá-los por ti"
+                        action={{
+                          label: "Adicionar Lead",
+                          onClick: () => setIsCreateDialogOpen(true),
+                        }}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
