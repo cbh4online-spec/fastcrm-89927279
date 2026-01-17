@@ -7124,6 +7124,123 @@ export type Database = {
           },
         ]
       }
+      price_table_items: {
+        Row: {
+          created_at: string
+          discount_percent: number | null
+          id: string
+          notes: string | null
+          price_table_id: string
+          product_id: string
+          unit_price: number
+          updated_at: string
+          volume_tiers: Json | null
+        }
+        Insert: {
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          notes?: string | null
+          price_table_id: string
+          product_id: string
+          unit_price: number
+          updated_at?: string
+          volume_tiers?: Json | null
+        }
+        Update: {
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          notes?: string | null
+          price_table_id?: string
+          product_id?: string
+          unit_price?: number
+          updated_at?: string
+          volume_tiers?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_table_items_price_table_id_fkey"
+            columns: ["price_table_id"]
+            isOneToOne: false
+            referencedRelation: "price_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_table_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_table_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_tables: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_segment: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          priority: number | null
+          table_type: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_segment?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          priority?: number | null
+          table_type?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_segment?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          priority?: number | null
+          table_type?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_tables_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_categories: {
         Row: {
           color: string | null
@@ -7131,6 +7248,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          image_url: string | null
           is_active: boolean | null
           name: string
           position: number | null
@@ -7143,6 +7261,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           name: string
           position?: number | null
@@ -7155,6 +7274,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           name?: string
           position?: number | null
