@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { useState } from "react";
 import {
-  BarChart,
+  BarChart as RechartsBarChart,
   Bar,
   XAxis,
   YAxis,
@@ -18,27 +18,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-
-// Demo data
-const generateSalesData = (period: string) => {
-  const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"];
-  
-  if (period === "weekly") {
-    return ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"].map((day) => ({
-      name: day,
-      leads: Math.floor(Math.random() * 20 + 5),
-      proposals: Math.floor(Math.random() * 10 + 2),
-      closed: Math.floor(Math.random() * 5 + 1),
-    }));
-  }
-
-  return months.map((month) => ({
-    name: month,
-    leads: Math.floor(Math.random() * 100 + 30),
-    proposals: Math.floor(Math.random() * 50 + 15),
-    closed: Math.floor(Math.random() * 25 + 5),
-  }));
-};
+import { BarChart3 } from "lucide-react";
 
 interface SalesProgressionChartProps {
   isLoading?: boolean;
@@ -46,7 +26,9 @@ interface SalesProgressionChartProps {
 
 export function SalesProgressionChart({ isLoading = false }: SalesProgressionChartProps) {
   const [period, setPeriod] = useState("monthly");
-  const data = generateSalesData(period);
+  
+  // Empty data - will be populated from real data source
+  const data: { name: string; leads: number; proposals: number; closed: number }[] = [];
 
   if (isLoading) {
     return (
@@ -59,6 +41,34 @@ export function SalesProgressionChart({ isLoading = false }: SalesProgressionCha
         </CardHeader>
         <CardContent>
           <Skeleton className="h-64 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <Card className="border-0 shadow-lg bg-card">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Progressão de Vendas</CardTitle>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-[120px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">Semanal</SelectItem>
+                <SelectItem value="monthly">Mensal</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <BarChart3 className="w-10 h-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">Sem dados de vendas</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">Os dados aparecerão aqui</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -83,7 +93,7 @@ export function SalesProgressionChart({ isLoading = false }: SalesProgressionCha
       <CardContent className="pt-0">
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 20, right: 10, left: -10, bottom: 5 }}>
+            <RechartsBarChart data={data} margin={{ top: 20, right: 10, left: -10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis 
                 dataKey="name" 
@@ -127,7 +137,7 @@ export function SalesProgressionChart({ isLoading = false }: SalesProgressionCha
                 fill="hsl(142 76% 36%)" 
                 radius={[4, 4, 0, 0]} 
               />
-            </BarChart>
+            </RechartsBarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

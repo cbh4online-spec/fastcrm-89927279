@@ -9,8 +9,6 @@ import {
 } from "@/components/ui/select";
 import { useState } from "react";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -19,38 +17,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import { TrendingUp, TrendingDown } from "lucide-react";
-
-// Demo data - in production this would come from API
-const generateRevenueData = (period: string) => {
-  const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-  const currentMonth = new Date().getMonth();
-  
-  if (period === "this-month") {
-    return Array.from({ length: 30 }, (_, i) => ({
-      name: `${i + 1}`,
-      revenue: Math.floor(Math.random() * 5000 + 2000),
-      sales: Math.floor(Math.random() * 3000 + 1000),
-    }));
-  }
-  
-  if (period === "last-6-months") {
-    return Array.from({ length: 6 }, (_, i) => {
-      const monthIndex = (currentMonth - 5 + i + 12) % 12;
-      return {
-        name: months[monthIndex],
-        revenue: Math.floor(Math.random() * 50000 + 20000),
-        sales: Math.floor(Math.random() * 30000 + 10000),
-      };
-    });
-  }
-  
-  return months.map((month) => ({
-    name: month,
-    revenue: Math.floor(Math.random() * 80000 + 30000),
-    sales: Math.floor(Math.random() * 50000 + 20000),
-  }));
-};
+import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 
 interface RevenueWidgetProps {
   isLoading?: boolean;
@@ -58,11 +25,13 @@ interface RevenueWidgetProps {
 
 export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
   const [period, setPeriod] = useState("last-6-months");
-  const data = generateRevenueData(period);
+  
+  // Empty data - will be populated from real data source
+  const data: { name: string; revenue: number; sales: number }[] = [];
   
   const totalRevenue = data.reduce((sum, item) => sum + item.revenue, 0);
   const totalSales = data.reduce((sum, item) => sum + item.sales, 0);
-  const growthPercent = 12.5; // Demo value
+  const growthPercent = 0;
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
@@ -81,6 +50,35 @@ export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
         </CardHeader>
         <CardContent>
           <Skeleton className="h-48 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <Card className="border-0 shadow-lg bg-card">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Receita</CardTitle>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="this-month">Este mês</SelectItem>
+                <SelectItem value="last-6-months">Últimos 6 meses</SelectItem>
+                <SelectItem value="this-year">Este ano</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <BarChart3 className="w-10 h-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">Sem dados de receita</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">Os dados aparecerão aqui</p>
+          </div>
         </CardContent>
       </Card>
     );
