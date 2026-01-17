@@ -96,3 +96,6 @@ verify_jwt = false
 
 [functions.ai-product-assistant]
 verify_jwt = false
+
+[functions.figma-extract]
+verify_jwt = false
