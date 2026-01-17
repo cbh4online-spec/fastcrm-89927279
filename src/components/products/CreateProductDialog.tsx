@@ -31,6 +31,7 @@ import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFr
 import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/product";
 import { AIProductAssistant } from "./AIProductAssistant";
 import { SKUSearchPanel } from "./SKUSearchPanel";
+import { ProductImageGenerator } from "./ProductImageGenerator";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
 
 interface CreateProductDialogProps {
@@ -67,6 +68,7 @@ export function CreateProductDialog({
   const [isTrackable, setIsTrackable] = useState(true);
   const [showConsumption, setShowConsumption] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(true);
+  const [productImages, setProductImages] = useState<string[]>([]);
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -162,6 +164,7 @@ export function CreateProductDialog({
       billing_type: billingType,
       short_description: shortDescription || undefined,
       sku: sku || undefined,
+      images: productImages.length > 0 ? productImages : undefined,
       direct_cost: directCost ? parseFloat(directCost) : undefined,
       operational_cost: operationalCost ? parseFloat(operationalCost) : undefined,
       commission_default: commissionDefault ? parseFloat(commissionDefault) : undefined,
@@ -379,6 +382,16 @@ export function CreateProductDialog({
                   placeholder="Código EAN, referência, etc."
                 />
               </div>
+
+              {/* Product Images */}
+              <ProductImageGenerator
+                productName={name}
+                category={category}
+                description={shortDescription}
+                images={productImages}
+                onImagesChange={setProductImages}
+                maxImages={5}
+              />
 
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
                 <CollapsibleTrigger asChild>

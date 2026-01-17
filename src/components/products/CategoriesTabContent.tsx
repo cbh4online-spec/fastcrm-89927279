@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2, MoreHorizontal, Package } from "lucide-react";
+import { Plus, Edit2, Trash2, MoreHorizontal, Package, Eye, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -24,6 +24,10 @@ import {
   ProductCategory,
 } from "@/hooks/useProductCategories";
 import { CategoryDialog } from "./CategoryDialog";
+import { CategoryProductsSheet } from "./CategoryProductsSheet";
+import { CreateProductDialog } from "./CreateProductDialog";
+import { ProductDetailDialog } from "./ProductDetailDialog";
+import type { Product } from "@/types/product";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +48,12 @@ export function CategoriesTabContent() {
   const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<ProductCategory | null>(null);
+  
+  // Products sheet state
+  const [productsSheetOpen, setProductsSheetOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(null);
+  const [viewProduct, setViewProduct] = useState<Product | null>(null);
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
 
   const handleEdit = (category: ProductCategory) => {
     setEditingCategory(category);
@@ -53,6 +63,11 @@ export function CategoriesTabContent() {
   const handleDelete = (category: ProductCategory) => {
     setCategoryToDelete(category);
     setDeleteDialogOpen(true);
+  };
+
+  const handleViewProducts = (category: ProductCategory) => {
+    setSelectedCategory(category);
+    setProductsSheetOpen(true);
   };
 
   const confirmDelete = async () => {
@@ -108,32 +123,55 @@ export function CategoriesTabContent() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50px]">Cor</TableHead>
+                <TableHead className="w-[60px]">Imagem</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead className="text-center">Produtos</TableHead>
                 <TableHead className="text-center">Estado</TableHead>
-                <TableHead className="w-[70px]"></TableHead>
+                <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {categories.map((category) => (
-                <TableRow key={category.id}>
+                <TableRow 
+                  key={category.id} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleViewProducts(category)}
+                >
                   <TableCell>
-                    <div
-                      className="w-6 h-6 rounded-full border"
-                      style={{ backgroundColor: category.color || "#3B82F6" }}
-                    />
+                    {category.image_url ? (
+                      <img
+                        src={category.image_url}
+                        alt={category.name}
+                        className="w-10 h-10 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: category.color || "#3B82F6" }}
+                      >
+                        <ImageIcon className="h-5 w-5 text-white/80" />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="text-muted-foreground max-w-[300px] truncate">
                     {category.description || "—"}
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewProducts(category);
+                      }}
+                    >
                       <Package className="h-4 w-4 text-muted-foreground" />
                       <span>{productCounts?.[category.name] || 0}</span>
-                    </div>
+                      <Eye className="h-3 w-3 ml-1 text-muted-foreground" />
+                    </Button>
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge variant={category.is_active ? "default" : "secondary"}>
@@ -142,12 +180,16 @@ export function CategoriesTabContent() {
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewProducts(category)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Produtos
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(category)}>
                           <Edit2 className="h-4 w-4 mr-2" />
                           Editar
@@ -190,6 +232,35 @@ export function CategoriesTabContent() {
         onOpenChange={handleDialogClose}
         category={editingCategory}
       />
+
+      {/* Products Sheet */}
+      <CategoryProductsSheet
+        open={productsSheetOpen}
+        onOpenChange={setProductsSheetOpen}
+        category={selectedCategory}
+        categories={categories || []}
+        onCategoryChange={setSelectedCategory}
+        onViewProduct={setViewProduct}
+        onEditProduct={setEditProduct}
+      />
+
+      {/* Product Detail Dialog */}
+      {viewProduct && (
+        <ProductDetailDialog
+          productId={viewProduct.id}
+          open={!!viewProduct}
+          onOpenChange={(open) => !open && setViewProduct(null)}
+        />
+      )}
+
+      {/* Product Edit Dialog */}
+      {editProduct && (
+        <CreateProductDialog
+          open={!!editProduct}
+          onOpenChange={(open) => !open && setEditProduct(null)}
+          product={editProduct}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
