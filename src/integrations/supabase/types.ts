@@ -8283,6 +8283,165 @@ export type Database = {
           },
         ]
       }
+      saas_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_pricing_items: {
+        Row: {
+          created_at: string
+          discount_percent: number | null
+          id: string
+          notes: string | null
+          plan_key: string
+          pricing_table_id: string
+          unit_price: number
+          updated_at: string
+          volume_tiers: Json | null
+        }
+        Insert: {
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          notes?: string | null
+          plan_key: string
+          pricing_table_id: string
+          unit_price: number
+          updated_at?: string
+          volume_tiers?: Json | null
+        }
+        Update: {
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          notes?: string | null
+          plan_key?: string
+          pricing_table_id?: string
+          unit_price?: number
+          updated_at?: string
+          volume_tiers?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_pricing_items_pricing_table_id_fkey"
+            columns: ["pricing_table_id"]
+            isOneToOne: false
+            referencedRelation: "saas_pricing_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_pricing_tables: {
+        Row: {
+          base_price: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_percent: number | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          pricing_type: string
+          priority: number | null
+          target_segment: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          base_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          pricing_type?: string
+          priority?: number | null
+          target_segment?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          base_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          pricing_type?: string
+          priority?: number | null
+          target_segment?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_pricing_tables_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_availability: {
         Row: {
           created_at: string
