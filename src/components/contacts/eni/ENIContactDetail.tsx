@@ -20,6 +20,7 @@ import { CommercialHistorySection } from "./sections/CommercialHistorySection";
 import { NotesSection } from "./sections/NotesSection";
 import { AIInsightsSection } from "./sections/AIInsightsSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
+import { InvoiceHistorySection } from "./sections/InvoiceHistorySection";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
 import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
@@ -309,8 +310,10 @@ export function ENIContactDetail() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <AcquiredProductsSection contactId={id!} />
-            <DocumentsSection contactId={id!} />
+            <InvoiceHistorySection contactId={id!} />
           </div>
+
+          <DocumentsSection contactId={id!} />
 
           {/* LinkedIn Analysis */}
           <EntitySocialMediaAnalysisSection
