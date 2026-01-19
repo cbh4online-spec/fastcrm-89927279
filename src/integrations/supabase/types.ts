@@ -7183,12 +7183,172 @@ export type Database = {
           },
         ]
       }
+      price_optimization_logs: {
+        Row: {
+          applied: boolean | null
+          applied_at: string | null
+          applied_by: string | null
+          created_at: string | null
+          id: string
+          margin_change: number | null
+          optimization_type: string
+          original_price: number
+          price_table_id: string | null
+          product_id: string | null
+          reasoning: string | null
+          suggested_price: number
+          workspace_id: string
+        }
+        Insert: {
+          applied?: boolean | null
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string | null
+          id?: string
+          margin_change?: number | null
+          optimization_type: string
+          original_price: number
+          price_table_id?: string | null
+          product_id?: string | null
+          reasoning?: string | null
+          suggested_price: number
+          workspace_id: string
+        }
+        Update: {
+          applied?: boolean | null
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string | null
+          id?: string
+          margin_change?: number | null
+          optimization_type?: string
+          original_price?: number
+          price_table_id?: string | null
+          product_id?: string | null
+          reasoning?: string | null
+          suggested_price?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_optimization_logs_price_table_id_fkey"
+            columns: ["price_table_id"]
+            isOneToOne: false
+            referencedRelation: "price_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_optimization_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_optimization_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_optimization_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_table_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          price_table_id: string
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          price_table_id: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          price_table_id?: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_table_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_table_assignments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_table_assignments_price_table_id_fkey"
+            columns: ["price_table_id"]
+            isOneToOne: false
+            referencedRelation: "price_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_table_assignments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_table_items: {
         Row: {
+          ai_suggested_price: number | null
+          ai_suggestion_reason: string | null
           created_at: string
           discount_percent: number | null
           id: string
+          margin_percent: number | null
+          max_quantity: number | null
+          min_quantity: number | null
           notes: string | null
+          original_price: number | null
           price_table_id: string
           product_id: string
           unit_price: number
@@ -7196,10 +7356,16 @@ export type Database = {
           volume_tiers: Json | null
         }
         Insert: {
+          ai_suggested_price?: number | null
+          ai_suggestion_reason?: string | null
           created_at?: string
           discount_percent?: number | null
           id?: string
+          margin_percent?: number | null
+          max_quantity?: number | null
+          min_quantity?: number | null
           notes?: string | null
+          original_price?: number | null
           price_table_id: string
           product_id: string
           unit_price: number
@@ -7207,10 +7373,16 @@ export type Database = {
           volume_tiers?: Json | null
         }
         Update: {
+          ai_suggested_price?: number | null
+          ai_suggestion_reason?: string | null
           created_at?: string
           discount_percent?: number | null
           id?: string
+          margin_percent?: number | null
+          max_quantity?: number | null
+          min_quantity?: number | null
           notes?: string | null
+          original_price?: number | null
           price_table_id?: string
           product_id?: string
           unit_price?: number
@@ -7243,13 +7415,20 @@ export type Database = {
       }
       price_tables: {
         Row: {
+          ai_optimization_notes: string | null
+          ai_optimized: boolean | null
+          company_id: string | null
+          contact_id: string | null
           created_at: string
           created_by: string | null
+          currency: string | null
           customer_segment: string | null
           description: string | null
           id: string
           is_active: boolean | null
           is_default: boolean | null
+          margin_adjustment: number | null
+          min_order_value: number | null
           name: string
           priority: number | null
           table_type: string
@@ -7259,13 +7438,20 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          ai_optimization_notes?: string | null
+          ai_optimized?: boolean | null
+          company_id?: string | null
+          contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           customer_segment?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          margin_adjustment?: number | null
+          min_order_value?: number | null
           name: string
           priority?: number | null
           table_type?: string
@@ -7275,13 +7461,20 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          ai_optimization_notes?: string | null
+          ai_optimized?: boolean | null
+          company_id?: string | null
+          contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           customer_segment?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          margin_adjustment?: number | null
+          min_order_value?: number | null
           name?: string
           priority?: number | null
           table_type?: string
@@ -7291,6 +7484,20 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "price_tables_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_tables_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "price_tables_workspace_id_fkey"
             columns: ["workspace_id"]
