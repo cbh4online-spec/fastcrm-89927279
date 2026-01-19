@@ -108,12 +108,19 @@ export interface EntityProfileData {
 // Profile-specific field definitions per profile type
 export const PROFILE_SPECIFIC_FIELDS: Record<ActivityProfileType, ProfileCustomField[]> = {
   formacao_educacao: [
+    // Campos para Contactos (Alunos)
     { id: 'tipo_aluno', name: 'tipo_aluno', label: 'Tipo de Aluno', type: 'select', entity_types: ['contact'], options: ['Particular', 'Empresarial', 'Bolsa'] },
     { id: 'cursos_inscritos', name: 'cursos_inscritos', label: 'Cursos Inscritos', type: 'multiselect', entity_types: ['contact'], options: [] },
     { id: 'nivel', name: 'nivel', label: 'Nível', type: 'select', entity_types: ['contact'], options: ['1', '2', '3', 'Avançado'] },
     { id: 'sessoes_realizadas', name: 'sessoes_realizadas', label: 'Sessões Realizadas', type: 'number', entity_types: ['contact'] },
     { id: 'sessoes_pendentes', name: 'sessoes_pendentes', label: 'Sessões Pendentes', type: 'number', entity_types: ['contact'] },
     { id: 'certificado', name: 'certificado', label: 'Certificado Emitido', type: 'boolean', entity_types: ['contact'] },
+    // Campos para Empresas (Instituições)
+    { id: 'tipo_instituicao', name: 'tipo_instituicao', label: 'Tipo de Instituição', type: 'select', entity_types: ['company'], options: ['Escola', 'Centro de Formação', 'Universidade', 'Instituto', 'Empresa', 'Outro'] },
+    { id: 'num_alunos', name: 'num_alunos', label: 'Número de Alunos', type: 'number', entity_types: ['company'] },
+    { id: 'cursos_oferecidos', name: 'cursos_oferecidos', label: 'Cursos Oferecidos', type: 'multiselect', entity_types: ['company'], options: [] },
+    { id: 'parceiro_certificado', name: 'parceiro_certificado', label: 'Parceiro Certificado', type: 'boolean', entity_types: ['company'] },
+    { id: 'valor_formacao_anual', name: 'valor_formacao_anual', label: 'Valor Formação Anual', type: 'currency', entity_types: ['company'] },
   ],
   produtos: [
     { id: 'produtos_comprados', name: 'produtos_comprados', label: 'Produtos Comprados', type: 'multiselect', entity_types: ['contact', 'company'], options: [] },
