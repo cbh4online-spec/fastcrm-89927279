@@ -77,7 +77,10 @@ export function CreateInvoiceDialog({
   const { contacts } = useContacts();
   const { data: products } = useProducts();
 
-  const [clientType, setClientType] = useState<"company" | "contact" | "manual">("company");
+  // Initialize clientType based on whether we have defaults
+  const [clientType, setClientType] = useState<"company" | "contact" | "manual">(
+    defaultContactId ? "contact" : defaultCompanyId ? "company" : "company"
+  );
   const [selectedCompanyId, setSelectedCompanyId] = useState(defaultCompanyId || "");
   const [selectedContactId, setSelectedContactId] = useState(defaultContactId || "");
   const [clientName, setClientName] = useState("");
@@ -92,6 +95,19 @@ export function CreateInvoiceDialog({
   const [items, setItems] = useState<InvoiceItemForm[]>([
     { id: crypto.randomUUID(), description: "", quantity: 1, unit_price: 0, discount_percent: 0, tax_rate: 23 },
   ]);
+
+  // Re-initialize when dialog opens with defaults
+  useEffect(() => {
+    if (open) {
+      if (defaultContactId) {
+        setClientType("contact");
+        setSelectedContactId(defaultContactId);
+      } else if (defaultCompanyId) {
+        setClientType("company");
+        setSelectedCompanyId(defaultCompanyId);
+      }
+    }
+  }, [open, defaultContactId, defaultCompanyId]);
 
   const selectedCompany = companies?.find((c) => c.id === selectedCompanyId);
   const selectedContact = contacts?.find((c) => c.id === selectedContactId);
