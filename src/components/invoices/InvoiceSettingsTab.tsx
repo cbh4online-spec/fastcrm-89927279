@@ -386,6 +386,16 @@ export function InvoiceSettingsTab() {
                 placeholder="PT50..."
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="swiftBic">SWIFT/BIC</Label>
+              <Input
+                id="swiftBic"
+                value={settings.swift_bic}
+                onChange={(e) => setSettings({ ...settings, swift_bic: e.target.value.toUpperCase() })}
+                placeholder="BPIEPTPL"
+                maxLength={11}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
