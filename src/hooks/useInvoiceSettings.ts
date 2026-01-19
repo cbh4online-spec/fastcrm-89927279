@@ -124,6 +124,13 @@ export function useInvoiceSettings() {
 
     setIsSaving(true);
     try {
+      // First, check if settings already exist
+      const { data: existingSettings } = await supabase
+        .from("invoice_settings")
+        .select("id")
+        .eq("workspace_id", currentWorkspace.id)
+        .maybeSingle();
+
       const dataToSave = {
         workspace_id: currentWorkspace.id,
         invoice_prefix: newSettings.invoice_prefix,
@@ -148,9 +155,22 @@ export function useInvoiceSettings() {
         footer_text: newSettings.footer_text,
       };
 
-      const { error } = await supabase
-        .from("invoice_settings")
-        .upsert(dataToSave, { onConflict: "workspace_id" });
+      let error;
+      
+      if (existingSettings?.id) {
+        // Update existing record
+        const result = await supabase
+          .from("invoice_settings")
+          .update(dataToSave)
+          .eq("id", existingSettings.id);
+        error = result.error;
+      } else {
+        // Insert new record
+        const result = await supabase
+          .from("invoice_settings")
+          .insert(dataToSave);
+        error = result.error;
+      }
 
       if (error) throw error;
 
