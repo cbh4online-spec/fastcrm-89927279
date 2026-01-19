@@ -415,6 +415,8 @@ export function CompanyDetail() {
         onOpenChange={setLinkContactDialogOpen}
         companyId={id || ''}
         companyName={company.name}
+        companyEmail={company.email}
+        companyWebsite={company.website}
       />
     </div>
   );

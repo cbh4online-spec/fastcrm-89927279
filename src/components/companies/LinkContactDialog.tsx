@@ -21,7 +21,9 @@ import {
   Building2, 
   Link2, 
   UserPlus,
-  Loader2
+  Loader2,
+  Sparkles,
+  ArrowRight
 } from "lucide-react";
 import { useCompanyContacts } from "@/hooks/useCompanyContacts";
 
@@ -30,6 +32,8 @@ interface LinkContactDialogProps {
   onOpenChange: (open: boolean) => void;
   companyId: string;
   companyName: string;
+  companyEmail?: string | null;
+  companyWebsite?: string | null;
 }
 
 interface AvailableContact {
@@ -42,15 +46,41 @@ interface AvailableContact {
   company_name: string | null;
 }
 
+// Extract domain from email or website
+function extractDomain(emailOrUrl: string | null | undefined): string | null {
+  if (!emailOrUrl) return null;
+  
+  // If it's an email
+  if (emailOrUrl.includes("@")) {
+    const parts = emailOrUrl.split("@");
+    return parts[1]?.toLowerCase() || null;
+  }
+  
+  // If it's a URL
+  try {
+    const url = new URL(emailOrUrl.startsWith("http") ? emailOrUrl : `https://${emailOrUrl}`);
+    return url.hostname.replace("www.", "").toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
 export function LinkContactDialog({ 
   open, 
   onOpenChange, 
   companyId, 
-  companyName 
+  companyName,
+  companyEmail,
+  companyWebsite
 }: LinkContactDialogProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const { currentWorkspace } = useWorkspace();
-  const { linkContact, contacts: linkedContacts } = useCompanyContacts(companyId);
+  const { linkContact } = useCompanyContacts(companyId);
+
+  // Get company domain for smart matching
+  const companyDomain = useMemo(() => {
+    return extractDomain(companyEmail) || extractDomain(companyWebsite);
+  }, [companyEmail, companyWebsite]);
 
   // Fetch all contacts that are NOT already linked to this company
   const { data: contacts = [], isLoading } = useQuery({
@@ -58,6 +88,7 @@ export function LinkContactDialog({
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       
+      // Get contacts that either have no company or a different company
       const { data, error } = await supabase
         .from("contacts")
         .select(`
@@ -70,49 +101,68 @@ export function LinkContactDialog({
           companies:company_id (name)
         `)
         .eq("workspace_id", currentWorkspace.id)
-        .neq("company_id", companyId)
         .order("name");
 
       if (error) throw error;
       
-      return data.map(contact => ({
-        id: contact.id,
-        name: contact.name,
-        email: contact.email,
-        phone: contact.phone,
-        job_title: contact.job_title,
-        company_id: contact.company_id,
-        company_name: contact.companies?.name || null,
-      })) as AvailableContact[];
+      // Filter out contacts already linked to this company
+      return data
+        .filter(contact => contact.company_id !== companyId)
+        .map(contact => ({
+          id: contact.id,
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          job_title: contact.job_title,
+          company_id: contact.company_id,
+          company_name: contact.companies?.name || null,
+        })) as AvailableContact[];
     },
     enabled: open && !!currentWorkspace?.id,
   });
 
-  // Filter contacts based on search
-  const filteredContacts = useMemo(() => {
-    if (!searchTerm.trim()) return contacts;
-    
-    const term = searchTerm.toLowerCase();
-    return contacts.filter(contact => 
-      contact.name.toLowerCase().includes(term) ||
-      contact.email?.toLowerCase().includes(term) ||
-      contact.phone?.includes(term) ||
-      contact.job_title?.toLowerCase().includes(term)
-    );
-  }, [contacts, searchTerm]);
+  // Categorize contacts: suggestions (matching domain), unassigned, assigned to other
+  const { suggestedContacts, unassignedContacts, assignedContacts } = useMemo(() => {
+    // First filter by search term
+    let filtered = contacts;
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = contacts.filter(contact => 
+        contact.name.toLowerCase().includes(term) ||
+        contact.email?.toLowerCase().includes(term) ||
+        contact.phone?.includes(term) ||
+        contact.job_title?.toLowerCase().includes(term)
+      );
+    }
 
-  // Split into unassigned and assigned to other companies
-  const { unassignedContacts, assignedContacts } = useMemo(() => {
+    // Separate by category
+    const suggested: AvailableContact[] = [];
+    const unassigned: AvailableContact[] = [];
+    const assigned: AvailableContact[] = [];
+
+    for (const contact of filtered) {
+      const contactDomain = extractDomain(contact.email);
+      const isDomainMatch = companyDomain && contactDomain && contactDomain === companyDomain;
+
+      if (isDomainMatch) {
+        suggested.push(contact);
+      } else if (!contact.company_id) {
+        unassigned.push(contact);
+      } else {
+        assigned.push(contact);
+      }
+    }
+
     return {
-      unassignedContacts: filteredContacts.filter(c => !c.company_id),
-      assignedContacts: filteredContacts.filter(c => c.company_id),
+      suggestedContacts: suggested,
+      unassignedContacts: unassigned,
+      assignedContacts: assigned,
     };
-  }, [filteredContacts]);
+  }, [contacts, searchTerm, companyDomain]);
 
   const handleLink = async (contactId: string) => {
     try {
       await linkContact.mutateAsync({ contactId, companyId });
-      // Keep dialog open for multiple associations
     } catch (error) {
       // Error handled in hook
     }
@@ -126,6 +176,8 @@ export function LinkContactDialog({
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const totalAvailable = suggestedContacts.length + unassignedContacts.length + assignedContacts.length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -153,13 +205,23 @@ export function LinkContactDialog({
             />
           </div>
 
+          {/* Domain hint */}
+          {companyDomain && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 px-3 py-2 rounded-md">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span>
+                A procurar contactos com emails <strong>@{companyDomain}</strong>
+              </span>
+            </div>
+          )}
+
           {/* Results */}
-          <ScrollArea className="h-[400px] pr-4">
+          <ScrollArea className="h-[380px] pr-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-            ) : filteredContacts.length === 0 ? (
+            ) : totalAvailable === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <User className="w-10 h-10 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">
@@ -168,7 +230,31 @@ export function LinkContactDialog({
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Unassigned contacts first */}
+                {/* AI Suggested contacts (domain match) */}
+                {suggestedContacts.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <p className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                        Sugestões ({suggestedContacts.length})
+                      </p>
+                    </div>
+                    <div className="space-y-1 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg p-2 border border-amber-200/50 dark:border-amber-800/30">
+                      {suggestedContacts.map((contact) => (
+                        <ContactRow
+                          key={contact.id}
+                          contact={contact}
+                          getInitials={getInitials}
+                          onLink={handleLink}
+                          isLinking={linkContact.isPending}
+                          highlight
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Unassigned contacts */}
                 {unassignedContacts.length > 0 && (
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
@@ -223,13 +309,14 @@ interface ContactRowProps {
   onLink: (contactId: string) => void;
   isLinking: boolean;
   showCompany?: boolean;
+  highlight?: boolean;
 }
 
-function ContactRow({ contact, getInitials, onLink, isLinking, showCompany }: ContactRowProps) {
+function ContactRow({ contact, getInitials, onLink, isLinking, showCompany, highlight }: ContactRowProps) {
   return (
-    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 group">
+    <div className={`flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 group ${highlight ? 'bg-white/50 dark:bg-white/5' : ''}`}>
       <Avatar className="h-9 w-9 shrink-0">
-        <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500/80 to-blue-600 text-white">
+        <AvatarFallback className={`text-xs text-white ${highlight ? 'bg-gradient-to-br from-amber-500 to-orange-500' : 'bg-gradient-to-br from-blue-500/80 to-blue-600'}`}>
           {getInitials(contact.name)}
         </AvatarFallback>
       </Avatar>
@@ -266,14 +353,23 @@ function ContactRow({ contact, getInitials, onLink, isLinking, showCompany }: Co
       </div>
 
       <Button
-        variant="ghost"
+        variant={highlight ? "default" : "ghost"}
         size="sm"
-        className="h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+        className={`h-8 ${highlight ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
         onClick={() => onLink(contact.id)}
         disabled={isLinking}
       >
-        <Link2 className="w-4 h-4 mr-1" />
-        Associar
+        {highlight ? (
+          <>
+            Associar
+            <ArrowRight className="w-4 h-4 ml-1" />
+          </>
+        ) : (
+          <>
+            <Link2 className="w-4 h-4 mr-1" />
+            Associar
+          </>
+        )}
       </Button>
     </div>
   );
