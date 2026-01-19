@@ -23,7 +23,31 @@ import { useCreateInvoice, type CreateInvoiceItemInput } from "@/hooks/useInvoic
 import { useCompanies } from "@/hooks/useCompanies";
 import { useContacts } from "@/hooks/useContacts";
 import { useProducts } from "@/hooks/useProducts";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Building2 } from "lucide-react";
+
+// Helper function to convert payment conditions to days
+function getPaymentDays(paymentCondition: string | null | undefined): number {
+  if (!paymentCondition) return 30; // Default: 30 dias
+  
+  const daysMap: Record<string, number> = {
+    'Pronto Pagamento': 0,
+    '15 dias': 15,
+    '30 dias': 30,
+    '45 dias': 45,
+    '60 dias': 60,
+    '90 dias': 90,
+  };
+  
+  return daysMap[paymentCondition] ?? 30;
+}
+
+// Helper function to calculate due date from issue date and payment days
+function calculateDueDate(issueDateStr: string, paymentDays: number): string {
+  const issueDateObj = new Date(issueDateStr);
+  const dueDateObj = new Date(issueDateObj);
+  dueDateObj.setDate(dueDateObj.getDate() + paymentDays);
+  return dueDateObj.toISOString().split("T")[0];
+}
 
 interface CreateInvoiceDialogProps {
   open: boolean;
@@ -71,39 +95,70 @@ export function CreateInvoiceDialog({
 
   const selectedCompany = companies?.find((c) => c.id === selectedCompanyId);
   const selectedContact = contacts?.find((c) => c.id === selectedContactId);
+  
+  // Get the company associated with the selected contact
+  const selectedContactCompany = selectedContact?.company_id 
+    ? companies?.find(c => c.id === selectedContact.company_id) 
+    : null;
 
   // Auto-fill fields when company is selected
   useEffect(() => {
     if (clientType === "company" && selectedCompany) {
       // Auto-fill NIF/VAT
-      if (selectedCompany.tax_id) {
-        setClientTaxId(selectedCompany.tax_id);
-      }
+      setClientTaxId(selectedCompany.tax_id || "");
       
-      // Auto-fill address (use address field directly)
-      if (selectedCompany.address) {
-        setClientAddress(selectedCompany.address);
-      }
+      // Auto-fill address (combine address, postal_code, city)
+      const companyData = selectedCompany as any;
+      const fullAddress = [
+        selectedCompany.address,
+        companyData.postal_code,
+        companyData.city
+      ].filter(Boolean).join(", ");
+      setClientAddress(fullAddress || "");
       
       // Auto-fill email
-      if (selectedCompany.email) {
-        setClientEmail(selectedCompany.email);
-      }
+      setClientEmail(selectedCompany.email || "");
+      
+      // Calculate due date based on company payment conditions
+      const paymentDays = getPaymentDays((selectedCompany as any).payment_conditions);
+      setDueDate(calculateDueDate(issueDate, paymentDays));
     }
-  }, [selectedCompany, clientType]);
+  }, [selectedCompany, clientType, issueDate]);
 
-  // Auto-fill fields when contact is selected
+  // Auto-fill fields when contact is selected (use company data for billing)
   useEffect(() => {
     if (clientType === "contact" && selectedContact) {
-      // Auto-fill email
-      if (selectedContact.email) {
-        setClientEmail(selectedContact.email);
+      if (selectedContactCompany) {
+        // Use company data for billing
+        setClientTaxId(selectedContactCompany.tax_id || "");
+        
+        // Build full address from company
+        const companyData = selectedContactCompany as any;
+        const fullAddress = [
+          selectedContactCompany.address,
+          companyData.postal_code,
+          companyData.city
+        ].filter(Boolean).join(", ");
+        setClientAddress(fullAddress || "");
+        
+        // Use company email or fallback to contact email
+        setClientEmail(selectedContactCompany.email || selectedContact.email || "");
+        
+        // Calculate due date based on company payment conditions
+        const paymentDays = getPaymentDays((selectedContactCompany as any).payment_conditions);
+        setDueDate(calculateDueDate(issueDate, paymentDays));
+      } else {
+        // Contact without company - use contact data
+        setClientEmail(selectedContact.email || "");
+        setClientTaxId((selectedContact as any).tax_id || "");
+        setClientAddress("");
+        
+        // Use contact's payment conditions if available
+        const paymentDays = getPaymentDays((selectedContact as any).payment_conditions);
+        setDueDate(calculateDueDate(issueDate, paymentDays));
       }
-      
-      // Clear NIF when contact is selected (contacts typically don't have NIF)
-      setClientTaxId("");
     }
-  }, [selectedContact, clientType]);
+  }, [selectedContact, selectedContactCompany, clientType, issueDate]);
 
   // Clear auto-filled fields when client type changes
   useEffect(() => {
@@ -113,23 +168,28 @@ export function CreateInvoiceDialog({
     setSelectedCompanyId("");
     setSelectedContactId("");
     setClientName("");
+    // Reset due date to default 30 days
+    setDueDate(calculateDueDate(issueDate, 30));
   }, [clientType]);
 
   const getClientInfo = () => {
     if (clientType === "company" && selectedCompany) {
       return {
         name: selectedCompany.name,
-        email: selectedCompany.email || "",
-        address: selectedCompany.address || "",
+        email: clientEmail || selectedCompany.email || "",
+        address: clientAddress || selectedCompany.address || "",
         company_id: selectedCompany.id,
       };
     }
     if (clientType === "contact" && selectedContact) {
+      // Use company for billing if available
+      const billingCompany = selectedContactCompany;
       return {
-        name: selectedContact.name,
-        email: selectedContact.email || "",
-        address: "",
+        name: billingCompany?.name || selectedContact.name,
+        email: clientEmail || billingCompany?.email || selectedContact.email || "",
+        address: clientAddress || billingCompany?.address || "",
         contact_id: selectedContact.id,
+        company_id: billingCompany?.id, // Link invoice to company
       };
     }
     return {
@@ -302,18 +362,56 @@ export function CreateInvoiceDialog({
               )}
 
               {clientType === "contact" && (
-                <Select value={selectedContactId} onValueChange={setSelectedContactId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar contacto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contacts?.map((contact) => (
-                      <SelectItem key={contact.id} value={contact.id}>
-                        {contact.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-3">
+                  <Select value={selectedContactId} onValueChange={setSelectedContactId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar contacto (decisor)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contacts?.map((contact) => (
+                        <SelectItem key={contact.id} value={contact.id}>
+                          {contact.name}
+                          {contact.company && ` - ${contact.company}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Show billing company info when contact is selected */}
+                  {selectedContact && selectedContactCompany && (
+                    <div className="p-3 bg-muted/50 rounded-lg border space-y-1">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Building2 className="h-4 w-4" />
+                        <span>Faturar a:</span>
+                      </div>
+                      <p className="text-sm font-medium">{selectedContactCompany.name}</p>
+                      {selectedContactCompany.tax_id && (
+                        <p className="text-xs text-muted-foreground">
+                          NIF: {selectedContactCompany.tax_id}
+                        </p>
+                      )}
+                      {(selectedContactCompany.address || (selectedContactCompany as any).city) && (
+                        <p className="text-xs text-muted-foreground">
+                          {[selectedContactCompany.address, (selectedContactCompany as any).postal_code, (selectedContactCompany as any).city].filter(Boolean).join(", ")}
+                        </p>
+                      )}
+                      {(selectedContactCompany as any).payment_conditions && (
+                        <p className="text-xs text-muted-foreground">
+                          Condições: {(selectedContactCompany as any).payment_conditions}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Show warning if contact has no company */}
+                  {selectedContact && !selectedContactCompany && (
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                        Este contacto não tem empresa associada. Os dados de faturação serão do próprio contacto.
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
 
               {clientType === "manual" && (
