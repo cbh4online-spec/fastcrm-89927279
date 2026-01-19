@@ -33,6 +33,7 @@ import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { EntitySidebarMenu } from "@/components/entity/EntitySidebarMenu";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
+import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -150,6 +151,12 @@ export function ENIContactDetailWithSidebar() {
       case 'overview':
         return (
           <div className="space-y-6">
+            {/* Linked Company Card - prominent position */}
+            <LinkedCompanyCard 
+              companyId={(contact as any).company_id}
+              contactId={contact.id}
+            />
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <CustomerJourneySection contactId={id} />
               <AIJourneySuggestionsPanel 
