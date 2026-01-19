@@ -46,7 +46,7 @@ interface SmartCompanyRowProps {
   onToggleSelect: () => void;
   onAnalyze: () => void;
   isAnalyzing?: boolean;
-  showAdvanced?: boolean;
+  visibleColumns: Set<string>;
 }
 
 const temperatureConfig = {
@@ -100,7 +100,7 @@ export function SmartCompanyRow({
   onToggleSelect, 
   onAnalyze,
   isAnalyzing,
-  showAdvanced = false 
+  visibleColumns
 }: SmartCompanyRowProps) {
   const initials = company.name
     .split(" ")
@@ -141,227 +141,308 @@ export function SmartCompanyRow({
         />
       </TableCell>
 
-      {/* Company Info */}
-      <TableCell>
-        <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <Link 
-              to={`/dashboard/companies/${company.id}`}
-              className="font-medium text-foreground hover:text-primary hover:underline truncate block"
-            >
-              {company.name}
-            </Link>
-            {company.website && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Globe className="w-3 h-3" />
-                <span className="truncate">{company.website.replace(/^https?:\/\//, '')}</span>
-              </div>
-            )}
+      {/* Company Info - Always visible */}
+      {visibleColumns.has("name") && (
+        <TableCell>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <Link 
+                to={`/dashboard/companies/${company.id}`}
+                className="font-medium text-foreground hover:text-primary hover:underline truncate block"
+              >
+                {company.name}
+              </Link>
+              {company.website && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Globe className="w-3 h-3" />
+                  <span className="truncate">{company.website.replace(/^https?:\/\//, '')}</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </TableCell>
+        </TableCell>
+      )}
 
       {/* Industry */}
-      <TableCell>
-        {company.industry ? (
-          <div className="flex items-center gap-1.5 text-sm">
-            <Factory className="w-3 h-3 text-muted-foreground" />
-            <span className="truncate max-w-[120px]">{company.industry}</span>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </TableCell>
+      {visibleColumns.has("industry") && (
+        <TableCell>
+          {company.industry ? (
+            <div className="flex items-center gap-1.5 text-sm">
+              <Factory className="w-3 h-3 text-muted-foreground" />
+              <span className="truncate max-w-[120px]">{company.industry}</span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+      )}
 
       {/* Source */}
-      <TableCell>
-        <Badge variant="outline" className={cn("text-xs capitalize", sourceColor)}>
-          {company.source || "Website"}
-        </Badge>
-      </TableCell>
+      {visibleColumns.has("source") && (
+        <TableCell>
+          <Badge variant="outline" className={cn("text-xs capitalize", sourceColor)}>
+            {company.source || "Website"}
+          </Badge>
+        </TableCell>
+      )}
+
+      {/* City */}
+      {visibleColumns.has("city") && (
+        <TableCell>
+          <span className="text-sm">{company.city || "—"}</span>
+        </TableCell>
+      )}
 
       {/* Temperature */}
-      <TableCell>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className={cn(
-                "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
-                tempConfig.bg, tempConfig.color
-              )}>
-                <span>{tempConfig.emoji}</span>
-                <span>{tempConfig.label}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Classificação automática baseada na intenção</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </TableCell>
-
-      {/* Score */}
-      <TableCell>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      company.company_score >= 70 ? "bg-emerald-500" :
-                      company.company_score >= 40 ? "bg-amber-500" : "bg-muted-foreground"
-                    )}
-                    style={{ width: `${company.company_score}%` }}
-                  />
-                </div>
-                <span className={cn(
-                  "text-sm font-medium tabular-nums",
-                  company.company_score >= 70 ? "text-emerald-600" :
-                  company.company_score >= 40 ? "text-amber-600" : "text-muted-foreground"
-                )}>
-                  {company.company_score}
-                </span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Score calculado automaticamente (0-100)</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </TableCell>
-
-      {/* Type */}
-      <TableCell>
-        <Badge variant="outline" className={cn("text-xs", typeConfig.color)}>
-          <Building2 className="w-3 h-3 mr-1" />
-          {typeConfig.label}
-        </Badge>
-      </TableCell>
-
-      {/* Next Action */}
-      <TableCell>
-        {company.ai_next_action ? (
+      {visibleColumns.has("temperature") && (
+        <TableCell>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1.5 text-xs">
-                  {company.ai_next_action_type && nextActionIcons[company.ai_next_action_type] && (
-                    <span className="text-primary">
-                      {nextActionIcons[company.ai_next_action_type]}
-                    </span>
-                  )}
-                  <span className="text-muted-foreground truncate max-w-[140px]">
-                    {company.ai_next_action_type && nextActionLabels[company.ai_next_action_type] 
-                      ? nextActionLabels[company.ai_next_action_type] 
-                      : company.ai_next_action}
+                <div className={cn(
+                  "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
+                  tempConfig.bg, tempConfig.color
+                )}>
+                  <span>{tempConfig.emoji}</span>
+                  <span>{tempConfig.label}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Classificação automática baseada na intenção</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {/* Score */}
+      {visibleColumns.has("score") && (
+        <TableCell>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2">
+                  <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        company.company_score >= 70 ? "bg-emerald-500" :
+                        company.company_score >= 40 ? "bg-amber-500" : "bg-muted-foreground"
+                      )}
+                      style={{ width: `${company.company_score}%` }}
+                    />
+                  </div>
+                  <span className={cn(
+                    "text-sm font-medium tabular-nums",
+                    company.company_score >= 70 ? "text-emerald-600" :
+                    company.company_score >= 40 ? "text-amber-600" : "text-muted-foreground"
+                  )}>
+                    {company.company_score}
                   </span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs max-w-[200px]">
-                  <span className="font-medium">O que faz mais sentido agora:</span><br />
-                  {company.ai_next_action}
-                </p>
+                <p className="text-xs">Score calculado automaticamente (0-100)</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
-      </TableCell>
+        </TableCell>
+      )}
+
+      {/* Type */}
+      {visibleColumns.has("type") && (
+        <TableCell>
+          <Badge variant="outline" className={cn("text-xs", typeConfig.color)}>
+            <Building2 className="w-3 h-3 mr-1" />
+            {typeConfig.label}
+          </Badge>
+        </TableCell>
+      )}
+
+      {/* Next Action */}
+      {visibleColumns.has("next_action") && (
+        <TableCell>
+          {company.ai_next_action ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    {company.ai_next_action_type && nextActionIcons[company.ai_next_action_type] && (
+                      <span className="text-primary">
+                        {nextActionIcons[company.ai_next_action_type]}
+                      </span>
+                    )}
+                    <span className="text-muted-foreground truncate max-w-[140px]">
+                      {company.ai_next_action_type && nextActionLabels[company.ai_next_action_type] 
+                        ? nextActionLabels[company.ai_next_action_type] 
+                        : company.ai_next_action}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs max-w-[200px]">
+                    <span className="font-medium">O que faz mais sentido agora:</span><br />
+                    {company.ai_next_action}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </TableCell>
+      )}
 
       {/* SLA */}
-      <TableCell>
-        <div className={cn(
-          "flex items-center gap-1 text-xs",
-          company.slaBreach && "text-destructive font-medium"
-        )}>
-          {company.slaBreach && <AlertTriangle className="w-3 h-3" />}
-          <Clock className="w-3 h-3 text-muted-foreground" />
-          {formatSLA()}
-        </div>
-      </TableCell>
+      {visibleColumns.has("sla") && (
+        <TableCell>
+          <div className={cn(
+            "flex items-center gap-1 text-xs",
+            company.slaBreach && "text-destructive font-medium"
+          )}>
+            {company.slaBreach && <AlertTriangle className="w-3 h-3" />}
+            <Clock className="w-3 h-3 text-muted-foreground" />
+            {formatSLA()}
+          </div>
+        </TableCell>
+      )}
 
-      {/* Advanced columns */}
-      {showAdvanced && (
-        <>
-          {/* Estimated Value */}
-          <TableCell>
-            <span className="text-sm font-medium text-emerald-600">
-              {company.estimated_value > 0 ? formatCurrency(company.estimated_value) : "—"}
+      {/* Contacts Count */}
+      {visibleColumns.has("contacts_count") && (
+        <TableCell>
+          <div className="flex items-center gap-1 text-sm">
+            <Users className="w-3 h-3 text-muted-foreground" />
+            <span className={cn(
+              "tabular-nums",
+              company.contactsCount > 0 ? "font-medium" : "text-muted-foreground"
+            )}>
+              {company.contactsCount || 0}
             </span>
-          </TableCell>
+          </div>
+        </TableCell>
+      )}
 
-          {/* Conversion Probability */}
-          <TableCell>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-1.5 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary rounded-full"
-                  style={{ width: `${company.conversion_probability}%` }}
-                />
-              </div>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {company.conversion_probability}%
-              </span>
+      {/* Opportunities Count */}
+      {visibleColumns.has("opportunities_count") && (
+        <TableCell>
+          <div className="flex items-center gap-1 text-sm">
+            <Target className="w-3 h-3 text-muted-foreground" />
+            <span className={cn(
+              "tabular-nums",
+              company.opportunitiesCount > 0 ? "font-medium text-primary" : "text-muted-foreground"
+            )}>
+              {company.opportunitiesCount || 0}
+            </span>
+          </div>
+        </TableCell>
+      )}
+
+      {/* Estimated Value */}
+      {visibleColumns.has("estimated_value") && (
+        <TableCell>
+          <span className="text-sm font-medium text-emerald-600">
+            {company.estimated_value > 0 ? formatCurrency(company.estimated_value) : "—"}
+          </span>
+        </TableCell>
+      )}
+
+      {/* Conversion Probability */}
+      {visibleColumns.has("conversion_prob") && (
+        <TableCell>
+          <div className="flex items-center gap-1.5">
+            <div className="w-8 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary rounded-full"
+                style={{ width: `${company.conversion_probability}%` }}
+              />
             </div>
-          </TableCell>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {company.conversion_probability}%
+            </span>
+          </div>
+        </TableCell>
+      )}
 
-          {/* Employee Count */}
-          <TableCell>
-            {company.employee_count ? (
-              <div className="flex items-center gap-1 text-sm">
-                <Users className="w-3 h-3 text-muted-foreground" />
-                {company.employee_count}
-              </div>
-            ) : (
-              <span className="text-xs text-muted-foreground">—</span>
-            )}
-          </TableCell>
+      {/* Employee Count */}
+      {visibleColumns.has("employee_count") && (
+        <TableCell>
+          {company.employee_count ? (
+            <div className="flex items-center gap-1 text-sm">
+              <Users className="w-3 h-3 text-muted-foreground" />
+              {company.employee_count}
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </TableCell>
+      )}
 
-          {/* Automation */}
-          <TableCell>
-            {company.automation_active ? (
-              <Badge variant="outline" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
-                <Zap className="w-3 h-3" />
-                Ativa
-              </Badge>
-            ) : (
-              <span className="text-xs text-muted-foreground">—</span>
-            )}
-          </TableCell>
+      {/* Annual Revenue */}
+      {visibleColumns.has("annual_revenue") && (
+        <TableCell>
+          <span className="text-sm">
+            {company.annual_revenue > 0 ? formatCurrency(company.annual_revenue) : "—"}
+          </span>
+        </TableCell>
+      )}
 
-          {/* Insight */}
-          <TableCell>
-            {company.ai_insight ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground max-w-[180px]">
-                      <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />
-                      <span className="truncate">{company.ai_insight}</span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-[250px]">
-                      <span className="font-medium">Resumo rápido para decidir:</span><br />
-                      {company.ai_insight}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <span className="text-xs text-muted-foreground">—</span>
-            )}
-          </TableCell>
-        </>
+      {/* Automation */}
+      {visibleColumns.has("automation") && (
+        <TableCell>
+          {company.automation_active ? (
+            <Badge variant="outline" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
+              <Zap className="w-3 h-3" />
+              Ativa
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </TableCell>
+      )}
+
+      {/* Google Rating */}
+      {visibleColumns.has("google_rating") && (
+        <TableCell>
+          {company.google_rating ? (
+            <div className="flex items-center gap-1 text-sm">
+              <span className="text-amber-500">★</span>
+              <span className="font-medium">{company.google_rating.toFixed(1)}</span>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </TableCell>
+      )}
+
+      {/* Insight */}
+      {visibleColumns.has("insight") && (
+        <TableCell>
+          {company.ai_insight ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground max-w-[180px]">
+                    <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />
+                    <span className="truncate">{company.ai_insight}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs max-w-[250px]">
+                    <span className="font-medium">Resumo rápido para decidir:</span><br />
+                    {company.ai_insight}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </TableCell>
       )}
 
       {/* Actions */}
