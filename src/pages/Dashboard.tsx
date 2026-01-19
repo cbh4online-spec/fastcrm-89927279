@@ -7,6 +7,8 @@ import { RevenueWidget } from "@/components/dashboard/RevenueWidget";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { SalesProgressionChart } from "@/components/dashboard/SalesProgressionChart";
 import { LeadManagementTable } from "@/components/dashboard/LeadManagementTable";
+import { SalesGoalsWidget } from "@/components/dashboard/SalesGoalsWidget";
+import { SalesPipelineWidget } from "@/components/dashboard/SalesPipelineWidget";
 import { InactivityAlertsBanner } from "@/components/productivity/InactivityAlertsBanner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -71,9 +73,17 @@ export default function Dashboard() {
               <PipelineKanban />
             </div>
 
-            {/* Right Sidebar - Revenue & Activity */}
+            {/* Right Sidebar - Goals & Revenue */}
             <div className="col-span-12 lg:col-span-4 space-y-6">
+              <SalesGoalsWidget isLoading={isLoading} />
               <RevenueWidget isLoading={isLoading} />
+            </div>
+
+            {/* Middle Row - Pipeline & Activity */}
+            <div className="col-span-12 lg:col-span-8">
+              <SalesPipelineWidget isLoading={isLoading} />
+            </div>
+            <div className="col-span-12 lg:col-span-4">
               <ActivityFeed maxItems={5} isLoading={isLoading} />
             </div>
 

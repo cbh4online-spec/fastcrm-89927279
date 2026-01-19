@@ -9477,6 +9477,53 @@ export type Database = {
           },
         ]
       }
+      sales_goals: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          leads_target: number
+          month: string
+          opportunities_target: number
+          proposals_target: number
+          revenue_target: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          leads_target?: number
+          month: string
+          opportunities_target?: number
+          proposals_target?: number
+          revenue_target?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          leads_target?: number
+          month?: string
+          opportunities_target?: number
+          proposals_target?: number
+          revenue_target?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_goals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_availability: {
         Row: {
           created_at: string
