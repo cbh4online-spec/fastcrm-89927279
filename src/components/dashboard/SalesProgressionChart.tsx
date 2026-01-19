@@ -22,6 +22,7 @@ import { BarChart3 } from "lucide-react";
 import { useLeads } from "@/hooks/useLeads";
 import { useProposals } from "@/hooks/useProposals";
 import { useOpportunities } from "@/hooks/useOpportunities";
+import { useInvoices } from "@/hooks/useInvoices";
 import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -34,12 +35,14 @@ export function SalesProgressionChart({ isLoading = false }: SalesProgressionCha
   const { data: leads, isLoading: leadsLoading } = useLeads();
   const { data: proposals, isLoading: proposalsLoading } = useProposals();
   const { data: opportunities, isLoading: opportunitiesLoading } = useOpportunities();
+  const { data: paidInvoices, isLoading: invoicesLoading } = useInvoices({ status: "paid" });
 
   const data = useMemo(() => {
     const now = new Date();
     const allLeads = leads || [];
     const allProposals = proposals || [];
     const wonOpportunities = (opportunities || []).filter(o => o.status === "won");
+    const paid = paidInvoices || [];
 
     if (period === "weekly") {
       // Last 8 weeks
@@ -56,15 +59,20 @@ export function SalesProgressionChart({ isLoading = false }: SalesProgressionCha
           isWithinInterval(new Date(p.created_at), { start: weekStart, end: weekEnd })
         ).length;
         
-        const closedCount = wonOpportunities.filter(o => 
+        // Closed = won opportunities + paid invoices
+        const wonCount = wonOpportunities.filter(o => 
           o.updated_at && isWithinInterval(new Date(o.updated_at), { start: weekStart, end: weekEnd })
+        ).length;
+        
+        const paidCount = paid.filter(inv => 
+          inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: weekStart, end: weekEnd })
         ).length;
 
         return {
           name: `S${format(weekStart, "w")}`,
           leads: leadsCount,
           proposals: proposalsCount,
-          closed: closedCount,
+          closed: wonCount + paidCount,
         };
       });
     } else {
@@ -82,21 +90,26 @@ export function SalesProgressionChart({ isLoading = false }: SalesProgressionCha
           isWithinInterval(new Date(p.created_at), { start: monthStart, end: monthEnd })
         ).length;
         
-        const closedCount = wonOpportunities.filter(o => 
+        // Closed = won opportunities + paid invoices
+        const wonCount = wonOpportunities.filter(o => 
           o.updated_at && isWithinInterval(new Date(o.updated_at), { start: monthStart, end: monthEnd })
+        ).length;
+        
+        const paidCount = paid.filter(inv => 
+          inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: monthStart, end: monthEnd })
         ).length;
 
         return {
           name: format(monthDate, "MMM", { locale: pt }),
           leads: leadsCount,
           proposals: proposalsCount,
-          closed: closedCount,
+          closed: wonCount + paidCount,
         };
       });
     }
-  }, [leads, proposals, opportunities, period]);
+  }, [leads, proposals, opportunities, paidInvoices, period]);
 
-  const loading = isLoading || leadsLoading || proposalsLoading || opportunitiesLoading;
+  const loading = isLoading || leadsLoading || proposalsLoading || opportunitiesLoading || invoicesLoading;
 
   if (loading) {
     return (

@@ -29,16 +29,17 @@ interface RevenueWidgetProps {
 
 export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
   const [period, setPeriod] = useState("last-6-months");
-  const { data: invoices, isLoading: invoicesLoading } = useInvoices({ status: "paid" });
+  const { data: paidInvoices, isLoading: paidLoading } = useInvoices({ status: "paid" });
+  const { data: allInvoices, isLoading: allLoading } = useInvoices();
   const { data: opportunities, isLoading: opportunitiesLoading } = useOpportunities();
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
     if (value >= 1000) return `€${(value / 1000).toFixed(0)}K`;
-    return `€${value}`;
+    return `€${value.toFixed(2)}`;
   };
 
-  const { data, totalRevenue, totalSales, growthPercent, previousRevenue } = useMemo(() => {
+  const { data, totalRevenue, pendingRevenue, totalSales, growthPercent } = useMemo(() => {
     const now = new Date();
     let months: Date[] = [];
     let previousStart: Date;
@@ -60,17 +61,26 @@ export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
       previousEnd = endOfMonth(subMonths(startOfYear(now), 1));
     }
 
-    const paidInvoices = invoices || [];
+    const paid = paidInvoices || [];
+    const all = allInvoices || [];
+    const pending = all.filter(inv => inv.status === "sent" || inv.status === "draft" || inv.status === "overdue");
     const wonOpportunities = (opportunities || []).filter(o => o.status === "won");
 
     const chartData = months.map(month => {
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
       
-      const monthRevenue = paidInvoices
+      // Revenue from paid invoices
+      const monthRevenue = paid
         .filter(inv => inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: monthStart, end: monthEnd }))
         .reduce((sum, inv) => sum + (inv.total || 0), 0);
       
+      // Pending revenue (sent/draft invoices by issue date)
+      const monthPending = pending
+        .filter(inv => inv.issue_date && isWithinInterval(new Date(inv.issue_date), { start: monthStart, end: monthEnd }))
+        .reduce((sum, inv) => sum + (inv.total || 0), 0);
+      
+      // Sales from won opportunities
       const monthSales = wonOpportunities
         .filter(opp => opp.updated_at && isWithinInterval(new Date(opp.updated_at), { start: monthStart, end: monthEnd }))
         .reduce((sum, opp) => sum + (opp.value || 0), 0);
@@ -78,29 +88,31 @@ export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
       return {
         name: format(month, "MMM", { locale: pt }),
         revenue: monthRevenue,
+        pending: monthPending,
         sales: monthSales,
       };
     });
 
     const totalRev = chartData.reduce((sum, item) => sum + item.revenue, 0);
+    const totalPending = chartData.reduce((sum, item) => sum + item.pending, 0);
     const totalSls = chartData.reduce((sum, item) => sum + item.sales, 0);
     
-    const prevRevenue = paidInvoices
+    const prevRevenue = paid
       .filter(inv => inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: previousStart, end: previousEnd }))
       .reduce((sum, inv) => sum + (inv.total || 0), 0);
 
-    const growth = prevRevenue > 0 ? Math.round(((totalRev - prevRevenue) / prevRevenue) * 100) : 0;
+    const growth = prevRevenue > 0 ? Math.round(((totalRev - prevRevenue) / prevRevenue) * 100) : (totalRev > 0 ? 100 : 0);
 
     return {
       data: chartData,
       totalRevenue: totalRev,
+      pendingRevenue: totalPending,
       totalSales: totalSls,
       growthPercent: growth,
-      previousRevenue: prevRevenue,
     };
-  }, [invoices, opportunities, period]);
+  }, [paidInvoices, allInvoices, opportunities, period]);
 
-  const loading = isLoading || invoicesLoading || opportunitiesLoading;
+  const loading = isLoading || paidLoading || allLoading || opportunitiesLoading;
 
   if (loading) {
     return (
@@ -118,7 +130,7 @@ export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
     );
   }
 
-  if (data.every(d => d.revenue === 0 && d.sales === 0)) {
+  if (data.every(d => d.revenue === 0 && d.pending === 0 && d.sales === 0)) {
     return (
       <Card className="border-0 shadow-lg bg-card">
         <CardHeader className="pb-2">
@@ -166,7 +178,7 @@ export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
       </CardHeader>
       <CardContent className="pt-0">
         {/* Summary Stats */}
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-6 mb-4">
           <div>
             <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
             <div className="flex items-center gap-1 text-xs">
@@ -181,9 +193,15 @@ export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
                   <span className="text-red-500">{growthPercent}%</span>
                 </>
               )}
-              <span className="text-muted-foreground">vs período anterior</span>
+              <span className="text-muted-foreground">recebido</span>
             </div>
           </div>
+          {pendingRevenue > 0 && (
+            <div className="border-l pl-4 border-border">
+              <p className="text-lg font-semibold text-amber-600">{formatCurrency(pendingRevenue)}</p>
+              <p className="text-xs text-muted-foreground">pendente</p>
+            </div>
+          )}
         </div>
 
         {/* Chart */}
