@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useSmartCompanies, useAnalyzeCompany, useBulkAnalyzeCompanies, SmartCompaniesFilters } from "@/hooks/useSmartCompanies";
 import { useCompanies } from "@/hooks/useCompanies";
+import { useBulkSocialMediaAnalysis } from "@/hooks/useSocialMediaAnalysis";
 import { SmartCompanyRow } from "./SmartCompanyRow";
 import { CreateCompanyDialog } from "./CreateCompanyDialog";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Sparkles, Trash2, Building2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, Users, Factory, Briefcase } from "lucide-react";
+import { Plus, Sparkles, Trash2, Building2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, Users, Factory, Briefcase, Linkedin } from "lucide-react";
 import { TableSkeleton, SearchEmptyState, EmptyState } from "@/components/design-system";
 import { toast } from "sonner";
 
@@ -163,6 +164,19 @@ export function SmartCompaniesTable() {
   const { deleteCompany } = useCompanies();
   const analyze = useAnalyzeCompany();
   const bulkAnalyze = useBulkAnalyzeCompanies();
+  const bulkSocialAnalyze = useBulkSocialMediaAnalysis();
+
+  const handleBulkSocialAnalyze = async () => {
+    const selected = companies?.filter(c => selectedIds.has(c.id) && c.linkedin_url) || [];
+    if (selected.length === 0) {
+      toast.error("Nenhuma empresa selecionada tem URL LinkedIn");
+      return;
+    }
+    await bulkSocialAnalyze.mutateAsync(selected.map(c => ({ id: c.id, name: c.name, linkedin_url: c.linkedin_url })));
+    setSelectedIds(new Set());
+  };
+
+  const isBulkSocialAnalyzing = bulkSocialAnalyze.isPending;
 
   // Apply search filter locally
   const filteredCompanies = useMemo(() => {
@@ -346,10 +360,13 @@ export function SmartCompaniesTable() {
 
         {/* Bulk Actions */}
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border">
+          <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
             <span className="text-sm text-muted-foreground">{selectedIds.size} selecionada(s)</span>
             <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}>
-              <Sparkles className="w-4 h-4 mr-2" />Analisar com IA
+              <Sparkles className="w-4 h-4 mr-2" />Analisar IA
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleBulkSocialAnalyze} disabled={isBulkSocialAnalyzing}>
+              <Linkedin className="w-4 h-4 mr-2" />Analisar LinkedIn
             </Button>
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />Exportar

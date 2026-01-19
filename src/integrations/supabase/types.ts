@@ -1677,6 +1677,117 @@ export type Database = {
           },
         ]
       }
+      company_linkedin_data: {
+        Row: {
+          analysis_status: string | null
+          analyzed_at: string
+          analyzed_by: string | null
+          avg_comments_per_post: number | null
+          avg_likes_per_post: number | null
+          company_id: string
+          company_size_range: string | null
+          created_at: string
+          description: string | null
+          employee_count_linkedin: number | null
+          employees_on_linkedin: number | null
+          engagement_score: number | null
+          error_message: string | null
+          founded_year: number | null
+          headquarters: string | null
+          id: string
+          key_people: Json | null
+          last_post_date: string | null
+          linkedin_industry: string | null
+          linkedin_type: string | null
+          linkedin_url: string | null
+          linkedin_website: string | null
+          posting_frequency: string | null
+          raw_data: Json | null
+          recent_posts: Json | null
+          specialties: string[] | null
+          tagline: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          analysis_status?: string | null
+          analyzed_at?: string
+          analyzed_by?: string | null
+          avg_comments_per_post?: number | null
+          avg_likes_per_post?: number | null
+          company_id: string
+          company_size_range?: string | null
+          created_at?: string
+          description?: string | null
+          employee_count_linkedin?: number | null
+          employees_on_linkedin?: number | null
+          engagement_score?: number | null
+          error_message?: string | null
+          founded_year?: number | null
+          headquarters?: string | null
+          id?: string
+          key_people?: Json | null
+          last_post_date?: string | null
+          linkedin_industry?: string | null
+          linkedin_type?: string | null
+          linkedin_url?: string | null
+          linkedin_website?: string | null
+          posting_frequency?: string | null
+          raw_data?: Json | null
+          recent_posts?: Json | null
+          specialties?: string[] | null
+          tagline?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          analysis_status?: string | null
+          analyzed_at?: string
+          analyzed_by?: string | null
+          avg_comments_per_post?: number | null
+          avg_likes_per_post?: number | null
+          company_id?: string
+          company_size_range?: string | null
+          created_at?: string
+          description?: string | null
+          employee_count_linkedin?: number | null
+          employees_on_linkedin?: number | null
+          engagement_score?: number | null
+          error_message?: string | null
+          founded_year?: number | null
+          headquarters?: string | null
+          id?: string
+          key_people?: Json | null
+          last_post_date?: string | null
+          linkedin_industry?: string | null
+          linkedin_type?: string | null
+          linkedin_url?: string | null
+          linkedin_website?: string | null
+          posting_frequency?: string | null
+          raw_data?: Json | null
+          recent_posts?: Json | null
+          specialties?: string[] | null
+          tagline?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_linkedin_data_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_linkedin_data_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumption_logs: {
         Row: {
           acquired_product_id: string

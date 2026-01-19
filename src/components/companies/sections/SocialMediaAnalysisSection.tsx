@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +16,13 @@ import {
   Lightbulb,
   ExternalLink,
   Star,
-  TrendingUp
+  TrendingUp,
+  Clock,
+  CheckCircle2
 } from "lucide-react";
-import { useSocialMediaAnalysis, SocialMediaAnalysis } from "@/hooks/useSocialMediaAnalysis";
+import { useSocialMediaAnalysis, useSocialMediaData, SocialMediaAnalysis } from "@/hooks/useSocialMediaAnalysis";
+import { formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
 
 interface SocialMediaAnalysisSectionProps {
   companyId: string;
@@ -61,10 +65,15 @@ export function SocialMediaAnalysisSection({
   instagramUrl,
   facebookUrl
 }: SocialMediaAnalysisSectionProps) {
-  const [analysis, setAnalysis] = useState<SocialMediaAnalysis | null>(null);
+  const [liveAnalysis, setLiveAnalysis] = useState<SocialMediaAnalysis | null>(null);
+  const { data: persistedData, isLoading: isLoadingPersisted } = useSocialMediaData(companyId);
   const analyzeMutation = useSocialMediaAnalysis();
 
   const hasSocialUrls = linkedinUrl || instagramUrl || facebookUrl;
+  
+  // Use persisted data or live analysis
+  const analysis = liveAnalysis || persistedData?.parsedAnalysis;
+  const analyzedAt = liveAnalysis?.analyzedAt || persistedData?.analyzed_at;
 
   const handleAnalyze = async () => {
     const result = await analyzeMutation.mutateAsync({
@@ -74,7 +83,7 @@ export function SocialMediaAnalysisSection({
       instagramUrl,
       facebookUrl
     });
-    setAnalysis(result);
+    setLiveAnalysis(result);
   };
 
   if (!hasSocialUrls) {
@@ -96,6 +105,23 @@ export function SocialMediaAnalysisSection({
               Enriqueça os dados para obter links de LinkedIn, Instagram ou Facebook.
             </p>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoadingPersisted) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            Análise de Redes Sociais
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-12 w-full" />
         </CardContent>
       </Card>
     );
@@ -154,15 +180,24 @@ export function SocialMediaAnalysisSection({
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-primary" />
-            Análise de Redes Sociais
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              Análise de Redes Sociais
+            </CardTitle>
+            {analyzedAt && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                {formatDistanceToNow(new Date(analyzedAt), { addSuffix: true, locale: pt })}
+              </Badge>
+            )}
+          </div>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={handleAnalyze}
             disabled={analyzeMutation.isPending}
+            title="Atualizar análise"
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
@@ -188,14 +223,11 @@ export function SocialMediaAnalysisSection({
             <div className="bg-[#0A66C2]/10 rounded-lg p-3 text-center">
               <Linkedin className="w-5 h-5 text-[#0A66C2] mx-auto mb-1" />
               <div className="text-lg font-semibold">
-                {analysis.linkedinData.followers?.toLocaleString() || "?"}
+                {analysis.linkedinData.followers?.toLocaleString() || analysis.linkedinData.employeeCount?.toLocaleString() || "?"}
               </div>
-              <div className="text-[10px] text-muted-foreground">seguidores</div>
-              {analysis.linkedinData.employeeCount && (
-                <div className="text-[10px] text-muted-foreground mt-1">
-                  {analysis.linkedinData.employeeCount} funcionários
-                </div>
-              )}
+              <div className="text-[10px] text-muted-foreground">
+                {analysis.linkedinData.followers ? "seguidores" : "funcionários"}
+              </div>
             </div>
           )}
           {analysis.instagramData && (
@@ -309,6 +341,19 @@ export function SocialMediaAnalysisSection({
               </div>
             ))}
           </div>
+        )}
+
+        {/* Link to LinkedIn */}
+        {linkedinUrl && (
+          <a
+            href={linkedinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Ver no LinkedIn
+          </a>
         )}
       </CardContent>
     </Card>
