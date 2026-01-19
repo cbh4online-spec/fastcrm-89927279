@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCompanies, Company } from "@/hooks/useCompanies";
 import { Button } from "@/components/ui/button";
@@ -25,13 +25,15 @@ import {
   Sparkles,
   Globe,
   Mail,
-  Phone
+  Phone,
+  Wand2
 } from "lucide-react";
 import { toast } from "sonner";
 import { NifLookupResult } from "@/hooks/useNifLookup";
 import { 
   useGenerateFieldSuggestions,
 } from "@/hooks/useFieldSuggestions";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { InsightsSidebar } from "@/components/insights";
 import { CompanyContacts } from "./CompanyContacts";
 import { IdentificationSection } from "./sections/IdentificationSection";
@@ -43,6 +45,7 @@ import { CompanyContactsHistory } from "./sections/CompanyContactsHistory";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
 import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
+import { EnrichCompanyDialog } from "./dialogs/EnrichCompanyDialog";
 
 // Helper function for time ago
 function getTimeAgo(date: Date): string {
@@ -61,8 +64,12 @@ export function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { companies, isLoading, updateCompany, deleteCompany } = useCompanies();
+  const { isModuleInstalled } = useWorkspaceModules();
+  
+  const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
 
   const company = companies.find(c => c.id === id);
+  const showEnrichButton = isModuleInstalled('google-local-services');
 
   // AI field suggestions
   const generateSuggestions = useGenerateFieldSuggestions();
@@ -114,6 +121,14 @@ export function CompanyDetail() {
     if (!id) return;
     await generateSuggestions.mutateAsync({ entityType: "company", entityId: id });
   };
+
+  const handleEnrichmentApplied = useCallback((fields: Record<string, unknown>) => {
+    // Refetch company data after enrichment
+    // The updateCompany will refresh the cache
+    if (company) {
+      updateCompany.mutate({ id: company.id, ...fields });
+    }
+  }, [company, updateCompany]);
 
   if (isLoading) {
     return (
@@ -239,6 +254,24 @@ export function CompanyDetail() {
             </TooltipProvider>
           )}
           
+          {showEnrichButton && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setEnrichDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    Enriquecer Dados
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Enriquecer dados a partir do website (Google Local Services)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          
           <Button 
             variant="outline" 
             onClick={handleGenerateSuggestions}
@@ -328,6 +361,29 @@ export function CompanyDetail() {
           <CompanyContacts companyId={id || ''} companyName={company.name} />
         </div>
       </div>
+
+      {/* Enrich Company Dialog */}
+      {showEnrichButton && (
+        <EnrichCompanyDialog
+          open={enrichDialogOpen}
+          onOpenChange={setEnrichDialogOpen}
+          company={{
+            id: company.id,
+            name: company.name,
+            website: company.website,
+            email: company.email,
+            phone: company.phone,
+            industry: company.industry,
+            size: company.size,
+            address: company.address,
+            linkedin_url: company.linkedin_url,
+            instagram_url: company.instagram_url,
+            facebook_url: company.facebook_url,
+            twitter_url: company.twitter_url,
+          }}
+          onEnrichmentApplied={handleEnrichmentApplied}
+        />
+      )}
     </div>
   );
 }
