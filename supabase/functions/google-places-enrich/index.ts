@@ -1,85 +1,50 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface GooglePlaceResult {
-  id: string;
-  displayName: {
-    text: string;
-    languageCode: string;
-  };
-  formattedAddress?: string;
-  nationalPhoneNumber?: string;
-  internationalPhoneNumber?: string;
-  websiteUri?: string;
-  googleMapsUri?: string;
-  rating?: number;
-  userRatingCount?: number;
-  businessStatus?: string;
-  primaryType?: string;
-  primaryTypeDisplayName?: {
-    text: string;
-    languageCode: string;
-  };
-  editorialSummary?: {
-    text: string;
-    languageCode: string;
-  };
-  regularOpeningHours?: {
-    openNow?: boolean;
-    periods?: Array<{
-      open: { day: number; hour: number; minute: number };
-      close?: { day: number; hour: number; minute: number };
-    }>;
-    weekdayDescriptions?: string[];
-  };
-  photos?: Array<{
-    name: string;
-    widthPx: number;
-    heightPx: number;
-    authorAttributions: Array<{ displayName: string; uri: string }>;
-  }>;
-  priceLevel?: string;
-  location?: {
+interface SerpApiPlace {
+  position?: number;
+  title?: string;
+  place_id?: string;
+  data_id?: string;
+  data_cid?: string;
+  reviews_link?: string;
+  photos_link?: string;
+  gps_coordinates?: {
     latitude: number;
     longitude: number;
   };
-  addressComponents?: Array<{
-    longText: string;
-    shortText: string;
-    types: string[];
-    languageCode: string;
-  }>;
+  place_id_search?: string;
+  provider_id?: string;
+  rating?: number;
+  reviews?: number;
+  price?: string;
+  type?: string;
+  types?: string[];
+  type_id?: string;
+  type_ids?: string[];
+  address?: string;
+  open_state?: string;
+  hours?: string;
+  operating_hours?: Record<string, string>;
+  phone?: string;
+  website?: string;
+  description?: string;
+  service_options?: Record<string, boolean>;
+  thumbnail?: string;
 }
 
-interface SearchResponse {
-  places?: GooglePlaceResult[];
+interface SerpApiResponse {
+  search_metadata?: {
+    status: string;
+  };
+  local_results?: SerpApiPlace[];
+  place_results?: SerpApiPlace;
+  error?: string;
 }
-
-const GOOGLE_PLACES_FIELDS = [
-  "id",
-  "displayName",
-  "formattedAddress",
-  "nationalPhoneNumber",
-  "internationalPhoneNumber",
-  "websiteUri",
-  "googleMapsUri",
-  "rating",
-  "userRatingCount",
-  "businessStatus",
-  "primaryType",
-  "primaryTypeDisplayName",
-  "editorialSummary",
-  "regularOpeningHours",
-  "photos",
-  "priceLevel",
-  "location",
-  "addressComponents",
-];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -87,14 +52,14 @@ serve(async (req) => {
   }
 
   try {
-    const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
+    const SERPAPI_API_KEY = Deno.env.get("SERPAPI_API_KEY");
     
-    if (!GOOGLE_PLACES_API_KEY) {
-      console.error("GOOGLE_PLACES_API_KEY not configured");
+    if (!SERPAPI_API_KEY) {
+      console.error("SERPAPI_API_KEY not configured");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Chave da API Google Places não configurada" 
+          error: "Chave da API não configurada. Contacte o administrador." 
         }),
         { 
           status: 400, 
@@ -105,130 +70,149 @@ serve(async (req) => {
 
     const { companyName, city, address, placeId } = await req.json();
 
-    console.log("Google Places enrichment request:", { companyName, city, address, placeId });
+    console.log("Google Local enrichment request:", { companyName, city, address, placeId });
 
-    let places: GooglePlaceResult[] = [];
-
-    // If we have a placeId, fetch that specific place
-    if (placeId) {
-      const detailsUrl = `https://places.googleapis.com/v1/places/${placeId}`;
-      
-      const detailsResponse = await fetch(detailsUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
-          "X-Goog-FieldMask": GOOGLE_PLACES_FIELDS.join(","),
-        },
-      });
-
-      if (detailsResponse.ok) {
-        const place = await detailsResponse.json();
-        places = [place];
-      }
-    } else {
-      // Search for places by name
-      const searchQuery = [companyName, city, address].filter(Boolean).join(", ");
-      
-      const searchUrl = "https://places.googleapis.com/v1/places:searchText";
-      
-      const searchResponse = await fetch(searchUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
-          "X-Goog-FieldMask": `places.${GOOGLE_PLACES_FIELDS.join(",places.")}`,
-        },
-        body: JSON.stringify({
-          textQuery: searchQuery,
-          languageCode: "pt",
-          maxResultCount: 5,
+    if (!companyName && !placeId) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Nome da empresa ou Place ID é obrigatório" 
         }),
-      });
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
 
-      if (!searchResponse.ok) {
-        const errorText = await searchResponse.text();
-        console.error("Google Places API error:", errorText);
+    let results: SerpApiPlace[] = [];
+
+    if (placeId) {
+      // Search by place ID for more details
+      const searchUrl = new URL("https://serpapi.com/search.json");
+      searchUrl.searchParams.set("engine", "google_maps");
+      searchUrl.searchParams.set("place_id", placeId);
+      searchUrl.searchParams.set("api_key", SERPAPI_API_KEY);
+
+      console.log("Fetching place details for:", placeId);
+      const response = await fetch(searchUrl.toString());
+      const data: SerpApiResponse = await response.json();
+
+      if (data.error) {
+        console.error("SerpAPI error:", data.error);
         return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Erro ao pesquisar no Google Places" 
-          }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, "Content-Type": "application/json" } 
-          }
+          JSON.stringify({ success: false, error: data.error }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const searchData: SearchResponse = await searchResponse.json();
-      places = searchData.places || [];
+      if (data.place_results) {
+        results = [data.place_results];
+      }
+    } else {
+      // Text search
+      const query = [companyName, city, address].filter(Boolean).join(", ");
+      const searchUrl = new URL("https://serpapi.com/search.json");
+      searchUrl.searchParams.set("engine", "google_maps");
+      searchUrl.searchParams.set("q", query);
+      searchUrl.searchParams.set("type", "search");
+      searchUrl.searchParams.set("api_key", SERPAPI_API_KEY);
+
+      console.log("Searching for:", query);
+      const response = await fetch(searchUrl.toString());
+      const data: SerpApiResponse = await response.json();
+
+      if (data.error) {
+        console.error("SerpAPI error:", data.error);
+        return new Response(
+          JSON.stringify({ success: false, error: data.error }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      results = data.local_results || [];
     }
 
-    console.log(`Found ${places.length} places`);
+    console.log(`Found ${results.length} places`);
 
-    // Transform places to our enrichment format
-    const enrichmentResults = places.map((place) => {
-      // Extract address components
-      const addressComponents: Record<string, string> = {};
-      if (place.addressComponents) {
-        for (const comp of place.addressComponents) {
-          if (comp.types.includes("postal_code")) {
-            addressComponents.postal_code = comp.longText;
-          }
-          if (comp.types.includes("locality")) {
-            addressComponents.city = comp.longText;
-          }
-          if (comp.types.includes("administrative_area_level_1")) {
-            addressComponents.region = comp.longText;
-          }
-          if (comp.types.includes("country")) {
-            addressComponents.country = comp.longText;
+    // Map results to enrichment format
+    const enrichmentResults = results.map((place) => {
+      // Parse address components if available
+      let parsedCity = "";
+      let postalCode = "";
+      let region = "";
+      let country = "";
+      
+      if (place.address) {
+        // Try to extract postal code from address (common formats)
+        const postalMatch = place.address.match(/\b\d{4,8}(?:[-\s]\d{3,4})?\b/);
+        if (postalMatch) {
+          postalCode = postalMatch[0];
+        }
+        
+        // Split address to get city (usually varies by country)
+        const addressParts = place.address.split(",").map(p => p.trim());
+        if (addressParts.length >= 2) {
+          if (addressParts.length === 2) {
+            parsedCity = addressParts[0];
+            country = addressParts[1];
+          } else if (addressParts.length === 3) {
+            parsedCity = addressParts[1];
+            country = addressParts[2];
+          } else {
+            parsedCity = addressParts[addressParts.length - 3] || "";
+            region = addressParts[addressParts.length - 2] || "";
+            country = addressParts[addressParts.length - 1] || "";
           }
         }
       }
 
-      // Format opening hours as readable text
-      let openingHoursText: string | null = null;
-      let openingHoursJson: object | null = null;
-      if (place.regularOpeningHours) {
-        openingHoursText = place.regularOpeningHours.weekdayDescriptions?.join("\n") || null;
-        openingHoursJson = {
-          weekdayDescriptions: place.regularOpeningHours.weekdayDescriptions,
-          openNow: place.regularOpeningHours.openNow,
-          periods: place.regularOpeningHours.periods,
-        };
+      // Map price level
+      let priceLevel = "";
+      if (place.price) {
+        const dollarCount = (place.price.match(/[$€]/g) || []).length;
+        if (dollarCount === 1) priceLevel = "PRICE_LEVEL_INEXPENSIVE";
+        else if (dollarCount === 2) priceLevel = "PRICE_LEVEL_MODERATE";
+        else if (dollarCount === 3) priceLevel = "PRICE_LEVEL_EXPENSIVE";
+        else if (dollarCount >= 4) priceLevel = "PRICE_LEVEL_VERY_EXPENSIVE";
       }
 
-      // Get first photo URL if available
-      let photoUrl: string | null = null;
-      if (place.photos && place.photos.length > 0) {
-        const photoName = place.photos[0].name;
-        photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=400&maxWidthPx=400&key=${GOOGLE_PLACES_API_KEY}`;
+      // Format opening hours
+      let openingHoursText: string | null = null;
+      let openingHoursJson: object | null = null;
+      if (place.operating_hours) {
+        openingHoursJson = place.operating_hours;
+        openingHoursText = Object.entries(place.operating_hours)
+          .map(([day, hours]) => `${day}: ${hours}`)
+          .join("\n");
+      } else if (place.hours) {
+        openingHoursText = place.hours;
       }
 
       return {
-        place_id: place.id,
-        name: place.displayName?.text || null,
-        formatted_address: place.formattedAddress || null,
-        phone: place.nationalPhoneNumber || place.internationalPhoneNumber || null,
-        website: place.websiteUri || null,
-        google_maps_url: place.googleMapsUri || null,
+        place_id: place.place_id || place.data_cid || null,
+        name: place.title || null,
+        formatted_address: place.address || null,
+        phone: place.phone || null,
+        website: place.website || null,
+        google_maps_url: place.place_id 
+          ? `https://www.google.com/maps/place/?q=place_id:${place.place_id}`
+          : null,
         rating: place.rating || null,
-        reviews_count: place.userRatingCount || null,
-        business_status: place.businessStatus || null,
-        business_type: place.primaryTypeDisplayName?.text || place.primaryType || null,
-        description: place.editorialSummary?.text || null,
+        reviews_count: place.reviews || null,
+        business_status: place.open_state || "OPERATIONAL",
+        business_type: place.type || (place.types && place.types[0]) || null,
+        description: place.description || null,
         opening_hours_text: openingHoursText,
         opening_hours_json: openingHoursJson,
-        photo_url: photoUrl,
-        price_level: place.priceLevel || null,
-        latitude: place.location?.latitude || null,
-        longitude: place.location?.longitude || null,
-        postal_code: addressComponents.postal_code || null,
-        city: addressComponents.city || null,
-        region: addressComponents.region || null,
-        country: addressComponents.country || null,
+        photo_url: place.thumbnail || null,
+        price_level: priceLevel || null,
+        latitude: place.gps_coordinates?.latitude || null,
+        longitude: place.gps_coordinates?.longitude || null,
+        postal_code: postalCode || null,
+        city: parsedCity || null,
+        region: region || null,
+        country: country || null,
       };
     });
 
