@@ -42,6 +42,7 @@ import { NotesSection } from "./sections/NotesSection";
 import { TagsSection } from "./sections/TagsSection";
 import { SocialMediaSection } from "./sections/SocialMediaSection";
 import { CompanyContactsHistory } from "./sections/CompanyContactsHistory";
+import { CompanyContextSection } from "./sections/CompanyContextSection";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
 import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
@@ -322,6 +323,9 @@ export function CompanyDetail() {
             onFieldChange={handleFieldChange}
             onNifDataReceived={handleNifDataReceived}
           />
+          
+          {/* Company Context from Website Enrichment */}
+          <CompanyContextSection companyContext={company.company_context} />
           
           <CompanyContactsHistory companyId={id || ''} />
           

@@ -4,6 +4,20 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
+export interface CompanyContext {
+  about_us?: string;
+  services?: string;
+  products?: string;
+  clients?: string;
+  team_info?: string;
+  mission_values?: string;
+  differentiators?: string;
+  certifications?: string;
+  target_market?: string;
+  year_founded?: string;
+  extracted_at?: string;
+}
+
 export interface Company {
   id: string;
   workspace_id: string;
@@ -23,6 +37,7 @@ export interface Company {
   instagram_url: string | null;
   twitter_url: string | null;
   entity_type: string | null;
+  company_context: CompanyContext | null;
   created_at: string;
   updated_at: string;
 }
