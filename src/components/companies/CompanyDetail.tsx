@@ -37,6 +37,7 @@ import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { InsightsSidebar } from "@/components/insights";
 import { CompanyContacts } from "./CompanyContacts";
 import { IdentificationSection } from "./sections/IdentificationSection";
+import { FinancialSection } from "./sections/FinancialSection";
 import { AddressSection } from "./sections/AddressSection";
 import { NotesSection } from "./sections/NotesSection";
 import { TagsSection } from "./sections/TagsSection";
@@ -332,6 +333,11 @@ export function CompanyDetail() {
             company={company} 
             onFieldChange={handleFieldChange}
             onNifDataReceived={handleNifDataReceived}
+          />
+          
+          <FinancialSection 
+            company={company} 
+            onFieldChange={handleFieldChange}
           />
           
           {/* Company Context from Website Enrichment */}

@@ -38,6 +38,7 @@ export interface Company {
   twitter_url: string | null;
   entity_type: string | null;
   company_context: CompanyContext | null;
+  payment_conditions: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +59,7 @@ export interface CreateCompanyData {
   instagram_url?: string;
   twitter_url?: string;
   entity_type?: string;
+  payment_conditions?: string;
 }
 
 export interface UpdateCompanyData extends Partial<CreateCompanyData> {
@@ -146,6 +148,7 @@ export function useCompanies() {
       if (data.instagram_url !== undefined) updateData.instagram_url = data.instagram_url;
       if (data.twitter_url !== undefined) updateData.twitter_url = data.twitter_url;
       if (data.entity_type !== undefined) updateData.entity_type = data.entity_type;
+      if (data.payment_conditions !== undefined) updateData.payment_conditions = data.payment_conditions;
 
       const { data: company, error } = await supabase
         .from("companies")
