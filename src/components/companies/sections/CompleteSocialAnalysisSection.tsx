@@ -3,23 +3,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   BarChart3, Linkedin, Instagram, Facebook, Users, Target,
-  RefreshCw, AlertCircle, Lightbulb, ExternalLink, Star,
-  TrendingUp, CheckCircle2, UserPlus, ArrowRight, Building2
+  RefreshCw, AlertCircle, ExternalLink, Star,
+  CheckCircle2, UserPlus, Building2, ChevronDown, Sparkles,
+  ClipboardPaste, HelpCircle
 } from "lucide-react";
 import { 
   useCompleteSocialData, 
-  useAnalyzeCompleteSocial,
+  useManualSocialAnalysis,
   useApplyDataSuggestions,
   CompleteSocialAnalysis,
   SuggestedContact,
-  DataSuggestion,
-  SalesOpportunity
 } from "@/hooks/useCompleteSocialAnalysis";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface CompleteSocialAnalysisSectionProps {
   companyId: string;
@@ -72,23 +79,40 @@ export function CompleteSocialAnalysisSection({
   onCreateContact
 }: CompleteSocialAnalysisSectionProps) {
   const [liveAnalysis, setLiveAnalysis] = useState<CompleteSocialAnalysis | null>(null);
+  const [isInputOpen, setIsInputOpen] = useState(false);
+  const [linkedinText, setLinkedinText] = useState("");
+  const [employeesText, setEmployeesText] = useState("");
+  const [facebookText, setFacebookText] = useState("");
+  const [instagramText, setInstagramText] = useState("");
+  
   const { data: persistedData, isLoading } = useCompleteSocialData(companyId);
-  const analyzeMutation = useAnalyzeCompleteSocial();
+  const manualMutation = useManualSocialAnalysis();
   const applyMutation = useApplyDataSuggestions();
 
   const hasSocialUrls = linkedinUrl || instagramUrl || facebookUrl;
   const analysis = liveAnalysis || persistedData;
+  const hasInputText = linkedinText.trim() || employeesText.trim() || facebookText.trim() || instagramText.trim();
 
-  const handleAnalyze = async () => {
-    const result = await analyzeMutation.mutateAsync({
+  const handleManualAnalyze = async () => {
+    const result = await manualMutation.mutateAsync({
       companyId,
       companyName,
       linkedinUrl,
       facebookUrl,
       instagramUrl,
+      linkedinText: linkedinText.trim() || undefined,
+      employeesText: employeesText.trim() || undefined,
+      facebookText: facebookText.trim() || undefined,
+      instagramText: instagramText.trim() || undefined,
       currentCompanyData,
     });
     setLiveAnalysis(result);
+    setIsInputOpen(false);
+    // Clear inputs after successful analysis
+    setLinkedinText("");
+    setEmployeesText("");
+    setFacebookText("");
+    setInstagramText("");
   };
 
   const handleApplySuggestions = () => {
@@ -108,7 +132,8 @@ export function CompleteSocialAnalysisSection({
         <CardContent>
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <AlertCircle className="w-8 h-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">Sem URLs de redes sociais para analisar.</p>
+            <p className="text-sm text-muted-foreground">Sem URLs de redes sociais configuradas.</p>
+            <p className="text-xs text-muted-foreground mt-1">Adicione LinkedIn, Facebook ou Instagram à empresa.</p>
           </div>
         </CardContent>
       </Card>
@@ -132,17 +157,20 @@ export function CompleteSocialAnalysisSection({
     );
   }
 
-  if (analyzeMutation.isPending) {
+  if (manualMutation.isPending) {
     return (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-primary animate-pulse" />
-            A analisar redes sociais...
+            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+            A analisar com IA...
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="h-16 w-full" />
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+            <span className="text-sm text-muted-foreground">A extrair dados estruturados...</span>
+          </div>
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-32 w-full" />
         </CardContent>
@@ -150,35 +178,59 @@ export function CompleteSocialAnalysisSection({
     );
   }
 
+  // No analysis yet - show input form
   if (!analysis) {
     return (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary" />
-            Análise Completa de Redes Sociais
+            Análise de Redes Sociais
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="flex gap-3 mb-4">
+        <CardContent className="space-y-4">
+          <div className="flex flex-col items-center justify-center py-4 text-center">
+            <div className="flex gap-3 mb-3">
               {linkedinUrl && <Linkedin className="w-6 h-6 text-[#0A66C2]" />}
               {instagramUrl && <Instagram className="w-6 h-6 text-[#E4405F]" />}
               {facebookUrl && <Facebook className="w-6 h-6 text-[#1877F2]" />}
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Analisa perfis para obter funcionários, seguidores, atividade e oportunidades de venda
+            <p className="text-sm text-muted-foreground mb-1">
+              Cole texto das páginas para análise com IA
             </p>
-            <Button onClick={handleAnalyze} className="gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Analisar Redes Sociais
-            </Button>
+            <p className="text-xs text-muted-foreground mb-4">
+              A IA extrai funcionários, seguidores, atividade e oportunidades
+            </p>
           </div>
+
+          <ManualInputForm
+            linkedinUrl={linkedinUrl}
+            facebookUrl={facebookUrl}
+            instagramUrl={instagramUrl}
+            linkedinText={linkedinText}
+            setLinkedinText={setLinkedinText}
+            employeesText={employeesText}
+            setEmployeesText={setEmployeesText}
+            facebookText={facebookText}
+            setFacebookText={setFacebookText}
+            instagramText={instagramText}
+            setInstagramText={setInstagramText}
+          />
+
+          <Button 
+            onClick={handleManualAnalyze} 
+            className="w-full gap-2"
+            disabled={!hasInputText}
+          >
+            <Sparkles className="w-4 h-4" />
+            Analisar com IA
+          </Button>
         </CardContent>
       </Card>
     );
   }
 
+  // Has analysis - show results with option to update
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -195,12 +247,43 @@ export function CompleteSocialAnalysisSection({
               </Badge>
             )}
           </div>
-          <Button variant="ghost" size="sm" onClick={handleAnalyze} disabled={analyzeMutation.isPending}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsInputOpen(!isInputOpen)}
+          >
             <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
+        {/* Update Input Form (Collapsible) */}
+        <Collapsible open={isInputOpen} onOpenChange={setIsInputOpen}>
+          <CollapsibleContent className="space-y-4 pb-4 border-b">
+            <ManualInputForm
+              linkedinUrl={linkedinUrl}
+              facebookUrl={facebookUrl}
+              instagramUrl={instagramUrl}
+              linkedinText={linkedinText}
+              setLinkedinText={setLinkedinText}
+              employeesText={employeesText}
+              setEmployeesText={setEmployeesText}
+              facebookText={facebookText}
+              setFacebookText={setFacebookText}
+              instagramText={instagramText}
+              setInstagramText={setInstagramText}
+            />
+            <Button 
+              onClick={handleManualAnalyze} 
+              className="w-full gap-2"
+              disabled={!hasInputText || manualMutation.isPending}
+            >
+              <Sparkles className="w-4 h-4" />
+              Atualizar Análise
+            </Button>
+          </CollapsibleContent>
+        </Collapsible>
+
         {/* Digital Maturity */}
         <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
           <div>
@@ -360,5 +443,179 @@ export function CompleteSocialAnalysisSection({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// Manual Input Form Component
+interface ManualInputFormProps {
+  linkedinUrl?: string | null;
+  facebookUrl?: string | null;
+  instagramUrl?: string | null;
+  linkedinText: string;
+  setLinkedinText: (v: string) => void;
+  employeesText: string;
+  setEmployeesText: (v: string) => void;
+  facebookText: string;
+  setFacebookText: (v: string) => void;
+  instagramText: string;
+  setInstagramText: (v: string) => void;
+}
+
+function ManualInputForm({
+  linkedinUrl,
+  facebookUrl,
+  instagramUrl,
+  linkedinText,
+  setLinkedinText,
+  employeesText,
+  setEmployeesText,
+  facebookText,
+  setFacebookText,
+  instagramText,
+  setInstagramText,
+}: ManualInputFormProps) {
+  return (
+    <TooltipProvider>
+      <Tabs defaultValue="linkedin" className="w-full">
+        <TabsList className="w-full grid grid-cols-3 h-8">
+          {linkedinUrl && <TabsTrigger value="linkedin" className="text-xs gap-1"><Linkedin className="w-3 h-3" /> LinkedIn</TabsTrigger>}
+          {facebookUrl && <TabsTrigger value="facebook" className="text-xs gap-1"><Facebook className="w-3 h-3" /> Facebook</TabsTrigger>}
+          {instagramUrl && <TabsTrigger value="instagram" className="text-xs gap-1"><Instagram className="w-3 h-3" /> Instagram</TabsTrigger>}
+        </TabsList>
+
+        {linkedinUrl && (
+          <TabsContent value="linkedin" className="space-y-3 mt-3">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium flex items-center gap-1.5">
+                  <ClipboardPaste className="w-3 h-3" />
+                  Sobre a Empresa
+                </label>
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p className="text-xs">Abra a página do LinkedIn → Clique em "Sobre" → Selecione e copie todo o texto da secção</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <a 
+                    href={linkedinUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                  >
+                    Abrir <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+              </div>
+              <Textarea 
+                placeholder="Cole aqui o texto da secção 'Sobre' do LinkedIn..."
+                value={linkedinText}
+                onChange={(e) => setLinkedinText(e.target.value)}
+                className="min-h-[80px] text-xs resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium flex items-center gap-1.5">
+                  <Users className="w-3 h-3" />
+                  Lista de Funcionários
+                </label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs">
+                    <p className="text-xs">Vá a "Pessoas" no perfil → Selecione nomes e cargos → Cole aqui (formato: Nome - Cargo)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Textarea 
+                placeholder="Cole a lista de funcionários (nome e cargo)..."
+                value={employeesText}
+                onChange={(e) => setEmployeesText(e.target.value)}
+                className="min-h-[80px] text-xs resize-none"
+              />
+            </div>
+          </TabsContent>
+        )}
+
+        {facebookUrl && (
+          <TabsContent value="facebook" className="space-y-3 mt-3">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium flex items-center gap-1.5">
+                  <ClipboardPaste className="w-3 h-3" />
+                  Sobre a Página
+                </label>
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p className="text-xs">Abra a página → Clique em "Sobre" → Copie toda a informação (seguidores, categoria, descrição)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <a 
+                    href={facebookUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                  >
+                    Abrir <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+              </div>
+              <Textarea 
+                placeholder="Cole aqui informação da página do Facebook (seguidores, gostos, avaliação, descrição)..."
+                value={facebookText}
+                onChange={(e) => setFacebookText(e.target.value)}
+                className="min-h-[100px] text-xs resize-none"
+              />
+            </div>
+          </TabsContent>
+        )}
+
+        {instagramUrl && (
+          <TabsContent value="instagram" className="space-y-3 mt-3">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium flex items-center gap-1.5">
+                  <ClipboardPaste className="w-3 h-3" />
+                  Perfil do Instagram
+                </label>
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p className="text-xs">Abra o perfil → Copie o número de seguidores, publicações, e a bio</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <a 
+                    href={instagramUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                  >
+                    Abrir <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+              </div>
+              <Textarea 
+                placeholder="Cole aqui dados do Instagram (seguidores, publicações, bio)..."
+                value={instagramText}
+                onChange={(e) => setInstagramText(e.target.value)}
+                className="min-h-[100px] text-xs resize-none"
+              />
+            </div>
+          </TabsContent>
+        )}
+      </Tabs>
+    </TooltipProvider>
   );
 }
