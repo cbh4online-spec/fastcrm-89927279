@@ -176,8 +176,13 @@ export function CreateInvoiceDialog({
     }
   }, [selectedContact, selectedContactCompany, clientType, issueDate]);
 
-  // Clear auto-filled fields when client type changes
+  // Clear auto-filled fields when client type changes (but not on initial load with defaults)
+  const [hasInitialized, setHasInitialized] = useState(false);
   useEffect(() => {
+    if (!hasInitialized) {
+      setHasInitialized(true);
+      return; // Skip clearing on first render
+    }
     setClientTaxId("");
     setClientAddress("");
     setClientEmail("");
