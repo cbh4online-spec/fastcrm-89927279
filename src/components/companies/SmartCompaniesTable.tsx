@@ -378,11 +378,11 @@ export function SmartCompaniesTable() {
         )}
 
         {/* Table */}
-        <div className="mt-4 rounded-lg border border-border bg-card overflow-x-auto flex-1">
-          <Table>
+        <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
+          <Table className="min-w-[1400px]">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40px]">
+                <TableHead className="w-[40px] whitespace-nowrap">
                   <Checkbox 
                     checked={allSelected} 
                     ref={(el) => { if (el) (el as any).indeterminate = someSelected; }} 
@@ -391,11 +391,16 @@ export function SmartCompaniesTable() {
                 </TableHead>
                 {orderedVisibleColumns.map(col => {
                   const isAI = col.category === "ai";
-                  const minWidth = col.id === "name" ? "min-w-[180px]" : 
-                                  col.id === "next_action" ? "min-w-[150px]" :
-                                  col.id === "insight" ? "min-w-[180px]" : "";
+                  const minWidth = col.id === "name" ? "min-w-[200px]" : 
+                                  col.id === "industry" ? "min-w-[140px]" :
+                                  col.id === "source" ? "min-w-[120px]" :
+                                  col.id === "city" ? "min-w-[120px]" :
+                                  col.id === "next_action" ? "min-w-[180px]" :
+                                  col.id === "insight" ? "min-w-[200px]" :
+                                  col.id === "sla" ? "min-w-[100px]" :
+                                  "min-w-[100px]";
                   return (
-                    <TableHead key={col.id} className={minWidth}>
+                    <TableHead key={col.id} className={`${minWidth} whitespace-nowrap`}>
                       {isAI ? (
                         <span className="flex items-center gap-1">
                           {col.label}
@@ -405,7 +410,7 @@ export function SmartCompaniesTable() {
                     </TableHead>
                   );
                 })}
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[100px] whitespace-nowrap"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
