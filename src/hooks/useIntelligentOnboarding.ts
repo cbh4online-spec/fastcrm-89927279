@@ -99,7 +99,7 @@ export const BUSINESS_TO_PROFILE_MAP: Record<string, ActivityProfileType> = {
   'services': 'servicos_profissionais',
 };
 
-export type OnboardingStep = "business" | "success" | "process" | "channels" | "generating" | "preview" | "applying" | "complete";
+export type OnboardingStep = "business" | "activity_profile" | "success" | "process" | "channels" | "generating" | "preview" | "applying" | "complete";
 
 export function useIntelligentOnboarding() {
   const [step, setStep] = useState<OnboardingStep>("business");
@@ -119,7 +119,7 @@ export function useIntelligentOnboarding() {
   };
 
   const nextStep = () => {
-    const steps: OnboardingStep[] = ["business", "success", "process", "channels", "generating", "preview", "applying", "complete"];
+    const steps: OnboardingStep[] = ["business", "activity_profile", "success", "process", "channels", "generating", "preview", "applying", "complete"];
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
       setStep(steps[currentIndex + 1]);
@@ -127,7 +127,7 @@ export function useIntelligentOnboarding() {
   };
 
   const prevStep = () => {
-    const steps: OnboardingStep[] = ["business", "success", "process", "channels"];
+    const steps: OnboardingStep[] = ["business", "activity_profile", "success", "process", "channels"];
     const currentIndex = steps.indexOf(step);
     if (currentIndex > 0) {
       setStep(steps[currentIndex - 1]);
