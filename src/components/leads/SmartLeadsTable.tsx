@@ -1,21 +1,24 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { 
   useSmartLeads, 
   useAnalyzeLead, 
   useBulkAnalyzeLeads,
   SmartLeadsFilters,
+  SmartLead,
 } from "@/hooks/useSmartLeads";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useDeleteLeads } from "@/hooks/useLeads";
-import { SmartLeadRow } from "./SmartLeadRow";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
-import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles } from "@/components/common/StickyTable";
+import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles, stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
+import { DynamicTableCell } from "@/components/common/DynamicTableCell";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   TableBody,
   TableCell,
@@ -40,6 +43,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Plus, 
   Sparkles, 
@@ -59,6 +69,12 @@ import {
   Target,
   Activity,
   Linkedin,
+  ExternalLink,
+  MoreHorizontal,
+  Reply,
+  Settings2,
+  Archive,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -229,6 +245,22 @@ export function SmartLeadsTable() {
 
   // Column visibility and order state with persistence
   const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences("leads-table-columns", LEAD_COLUMNS);
+
+  // Compute ordered visible columns (excluding name which is always first)
+  const orderedVisibleColumns = useMemo(() => {
+    return LEAD_COLUMNS
+      .filter(col => visibleColumns.has(col.id) && col.id !== "name")
+      .sort((a, b) => {
+        const indexA = columnOrder.indexOf(a.id);
+        const indexB = columnOrder.indexOf(b.id);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+  }, [visibleColumns, columnOrder]);
+
+  const totalColumns = orderedVisibleColumns.length + 3; // +3 for checkbox, name, actions
 
   const { data: leads, isLoading, refetch } = useSmartLeads(filters);
   const deleteLeads = useDeleteLeads();
@@ -520,7 +552,7 @@ export function SmartLeadsTable() {
 
         {/* Table */}
         <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
-          <StickyTableWrapper minWidth="1200px">
+          <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
             <TableHeader>
               <TableRow>
                 <TableHead className={cn("w-[40px] whitespace-nowrap", stickyHeaderCheckboxStyles)}>
@@ -531,53 +563,31 @@ export function SmartLeadsTable() {
                   />
                 </TableHead>
                 <TableHead className={cn("min-w-[180px] whitespace-nowrap", stickyHeaderNameStyles)}>Lead</TableHead>
-                <TableHead className="whitespace-nowrap">Canal</TableHead>
-                <TableHead className="whitespace-nowrap">Status</TableHead>
-                <TableHead className="whitespace-nowrap">
-                  <span className="flex items-center gap-1">
-                    Temperatura
-                    <span className="text-[10px] text-muted-foreground">IA</span>
-                  </span>
-                </TableHead>
-                <TableHead className="whitespace-nowrap">
-                  <span className="flex items-center gap-1">
-                    Score
-                    <span className="text-[10px] text-muted-foreground">IA</span>
-                  </span>
-                </TableHead>
-                <TableHead className="min-w-[150px] whitespace-nowrap">
-                  <span className="flex items-center gap-1">
-                    Próxima Ação
-                    <span className="text-[10px] text-muted-foreground">IA</span>
-                  </span>
-                </TableHead>
-                <TableHead className="whitespace-nowrap">SLA</TableHead>
-                {showAdvanced && (
-                  <>
-                    <TableHead className="whitespace-nowrap">Potencial €</TableHead>
-                    <TableHead className="whitespace-nowrap">Prob. %</TableHead>
-                    <TableHead className="whitespace-nowrap">Automação</TableHead>
-                    <TableHead className="min-w-[180px] whitespace-nowrap">
+                {orderedVisibleColumns.map(col => (
+                  <TableHead key={col.id} className="whitespace-nowrap">
+                    {col.category === "ai" ? (
                       <span className="flex items-center gap-1">
-                        Insight
+                        {col.label}
                         <span className="text-[10px] text-muted-foreground">IA</span>
                       </span>
-                    </TableHead>
-                  </>
-                )}
+                    ) : (
+                      col.label
+                    )}
+                  </TableHead>
+                ))}
                 <TableHead className="w-[100px] whitespace-nowrap"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 13 : 9} className="p-0">
-                    <TableSkeleton rows={5} columns={showAdvanced ? 13 : 9} showHeader={false} />
+                  <TableCell colSpan={totalColumns} className="p-0">
+                    <TableSkeleton rows={5} columns={totalColumns} showHeader={false} />
                   </TableCell>
                 </TableRow>
               ) : !filteredLeads.length ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 13 : 9} className="text-center py-8">
+                  <TableCell colSpan={totalColumns} className="text-center py-8">
                     {searchValue ? (
                       <SearchEmptyState query={searchValue} />
                     ) : (
@@ -594,17 +604,117 @@ export function SmartLeadsTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedLeads.map((lead) => (
-                  <SmartLeadRow
-                    key={lead.id}
-                    lead={lead}
-                    isSelected={selectedIds.has(lead.id)}
-                    onToggleSelect={() => toggleSelect(lead.id)}
-                    onAnalyze={() => handleAnalyzeLead(lead.id)}
-                    isAnalyzing={analyzingId === lead.id}
-                    showAdvanced={showAdvanced}
-                  />
-                ))
+                paginatedLeads.map((lead) => {
+                  const initials = lead.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2);
+
+                  return (
+                    <TableRow 
+                      key={lead.id} 
+                      className={cn(
+                        "group transition-colors",
+                        selectedIds.has(lead.id) && "bg-muted/50",
+                        lead.slaBreach && "bg-destructive/5"
+                      )}
+                    >
+                      {/* Checkbox */}
+                      <TableCell className={cn("w-[40px]", stickyCheckboxStyles)}>
+                        <Checkbox
+                          checked={selectedIds.has(lead.id)}
+                          onCheckedChange={() => toggleSelect(lead.id)}
+                        />
+                      </TableCell>
+
+                      {/* Lead Name (always visible, sticky) */}
+                      <TableCell className={stickyNameStyles}>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <Link 
+                              to={`/dashboard/leads/${lead.id}`}
+                              className="font-medium text-foreground hover:text-primary hover:underline truncate block"
+                            >
+                              {lead.name}
+                            </Link>
+                            {(lead as any).company_name && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Building2 className="w-3 h-3" />
+                                <span className="truncate">{(lead as any).company_name}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Dynamic columns */}
+                      {orderedVisibleColumns.map(col => (
+                        <TableCell key={col.id}>
+                          <DynamicTableCell 
+                            columnId={col.id} 
+                            entity={lead as any} 
+                            entityType="lead" 
+                          />
+                        </TableCell>
+                      ))}
+
+                      {/* Actions */}
+                      <TableCell>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => handleAnalyzeLead(lead.id)}
+                            disabled={analyzingId === lead.id}
+                          >
+                            <Sparkles className={cn("w-4 h-4", analyzingId === lead.id && "animate-pulse")} />
+                          </Button>
+
+                          <Link to={`/dashboard/leads/${lead.id}`}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <ExternalLink className="w-4 h-4" />
+                            </Button>
+                          </Link>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-popover z-50">
+                              <DropdownMenuItem>
+                                <Reply className="w-4 h-4 mr-2" />
+                                Enviar mensagem
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Target className="w-4 h-4 mr-2" />
+                                Criar oportunidade
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Settings2 className="w-4 h-4 mr-2" />
+                                Ativar automação
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem>
+                                <Archive className="w-4 h-4 mr-2" />
+                                Arquivar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </StickyTableWrapper>

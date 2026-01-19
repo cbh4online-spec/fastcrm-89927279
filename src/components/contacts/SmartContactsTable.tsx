@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartContactsFilters } from "@/hooks/useSmartContacts";
+import { Link } from "react-router-dom";
+import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartContactsFilters, SmartContact } from "@/hooks/useSmartContacts";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useContacts } from "@/hooks/useContacts";
-import { SmartContactRow } from "./SmartContactRow";
 import { CreateContactDialog } from "./CreateContactDialog";
 import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
 import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
@@ -10,10 +10,12 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
-import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles } from "@/components/common/StickyTable";
+import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles, stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
+import { DynamicTableCell } from "@/components/common/DynamicTableCell";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -21,7 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Settings2, Archive, Building2, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 // Design System imports
@@ -312,6 +321,22 @@ export function SmartContactsTable() {
   // Column visibility and order state with persistence
   const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences("contacts-table-columns", CONTACT_COLUMNS);
 
+  // Compute ordered visible columns (excluding name which is always first)
+  const orderedVisibleColumns = useMemo(() => {
+    return CONTACT_COLUMNS
+      .filter(col => visibleColumns.has(col.id) && col.id !== "name")
+      .sort((a, b) => {
+        const indexA = columnOrder.indexOf(a.id);
+        const indexB = columnOrder.indexOf(b.id);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+  }, [visibleColumns, columnOrder]);
+
+  const totalColumns = orderedVisibleColumns.length + 3; // +3 for checkbox, name, actions
+
   const { data: contacts, isLoading, refetch } = useSmartContacts(filters);
   const { deleteContacts, addTagsToContacts, bulkUpdateContacts } = useContacts();
   const analyze = useAnalyzeContact();
@@ -559,7 +584,7 @@ export function SmartContactsTable() {
 
         {/* Table */}
         <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
-          <StickyTableWrapper minWidth="1200px">
+          <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
             <TableHeader>
               <TableRow>
                 <TableHead className={cn("w-[40px] whitespace-nowrap", stickyHeaderCheckboxStyles)}>
@@ -570,54 +595,31 @@ export function SmartContactsTable() {
                   />
                 </TableHead>
                 <TableHead className={cn("min-w-[180px] whitespace-nowrap", stickyHeaderNameStyles)}>Contacto</TableHead>
-                <TableHead className="whitespace-nowrap">Empresa</TableHead>
-                <TableHead className="whitespace-nowrap">Origem</TableHead>
-                <TableHead className="whitespace-nowrap">
-                  <span className="flex items-center gap-1">
-                    Temperatura
-                    <span className="text-[10px] text-muted-foreground">IA</span>
-                  </span>
-                </TableHead>
-                <TableHead className="whitespace-nowrap">
-                  <span className="flex items-center gap-1">
-                    Score
-                    <span className="text-[10px] text-muted-foreground">IA</span>
-                  </span>
-                </TableHead>
-                <TableHead className="whitespace-nowrap">Tipo</TableHead>
-                <TableHead className="min-w-[150px] whitespace-nowrap">
-                  <span className="flex items-center gap-1">
-                    Próxima Ação
-                    <span className="text-[10px] text-muted-foreground">IA</span>
-                  </span>
-                </TableHead>
-                <TableHead className="whitespace-nowrap">SLA</TableHead>
-                {showAdvanced && (
-                  <>
-                    <TableHead className="whitespace-nowrap">Potencial €</TableHead>
-                    <TableHead className="whitespace-nowrap">Prob. %</TableHead>
-                    <TableHead className="whitespace-nowrap">Automação</TableHead>
-                    <TableHead className="min-w-[180px] whitespace-nowrap">
+                {orderedVisibleColumns.map(col => (
+                  <TableHead key={col.id} className="whitespace-nowrap">
+                    {col.category === "ai" ? (
                       <span className="flex items-center gap-1">
-                        Insight
+                        {col.label}
                         <span className="text-[10px] text-muted-foreground">IA</span>
                       </span>
-                    </TableHead>
-                  </>
-                )}
+                    ) : (
+                      col.label
+                    )}
+                  </TableHead>
+                ))}
                 <TableHead className="w-[100px] whitespace-nowrap"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 14 : 10} className="p-0">
-                    <TableSkeleton rows={5} columns={showAdvanced ? 14 : 10} showHeader={false} />
+                  <TableCell colSpan={totalColumns} className="p-0">
+                    <TableSkeleton rows={5} columns={totalColumns} showHeader={false} />
                   </TableCell>
                 </TableRow>
               ) : !filteredContacts.length ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 14 : 10} className="text-center py-8">
+                  <TableCell colSpan={totalColumns} className="text-center py-8">
                     {searchValue ? (
                       <SearchEmptyState query={searchValue} />
                     ) : (
@@ -634,17 +636,117 @@ export function SmartContactsTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedContacts.map(c => (
-                  <SmartContactRow 
-                    key={c.id} 
-                    contact={c} 
-                    isSelected={selectedIds.has(c.id)} 
-                    onToggleSelect={() => toggleSelect(c.id)} 
-                    onAnalyze={() => handleAnalyze(c.id)} 
-                    isAnalyzing={analyzingId === c.id}
-                    showAdvanced={showAdvanced}
-                  />
-                ))
+                paginatedContacts.map(contact => {
+                  const initials = contact.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2);
+
+                  return (
+                    <TableRow 
+                      key={contact.id} 
+                      className={cn(
+                        "group transition-colors",
+                        selectedIds.has(contact.id) && "bg-muted/50",
+                        contact.slaBreach && "bg-destructive/5"
+                      )}
+                    >
+                      {/* Checkbox */}
+                      <TableCell className={cn("w-[40px]", stickyCheckboxStyles)}>
+                        <Checkbox
+                          checked={selectedIds.has(contact.id)}
+                          onCheckedChange={() => toggleSelect(contact.id)}
+                        />
+                      </TableCell>
+
+                      {/* Contact Name (always visible, sticky) */}
+                      <TableCell className={stickyNameStyles}>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <Link 
+                              to={`/dashboard/contacts/${contact.id}`}
+                              className="font-medium text-foreground hover:text-primary hover:underline truncate block"
+                            >
+                              {contact.name}
+                            </Link>
+                            {contact.job_title && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Briefcase className="w-3 h-3" />
+                                <span className="truncate">{contact.job_title}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Dynamic columns */}
+                      {orderedVisibleColumns.map(col => (
+                        <TableCell key={col.id}>
+                          <DynamicTableCell 
+                            columnId={col.id} 
+                            entity={contact as any} 
+                            entityType="contact" 
+                          />
+                        </TableCell>
+                      ))}
+
+                      {/* Actions */}
+                      <TableCell>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => handleAnalyze(contact.id)}
+                            disabled={analyzingId === contact.id}
+                          >
+                            <Sparkles className={cn("w-4 h-4", analyzingId === contact.id && "animate-pulse")} />
+                          </Button>
+
+                          <Link to={`/dashboard/contacts/${contact.id}`}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <ExternalLink className="w-4 h-4" />
+                            </Button>
+                          </Link>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-popover z-50">
+                              <DropdownMenuItem>
+                                <Reply className="w-4 h-4 mr-2" />
+                                Enviar mensagem
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Target className="w-4 h-4 mr-2" />
+                                Criar oportunidade
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Settings2 className="w-4 h-4 mr-2" />
+                                Ativar automação
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem>
+                                <Archive className="w-4 h-4 mr-2" />
+                                Arquivar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </StickyTableWrapper>
