@@ -118,18 +118,30 @@ export function useInvoiceSettings() {
 
   async function saveSettings(newSettings: Partial<InvoiceSettings>) {
     if (!currentWorkspace?.id) {
+      console.error("Save failed: No workspace ID");
       toast.error("Workspace não encontrado");
       return false;
     }
 
+    // Get current user for debugging
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log("Debug - User ID:", user?.id);
+    console.log("Debug - Workspace ID:", currentWorkspace.id);
+
     setIsSaving(true);
     try {
       // First, check if settings already exist
-      const { data: existingSettings } = await supabase
+      console.log("Debug - Checking existing settings...");
+      const { data: existingSettings, error: selectError } = await supabase
         .from("invoice_settings")
         .select("id")
         .eq("workspace_id", currentWorkspace.id)
         .maybeSingle();
+
+      if (selectError) {
+        console.error("Debug - SELECT error:", selectError);
+      }
+      console.log("Debug - Existing settings:", existingSettings);
 
       const dataToSave = {
         workspace_id: currentWorkspace.id,
@@ -158,18 +170,20 @@ export function useInvoiceSettings() {
       let error;
       
       if (existingSettings?.id) {
-        // Update existing record
+        console.log("Debug - Updating existing record with ID:", existingSettings.id);
         const result = await supabase
           .from("invoice_settings")
           .update(dataToSave)
           .eq("id", existingSettings.id);
         error = result.error;
+        if (error) console.error("Debug - UPDATE error:", error);
       } else {
-        // Insert new record
+        console.log("Debug - Inserting new record");
         const result = await supabase
           .from("invoice_settings")
           .insert(dataToSave);
         error = result.error;
+        if (error) console.error("Debug - INSERT error:", error);
       }
 
       if (error) throw error;
