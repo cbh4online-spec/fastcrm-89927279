@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ActivityProfileType } from "@/types/activityProfile";
 
 export interface PipelineStage {
   name: string;
@@ -72,7 +73,31 @@ export interface OnboardingAnswers {
   successDefinition: string;
   processDescription: string;
   channels: string[];
+  activityProfileType?: ActivityProfileType; // NEW: Selected activity profile
 }
+
+// Map business types to activity profile types
+export const BUSINESS_TO_PROFILE_MAP: Record<string, ActivityProfileType> = {
+  'education': 'formacao_educacao',
+  'formacao': 'formacao_educacao',
+  'escola': 'formacao_educacao',
+  'ecommerce': 'produtos',
+  'retail': 'produtos',
+  'loja': 'produtos',
+  'produtos': 'produtos',
+  'accounting': 'servicos_financeiros',
+  'contabilidade': 'servicos_financeiros',
+  'financeiro': 'servicos_financeiros',
+  'marketing': 'marketing_digital',
+  'agencia': 'marketing_digital',
+  'agency': 'marketing_digital',
+  'saas': 'avencas_contratos',
+  'subscription': 'avencas_contratos',
+  'avenças': 'avencas_contratos',
+  'consulting': 'servicos_profissionais',
+  'consultoria': 'servicos_profissionais',
+  'services': 'servicos_profissionais',
+};
 
 export type OnboardingStep = "business" | "success" | "process" | "channels" | "generating" | "preview" | "applying" | "complete";
 

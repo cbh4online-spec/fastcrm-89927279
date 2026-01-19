@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { CustomFieldsManager } from "@/components/custom-fields/CustomFieldsManager";
 import { FormLayoutEditor } from "@/components/custom-fields/FormLayoutEditor";
 import { IndustryLabelsSettings } from "../IndustryLabelsSettings";
+import { ActivityProfileSettings } from "../ActivityProfileSettings";
 import {
   Users,
+  Briefcase,
   SlidersHorizontal,
   Kanban,
   Tags,
@@ -616,6 +618,17 @@ export function CrmDataSettings({ searchQuery = "", matchedSections }: CrmDataSe
 
   return (
     <div className="space-y-6">
+      {/* Activity Profiles - NEW */}
+      {shouldShow("crm-contacts") && (
+        <SettingsSection
+          title="Perfis de Atividade"
+          description="Adaptar o CRM automaticamente ao tipo de negócio e jornada do cliente"
+          icon={<Briefcase className="h-5 w-5" />}
+        >
+          <ActivityProfileSettings />
+        </SettingsSection>
+      )}
+
       {/* Industry Labels / Business Model */}
       {shouldShow("crm-contacts") && (
         <SettingsSection

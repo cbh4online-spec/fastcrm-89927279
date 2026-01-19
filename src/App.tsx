@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { WorkspaceInstanceProvider } from "@/contexts/WorkspaceInstanceContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { ActivityProfileProvider } from "@/contexts/ActivityProfileContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -74,8 +75,9 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <WorkspaceProvider>
-            <WorkspaceInstanceProvider>
-              <SubscriptionProvider>
+            <ActivityProfileProvider>
+              <WorkspaceInstanceProvider>
+                <SubscriptionProvider>
                 <Routes>
                   <Route path="/" element={<MarketingHomepage />} />
                   <Route path="/login" element={<Login />} />
@@ -135,8 +137,9 @@ const App = () => (
                   <Route path="/super-admin" element={<SuperAdmin />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </SubscriptionProvider>
-            </WorkspaceInstanceProvider>
+                </SubscriptionProvider>
+              </WorkspaceInstanceProvider>
+            </ActivityProfileProvider>
           </WorkspaceProvider>
         </AuthProvider>
       </BrowserRouter>
