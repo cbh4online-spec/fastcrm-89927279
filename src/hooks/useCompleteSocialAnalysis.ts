@@ -475,6 +475,65 @@ export function useManualSocialAnalysis() {
   });
 }
 
+// Hook for hybrid social analysis (automatic + manual fallback)
+export function useHybridSocialAnalysis() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (input: {
+      companyId: string;
+      companyName: string;
+      linkedinUrl?: string | null;
+      facebookUrl?: string | null;
+      instagramUrl?: string | null;
+      linkedinText?: string;
+      employeesText?: string;
+      facebookText?: string;
+      instagramText?: string;
+      currentCompanyData?: {
+        industry?: string;
+        website?: string;
+        size?: string;
+        employee_count?: number;
+      };
+    }) => {
+      if (!currentWorkspace?.id) throw new Error('No workspace selected');
+
+      const { data, error } = await supabase.functions.invoke('analyze-social-hybrid', {
+        body: {
+          companyId: input.companyId,
+          companyName: input.companyName,
+          linkedinUrl: input.linkedinUrl,
+          facebookUrl: input.facebookUrl,
+          instagramUrl: input.instagramUrl,
+          linkedinText: input.linkedinText,
+          employeesText: input.employeesText,
+          facebookText: input.facebookText,
+          instagramText: input.instagramText,
+          workspaceId: currentWorkspace.id,
+          currentCompanyData: input.currentCompanyData,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data.success) throw new Error(data.error || 'Analysis failed');
+
+      return data.data as CompleteSocialAnalysis & { dataSource?: string };
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['complete-social-data', variables.companyId] });
+      queryClient.invalidateQueries({ queryKey: ['linkedin-data', variables.companyId] });
+      queryClient.invalidateQueries({ queryKey: ['social-media-data', variables.companyId] });
+      toast.success('Análise de redes sociais concluída!');
+    },
+    onError: (error) => {
+      console.error('Hybrid social analysis error:', error);
+      toast.error(error.message || 'Erro ao analisar redes sociais');
+    },
+  });
+}
+
 // Hook to apply data suggestions to a company
 export function useApplyDataSuggestions() {
   const queryClient = useQueryClient();

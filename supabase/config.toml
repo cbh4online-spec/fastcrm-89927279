@@ -108,3 +108,6 @@ verify_jwt = false
 
 [functions.analyze-social-complete]
 verify_jwt = false
+
+[functions.analyze-social-hybrid]
+verify_jwt = false
