@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,10 @@ import { useCreateInvoice, type CreateInvoiceItemInput } from "@/hooks/useInvoic
 import { useCompanies } from "@/hooks/useCompanies";
 import { useContacts } from "@/hooks/useContacts";
 import { useProducts } from "@/hooks/useProducts";
-import { Plus, Trash2, Loader2, Building2 } from "lucide-react";
+import { Loader2, Building2 } from "lucide-react";
+import { InvoiceProductSelector } from "./InvoiceProductSelector";
+import { InvoiceItemsCart, type InvoiceCartItem } from "./InvoiceItemsCart";
+import type { Product } from "@/types/product";
 
 // Helper function to convert payment conditions to days
 function getPaymentDays(paymentCondition: string | null | undefined): number {
@@ -57,16 +60,6 @@ interface CreateInvoiceDialogProps {
   defaultOpportunityId?: string;
 }
 
-interface InvoiceItemForm {
-  id: string;
-  product_id?: string;
-  description: string;
-  quantity: number;
-  unit_price: number;
-  discount_percent: number;
-  tax_rate: number;
-}
-
 export function CreateInvoiceDialog({
   open,
   onOpenChange,
@@ -94,9 +87,7 @@ export function CreateInvoiceDialog({
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   );
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<InvoiceItemForm[]>([
-    { id: crypto.randomUUID(), description: "", quantity: 1, unit_price: 0, discount_percent: 0, tax_rate: 23 },
-  ]);
+  const [cartItems, setCartItems] = useState<InvoiceCartItem[]>([]);
 
   // Re-initialize when dialog opens with defaults
   useEffect(() => {
@@ -114,10 +105,23 @@ export function CreateInvoiceDialog({
   const selectedCompany = companies?.find((c) => c.id === selectedCompanyId);
   const selectedContact = contacts?.find((c) => c.id === selectedContactId);
   
+  // Get contacts that belong to selected company
+  const companyContacts = useMemo(() => {
+    if (!selectedCompanyId || !contacts) return [];
+    return contacts.filter(c => c.company_id === selectedCompanyId);
+  }, [selectedCompanyId, contacts]);
+  
   // Get the company associated with the selected contact
   const selectedContactCompany = selectedContact?.company_id 
     ? companies?.find(c => c.id === selectedContact.company_id) 
     : null;
+
+  // Auto-select contact when company has only one contact
+  useEffect(() => {
+    if (clientType === "company" && selectedCompanyId && companyContacts.length === 1) {
+      setSelectedContactId(companyContacts[0].id);
+    }
+  }, [selectedCompanyId, companyContacts, clientType]);
 
   // Auto-fill fields when company is selected
   useEffect(() => {
@@ -195,6 +199,81 @@ export function CreateInvoiceDialog({
     setDueDate(calculateDueDate(issueDate, 30));
   }, [clientType]);
 
+  // Cart handlers for POS-style product selection
+  const handleAddProduct = (product: Product) => {
+    const existingItem = cartItems.find(item => item.product_id === product.id);
+    if (existingItem) {
+      setCartItems(cartItems.map(item =>
+        item.product_id === product.id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      ));
+    } else {
+      setCartItems([...cartItems, {
+        id: crypto.randomUUID(),
+        product_id: product.id,
+        name: product.name,
+        description: product.name,
+        quantity: 1,
+        unit_price: product.base_price || 0,
+        discount_percent: 0,
+        tax_rate: 23,
+      }]);
+    }
+  };
+
+  const handleRemoveProduct = (productId: string) => {
+    setCartItems(cartItems.filter(item => item.product_id !== productId));
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    setCartItems(cartItems.filter(item => item.id !== itemId));
+  };
+
+  const handleUpdateQuantity = (itemId: string, quantity: number) => {
+    setCartItems(cartItems.map(item =>
+      item.id === itemId ? { ...item, quantity } : item
+    ));
+  };
+
+  const handleUpdatePrice = (itemId: string, price: number) => {
+    setCartItems(cartItems.map(item =>
+      item.id === itemId ? { ...item, unit_price: price } : item
+    ));
+  };
+
+  const handleUpdateDiscount = (itemId: string, discount: number) => {
+    setCartItems(cartItems.map(item =>
+      item.id === itemId ? { ...item, discount_percent: discount } : item
+    ));
+  };
+
+  const handleUpdateTaxRate = (itemId: string, taxRate: number) => {
+    setCartItems(cartItems.map(item =>
+      item.id === itemId ? { ...item, tax_rate: taxRate } : item
+    ));
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+  };
+
+  const getSelectedProductIds = () => {
+    return cartItems.map(item => item.product_id).filter(Boolean) as string[];
+  };
+
+  const calculateItemTotal = (item: InvoiceCartItem) => {
+    const discountMultiplier = 1 - item.discount_percent / 100;
+    return item.quantity * item.unit_price * discountMultiplier;
+  };
+
+  const subtotal = cartItems.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+  const taxAmount = cartItems.reduce(
+    (sum, item) => sum + (calculateItemTotal(item) * item.tax_rate) / 100,
+    0
+  );
+  const total = subtotal + taxAmount;
+
   const getClientInfo = () => {
     if (clientType === "company" && selectedCompany) {
       return {
@@ -202,18 +281,17 @@ export function CreateInvoiceDialog({
         email: clientEmail || selectedCompany.email || "",
         address: clientAddress || selectedCompany.address || "",
         company_id: selectedCompany.id,
-        contact_id: selectedContactId || undefined, // Include contact if selected
+        contact_id: selectedContactId || undefined,
       };
     }
     if (clientType === "contact" && selectedContact) {
-      // Use company for billing if available
       const billingCompany = selectedContactCompany;
       return {
         name: billingCompany?.name || selectedContact.name,
         email: clientEmail || billingCompany?.email || selectedContact.email || "",
         address: clientAddress || billingCompany?.address || "",
         contact_id: selectedContact.id,
-        company_id: billingCompany?.id, // Link invoice to company
+        company_id: billingCompany?.id,
       };
     }
     return {
@@ -223,55 +301,6 @@ export function CreateInvoiceDialog({
     };
   };
 
-  const addItem = () => {
-    setItems([
-      ...items,
-      { id: crypto.randomUUID(), description: "", quantity: 1, unit_price: 0, discount_percent: 0, tax_rate: 23 },
-    ]);
-  };
-
-  const removeItem = (id: string) => {
-    if (items.length > 1) {
-      setItems(items.filter((item) => item.id !== id));
-    }
-  };
-
-  const updateItem = (id: string, field: keyof InvoiceItemForm, value: any) => {
-    setItems(
-      items.map((item) => (item.id === id ? { ...item, [field]: value } : item))
-    );
-  };
-
-  const selectProduct = (itemId: string, productId: string) => {
-    const product = products?.find((p) => p.id === productId);
-    if (product) {
-      setItems(
-        items.map((item) =>
-          item.id === itemId
-            ? {
-                ...item,
-                product_id: productId,
-                description: product.name,
-                unit_price: product.base_price || 0,
-              }
-            : item
-        )
-      );
-    }
-  };
-
-  const calculateItemTotal = (item: InvoiceItemForm) => {
-    const discountMultiplier = 1 - item.discount_percent / 100;
-    return item.quantity * item.unit_price * discountMultiplier;
-  };
-
-  const subtotal = items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
-  const taxAmount = items.reduce(
-    (sum, item) => sum + (calculateItemTotal(item) * item.tax_rate) / 100,
-    0
-  );
-  const total = subtotal + taxAmount;
-
   const handleSubmit = async () => {
     const clientInfo = getClientInfo();
 
@@ -279,11 +308,11 @@ export function CreateInvoiceDialog({
       return;
     }
 
-    const invoiceItems: CreateInvoiceItemInput[] = items
-      .filter((item) => item.description)
+    const invoiceItems: CreateInvoiceItemInput[] = cartItems
+      .filter((item) => item.description || item.name)
       .map((item) => ({
         product_id: item.product_id,
-        description: item.description,
+        description: item.description || item.name,
         quantity: item.quantity,
         unit_price: item.unit_price,
         discount_percent: item.discount_percent,
@@ -319,7 +348,7 @@ export function CreateInvoiceDialog({
     setIssueDate(new Date().toISOString().split("T")[0]);
     setDueDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
     setNotes("");
-    setItems([{ id: crypto.randomUUID(), description: "", quantity: 1, unit_price: 0, discount_percent: 0, tax_rate: 23 }]);
+    setCartItems([]);
   };
 
   const formatCurrency = (value: number) => {
@@ -538,145 +567,31 @@ export function CreateInvoiceDialog({
 
             <Separator />
 
-            {/* Invoice Items */}
+            {/* Invoice Items - POS Style */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Itens da Fatura</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Adicionar Item
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                {items.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="grid gap-3 p-4 border rounded-lg bg-muted/30"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Item {index + 1}
-                      </span>
-                      {items.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Produto (opcional)</Label>
-                        <Select
-                          value={item.product_id || ""}
-                          onValueChange={(value) => selectProduct(item.id, value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecionar produto" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products?.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} - {formatCurrency(product.base_price || 0)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Descrição *</Label>
-                        <Input
-                          value={item.description}
-                          onChange={(e) =>
-                            updateItem(item.id, "description", e.target.value)
-                          }
-                          placeholder="Descrição do item"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Quantidade</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          step="0.01"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(item.id, "quantity", parseFloat(e.target.value) || 1)
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Preço Unit. (€)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.unit_price}
-                          onChange={(e) =>
-                            updateItem(item.id, "unit_price", parseFloat(e.target.value) || 0)
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Desconto (%)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.discount_percent}
-                          onChange={(e) =>
-                            updateItem(item.id, "discount_percent", parseFloat(e.target.value) || 0)
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">IVA (%)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={item.tax_rate}
-                          onChange={(e) =>
-                            updateItem(item.id, "tax_rate", parseFloat(e.target.value) || 0)
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div className="text-right text-sm">
-                      <span className="text-muted-foreground">Total: </span>
-                      <span className="font-medium">
-                        {formatCurrency(calculateItemTotal(item))}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Totals */}
-            <div className="space-y-2 text-right">
-              <div className="flex justify-end gap-8">
-                <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-medium w-24">{formatCurrency(subtotal)}</span>
-              </div>
-              <div className="flex justify-end gap-8">
-                <span className="text-muted-foreground">IVA:</span>
-                <span className="font-medium w-24">{formatCurrency(taxAmount)}</span>
-              </div>
-              <div className="flex justify-end gap-8 text-lg">
-                <span className="font-semibold">Total:</span>
-                <span className="font-bold w-24">{formatCurrency(total)}</span>
+              <Label>Itens da Fatura</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Product Selector */}
+                <div>
+                  <InvoiceProductSelector
+                    selectedProductIds={getSelectedProductIds()}
+                    onAddProduct={handleAddProduct}
+                    onRemoveProduct={handleRemoveProduct}
+                  />
+                </div>
+                
+                {/* Cart */}
+                <div>
+                  <InvoiceItemsCart
+                    items={cartItems}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onUpdatePrice={handleUpdatePrice}
+                    onUpdateDiscount={handleUpdateDiscount}
+                    onUpdateTaxRate={handleUpdateTaxRate}
+                    onRemoveItem={handleRemoveItem}
+                    onClear={handleClearCart}
+                  />
+                </div>
               </div>
             </div>
 
