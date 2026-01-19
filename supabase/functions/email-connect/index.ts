@@ -82,36 +82,50 @@ serve(async (req) => {
     const encryptionKey = Deno.env.get("EMAIL_ENCRYPTION_KEY") || supabaseServiceKey.slice(0, 32);
     
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new Error("Missing or invalid authorization header");
     }
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Verify user
-    const { data: { user }, error: authError } = await createClient(
+    // Verify user using getClaims
+    const anonClient = createClient(
       supabaseUrl,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
-    ).auth.getUser();
+    );
     
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await anonClient.auth.getClaims(token);
+    
+    if (authError || !claimsData?.claims) {
+      console.error("Auth error:", authError);
       throw new Error("Unauthorized");
     }
+
+    const userId = claimsData.claims.sub as string;
+    console.log("Authenticated user:", userId);
 
     const body: ConnectEmailRequest = await req.json();
     const { workspaceId, emailAddress, displayName, provider, authType, appPassword, customConfig } = body;
 
-    // Verify user is admin/owner of workspace
-    const { data: member } = await supabaseClient
+    // Verify user is member of workspace (any role can connect email)
+    const { data: member, error: memberError } = await supabaseClient
       .from("workspace_members")
       .select("role")
       .eq("workspace_id", workspaceId)
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", userId)
+      .maybeSingle();
     
-    if (!member || !["owner", "admin"].includes(member.role)) {
-      throw new Error("Permission denied");
+    console.log("Member check:", { workspaceId, userId, member, memberError });
+    
+    if (memberError) {
+      console.error("Member query error:", memberError);
+      throw new Error("Failed to verify workspace membership");
+    }
+    
+    if (!member) {
+      throw new Error("Permission denied - not a member of this workspace");
     }
 
     // Get provider config
@@ -143,7 +157,7 @@ serve(async (req) => {
       .from("email_connections")
       .upsert({
         workspace_id: workspaceId,
-        connected_by: user.id,
+        connected_by: userId,
         email_address: emailAddress,
         display_name: displayName || emailAddress.split("@")[0],
         provider,
