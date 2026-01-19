@@ -701,6 +701,8 @@ Colors: Use vibrant but professional colors.
 Composition: Centered, simple background, no text.
 Format: Square aspect ratio, suitable as a category thumbnail.`;
 
+      console.log('Generating category image with prompt:', imagePrompt);
+
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -717,23 +719,29 @@ Format: Square aspect ratio, suitable as a category thumbnail.`;
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Image generation API error:', response.status, errorText);
         if (response.status === 429) {
           return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
             status: 429,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-        throw new Error(`AI gateway error: ${response.status}`);
+        throw new Error(`AI gateway error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Image generation response keys:', Object.keys(data));
+      console.log('Image generation response message:', JSON.stringify(data.choices?.[0]?.message, null, 2).substring(0, 500));
+      
       const images = data.choices?.[0]?.message?.images || [];
       const imageBase64 = images[0]?.image_url?.url || null;
 
       if (!imageBase64) {
+        console.error('No image in response. Full response:', JSON.stringify(data, null, 2).substring(0, 1000));
         return new Response(JSON.stringify({
           success: false,
-          error: 'Não foi possível gerar a imagem'
+          error: 'Não foi possível gerar a imagem. O modelo não retornou uma imagem.'
         }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -814,6 +822,8 @@ Composition: Centered product, suitable as a product listing image.
 Format: Square aspect ratio, e-commerce style.
 DO NOT include any text or labels in the image.`;
 
+      console.log('Generating product image with prompt:', imagePrompt);
+
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -830,23 +840,29 @@ DO NOT include any text or labels in the image.`;
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Image generation API error:', response.status, errorText);
         if (response.status === 429) {
           return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
             status: 429,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-        throw new Error(`AI gateway error: ${response.status}`);
+        throw new Error(`AI gateway error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Image generation response keys:', Object.keys(data));
+      console.log('Image generation response choices:', JSON.stringify(data.choices?.[0]?.message, null, 2).substring(0, 500));
+      
       const images = data.choices?.[0]?.message?.images || [];
       const imageBase64 = images[0]?.image_url?.url || null;
 
       if (!imageBase64) {
+        console.error('No image in response. Full response:', JSON.stringify(data, null, 2).substring(0, 1000));
         return new Response(JSON.stringify({
           success: false,
-          error: 'Não foi possível gerar a imagem'
+          error: 'Não foi possível gerar a imagem. O modelo não retornou uma imagem.'
         }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
