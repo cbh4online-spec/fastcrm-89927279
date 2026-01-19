@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +28,12 @@ import {
   Lightbulb,
   ShieldCheck,
   ShieldAlert,
+  Search,
 } from "lucide-react";
 import { usePricingOptimizer } from "@/hooks/usePricingOptimizer";
+import { useProducts } from "@/hooks/useProducts";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
 interface AICustomerPricingDialogProps {
@@ -59,18 +63,85 @@ const riskIcons: Record<string, React.ReactNode> = {
 export function AICustomerPricingDialog({
   open,
   onOpenChange,
-  customerId,
-  customerName,
+  customerId: initialCustomerId,
+  customerName: initialCustomerName,
   customerType = "contact",
-  products,
+  products: initialProducts,
   onCreatePriceTable,
 }: AICustomerPricingDialogProps) {
   const { suggestCustomerPricing } = usePricingOptimizer();
+  const { data: allProducts } = useProducts();
+  const { currentWorkspace } = useWorkspace();
   const [result, setResult] = useState<any>(null);
+  
+  // Customer selection state
+  const [customerId, setCustomerId] = useState(initialCustomerId || "");
+  const [customerName, setCustomerName] = useState(initialCustomerName || "");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [customers, setCustomers] = useState<{ id: string; name: string; type: "contact" | "company" }[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Use provided products or all products
+  const products = initialProducts || allProducts?.map(p => ({
+    id: p.id,
+    name: p.name,
+    basePrice: p.base_price,
+    cost: p.direct_cost ?? undefined,
+    category: p.category ?? undefined,
+  }));
+
+  useEffect(() => {
+    if (initialCustomerId) {
+      setCustomerId(initialCustomerId);
+      setCustomerName(initialCustomerName || "");
+    }
+  }, [initialCustomerId, initialCustomerName]);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || !currentWorkspace?.id) return;
+    
+    setIsSearching(true);
+    try {
+      const [contactsRes, companiesRes] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("id, name")
+          .eq("workspace_id", currentWorkspace.id)
+          .ilike("name", `%${searchQuery}%`)
+          .limit(5),
+        supabase
+          .from("companies")
+          .select("id, name")
+          .eq("workspace_id", currentWorkspace.id)
+          .ilike("name", `%${searchQuery}%`)
+          .limit(5),
+      ]);
+
+      const results: { id: string; name: string; type: "contact" | "company" }[] = [];
+      if (contactsRes.data) {
+        results.push(...contactsRes.data.map(c => ({ ...c, type: "contact" as const })));
+      }
+      if (companiesRes.data) {
+        results.push(...companiesRes.data.map(c => ({ ...c, type: "company" as const })));
+      }
+      setCustomers(results);
+    } catch (error) {
+      console.error("Error searching customers:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectCustomer = (customer: { id: string; name: string; type: "contact" | "company" }) => {
+    setCustomerId(customer.id);
+    setCustomerName(customer.name);
+    setSearchQuery("");
+    setCustomers([]);
+  };
 
   const handleAnalyze = async () => {
     if (!customerId) {
-      toast.error("Cliente não especificado");
+      toast.error("Selecione um cliente para analisar");
       return;
     }
 
@@ -90,7 +161,19 @@ export function AICustomerPricingDialog({
       onCreatePriceTable(result);
       onOpenChange(false);
       toast.success("Tabela de preços criada para o cliente");
+    } else {
+      toast.success("Análise concluída - pode criar tabela manualmente");
+      onOpenChange(false);
     }
+  };
+
+  const handleClose = () => {
+    setResult(null);
+    setCustomerId(initialCustomerId || "");
+    setCustomerName(initialCustomerName || "");
+    setSearchQuery("");
+    setCustomers([]);
+    onOpenChange(false);
   };
 
   const formatCurrency = (value: number) => {
@@ -120,6 +203,55 @@ export function AICustomerPricingDialog({
 
         {!result ? (
           <div className="space-y-6">
+            {/* Customer Selection */}
+            {!initialCustomerId && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Selecionar Cliente</label>
+                {customerId ? (
+                  <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-primary" />
+                      <span className="font-medium">{customerName}</span>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => { setCustomerId(""); setCustomerName(""); }}>
+                      Alterar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Pesquisar cliente ou empresa..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                      />
+                      <Button variant="outline" onClick={handleSearch} disabled={isSearching}>
+                        {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    {customers.length > 0 && (
+                      <div className="border rounded-lg divide-y">
+                        {customers.map((c) => (
+                          <div
+                            key={c.id}
+                            className="p-2 hover:bg-muted/50 cursor-pointer flex items-center gap-2"
+                            onClick={() => handleSelectCustomer(c)}
+                          >
+                            {c.type === "contact" ? <Users className="h-4 w-4" /> : <Building className="h-4 w-4" />}
+                            <span>{c.name}</span>
+                            <Badge variant="outline" className="text-xs ml-auto">
+                              {c.type === "contact" ? "Contacto" : "Empresa"}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <Card className="p-4 bg-muted/50">
               <div className="flex items-start gap-3">
                 <Sparkles className="h-5 w-5 text-primary mt-0.5" />
@@ -136,7 +268,7 @@ export function AICustomerPricingDialog({
 
             {products && products.length > 0 && (
               <div className="space-y-2">
-                <div className="text-sm font-medium">Produtos a incluir ({products.length})</div>
+                <div className="text-sm font-medium">Produtos a analisar ({products.length})</div>
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {products.slice(0, 5).map((p) => (
                     <div key={p.id} className="text-sm flex justify-between p-2 bg-muted/50 rounded">
@@ -249,10 +381,10 @@ export function AICustomerPricingDialog({
         <DialogFooter>
           {!result ? (
             <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
-              <Button onClick={handleAnalyze} disabled={suggestCustomerPricing.isPending}>
+              <Button onClick={handleAnalyze} disabled={suggestCustomerPricing.isPending || !customerId}>
                 {suggestCustomerPricing.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
