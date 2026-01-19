@@ -69,7 +69,10 @@ export function useSmartContacts(filters?: SmartContactsFilters) {
 
       let query = workspaceClient
         .from("contacts")
-        .select("*")
+        .select(`
+          *,
+          companies:company_id (id, name)
+        `)
         .eq("workspace_id", currentWorkspace.id)
         .order("contact_score", { ascending: false });
 
@@ -97,8 +100,12 @@ export function useSmartContacts(filters?: SmartContactsFilters) {
         const lastContact = c.last_contact_at ? new Date(c.last_contact_at) : null;
         const hoursSinceLastContact = lastContact ? differenceInHours(now, lastContact) : null;
 
+        // Get company name from relation or fallback to company text field
+        const companyName = c.companies?.name || c.company || null;
+
         return {
           ...c,
+          company: companyName,
           ai_temperature: c.ai_temperature || "cold",
           contact_score: c.contact_score || 0,
           estimated_value: c.estimated_value || 0,
