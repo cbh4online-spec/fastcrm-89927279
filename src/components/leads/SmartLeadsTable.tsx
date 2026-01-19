@@ -70,27 +70,77 @@ import {
   TableSkeleton,
 } from "@/components/design-system";
 
-// Column configurations for leads table
+// Column configurations for leads table - ALL form fields
 const LEAD_COLUMNS: ColumnConfig[] = [
-  // Basic
+  // Basic Information
   { id: "name", label: "Lead", category: "basic", defaultVisible: true },
-  { id: "channel", label: "Canal", category: "basic", defaultVisible: true },
-  { id: "status", label: "Status", category: "basic", defaultVisible: true },
   { id: "email", label: "Email", category: "basic", defaultVisible: false },
   { id: "phone", label: "Telefone", category: "basic", defaultVisible: false },
+  { id: "external_email", label: "Email Externo", category: "basic", defaultVisible: false },
+  { id: "fax", label: "Fax", category: "basic", defaultVisible: false },
   { id: "source", label: "Origem", category: "basic", defaultVisible: false },
+  { id: "status", label: "Status", category: "basic", defaultVisible: true },
+  { id: "tags", label: "Tags", category: "basic", defaultVisible: false },
+  { id: "company_name", label: "Empresa", category: "basic", defaultVisible: false },
+  { id: "company_status", label: "Estado Empresa", category: "basic", defaultVisible: false },
   
-  // AI
+  // Location
+  { id: "address", label: "Morada", category: "basic", defaultVisible: false },
+  { id: "city", label: "Cidade", category: "basic", defaultVisible: false },
+  { id: "county", label: "Concelho", category: "basic", defaultVisible: false },
+  { id: "parish", label: "Freguesia", category: "basic", defaultVisible: false },
+  { id: "region", label: "Região", category: "basic", defaultVisible: false },
+  { id: "postal_code", label: "Código Postal", category: "basic", defaultVisible: false },
+  { id: "latitude", label: "Latitude", category: "basic", defaultVisible: false },
+  { id: "longitude", label: "Longitude", category: "basic", defaultVisible: false },
+  
+  // AI & Analysis
   { id: "temperature", label: "Temperatura", category: "ai", defaultVisible: true, description: "Classificação IA" },
   { id: "score", label: "Score", category: "ai", defaultVisible: true, description: "Pontuação 0-100" },
+  { id: "ai_lead_type", label: "Tipo Lead IA", category: "ai", defaultVisible: false },
   { id: "next_action", label: "Próxima Ação", category: "ai", defaultVisible: true },
-  { id: "insight", label: "Insight", category: "ai", defaultVisible: false },
+  { id: "insight", label: "Insight IA", category: "ai", defaultVisible: false },
+  { id: "ai_analyzed_at", label: "Última Análise", category: "ai", defaultVisible: false },
   
   // Business
   { id: "sla", label: "SLA", category: "business", defaultVisible: true, description: "Tempo desde último contacto" },
   { id: "estimated_value", label: "Potencial €", category: "business", defaultVisible: false },
   { id: "conversion_prob", label: "Prob. %", category: "business", defaultVisible: false },
   { id: "automation", label: "Automação", category: "business", defaultVisible: false },
+  { id: "assigned_to", label: "Responsável", category: "business", defaultVisible: false },
+  { id: "last_contact_at", label: "Último Contacto", category: "business", defaultVisible: false },
+  { id: "business_category", label: "Categoria Negócio", category: "business", defaultVisible: false },
+  { id: "services", label: "Serviços", category: "business", defaultVisible: false },
+  
+  // Company Data
+  { id: "tax_id", label: "NIF", category: "business", defaultVisible: false },
+  { id: "founding_date", label: "Data Fundação", category: "business", defaultVisible: false },
+  { id: "capital_social", label: "Capital Social", category: "business", defaultVisible: false },
+  { id: "legal_nature", label: "Natureza Jurídica", category: "business", defaultVisible: false },
+  { id: "cae_codes", label: "Códigos CAE", category: "business", defaultVisible: false },
+  { id: "cae_description", label: "Descrição CAE", category: "business", defaultVisible: false },
+  
+  // Online Presence
+  { id: "website", label: "Website", category: "relations", defaultVisible: false },
+  { id: "linkedin_url", label: "LinkedIn", category: "relations", defaultVisible: false },
+  { id: "facebook_url", label: "Facebook", category: "relations", defaultVisible: false },
+  { id: "instagram_url", label: "Instagram", category: "relations", defaultVisible: false },
+  { id: "twitter_url", label: "Twitter/X", category: "relations", defaultVisible: false },
+  
+  // Google/Reviews
+  { id: "google_place_id", label: "Google Place ID", category: "relations", defaultVisible: false },
+  { id: "rating", label: "Avaliação", category: "relations", defaultVisible: false },
+  { id: "reviews_count", label: "Nº Reviews", category: "relations", defaultVisible: false },
+  { id: "price_level", label: "Nível Preço", category: "relations", defaultVisible: false },
+  
+  // External IDs
+  { id: "external_instagram_id", label: "Instagram ID", category: "relations", defaultVisible: false },
+  { id: "external_whatsapp_id", label: "WhatsApp ID", category: "relations", defaultVisible: false },
+  { id: "external_username", label: "Username Externo", category: "relations", defaultVisible: false },
+  
+  // Timestamps
+  { id: "created_at", label: "Criado Em", category: "basic", defaultVisible: false },
+  { id: "updated_at", label: "Atualizado Em", category: "basic", defaultVisible: false },
 ];
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -186,16 +236,55 @@ export function SmartLeadsTable() {
   const bulkAnalyze = useBulkAnalyzeLeads();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('lead');
 
-  // Apply search filter locally
+  // Apply search filter locally - search ALL text fields
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
     if (!searchValue) return leads;
     const lower = searchValue.toLowerCase();
-    return leads.filter(l => 
-      l.name?.toLowerCase().includes(lower) ||
-      l.email?.toLowerCase().includes(lower) ||
-      l.phone?.toLowerCase().includes(lower)
-    );
+    return leads.filter(l => {
+      // All searchable text fields from leads table
+      const searchableFields = [
+        l.name,
+        l.email,
+        l.phone,
+        (l as any).company_name,
+        (l as any).address,
+        (l as any).city,
+        (l as any).county,
+        (l as any).parish,
+        (l as any).region,
+        (l as any).postal_code,
+        (l as any).tax_id,
+        l.source,
+        l.status,
+        (l as any).website,
+        (l as any).business_category,
+        (l as any).cae_description,
+        (l as any).capital_social,
+        (l as any).legal_nature,
+        l.ai_insight,
+        l.ai_next_action,
+        (l as any).external_email,
+        (l as any).external_username,
+        (l as any).linkedin_url,
+        (l as any).facebook_url,
+        (l as any).instagram_url,
+        (l as any).twitter_url,
+        (l as any).fax,
+        (l as any).company_status,
+        (l as any).assigned_to,
+        (l as any).ai_lead_type,
+      ];
+      // Also search in array fields
+      const tags = (l as any).tags || [];
+      const services = (l as any).services || [];
+      const caeCodes = (l as any).cae_codes || [];
+      return searchableFields.some(field => 
+        field?.toString().toLowerCase().includes(lower)
+      ) || tags.some((t: string) => t?.toLowerCase().includes(lower))
+        || services.some((s: string) => s?.toLowerCase().includes(lower))
+        || caeCodes.some((c: string) => c?.toLowerCase().includes(lower));
+    });
   }, [leads, searchValue]);
 
   // Pagination
