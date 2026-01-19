@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   XAxis,
   YAxis,
@@ -18,6 +18,10 @@ import {
   AreaChart,
 } from "recharts";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { useInvoices } from "@/hooks/useInvoices";
+import { useOpportunities } from "@/hooks/useOpportunities";
+import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, subDays, startOfYear } from "date-fns";
+import { pt } from "date-fns/locale";
 
 interface RevenueWidgetProps {
   isLoading?: boolean;
@@ -25,13 +29,8 @@ interface RevenueWidgetProps {
 
 export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
   const [period, setPeriod] = useState("last-6-months");
-  
-  // Empty data - will be populated from real data source
-  const data: { name: string; revenue: number; sales: number }[] = [];
-  
-  const totalRevenue = data.reduce((sum, item) => sum + item.revenue, 0);
-  const totalSales = data.reduce((sum, item) => sum + item.sales, 0);
-  const growthPercent = 0;
+  const { data: invoices, isLoading: invoicesLoading } = useInvoices({ status: "paid" });
+  const { data: opportunities, isLoading: opportunitiesLoading } = useOpportunities();
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
@@ -39,7 +38,71 @@ export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
     return `€${value}`;
   };
 
-  if (isLoading) {
+  const { data, totalRevenue, totalSales, growthPercent, previousRevenue } = useMemo(() => {
+    const now = new Date();
+    let months: Date[] = [];
+    let previousStart: Date;
+    let previousEnd: Date;
+    
+    if (period === "this-month") {
+      months = [now];
+      previousStart = startOfMonth(subMonths(now, 1));
+      previousEnd = endOfMonth(subMonths(now, 1));
+    } else if (period === "last-6-months") {
+      months = Array.from({ length: 6 }, (_, i) => subMonths(now, 5 - i));
+      previousStart = startOfMonth(subMonths(now, 11));
+      previousEnd = endOfMonth(subMonths(now, 6));
+    } else {
+      // this-year
+      const monthCount = now.getMonth() + 1;
+      months = Array.from({ length: monthCount }, (_, i) => new Date(now.getFullYear(), i, 1));
+      previousStart = startOfYear(subMonths(now, 12));
+      previousEnd = endOfMonth(subMonths(startOfYear(now), 1));
+    }
+
+    const paidInvoices = invoices || [];
+    const wonOpportunities = (opportunities || []).filter(o => o.status === "won");
+
+    const chartData = months.map(month => {
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
+      
+      const monthRevenue = paidInvoices
+        .filter(inv => inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: monthStart, end: monthEnd }))
+        .reduce((sum, inv) => sum + (inv.total || 0), 0);
+      
+      const monthSales = wonOpportunities
+        .filter(opp => opp.updated_at && isWithinInterval(new Date(opp.updated_at), { start: monthStart, end: monthEnd }))
+        .reduce((sum, opp) => sum + (opp.value || 0), 0);
+
+      return {
+        name: format(month, "MMM", { locale: pt }),
+        revenue: monthRevenue,
+        sales: monthSales,
+      };
+    });
+
+    const totalRev = chartData.reduce((sum, item) => sum + item.revenue, 0);
+    const totalSls = chartData.reduce((sum, item) => sum + item.sales, 0);
+    
+    const prevRevenue = paidInvoices
+      .filter(inv => inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: previousStart, end: previousEnd }))
+      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+
+    const growth = prevRevenue > 0 ? Math.round(((totalRev - prevRevenue) / prevRevenue) * 100) : 0;
+
+    return {
+      data: chartData,
+      totalRevenue: totalRev,
+      totalSales: totalSls,
+      growthPercent: growth,
+      previousRevenue: prevRevenue,
+    };
+  }, [invoices, opportunities, period]);
+
+  const loading = isLoading || invoicesLoading || opportunitiesLoading;
+
+  if (loading) {
     return (
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-2">
@@ -55,7 +118,7 @@ export function RevenueWidget({ isLoading = false }: RevenueWidgetProps) {
     );
   }
 
-  if (data.length === 0) {
+  if (data.every(d => d.revenue === 0 && d.sales === 0)) {
     return (
       <Card className="border-0 shadow-lg bg-card">
         <CardHeader className="pb-2">
