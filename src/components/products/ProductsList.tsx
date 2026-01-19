@@ -62,6 +62,7 @@ import {
   Box,
   Tag,
   Trash2,
+  Settings,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -70,6 +71,7 @@ import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductDetailDialog } from "./ProductDetailDialog";
 import { BatchSKUImportDialog } from "./BatchSKUImportDialog";
 import { CategoriesTabContent } from "./CategoriesTabContent";
+import { ProductSettingsTabContent } from "./settings/ProductSettingsTabContent";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
@@ -87,6 +89,7 @@ const pageTabs = [
   { id: "products", label: "Produtos" },
   { id: "categories", label: "Categorias" },
   { id: "pricing", label: "Tabelas de Preço" },
+  { id: "settings", label: "Configurações" },
 ];
 
 const sortOptions = [
@@ -648,6 +651,9 @@ export function ProductsList() {
 
         {/* Pricing Tab Content */}
         {activeTab === "pricing" && <PricingTabContent />}
+
+        {/* Settings Tab Content */}
+        {activeTab === "settings" && <ProductSettingsTabContent />}
       </div>
 
       <CreateProductDialog open={createOpen} onOpenChange={setCreateOpen} />
