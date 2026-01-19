@@ -34,6 +34,11 @@ interface LinkContactDialogProps {
   companyName: string;
   companyEmail?: string | null;
   companyWebsite?: string | null;
+  prefillData?: {
+    name?: string;
+    job_title?: string;
+    linkedin_url?: string;
+  };
 }
 
 interface AvailableContact {
@@ -71,9 +76,10 @@ export function LinkContactDialog({
   companyId, 
   companyName,
   companyEmail,
-  companyWebsite
+  companyWebsite,
+  prefillData
 }: LinkContactDialogProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(prefillData?.name || "");
   const { currentWorkspace } = useWorkspace();
   const { linkContact } = useCompanyContacts(companyId);
 

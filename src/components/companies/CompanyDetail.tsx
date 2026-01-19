@@ -41,7 +41,7 @@ import { AddressSection } from "./sections/AddressSection";
 import { NotesSection } from "./sections/NotesSection";
 import { TagsSection } from "./sections/TagsSection";
 import { SocialMediaSection } from "./sections/SocialMediaSection";
-import { SocialMediaAnalysisSection } from "./sections/SocialMediaAnalysisSection";
+import { CompleteSocialAnalysisSection } from "./sections/CompleteSocialAnalysisSection";
 import { CompanyContactsHistory } from "./sections/CompanyContactsHistory";
 import { CompanyContextSection } from "./sections/CompanyContextSection";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
@@ -50,6 +50,7 @@ import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourn
 import { EnrichCompanyDialog } from "./dialogs/EnrichCompanyDialog";
 import { CompanyInsightsPanel } from "./CompanyInsightsPanel";
 import { LinkContactDialog } from "./LinkContactDialog";
+import { SuggestedContact } from "@/hooks/useCompleteSocialAnalysis";
 
 // Helper function for time ago
 function getTimeAgo(date: Date): string {
@@ -72,6 +73,7 @@ export function CompanyDetail() {
   
   const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
   const [linkContactDialogOpen, setLinkContactDialogOpen] = useState(false);
+  const [prefillContactData, setPrefillContactData] = useState<SuggestedContact | null>(null);
 
   const company = companies.find(c => c.id === id);
   const showEnrichButton = isModuleInstalled('google-local-services');
@@ -128,12 +130,16 @@ export function CompanyDetail() {
   };
 
   const handleEnrichmentApplied = useCallback((fields: Record<string, unknown>) => {
-    // Refetch company data after enrichment
-    // The updateCompany will refresh the cache
     if (company) {
       updateCompany.mutate({ id: company.id, ...fields });
     }
   }, [company, updateCompany]);
+
+  // Handler to create contact from LinkedIn employee
+  const handleCreateContactFromEmployee = useCallback((contact: SuggestedContact) => {
+    setPrefillContactData(contact);
+    setLinkContactDialogOpen(true);
+  }, []);
 
   if (isLoading) {
     return (
@@ -354,13 +360,19 @@ export function CompanyDetail() {
           {/* AI Sales Insights with Product Recommendations */}
           <CompanyInsightsPanel company={company} />
           
-          {/* Social Media Analysis */}
-          <SocialMediaAnalysisSection 
+          {/* Complete Social Media Analysis */}
+          <CompleteSocialAnalysisSection 
             companyId={id || ''}
             companyName={company.name}
             linkedinUrl={company.linkedin_url}
             instagramUrl={company.instagram_url}
             facebookUrl={company.facebook_url}
+            currentCompanyData={{
+              industry: company.industry || undefined,
+              website: company.website || undefined,
+              size: company.size || undefined,
+            }}
+            onCreateContact={handleCreateContactFromEmployee}
           />
           
           <CustomerJourneySection companyId={id} />
@@ -412,11 +424,19 @@ export function CompanyDetail() {
       {/* Link Contact Dialog */}
       <LinkContactDialog
         open={linkContactDialogOpen}
-        onOpenChange={setLinkContactDialogOpen}
+        onOpenChange={(open) => {
+          setLinkContactDialogOpen(open);
+          if (!open) setPrefillContactData(null);
+        }}
         companyId={id || ''}
         companyName={company.name}
         companyEmail={company.email}
         companyWebsite={company.website}
+        prefillData={prefillContactData ? {
+          name: prefillContactData.name,
+          job_title: prefillContactData.role,
+          linkedin_url: prefillContactData.linkedinUrl,
+        } : undefined}
       />
     </div>
   );
