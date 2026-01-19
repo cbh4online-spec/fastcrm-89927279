@@ -29,6 +29,7 @@ import {
   Clock,
   AlertCircle
 } from "lucide-react";
+import { CreateRecurringInvoiceDialog } from "./CreateRecurringInvoiceDialog";
 
 interface RecurringInvoice {
   id: string;
@@ -59,6 +60,7 @@ const mockRecurringInvoices: RecurringInvoice[] = [];
 
 export function RecurringInvoicesTab() {
   const [recurringInvoices] = useState<RecurringInvoice[]>(mockRecurringInvoices);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-PT", {
@@ -73,19 +75,25 @@ export function RecurringInvoicesTab() {
 
   if (recurringInvoices.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <RefreshCw className="h-12 w-12 text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Sem faturas recorrentes</h3>
-          <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-            Crie faturas recorrentes para automatizar a cobrança de clientes com pagamentos regulares.
-          </p>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Criar Fatura Recorrente
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <RefreshCw className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Sem faturas recorrentes</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+              Crie faturas recorrentes para automatizar a cobrança de clientes com pagamentos regulares.
+            </p>
+            <Button className="gap-2" onClick={() => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Criar Fatura Recorrente
+            </Button>
+          </CardContent>
+        </Card>
+        <CreateRecurringInvoiceDialog 
+          open={isDialogOpen} 
+          onOpenChange={setIsDialogOpen}
+        />
+      </>
     );
   }
 
@@ -143,7 +151,7 @@ export function RecurringInvoicesTab() {
             {recurringInvoices.length} configurações
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setIsDialogOpen(true)}>
           <Plus className="h-4 w-4" />
           Nova Recorrente
         </Button>
@@ -222,6 +230,10 @@ export function RecurringInvoicesTab() {
           </Table>
         </CardContent>
       </Card>
+      <CreateRecurringInvoiceDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+      />
     </div>
   );
 }
