@@ -58,15 +58,83 @@ export function useCustomerJourney({ contactId, companyId }: UseCustomerJourneyP
 
       const { data: activities } = await activitiesQuery;
 
+      // Fetch invoices for this company/contact
+      let invoicesQuery = supabase
+        .from("invoices")
+        .select("id, status, total, issue_date, paid_at, sent_at")
+        .order("issue_date", { ascending: false });
+
+      if (contactId) {
+        invoicesQuery = invoicesQuery.eq("contact_id", contactId);
+      } else if (companyId) {
+        invoicesQuery = invoicesQuery.eq("company_id", companyId);
+      }
+
+      const { data: invoices } = await invoicesQuery;
+
+      // Fetch proposals via opportunities linked to this entity
+      let proposalsCount = 0;
+      let acceptedProposals = 0;
+      
+      if (companyId) {
+        // Get opportunities through company contacts
+        const { data: companyContacts } = await supabase
+          .from("contacts")
+          .select("id")
+          .eq("company_id", companyId);
+        
+        if (companyContacts && companyContacts.length > 0) {
+          const contactIds = companyContacts.map(c => c.id);
+          const { data: opportunities } = await supabase
+            .from("opportunities")
+            .select("id, status")
+            .in("contact_id", contactIds);
+          
+          if (opportunities && opportunities.length > 0) {
+            const oppIds = opportunities.map(o => o.id);
+            const { data: proposals } = await supabase
+              .from("proposals")
+              .select("id, status")
+              .in("opportunity_id", oppIds);
+            
+            proposalsCount = proposals?.length || 0;
+            acceptedProposals = proposals?.filter(p => p.status === "accepted").length || 0;
+          }
+        }
+      } else if (contactId) {
+        const { data: opportunities } = await supabase
+          .from("opportunities")
+          .select("id, status")
+          .eq("contact_id", contactId);
+        
+        if (opportunities && opportunities.length > 0) {
+          const oppIds = opportunities.map(o => o.id);
+          const { data: proposals } = await supabase
+            .from("proposals")
+            .select("id, status")
+            .in("opportunity_id", oppIds);
+          
+          proposalsCount = proposals?.length || 0;
+          acceptedProposals = proposals?.filter(p => p.status === "accepted").length || 0;
+        }
+      }
+
       // Calculate metrics
       const activeProducts = products?.filter(p => p.status === 'ativo' || p.status === 'em_consumo').length || 0;
       const completedProducts = products?.filter(p => p.status === 'concluido').length || 0;
       const totalConsumption = logs?.reduce((sum, log) => sum + log.quantity, 0) || 0;
 
-      // Last interaction date
+      // Invoice metrics
+      const paidInvoices = invoices?.filter(i => i.status === 'paid').length || 0;
+      const pendingInvoices = invoices?.filter(i => i.status === 'sent' || i.status === 'overdue').length || 0;
+      const totalInvoiceValue = invoices?.reduce((sum, i) => sum + (i.total || 0), 0) || 0;
+
+      // Last interaction date - include invoices and proposals
       const lastLogDate = logs?.[0]?.consumption_date;
       const lastActivityDate = activities?.[0]?.created_at;
-      const lastInteractionDate = [lastLogDate, lastActivityDate]
+      const lastInvoiceDate = invoices?.[0]?.issue_date;
+      
+      const lastInteractionDate = [lastLogDate, lastActivityDate, lastInvoiceDate]
         .filter(Boolean)
         .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0] || null;
 
@@ -83,10 +151,13 @@ export function useCustomerJourney({ contactId, companyId }: UseCustomerJourneyP
         averageConsumptionFrequency = Math.round(totalDays / (logs.length - 1));
       }
 
-      // Calculate journey stage
+      // Calculate journey stage - now considering invoices and proposals
       const stage = calculateJourneyStage({
         products: products || [],
         logs: logs || [],
+        invoices: invoices || [],
+        proposalsCount,
+        acceptedProposals,
         daysSinceLastInteraction,
         averageConsumptionFrequency,
       });
@@ -97,6 +168,7 @@ export function useCustomerJourney({ contactId, companyId }: UseCustomerJourneyP
         daysSinceLastInteraction,
         averageConsumptionFrequency,
         stage,
+        paidInvoices,
       });
 
       // Generate recommended action based on stage
@@ -105,6 +177,8 @@ export function useCustomerJourney({ contactId, companyId }: UseCustomerJourneyP
         activeProducts,
         completedProducts,
         churnRisk,
+        pendingInvoices,
+        proposalsCount,
       });
 
       return {
@@ -133,14 +207,52 @@ interface CalculateJourneyStageParams {
     quantity: number | null;
   }>;
   logs: Array<{ consumption_date: string; quantity: number }>;
+  invoices: Array<{ id: string; status: string | null; total: number | null }>;
+  proposalsCount: number;
+  acceptedProposals: number;
   daysSinceLastInteraction: number | null;
   averageConsumptionFrequency: number | null;
 }
 
 function calculateJourneyStage(params: CalculateJourneyStageParams): JourneyStage {
-  const { products, logs, daysSinceLastInteraction, averageConsumptionFrequency } = params;
+  const { products, logs, invoices, proposalsCount, acceptedProposals, daysSinceLastInteraction, averageConsumptionFrequency } = params;
 
-  // No products = New
+  // Check if client has paid invoices = customer relationship exists
+  const paidInvoices = invoices.filter(i => i.status === 'paid');
+  const pendingInvoices = invoices.filter(i => i.status === 'sent' || i.status === 'draft' || i.status === 'overdue');
+
+  // Has paid invoices = at least in consumption or completed
+  if (paidInvoices.length > 0) {
+    if (products.length > 0) {
+      const activeProducts = products.filter(p => p.status === 'ativo' || p.status === 'em_consumo');
+      if (activeProducts.length > 0) {
+        return 'em_consumo';
+      }
+      return 'concluido';
+    }
+    // Paid but no products tracked = in consumption
+    if (daysSinceLastInteraction !== null && daysSinceLastInteraction <= 30) {
+      return 'em_consumo';
+    }
+    return 'pronto_upsell';
+  }
+
+  // Has pending invoices = in onboarding (waiting for payment/start)
+  if (pendingInvoices.length > 0) {
+    return 'em_onboarding';
+  }
+
+  // Has accepted proposals = in onboarding
+  if (acceptedProposals > 0) {
+    return 'em_onboarding';
+  }
+
+  // Has proposals sent = prospect (treat as new with activity)
+  if (proposalsCount > 0) {
+    return 'novo';
+  }
+
+  // Original product-based logic
   if (products.length === 0) {
     return 'novo';
   }
@@ -168,8 +280,7 @@ function calculateJourneyStage(params: CalculateJourneyStageParams): JourneyStag
 
   // Active consumption
   if (inProgressProducts.length > 0 || (activeProducts.length > 0 && logs.length > 0)) {
-    // Check if paused (no activity for 2x expected frequency or 30+ days)
-    const expectedFrequency = averageConsumptionFrequency || 14; // default 14 days
+    const expectedFrequency = averageConsumptionFrequency || 14;
     const pauseThreshold = Math.max(expectedFrequency * 2, 30);
 
     if (daysSinceLastInteraction !== null && daysSinceLastInteraction > pauseThreshold) {
@@ -190,13 +301,19 @@ interface CalculateChurnRiskParams {
   daysSinceLastInteraction: number | null;
   averageConsumptionFrequency: number | null;
   stage: JourneyStage;
+  paidInvoices: number;
 }
 
 function calculateChurnRisk(params: CalculateChurnRiskParams): ChurnRisk {
-  const { daysSinceLastInteraction, averageConsumptionFrequency, stage } = params;
+  const { daysSinceLastInteraction, averageConsumptionFrequency, stage, paidInvoices } = params;
 
   // Completed or new = low risk
   if (stage === 'concluido' || stage === 'novo' || stage === 'pronto_upsell') {
+    return 'baixo';
+  }
+
+  // Onboarding with paid invoices = low risk
+  if (stage === 'em_onboarding' && paidInvoices > 0) {
     return 'baixo';
   }
 
@@ -229,16 +346,24 @@ interface GenerateActionParams {
   activeProducts: number;
   completedProducts: number;
   churnRisk: ChurnRisk;
+  pendingInvoices: number;
+  proposalsCount: number;
 }
 
 function generateRecommendedAction(stage: JourneyStage, params: GenerateActionParams): string {
-  const { daysSinceLastInteraction, activeProducts, completedProducts, churnRisk } = params;
+  const { completedProducts, churnRisk, pendingInvoices, proposalsCount } = params;
 
   switch (stage) {
     case 'novo':
+      if (proposalsCount > 0) {
+        return 'Fazer follow-up das propostas enviadas';
+      }
       return 'Agendar apresentação de produtos/serviços';
     
     case 'em_onboarding':
+      if (pendingInvoices > 0) {
+        return 'Confirmar pagamento e agendar início';
+      }
       return 'Confirmar início e agendar primeira sessão';
     
     case 'em_consumo':
