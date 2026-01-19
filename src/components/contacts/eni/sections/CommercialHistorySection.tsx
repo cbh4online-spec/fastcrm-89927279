@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Clock, Calculator, FileText } from "lucide-react";
+import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Calculator, FileText } from "lucide-react";
 import { ENIContact, ABCCategory } from "../ENIContactTypes";
+import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
 import { useInvoices } from "@/hooks/useInvoices";
 
@@ -47,7 +48,7 @@ function formatDate(dateString: string | null | undefined): string {
   });
 }
 
-export function CommercialHistorySection({ contact }: CommercialHistorySectionProps) {
+export function CommercialHistorySection({ contact, onFieldChange }: CommercialHistorySectionProps) {
   // Fetch invoices for this contact (and their company)
   const { data: contactInvoices = [] } = useInvoices({ contact_id: contact.id });
   const { data: companyInvoices = [] } = useInvoices({ company_id: contact.company_id || undefined });
@@ -70,8 +71,8 @@ export function CommercialHistorySection({ contact }: CommercialHistorySectionPr
     );
   }, [allInvoices]);
 
-  // Calculate sales by year from invoices
-  const salesByYear = useMemo(() => {
+  // Calculate sales by year from invoices (automatic)
+  const invoiceSalesByYear = useMemo(() => {
     const sales: Record<number, number> = {};
     
     countableInvoices.forEach(inv => {
@@ -84,12 +85,40 @@ export function CommercialHistorySection({ contact }: CommercialHistorySectionPr
     return sales;
   }, [countableInvoices]);
 
-  // Calculate totals
-  const calculatedTotalRevenue = useMemo(() => {
-    return Object.values(salesByYear).reduce((sum, val) => sum + val, 0);
-  }, [salesByYear]);
+  // Manual sales from contact fields
+  const manualSalesByYear: Record<number, number | null> = {
+    2026: contact.sales_2026 ?? null,
+    2025: contact.sales_2025 ?? null,
+    2024: contact.sales_2024 ?? null,
+    2023: contact.sales_2023 ?? null,
+  };
+
+  // Combined sales: use invoice value if exists, otherwise use manual value
+  const combinedSalesByYear = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
+    const combined: Record<number, { invoice: number; manual: number | null; total: number }> = {};
+    
+    years.forEach(year => {
+      const invoiceVal = invoiceSalesByYear[year] || 0;
+      const manualVal = manualSalesByYear[year];
+      // Total = invoice value + manual value (manual can add to invoice data)
+      combined[year] = {
+        invoice: invoiceVal,
+        manual: manualVal,
+        total: invoiceVal + (manualVal || 0),
+      };
+    });
+    
+    return combined;
+  }, [invoiceSalesByYear, manualSalesByYear]);
 
   const invoiceCount = countableInvoices.length;
+
+  // Calculate totals
+  const calculatedTotalRevenue = useMemo(() => {
+    return Object.values(combinedSalesByYear).reduce((sum, val) => sum + val.total, 0);
+  }, [combinedSalesByYear]);
 
   // Get last purchase date
   const lastPurchaseDate = useMemo(() => {
@@ -106,14 +135,19 @@ export function CommercialHistorySection({ contact }: CommercialHistorySectionPr
       .filter(inv => inv.issue_date)
       .sort((a, b) => new Date(b.issue_date!).getTime() - new Date(a.issue_date!).getTime());
     
-    return sentInvoices[0]?.issue_date || null;
-  }, [allInvoices, countableInvoices]);
+    if (sentInvoices[0]?.issue_date) {
+      return sentInvoices[0].issue_date;
+    }
+    
+    // Fallback to manual last purchase date
+    return contact.last_purchase_date;
+  }, [allInvoices, countableInvoices, contact.last_purchase_date]);
 
   // Calculate average ticket
   const averageTicket = useMemo(() => {
-    if (invoiceCount === 0) return 0;
+    if (invoiceCount === 0) return contact.average_ticket || 0;
     return calculatedTotalRevenue / invoiceCount;
-  }, [calculatedTotalRevenue, invoiceCount]);
+  }, [calculatedTotalRevenue, invoiceCount, contact.average_ticket]);
 
   // Calculate ABC category based on total revenue
   const abcCategory = useMemo(() => {
@@ -123,6 +157,14 @@ export function CommercialHistorySection({ contact }: CommercialHistorySectionPr
   // Get current year for display
   const currentYear = new Date().getFullYear();
   const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
+
+  // Field mapping for manual sales
+  const yearFieldMap: Record<number, keyof ENIContact> = {
+    2026: 'sales_2026',
+    2025: 'sales_2025',
+    2024: 'sales_2024',
+    2023: 'sales_2023',
+  };
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
@@ -171,23 +213,57 @@ export function CommercialHistorySection({ contact }: CommercialHistorySectionPr
             </div>
           </div>
           
-          {/* Year Sales - Calculated from invoices */}
-          {years.map(year => (
-            <div key={year} className="flex items-start py-3 border-b border-border/50 group">
-              <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Vendas {year}
+          {/* Year Sales - Combined view */}
+          {years.map(year => {
+            const yearData = combinedSalesByYear[year];
+            const hasInvoices = yearData.invoice > 0;
+            const fieldName = yearFieldMap[year];
+            
+            return (
+              <div key={year} className="flex items-start py-3 border-b border-border/50 group">
+                <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Vendas {year}
+                </div>
+                <div className="flex-1">
+                  {/* Show invoice total if exists */}
+                  {hasInvoices && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-emerald-600">
+                        {formatCurrency(yearData.invoice)}
+                      </span>
+                      <Badge variant="secondary" className="text-xs gap-1">
+                        <FileText className="w-3 h-3" />
+                        Faturas
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  {/* Manual input for additional/historical values */}
+                  <div className="flex items-center gap-2">
+                    {hasInvoices && (
+                      <span className="text-xs text-muted-foreground">+ Manual:</span>
+                    )}
+                    <InlineEditableField
+                      label=""
+                      fieldId={`sales_${year}`}
+                      fieldType="currency"
+                      value={manualSalesByYear[year]}
+                      onChange={(val) => fieldName && onFieldChange(fieldName, val)}
+                      placeholder={hasInvoices ? "Adicional..." : "0.00"}
+                    />
+                  </div>
+                  
+                  {/* Show combined total if both exist */}
+                  {hasInvoices && yearData.manual && yearData.manual > 0 && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Total: {formatCurrency(yearData.total)}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 text-sm">
-                <span className={cn(
-                  "font-medium",
-                  (salesByYear[year] || 0) > 0 ? "text-emerald-600" : "text-muted-foreground"
-                )}>
-                  {formatCurrency(salesByYear[year] || 0)}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           
           {/* Total Revenue - Calculated automatically */}
           <div className="flex items-start py-3 border-b border-border/50 group">
@@ -206,7 +282,7 @@ export function CommercialHistorySection({ contact }: CommercialHistorySectionPr
             </div>
           </div>
           
-          {/* Average Ticket - Calculated */}
+          {/* Average Ticket - Calculated or manual */}
           <div className="flex items-start py-3 border-b border-border/50 group">
             <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
@@ -216,6 +292,11 @@ export function CommercialHistorySection({ contact }: CommercialHistorySectionPr
               <span className="font-medium">
                 {formatCurrency(averageTicket)}
               </span>
+              {invoiceCount > 0 && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  ({invoiceCount} fatura{invoiceCount !== 1 ? 's' : ''})
+                </span>
+              )}
             </div>
           </div>
           
