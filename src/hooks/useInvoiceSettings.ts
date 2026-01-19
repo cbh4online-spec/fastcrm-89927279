@@ -18,6 +18,7 @@ export interface InvoiceSettings {
   default_currency: string;
   bank_name: string;
   iban: string;
+  swift_bic: string;
   send_reminders: boolean;
   reminder_days_before: number;
   email_subject_template: string;
@@ -40,6 +41,7 @@ const defaultSettings: InvoiceSettings = {
   default_currency: "EUR",
   bank_name: "",
   iban: "",
+  swift_bic: "",
   send_reminders: true,
   reminder_days_before: 7,
   email_subject_template: "Fatura {invoice_number} - {company_name}",
@@ -96,6 +98,7 @@ export function useInvoiceSettings() {
           default_currency: data.default_currency || defaultSettings.default_currency,
           bank_name: data.bank_name || "",
           iban: data.iban || "",
+          swift_bic: data.swift_bic || "",
           send_reminders: data.send_reminders ?? defaultSettings.send_reminders,
           reminder_days_before: data.reminder_days_before || defaultSettings.reminder_days_before,
           email_subject_template: data.email_subject_template || defaultSettings.email_subject_template,
@@ -135,6 +138,7 @@ export function useInvoiceSettings() {
         default_currency: newSettings.default_currency,
         bank_name: newSettings.bank_name,
         iban: newSettings.iban,
+        swift_bic: newSettings.swift_bic,
         send_reminders: newSettings.send_reminders,
         reminder_days_before: newSettings.reminder_days_before,
         email_subject_template: newSettings.email_subject_template,

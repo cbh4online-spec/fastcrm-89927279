@@ -4590,6 +4590,7 @@ export type Database = {
           reminder_days_before: number | null
           send_reminders: boolean | null
           show_logo: boolean | null
+          swift_bic: string | null
           updated_at: string
           workspace_id: string
         }
@@ -4615,6 +4616,7 @@ export type Database = {
           reminder_days_before?: number | null
           send_reminders?: boolean | null
           show_logo?: boolean | null
+          swift_bic?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -4640,6 +4642,7 @@ export type Database = {
           reminder_days_before?: number | null
           send_reminders?: boolean | null
           show_logo?: boolean | null
+          swift_bic?: string | null
           updated_at?: string
           workspace_id?: string
         }
