@@ -1486,6 +1486,7 @@ export type Database = {
           notes: string | null
           opening_hours: Json | null
           parish: string | null
+          payment_conditions: string | null
           phone: string | null
           postal_code: string | null
           price_level: string | null
@@ -1546,6 +1547,7 @@ export type Database = {
           notes?: string | null
           opening_hours?: Json | null
           parish?: string | null
+          payment_conditions?: string | null
           phone?: string | null
           postal_code?: string | null
           price_level?: string | null
@@ -1606,6 +1608,7 @@ export type Database = {
           notes?: string | null
           opening_hours?: Json | null
           parish?: string | null
+          payment_conditions?: string | null
           phone?: string | null
           postal_code?: string | null
           price_level?: string | null
