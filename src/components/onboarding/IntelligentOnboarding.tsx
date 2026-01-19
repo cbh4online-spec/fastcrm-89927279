@@ -1,5 +1,6 @@
-import { useIntelligentOnboarding } from "@/hooks/useIntelligentOnboarding";
+import { useIntelligentOnboarding, BUSINESS_TO_PROFILE_MAP } from "@/hooks/useIntelligentOnboarding";
 import { BusinessTypeStep } from "./steps/BusinessTypeStep";
+import { ActivityProfileStep } from "./steps/ActivityProfileStep";
 import { SuccessDefinitionStep } from "./steps/SuccessDefinitionStep";
 import { ProcessDescriptionStep } from "./steps/ProcessDescriptionStep";
 import { ChannelsStep } from "./steps/ChannelsStep";
@@ -9,6 +10,7 @@ import { ApplyingStep } from "./steps/ApplyingStep";
 import { CompleteStep } from "./steps/CompleteStep";
 import { Progress } from "@/components/ui/progress";
 import { Sparkles } from "lucide-react";
+import { ActivityProfileType } from "@/types/activityProfile";
 
 interface IntelligentOnboardingProps {
   workspaceName: string;
@@ -19,14 +21,28 @@ interface IntelligentOnboardingProps {
 export function IntelligentOnboarding({ workspaceName, onComplete, onSkip }: IntelligentOnboardingProps) {
   const onboarding = useIntelligentOnboarding();
 
+  // Get suggested profile based on business type
+  const getSuggestedProfile = (): ActivityProfileType | undefined => {
+    const businessType = onboarding.answers.businessType?.toLowerCase() || "";
+    const customType = onboarding.answers.customBusinessType?.toLowerCase() || "";
+    
+    for (const [keyword, profile] of Object.entries(BUSINESS_TO_PROFILE_MAP)) {
+      if (businessType.includes(keyword) || customType.includes(keyword)) {
+        return profile;
+      }
+    }
+    return "generico";
+  };
+
   const getProgress = () => {
     const progressMap = {
-      business: 15,
-      success: 30,
-      process: 50,
-      channels: 65,
-      generating: 75,
-      preview: 85,
+      business: 12,
+      activity_profile: 25,
+      success: 40,
+      process: 55,
+      channels: 70,
+      generating: 80,
+      preview: 90,
       applying: 95,
       complete: 100,
     };
@@ -35,10 +51,11 @@ export function IntelligentOnboarding({ workspaceName, onComplete, onSkip }: Int
 
   const getStepTitle = () => {
     const titles = {
-      business: "1/4 — Tipo de Negócio",
-      success: "2/4 — Definição de Sucesso",
-      process: "3/4 — Processo de Vendas",
-      channels: "4/4 — Canais de Entrada",
+      business: "1/5 — Tipo de Negócio",
+      activity_profile: "2/5 — Perfil de Atividade",
+      success: "3/5 — Definição de Sucesso",
+      process: "4/5 — Processo de Vendas",
+      channels: "5/5 — Canais de Entrada",
       generating: "A Criar Configuração",
       preview: "Rever Configuração",
       applying: "A Aplicar",
@@ -90,6 +107,16 @@ export function IntelligentOnboarding({ workspaceName, onComplete, onSkip }: Int
               onChange={(value) => onboarding.updateAnswer("businessType", value)}
               onCustomChange={(value) => onboarding.updateAnswer("customBusinessType", value)}
               onNext={onboarding.nextStep}
+            />
+          )}
+
+          {onboarding.step === "activity_profile" && (
+            <ActivityProfileStep
+              value={onboarding.answers.activityProfileType}
+              suggestedProfile={getSuggestedProfile()}
+              onChange={(value) => onboarding.updateAnswer("activityProfileType", value)}
+              onNext={onboarding.nextStep}
+              onBack={onboarding.prevStep}
             />
           )}
 
