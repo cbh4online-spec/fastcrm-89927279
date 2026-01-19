@@ -1450,6 +1450,7 @@ export type Database = {
           annual_revenue: number | null
           assigned_to: string | null
           automation_active: boolean | null
+          business_status: string | null
           cae_codes: string[] | null
           cae_description: string | null
           capital_social: string | null
@@ -1467,17 +1468,26 @@ export type Database = {
           facebook_url: string | null
           fax: string | null
           founding_date: string | null
+          google_maps_url: string | null
+          google_photo_url: string | null
+          google_place_id: string | null
+          google_rating: number | null
+          google_reviews_count: number | null
           id: string
           industry: string | null
           instagram_url: string | null
           last_contact_at: string | null
+          latitude: number | null
           legal_nature: string | null
           linkedin_url: string | null
+          longitude: number | null
           name: string
           notes: string | null
+          opening_hours: Json | null
           parish: string | null
           phone: string | null
           postal_code: string | null
+          price_level: string | null
           region: string | null
           size: string | null
           source: string | null
@@ -1499,6 +1509,7 @@ export type Database = {
           annual_revenue?: number | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          business_status?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
@@ -1516,17 +1527,26 @@ export type Database = {
           facebook_url?: string | null
           fax?: string | null
           founding_date?: string | null
+          google_maps_url?: string | null
+          google_photo_url?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_reviews_count?: number | null
           id?: string
           industry?: string | null
           instagram_url?: string | null
           last_contact_at?: string | null
+          latitude?: number | null
           legal_nature?: string | null
           linkedin_url?: string | null
+          longitude?: number | null
           name: string
           notes?: string | null
+          opening_hours?: Json | null
           parish?: string | null
           phone?: string | null
           postal_code?: string | null
+          price_level?: string | null
           region?: string | null
           size?: string | null
           source?: string | null
@@ -1548,6 +1568,7 @@ export type Database = {
           annual_revenue?: number | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          business_status?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
@@ -1565,17 +1586,26 @@ export type Database = {
           facebook_url?: string | null
           fax?: string | null
           founding_date?: string | null
+          google_maps_url?: string | null
+          google_photo_url?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_reviews_count?: number | null
           id?: string
           industry?: string | null
           instagram_url?: string | null
           last_contact_at?: string | null
+          latitude?: number | null
           legal_nature?: string | null
           linkedin_url?: string | null
+          longitude?: number | null
           name?: string
           notes?: string | null
+          opening_hours?: Json | null
           parish?: string | null
           phone?: string | null
           postal_code?: string | null
+          price_level?: string | null
           region?: string | null
           size?: string | null
           source?: string | null
