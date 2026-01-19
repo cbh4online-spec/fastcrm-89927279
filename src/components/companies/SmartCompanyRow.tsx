@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { SmartCompany, NextActionType } from "@/hooks/useSmartCompanies";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -131,7 +132,7 @@ export function SmartCompanyRow({
   // Cell renderers for each column type
   const cellRenderers: Record<string, () => React.ReactNode> = {
     name: () => (
-      <TableCell key="name">
+      <TableCell key="name" className={cn("min-w-[200px]", stickyNameStyles)}>
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9">
             <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">
@@ -463,7 +464,7 @@ export function SmartCompanyRow({
       company.slaBreach && "bg-destructive/5"
     )}>
       {/* Checkbox */}
-      <TableCell className="w-[40px]">
+      <TableCell className={cn("w-[40px]", stickyCheckboxStyles)}>
         <Checkbox
           checked={isSelected}
           onCheckedChange={onToggleSelect}

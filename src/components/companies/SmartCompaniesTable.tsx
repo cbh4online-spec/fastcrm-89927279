@@ -8,9 +8,10 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
+import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles } from "@/components/common/StickyTable";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   Select,
@@ -22,6 +23,7 @@ import {
 import { Plus, Sparkles, Trash2, Building2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, Users, Factory, Briefcase, Linkedin } from "lucide-react";
 import { TableSkeleton, SearchEmptyState, EmptyState } from "@/components/design-system";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -379,18 +381,19 @@ export function SmartCompaniesTable() {
 
         {/* Table */}
         <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
-          <Table className="min-w-[1400px]">
+          <StickyTableWrapper minWidth="1400px">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40px] whitespace-nowrap">
+                <TableHead className={cn("w-[40px] whitespace-nowrap", stickyHeaderCheckboxStyles)}>
                   <Checkbox 
                     checked={allSelected} 
                     ref={(el) => { if (el) (el as any).indeterminate = someSelected; }} 
                     onCheckedChange={toggleSelectAll} 
                   />
                 </TableHead>
-                {orderedVisibleColumns.map(col => {
+                {orderedVisibleColumns.map((col, index) => {
                   const isAI = col.category === "ai";
+                  const isNameCol = col.id === "name";
                   const minWidth = col.id === "name" ? "min-w-[200px]" : 
                                   col.id === "industry" ? "min-w-[140px]" :
                                   col.id === "source" ? "min-w-[120px]" :
@@ -400,7 +403,14 @@ export function SmartCompaniesTable() {
                                   col.id === "sla" ? "min-w-[100px]" :
                                   "min-w-[100px]";
                   return (
-                    <TableHead key={col.id} className={`${minWidth} whitespace-nowrap`}>
+                    <TableHead 
+                      key={col.id} 
+                      className={cn(
+                        minWidth, 
+                        "whitespace-nowrap",
+                        isNameCol && index === 0 && stickyHeaderNameStyles
+                      )}
+                    >
                       {isAI ? (
                         <span className="flex items-center gap-1">
                           {col.label}
@@ -452,7 +462,7 @@ export function SmartCompaniesTable() {
                 ))
               )}
             </TableBody>
-          </Table>
+          </StickyTableWrapper>
         </div>
 
         {/* Pagination */}
