@@ -10,10 +10,11 @@ import {
   BarChart3, Linkedin, Instagram, Facebook, Users, Target,
   RefreshCw, AlertCircle, ExternalLink, Star,
   CheckCircle2, UserPlus, Building2, ChevronDown, Sparkles,
-  ClipboardPaste, HelpCircle
+  ClipboardPaste, HelpCircle, Zap, Globe
 } from "lucide-react";
 import { 
   useCompleteSocialData, 
+  useHybridSocialAnalysis,
   useManualSocialAnalysis,
   useApplyDataSuggestions,
   CompleteSocialAnalysis,
@@ -79,22 +80,38 @@ export function CompleteSocialAnalysisSection({
   onCreateContact
 }: CompleteSocialAnalysisSectionProps) {
   const [liveAnalysis, setLiveAnalysis] = useState<CompleteSocialAnalysis | null>(null);
-  const [isInputOpen, setIsInputOpen] = useState(false);
+  const [isManualOpen, setIsManualOpen] = useState(false);
   const [linkedinText, setLinkedinText] = useState("");
   const [employeesText, setEmployeesText] = useState("");
   const [facebookText, setFacebookText] = useState("");
   const [instagramText, setInstagramText] = useState("");
   
   const { data: persistedData, isLoading } = useCompleteSocialData(companyId);
+  const hybridMutation = useHybridSocialAnalysis();
   const manualMutation = useManualSocialAnalysis();
   const applyMutation = useApplyDataSuggestions();
 
   const hasSocialUrls = linkedinUrl || instagramUrl || facebookUrl;
   const analysis = liveAnalysis || persistedData;
   const hasInputText = linkedinText.trim() || employeesText.trim() || facebookText.trim() || instagramText.trim();
+  const isAnalyzing = hybridMutation.isPending || manualMutation.isPending;
 
+  // Automatic analysis using URLs
+  const handleAutoAnalyze = async () => {
+    const result = await hybridMutation.mutateAsync({
+      companyId,
+      companyName,
+      linkedinUrl,
+      facebookUrl,
+      instagramUrl,
+      currentCompanyData,
+    });
+    setLiveAnalysis(result);
+  };
+
+  // Manual analysis with pasted text
   const handleManualAnalyze = async () => {
-    const result = await manualMutation.mutateAsync({
+    const result = await (hasInputText ? manualMutation : hybridMutation).mutateAsync({
       companyId,
       companyName,
       linkedinUrl,
@@ -107,8 +124,7 @@ export function CompleteSocialAnalysisSection({
       currentCompanyData,
     });
     setLiveAnalysis(result);
-    setIsInputOpen(false);
-    // Clear inputs after successful analysis
+    setIsManualOpen(false);
     setLinkedinText("");
     setEmployeesText("");
     setFacebookText("");
@@ -120,6 +136,7 @@ export function CompleteSocialAnalysisSection({
     applyMutation.mutate({ companyId, suggestions: analysis.dataSuggestions });
   };
 
+  // No social URLs configured
   if (!hasSocialUrls) {
     return (
       <Card>
@@ -140,6 +157,7 @@ export function CompleteSocialAnalysisSection({
     );
   }
 
+  // Loading state
   if (isLoading) {
     return (
       <Card>
@@ -157,7 +175,8 @@ export function CompleteSocialAnalysisSection({
     );
   }
 
-  if (manualMutation.isPending) {
+  // Analyzing state
+  if (isAnalyzing) {
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -167,18 +186,39 @@ export function CompleteSocialAnalysisSection({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
-            <span className="text-sm text-muted-foreground">A extrair dados estruturados...</span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+              <span className="text-sm text-muted-foreground">A recolher dados das redes sociais...</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+              {linkedinUrl && (
+                <div className="flex items-center gap-1">
+                  <Linkedin className="w-3 h-3 text-[#0A66C2]" />
+                  <span>LinkedIn</span>
+                </div>
+              )}
+              {facebookUrl && (
+                <div className="flex items-center gap-1">
+                  <Facebook className="w-3 h-3 text-[#1877F2]" />
+                  <span>Facebook</span>
+                </div>
+              )}
+              {instagramUrl && (
+                <div className="flex items-center gap-1">
+                  <Instagram className="w-3 h-3 text-[#E4405F]" />
+                  <span>Instagram</span>
+                </div>
+              )}
+            </div>
           </div>
           <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-32 w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  // No analysis yet - show input form
+  // No analysis yet - show auto-analyze button
   if (!analysis) {
     return (
       <Card>
@@ -189,42 +229,101 @@ export function CompleteSocialAnalysisSection({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col items-center justify-center py-4 text-center">
-            <div className="flex gap-3 mb-3">
-              {linkedinUrl && <Linkedin className="w-6 h-6 text-[#0A66C2]" />}
-              {instagramUrl && <Instagram className="w-6 h-6 text-[#E4405F]" />}
-              {facebookUrl && <Facebook className="w-6 h-6 text-[#1877F2]" />}
+          {/* URLs detected */}
+          <div className="space-y-2">
+            <span className="text-xs text-muted-foreground font-medium">URLs detectadas:</span>
+            <div className="flex flex-wrap gap-2">
+              {linkedinUrl && (
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <Linkedin className="w-3 h-3 text-[#0A66C2]" />
+                  LinkedIn
+                  <CheckCircle2 className="w-3 h-3 text-green-500" />
+                </Badge>
+              )}
+              {facebookUrl && (
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <Facebook className="w-3 h-3 text-[#1877F2]" />
+                  Facebook
+                  <CheckCircle2 className="w-3 h-3 text-green-500" />
+                </Badge>
+              )}
+              {instagramUrl && (
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <Instagram className="w-3 h-3 text-[#E4405F]" />
+                  Instagram
+                  <CheckCircle2 className="w-3 h-3 text-green-500" />
+                </Badge>
+              )}
+              {!linkedinUrl && (
+                <Badge variant="outline" className="gap-1 text-xs text-muted-foreground">
+                  <Linkedin className="w-3 h-3" />
+                  LinkedIn
+                  <AlertCircle className="w-3 h-3" />
+                </Badge>
+              )}
+              {!facebookUrl && (
+                <Badge variant="outline" className="gap-1 text-xs text-muted-foreground">
+                  <Facebook className="w-3 h-3" />
+                  Facebook
+                  <AlertCircle className="w-3 h-3" />
+                </Badge>
+              )}
+              {!instagramUrl && (
+                <Badge variant="outline" className="gap-1 text-xs text-muted-foreground">
+                  <Instagram className="w-3 h-3" />
+                  Instagram
+                  <AlertCircle className="w-3 h-3" />
+                </Badge>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground mb-1">
-              Cole texto das páginas para análise com IA
-            </p>
-            <p className="text-xs text-muted-foreground mb-4">
-              A IA extrai funcionários, seguidores, atividade e oportunidades
-            </p>
           </div>
 
-          <ManualInputForm
-            linkedinUrl={linkedinUrl}
-            facebookUrl={facebookUrl}
-            instagramUrl={instagramUrl}
-            linkedinText={linkedinText}
-            setLinkedinText={setLinkedinText}
-            employeesText={employeesText}
-            setEmployeesText={setEmployeesText}
-            facebookText={facebookText}
-            setFacebookText={setFacebookText}
-            instagramText={instagramText}
-            setInstagramText={setInstagramText}
-          />
-
+          {/* Auto analyze button */}
           <Button 
-            onClick={handleManualAnalyze} 
+            onClick={handleAutoAnalyze} 
             className="w-full gap-2"
-            disabled={!hasInputText}
+            size="lg"
           >
-            <Sparkles className="w-4 h-4" />
-            Analisar com IA
+            <Zap className="w-4 h-4" />
+            Analisar Automaticamente
           </Button>
+
+          {/* Manual input collapsible */}
+          <Collapsible open={isManualOpen} onOpenChange={setIsManualOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full gap-2 text-xs text-muted-foreground">
+                <ClipboardPaste className="w-3 h-3" />
+                Adicionar dados manualmente (opcional)
+                <ChevronDown className={`w-3 h-3 transition-transform ${isManualOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-4">
+              <p className="text-xs text-muted-foreground">
+                Cole texto das páginas para enriquecer a análise com dados específicos.
+              </p>
+              <ManualInputForm
+                linkedinUrl={linkedinUrl}
+                facebookUrl={facebookUrl}
+                instagramUrl={instagramUrl}
+                linkedinText={linkedinText}
+                setLinkedinText={setLinkedinText}
+                employeesText={employeesText}
+                setEmployeesText={setEmployeesText}
+                facebookText={facebookText}
+                setFacebookText={setFacebookText}
+                instagramText={instagramText}
+                setInstagramText={setInstagramText}
+              />
+              <Button 
+                onClick={handleManualAnalyze} 
+                className="w-full gap-2"
+                variant="secondary"
+              >
+                <Sparkles className="w-4 h-4" />
+                Analisar com Dados Manuais
+              </Button>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
     );
@@ -250,7 +349,7 @@ export function CompleteSocialAnalysisSection({
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setIsInputOpen(!isInputOpen)}
+            onClick={() => setIsManualOpen(!isManualOpen)}
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
@@ -258,7 +357,7 @@ export function CompleteSocialAnalysisSection({
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Update Input Form (Collapsible) */}
-        <Collapsible open={isInputOpen} onOpenChange={setIsInputOpen}>
+        <Collapsible open={isManualOpen} onOpenChange={setIsManualOpen}>
           <CollapsibleContent className="space-y-4 pb-4 border-b">
             <ManualInputForm
               linkedinUrl={linkedinUrl}
@@ -276,7 +375,7 @@ export function CompleteSocialAnalysisSection({
             <Button 
               onClick={handleManualAnalyze} 
               className="w-full gap-2"
-              disabled={!hasInputText || manualMutation.isPending}
+              disabled={isAnalyzing}
             >
               <Sparkles className="w-4 h-4" />
               Atualizar Análise
