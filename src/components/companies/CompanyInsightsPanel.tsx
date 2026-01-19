@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Sparkles,
   TrendingUp,
@@ -13,7 +14,9 @@ import {
   Mail,
   RefreshCw,
   CheckCircle,
-  XCircle,
+  Package,
+  ShoppingCart,
+  ArrowRight,
 } from "lucide-react";
 import { useCompanyInsights } from "@/hooks/useCompanyEnrichment";
 import { Company } from "@/hooks/useCompanies";
@@ -22,10 +25,17 @@ import { useNavigate } from "react-router-dom";
 
 interface CompanyInsightsPanelProps {
   company: Company;
-  onCreateOpportunity?: () => void;
+  onCreateOpportunity?: (productId?: string, productName?: string) => void;
   onCreateTask?: () => void;
   onSendTemplate?: () => void;
   onGenerateProposal?: () => void;
+}
+
+interface ProductRecommendation {
+  productId: string;
+  productName: string;
+  fitScore: number;
+  reasoning: string;
 }
 
 interface CompanyInsight {
@@ -33,18 +43,26 @@ interface CompanyInsight {
   fitScore: number;
   fitExplanation: string;
   suggestedActions: Array<{
-    type: "opportunity" | "task" | "template" | "proposal";
+    type: "opportunity" | "task" | "template" | "proposal" | "product_suggestion";
     label: string;
     priority: "high" | "medium" | "low";
+    productId?: string;
+    productName?: string;
+    reasoning?: string;
   }>;
+  productRecommendations?: ProductRecommendation[];
   warnings: Array<{
     type: "missing_contact" | "no_website" | "duplicate" | "stale_data";
     message: string;
   }>;
 }
 
-function ScoreRing({ score }: { score: number }) {
-  const circumference = 2 * Math.PI * 40;
+function ScoreRing({ score, size = "large" }: { score: number; size?: "small" | "large" }) {
+  const radius = size === "small" ? 20 : 40;
+  const strokeWidth = size === "small" ? 4 : 8;
+  const viewBox = size === "small" ? "0 0 50 50" : "0 0 100 100";
+  const center = size === "small" ? 25 : 50;
+  const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
   
   const getScoreColor = (score: number) => {
@@ -53,25 +71,28 @@ function ScoreRing({ score }: { score: number }) {
     return "text-red-500";
   };
 
+  const containerSize = size === "small" ? "w-12 h-12" : "w-24 h-24";
+  const fontSize = size === "small" ? "text-sm" : "text-2xl";
+
   return (
-    <div className="relative w-24 h-24">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+    <div className={cn("relative", containerSize)}>
+      <svg className="w-full h-full -rotate-90" viewBox={viewBox}>
         <circle
-          cx="50"
-          cy="50"
-          r="40"
+          cx={center}
+          cy={center}
+          r={radius}
           fill="none"
           stroke="currentColor"
-          strokeWidth="8"
+          strokeWidth={strokeWidth}
           className="text-muted/20"
         />
         <circle
-          cx="50"
-          cy="50"
-          r="40"
+          cx={center}
+          cy={center}
+          r={radius}
           fill="none"
           stroke="currentColor"
-          strokeWidth="8"
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
           className={getScoreColor(score)}
           style={{
@@ -82,7 +103,7 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className={cn("text-2xl font-bold", getScoreColor(score))}>{score}</span>
+        <span className={cn("font-bold", fontSize, getScoreColor(score))}>{score}</span>
       </div>
     </div>
   );
@@ -112,10 +133,11 @@ export function CompanyInsightsPanel({
     });
   };
 
-  const handleAction = (type: string) => {
+  const handleAction = (type: string, productId?: string, productName?: string) => {
     switch (type) {
       case "opportunity":
-        onCreateOpportunity?.();
+      case "product_suggestion":
+        onCreateOpportunity?.(productId, productName);
         break;
       case "task":
         onCreateTask?.();
@@ -139,6 +161,8 @@ export function CompanyInsightsPanel({
         return <Mail className="w-4 h-4" />;
       case "proposal":
         return <FileText className="w-4 h-4" />;
+      case "product_suggestion":
+        return <Package className="w-4 h-4" />;
       default:
         return null;
     }
@@ -155,6 +179,12 @@ export function CompanyInsightsPanel({
       default:
         return "";
     }
+  };
+
+  const getFitScoreColor = (score: number) => {
+    if (score >= 70) return "bg-green-500/10 text-green-700 border-green-300";
+    if (score >= 40) return "bg-yellow-500/10 text-yellow-700 border-yellow-300";
+    return "bg-red-500/10 text-red-700 border-red-300";
   };
 
   if (generateInsights.isPending && !insights) {
@@ -181,6 +211,9 @@ export function CompanyInsightsPanel({
   }
 
   if (!insights) return null;
+
+  const productRecommendations = insights.productRecommendations || [];
+  const hasProductRecommendations = productRecommendations.length > 0;
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
@@ -221,6 +254,51 @@ export function CompanyInsightsPanel({
           </div>
         </div>
 
+        {/* Product Recommendations - NEW SECTION */}
+        {hasProductRecommendations && (
+          <>
+            <Separator />
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-primary" />
+                Produtos/Serviços Recomendados
+              </h4>
+              <div className="space-y-2">
+                {productRecommendations.slice(0, 4).map((rec, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 p-3 rounded-lg border bg-background/50 hover:bg-background transition-colors"
+                  >
+                    <ScoreRing score={rec.fitScore} size="small" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm truncate">{rec.productName}</span>
+                        <Badge 
+                          variant="outline" 
+                          className={cn("text-xs shrink-0", getFitScoreColor(rec.fitScore))}
+                        >
+                          {rec.fitScore}% fit
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {rec.reasoning}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleAction("product_suggestion", rec.productId, rec.productName)}
+                      className="shrink-0 h-8 gap-1 text-primary hover:text-primary"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Warnings */}
         {insights.warnings.length > 0 && (
           <div className="space-y-2">
@@ -255,7 +333,7 @@ export function CompanyInsightsPanel({
                   key={i}
                   variant="outline"
                   size="sm"
-                  onClick={() => handleAction(action.type)}
+                  onClick={() => handleAction(action.type, action.productId, action.productName)}
                   className={cn("gap-2", getPriorityColor(action.priority))}
                 >
                   {getActionIcon(action.type)}
