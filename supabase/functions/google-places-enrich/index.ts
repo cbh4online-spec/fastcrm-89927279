@@ -110,12 +110,33 @@ serve(async (req) => {
         results = [data.place_results];
       }
     } else {
-      // Text search
-      const query = [companyName, city, address].filter(Boolean).join(", ");
+      // Build optimized query - prioritize name + city for accuracy
+      let query = companyName;
+      
+      if (city) {
+        // Best case: name + city
+        query = `${companyName} ${city}`;
+      } else if (address) {
+        // Extract locality from address (usually second-to-last or last part before country)
+        const addressParts = address.split(",").map((p: string) => p.trim());
+        if (addressParts.length >= 2) {
+          // Try to get city/locality (usually before country/postal code)
+          const locality = addressParts.length > 2 
+            ? addressParts[addressParts.length - 2] 
+            : addressParts[0];
+          // Only use locality if it's not a street number/postal code
+          if (locality && !/^\d/.test(locality)) {
+            query = `${companyName} ${locality}`;
+          }
+        }
+      }
+
       const searchUrl = new URL("https://serpapi.com/search.json");
       searchUrl.searchParams.set("engine", "google_maps");
       searchUrl.searchParams.set("q", query);
       searchUrl.searchParams.set("type", "search");
+      searchUrl.searchParams.set("hl", "pt");  // Portuguese language
+      searchUrl.searchParams.set("gl", "pt");  // Portugal country
       searchUrl.searchParams.set("api_key", SERPAPI_API_KEY);
 
       console.log("Searching for:", query);
