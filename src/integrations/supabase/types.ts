@@ -4567,6 +4567,92 @@ export type Database = {
           },
         ]
       }
+      invoice_settings: {
+        Row: {
+          bank_name: string | null
+          company_address: string | null
+          company_email: string | null
+          company_logo_url: string | null
+          company_name: string | null
+          company_nif: string | null
+          company_phone: string | null
+          created_at: string
+          default_currency: string | null
+          default_payment_terms: number | null
+          email_body_template: string | null
+          email_subject_template: string | null
+          footer_text: string | null
+          iban: string | null
+          id: string
+          invoice_prefix: string | null
+          next_number: number | null
+          primary_color: string | null
+          reminder_days_before: number | null
+          send_reminders: boolean | null
+          show_logo: boolean | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          bank_name?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          company_nif?: string | null
+          company_phone?: string | null
+          created_at?: string
+          default_currency?: string | null
+          default_payment_terms?: number | null
+          email_body_template?: string | null
+          email_subject_template?: string | null
+          footer_text?: string | null
+          iban?: string | null
+          id?: string
+          invoice_prefix?: string | null
+          next_number?: number | null
+          primary_color?: string | null
+          reminder_days_before?: number | null
+          send_reminders?: boolean | null
+          show_logo?: boolean | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          bank_name?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          company_nif?: string | null
+          company_phone?: string | null
+          created_at?: string
+          default_currency?: string | null
+          default_payment_terms?: number | null
+          email_body_template?: string | null
+          email_subject_template?: string | null
+          footer_text?: string | null
+          iban?: string | null
+          id?: string
+          invoice_prefix?: string | null
+          next_number?: number | null
+          primary_color?: string | null
+          reminder_days_before?: number | null
+          send_reminders?: boolean | null
+          show_logo?: boolean | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount_paid: number | null
