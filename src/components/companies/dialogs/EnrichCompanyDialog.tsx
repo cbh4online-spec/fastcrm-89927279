@@ -174,13 +174,17 @@ function getCategoryIcon(category: string) {
   }
 }
 
-function formatDisplayValue(value: unknown): string {
+function formatDisplayValue(value: unknown, maxLength: number = 80): string {
   if (value === null || value === undefined) return "(vazio)";
   if (typeof value === "object") {
     if (Array.isArray(value)) return value.join(", ");
     return JSON.stringify(value).slice(0, 50) + "...";
   }
-  return String(value);
+  const strValue = String(value);
+  if (strValue.length > maxLength) {
+    return strValue.slice(0, maxLength) + "...";
+  }
+  return strValue;
 }
 
 export function EnrichCompanyDialog({
@@ -811,11 +815,11 @@ export function EnrichCompanyDialog({
                                           </Badge>
                                         </div>
 
-                                        <div className="mt-1.5 space-y-0.5">
-                                          <div className="flex items-center gap-2 text-xs">
-                                            <span className="text-muted-foreground w-14">Atual:</span>
+                                        <div className="mt-1.5 space-y-1">
+                                          <div className="flex items-start gap-2 text-xs">
+                                            <span className="text-muted-foreground w-10 flex-shrink-0">Atual:</span>
                                             <span className={cn(
-                                              "truncate",
+                                              "break-words min-w-0",
                                               suggestion.currentValue 
                                                 ? "text-foreground" 
                                                 : "text-muted-foreground italic"
@@ -823,10 +827,10 @@ export function EnrichCompanyDialog({
                                               {formatDisplayValue(suggestion.currentValue)}
                                             </span>
                                           </div>
-                                          <div className="flex items-center gap-2 text-xs">
-                                            <span className="text-muted-foreground w-14">Novo:</span>
-                                            <ArrowRight className="h-3 w-3 text-primary flex-shrink-0" />
-                                            <span className="text-primary font-medium truncate">
+                                          <div className="flex items-start gap-2 text-xs">
+                                            <span className="text-muted-foreground w-10 flex-shrink-0">Novo:</span>
+                                            <ArrowRight className="h-3 w-3 text-primary flex-shrink-0 mt-0.5" />
+                                            <span className="text-primary font-medium break-words min-w-0 max-w-[300px]">
                                               {formatDisplayValue(suggestion.suggestedValue)}
                                             </span>
                                           </div>
