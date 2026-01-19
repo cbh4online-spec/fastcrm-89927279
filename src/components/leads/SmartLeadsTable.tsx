@@ -5,6 +5,7 @@ import {
   useBulkAnalyzeLeads,
   SmartLeadsFilters,
 } from "@/hooks/useSmartLeads";
+import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useDeleteLeads } from "@/hooks/useLeads";
 import { SmartLeadRow } from "./SmartLeadRow";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
@@ -56,6 +57,7 @@ import {
   MessageSquare,
   Target,
   Activity,
+  Linkedin,
 } from "lucide-react";
 import { toast } from "sonner";
 // Design System imports
@@ -154,6 +156,7 @@ export function SmartLeadsTable() {
   const deleteLeads = useDeleteLeads();
   const analyzeLead = useAnalyzeLead();
   const bulkAnalyze = useBulkAnalyzeLeads();
+  const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('lead');
 
   // Apply search filter locally
   const filteredLeads = useMemo(() => {
@@ -348,6 +351,9 @@ export function SmartLeadsTable() {
             <span className="text-sm text-muted-foreground">{selectedIds.size} selecionado(s)</span>
             <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}>
               <Sparkles className="w-4 h-4 mr-2" />Analisar com IA
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleBulkAnalyzeLinkedIn} disabled={bulkAnalyzeLinkedIn.isPending}>
+              <Linkedin className="w-4 h-4 mr-2" />Analisar LinkedIn
             </Button>
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />Exportar

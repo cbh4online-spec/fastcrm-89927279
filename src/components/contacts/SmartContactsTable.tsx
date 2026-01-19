@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartContactsFilters } from "@/hooks/useSmartContacts";
+import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useContacts } from "@/hooks/useContacts";
 import { SmartContactRow } from "./SmartContactRow";
 import { CreateContactDialog } from "./CreateContactDialog";
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX } from "lucide-react";
+import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin } from "lucide-react";
 import { toast } from "sonner";
 // Design System imports
 import { EmptyState, SearchEmptyState, TableSkeleton } from "@/components/design-system";
@@ -230,6 +231,7 @@ export function SmartContactsTable() {
   const { deleteContacts, addTagsToContacts, bulkUpdateContacts } = useContacts();
   const analyze = useAnalyzeContact();
   const bulkAnalyze = useBulkAnalyzeContacts();
+  const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
 
   // Apply search filter locally
   const filteredContacts = useMemo(() => {
@@ -290,6 +292,19 @@ export function SmartContactsTable() {
     toast.loading(`A analisar ${selectedIds.size}...`);
     try { const r = await bulkAnalyze.mutateAsync(Array.from(selectedIds)); toast.dismiss(); toast.success(`${r.successful} analisados`); setSelectedIds(new Set()); }
     catch { toast.dismiss(); toast.error("Erro"); }
+  };
+
+  const handleBulkAnalyzeLinkedIn = async () => {
+    const selected = contacts?.filter(c => selectedIds.has(c.id)) || [];
+    const withLinkedIn = selected.filter(c => (c as any).linkedin_url);
+    if (withLinkedIn.length === 0) {
+      toast.error("Nenhum contacto selecionado tem URL LinkedIn");
+      return;
+    }
+    await bulkAnalyzeLinkedIn.mutateAsync(
+      withLinkedIn.map(c => ({ id: c.id, name: c.name, linkedin_url: (c as any).linkedin_url }))
+    );
+    setSelectedIds(new Set());
   };
 
   const handleBulkDelete = async () => {

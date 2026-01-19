@@ -1936,6 +1936,123 @@ export type Database = {
           },
         ]
       }
+      contact_linkedin_data: {
+        Row: {
+          analysis_status: string | null
+          analyzed_at: string | null
+          analyzed_by: string | null
+          avg_comments_per_post: number | null
+          avg_likes_per_post: number | null
+          company_size_range: string | null
+          connections_count: number | null
+          contact_id: string
+          created_at: string
+          description: string | null
+          employee_count_linkedin: number | null
+          employees_on_linkedin: number | null
+          engagement_score: number | null
+          error_message: string | null
+          founded_year: number | null
+          headline: string | null
+          headquarters: string | null
+          id: string
+          key_people: Json | null
+          last_post_date: string | null
+          linkedin_industry: string | null
+          linkedin_type: string | null
+          linkedin_url: string | null
+          linkedin_website: string | null
+          posting_frequency: string | null
+          raw_data: Json | null
+          recent_posts: Json | null
+          specialties: string[] | null
+          tagline: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          avg_comments_per_post?: number | null
+          avg_likes_per_post?: number | null
+          company_size_range?: string | null
+          connections_count?: number | null
+          contact_id: string
+          created_at?: string
+          description?: string | null
+          employee_count_linkedin?: number | null
+          employees_on_linkedin?: number | null
+          engagement_score?: number | null
+          error_message?: string | null
+          founded_year?: number | null
+          headline?: string | null
+          headquarters?: string | null
+          id?: string
+          key_people?: Json | null
+          last_post_date?: string | null
+          linkedin_industry?: string | null
+          linkedin_type?: string | null
+          linkedin_url?: string | null
+          linkedin_website?: string | null
+          posting_frequency?: string | null
+          raw_data?: Json | null
+          recent_posts?: Json | null
+          specialties?: string[] | null
+          tagline?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          avg_comments_per_post?: number | null
+          avg_likes_per_post?: number | null
+          company_size_range?: string | null
+          connections_count?: number | null
+          contact_id?: string
+          created_at?: string
+          description?: string | null
+          employee_count_linkedin?: number | null
+          employees_on_linkedin?: number | null
+          engagement_score?: number | null
+          error_message?: string | null
+          founded_year?: number | null
+          headline?: string | null
+          headquarters?: string | null
+          id?: string
+          key_people?: Json | null
+          last_post_date?: string | null
+          linkedin_industry?: string | null
+          linkedin_type?: string | null
+          linkedin_url?: string | null
+          linkedin_website?: string | null
+          posting_frequency?: string | null
+          raw_data?: Json | null
+          recent_posts?: Json | null
+          specialties?: string[] | null
+          tagline?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_linkedin_data_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_linkedin_data_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_products: {
         Row: {
           acquisition_date: string | null
@@ -5014,6 +5131,123 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "landing_pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_linkedin_data: {
+        Row: {
+          analysis_status: string | null
+          analyzed_at: string | null
+          analyzed_by: string | null
+          avg_comments_per_post: number | null
+          avg_likes_per_post: number | null
+          company_size_range: string | null
+          connections_count: number | null
+          created_at: string
+          description: string | null
+          employee_count_linkedin: number | null
+          employees_on_linkedin: number | null
+          engagement_score: number | null
+          error_message: string | null
+          founded_year: number | null
+          headline: string | null
+          headquarters: string | null
+          id: string
+          key_people: Json | null
+          last_post_date: string | null
+          lead_id: string
+          linkedin_industry: string | null
+          linkedin_type: string | null
+          linkedin_url: string | null
+          linkedin_website: string | null
+          posting_frequency: string | null
+          raw_data: Json | null
+          recent_posts: Json | null
+          specialties: string[] | null
+          tagline: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          avg_comments_per_post?: number | null
+          avg_likes_per_post?: number | null
+          company_size_range?: string | null
+          connections_count?: number | null
+          created_at?: string
+          description?: string | null
+          employee_count_linkedin?: number | null
+          employees_on_linkedin?: number | null
+          engagement_score?: number | null
+          error_message?: string | null
+          founded_year?: number | null
+          headline?: string | null
+          headquarters?: string | null
+          id?: string
+          key_people?: Json | null
+          last_post_date?: string | null
+          lead_id: string
+          linkedin_industry?: string | null
+          linkedin_type?: string | null
+          linkedin_url?: string | null
+          linkedin_website?: string | null
+          posting_frequency?: string | null
+          raw_data?: Json | null
+          recent_posts?: Json | null
+          specialties?: string[] | null
+          tagline?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          avg_comments_per_post?: number | null
+          avg_likes_per_post?: number | null
+          company_size_range?: string | null
+          connections_count?: number | null
+          created_at?: string
+          description?: string | null
+          employee_count_linkedin?: number | null
+          employees_on_linkedin?: number | null
+          engagement_score?: number | null
+          error_message?: string | null
+          founded_year?: number | null
+          headline?: string | null
+          headquarters?: string | null
+          id?: string
+          key_people?: Json | null
+          last_post_date?: string | null
+          lead_id?: string
+          linkedin_industry?: string | null
+          linkedin_type?: string | null
+          linkedin_url?: string | null
+          linkedin_website?: string | null
+          posting_frequency?: string | null
+          raw_data?: Json | null
+          recent_posts?: Json | null
+          specialties?: string[] | null
+          tagline?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_linkedin_data_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_linkedin_data_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

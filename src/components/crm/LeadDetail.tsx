@@ -41,6 +41,7 @@ import { ConvertLeadDialog } from "@/components/crm/ConvertLeadDialog";
 import { IdentificationSection } from "@/components/leads/sections/IdentificationSection";
 import { TagsSection } from "@/components/leads/sections/TagsSection";
 import { SocialMediaSection } from "@/components/leads/sections/SocialMediaSection";
+import { EntitySocialMediaAnalysisSection } from "@/components/shared/EntitySocialMediaAnalysisSection";
 
 // Status colors and labels
 const statusColors: Record<string, string> = {
@@ -294,6 +295,14 @@ export function LeadDetail() {
           <SocialMediaSection 
             lead={lead} 
             onFieldChange={handleFieldChange}
+          />
+
+          {/* LinkedIn Analysis */}
+          <EntitySocialMediaAnalysisSection
+            entityType="lead"
+            entityId={id!}
+            entityName={lead.name}
+            linkedinUrl={lead.linkedin_url}
           />
         </div>
 
