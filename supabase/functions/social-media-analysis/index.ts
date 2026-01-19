@@ -35,9 +35,34 @@ interface SocialMediaAnalysis {
     approachStrategy: string;
     keyDecisionMakers: Array<{ name: string; role: string; linkedinUrl?: string }>;
     engagementOpportunities: string[];
-    bestTimeToContact: string;
+    bestTimeToContact?: string;
   };
   warnings: string[];
+}
+
+// Extract company/page identifier from social media URLs
+function extractIdentifierFromUrl(url: string, platform: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    const path = urlObj.pathname;
+    
+    if (platform === "linkedin") {
+      // /company/company-name/ or /in/person-name/
+      const match = path.match(/\/(company|in)\/([^\/]+)/);
+      return match ? match[2].replace(/-/g, " ") : null;
+    } else if (platform === "facebook") {
+      // /pagename or /pages/xxx/pagename
+      const match = path.match(/\/([^\/]+)\/?$/);
+      return match ? match[1] : null;
+    } else if (platform === "instagram") {
+      // /username/
+      const match = path.match(/\/([^\/]+)/);
+      return match ? match[1] : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 serve(async (req) => {
@@ -101,102 +126,122 @@ serve(async (req) => {
       );
     }
 
-    console.log("Analyzing social media for company:", companyId, {
-      linkedin: !!linkedinUrl,
-      instagram: !!instagramUrl,
-      facebook: !!facebookUrl
+    console.log("Analyzing social media for company:", companyId, companyName, {
+      linkedin: linkedinUrl || null,
+      instagram: instagramUrl || null,
+      facebook: facebookUrl || null
     });
 
-    // Scrape social media profiles
-    const scrapeResults: Record<string, any> = {};
+    // Extract identifiers from URLs
+    const socialPresence: Record<string, any> = {};
     const warnings: string[] = [];
 
-    const scrapeUrl = async (url: string, platform: string) => {
+    if (linkedinUrl) {
+      const identifier = extractIdentifierFromUrl(linkedinUrl, "linkedin");
+      socialPresence.linkedin = {
+        url: linkedinUrl,
+        identifier,
+        platform: "LinkedIn"
+      };
+    }
+
+    if (facebookUrl) {
+      const identifier = extractIdentifierFromUrl(facebookUrl, "facebook");
+      socialPresence.facebook = {
+        url: facebookUrl,
+        identifier,
+        platform: "Facebook"
+      };
+    }
+
+    if (instagramUrl) {
+      const identifier = extractIdentifierFromUrl(instagramUrl, "instagram");
+      socialPresence.instagram = {
+        url: instagramUrl,
+        identifier,
+        platform: "Instagram"
+      };
+    }
+
+    // Use web search to find public information about the company
+    const searchResults: Record<string, any> = {};
+    
+    const searchQuery = async (query: string, key: string) => {
       try {
-        console.log(`Scraping ${platform}:`, url);
-        const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        console.log(`Searching: ${query}`);
+        const response = await fetch("https://api.firecrawl.dev/v1/search", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            url,
-            formats: ["markdown"],
-            onlyMainContent: true,
-            waitFor: 3000,
+            query,
+            limit: 5,
+            lang: "pt",
+            scrapeOptions: {
+              formats: ["markdown"]
+            }
           }),
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Failed to scrape ${platform}:`, errorText);
-          warnings.push(`Não foi possível aceder ao perfil de ${platform}`);
+          console.error(`Search failed for ${key}:`, await response.text());
           return null;
         }
 
         const data = await response.json();
-        return data.data?.markdown || data.markdown || null;
+        return data.data || data.results || [];
       } catch (error) {
-        console.error(`Error scraping ${platform}:`, error);
-        warnings.push(`Erro ao analisar ${platform}`);
+        console.error(`Error searching ${key}:`, error);
         return null;
       }
     };
 
-    // Scrape all available profiles in parallel
-    const scrapePromises: Promise<void>[] = [];
+    // Build search queries based on available information
+    const searchPromises: Promise<void>[] = [];
+    const searchName = companyName || socialPresence.linkedin?.identifier || socialPresence.facebook?.identifier || "empresa";
 
+    // Search for company + LinkedIn info
     if (linkedinUrl) {
-      scrapePromises.push(
-        scrapeUrl(linkedinUrl, "LinkedIn").then(content => {
-          if (content) scrapeResults.linkedin = content;
-        })
-      );
-    }
-
-    if (instagramUrl) {
-      scrapePromises.push(
-        scrapeUrl(instagramUrl, "Instagram").then(content => {
-          if (content) scrapeResults.instagram = content;
-        })
-      );
-    }
-
-    if (facebookUrl) {
-      scrapePromises.push(
-        scrapeUrl(facebookUrl, "Facebook").then(content => {
-          if (content) scrapeResults.facebook = content;
-        })
-      );
-    }
-
-    await Promise.all(scrapePromises);
-
-    const hasAnyData = Object.keys(scrapeResults).length > 0;
-
-    if (!hasAnyData) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          data: {
-            digitalMaturity: "low",
-            digitalMaturityReason: "Não foi possível aceder aos perfis de redes sociais",
-            salesInsights: {
-              preferredChannel: "email",
-              approachStrategy: "Contactar por email ou telefone, redes sociais não acessíveis",
-              keyDecisionMakers: [],
-              engagementOpportunities: [],
-              bestTimeToContact: "Horário laboral"
-            },
-            warnings
+      searchPromises.push(
+        searchQuery(`"${searchName}" LinkedIn site:linkedin.com`, "linkedin").then(results => {
+          if (results && results.length > 0) {
+            searchResults.linkedin = results;
           }
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        })
       );
     }
 
-    // Use AI to analyze the scraped content
+    // Search for company decision makers
+    searchPromises.push(
+      searchQuery(`"${searchName}" CEO diretor fundador Portugal`, "decisionMakers").then(results => {
+        if (results && results.length > 0) {
+          searchResults.decisionMakers = results;
+        }
+      })
+    );
+
+    // Search for company news/activity
+    searchPromises.push(
+      searchQuery(`"${searchName}" empresa notícias recrutamento expansão`, "news").then(results => {
+        if (results && results.length > 0) {
+          searchResults.news = results;
+        }
+      })
+    );
+
+    await Promise.all(searchPromises);
+
+    const hasAnySearchData = Object.keys(searchResults).length > 0;
+
+    console.log("Search results found:", {
+      linkedin: searchResults.linkedin?.length || 0,
+      decisionMakers: searchResults.decisionMakers?.length || 0,
+      news: searchResults.news?.length || 0
+    });
+
+    // Use AI to analyze available information
     if (!LOVABLE_API_KEY) {
       return new Response(
         JSON.stringify({ success: false, error: "AI não configurada" }),
@@ -204,31 +249,41 @@ serve(async (req) => {
       );
     }
 
-    const aiPrompt = `Analisa os perfis de redes sociais desta empresa e gera insights comerciais.
+    // Build context from URL presence and search results
+    const platformsPresent = Object.keys(socialPresence).map(p => socialPresence[p].platform).join(", ");
+    
+    const searchContext = Object.entries(searchResults).map(([key, results]) => {
+      if (!results || !Array.isArray(results)) return "";
+      const content = results.slice(0, 3).map((r: any) => 
+        `- ${r.title || "Sem título"}: ${(r.markdown || r.description || "").substring(0, 500)}`
+      ).join("\n");
+      return `\n### ${key.toUpperCase()}:\n${content}`;
+    }).join("\n");
 
-EMPRESA: ${companyName || "Desconhecida"}
+    const aiPrompt = `Analisa a presença digital desta empresa e gera insights comerciais para abordagem de vendas.
 
-${scrapeResults.linkedin ? `
---- LINKEDIN ---
-${scrapeResults.linkedin.substring(0, 8000)}
-` : "LinkedIn: Não disponível"}
+EMPRESA: ${companyName || "Nome não especificado"}
 
-${scrapeResults.instagram ? `
---- INSTAGRAM ---
-${scrapeResults.instagram.substring(0, 4000)}
-` : "Instagram: Não disponível"}
+PRESENÇA EM REDES SOCIAIS DETECTADA:
+${linkedinUrl ? `- LinkedIn: ${linkedinUrl}` : "- LinkedIn: Não tem"}
+${facebookUrl ? `- Facebook: ${facebookUrl}` : "- Facebook: Não tem"}
+${instagramUrl ? `- Instagram: ${instagramUrl}` : "- Instagram: Não tem"}
 
-${scrapeResults.facebook ? `
---- FACEBOOK ---
-${scrapeResults.facebook.substring(0, 4000)}
-` : "Facebook: Não disponível"}
+PLATAFORMAS PRESENTES: ${platformsPresent || "Nenhuma"}
+
+${hasAnySearchData ? `INFORMAÇÃO ENCONTRADA NA WEB:${searchContext}` : "Não foi encontrada informação adicional na web."}
 
 TAREFA:
-1. Avalia a maturidade digital da empresa (baixa, média, alta)
-2. Extrai informações relevantes de cada rede social
-3. Identifica decisores-chave (CEO, diretores, responsáveis)
-4. Sugere a melhor estratégia de abordagem comercial
-5. Identifica oportunidades de engagement (posts recentes, eventos, contratações)`;
+1. Avalia a maturidade digital baseado na presença em redes sociais (se tem LinkedIn = empresa moderna, se tem Instagram = foco em marca/consumidor)
+2. Identifica possíveis decisores mencionados na pesquisa
+3. Sugere a melhor estratégia de abordagem comercial baseada nos canais disponíveis
+4. Se tem LinkedIn, recomenda conectar lá primeiro
+5. Identifica oportunidades de engagement baseadas em notícias ou atividade encontrada
+
+IMPORTANTE: 
+- Não inventes dados (seguidores, funcionários) se não tiveres informação concreta
+- Foca em recomendações práticas de abordagem
+- Se não há muita informação, sugere estratégia genérica baseada nos canais disponíveis`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -241,7 +296,7 @@ TAREFA:
         messages: [
           {
             role: "system",
-            content: "És um especialista em social selling e análise de redes sociais empresariais. Extrais insights comerciais para ajudar equipas de vendas a abordar empresas de forma inteligente. Responde em Português de Portugal."
+            content: "És um especialista em social selling e análise de redes sociais empresariais. Extrais insights comerciais para ajudar equipas de vendas a abordar empresas de forma inteligente. Responde em Português de Portugal. Sê prático e objetivo nas recomendações."
           },
           { role: "user", content: aiPrompt }
         ],
@@ -257,21 +312,21 @@ TAREFA:
                   digitalMaturity: {
                     type: "string",
                     enum: ["low", "medium", "high"],
-                    description: "Nível de maturidade digital"
+                    description: "Nível de maturidade digital baseado na presença em redes"
                   },
                   digitalMaturityReason: {
                     type: "string",
-                    description: "Explicação da avaliação de maturidade digital"
+                    description: "Explicação breve da avaliação de maturidade digital"
                   },
                   linkedinData: {
                     type: "object",
                     properties: {
-                      followers: { type: "number" },
-                      employeeCount: { type: "number" },
+                      followers: { type: "number", description: "Só preencher se tiver dados concretos" },
+                      employeeCount: { type: "number", description: "Só preencher se tiver dados concretos" },
                       recentActivity: { 
                         type: "array", 
                         items: { type: "string" },
-                        description: "Posts ou atividades recentes relevantes"
+                        description: "Atividades ou posts encontrados"
                       },
                       keyPeople: {
                         type: "array",
@@ -312,11 +367,12 @@ TAREFA:
                     properties: {
                       preferredChannel: { 
                         type: "string", 
-                        enum: ["linkedin", "email", "phone", "instagram"] 
+                        enum: ["linkedin", "email", "phone", "instagram"],
+                        description: "Canal preferido para primeiro contacto"
                       },
                       approachStrategy: { 
                         type: "string", 
-                        description: "Estratégia detalhada de abordagem (2-3 frases)" 
+                        description: "Estratégia detalhada de abordagem (2-3 frases com ações concretas)" 
                       },
                       keyDecisionMakers: {
                         type: "array",
@@ -327,12 +383,13 @@ TAREFA:
                             role: { type: "string" },
                             linkedinUrl: { type: "string" }
                           }
-                        }
+                        },
+                        description: "Só incluir pessoas identificadas na pesquisa"
                       },
                       engagementOpportunities: { 
                         type: "array", 
                         items: { type: "string" },
-                        description: "Oportunidades concretas para iniciar conversa (posts, eventos, etc)"
+                        description: "Oportunidades concretas para iniciar conversa"
                       },
                       bestTimeToContact: { type: "string" }
                     },
@@ -363,6 +420,21 @@ TAREFA:
     }
 
     const analysis: SocialMediaAnalysis = JSON.parse(toolCall.function.arguments);
+    
+    // Add informative warnings about limitations
+    if (linkedinUrl) {
+      warnings.push(`Perfil LinkedIn detectado: ${linkedinUrl} (detalhes via pesquisa web)`);
+    }
+    if (facebookUrl) {
+      warnings.push(`Página Facebook detectada: ${facebookUrl} (detalhes via pesquisa web)`);
+    }
+    if (instagramUrl) {
+      warnings.push(`Perfil Instagram detectado: ${instagramUrl} (detalhes via pesquisa web)`);
+    }
+    if (!hasAnySearchData) {
+      warnings.push("Informação limitada encontrada na web - recomendamos análise manual dos perfis");
+    }
+    
     analysis.warnings = warnings;
 
     console.log("Social media analysis completed for:", companyId);
