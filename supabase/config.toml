@@ -99,3 +99,6 @@ verify_jwt = false
 
 [functions.figma-extract]
 verify_jwt = false
+
+[functions.ai-pricing-optimizer]
+verify_jwt = false

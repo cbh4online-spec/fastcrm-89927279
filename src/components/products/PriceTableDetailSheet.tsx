@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Edit2, Package } from "lucide-react";
+import { Plus, Trash2, Edit2, Package, Sparkles, Users, TrendingUp, Percent } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -36,6 +36,9 @@ import {
 import { useProducts } from "@/hooks/useProducts";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { AIOptimizePricingDialog } from "./pricing/AIOptimizePricingDialog";
+import { useUpdatePriceTable } from "@/hooks/usePriceTables";
+import { toast } from "sonner";
 
 interface PriceTableDetailSheetProps {
   open: boolean;
@@ -50,6 +53,7 @@ export function PriceTableDetailSheet({ open, onOpenChange, tableId }: PriceTabl
   const createItem = useCreatePriceTableItem();
   const updateItem = useUpdatePriceTableItem();
   const deleteItem = useDeletePriceTableItem();
+  const updateTable = useUpdatePriceTable();
 
   const [addingProduct, setAddingProduct] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
@@ -58,6 +62,7 @@ export function PriceTableDetailSheet({ open, onOpenChange, tableId }: PriceTabl
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState("");
   const [editDiscount, setEditDiscount] = useState("");
+  const [aiOptimizeOpen, setAiOptimizeOpen] = useState(false);
 
   // Products not yet in the table
   const availableProducts = products?.filter(
