@@ -1455,6 +1455,7 @@ export type Database = {
           cae_description: string | null
           capital_social: string | null
           city: string | null
+          company_context: Json | null
           company_score: number | null
           company_status: string | null
           conversion_probability: number | null
@@ -1514,6 +1515,7 @@ export type Database = {
           cae_description?: string | null
           capital_social?: string | null
           city?: string | null
+          company_context?: Json | null
           company_score?: number | null
           company_status?: string | null
           conversion_probability?: number | null
@@ -1573,6 +1575,7 @@ export type Database = {
           cae_description?: string | null
           capital_social?: string | null
           city?: string | null
+          company_context?: Json | null
           company_score?: number | null
           company_status?: string | null
           conversion_probability?: number | null

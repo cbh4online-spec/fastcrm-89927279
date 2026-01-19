@@ -91,7 +91,8 @@ interface FieldSuggestion {
 
 type EnrichmentSource = "google" | "website" | "ai";
 
-const FIELD_MAPPING: Record<string, { label: string; dbKey: string; isCritical: boolean }> = {
+const FIELD_MAPPING: Record<string, { label: string; dbKey: string; isCritical: boolean; isContext?: boolean }> = {
+  // Basic fields
   industry: { label: "Setor", dbKey: "industry", isCritical: false },
   size: { label: "Dimensão", dbKey: "size", isCritical: false },
   phone: { label: "Telefone", dbKey: "phone", isCritical: false },
@@ -99,6 +100,17 @@ const FIELD_MAPPING: Record<string, { label: string; dbKey: string; isCritical: 
   address: { label: "Morada", dbKey: "address", isCritical: false },
   description: { label: "Descrição", dbKey: "notes", isCritical: false },
   website: { label: "Website", dbKey: "website", isCritical: false },
+  // Rich context fields - stored in company_context JSONB
+  about_us: { label: "Sobre a Empresa", dbKey: "company_context.about_us", isCritical: false, isContext: true },
+  services: { label: "Serviços", dbKey: "company_context.services", isCritical: false, isContext: true },
+  products: { label: "Produtos", dbKey: "company_context.products", isCritical: false, isContext: true },
+  clients: { label: "Clientes", dbKey: "company_context.clients", isCritical: false, isContext: true },
+  team_info: { label: "Equipa", dbKey: "company_context.team_info", isCritical: false, isContext: true },
+  mission_values: { label: "Missão/Valores", dbKey: "company_context.mission_values", isCritical: false, isContext: true },
+  differentiators: { label: "Diferenciais", dbKey: "company_context.differentiators", isCritical: false, isContext: true },
+  certifications: { label: "Certificações", dbKey: "company_context.certifications", isCritical: false, isContext: true },
+  target_market: { label: "Mercado-alvo", dbKey: "company_context.target_market", isCritical: false, isContext: true },
+  year_founded: { label: "Ano de Fundação", dbKey: "company_context.year_founded", isCritical: false, isContext: true },
 };
 
 const SOCIAL_MAPPING: Record<string, { label: string; dbKey: string }> = {
@@ -169,8 +181,33 @@ function getCategoryIcon(category: string) {
       return Clock;
     case "media":
       return Image;
+    case "context":
+      return Sparkles;
+    case "social":
+      return Globe;
     default:
       return Building2;
+  }
+}
+
+function getCategoryLabel(category: string): string {
+  switch (category) {
+    case "basic":
+      return "Dados Básicos";
+    case "location":
+      return "Localização";
+    case "reviews":
+      return "Avaliações";
+    case "operation":
+      return "Operação";
+    case "media":
+      return "Multimédia";
+    case "context":
+      return "Contexto Empresarial";
+    case "social":
+      return "Redes Sociais";
+    default:
+      return category;
   }
 }
 
@@ -340,8 +377,19 @@ export function EnrichCompanyDialog({
     Object.entries(FIELD_MAPPING).forEach(([key, mapping]) => {
       const enrichedField = result[key as keyof EnrichmentResult] as EnrichmentField | undefined;
       if (enrichedField?.value) {
-        const currentValue = company[mapping.dbKey as keyof Company] as string | null | undefined;
+        // For context fields, check in company_context JSON
+        let currentValue: string | null | undefined;
+        if (mapping.dbKey.startsWith("company_context.")) {
+          // Context fields don't have a current value displayed (they're in JSON)
+          currentValue = null;
+        } else {
+          currentValue = company[mapping.dbKey as keyof Company] as string | null | undefined;
+        }
         const hasCurrentValue = currentValue && currentValue.trim() !== "";
+        
+        // Determine category based on field type
+        const isContextField = 'isContext' in mapping && mapping.isContext;
+        const category = isContextField ? "context" : "basic";
         
         newSuggestions.push({
           fieldKey: mapping.dbKey,
@@ -352,7 +400,7 @@ export function EnrichCompanyDialog({
           source: enrichedField.source,
           isCritical: mapping.isCritical,
           selected: !hasCurrentValue && !mapping.isCritical,
-          category: "basic",
+          category,
           dbKey: mapping.dbKey,
         });
       }
@@ -374,7 +422,7 @@ export function EnrichCompanyDialog({
             source: "website links",
             isCritical: false,
             selected: !hasCurrentValue,
-            category: "basic",
+            category: "social",
             dbKey: mapping.dbKey,
           });
         }
@@ -438,11 +486,37 @@ export function EnrichCompanyDialog({
     setStep("applying");
 
     try {
+      // Separate regular fields from context fields (company_context.*)
       const fieldsToApply: Record<string, unknown> = {};
+      const contextFields: Record<string, unknown> = {};
+      
       selectedSuggestions.forEach((s) => {
         const dbKey = s.dbKey || s.fieldKey;
-        fieldsToApply[dbKey] = s.suggestedValue;
+        
+        // Check if this is a context field (starts with company_context.)
+        if (dbKey.startsWith("company_context.")) {
+          const contextKey = dbKey.replace("company_context.", "");
+          contextFields[contextKey] = s.suggestedValue;
+        } else {
+          fieldsToApply[dbKey] = s.suggestedValue;
+        }
       });
+
+      // If we have context fields, fetch current context and merge
+      if (Object.keys(contextFields).length > 0) {
+        const { data: currentData } = await supabase
+          .from("companies")
+          .select("company_context")
+          .eq("id", company.id)
+          .single();
+        
+        const currentContext = (currentData?.company_context as Record<string, unknown>) || {};
+        fieldsToApply.company_context = {
+          ...currentContext,
+          ...contextFields,
+          extracted_at: new Date().toISOString(),
+        };
+      }
 
       const { error: updateError } = await supabase
         .from("companies")
