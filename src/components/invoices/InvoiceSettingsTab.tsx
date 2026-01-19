@@ -22,8 +22,11 @@ import {
   Building2,
   Save,
   Bell,
-  Palette
+  Palette,
+  Search,
+  Loader2
 } from "lucide-react";
+import { useNifLookup, NifLookupResult } from "@/hooks/useNifLookup";
 
 export function InvoiceSettingsTab() {
   const [settings, setSettings] = useState({
@@ -55,6 +58,29 @@ export function InvoiceSettingsTab() {
     primaryColor: "#3b82f6",
     footerText: "Obrigado pela sua preferência!",
   });
+
+  const { lookup, isLoading: isNifLoading } = useNifLookup({ showToasts: true });
+
+  const handleNifLookup = async () => {
+    const result = await lookup(settings.companyNif);
+    if (result) {
+      const addressParts = [
+        result.address,
+        result.postal_code,
+        result.city
+      ].filter(Boolean);
+      
+      setSettings(prev => ({
+        ...prev,
+        companyName: result.company_name || prev.companyName,
+        companyAddress: addressParts.join(", ") || prev.companyAddress,
+        companyEmail: result.email || prev.companyEmail,
+        companyPhone: result.phone || prev.companyPhone,
+      }));
+    }
+  };
+
+  const isValidNif = /^\d{9}$/.test(settings.companyNif.replace(/\s/g, ''));
 
   const handleSave = () => {
     // TODO: Save to database
@@ -110,7 +136,7 @@ export function InvoiceSettingsTab() {
             Dados da Empresa
           </CardTitle>
           <CardDescription>
-            Informações que aparecem nas suas faturas.
+            Informações que aparecem nas suas faturas. Introduza o NIF e clique em Pesquisar para preencher automaticamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -126,12 +152,35 @@ export function InvoiceSettingsTab() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="companyNif">NIF</Label>
-              <Input
-                id="companyNif"
-                value={settings.companyNif}
-                onChange={(e) => setSettings({ ...settings, companyNif: e.target.value })}
-                placeholder="123456789"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="companyNif"
+                  value={settings.companyNif}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                    setSettings({ ...settings, companyNif: value });
+                  }}
+                  placeholder="123456789"
+                  maxLength={9}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleNifLookup}
+                  disabled={!isValidNif || isNifLoading}
+                  className="shrink-0"
+                >
+                  {isNifLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  <span className="ml-2 hidden sm:inline">Pesquisar</span>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Introduza 9 dígitos e clique em Pesquisar
+              </p>
             </div>
           </div>
           <div className="space-y-2">
