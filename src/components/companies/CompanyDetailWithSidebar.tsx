@@ -306,7 +306,9 @@ export function CompanyDetailWithSidebar() {
                   currentProfileId={company.activity_profile_id}
                 />
                 {company.industry && (
-                  <Badge variant="secondary" className="font-normal">{company.industry}</Badge>
+                  <Badge variant="secondary" className="font-normal max-w-[200px] truncate" title={company.industry}>
+                    {generateIndustrySummary(company.industry)}
+                  </Badge>
                 )}
               </div>
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
