@@ -174,6 +174,58 @@ Marca a confiança como "low" para informações que não tens a certeza.`;
   return result;
 }
 
+// Helper to extract social links from HTML content or links
+function extractSocialFromContent(content: string): Record<string, string> {
+  const social: Record<string, string> = {};
+  
+  // Patterns to find social media URLs
+  const patterns = [
+    { key: "linkedin", regex: /https?:\/\/(www\.)?linkedin\.com\/[^\s"'<>)]+/gi },
+    { key: "instagram", regex: /https?:\/\/(www\.)?instagram\.com\/[^\s"'<>)]+/gi },
+    { key: "facebook", regex: /https?:\/\/(www\.)?facebook\.com\/[^\s"'<>)]+/gi },
+    { key: "twitter", regex: /https?:\/\/(www\.)?(twitter\.com|x\.com)\/[^\s"'<>)]+/gi },
+  ];
+  
+  for (const { key, regex } of patterns) {
+    const matches = content.match(regex);
+    if (matches && matches.length > 0) {
+      // Get the first valid match
+      social[key] = matches[0].replace(/[,.:;)]+$/, ''); // Clean trailing punctuation
+    }
+  }
+  
+  return social;
+}
+
+// Helper to extract email and phone from content
+function extractContactInfo(content: string): { email?: string; phone?: string } {
+  const result: { email?: string; phone?: string } = {};
+  
+  // Email pattern
+  const emailMatch = content.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/i);
+  if (emailMatch) {
+    result.email = emailMatch[1];
+  }
+  
+  // Portuguese phone patterns (various formats)
+  const phonePatterns = [
+    /\+351\s?[0-9]{9}/g,                    // +351 912345678
+    /\+351\s?[0-9]{3}\s?[0-9]{3}\s?[0-9]{3}/g,  // +351 912 345 678
+    /(?:00351|351)?[29][0-9]{8}/g,          // 912345678 or 212345678
+    /(?:\(?\+?351\)?[\s.-]?)?(?:2[0-9]|9[1-9])\s?[0-9]{3}\s?[0-9]{4}/g, // Various formats
+  ];
+  
+  for (const pattern of phonePatterns) {
+    const matches = content.match(pattern);
+    if (matches && matches.length > 0) {
+      result.phone = matches[0].replace(/\s/g, '');
+      break;
+    }
+  }
+  
+  return result;
+}
+
 // Enrich from website scraping with deep context extraction
 async function enrichFromWebsite(
   targetUrl: string, 
@@ -184,7 +236,7 @@ async function enrichFromWebsite(
   const normalizedUrl = normalizeWebsite(targetUrl);
   console.log("Enriching company from:", normalizedUrl);
 
-  // Scrape the website using Firecrawl - get more content
+  // Scrape the main page
   const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
     method: "POST",
     headers: {
@@ -193,7 +245,7 @@ async function enrichFromWebsite(
     },
     body: JSON.stringify({
       url: normalizedUrl,
-      formats: ["markdown", "links"],
+      formats: ["markdown", "links", "html"],
       onlyMainContent: false,
       waitFor: 3000,
     }),
@@ -206,18 +258,108 @@ async function enrichFromWebsite(
     throw new Error("Não foi possível aceder ao website");
   }
 
-  const pageContent = scrapeData.data?.markdown || "";
+  let pageContent = scrapeData.data?.markdown || "";
+  const pageHtml = scrapeData.data?.html || "";
   const pageLinks = scrapeData.data?.links || [];
   const metadata = scrapeData.data?.metadata || {};
 
-  // Extract social links from page links
-  const socialLinks: EnrichmentResult["socialLinks"] = {};
+  // Try to find and scrape contact page
+  const contactPagePatterns = [
+    /\/contact/i, /\/contacto/i, /\/contactos/i, /\/contato/i,
+    /\/about/i, /\/sobre/i, /\/quem-somos/i
+  ];
+  
+  let contactPageUrl: string | null = null;
   for (const link of pageLinks) {
-    if (link.includes("linkedin.com")) socialLinks.linkedin = link;
-    if (link.includes("instagram.com")) socialLinks.instagram = link;
-    if (link.includes("facebook.com")) socialLinks.facebook = link;
-    if (link.includes("twitter.com") || link.includes("x.com")) socialLinks.twitter = link;
+    for (const pattern of contactPagePatterns) {
+      if (pattern.test(link)) {
+        contactPageUrl = link;
+        break;
+      }
+    }
+    if (contactPageUrl) break;
   }
+  
+  // If no contact page found in links, try common patterns
+  if (!contactPageUrl) {
+    const baseUrl = new URL(normalizedUrl);
+    const commonPaths = ['/contactos', '/contacts', '/contact', '/contacto', '/sobre', '/about'];
+    for (const path of commonPaths) {
+      try {
+        const testUrl = `${baseUrl.origin}${path}`;
+        const testResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: testUrl,
+            formats: ["markdown", "html"],
+            onlyMainContent: false,
+            waitFor: 2000,
+          }),
+        });
+        
+        const testData = await testResponse.json();
+        if (testData.success && testData.data?.markdown) {
+          console.log("Found contact page:", testUrl);
+          pageContent += "\n\n--- CONTACT PAGE ---\n" + testData.data.markdown;
+          break;
+        }
+      } catch (e) {
+        // Ignore errors for contact page attempts
+      }
+    }
+  } else {
+    // Scrape the found contact page
+    try {
+      const contactResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: contactPageUrl,
+          formats: ["markdown", "html"],
+          onlyMainContent: false,
+          waitFor: 2000,
+        }),
+      });
+      
+      const contactData = await contactResponse.json();
+      if (contactData.success && contactData.data?.markdown) {
+        console.log("Scraped contact page:", contactPageUrl);
+        pageContent += "\n\n--- CONTACT PAGE ---\n" + contactData.data.markdown;
+      }
+    } catch (e) {
+      console.error("Failed to scrape contact page:", e);
+    }
+  }
+
+  // Extract social links from page links AND HTML content
+  const socialLinks: EnrichmentResult["socialLinks"] = {};
+  
+  // From page links
+  for (const link of pageLinks) {
+    if (link.includes("linkedin.com") && !socialLinks.linkedin) socialLinks.linkedin = link;
+    if (link.includes("instagram.com") && !socialLinks.instagram) socialLinks.instagram = link;
+    if (link.includes("facebook.com") && !socialLinks.facebook) socialLinks.facebook = link;
+    if ((link.includes("twitter.com") || link.includes("x.com")) && !socialLinks.twitter) socialLinks.twitter = link;
+  }
+  
+  // Also search in HTML content for social links
+  const htmlSocial = extractSocialFromContent(pageHtml);
+  if (!socialLinks.linkedin && htmlSocial.linkedin) socialLinks.linkedin = htmlSocial.linkedin;
+  if (!socialLinks.instagram && htmlSocial.instagram) socialLinks.instagram = htmlSocial.instagram;
+  if (!socialLinks.facebook && htmlSocial.facebook) socialLinks.facebook = htmlSocial.facebook;
+  if (!socialLinks.twitter && htmlSocial.twitter) socialLinks.twitter = htmlSocial.twitter;
+  
+  // Extract contact info from content
+  const contactInfo = extractContactInfo(pageContent + " " + pageHtml);
+  console.log("Extracted contact info:", contactInfo);
+  console.log("Extracted social links:", socialLinks);
 
   // Use AI to extract structured information
   if (!LOVABLE_API_KEY) {
@@ -478,6 +620,25 @@ Para cada campo indica a confiança (high/medium/low) baseado em quão clarament
       console.error("Failed to parse AI response:", e);
     }
   }
+
+  // Fallback: If AI didn't extract phone/email but we found them via regex, add them
+  if (!extractedData.phone && contactInfo.phone) {
+    extractedData.phone = {
+      value: contactInfo.phone,
+      confidence: "medium" as const,
+      source: "extracted from page"
+    };
+  }
+  if (!extractedData.email && contactInfo.email) {
+    extractedData.email = {
+      value: contactInfo.email,
+      confidence: "medium" as const,
+      source: "extracted from page"
+    };
+  }
+
+  console.log("Final enrichment data keys:", Object.keys(extractedData));
+  console.log("Social links found:", socialLinks);
 
   return {
     ...extractedData,
