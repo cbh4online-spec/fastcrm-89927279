@@ -1,0 +1,364 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  BarChart3, Linkedin, Instagram, Facebook, Users, Target,
+  RefreshCw, AlertCircle, Lightbulb, ExternalLink, Star,
+  TrendingUp, CheckCircle2, UserPlus, ArrowRight, Building2
+} from "lucide-react";
+import { 
+  useCompleteSocialData, 
+  useAnalyzeCompleteSocial,
+  useApplyDataSuggestions,
+  CompleteSocialAnalysis,
+  SuggestedContact,
+  DataSuggestion,
+  SalesOpportunity
+} from "@/hooks/useCompleteSocialAnalysis";
+import { formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
+
+interface CompleteSocialAnalysisSectionProps {
+  companyId: string;
+  companyName: string;
+  linkedinUrl?: string | null;
+  instagramUrl?: string | null;
+  facebookUrl?: string | null;
+  currentCompanyData?: {
+    industry?: string;
+    website?: string;
+    size?: string;
+    employee_count?: number;
+  };
+  onCreateContact?: (contact: SuggestedContact) => void;
+}
+
+const maturityColors = {
+  low: "bg-red-500/10 text-red-600 border-red-500/30",
+  medium: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
+  high: "bg-green-500/10 text-green-600 border-green-500/30"
+};
+
+const severityColors = {
+  low: "border-blue-500/30 bg-blue-500/5",
+  medium: "border-yellow-500/30 bg-yellow-500/5",
+  high: "border-red-500/30 bg-red-500/5"
+};
+
+const activityColors = {
+  high: "text-green-600",
+  medium: "text-yellow-600",
+  low: "text-red-600",
+  unknown: "text-muted-foreground"
+};
+
+const activityLabels = {
+  high: "⚡ Alta",
+  medium: "📊 Média",
+  low: "🐢 Baixa",
+  unknown: "?"
+};
+
+export function CompleteSocialAnalysisSection({
+  companyId,
+  companyName,
+  linkedinUrl,
+  instagramUrl,
+  facebookUrl,
+  currentCompanyData,
+  onCreateContact
+}: CompleteSocialAnalysisSectionProps) {
+  const [liveAnalysis, setLiveAnalysis] = useState<CompleteSocialAnalysis | null>(null);
+  const { data: persistedData, isLoading } = useCompleteSocialData(companyId);
+  const analyzeMutation = useAnalyzeCompleteSocial();
+  const applyMutation = useApplyDataSuggestions();
+
+  const hasSocialUrls = linkedinUrl || instagramUrl || facebookUrl;
+  const analysis = liveAnalysis || persistedData;
+
+  const handleAnalyze = async () => {
+    const result = await analyzeMutation.mutateAsync({
+      companyId,
+      companyName,
+      linkedinUrl,
+      facebookUrl,
+      instagramUrl,
+      currentCompanyData,
+    });
+    setLiveAnalysis(result);
+  };
+
+  const handleApplySuggestions = () => {
+    if (!analysis?.dataSuggestions.length) return;
+    applyMutation.mutate({ companyId, suggestions: analysis.dataSuggestions });
+  };
+
+  if (!hasSocialUrls) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            Análise de Redes Sociais
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <AlertCircle className="w-8 h-8 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">Sem URLs de redes sociais para analisar.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            Análise de Redes Sociais
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (analyzeMutation.isPending) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary animate-pulse" />
+            A analisar redes sociais...
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!analysis) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            Análise Completa de Redes Sociais
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="flex gap-3 mb-4">
+              {linkedinUrl && <Linkedin className="w-6 h-6 text-[#0A66C2]" />}
+              {instagramUrl && <Instagram className="w-6 h-6 text-[#E4405F]" />}
+              {facebookUrl && <Facebook className="w-6 h-6 text-[#1877F2]" />}
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Analisa perfis para obter funcionários, seguidores, atividade e oportunidades de venda
+            </p>
+            <Button onClick={handleAnalyze} className="gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Analisar Redes Sociais
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              Análise de Redes Sociais
+            </CardTitle>
+            {analysis.analyzedAt && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                {formatDistanceToNow(new Date(analysis.analyzedAt), { addSuffix: true, locale: pt })}
+              </Badge>
+            )}
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleAnalyze} disabled={analyzeMutation.isPending}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* Digital Maturity */}
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+          <div>
+            <span className="text-sm font-medium">Maturidade Digital</span>
+            <p className="text-xs text-muted-foreground">{analysis.digitalMaturity.reason}</p>
+          </div>
+          <Badge variant="outline" className={maturityColors[analysis.digitalMaturity.level]}>
+            {analysis.digitalMaturity.score}/100
+          </Badge>
+        </div>
+
+        {/* Platform Stats */}
+        <div className="grid grid-cols-3 gap-2">
+          {analysis.linkedin && (
+            <div className="bg-[#0A66C2]/10 rounded-lg p-3 text-center">
+              <Linkedin className="w-5 h-5 text-[#0A66C2] mx-auto mb-1" />
+              <div className="text-lg font-semibold">
+                {analysis.linkedin.followersCount?.toLocaleString() || analysis.linkedin.employeeCount?.toLocaleString() || "?"}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                {analysis.linkedin.followersCount ? "seguidores" : "funcionários"}
+              </div>
+              <div className={`text-[10px] mt-1 ${activityColors[analysis.linkedin.activityLevel]}`}>
+                {activityLabels[analysis.linkedin.activityLevel]}
+              </div>
+            </div>
+          )}
+          {analysis.facebook && (
+            <div className="bg-[#1877F2]/10 rounded-lg p-3 text-center">
+              <Facebook className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
+              <div className="text-lg font-semibold">
+                {analysis.facebook.followersCount?.toLocaleString() || "?"}
+              </div>
+              <div className="text-[10px] text-muted-foreground">seguidores</div>
+              {analysis.facebook.rating && (
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                  <span className="text-[10px]">{analysis.facebook.rating}/5</span>
+                </div>
+              )}
+            </div>
+          )}
+          {analysis.instagram && (
+            <div className="bg-[#E4405F]/10 rounded-lg p-3 text-center">
+              <Instagram className="w-5 h-5 text-[#E4405F] mx-auto mb-1" />
+              <div className="text-lg font-semibold">
+                {analysis.instagram.followersCount?.toLocaleString() || "?"}
+              </div>
+              <div className="text-[10px] text-muted-foreground">seguidores</div>
+              <div className={`text-[10px] mt-1 ${activityColors[analysis.instagram.activityLevel]}`}>
+                {activityLabels[analysis.instagram.activityLevel]}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Suggested Contacts */}
+        {analysis.suggestedContacts.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Users className="w-4 h-4 text-primary" />
+                Funcionários Encontrados ({analysis.suggestedContacts.length})
+              </div>
+            </div>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {analysis.suggestedContacts.slice(0, 5).map((person, i) => (
+                <div key={i} className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{person.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{person.role}</div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {person.linkedinUrl && (
+                      <Button variant="ghost" size="sm" asChild className="h-7 w-7 p-0">
+                        <a href={person.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                          <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
+                        </a>
+                      </Button>
+                    )}
+                    {onCreateContact && (
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onCreateContact(person)}>
+                        <UserPlus className="w-3.5 h-3.5 text-green-600" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Data Suggestions */}
+        {analysis.dataSuggestions.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Building2 className="w-4 h-4 text-primary" />
+              Sugestões de Atualização
+            </div>
+            <div className="space-y-1.5">
+              {analysis.dataSuggestions.map((s, i) => (
+                <div key={i} className="flex items-center justify-between text-xs bg-muted/50 rounded px-2 py-1.5">
+                  <span className="text-muted-foreground">{s.field}:</span>
+                  <span className="font-medium">{s.suggestedValue}</span>
+                </div>
+              ))}
+            </div>
+            <Button size="sm" variant="outline" className="w-full gap-2" onClick={handleApplySuggestions} disabled={applyMutation.isPending}>
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Aplicar Sugestões
+            </Button>
+          </div>
+        )}
+
+        {/* Sales Opportunities */}
+        {analysis.salesOpportunities.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Target className="w-4 h-4 text-primary" />
+              Oportunidades de Venda
+            </div>
+            <div className="space-y-2">
+              {analysis.salesOpportunities.slice(0, 4).map((opp, i) => (
+                <div key={i} className={`rounded-lg border p-3 ${severityColors[opp.severity]}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-medium">{opp.title}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{opp.description}</div>
+                    </div>
+                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                      {opp.service}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* External Links */}
+        <div className="flex gap-3 text-xs">
+          {linkedinUrl && (
+            <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-muted-foreground hover:text-primary">
+              <ExternalLink className="h-3 w-3" /> LinkedIn
+            </a>
+          )}
+          {facebookUrl && (
+            <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-muted-foreground hover:text-primary">
+              <ExternalLink className="h-3 w-3" /> Facebook
+            </a>
+          )}
+          {instagramUrl && (
+            <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-muted-foreground hover:text-primary">
+              <ExternalLink className="h-3 w-3" /> Instagram
+            </a>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

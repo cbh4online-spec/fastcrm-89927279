@@ -256,6 +256,34 @@ export function SmartLeadsTable() {
     }
   };
 
+  const handleBulkAnalyzeLinkedIn = async () => {
+    if (selectedIds.size === 0) return;
+    
+    const selectedLeads = leads?.filter(l => selectedIds.has(l.id) && (l as any).linkedin_url) || [];
+    if (selectedLeads.length === 0) {
+      toast.error("Nenhum lead selecionado tem URL do LinkedIn");
+      return;
+    }
+    
+    toast.loading(`A analisar LinkedIn de ${selectedLeads.length} leads...`);
+    try {
+      const entities = selectedLeads.map(l => ({
+        id: l.id,
+        name: l.name || 'Lead',
+        linkedin_url: (l as any).linkedin_url as string
+      }));
+      const result = await bulkAnalyzeLinkedIn.mutateAsync(entities);
+      toast.dismiss();
+      const successful = result.filter(r => r.success).length;
+      const failed = result.filter(r => !r.success).length;
+      toast.success(`${successful} leads analisados${failed > 0 ? `, ${failed} falharam` : ""}`);
+      setSelectedIds(new Set());
+    } catch (error) {
+      toast.dismiss();
+      toast.error("Erro ao analisar LinkedIn em massa");
+    }
+  };
+
   const handleExport = () => {
     const selected = leads?.filter(l => selectedIds.has(l.id)) || [];
     const csv = [

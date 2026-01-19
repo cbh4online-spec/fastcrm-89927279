@@ -1677,8 +1677,183 @@ export type Database = {
           },
         ]
       }
+      company_facebook_data: {
+        Row: {
+          about_text: string | null
+          activity_level: string | null
+          analysis_status: string | null
+          analyzed_at: string | null
+          analyzed_by: string | null
+          company_id: string
+          created_at: string | null
+          error_message: string | null
+          facebook_url: string | null
+          followers_count: number | null
+          id: string
+          last_post_date: string | null
+          likes_count: number | null
+          page_category: string | null
+          posts_per_month: number | null
+          rating: number | null
+          raw_data: Json | null
+          reviews_count: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          about_text?: string | null
+          activity_level?: string | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          company_id: string
+          created_at?: string | null
+          error_message?: string | null
+          facebook_url?: string | null
+          followers_count?: number | null
+          id?: string
+          last_post_date?: string | null
+          likes_count?: number | null
+          page_category?: string | null
+          posts_per_month?: number | null
+          rating?: number | null
+          raw_data?: Json | null
+          reviews_count?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          about_text?: string | null
+          activity_level?: string | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          company_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          facebook_url?: string | null
+          followers_count?: number | null
+          id?: string
+          last_post_date?: string | null
+          likes_count?: number | null
+          page_category?: string | null
+          posts_per_month?: number | null
+          rating?: number | null
+          raw_data?: Json | null
+          reviews_count?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_facebook_data_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_facebook_data_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_instagram_data: {
+        Row: {
+          activity_level: string | null
+          analysis_status: string | null
+          analyzed_at: string | null
+          analyzed_by: string | null
+          avg_comments_per_post: number | null
+          avg_likes_per_post: number | null
+          bio: string | null
+          company_id: string
+          content_type: string | null
+          created_at: string | null
+          engagement_rate: number | null
+          error_message: string | null
+          followers_count: number | null
+          following_count: number | null
+          id: string
+          instagram_url: string | null
+          last_post_date: string | null
+          posts_count: number | null
+          posts_per_month: number | null
+          raw_data: Json | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          activity_level?: string | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          avg_comments_per_post?: number | null
+          avg_likes_per_post?: number | null
+          bio?: string | null
+          company_id: string
+          content_type?: string | null
+          created_at?: string | null
+          engagement_rate?: number | null
+          error_message?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          instagram_url?: string | null
+          last_post_date?: string | null
+          posts_count?: number | null
+          posts_per_month?: number | null
+          raw_data?: Json | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          activity_level?: string | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          avg_comments_per_post?: number | null
+          avg_likes_per_post?: number | null
+          bio?: string | null
+          company_id?: string
+          content_type?: string | null
+          created_at?: string | null
+          engagement_rate?: number | null
+          error_message?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          instagram_url?: string | null
+          last_post_date?: string | null
+          posts_count?: number | null
+          posts_per_month?: number | null
+          raw_data?: Json | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_instagram_data_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_instagram_data_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_linkedin_data: {
         Row: {
+          activity_level: string | null
           analysis_status: string | null
           analyzed_at: string
           analyzed_by: string | null
@@ -1687,11 +1862,13 @@ export type Database = {
           company_id: string
           company_size_range: string | null
           created_at: string
+          data_suggestions: Json | null
           description: string | null
           employee_count_linkedin: number | null
           employees_on_linkedin: number | null
           engagement_score: number | null
           error_message: string | null
+          followers_count: number | null
           founded_year: number | null
           headquarters: string | null
           id: string
@@ -1702,14 +1879,17 @@ export type Database = {
           linkedin_url: string | null
           linkedin_website: string | null
           posting_frequency: string | null
+          posts_per_month: number | null
           raw_data: Json | null
           recent_posts: Json | null
           specialties: string[] | null
+          suggested_contacts: Json | null
           tagline: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          activity_level?: string | null
           analysis_status?: string | null
           analyzed_at?: string
           analyzed_by?: string | null
@@ -1718,11 +1898,13 @@ export type Database = {
           company_id: string
           company_size_range?: string | null
           created_at?: string
+          data_suggestions?: Json | null
           description?: string | null
           employee_count_linkedin?: number | null
           employees_on_linkedin?: number | null
           engagement_score?: number | null
           error_message?: string | null
+          followers_count?: number | null
           founded_year?: number | null
           headquarters?: string | null
           id?: string
@@ -1733,14 +1915,17 @@ export type Database = {
           linkedin_url?: string | null
           linkedin_website?: string | null
           posting_frequency?: string | null
+          posts_per_month?: number | null
           raw_data?: Json | null
           recent_posts?: Json | null
           specialties?: string[] | null
+          suggested_contacts?: Json | null
           tagline?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          activity_level?: string | null
           analysis_status?: string | null
           analyzed_at?: string
           analyzed_by?: string | null
@@ -1749,11 +1934,13 @@ export type Database = {
           company_id?: string
           company_size_range?: string | null
           created_at?: string
+          data_suggestions?: Json | null
           description?: string | null
           employee_count_linkedin?: number | null
           employees_on_linkedin?: number | null
           engagement_score?: number | null
           error_message?: string | null
+          followers_count?: number | null
           founded_year?: number | null
           headquarters?: string | null
           id?: string
@@ -1764,9 +1951,11 @@ export type Database = {
           linkedin_url?: string | null
           linkedin_website?: string | null
           posting_frequency?: string | null
+          posts_per_month?: number | null
           raw_data?: Json | null
           recent_posts?: Json | null
           specialties?: string[] | null
+          suggested_contacts?: Json | null
           tagline?: string | null
           updated_at?: string
           workspace_id?: string
