@@ -67,6 +67,7 @@ const FIELD_MAPPING: Record<string, { label: string; dbKey: string; isCritical: 
   email: { label: "Email", dbKey: "email", isCritical: false },
   address: { label: "Morada", dbKey: "address", isCritical: false },
   description: { label: "Descrição", dbKey: "notes", isCritical: false },
+  website: { label: "Website", dbKey: "website", isCritical: false },
 };
 
 const SOCIAL_MAPPING: Record<string, { label: string; dbKey: string }> = {
@@ -122,8 +123,9 @@ export function EnrichCompanyDialog({
   }, [open]);
 
   const startEnrichment = async () => {
-    if (!company.website && !company.email) {
-      toast.error("A empresa precisa ter website ou email para enriquecer dados");
+    // Now we can enrich with just the company name
+    if (!company.name) {
+      toast.error("A empresa precisa ter um nome para enriquecer dados");
       return;
     }
 
@@ -301,7 +303,10 @@ export function EnrichCompanyDialog({
             Enriquecer Dados da Empresa
           </DialogTitle>
           <DialogDescription>
-            Analise o website da empresa para obter informações adicionais
+            {company.website || company.email 
+              ? "Analise o website da empresa para obter informações adicionais"
+              : "Use IA para pesquisar informações sobre a empresa"
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -312,30 +317,29 @@ export function EnrichCompanyDialog({
               <div>
                 <p className="font-medium">{company.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {company.website || company.email || "Sem website ou email"}
+                  {company.website || company.email || "Pesquisa por nome da empresa"}
                 </p>
               </div>
             </div>
 
-            {!company.website && !company.email ? (
-              <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg">
-                <AlertTriangle className="h-4 w-4" />
-                <p className="text-sm">
-                  Adicione um website ou email à empresa para poder enriquecer os dados
-                </p>
-              </div>
-            ) : (
+            {company.website || company.email ? (
               <div className="flex items-center gap-2 p-3 bg-blue-500/10 text-blue-600 rounded-lg">
                 <Sparkles className="h-4 w-4" />
                 <p className="text-sm">
                   Vamos analisar o website para encontrar informações como setor, telefone, redes sociais e mais
                 </p>
               </div>
+            ) : (
+              <div className="flex items-center gap-2 p-3 bg-amber-500/10 text-amber-600 rounded-lg">
+                <Sparkles className="h-4 w-4" />
+                <p className="text-sm">
+                  Sem website disponível. Vamos usar IA para pesquisar informações públicas sobre "{company.name}"
+                </p>
+              </div>
             )}
 
             <Button
               onClick={startEnrichment}
-              disabled={!company.website && !company.email}
               className="w-full"
             >
               <Sparkles className="h-4 w-4 mr-2" />
