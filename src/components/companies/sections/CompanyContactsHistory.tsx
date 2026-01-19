@@ -5,19 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Users, DollarSign, BarChart3, Crown, Medal } from "lucide-react";
+import { TrendingUp, Users, DollarSign, BarChart3, Crown, Medal, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
-interface ContactSales {
+interface ContactWithSales {
   id: string;
   name: string;
-  total_revenue: number | null;
-  sales_2023: number | null;
-  sales_2024: number | null;
-  sales_2025: number | null;
-  sales_2026: number | null;
-  average_ticket: number | null;
+  total_revenue: number;
+  sales_2024: number;
+  sales_2025: number;
+  sales_2026: number;
+  invoice_count: number;
   abc_category: string | null;
 }
 
@@ -50,58 +49,133 @@ const RANK_ICONS = [
 export function CompanyContactsHistory({ companyId }: CompanyContactsHistoryProps) {
   const navigate = useNavigate();
   
-  const { data: contacts = [], isLoading } = useQuery({
-    queryKey: ["company-contacts-sales", companyId],
+  // Fetch contacts for the company
+  const { data: contacts = [], isLoading: contactsLoading } = useQuery({
+    queryKey: ["company-contacts", companyId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contacts")
-        .select("id, name, total_revenue, sales_2023, sales_2024, sales_2025, sales_2026, average_ticket, abc_category")
-        .eq("company_id", companyId)
-        .order("total_revenue", { ascending: false, nullsFirst: false });
+        .select("id, name, abc_category")
+        .eq("company_id", companyId);
 
       if (error) throw error;
-      return data as ContactSales[];
+      return data;
     },
     enabled: !!companyId,
   });
 
+  // Fetch all invoices for the company (includes invoices for company or any of its contacts)
+  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
+    queryKey: ["company-invoices-history", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("id, contact_id, company_id, total, status, issue_date, paid_at")
+        .eq("company_id", companyId);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  // Calculate sales per contact from invoices
+  const contactsWithSales = useMemo((): ContactWithSales[] => {
+    if (!contacts.length) return [];
+
+    const currentYear = new Date().getFullYear();
+
+    return contacts.map(contact => {
+      // Get invoices for this contact (paid or sent)
+      const contactInvoices = invoices.filter(inv => 
+        inv.contact_id === contact.id && 
+        (inv.status === 'paid' || inv.status === 'sent' || inv.status === 'overdue')
+      );
+
+      // Calculate totals by year
+      let sales2024 = 0;
+      let sales2025 = 0;
+      let sales2026 = 0;
+      let totalRevenue = 0;
+
+      contactInvoices.forEach(inv => {
+        const year = new Date(inv.issue_date).getFullYear();
+        const total = inv.total || 0;
+        
+        totalRevenue += total;
+        
+        if (year === 2024) sales2024 += total;
+        else if (year === 2025) sales2025 += total;
+        else if (year === 2026) sales2026 += total;
+      });
+
+      return {
+        id: contact.id,
+        name: contact.name,
+        total_revenue: totalRevenue,
+        sales_2024: sales2024,
+        sales_2025: sales2025,
+        sales_2026: sales2026,
+        invoice_count: contactInvoices.length,
+        abc_category: contact.abc_category,
+      };
+    }).sort((a, b) => b.total_revenue - a.total_revenue);
+  }, [contacts, invoices]);
+
+  // Also include company-level invoices (not linked to specific contact)
+  const companyOnlyInvoices = useMemo(() => {
+    return invoices.filter(inv => 
+      !inv.contact_id && 
+      (inv.status === 'paid' || inv.status === 'sent' || inv.status === 'overdue')
+    );
+  }, [invoices]);
+
   // Calculate aggregated totals
   const aggregated = useMemo(() => {
-    const totals = {
-      totalRevenue: 0,
-      sales2023: 0,
-      sales2024: 0,
-      sales2025: 0,
-      sales2026: 0,
-      averageTicket: 0,
-      contactCount: contacts.length,
-    };
+    let totalRevenue = 0;
+    let sales2024 = 0;
+    let sales2025 = 0;
+    let sales2026 = 0;
+    let invoiceCount = 0;
 
-    let ticketCount = 0;
-
-    contacts.forEach(contact => {
-      totals.totalRevenue += contact.total_revenue || 0;
-      totals.sales2023 += contact.sales_2023 || 0;
-      totals.sales2024 += contact.sales_2024 || 0;
-      totals.sales2025 += contact.sales_2025 || 0;
-      totals.sales2026 += contact.sales_2026 || 0;
-      if (contact.average_ticket) {
-        totals.averageTicket += contact.average_ticket;
-        ticketCount++;
-      }
+    // From contacts
+    contactsWithSales.forEach(contact => {
+      totalRevenue += contact.total_revenue;
+      sales2024 += contact.sales_2024;
+      sales2025 += contact.sales_2025;
+      sales2026 += contact.sales_2026;
+      invoiceCount += contact.invoice_count;
     });
 
-    if (ticketCount > 0) {
-      totals.averageTicket = totals.averageTicket / ticketCount;
-    }
+    // From company-only invoices
+    companyOnlyInvoices.forEach(inv => {
+      const year = new Date(inv.issue_date).getFullYear();
+      const total = inv.total || 0;
+      
+      totalRevenue += total;
+      invoiceCount++;
+      
+      if (year === 2024) sales2024 += total;
+      else if (year === 2025) sales2025 += total;
+      else if (year === 2026) sales2026 += total;
+    });
 
-    return totals;
-  }, [contacts]);
+    return {
+      totalRevenue,
+      sales2024,
+      sales2025,
+      sales2026,
+      invoiceCount,
+      contactCount: contacts.length,
+    };
+  }, [contactsWithSales, companyOnlyInvoices, contacts.length]);
 
   // Get max revenue for progress bar calculation
   const maxRevenue = useMemo(() => {
-    return Math.max(...contacts.map(c => c.total_revenue || 0), 1);
-  }, [contacts]);
+    return Math.max(...contactsWithSales.map(c => c.total_revenue), 1);
+  }, [contactsWithSales]);
+
+  const isLoading = contactsLoading || invoicesLoading;
 
   if (isLoading) {
     return (
@@ -189,7 +263,7 @@ export function CompanyContactsHistory({ companyId }: CompanyContactsHistoryProp
             Ranking de Compras
           </h4>
           <div className="space-y-2">
-            {contacts.slice(0, 10).map((contact, index) => {
+            {contactsWithSales.slice(0, 10).map((contact, index) => {
               const initials = contact.name
                 .split(" ")
                 .map(n => n[0])
@@ -198,7 +272,7 @@ export function CompanyContactsHistory({ companyId }: CompanyContactsHistoryProp
                 .slice(0, 2);
               
               const percentage = maxRevenue > 0 
-                ? ((contact.total_revenue || 0) / maxRevenue) * 100 
+                ? (contact.total_revenue / maxRevenue) * 100 
                 : 0;
 
               return (
@@ -257,12 +331,22 @@ export function CompanyContactsHistory({ companyId }: CompanyContactsHistoryProp
             })}
           </div>
           
-          {contacts.length > 10 && (
+          {contactsWithSales.length > 10 && (
             <p className="text-xs text-muted-foreground text-center pt-2">
-              +{contacts.length - 10} outros contactos
+              +{contactsWithSales.length - 10} outros contactos
             </p>
           )}
         </div>
+
+        {/* Invoice Summary */}
+        {aggregated.invoiceCount > 0 && (
+          <div className="pt-3 border-t">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <FileText className="w-3 h-3" />
+              <span>{aggregated.invoiceCount} fatura{aggregated.invoiceCount !== 1 ? 's' : ''} registada{aggregated.invoiceCount !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
