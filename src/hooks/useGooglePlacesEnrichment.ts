@@ -67,6 +67,8 @@ export const FIELD_CATEGORIES = {
   reviews: { label: "Avaliações Google", icon: "Star" },
   operation: { label: "Operação", icon: "Clock" },
   media: { label: "Média", icon: "Image" },
+  context: { label: "Contexto Empresarial", icon: "Sparkles" },
+  social: { label: "Redes Sociais", icon: "Globe" },
 };
 
 export function useGooglePlacesEnrichment() {

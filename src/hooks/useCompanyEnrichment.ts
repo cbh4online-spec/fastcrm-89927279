@@ -9,18 +9,31 @@ export interface EnrichmentField {
 }
 
 export interface EnrichmentResult {
+  // Basic fields
   industry?: EnrichmentField;
   size?: EnrichmentField;
   phone?: EnrichmentField;
   email?: EnrichmentField;
   address?: EnrichmentField;
   description?: EnrichmentField;
+  website?: EnrichmentField;
   socialLinks?: {
     linkedin?: string;
     instagram?: string;
     facebook?: string;
     twitter?: string;
   };
+  // Rich context fields for company analysis
+  about_us?: EnrichmentField;
+  services?: EnrichmentField;
+  products?: EnrichmentField;
+  clients?: EnrichmentField;
+  team_info?: EnrichmentField;
+  mission_values?: EnrichmentField;
+  differentiators?: EnrichmentField;
+  certifications?: EnrichmentField;
+  target_market?: EnrichmentField;
+  year_founded?: EnrichmentField;
 }
 
 export interface EnrichCompanyInput {

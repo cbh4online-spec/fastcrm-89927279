@@ -5,20 +5,38 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface EnrichmentField {
+  value: string;
+  confidence: "high" | "medium" | "low";
+  source: string;
+}
+
 interface EnrichmentResult {
-  industry?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  size?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  phone?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  email?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  address?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  description?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  website?: { value: string; confidence: "high" | "medium" | "low"; source: string };
+  // Basic fields
+  industry?: EnrichmentField;
+  size?: EnrichmentField;
+  phone?: EnrichmentField;
+  email?: EnrichmentField;
+  address?: EnrichmentField;
+  description?: EnrichmentField;
+  website?: EnrichmentField;
   socialLinks?: {
     linkedin?: string;
     instagram?: string;
     facebook?: string;
     twitter?: string;
   };
+  // Rich context fields
+  about_us?: EnrichmentField;
+  services?: EnrichmentField;
+  products?: EnrichmentField;
+  clients?: EnrichmentField;
+  team_info?: EnrichmentField;
+  mission_values?: EnrichmentField;
+  differentiators?: EnrichmentField;
+  certifications?: EnrichmentField;
+  target_market?: EnrichmentField;
+  year_founded?: EnrichmentField;
 }
 
 function extractDomainFromEmail(email: string): string | null {
@@ -43,6 +61,7 @@ Tenta encontrar:
 - Website oficial (se conheceres)
 - Descrição breve da empresa
 - Possíveis redes sociais
+- O que a empresa faz (serviços/produtos)
 
 IMPORTANTE: Só inclui informações que tenhas alta confiança que estão corretas. 
 Se não tiveres certeza, não inventes dados.
@@ -93,6 +112,13 @@ Marca a confiança como "low" para informações que não tens a certeza.`;
                     confidence: { type: "string", enum: ["high", "medium", "low"] }
                   }
                 },
+                services: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Lista de serviços principais separados por vírgula" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
                 linkedin: {
                   type: "object",
                   properties: {
@@ -134,6 +160,9 @@ Marca a confiança como "low" para informações que não tens a certeza.`;
       if (parsed.description?.value) {
         result.description = { ...parsed.description, source: "AI knowledge" };
       }
+      if (parsed.services?.value) {
+        result.services = { ...parsed.services, source: "AI knowledge" };
+      }
       if (parsed.linkedin?.value) {
         result.socialLinks = { linkedin: parsed.linkedin.value };
       }
@@ -145,7 +174,7 @@ Marca a confiança como "low" para informações que não tens a certeza.`;
   return result;
 }
 
-// Enrich from website scraping
+// Enrich from website scraping with deep context extraction
 async function enrichFromWebsite(
   targetUrl: string, 
   companyName: string,
@@ -155,7 +184,7 @@ async function enrichFromWebsite(
   const normalizedUrl = normalizeWebsite(targetUrl);
   console.log("Enriching company from:", normalizedUrl);
 
-  // Scrape the website using Firecrawl
+  // Scrape the website using Firecrawl - get more content
   const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
     method: "POST",
     headers: {
@@ -166,7 +195,7 @@ async function enrichFromWebsite(
       url: normalizedUrl,
       formats: ["markdown", "links"],
       onlyMainContent: false,
-      waitFor: 2000,
+      waitFor: 3000,
     }),
   });
 
@@ -202,25 +231,39 @@ async function enrichFromWebsite(
     };
   }
 
-  // AI extraction for more detailed analysis
-  const aiPrompt = `Analisa o seguinte conteúdo de um website empresarial e extrai as informações relevantes.
+  // AI extraction with expanded fields for deep context
+  const aiPrompt = `Analisa o seguinte conteúdo de um website empresarial e extrai TODAS as informações relevantes para um CRM comercial.
 
 Nome da empresa: ${companyName || "Desconhecido"}
 URL: ${normalizedUrl}
 
 Conteúdo do website:
-${pageContent.slice(0, 8000)}
+${pageContent.slice(0, 15000)}
 
-Extrai as seguintes informações SE estiverem claramente presentes no conteúdo. Não inventes dados.
-Para cada campo que encontrares, indica também a tua confiança (high/medium/low).
+INSTRUÇÃO IMPORTANTE: Extrai o máximo de informação possível para cada campo. Não resumas demasiado - queremos contexto rico para análise futura.
 
-Campos a extrair:
-- industry: setor de atividade (ex: Tecnologia, Saúde, Finanças, etc.)
-- size: tamanho da empresa se mencionado
+Campos a extrair (só inclui se estiverem claramente presentes):
+
+DADOS BÁSICOS:
+- industry: setor de atividade principal
+- size: dimensão da empresa se mencionada
 - phone: número de telefone principal
 - email: email de contacto geral
-- address: morada física
-- description: breve descrição da empresa (máx 2 frases)`;
+- address: morada física completa
+
+CONTEXTO EMPRESARIAL (extrair texto completo quando disponível):
+- about_us: descrição completa da empresa, "Quem Somos", história (até 500 palavras)
+- services: lista COMPLETA de serviços ou soluções oferecidos (separados por " | ")
+- products: lista de produtos ou ofertas (separados por " | ")
+- clients: nomes de clientes ou setores que servem (separados por " | ")
+- team_info: informação sobre equipa, fundadores, liderança
+- mission_values: missão, visão e valores da empresa
+- differentiators: o que diferencia a empresa da concorrência
+- certifications: certificações, prémios, acreditações
+- target_market: mercado-alvo, tipo de clientes
+- year_founded: ano de fundação
+
+Para cada campo indica a confiança (high/medium/low) baseado em quão claramente a informação está presente.`;
 
   const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -233,7 +276,7 @@ Campos a extrair:
       messages: [
         {
           role: "system",
-          content: "És um assistente especializado em extrair informações empresariais de websites. Responde sempre em JSON válido. Sê conservador - só extrai informação que esteja claramente presente."
+          content: "És um assistente especializado em extrair informações empresariais de websites para um CRM. O objetivo é capturar CONTEXTO RICO sobre a empresa para análise comercial futura. Extrai o máximo de informação relevante possível. Responde sempre usando a ferramenta fornecida."
         },
         { role: "user", content: aiPrompt }
       ],
@@ -242,10 +285,11 @@ Campos a extrair:
           type: "function",
           function: {
             name: "extract_company_info",
-            description: "Extrai informações estruturadas sobre uma empresa",
+            description: "Extrai informações estruturadas e contexto rico sobre uma empresa",
             parameters: {
               type: "object",
               properties: {
+                // Basic fields
                 industry: {
                   type: "object",
                   properties: {
@@ -281,10 +325,74 @@ Campos a extrair:
                     confidence: { type: "string", enum: ["high", "medium", "low"] }
                   }
                 },
-                description: {
+                // Rich context fields
+                about_us: {
                   type: "object",
                   properties: {
-                    value: { type: "string" },
+                    value: { type: "string", description: "Descrição completa da empresa (até 500 palavras)" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
+                services: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Lista de serviços separados por ' | '" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
+                products: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Lista de produtos separados por ' | '" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
+                clients: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Lista de clientes ou setores separados por ' | '" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
+                team_info: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Informação sobre equipa/liderança" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
+                mission_values: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Missão, visão e valores" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
+                differentiators: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Diferenciais competitivos" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
+                certifications: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Certificações e prémios" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
+                target_market: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Mercado-alvo" },
+                    confidence: { type: "string", enum: ["high", "medium", "low"] }
+                  }
+                },
+                year_founded: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Ano de fundação" },
                     confidence: { type: "string", enum: ["high", "medium", "low"] }
                   }
                 }
@@ -318,6 +426,7 @@ Campos a extrair:
     try {
       const parsed = JSON.parse(toolCall.function.arguments);
       
+      // Basic fields
       if (parsed.industry?.value) {
         extractedData.industry = { ...parsed.industry, source: "website content" };
       }
@@ -333,8 +442,37 @@ Campos a extrair:
       if (parsed.address?.value) {
         extractedData.address = { ...parsed.address, source: "website content" };
       }
-      if (parsed.description?.value) {
-        extractedData.description = { ...parsed.description, source: "website content" };
+      
+      // Rich context fields
+      if (parsed.about_us?.value) {
+        extractedData.about_us = { ...parsed.about_us, source: "website content" };
+      }
+      if (parsed.services?.value) {
+        extractedData.services = { ...parsed.services, source: "website content" };
+      }
+      if (parsed.products?.value) {
+        extractedData.products = { ...parsed.products, source: "website content" };
+      }
+      if (parsed.clients?.value) {
+        extractedData.clients = { ...parsed.clients, source: "website content" };
+      }
+      if (parsed.team_info?.value) {
+        extractedData.team_info = { ...parsed.team_info, source: "website content" };
+      }
+      if (parsed.mission_values?.value) {
+        extractedData.mission_values = { ...parsed.mission_values, source: "website content" };
+      }
+      if (parsed.differentiators?.value) {
+        extractedData.differentiators = { ...parsed.differentiators, source: "website content" };
+      }
+      if (parsed.certifications?.value) {
+        extractedData.certifications = { ...parsed.certifications, source: "website content" };
+      }
+      if (parsed.target_market?.value) {
+        extractedData.target_market = { ...parsed.target_market, source: "website content" };
+      }
+      if (parsed.year_founded?.value) {
+        extractedData.year_founded = { ...parsed.year_founded, source: "website content" };
       }
     } catch (e) {
       console.error("Failed to parse AI response:", e);
@@ -371,7 +509,7 @@ serve(async (req) => {
     if (targetUrl && FIRECRAWL_API_KEY) {
       try {
         const result = await enrichFromWebsite(targetUrl, companyName, FIRECRAWL_API_KEY, LOVABLE_API_KEY);
-        console.log("Enrichment from website complete:", result);
+        console.log("Enrichment from website complete:", Object.keys(result));
         return new Response(
           JSON.stringify({ success: true, data: result }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -387,7 +525,7 @@ serve(async (req) => {
       console.log("Enriching from company name only:", companyName);
       try {
         const result = await enrichFromNameOnly(companyName, LOVABLE_API_KEY);
-        console.log("Enrichment from AI complete:", result);
+        console.log("Enrichment from AI complete:", Object.keys(result));
         return new Response(
           JSON.stringify({ success: true, data: result, source: "ai_knowledge" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
