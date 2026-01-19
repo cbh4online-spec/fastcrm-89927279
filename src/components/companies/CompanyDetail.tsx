@@ -41,6 +41,7 @@ import { AddressSection } from "./sections/AddressSection";
 import { NotesSection } from "./sections/NotesSection";
 import { TagsSection } from "./sections/TagsSection";
 import { SocialMediaSection } from "./sections/SocialMediaSection";
+import { SocialMediaAnalysisSection } from "./sections/SocialMediaAnalysisSection";
 import { CompanyContactsHistory } from "./sections/CompanyContactsHistory";
 import { CompanyContextSection } from "./sections/CompanyContextSection";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
@@ -350,6 +351,15 @@ export function CompanyDetail() {
         <div className="space-y-4">
           {/* AI Sales Insights with Product Recommendations */}
           <CompanyInsightsPanel company={company} />
+          
+          {/* Social Media Analysis */}
+          <SocialMediaAnalysisSection 
+            companyId={id || ''}
+            companyName={company.name}
+            linkedinUrl={company.linkedin_url}
+            instagramUrl={company.instagram_url}
+            facebookUrl={company.facebook_url}
+          />
           
           <CustomerJourneySection companyId={id} />
           
