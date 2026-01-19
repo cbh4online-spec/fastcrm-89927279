@@ -19,6 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 import { EntityType, MenuSection } from '@/types/entity';
+import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
 
 interface EntitySidebarMenuProps {
   entityType: EntityType;
@@ -86,6 +87,9 @@ export function EntitySidebarMenu({
   onSectionChange,
   counts = {},
 }: EntitySidebarMenuProps) {
+  const { data: layoutConfig } = useWorkspaceLayoutConfig(entityType);
+  const visibleSections = getVisibleSections(entityType, layoutConfig);
+
   const getCount = (id: MenuSection): number | undefined => {
     switch (id) {
       case 'messages': return counts.messages;
@@ -97,12 +101,18 @@ export function EntitySidebarMenu({
     }
   };
 
+  const isVisible = (sectionId: MenuSection): boolean => {
+    return visibleSections.includes(sectionId);
+  };
+
   return (
     <div className="w-56 border-r bg-muted/30 flex-shrink-0">
       <ScrollArea className="h-full">
         <div className="p-3 space-y-1">
           {MENU_SECTIONS.map((section, sectionIndex) => {
-            const visibleItems = section.items.filter(item => item.showFor.includes(entityType));
+            const visibleItems = section.items.filter(
+              item => item.showFor.includes(entityType) && isVisible(item.id)
+            );
             if (visibleItems.length === 0) return null;
 
             return (

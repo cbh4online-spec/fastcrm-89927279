@@ -45,9 +45,11 @@ import {
   Pencil,
   Plus,
   Loader2,
+  LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { WorkspaceLayoutConfigPanel } from "../WorkspaceLayoutConfigPanel";
 
 interface WorkspaceSettingsProps {
   searchQuery?: string;
@@ -105,6 +107,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
     { id: "workspace-users", show: shouldShow("workspace-users") },
     { id: "workspace-roles", show: shouldShow("workspace-roles") },
     { id: "workspace-branding", show: shouldShow("workspace-branding") },
+    { id: "workspace-layout", show: shouldShow("workspace-layout") },
   ];
 
   const hasVisibleSections = visibleSections.some(s => s.show);
@@ -420,6 +423,17 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
             description="Definir as cores primária e secundária"
             action={<Button variant="outline">Configurar</Button>}
           />
+        </SettingsSection>
+      )}
+
+      {/* Layout Configuration */}
+      {shouldShow("workspace-layout") && (
+        <SettingsSection
+          title="Layout do CRM"
+          description="Configurar as secções visíveis nas páginas de detalhe"
+          icon={<LayoutGrid className="h-5 w-5" />}
+        >
+          <WorkspaceLayoutConfigPanel />
         </SettingsSection>
       )}
 
