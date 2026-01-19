@@ -26,7 +26,8 @@ import {
   Globe,
   Mail,
   Phone,
-  Wand2
+  Wand2,
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import { NifLookupResult } from "@/hooks/useNifLookup";
@@ -52,6 +53,7 @@ import { EnrichCompanyDialog } from "./dialogs/EnrichCompanyDialog";
 import { CompanyInsightsPanel } from "./CompanyInsightsPanel";
 import { LinkContactDialog } from "./LinkContactDialog";
 import { SuggestedContact } from "@/hooks/useCompleteSocialAnalysis";
+import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 
 // Helper function for time ago
 function getTimeAgo(date: Date): string {
@@ -75,6 +77,7 @@ export function CompanyDetail() {
   const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
   const [linkContactDialogOpen, setLinkContactDialogOpen] = useState(false);
   const [prefillContactData, setPrefillContactData] = useState<SuggestedContact | null>(null);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
 
   const company = companies.find(c => c.id === id);
   const showEnrichButton = isModuleInstalled('google-local-services');
@@ -286,6 +289,15 @@ export function CompanyDetail() {
           
           <Button 
             variant="outline" 
+            onClick={() => setShowInvoiceDialog(true)}
+            className="gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Nova Fatura
+          </Button>
+          
+          <Button 
+            variant="outline" 
             onClick={handleGenerateSuggestions}
             disabled={generateSuggestions.isPending}
             className="gap-2"
@@ -443,6 +455,13 @@ export function CompanyDetail() {
           job_title: prefillContactData.role,
           linkedin_url: prefillContactData.linkedinUrl,
         } : undefined}
+      />
+
+      {/* Invoice Dialog */}
+      <CreateInvoiceDialog
+        open={showInvoiceDialog}
+        onOpenChange={setShowInvoiceDialog}
+        defaultCompanyId={id}
       />
     </div>
   );

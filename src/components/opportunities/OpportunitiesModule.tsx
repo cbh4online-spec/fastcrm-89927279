@@ -17,6 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Plus, 
   Settings, 
@@ -24,7 +34,8 @@ import {
   List, 
   Search,
   Filter,
-  SlidersHorizontal
+  SlidersHorizontal,
+  FileText
 } from "lucide-react";
 import { OpportunityKPICards } from "./OpportunityKPICards";
 import { OpportunityKanbanColumn } from "./OpportunityKanbanColumn";
@@ -32,6 +43,7 @@ import { OpportunityTableView } from "./OpportunityTableView";
 import { CreateOpportunityEnhancedDialog } from "./CreateOpportunityEnhancedDialog";
 import { OpportunityDetailDialog } from "./OpportunityDetailDialog";
 import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog";
+import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { toast } from "sonner";
 // Design System imports
 import { PageLoading, EmptyState } from "@/components/design-system";
@@ -48,6 +60,9 @@ export function OpportunitiesModule() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [wonOpportunity, setWonOpportunity] = useState<Opportunity | null>(null);
+  const [showInvoicePrompt, setShowInvoicePrompt] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
 
   const { data: opportunities, isLoading: oppLoading } = useOpportunitiesEnhanced({
     status: statusFilter !== "all" ? statusFilter : undefined,
@@ -97,9 +112,26 @@ export function OpportunitiesModule() {
     try {
       await closeOpportunity.mutateAsync({ id, status: "won" });
       toast.success("Oportunidade marcada como ganha! 🎉");
+      
+      // Find the opportunity and prompt for invoice creation
+      const opp = opportunities?.find(o => o.id === id);
+      if (opp) {
+        setWonOpportunity(opp);
+        setShowInvoicePrompt(true);
+      }
     } catch (error) {
       toast.error("Erro ao atualizar oportunidade");
     }
+  };
+
+  const handleCreateInvoiceFromWon = () => {
+    setShowInvoicePrompt(false);
+    setShowInvoiceDialog(true);
+  };
+
+  const handleSkipInvoice = () => {
+    setShowInvoicePrompt(false);
+    setWonOpportunity(null);
   };
 
   const handleMarkAsLost = async (id: string) => {
@@ -269,6 +301,46 @@ export function OpportunitiesModule() {
           onMarkAsLost={() => handleMarkAsLost(selectedOpportunity.id)}
         />
       )}
+
+      {/* Won Opportunity - Create Invoice Prompt */}
+      <AlertDialog open={showInvoicePrompt} onOpenChange={setShowInvoicePrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-green-600" />
+              Criar Fatura?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A oportunidade <strong>"{wonOpportunity?.title}"</strong> foi marcada como ganha!
+              {wonOpportunity?.value && (
+                <span className="block mt-2">
+                  Valor: <strong>{new Intl.NumberFormat("pt-PT", { style: "currency", currency: wonOpportunity.currency || "EUR" }).format(Number(wonOpportunity.value))}</strong>
+                </span>
+              )}
+              <span className="block mt-2">Deseja criar uma fatura para este negócio?</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleSkipInvoice}>Mais tarde</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreateInvoiceFromWon} className="bg-green-600 hover:bg-green-700">
+              <FileText className="w-4 h-4 mr-2" />
+              Criar Fatura
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Invoice Dialog with pre-filled data from won opportunity */}
+      <CreateInvoiceDialog
+        open={showInvoiceDialog}
+        onOpenChange={(open) => {
+          setShowInvoiceDialog(open);
+          if (!open) setWonOpportunity(null);
+        }}
+        defaultContactId={wonOpportunity?.contact_id || undefined}
+        defaultCompanyId={wonOpportunity?.company_id || undefined}
+        defaultOpportunityId={wonOpportunity?.id}
+      />
     </div>
   );
 }

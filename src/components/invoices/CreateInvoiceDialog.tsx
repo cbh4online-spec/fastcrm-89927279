@@ -54,6 +54,7 @@ interface CreateInvoiceDialogProps {
   onOpenChange: (open: boolean) => void;
   defaultCompanyId?: string;
   defaultContactId?: string;
+  defaultOpportunityId?: string;
 }
 
 interface InvoiceItemForm {
@@ -71,6 +72,7 @@ export function CreateInvoiceDialog({
   onOpenChange,
   defaultCompanyId,
   defaultContactId,
+  defaultOpportunityId,
 }: CreateInvoiceDialogProps) {
   const createInvoice = useCreateInvoice();
   const { companies } = useCompanies();
@@ -290,6 +292,7 @@ export function CreateInvoiceDialog({
     await createInvoice.mutateAsync({
       company_id: clientInfo.company_id,
       contact_id: clientInfo.contact_id,
+      opportunity_id: defaultOpportunityId,
       client_name: clientInfo.name,
       client_email: clientInfo.email,
       client_address: clientInfo.address,
