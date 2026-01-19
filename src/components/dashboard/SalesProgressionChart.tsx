@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -19,6 +19,11 @@ import {
   Legend,
 } from "recharts";
 import { BarChart3 } from "lucide-react";
+import { useLeads } from "@/hooks/useLeads";
+import { useProposals } from "@/hooks/useProposals";
+import { useOpportunities } from "@/hooks/useOpportunities";
+import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { pt } from "date-fns/locale";
 
 interface SalesProgressionChartProps {
   isLoading?: boolean;
@@ -26,11 +31,74 @@ interface SalesProgressionChartProps {
 
 export function SalesProgressionChart({ isLoading = false }: SalesProgressionChartProps) {
   const [period, setPeriod] = useState("monthly");
-  
-  // Empty data - will be populated from real data source
-  const data: { name: string; leads: number; proposals: number; closed: number }[] = [];
+  const { data: leads, isLoading: leadsLoading } = useLeads();
+  const { data: proposals, isLoading: proposalsLoading } = useProposals();
+  const { data: opportunities, isLoading: opportunitiesLoading } = useOpportunities();
 
-  if (isLoading) {
+  const data = useMemo(() => {
+    const now = new Date();
+    const allLeads = leads || [];
+    const allProposals = proposals || [];
+    const wonOpportunities = (opportunities || []).filter(o => o.status === "won");
+
+    if (period === "weekly") {
+      // Last 8 weeks
+      return Array.from({ length: 8 }, (_, i) => {
+        const weekDate = subWeeks(now, 7 - i);
+        const weekStart = startOfWeek(weekDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(weekDate, { weekStartsOn: 1 });
+        
+        const leadsCount = allLeads.filter(l => 
+          isWithinInterval(new Date(l.created_at), { start: weekStart, end: weekEnd })
+        ).length;
+        
+        const proposalsCount = allProposals.filter(p => 
+          isWithinInterval(new Date(p.created_at), { start: weekStart, end: weekEnd })
+        ).length;
+        
+        const closedCount = wonOpportunities.filter(o => 
+          o.updated_at && isWithinInterval(new Date(o.updated_at), { start: weekStart, end: weekEnd })
+        ).length;
+
+        return {
+          name: `S${format(weekStart, "w")}`,
+          leads: leadsCount,
+          proposals: proposalsCount,
+          closed: closedCount,
+        };
+      });
+    } else {
+      // Last 6 months
+      return Array.from({ length: 6 }, (_, i) => {
+        const monthDate = subMonths(now, 5 - i);
+        const monthStart = startOfMonth(monthDate);
+        const monthEnd = endOfMonth(monthDate);
+        
+        const leadsCount = allLeads.filter(l => 
+          isWithinInterval(new Date(l.created_at), { start: monthStart, end: monthEnd })
+        ).length;
+        
+        const proposalsCount = allProposals.filter(p => 
+          isWithinInterval(new Date(p.created_at), { start: monthStart, end: monthEnd })
+        ).length;
+        
+        const closedCount = wonOpportunities.filter(o => 
+          o.updated_at && isWithinInterval(new Date(o.updated_at), { start: monthStart, end: monthEnd })
+        ).length;
+
+        return {
+          name: format(monthDate, "MMM", { locale: pt }),
+          leads: leadsCount,
+          proposals: proposalsCount,
+          closed: closedCount,
+        };
+      });
+    }
+  }, [leads, proposals, opportunities, period]);
+
+  const loading = isLoading || leadsLoading || proposalsLoading || opportunitiesLoading;
+
+  if (loading) {
     return (
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-2">
@@ -46,7 +114,7 @@ export function SalesProgressionChart({ isLoading = false }: SalesProgressionCha
     );
   }
 
-  if (data.length === 0) {
+  if (data.every(d => d.leads === 0 && d.proposals === 0 && d.closed === 0)) {
     return (
       <Card className="border-0 shadow-lg bg-card">
         <CardHeader className="pb-2">

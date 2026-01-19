@@ -39,6 +39,7 @@ import Packages from "./pages/Packages";
 import Imports from "./pages/Imports";
 import PublicProductSheet from "./pages/PublicProductSheet";
 import Invoices from "./pages/Invoices";
+import InvoiceDetail from "./pages/InvoiceDetail";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import AIProfiles from "./pages/AIProfiles";
 import MarketingHomepage from "./pages/MarketingHomepage";
@@ -105,6 +106,7 @@ const App = () => (
                   <Route path="/dashboard/imports" element={<Imports />} />
                   <Route path="/dashboard/payments" element={<Payments />} />
                   <Route path="/dashboard/invoices" element={<Invoices />} />
+                  <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
                   <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
                   <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
                   <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
