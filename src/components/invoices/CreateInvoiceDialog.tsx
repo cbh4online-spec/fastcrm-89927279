@@ -202,6 +202,7 @@ export function CreateInvoiceDialog({
         email: clientEmail || selectedCompany.email || "",
         address: clientAddress || selectedCompany.address || "",
         company_id: selectedCompany.id,
+        contact_id: selectedContactId || undefined, // Include contact if selected
       };
     }
     if (clientType === "contact" && selectedContact) {
@@ -371,18 +372,53 @@ export function CreateInvoiceDialog({
               </div>
 
               {clientType === "company" && (
-                <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar empresa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies?.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-3">
+                  <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar empresa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies?.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Optional contact selector when company is selected */}
+                  {selectedCompanyId && (
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">
+                        Contacto responsável (opcional)
+                      </Label>
+                      <Select 
+                        value={selectedContactId} 
+                        onValueChange={setSelectedContactId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar contacto que fez o pedido" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Nenhum</SelectItem>
+                          {contacts
+                            ?.filter(c => c.company_id === selectedCompanyId)
+                            .map((contact) => (
+                              <SelectItem key={contact.id} value={contact.id}>
+                                {contact.name}
+                                {(contact as any).job_title && ` - ${(contact as any).job_title}`}
+                              </SelectItem>
+                            ))}
+                          {contacts?.filter(c => c.company_id === selectedCompanyId).length === 0 && (
+                            <SelectItem value="" disabled>
+                              Sem contactos nesta empresa
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
               )}
 
               {clientType === "contact" && (
