@@ -12,10 +12,11 @@ import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
+import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles } from "@/components/common/StickyTable";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -60,6 +61,7 @@ import {
   Linkedin,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 // Design System imports
 import { 
   EmptyState, 
@@ -67,6 +69,29 @@ import {
   LoadingSpinner,
   TableSkeleton,
 } from "@/components/design-system";
+
+// Column configurations for leads table
+const LEAD_COLUMNS: ColumnConfig[] = [
+  // Basic
+  { id: "name", label: "Lead", category: "basic", defaultVisible: true },
+  { id: "channel", label: "Canal", category: "basic", defaultVisible: true },
+  { id: "status", label: "Status", category: "basic", defaultVisible: true },
+  { id: "email", label: "Email", category: "basic", defaultVisible: false },
+  { id: "phone", label: "Telefone", category: "basic", defaultVisible: false },
+  { id: "source", label: "Origem", category: "basic", defaultVisible: false },
+  
+  // AI
+  { id: "temperature", label: "Temperatura", category: "ai", defaultVisible: true, description: "Classificação IA" },
+  { id: "score", label: "Score", category: "ai", defaultVisible: true, description: "Pontuação 0-100" },
+  { id: "next_action", label: "Próxima Ação", category: "ai", defaultVisible: true },
+  { id: "insight", label: "Insight", category: "ai", defaultVisible: false },
+  
+  // Business
+  { id: "sla", label: "SLA", category: "business", defaultVisible: true, description: "Tempo desde último contacto" },
+  { id: "estimated_value", label: "Potencial €", category: "business", defaultVisible: false },
+  { id: "conversion_prob", label: "Prob. %", category: "business", defaultVisible: false },
+  { id: "automation", label: "Automação", category: "business", defaultVisible: false },
+];
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -151,6 +176,9 @@ export function SmartLeadsTable() {
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
+
+  // Column visibility and order state with persistence
+  const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences("leads-table-columns", LEAD_COLUMNS);
 
   const { data: leads, isLoading, refetch } = useSmartLeads(filters);
   const deleteLeads = useDeleteLeads();
@@ -365,17 +393,26 @@ export function SmartLeadsTable() {
             </Button>
           }
           rightActions={
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <ColumnSelector
+                columns={LEAD_COLUMNS}
+                visibleColumns={visibleColumns}
+                columnOrder={columnOrder}
+                onVisibleColumnsChange={setVisibleColumns}
+                onColumnOrderChange={setColumnOrder}
+              />
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Atualizar
+              </Button>
+            </div>
           }
           className="mt-4"
         />
 
         {/* Bulk Actions */}
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border">
+          <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
             <span className="text-sm text-muted-foreground">{selectedIds.size} selecionado(s)</span>
             <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}>
               <Sparkles className="w-4 h-4 mr-2" />Analisar com IA
@@ -393,45 +430,45 @@ export function SmartLeadsTable() {
         )}
 
         {/* Table */}
-        <div className="mt-4 rounded-lg border border-border bg-card overflow-x-auto flex-1">
-          <Table>
+        <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
+          <StickyTableWrapper minWidth="1200px">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40px]">
+                <TableHead className={cn("w-[40px] whitespace-nowrap", stickyHeaderCheckboxStyles)}>
                   <Checkbox
                     checked={allSelected}
                     ref={(el) => { if (el) (el as any).indeterminate = someSelected; }}
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead className="min-w-[180px]">Lead</TableHead>
-                <TableHead>Canal</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>
+                <TableHead className={cn("min-w-[180px] whitespace-nowrap", stickyHeaderNameStyles)}>Lead</TableHead>
+                <TableHead className="whitespace-nowrap">Canal</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
+                <TableHead className="whitespace-nowrap">
                   <span className="flex items-center gap-1">
                     Temperatura
                     <span className="text-[10px] text-muted-foreground">IA</span>
                   </span>
                 </TableHead>
-                <TableHead>
+                <TableHead className="whitespace-nowrap">
                   <span className="flex items-center gap-1">
                     Score
                     <span className="text-[10px] text-muted-foreground">IA</span>
                   </span>
                 </TableHead>
-                <TableHead className="min-w-[150px]">
+                <TableHead className="min-w-[150px] whitespace-nowrap">
                   <span className="flex items-center gap-1">
                     Próxima Ação
                     <span className="text-[10px] text-muted-foreground">IA</span>
                   </span>
                 </TableHead>
-                <TableHead>SLA</TableHead>
+                <TableHead className="whitespace-nowrap">SLA</TableHead>
                 {showAdvanced && (
                   <>
-                    <TableHead>Potencial €</TableHead>
-                    <TableHead>Prob. %</TableHead>
-                    <TableHead>Automação</TableHead>
-                    <TableHead className="min-w-[180px]">
+                    <TableHead className="whitespace-nowrap">Potencial €</TableHead>
+                    <TableHead className="whitespace-nowrap">Prob. %</TableHead>
+                    <TableHead className="whitespace-nowrap">Automação</TableHead>
+                    <TableHead className="min-w-[180px] whitespace-nowrap">
                       <span className="flex items-center gap-1">
                         Insight
                         <span className="text-[10px] text-muted-foreground">IA</span>
@@ -439,7 +476,7 @@ export function SmartLeadsTable() {
                     </TableHead>
                   </>
                 )}
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[100px] whitespace-nowrap"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -481,7 +518,7 @@ export function SmartLeadsTable() {
                 ))
               )}
             </TableBody>
-          </Table>
+          </StickyTableWrapper>
         </div>
 
         {/* Pagination */}

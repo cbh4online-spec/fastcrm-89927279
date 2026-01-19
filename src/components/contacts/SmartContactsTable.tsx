@@ -9,9 +9,11 @@ import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
+import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles } from "@/components/common/StickyTable";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -21,8 +23,40 @@ import {
 } from "@/components/ui/select";
 import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 // Design System imports
 import { EmptyState, SearchEmptyState, TableSkeleton } from "@/components/design-system";
+
+// Column configurations for contacts table
+const CONTACT_COLUMNS: ColumnConfig[] = [
+  // Basic
+  { id: "name", label: "Contacto", category: "basic", defaultVisible: true },
+  { id: "company", label: "Empresa", category: "basic", defaultVisible: true },
+  { id: "source", label: "Origem", category: "basic", defaultVisible: true },
+  { id: "email", label: "Email", category: "basic", defaultVisible: false },
+  { id: "phone", label: "Telefone", category: "basic", defaultVisible: false },
+  { id: "city", label: "Cidade", category: "basic", defaultVisible: false },
+  { id: "job_title", label: "Cargo", category: "basic", defaultVisible: false },
+  
+  // AI
+  { id: "temperature", label: "Temperatura", category: "ai", defaultVisible: true, description: "Classificação IA" },
+  { id: "score", label: "Score", category: "ai", defaultVisible: true, description: "Pontuação 0-100" },
+  { id: "type", label: "Tipo", category: "ai", defaultVisible: true, description: "Decisor/Influenciador/etc" },
+  { id: "next_action", label: "Próxima Ação", category: "ai", defaultVisible: true },
+  { id: "insight", label: "Insight", category: "ai", defaultVisible: false },
+  
+  // Business
+  { id: "sla", label: "SLA", category: "business", defaultVisible: true, description: "Tempo desde último contacto" },
+  { id: "estimated_value", label: "Potencial €", category: "business", defaultVisible: false },
+  { id: "conversion_prob", label: "Prob. %", category: "business", defaultVisible: false },
+  { id: "automation", label: "Automação", category: "business", defaultVisible: false },
+  { id: "abc_category", label: "Categoria ABC", category: "business", defaultVisible: false },
+  { id: "client_status", label: "Estado Cliente", category: "business", defaultVisible: false },
+  
+  // Relations
+  { id: "opportunities_count", label: "Oportunidades", category: "relations", defaultVisible: false },
+  { id: "social_presence", label: "Redes Sociais", category: "relations", defaultVisible: false },
+];
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -227,6 +261,9 @@ export function SmartContactsTable() {
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
 
+  // Column visibility and order state with persistence
+  const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences("contacts-table-columns", CONTACT_COLUMNS);
+
   const { data: contacts, isLoading, refetch } = useSmartContacts(filters);
   const { deleteContacts, addTagsToContacts, bulkUpdateContacts } = useContacts();
   const analyze = useAnalyzeContact();
@@ -405,10 +442,19 @@ export function SmartContactsTable() {
             </Button>
           }
           rightActions={
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <ColumnSelector
+                columns={CONTACT_COLUMNS}
+                visibleColumns={visibleColumns}
+                columnOrder={columnOrder}
+                onVisibleColumnsChange={setVisibleColumns}
+                onColumnOrderChange={setColumnOrder}
+              />
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Atualizar
+              </Button>
+            </div>
           }
           className="mt-4"
         />
@@ -428,46 +474,46 @@ export function SmartContactsTable() {
         )}
 
         {/* Table */}
-        <div className="mt-4 rounded-lg border border-border bg-card overflow-x-auto flex-1">
-          <Table>
+        <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
+          <StickyTableWrapper minWidth="1200px">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40px]">
+                <TableHead className={cn("w-[40px] whitespace-nowrap", stickyHeaderCheckboxStyles)}>
                   <Checkbox 
                     checked={allSelected} 
                     ref={(el) => { if (el) (el as any).indeterminate = someSelected; }} 
                     onCheckedChange={toggleSelectAll} 
                   />
                 </TableHead>
-                <TableHead className="min-w-[180px]">Contacto</TableHead>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead>
+                <TableHead className={cn("min-w-[180px] whitespace-nowrap", stickyHeaderNameStyles)}>Contacto</TableHead>
+                <TableHead className="whitespace-nowrap">Empresa</TableHead>
+                <TableHead className="whitespace-nowrap">Origem</TableHead>
+                <TableHead className="whitespace-nowrap">
                   <span className="flex items-center gap-1">
                     Temperatura
                     <span className="text-[10px] text-muted-foreground">IA</span>
                   </span>
                 </TableHead>
-                <TableHead>
+                <TableHead className="whitespace-nowrap">
                   <span className="flex items-center gap-1">
                     Score
                     <span className="text-[10px] text-muted-foreground">IA</span>
                   </span>
                 </TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="min-w-[150px]">
+                <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                <TableHead className="min-w-[150px] whitespace-nowrap">
                   <span className="flex items-center gap-1">
                     Próxima Ação
                     <span className="text-[10px] text-muted-foreground">IA</span>
                   </span>
                 </TableHead>
-                <TableHead>SLA</TableHead>
+                <TableHead className="whitespace-nowrap">SLA</TableHead>
                 {showAdvanced && (
                   <>
-                    <TableHead>Potencial €</TableHead>
-                    <TableHead>Prob. %</TableHead>
-                    <TableHead>Automação</TableHead>
-                    <TableHead className="min-w-[180px]">
+                    <TableHead className="whitespace-nowrap">Potencial €</TableHead>
+                    <TableHead className="whitespace-nowrap">Prob. %</TableHead>
+                    <TableHead className="whitespace-nowrap">Automação</TableHead>
+                    <TableHead className="min-w-[180px] whitespace-nowrap">
                       <span className="flex items-center gap-1">
                         Insight
                         <span className="text-[10px] text-muted-foreground">IA</span>
@@ -475,7 +521,7 @@ export function SmartContactsTable() {
                     </TableHead>
                   </>
                 )}
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[100px] whitespace-nowrap"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -511,13 +557,13 @@ export function SmartContactsTable() {
                     isSelected={selectedIds.has(c.id)} 
                     onToggleSelect={() => toggleSelect(c.id)} 
                     onAnalyze={() => handleAnalyze(c.id)} 
-                    isAnalyzing={analyzingId === c.id} 
-                    showAdvanced={showAdvanced} 
+                    isAnalyzing={analyzingId === c.id}
+                    showAdvanced={showAdvanced}
                   />
                 ))
               )}
             </TableBody>
-          </Table>
+          </StickyTableWrapper>
         </div>
 
         {/* Pagination */}
