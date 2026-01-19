@@ -393,14 +393,14 @@ export function CreateInvoiceDialog({
                         Contacto responsável (opcional)
                       </Label>
                       <Select 
-                        value={selectedContactId} 
-                        onValueChange={setSelectedContactId}
+                        value={selectedContactId || "_none"} 
+                        onValueChange={(val) => setSelectedContactId(val === "_none" ? "" : val)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecionar contacto que fez o pedido" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Nenhum</SelectItem>
+                          <SelectItem value="_none">Nenhum</SelectItem>
                           {contacts
                             ?.filter(c => c.company_id === selectedCompanyId)
                             .map((contact) => (
@@ -409,13 +409,13 @@ export function CreateInvoiceDialog({
                                 {(contact as any).job_title && ` - ${(contact as any).job_title}`}
                               </SelectItem>
                             ))}
-                          {contacts?.filter(c => c.company_id === selectedCompanyId).length === 0 && (
-                            <SelectItem value="" disabled>
-                              Sem contactos nesta empresa
-                            </SelectItem>
-                          )}
                         </SelectContent>
                       </Select>
+                      {contacts?.filter(c => c.company_id === selectedCompanyId).length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Sem contactos associados a esta empresa
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
