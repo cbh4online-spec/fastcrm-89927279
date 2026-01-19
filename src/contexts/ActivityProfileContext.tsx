@@ -21,7 +21,8 @@ interface ActivityProfileContextType {
 const ActivityProfileContext = createContext<ActivityProfileContextType | null>(null);
 
 export function ActivityProfileProvider({ children }: { children: React.ReactNode }) {
-  const { currentWorkspace } = useWorkspace();
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
   const { data: profiles = [], isLoading } = useActivityProfiles();
   const initMutation = useInitializeActivityProfiles();
   const [defaultProfile, setDefaultProfile] = useState<ActivityProfile | null>(null);
