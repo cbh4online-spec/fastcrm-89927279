@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
-import { ArrowLeft, Trash2, User, Clock, Building2, Shield, Sparkles } from "lucide-react";
+import { ArrowLeft, Trash2, User, Clock, Building2, Shield, Sparkles, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ENIContact, ENTITY_TYPE_LABELS, EntityType } from "./ENIContactTypes";
@@ -28,6 +28,7 @@ import { useAnalyzeContact } from "@/hooks/useSmartContacts";
 import { useContactPermissions } from "./useContactPermissions";
 import { NifLookupResult } from "@/hooks/useNifLookup";
 import { cn } from "@/lib/utils";
+import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -51,6 +52,7 @@ export function ENIContactDetail() {
   const navigate = useNavigate();
   const { contacts, isLoading, updateContact, deleteContact } = useContacts();
   const analyzeContact = useAnalyzeContact();
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   
   const contact = contacts.find(c => c.id === id) as unknown as ENIContact | undefined;
   const { role } = useContactPermissions();
@@ -217,6 +219,14 @@ export function ENIContactDetail() {
           <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
+              onClick={() => setShowInvoiceDialog(true)}
+              className="gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Nova Fatura
+            </Button>
+            <Button 
+              variant="outline" 
               onClick={handleGenerateInsights}
               disabled={analyzeContact.isPending}
               className="gap-2"
@@ -320,6 +330,13 @@ export function ENIContactDetail() {
           />
         </div>
       </ScrollArea>
+
+      {/* Invoice Dialog */}
+      <CreateInvoiceDialog
+        open={showInvoiceDialog}
+        onOpenChange={setShowInvoiceDialog}
+        defaultContactId={id}
+      />
     </div>
   );
 }
