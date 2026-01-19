@@ -61,8 +61,8 @@ export function useCustomerJourney({ contactId, companyId }: UseCustomerJourneyP
       // Fetch invoices for this company/contact
       let invoicesQuery = supabase
         .from("invoices")
-        .select("id, status, total, issue_date, paid_at, sent_at")
-        .order("issue_date", { ascending: false });
+        .select("id, status, total, issue_date, paid_at, sent_at, created_at")
+        .order("created_at", { ascending: false });
 
       if (contactId) {
         invoicesQuery = invoicesQuery.eq("contact_id", contactId);
@@ -149,10 +149,10 @@ export function useCustomerJourney({ contactId, companyId }: UseCustomerJourneyP
       const pendingInvoices = invoices?.filter(i => i.status === 'sent' || i.status === 'overdue').length || 0;
       const totalInvoiceValue = invoices?.reduce((sum, i) => sum + (i.total || 0), 0) || 0;
 
-      // Last interaction date - include invoices and proposals
+      // Last interaction date - use created_at for invoices (has full timestamp)
       const lastLogDate = logs?.[0]?.consumption_date;
       const lastActivityDate = activities?.[0]?.created_at;
-      const lastInvoiceDate = invoices?.[0]?.issue_date;
+      const lastInvoiceDate = invoices?.[0]?.created_at;
       
       const lastInteractionDate = [lastLogDate, lastActivityDate, lastInvoiceDate]
         .filter(Boolean)
