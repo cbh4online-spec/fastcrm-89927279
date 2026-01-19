@@ -1462,6 +1462,8 @@ export type Database = {
           county: string | null
           created_at: string
           created_by: string
+          credit_active: boolean | null
+          credit_limit: number | null
           email: string | null
           employee_count: number | null
           entity_type: string | null
@@ -1489,6 +1491,7 @@ export type Database = {
           payment_conditions: string | null
           phone: string | null
           postal_code: string | null
+          preferred_payment_method: string | null
           price_level: string | null
           region: string | null
           size: string | null
@@ -1523,6 +1526,8 @@ export type Database = {
           county?: string | null
           created_at?: string
           created_by: string
+          credit_active?: boolean | null
+          credit_limit?: number | null
           email?: string | null
           employee_count?: number | null
           entity_type?: string | null
@@ -1550,6 +1555,7 @@ export type Database = {
           payment_conditions?: string | null
           phone?: string | null
           postal_code?: string | null
+          preferred_payment_method?: string | null
           price_level?: string | null
           region?: string | null
           size?: string | null
@@ -1584,6 +1590,8 @@ export type Database = {
           county?: string | null
           created_at?: string
           created_by?: string
+          credit_active?: boolean | null
+          credit_limit?: number | null
           email?: string | null
           employee_count?: number | null
           entity_type?: string | null
@@ -1611,6 +1619,7 @@ export type Database = {
           payment_conditions?: string | null
           phone?: string | null
           postal_code?: string | null
+          preferred_payment_method?: string | null
           price_level?: string | null
           region?: string | null
           size?: string | null
