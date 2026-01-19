@@ -27,35 +27,83 @@ import { cn } from "@/lib/utils";
 // Design System imports
 import { EmptyState, SearchEmptyState, TableSkeleton } from "@/components/design-system";
 
-// Column configurations for contacts table
+// Column configurations for contacts table - ALL form fields
 const CONTACT_COLUMNS: ColumnConfig[] = [
-  // Basic
+  // Basic Information
   { id: "name", label: "Contacto", category: "basic", defaultVisible: true },
-  { id: "company", label: "Empresa", category: "basic", defaultVisible: true },
-  { id: "source", label: "Origem", category: "basic", defaultVisible: true },
   { id: "email", label: "Email", category: "basic", defaultVisible: false },
   { id: "phone", label: "Telefone", category: "basic", defaultVisible: false },
-  { id: "city", label: "Cidade", category: "basic", defaultVisible: false },
+  { id: "whatsapp_number", label: "WhatsApp", category: "basic", defaultVisible: false },
+  { id: "has_whatsapp", label: "Tem WhatsApp", category: "basic", defaultVisible: false },
+  { id: "company", label: "Empresa", category: "basic", defaultVisible: true },
   { id: "job_title", label: "Cargo", category: "basic", defaultVisible: false },
+  { id: "commercial_name", label: "Nome Comercial", category: "basic", defaultVisible: false },
+  { id: "source", label: "Origem", category: "basic", defaultVisible: true },
+  { id: "lead_source", label: "Fonte do Lead", category: "basic", defaultVisible: false },
+  { id: "tags", label: "Tags", category: "basic", defaultVisible: false },
+  { id: "notes", label: "Notas", category: "basic", defaultVisible: false },
+  { id: "is_primary_contact", label: "Contacto Principal", category: "basic", defaultVisible: false },
   
-  // AI
+  // Location
+  { id: "address", label: "Morada", category: "basic", defaultVisible: false },
+  { id: "city", label: "Cidade", category: "basic", defaultVisible: false },
+  { id: "postal_code", label: "Código Postal", category: "basic", defaultVisible: false },
+  { id: "country", label: "País", category: "basic", defaultVisible: false },
+  { id: "is_fiscal_address", label: "Morada Fiscal", category: "basic", defaultVisible: false },
+  
+  // AI & Analysis
   { id: "temperature", label: "Temperatura", category: "ai", defaultVisible: true, description: "Classificação IA" },
   { id: "score", label: "Score", category: "ai", defaultVisible: true, description: "Pontuação 0-100" },
   { id: "type", label: "Tipo", category: "ai", defaultVisible: true, description: "Decisor/Influenciador/etc" },
   { id: "next_action", label: "Próxima Ação", category: "ai", defaultVisible: true },
-  { id: "insight", label: "Insight", category: "ai", defaultVisible: false },
+  { id: "insight", label: "Insight IA", category: "ai", defaultVisible: false },
+  { id: "ai_analyzed_at", label: "Última Análise", category: "ai", defaultVisible: false },
   
   // Business
   { id: "sla", label: "SLA", category: "business", defaultVisible: true, description: "Tempo desde último contacto" },
   { id: "estimated_value", label: "Potencial €", category: "business", defaultVisible: false },
   { id: "conversion_prob", label: "Prob. %", category: "business", defaultVisible: false },
   { id: "automation", label: "Automação", category: "business", defaultVisible: false },
+  { id: "assigned_to", label: "Responsável", category: "business", defaultVisible: false },
+  { id: "last_contact_at", label: "Último Contacto", category: "business", defaultVisible: false },
+  { id: "last_purchase_date", label: "Última Compra", category: "business", defaultVisible: false },
+  { id: "activity_start_date", label: "Início Atividade", category: "business", defaultVisible: false },
+  { id: "client_since", label: "Cliente Desde", category: "business", defaultVisible: false },
+  
+  // Client Classification
   { id: "abc_category", label: "Categoria ABC", category: "business", defaultVisible: false },
   { id: "client_status", label: "Estado Cliente", category: "business", defaultVisible: false },
+  { id: "client_types", label: "Tipo Cliente", category: "business", defaultVisible: false },
+  { id: "entity_type", label: "Tipo Entidade", category: "business", defaultVisible: false },
   
-  // Relations
-  { id: "opportunities_count", label: "Oportunidades", category: "relations", defaultVisible: false },
-  { id: "social_presence", label: "Redes Sociais", category: "relations", defaultVisible: false },
+  // Fiscal
+  { id: "tax_id", label: "NIF", category: "business", defaultVisible: false },
+  { id: "fiscal_regime", label: "Regime Fiscal", category: "business", defaultVisible: false },
+  { id: "business_area", label: "Área de Negócio", category: "business", defaultVisible: false },
+  { id: "cae_code", label: "Código CAE", category: "business", defaultVisible: false },
+  { id: "cae_description", label: "Descrição CAE", category: "business", defaultVisible: false },
+  
+  // Financial
+  { id: "credit_active", label: "Crédito Ativo", category: "business", defaultVisible: false },
+  { id: "credit_limit", label: "Limite Crédito €", category: "business", defaultVisible: false },
+  { id: "payment_conditions", label: "Condições Pagamento", category: "business", defaultVisible: false },
+  { id: "preferred_payment_method", label: "Método Pagamento", category: "business", defaultVisible: false },
+  { id: "average_ticket", label: "Ticket Médio €", category: "business", defaultVisible: false },
+  { id: "total_revenue", label: "Receita Total €", category: "business", defaultVisible: false },
+  { id: "sales_2023", label: "Vendas 2023 €", category: "business", defaultVisible: false },
+  { id: "sales_2024", label: "Vendas 2024 €", category: "business", defaultVisible: false },
+  { id: "sales_2025", label: "Vendas 2025 €", category: "business", defaultVisible: false },
+  { id: "sales_2026", label: "Vendas 2026 €", category: "business", defaultVisible: false },
+  
+  // Social / Relations
+  { id: "linkedin_url", label: "LinkedIn", category: "relations", defaultVisible: false },
+  { id: "facebook_url", label: "Facebook", category: "relations", defaultVisible: false },
+  { id: "instagram_url", label: "Instagram", category: "relations", defaultVisible: false },
+  { id: "twitter_url", label: "Twitter/X", category: "relations", defaultVisible: false },
+  
+  // Timestamps
+  { id: "created_at", label: "Criado Em", category: "basic", defaultVisible: false },
+  { id: "updated_at", label: "Atualizado Em", category: "basic", defaultVisible: false },
 ];
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -270,17 +318,53 @@ export function SmartContactsTable() {
   const bulkAnalyze = useBulkAnalyzeContacts();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
 
-  // Apply search filter locally
+  // Apply search filter locally - search ALL text fields
   const filteredContacts = useMemo(() => {
     if (!contacts) return [];
     if (!searchValue) return contacts;
     const lower = searchValue.toLowerCase();
-    return contacts.filter(c => 
-      c.name?.toLowerCase().includes(lower) ||
-      c.email?.toLowerCase().includes(lower) ||
-      c.phone?.toLowerCase().includes(lower) ||
-      c.company?.toLowerCase().includes(lower)
-    );
+    return contacts.filter(c => {
+      // All searchable text fields from contacts table
+      const searchableFields = [
+        c.name,
+        c.email,
+        c.phone,
+        c.company,
+        c.job_title,
+        (c as any).commercial_name,
+        c.source,
+        (c as any).lead_source,
+        (c as any).address,
+        (c as any).city,
+        (c as any).postal_code,
+        (c as any).country,
+        (c as any).tax_id,
+        (c as any).notes,
+        (c as any).business_area,
+        (c as any).cae_code,
+        (c as any).cae_description,
+        (c as any).whatsapp_number,
+        (c as any).linkedin_url,
+        (c as any).facebook_url,
+        (c as any).instagram_url,
+        (c as any).twitter_url,
+        c.ai_insight,
+        c.ai_next_action,
+        (c as any).client_status,
+        (c as any).client_types,
+        (c as any).abc_category,
+        (c as any).fiscal_regime,
+        (c as any).payment_conditions,
+        (c as any).preferred_payment_method,
+        (c as any).entity_type,
+        (c as any).assigned_to,
+      ];
+      // Also search in tags array
+      const tags = (c as any).tags || [];
+      return searchableFields.some(field => 
+        field?.toString().toLowerCase().includes(lower)
+      ) || tags.some((tag: string) => tag?.toLowerCase().includes(lower));
+    });
   }, [contacts, searchValue]);
 
   // Paginação
