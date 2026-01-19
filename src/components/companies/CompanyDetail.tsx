@@ -49,6 +49,7 @@ import { CustomerJourneySection } from "@/components/customer-journey/CustomerJo
 import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
 import { EnrichCompanyDialog } from "./dialogs/EnrichCompanyDialog";
 import { CompanyInsightsPanel } from "./CompanyInsightsPanel";
+import { LinkContactDialog } from "./LinkContactDialog";
 
 // Helper function for time ago
 function getTimeAgo(date: Date): string {
@@ -70,6 +71,7 @@ export function CompanyDetail() {
   const { isModuleInstalled } = useWorkspaceModules();
   
   const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
+  const [linkContactDialogOpen, setLinkContactDialogOpen] = useState(false);
 
   const company = companies.find(c => c.id === id);
   const showEnrichButton = isModuleInstalled('google-local-services');
@@ -376,7 +378,11 @@ export function CompanyDetail() {
           
           <AcquiredProductsSection companyId={id} />
           
-          <CompanyContacts companyId={id || ''} companyName={company.name} />
+          <CompanyContacts 
+            companyId={id || ''} 
+            companyName={company.name} 
+            onAddContact={() => setLinkContactDialogOpen(true)}
+          />
         </div>
       </div>
 
@@ -402,6 +408,14 @@ export function CompanyDetail() {
           onEnrichmentApplied={handleEnrichmentApplied}
         />
       )}
+
+      {/* Link Contact Dialog */}
+      <LinkContactDialog
+        open={linkContactDialogOpen}
+        onOpenChange={setLinkContactDialogOpen}
+        companyId={id || ''}
+        companyName={company.name}
+      />
     </div>
   );
 }
