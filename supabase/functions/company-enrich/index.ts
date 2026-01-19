@@ -226,6 +226,134 @@ function extractContactInfo(content: string): { email?: string; phone?: string }
   return result;
 }
 
+// Search for social media profiles via web search
+async function searchSocialMedia(
+  companyName: string,
+  FIRECRAWL_API_KEY: string
+): Promise<Record<string, string>> {
+  const social: Record<string, string> = {};
+  
+  try {
+    console.log("Searching social media for:", companyName);
+    
+    // Search for LinkedIn
+    const linkedinSearch = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${companyName} site:linkedin.com/company`,
+        limit: 3,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    
+    const linkedinData = await linkedinSearch.json();
+    if (linkedinData.success && linkedinData.data?.length > 0) {
+      const linkedinUrl = linkedinData.data[0]?.url;
+      if (linkedinUrl && linkedinUrl.includes("linkedin.com/company")) {
+        social.linkedin = linkedinUrl;
+        console.log("Found LinkedIn via search:", linkedinUrl);
+      }
+    }
+    
+    // Search for Facebook
+    const facebookSearch = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${companyName} site:facebook.com`,
+        limit: 3,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    
+    const facebookData = await facebookSearch.json();
+    if (facebookData.success && facebookData.data?.length > 0) {
+      const facebookUrl = facebookData.data[0]?.url;
+      if (facebookUrl && facebookUrl.includes("facebook.com") && !facebookUrl.includes("/login")) {
+        social.facebook = facebookUrl;
+        console.log("Found Facebook via search:", facebookUrl);
+      }
+    }
+    
+    // Search for Instagram
+    const instagramSearch = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${companyName} site:instagram.com`,
+        limit: 3,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    
+    const instagramData = await instagramSearch.json();
+    if (instagramData.success && instagramData.data?.length > 0) {
+      const instagramUrl = instagramData.data[0]?.url;
+      if (instagramUrl && instagramUrl.includes("instagram.com") && !instagramUrl.includes("/accounts/")) {
+        social.instagram = instagramUrl;
+        console.log("Found Instagram via search:", instagramUrl);
+      }
+    }
+  } catch (e) {
+    console.error("Social media search error:", e);
+  }
+  
+  return social;
+}
+
+// Find contact page URL from links by analyzing text and patterns
+function findContactPageUrl(pageLinks: string[], pageHtml: string): string | null {
+  // Patterns for contact page URLs
+  const urlPatterns = [
+    /\/contact/i, /\/contacto/i, /\/contactos/i, /\/contato/i,
+    /\/about/i, /\/sobre/i, /\/quem-somos/i,
+    /\?.*contact/i, /\?.*pageid=\d+/i
+  ];
+  
+  // First, check direct URL patterns
+  for (const link of pageLinks) {
+    for (const pattern of urlPatterns) {
+      if (pattern.test(link)) {
+        return link;
+      }
+    }
+  }
+  
+  // Try to find contact links by analyzing the HTML for link text
+  const linkTextPatterns = [
+    /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]*contact[^<]*)<\/a>/gi,
+    /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]*contacto[^<]*)<\/a>/gi,
+    /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]*contacte[^<]*)<\/a>/gi,
+    /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]*fale[^<]*)<\/a>/gi,
+    /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]*sobre[^<]*)<\/a>/gi,
+  ];
+  
+  for (const pattern of linkTextPatterns) {
+    const matches = [...pageHtml.matchAll(pattern)];
+    for (const match of matches) {
+      if (match[1] && !match[1].startsWith('#') && !match[1].startsWith('javascript')) {
+        console.log("Found contact link via text analysis:", match[1]);
+        return match[1];
+      }
+    }
+  }
+  
+  return null;
+}
+
 // Enrich from website scraping with deep context extraction
 async function enrichFromWebsite(
   targetUrl: string, 
@@ -263,27 +391,49 @@ async function enrichFromWebsite(
   const pageLinks = scrapeData.data?.links || [];
   const metadata = scrapeData.data?.metadata || {};
 
-  // Try to find and scrape contact page
-  const contactPagePatterns = [
-    /\/contact/i, /\/contacto/i, /\/contactos/i, /\/contato/i,
-    /\/about/i, /\/sobre/i, /\/quem-somos/i
-  ];
+  // Find contact page using improved detection
+  const contactPageUrl = findContactPageUrl(pageLinks, pageHtml);
   
-  let contactPageUrl: string | null = null;
-  for (const link of pageLinks) {
-    for (const pattern of contactPagePatterns) {
-      if (pattern.test(link)) {
-        contactPageUrl = link;
-        break;
+  if (contactPageUrl) {
+    // Scrape the found contact page
+    try {
+      let fullContactUrl = contactPageUrl;
+      if (!contactPageUrl.startsWith('http')) {
+        const baseUrl = new URL(normalizedUrl);
+        fullContactUrl = contactPageUrl.startsWith('/') 
+          ? `${baseUrl.origin}${contactPageUrl}`
+          : `${baseUrl.origin}/${contactPageUrl}`;
       }
+      
+      console.log("Attempting to scrape contact page:", fullContactUrl);
+      
+      const contactResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: fullContactUrl,
+          formats: ["markdown", "html"],
+          onlyMainContent: false,
+          waitFor: 2000,
+        }),
+      });
+      
+      const contactData = await contactResponse.json();
+      if (contactData.success && contactData.data?.markdown) {
+        console.log("Successfully scraped contact page:", fullContactUrl);
+        pageContent += "\n\n--- CONTACT PAGE ---\n" + contactData.data.markdown;
+      }
+    } catch (e) {
+      console.error("Failed to scrape contact page:", e);
     }
-    if (contactPageUrl) break;
-  }
-  
-  // If no contact page found in links, try common patterns
-  if (!contactPageUrl) {
+  } else {
+    // Fallback: Try common paths
     const baseUrl = new URL(normalizedUrl);
     const commonPaths = ['/contactos', '/contacts', '/contact', '/contacto', '/sobre', '/about'];
+    
     for (const path of commonPaths) {
       try {
         const testUrl = `${baseUrl.origin}${path}`;
@@ -303,38 +453,13 @@ async function enrichFromWebsite(
         
         const testData = await testResponse.json();
         if (testData.success && testData.data?.markdown) {
-          console.log("Found contact page:", testUrl);
+          console.log("Found contact page via common path:", testUrl);
           pageContent += "\n\n--- CONTACT PAGE ---\n" + testData.data.markdown;
           break;
         }
       } catch (e) {
         // Ignore errors for contact page attempts
       }
-    }
-  } else {
-    // Scrape the found contact page
-    try {
-      const contactResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: contactPageUrl,
-          formats: ["markdown", "html"],
-          onlyMainContent: false,
-          waitFor: 2000,
-        }),
-      });
-      
-      const contactData = await contactResponse.json();
-      if (contactData.success && contactData.data?.markdown) {
-        console.log("Scraped contact page:", contactPageUrl);
-        pageContent += "\n\n--- CONTACT PAGE ---\n" + contactData.data.markdown;
-      }
-    } catch (e) {
-      console.error("Failed to scrape contact page:", e);
     }
   }
 
@@ -355,6 +480,17 @@ async function enrichFromWebsite(
   if (!socialLinks.instagram && htmlSocial.instagram) socialLinks.instagram = htmlSocial.instagram;
   if (!socialLinks.facebook && htmlSocial.facebook) socialLinks.facebook = htmlSocial.facebook;
   if (!socialLinks.twitter && htmlSocial.twitter) socialLinks.twitter = htmlSocial.twitter;
+  
+  // If no social links found, search the web for them
+  const hasSocialLinks = Object.keys(socialLinks).length > 0;
+  if (!hasSocialLinks && companyName) {
+    console.log("No social links found on website, searching the web...");
+    const webSocial = await searchSocialMedia(companyName, FIRECRAWL_API_KEY);
+    if (webSocial.linkedin) socialLinks.linkedin = webSocial.linkedin;
+    if (webSocial.facebook) socialLinks.facebook = webSocial.facebook;
+    if (webSocial.instagram) socialLinks.instagram = webSocial.instagram;
+    if (webSocial.twitter) socialLinks.twitter = webSocial.twitter;
+  }
   
   // Extract contact info from content
   const contactInfo = extractContactInfo(pageContent + " " + pageHtml);
