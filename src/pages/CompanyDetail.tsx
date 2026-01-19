@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { CompanyDetail as CompanyDetailComponent } from "@/components/companies/CompanyDetail";
+import { CompanyDetailWithSidebar } from "@/components/companies/CompanyDetailWithSidebar";
 
 export default function CompanyDetailPage() {
   return (
     <DashboardLayout>
-      <CompanyDetailComponent />
+      <CompanyDetailWithSidebar />
     </DashboardLayout>
   );
 }
