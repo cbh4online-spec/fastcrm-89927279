@@ -11,9 +11,18 @@ interface CompanyInsight {
   fitScore: number;
   fitExplanation: string;
   suggestedActions: Array<{
-    type: "opportunity" | "task" | "template" | "proposal";
+    type: "opportunity" | "task" | "template" | "proposal" | "product_suggestion";
     label: string;
     priority: "high" | "medium" | "low";
+    productId?: string;
+    productName?: string;
+    reasoning?: string;
+  }>;
+  productRecommendations: Array<{
+    productId: string;
+    productName: string;
+    fitScore: number;
+    reasoning: string;
   }>;
   warnings: Array<{
     type: "missing_contact" | "no_website" | "duplicate" | "stale_data";
@@ -66,7 +75,7 @@ serve(async (req) => {
       );
     }
 
-    // Fetch company data
+    // Fetch company data including company_context
     const { data: company, error: companyError } = await supabase
       .from("companies")
       .select("*")
@@ -80,11 +89,12 @@ serve(async (req) => {
       );
     }
 
-    // Fetch related data for context
+    // Fetch related data for context including our products
     const [
       { data: opportunities },
       { data: contacts },
-      { data: activities }
+      { data: activities },
+      { data: products }
     ] = await Promise.all([
       supabase
         .from("opportunities")
@@ -103,7 +113,14 @@ serve(async (req) => {
         .eq("entity_id", companyId)
         .eq("entity_type", "company")
         .order("created_at", { ascending: false })
-        .limit(10)
+        .limit(10),
+      // Fetch our products/services to suggest
+      supabase
+        .from("products")
+        .select("id, name, short_description, category, base_price, product_type, benefits")
+        .eq("workspace_id", company.workspace_id)
+        .eq("status", "active")
+        .limit(20)
     ]);
 
     // Build warnings
@@ -133,7 +150,11 @@ serve(async (req) => {
       });
     }
 
-    // Use AI to generate insights
+    // Extract company context if available
+    const companyContext = company.company_context || {};
+    const hasRichContext = Object.keys(companyContext).length > 0;
+
+    // Use AI to generate insights with product recommendations
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -150,6 +171,7 @@ serve(async (req) => {
           { type: "opportunity", label: "Criar oportunidade", priority: "medium" },
           { type: "task", label: "Agendar follow-up", priority: "medium" }
         ],
+        productRecommendations: [],
         warnings
       };
 
@@ -159,7 +181,32 @@ serve(async (req) => {
       );
     }
 
-    const aiPrompt = `Analisa os seguintes dados de uma empresa e gera insights acionáveis.
+    // Build context about company for AI
+    let companyContextText = "";
+    if (hasRichContext) {
+      companyContextText = `
+CONTEXTO EMPRESARIAL (extraído do website):
+- Sobre a empresa: ${companyContext.about_us || "N/A"}
+- Serviços que oferecem: ${companyContext.services || "N/A"}
+- Produtos que oferecem: ${companyContext.products || "N/A"}
+- Clientes: ${companyContext.clients || "N/A"}
+- Mercado-alvo: ${companyContext.target_market || "N/A"}
+- Equipa: ${companyContext.team_info || "N/A"}
+- Missão e valores: ${companyContext.mission_values || "N/A"}
+- Diferenciais: ${companyContext.differentiators || "N/A"}
+- Certificações: ${companyContext.certifications || "N/A"}
+- Ano fundação: ${companyContext.year_founded || "N/A"}`;
+    }
+
+    // Build our products catalog for AI
+    let productsText = "Sem produtos/serviços catalogados";
+    if (products && products.length > 0) {
+      productsText = products.map((p: any) => 
+        `- ${p.name} (ID: ${p.id}): ${p.short_description || p.category || 'Sem descrição'}. Preço: €${p.base_price || 'N/A'}. Tipo: ${p.product_type || 'N/A'}. ${p.benefits ? `Benefícios: ${p.benefits}` : ''}`
+      ).join("\n");
+    }
+
+    const aiPrompt = `Analisa os dados de uma empresa cliente/prospect e sugere quais dos NOSSOS produtos/serviços podemos vender-lhe.
 
 DADOS DA EMPRESA:
 Nome: ${company.name}
@@ -170,16 +217,26 @@ Email: ${company.email || "Não definido"}
 Telefone: ${company.phone || "Não definido"}
 Notas: ${company.notes || "Sem notas"}
 Tags: ${company.tags?.join(", ") || "Sem tags"}
+${companyContextText}
 
 CONTACTOS ASSOCIADOS: ${contacts?.length || 0}
 ATIVIDADES RECENTES: ${activities?.length || 0}
-OPORTUNIDADES: ${opportunities?.length || 0}
+OPORTUNIDADES EXISTENTES: ${opportunities?.length || 0}
 
-Gera:
-1. Summary: 3 bullet points curtos sobre a empresa
-2. Fit Score: 0-100 baseado na qualidade dos dados e potencial
-3. Ações sugeridas priorizadas
-4. Considera os warnings já identificados: ${JSON.stringify(warnings)}`;
+---
+
+OS NOSSOS PRODUTOS/SERVIÇOS DISPONÍVEIS PARA VENDER:
+${productsText}
+
+---
+
+TAREFA:
+1. Analisa o perfil da empresa, especialmente o seu contexto empresarial (serviços, clientes, mercado-alvo)
+2. Identifica quais dos NOSSOS produtos/serviços fazem sentido para esta empresa
+3. Explica PORQUÊ cada produto é relevante (com base nos dados da empresa)
+4. Sugere ações comerciais concretas
+
+Sê específico - cruza o que a empresa faz/precisa com o que nós oferecemos.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -188,11 +245,11 @@ Gera:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           {
             role: "system",
-            content: "És um assistente de CRM que analisa empresas e sugere próximos passos. Responde sempre em Português de Portugal. Sê conciso e prático."
+            content: "És um consultor comercial que analisa empresas e sugere quais produtos/serviços da nossa carteira podemos vender-lhes. Sê específico e justifica cada recomendação com base nos dados da empresa. Responde em Português de Portugal."
           },
           { role: "user", content: aiPrompt }
         ],
@@ -200,44 +257,61 @@ Gera:
           {
             type: "function",
             function: {
-              name: "generate_company_insights",
-              description: "Gera insights estruturados sobre uma empresa",
+              name: "generate_sales_insights",
+              description: "Gera insights de vendas e recomendações de produtos",
               parameters: {
                 type: "object",
                 properties: {
                   summary: {
                     type: "array",
                     items: { type: "string" },
-                    description: "3 bullet points sobre a empresa"
+                    description: "3-4 bullet points sobre a empresa e potencial de vendas"
                   },
                   fitScore: {
                     type: "number",
-                    description: "Score de 0 a 100"
+                    description: "Score de 0 a 100 indicando potencial de vendas"
                   },
                   fitExplanation: {
                     type: "string",
-                    description: "Explicação curta do score"
+                    description: "Explicação curta do score de fit"
+                  },
+                  productRecommendations: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        productId: { type: "string", description: "ID do produto" },
+                        productName: { type: "string", description: "Nome do produto" },
+                        fitScore: { type: "number", description: "Score de 0-100 de adequação" },
+                        reasoning: { type: "string", description: "Porquê este produto faz sentido para esta empresa (máx 2 frases)" }
+                      },
+                      required: ["productId", "productName", "fitScore", "reasoning"]
+                    },
+                    description: "Produtos recomendados ordenados por relevância"
                   },
                   suggestedActions: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        type: { type: "string", enum: ["opportunity", "task", "template", "proposal"] },
+                        type: { type: "string", enum: ["opportunity", "task", "template", "proposal", "product_suggestion"] },
                         label: { type: "string" },
-                        priority: { type: "string", enum: ["high", "medium", "low"] }
+                        priority: { type: "string", enum: ["high", "medium", "low"] },
+                        productId: { type: "string" },
+                        productName: { type: "string" },
+                        reasoning: { type: "string" }
                       },
                       required: ["type", "label", "priority"]
                     }
                   }
                 },
-                required: ["summary", "fitScore", "fitExplanation", "suggestedActions"],
+                required: ["summary", "fitScore", "fitExplanation", "productRecommendations", "suggestedActions"],
                 additionalProperties: false
               }
             }
           }
         ],
-        tool_choice: { type: "function", function: { name: "generate_company_insights" } }
+        tool_choice: { type: "function", function: { name: "generate_sales_insights" } }
       }),
     });
 
@@ -260,10 +334,11 @@ Gera:
       fitScore: aiInsights.fitScore || 50,
       fitExplanation: aiInsights.fitExplanation || "",
       suggestedActions: aiInsights.suggestedActions || [],
+      productRecommendations: aiInsights.productRecommendations || [],
       warnings
     };
 
-    console.log("Generated insights for company:", companyId);
+    console.log("Generated sales insights for company:", companyId, "with", insights.productRecommendations?.length || 0, "product recommendations");
 
     return new Response(
       JSON.stringify({ success: true, data: insights }),

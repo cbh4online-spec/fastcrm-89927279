@@ -47,6 +47,7 @@ import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSec
 import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
 import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
 import { EnrichCompanyDialog } from "./dialogs/EnrichCompanyDialog";
+import { CompanyInsightsPanel } from "./CompanyInsightsPanel";
 
 // Helper function for time ago
 function getTimeAgo(date: Date): string {
@@ -345,8 +346,11 @@ export function CompanyDetail() {
           />
         </div>
 
-        {/* Right Column - Tags, Products & Contacts */}
+        {/* Right Column - Insights, Tags, Products & Contacts */}
         <div className="space-y-4">
+          {/* AI Sales Insights with Product Recommendations */}
+          <CompanyInsightsPanel company={company} />
+          
           <CustomerJourneySection companyId={id} />
           
           <AIJourneySuggestionsPanel 

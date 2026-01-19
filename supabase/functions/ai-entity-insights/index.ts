@@ -19,8 +19,33 @@ interface EntityData {
   lead_score?: number;
   contact_score?: number;
   company_score?: number;
+  industry?: string;
+  size?: string;
+  website?: string;
+  company_context?: {
+    about_us?: string;
+    services?: string;
+    products?: string;
+    clients?: string;
+    team_info?: string;
+    mission_values?: string;
+    differentiators?: string;
+    certifications?: string;
+    target_market?: string;
+    year_founded?: string;
+  };
   created_at: string;
   updated_at: string;
+}
+
+interface ProductData {
+  id: string;
+  name: string;
+  short_description?: string;
+  category?: string;
+  base_price?: number;
+  product_type?: string;
+  benefits?: string;
 }
 
 interface ConversationData {
@@ -320,6 +345,9 @@ function buildEntityContext(entity: EntityData, entityType: string): string {
     entity.phone ? `Telefone: ${entity.phone}` : null,
     entity.status ? `Estado: ${entity.status}` : null,
     entity.source ? `Origem: ${entity.source}` : null,
+    entity.industry ? `Indústria: ${entity.industry}` : null,
+    entity.size ? `Tamanho: ${entity.size}` : null,
+    entity.website ? `Website: ${entity.website}` : null,
     entity.tags?.length ? `Tags: ${entity.tags.join(", ")}` : null,
     entity.notes ? `Notas: ${entity.notes.substring(0, 200)}...` : null,
     entity.ai_temperature ? `Temperatura atual: ${entity.ai_temperature}` : null,
@@ -327,6 +355,20 @@ function buildEntityContext(entity: EntityData, entityType: string): string {
     `Criado: ${new Date(entity.created_at).toLocaleDateString('pt-PT')}`,
     `Atualizado: ${new Date(entity.updated_at).toLocaleDateString('pt-PT')}`,
   ].filter(Boolean) as string[];
+  
+  // Add company context if available (for companies)
+  if (entityType === 'company' && entity.company_context) {
+    const ctx = entity.company_context;
+    lines.push("");
+    lines.push("CONTEXTO EMPRESARIAL (do website):");
+    if (ctx.about_us) lines.push(`- Sobre: ${ctx.about_us.substring(0, 300)}...`);
+    if (ctx.services) lines.push(`- Serviços: ${ctx.services}`);
+    if (ctx.products) lines.push(`- Produtos: ${ctx.products}`);
+    if (ctx.clients) lines.push(`- Clientes: ${ctx.clients}`);
+    if (ctx.target_market) lines.push(`- Mercado-alvo: ${ctx.target_market}`);
+    if (ctx.differentiators) lines.push(`- Diferenciais: ${ctx.differentiators}`);
+    if (ctx.mission_values) lines.push(`- Missão: ${ctx.mission_values.substring(0, 150)}...`);
+  }
   
   return lines.join("\n");
 }
