@@ -71,6 +71,7 @@ import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductDetailDialog } from "./ProductDetailDialog";
 import { BatchSKUImportDialog } from "./BatchSKUImportDialog";
 import { CategoriesTabContent } from "./CategoriesTabContent";
+import { PricingTabContent } from "./PricingTabContent";
 import { ProductSettingsTabContent } from "./settings/ProductSettingsTabContent";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
@@ -346,16 +347,6 @@ export function ProductsList() {
     toast.success(`${selected.length} produtos arquivados`);
   };
 
-  // Placeholder for Pricing tab
-  const PricingTabContent = () => (
-    <Card className="flex-1 p-12 text-center">
-      <CircleDollarSign className="h-16 w-16 mx-auto mb-4 opacity-30" />
-      <h3 className="text-lg font-medium mb-2">Tabelas de Preço</h3>
-      <p className="text-sm text-muted-foreground">
-        Em breve poderás criar tabelas de preço personalizadas aqui.
-      </p>
-    </Card>
-  );
 
   return (
     <div className="flex h-full -m-6">
