@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Columns3, GripVertical, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface ColumnConfig {
   id: string;
@@ -23,7 +24,9 @@ export interface ColumnConfig {
 interface ColumnSelectorProps {
   columns: ColumnConfig[];
   visibleColumns: Set<string>;
+  columnOrder: string[];
   onVisibleColumnsChange: (columns: Set<string>) => void;
+  onColumnOrderChange: (order: string[]) => void;
   storageKey?: string;
 }
 
@@ -37,13 +40,27 @@ const categoryLabels: Record<string, string> = {
 export function ColumnSelector({
   columns,
   visibleColumns,
+  columnOrder,
   onVisibleColumnsChange,
+  onColumnOrderChange,
   storageKey = "table-columns",
 }: ColumnSelectorProps) {
   const [open, setOpen] = useState(false);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  // Group columns by category
-  const groupedColumns = columns.reduce((acc, col) => {
+  // Get ordered columns based on columnOrder
+  const orderedColumns = [...columns].sort((a, b) => {
+    const indexA = columnOrder.indexOf(a.id);
+    const indexB = columnOrder.indexOf(b.id);
+    if (indexA === -1 && indexB === -1) return 0;
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+
+  // Group columns by category for display
+  const groupedColumns = orderedColumns.reduce((acc, col) => {
     if (!acc[col.category]) acc[col.category] = [];
     acc[col.category].push(col);
     return acc;
@@ -64,6 +81,7 @@ export function ColumnSelector({
       columns.filter((c) => c.defaultVisible).map((c) => c.id)
     );
     onVisibleColumnsChange(defaultColumns);
+    onColumnOrderChange(columns.map(c => c.id));
   };
 
   const handleSelectAll = (category: string, selected: boolean) => {
@@ -76,6 +94,51 @@ export function ColumnSelector({
       }
     });
     onVisibleColumnsChange(newSet);
+  };
+
+  // Drag handlers
+  const handleDragStart = (e: React.DragEvent, columnId: string) => {
+    setDraggedId(columnId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", columnId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnId: string) => {
+    e.preventDefault();
+    if (draggedId && draggedId !== columnId) {
+      setDragOverId(columnId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+
+    const newOrder = [...columnOrder];
+    const draggedIndex = newOrder.indexOf(draggedId);
+    const targetIndex = newOrder.indexOf(targetId);
+
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      newOrder.splice(draggedIndex, 1);
+      newOrder.splice(targetIndex, 0, draggedId);
+      onColumnOrderChange(newOrder);
+    }
+
+    setDraggedId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
   };
 
   return (
@@ -91,7 +154,7 @@ export function ColumnSelector({
           <div>
             <p className="font-medium text-sm">Colunas Visíveis</p>
             <p className="text-xs text-muted-foreground">
-              {visibleColumns.size} de {columns.length} colunas
+              {visibleColumns.size} de {columns.length} colunas • Arraste para ordenar
             </p>
           </div>
           <Button
@@ -133,14 +196,25 @@ export function ColumnSelector({
                   {cols.map((column) => (
                     <div
                       key={column.id}
-                      className="flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, column.id)}
+                      onDragOver={(e) => handleDragOver(e, column.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, column.id)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        "flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors",
+                        draggedId === column.id && "opacity-50",
+                        dragOverId === column.id && "bg-primary/10 border border-primary/30"
+                      )}
                       onClick={() => handleToggle(column.id)}
                     >
-                      <GripVertical className="h-3 w-3 text-muted-foreground/50" />
+                      <GripVertical className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
                       <Checkbox
                         id={column.id}
                         checked={visibleColumns.has(column.id)}
                         onCheckedChange={() => handleToggle(column.id)}
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div className="flex-1 min-w-0">
                         <Label
@@ -168,13 +242,13 @@ export function ColumnSelector({
   );
 }
 
-// Hook to persist column preferences
+// Hook to persist column preferences including order
 export function useColumnPreferences(
   storageKey: string,
   defaultColumns: ColumnConfig[]
 ) {
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(() => {
-    const stored = localStorage.getItem(storageKey);
+    const stored = localStorage.getItem(`${storageKey}-visible`);
     if (stored) {
       try {
         return new Set(JSON.parse(stored));
@@ -185,9 +259,35 @@ export function useColumnPreferences(
     return new Set(defaultColumns.filter((c) => c.defaultVisible).map((c) => c.id));
   });
 
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    const stored = localStorage.getItem(`${storageKey}-order`);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        // Ensure all columns are in the order (add any missing ones at the end)
+        const existingIds = new Set(parsed);
+        const allIds = defaultColumns.map(c => c.id);
+        const missingIds = allIds.filter(id => !existingIds.has(id));
+        return [...parsed.filter((id: string) => allIds.includes(id)), ...missingIds];
+      } catch {
+        // Invalid stored value
+      }
+    }
+    return defaultColumns.map((c) => c.id);
+  });
+
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(Array.from(visibleColumns)));
+    localStorage.setItem(`${storageKey}-visible`, JSON.stringify(Array.from(visibleColumns)));
   }, [storageKey, visibleColumns]);
 
-  return [visibleColumns, setVisibleColumns] as const;
+  useEffect(() => {
+    localStorage.setItem(`${storageKey}-order`, JSON.stringify(columnOrder));
+  }, [storageKey, columnOrder]);
+
+  return {
+    visibleColumns,
+    setVisibleColumns,
+    columnOrder,
+    setColumnOrder,
+  };
 }
