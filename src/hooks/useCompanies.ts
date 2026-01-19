@@ -39,6 +39,9 @@ export interface Company {
   entity_type: string | null;
   company_context: CompanyContext | null;
   payment_conditions: string | null;
+  credit_limit: number | null;
+  preferred_payment_method: string | null;
+  credit_active: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -60,6 +63,9 @@ export interface CreateCompanyData {
   twitter_url?: string;
   entity_type?: string;
   payment_conditions?: string;
+  credit_limit?: number;
+  preferred_payment_method?: string;
+  credit_active?: boolean;
 }
 
 export interface UpdateCompanyData extends Partial<CreateCompanyData> {
@@ -149,6 +155,9 @@ export function useCompanies() {
       if (data.twitter_url !== undefined) updateData.twitter_url = data.twitter_url;
       if (data.entity_type !== undefined) updateData.entity_type = data.entity_type;
       if (data.payment_conditions !== undefined) updateData.payment_conditions = data.payment_conditions;
+      if (data.credit_limit !== undefined) updateData.credit_limit = data.credit_limit;
+      if (data.preferred_payment_method !== undefined) updateData.preferred_payment_method = data.preferred_payment_method;
+      if (data.credit_active !== undefined) updateData.credit_active = data.credit_active;
 
       const { data: company, error } = await supabase
         .from("companies")
