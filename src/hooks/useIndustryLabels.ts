@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { IndustryType, IndustryLabels, INDUSTRY_PRESETS } from "@/types/import";
 
@@ -43,6 +44,7 @@ export function useSetIndustryLabels() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -86,6 +88,7 @@ export function useSetIndustryLabels() {
           entity_labels: mergedEntityLabels,
           field_labels: mergedFieldLabels,
           is_active: true,
+          created_by: user?.id,
         }, {
           onConflict: "workspace_id,industry_type",
         })
