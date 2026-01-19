@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Clock, Calculator } from "lucide-react";
+import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Clock, Calculator, FileText } from "lucide-react";
 import { ENIContact, ABCCategory } from "../ENIContactTypes";
-import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
+import { useInvoices } from "@/hooks/useInvoices";
 
 interface CommercialHistorySectionProps {
   contact: ENIContact;
@@ -17,39 +17,12 @@ const ABC_COLORS: Record<string, string> = {
   C: "bg-slate-500/10 text-slate-600 border-slate-500/30",
 };
 
-const ABC_CATEGORIES = ['A', 'B', 'C'];
-
 // ABC thresholds (can be adjusted)
 const ABC_THRESHOLDS = {
   A: 50000, // >= 50k = A
   B: 10000, // >= 10k = B
   // < 10k = C
 };
-
-function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return "—";
-  return new Date(dateString).toLocaleDateString('pt-PT', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function getTimeAgo(dateString: string | null | undefined): string {
-  if (!dateString) return "";
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return "agora mesmo";
-  if (diffInSeconds < 3600) return `há ${Math.floor(diffInSeconds / 60)} min`;
-  if (diffInSeconds < 86400) return `há ${Math.floor(diffInSeconds / 3600)} horas`;
-  if (diffInSeconds < 604800) return `há ${Math.floor(diffInSeconds / 86400)} dias`;
-  
-  return formatDate(dateString);
-}
 
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return "€ 0,00";
@@ -65,57 +38,91 @@ function calculateABCCategory(totalRevenue: number): ABCCategory {
   return 'C';
 }
 
-export function CommercialHistorySection({ contact, onFieldChange }: CommercialHistorySectionProps) {
-  const lastUpdated = contact.commercial_history_updated_at;
-  const isUpdatingRef = useRef(false);
-  const onFieldChangeRef = useRef(onFieldChange);
-  onFieldChangeRef.current = onFieldChange;
+function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) return "—";
+  return new Date(dateString).toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
-  // Calculate total revenue from yearly sales
+export function CommercialHistorySection({ contact }: CommercialHistorySectionProps) {
+  // Fetch invoices for this contact (and their company)
+  const { data: contactInvoices = [] } = useInvoices({ contact_id: contact.id });
+  const { data: companyInvoices = [] } = useInvoices({ company_id: contact.company_id || undefined });
+  
+  // Combine and deduplicate invoices
+  const allInvoices = useMemo(() => {
+    const invoiceMap = new Map();
+    [...contactInvoices, ...companyInvoices].forEach(inv => {
+      if (!invoiceMap.has(inv.id)) {
+        invoiceMap.set(inv.id, inv);
+      }
+    });
+    return Array.from(invoiceMap.values());
+  }, [contactInvoices, companyInvoices]);
+
+  // Filter to only count sent, paid, overdue invoices
+  const countableInvoices = useMemo(() => {
+    return allInvoices.filter(inv => 
+      inv.status === 'sent' || inv.status === 'paid' || inv.status === 'overdue'
+    );
+  }, [allInvoices]);
+
+  // Calculate sales by year from invoices
+  const salesByYear = useMemo(() => {
+    const sales: Record<number, number> = {};
+    
+    countableInvoices.forEach(inv => {
+      if (inv.issue_date && inv.total) {
+        const year = new Date(inv.issue_date).getFullYear();
+        sales[year] = (sales[year] || 0) + inv.total;
+      }
+    });
+    
+    return sales;
+  }, [countableInvoices]);
+
+  // Calculate totals
   const calculatedTotalRevenue = useMemo(() => {
-    const sales2023 = contact.sales_2023 || 0;
-    const sales2024 = contact.sales_2024 || 0;
-    const sales2025 = contact.sales_2025 || 0;
-    const sales2026 = contact.sales_2026 || 0;
-    return sales2023 + sales2024 + sales2025 + sales2026;
-  }, [contact.sales_2023, contact.sales_2024, contact.sales_2025, contact.sales_2026]);
+    return Object.values(salesByYear).reduce((sum, val) => sum + val, 0);
+  }, [salesByYear]);
+
+  const invoiceCount = countableInvoices.length;
+
+  // Get last purchase date
+  const lastPurchaseDate = useMemo(() => {
+    const paidInvoices = allInvoices
+      .filter(inv => inv.status === 'paid' && inv.paid_at)
+      .sort((a, b) => new Date(b.paid_at!).getTime() - new Date(a.paid_at!).getTime());
+    
+    if (paidInvoices.length > 0) {
+      return paidInvoices[0].paid_at;
+    }
+    
+    // Fallback to last sent invoice date
+    const sentInvoices = countableInvoices
+      .filter(inv => inv.issue_date)
+      .sort((a, b) => new Date(b.issue_date!).getTime() - new Date(a.issue_date!).getTime());
+    
+    return sentInvoices[0]?.issue_date || null;
+  }, [allInvoices, countableInvoices]);
+
+  // Calculate average ticket
+  const averageTicket = useMemo(() => {
+    if (invoiceCount === 0) return 0;
+    return calculatedTotalRevenue / invoiceCount;
+  }, [calculatedTotalRevenue, invoiceCount]);
 
   // Calculate ABC category based on total revenue
-  const calculatedABCCategory = useMemo(() => {
+  const abcCategory = useMemo(() => {
     return calculateABCCategory(calculatedTotalRevenue);
   }, [calculatedTotalRevenue]);
 
-  // Auto-update total revenue and ABC category when sales change
-  useEffect(() => {
-    if (isUpdatingRef.current) return;
-    
-    const currentTotal = contact.total_revenue || 0;
-    const currentABC = contact.abc_category;
-    
-    const needsRevenueUpdate = Math.abs(currentTotal - calculatedTotalRevenue) > 0.01;
-    const needsABCUpdate = currentABC !== calculatedABCCategory;
-    
-    if (needsRevenueUpdate || needsABCUpdate) {
-      isUpdatingRef.current = true;
-      
-      const updates = async () => {
-        if (needsRevenueUpdate) {
-          await onFieldChangeRef.current('total_revenue', calculatedTotalRevenue);
-        }
-        if (needsABCUpdate) {
-          await onFieldChangeRef.current('abc_category', calculatedABCCategory);
-        }
-        // Reset after a small delay to allow state to settle
-        setTimeout(() => {
-          isUpdatingRef.current = false;
-        }, 500);
-      };
-      
-      updates();
-    }
-  }, [calculatedTotalRevenue, calculatedABCCategory, contact.total_revenue, contact.abc_category]);
-
-  const abcCategory = (contact.abc_category || calculatedABCCategory) as ABCCategory;
+  // Get current year for display
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
@@ -138,12 +145,10 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
             )}
           </div>
         </div>
-        {lastUpdated && (
-          <CardDescription className="flex items-center gap-1.5 mt-1">
-            <Clock className="w-3 h-3" />
-            Atualizado {getTimeAgo(lastUpdated)}
-          </CardDescription>
-        )}
+        <CardDescription className="flex items-center gap-1.5 mt-1">
+          <FileText className="w-3 h-3" />
+          {invoiceCount} fatura{invoiceCount !== 1 ? 's' : ''} registada{invoiceCount !== 1 ? 's' : ''}
+        </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="divide-y divide-border/50">
@@ -166,46 +171,23 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
             </div>
           </div>
           
-          {/* Editable Year Sales */}
-          <InlineEditableField
-            label="Vendas 2026"
-            fieldId="sales_2026"
-            fieldType="currency"
-            value={contact.sales_2026}
-            onChange={(val) => onFieldChange("sales_2026", val)}
-            icon={<BarChart3 className="w-4 h-4" />}
-            placeholder="0.00"
-          />
-          
-          <InlineEditableField
-            label="Vendas 2025"
-            fieldId="sales_2025"
-            fieldType="currency"
-            value={contact.sales_2025}
-            onChange={(val) => onFieldChange("sales_2025", val)}
-            icon={<BarChart3 className="w-4 h-4" />}
-            placeholder="0.00"
-          />
-          
-          <InlineEditableField
-            label="Vendas 2024"
-            fieldId="sales_2024"
-            fieldType="currency"
-            value={contact.sales_2024}
-            onChange={(val) => onFieldChange("sales_2024", val)}
-            icon={<BarChart3 className="w-4 h-4" />}
-            placeholder="0.00"
-          />
-          
-          <InlineEditableField
-            label="Vendas 2023"
-            fieldId="sales_2023"
-            fieldType="currency"
-            value={contact.sales_2023}
-            onChange={(val) => onFieldChange("sales_2023", val)}
-            icon={<BarChart3 className="w-4 h-4" />}
-            placeholder="0.00"
-          />
+          {/* Year Sales - Calculated from invoices */}
+          {years.map(year => (
+            <div key={year} className="flex items-start py-3 border-b border-border/50 group">
+              <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Vendas {year}
+              </div>
+              <div className="flex-1 text-sm">
+                <span className={cn(
+                  "font-medium",
+                  (salesByYear[year] || 0) > 0 ? "text-emerald-600" : "text-muted-foreground"
+                )}>
+                  {formatCurrency(salesByYear[year] || 0)}
+                </span>
+              </div>
+            </div>
+          ))}
           
           {/* Total Revenue - Calculated automatically */}
           <div className="flex items-start py-3 border-b border-border/50 group">
@@ -224,26 +206,31 @@ export function CommercialHistorySection({ contact, onFieldChange }: CommercialH
             </div>
           </div>
           
-          {/* Average Ticket - Manual */}
-          <InlineEditableField
-            label="Ticket Médio"
-            fieldId="average_ticket"
-            fieldType="currency"
-            value={contact.average_ticket}
-            onChange={(val) => onFieldChange("average_ticket", val)}
-            icon={<ShoppingCart className="w-4 h-4" />}
-            placeholder="0.00"
-          />
+          {/* Average Ticket - Calculated */}
+          <div className="flex items-start py-3 border-b border-border/50 group">
+            <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4" />
+              Ticket Médio
+            </div>
+            <div className="flex-1 text-sm">
+              <span className="font-medium">
+                {formatCurrency(averageTicket)}
+              </span>
+            </div>
+          </div>
           
           {/* Last Purchase Date */}
-          <InlineEditableField
-            label="Última Compra"
-            fieldId="last_purchase_date"
-            fieldType="date"
-            value={contact.last_purchase_date}
-            onChange={(val) => onFieldChange("last_purchase_date", val)}
-            icon={<Calendar className="w-4 h-4" />}
-          />
+          <div className="flex items-start py-3 border-b border-border/50 group">
+            <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Última Compra
+            </div>
+            <div className="flex-1 text-sm">
+              <span className={lastPurchaseDate ? "font-medium" : "text-muted-foreground"}>
+                {formatDate(lastPurchaseDate)}
+              </span>
+            </div>
+          </div>
         </div>
         
         {/* ABC Thresholds Info */}
