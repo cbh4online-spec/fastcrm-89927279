@@ -71,6 +71,23 @@ export function useCustomerJourney({ contactId, companyId }: UseCustomerJourneyP
       }
 
       const { data: invoices } = await invoicesQuery;
+      
+      // Fetch invoice items to count products sold via invoices
+      let invoiceItemsCount = 0;
+      if (invoices && invoices.length > 0) {
+        const invoiceIds = invoices
+          .filter(i => i.status === 'sent' || i.status === 'paid' || i.status === 'overdue')
+          .map(i => i.id);
+        
+        if (invoiceIds.length > 0) {
+          const { count } = await supabase
+            .from("invoice_items")
+            .select("id", { count: 'exact', head: true })
+            .in("invoice_id", invoiceIds);
+          
+          invoiceItemsCount = count || 0;
+        }
+      }
 
       // Fetch proposals via opportunities linked to this entity
       let proposalsCount = 0;
@@ -119,10 +136,13 @@ export function useCustomerJourney({ contactId, companyId }: UseCustomerJourneyP
         }
       }
 
-      // Calculate metrics
-      const activeProducts = products?.filter(p => p.status === 'ativo' || p.status === 'em_consumo').length || 0;
+      // Calculate metrics - include products from invoices
+      const acquiredProductsCount = products?.filter(p => p.status === 'ativo' || p.status === 'em_consumo').length || 0;
       const completedProducts = products?.filter(p => p.status === 'concluido').length || 0;
       const totalConsumption = logs?.reduce((sum, log) => sum + log.quantity, 0) || 0;
+      
+      // Active products = from contact_products + from invoices
+      const activeProducts = acquiredProductsCount + invoiceItemsCount;
 
       // Invoice metrics
       const paidInvoices = invoices?.filter(i => i.status === 'paid').length || 0;
@@ -151,11 +171,12 @@ export function useCustomerJourney({ contactId, companyId }: UseCustomerJourneyP
         averageConsumptionFrequency = Math.round(totalDays / (logs.length - 1));
       }
 
-      // Calculate journey stage - now considering invoices and proposals
+      // Calculate journey stage - now considering invoices, invoice items, and proposals
       const stage = calculateJourneyStage({
         products: products || [],
         logs: logs || [],
         invoices: invoices || [],
+        invoiceItemsCount,
         proposalsCount,
         acceptedProposals,
         daysSinceLastInteraction,
@@ -208,6 +229,7 @@ interface CalculateJourneyStageParams {
   }>;
   logs: Array<{ consumption_date: string; quantity: number }>;
   invoices: Array<{ id: string; status: string | null; total: number | null }>;
+  invoiceItemsCount: number;
   proposalsCount: number;
   acceptedProposals: number;
   daysSinceLastInteraction: number | null;
@@ -215,17 +237,20 @@ interface CalculateJourneyStageParams {
 }
 
 function calculateJourneyStage(params: CalculateJourneyStageParams): JourneyStage {
-  const { products, logs, invoices, proposalsCount, acceptedProposals, daysSinceLastInteraction, averageConsumptionFrequency } = params;
+  const { products, logs, invoices, invoiceItemsCount, proposalsCount, acceptedProposals, daysSinceLastInteraction, averageConsumptionFrequency } = params;
 
   // Check if client has paid invoices = customer relationship exists
   const paidInvoices = invoices.filter(i => i.status === 'paid');
   const pendingInvoices = invoices.filter(i => i.status === 'sent' || i.status === 'draft' || i.status === 'overdue');
+  
+  // Has products via invoices (sent, paid, overdue) = already a customer
+  const hasInvoiceProducts = invoiceItemsCount > 0;
 
   // Has paid invoices = at least in consumption or completed
   if (paidInvoices.length > 0) {
-    if (products.length > 0) {
+    if (products.length > 0 || hasInvoiceProducts) {
       const activeProducts = products.filter(p => p.status === 'ativo' || p.status === 'em_consumo');
-      if (activeProducts.length > 0) {
+      if (activeProducts.length > 0 || hasInvoiceProducts) {
         return 'em_consumo';
       }
       return 'concluido';
@@ -237,7 +262,12 @@ function calculateJourneyStage(params: CalculateJourneyStageParams): JourneyStag
     return 'pronto_upsell';
   }
 
-  // Has pending invoices = in onboarding (waiting for payment/start)
+  // Has pending invoices with products = in onboarding (waiting for payment/start)
+  if (pendingInvoices.length > 0 && hasInvoiceProducts) {
+    return 'em_onboarding';
+  }
+  
+  // Has pending invoices without products = just new with invoice
   if (pendingInvoices.length > 0) {
     return 'em_onboarding';
   }
@@ -253,7 +283,7 @@ function calculateJourneyStage(params: CalculateJourneyStageParams): JourneyStag
   }
 
   // Original product-based logic
-  if (products.length === 0) {
+  if (products.length === 0 && !hasInvoiceProducts) {
     return 'novo';
   }
 
