@@ -10884,6 +10884,44 @@ export type Database = {
           },
         ]
       }
+      workspace_layout_config: {
+        Row: {
+          created_at: string
+          entity_type: string
+          id: string
+          section_order: string[] | null
+          updated_at: string
+          visible_sections: string[]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          id?: string
+          section_order?: string[] | null
+          updated_at?: string
+          visible_sections?: string[]
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          id?: string
+          section_order?: string[] | null
+          updated_at?: string
+          visible_sections?: string[]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_layout_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           created_at: string
