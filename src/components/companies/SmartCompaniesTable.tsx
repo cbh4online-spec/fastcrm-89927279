@@ -151,8 +151,13 @@ export function SmartCompaniesTable() {
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
   
-  // Column visibility state with persistence
-  const [visibleColumns, setVisibleColumns] = useColumnPreferences("companies-table-columns", COMPANY_COLUMNS);
+  // Column visibility and order state with persistence
+  const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences("companies-table-columns", COMPANY_COLUMNS);
+  
+  // Get ordered visible columns for rendering
+  const orderedVisibleColumns = COMPANY_COLUMNS
+    .filter(col => visibleColumns.has(col.id))
+    .sort((a, b) => columnOrder.indexOf(a.id) - columnOrder.indexOf(b.id));
 
   const { data: companies, isLoading, refetch } = useSmartCompanies(filters);
   const { deleteCompany } = useCompanies();
@@ -326,7 +331,9 @@ export function SmartCompaniesTable() {
               <ColumnSelector
                 columns={COMPANY_COLUMNS}
                 visibleColumns={visibleColumns}
+                columnOrder={columnOrder}
                 onVisibleColumnsChange={setVisibleColumns}
+                onColumnOrderChange={setColumnOrder}
               />
               <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
                 <RefreshCw className="w-4 h-4" />
@@ -365,57 +372,22 @@ export function SmartCompaniesTable() {
                     onCheckedChange={toggleSelectAll} 
                   />
                 </TableHead>
-                {visibleColumns.has("name") && <TableHead className="min-w-[180px]">Empresa</TableHead>}
-                {visibleColumns.has("industry") && <TableHead>Indústria</TableHead>}
-                {visibleColumns.has("source") && <TableHead>Origem</TableHead>}
-                {visibleColumns.has("city") && <TableHead>Cidade</TableHead>}
-                {visibleColumns.has("size") && <TableHead>Dimensão</TableHead>}
-                {visibleColumns.has("phone") && <TableHead>Telefone</TableHead>}
-                {visibleColumns.has("email") && <TableHead>Email</TableHead>}
-                {visibleColumns.has("website") && <TableHead>Website</TableHead>}
-                {visibleColumns.has("temperature") && (
-                  <TableHead>
-                    <span className="flex items-center gap-1">
-                      Temperatura
-                      <span className="text-[10px] text-muted-foreground">IA</span>
-                    </span>
-                  </TableHead>
-                )}
-                {visibleColumns.has("score") && (
-                  <TableHead>
-                    <span className="flex items-center gap-1">
-                      Score
-                      <span className="text-[10px] text-muted-foreground">IA</span>
-                    </span>
-                  </TableHead>
-                )}
-                {visibleColumns.has("type") && <TableHead>Tipo</TableHead>}
-                {visibleColumns.has("next_action") && (
-                  <TableHead className="min-w-[150px]">
-                    <span className="flex items-center gap-1">
-                      Próxima Ação
-                      <span className="text-[10px] text-muted-foreground">IA</span>
-                    </span>
-                  </TableHead>
-                )}
-                {visibleColumns.has("sla") && <TableHead>SLA</TableHead>}
-                {visibleColumns.has("contacts_count") && <TableHead>Contactos</TableHead>}
-                {visibleColumns.has("opportunities_count") && <TableHead>Oportunidades</TableHead>}
-                {visibleColumns.has("estimated_value") && <TableHead>Potencial €</TableHead>}
-                {visibleColumns.has("conversion_prob") && <TableHead>Prob. %</TableHead>}
-                {visibleColumns.has("employee_count") && <TableHead>Funcionários</TableHead>}
-                {visibleColumns.has("annual_revenue") && <TableHead>Faturação</TableHead>}
-                {visibleColumns.has("automation") && <TableHead>Automação</TableHead>}
-                {visibleColumns.has("google_rating") && <TableHead>Rating</TableHead>}
-                {visibleColumns.has("social_presence") && <TableHead>Redes Sociais</TableHead>}
-                {visibleColumns.has("insight") && (
-                  <TableHead className="min-w-[180px]">
-                    <span className="flex items-center gap-1">
-                      Insight
-                      <span className="text-[10px] text-muted-foreground">IA</span>
-                    </span>
-                  </TableHead>
-                )}
+                {orderedVisibleColumns.map(col => {
+                  const isAI = col.category === "ai";
+                  const minWidth = col.id === "name" ? "min-w-[180px]" : 
+                                  col.id === "next_action" ? "min-w-[150px]" :
+                                  col.id === "insight" ? "min-w-[180px]" : "";
+                  return (
+                    <TableHead key={col.id} className={minWidth}>
+                      {isAI ? (
+                        <span className="flex items-center gap-1">
+                          {col.label}
+                          <span className="text-[10px] text-muted-foreground">IA</span>
+                        </span>
+                      ) : col.label}
+                    </TableHead>
+                  );
+                })}
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -453,7 +425,7 @@ export function SmartCompaniesTable() {
                     onToggleSelect={() => toggleSelect(c.id)} 
                     onAnalyze={() => handleAnalyze(c.id)} 
                     isAnalyzing={analyzingId === c.id} 
-                    visibleColumns={visibleColumns}
+                    columnOrder={orderedVisibleColumns.map(col => col.id)}
                   />
                 ))
               )}
