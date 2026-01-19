@@ -36,6 +36,8 @@ import {
   type InvoiceStatus,
 } from "@/hooks/useInvoices";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
+import { InvoiceSettingsTab } from "@/components/invoices/InvoiceSettingsTab";
+import { RecurringInvoicesTab } from "@/components/invoices/RecurringInvoicesTab";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
@@ -291,52 +293,59 @@ export default function Invoices() {
             ]}
           />
 
-          {/* KPI Cards */}
-          <div className="grid gap-4 md:grid-cols-4 mb-4">
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Rascunho</p>
-                  <p className="text-2xl font-bold">{stats.totalDraft}</p>
-                  <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountDraft)}</p>
-                </div>
-                <FileText className="h-8 w-8 text-muted-foreground/50" />
-              </div>
-            </Card>
+          {/* Render content based on active tab */}
+          {activeTab === "settings" ? (
+            <InvoiceSettingsTab />
+          ) : activeTab === "recurring" ? (
+            <RecurringInvoicesTab />
+          ) : (
+            <>
+              {/* KPI Cards */}
+              <div className="grid gap-4 md:grid-cols-4 mb-4">
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Rascunho</p>
+                      <p className="text-2xl font-bold">{stats.totalDraft}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountDraft)}</p>
+                    </div>
+                    <FileText className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
+                </Card>
 
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Enviadas</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.totalSent}</p>
-                  <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountSent)}</p>
-                </div>
-                <Clock className="h-8 w-8 text-blue-500/50" />
-              </div>
-            </Card>
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Enviadas</p>
+                      <p className="text-2xl font-bold text-blue-600">{stats.totalSent}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountSent)}</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-blue-500/50" />
+                  </div>
+                </Card>
 
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Pagas</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.totalPaid}</p>
-                  <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountPaid)}</p>
-                </div>
-                <DollarSign className="h-8 w-8 text-green-500/50" />
-              </div>
-            </Card>
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Pagas</p>
+                      <p className="text-2xl font-bold text-green-600">{stats.totalPaid}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountPaid)}</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-green-500/50" />
+                  </div>
+                </Card>
 
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Vencidas</p>
-                  <p className="text-2xl font-bold text-destructive">{stats.totalOverdue}</p>
-                  <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountOverdue)}</p>
-                </div>
-                <AlertTriangle className="h-8 w-8 text-destructive/50" />
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Vencidas</p>
+                      <p className="text-2xl font-bold text-destructive">{stats.totalOverdue}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountOverdue)}</p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-destructive/50" />
+                  </div>
+                </Card>
               </div>
-            </Card>
-          </div>
 
           {/* Toolbar */}
           <Toolbar
@@ -573,6 +582,8 @@ export default function Invoices() {
                 </Button>
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
       </div>
