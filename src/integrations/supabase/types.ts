@@ -14,6 +14,131 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_profile_analytics: {
+        Row: {
+          activity_profile_id: string
+          id: string
+          metric_data: Json | null
+          metric_type: string
+          recorded_at: string
+          workspace_id: string
+        }
+        Insert: {
+          activity_profile_id: string
+          id?: string
+          metric_data?: Json | null
+          metric_type: string
+          recorded_at?: string
+          workspace_id: string
+        }
+        Update: {
+          activity_profile_id?: string
+          id?: string
+          metric_data?: Json | null
+          metric_type?: string
+          recorded_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_profile_analytics_activity_profile_id_fkey"
+            columns: ["activity_profile_id"]
+            isOneToOne: false
+            referencedRelation: "activity_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_profile_analytics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_profiles: {
+        Row: {
+          active_modules: Json | null
+          ai_context: Json | null
+          ai_suggestions_enabled: boolean | null
+          automation_triggers: Json | null
+          code: string
+          color: string | null
+          created_at: string
+          created_by: string | null
+          custom_fields_config: Json | null
+          description: string | null
+          hidden_fields: Json | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          kpi_config: Json | null
+          module_settings: Json | null
+          name: string
+          profile_type: Database["public"]["Enums"]["activity_profile_type"]
+          updated_at: string
+          visible_fields: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          active_modules?: Json | null
+          ai_context?: Json | null
+          ai_suggestions_enabled?: boolean | null
+          automation_triggers?: Json | null
+          code: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_fields_config?: Json | null
+          description?: string | null
+          hidden_fields?: Json | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          kpi_config?: Json | null
+          module_settings?: Json | null
+          name: string
+          profile_type?: Database["public"]["Enums"]["activity_profile_type"]
+          updated_at?: string
+          visible_fields?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          active_modules?: Json | null
+          ai_context?: Json | null
+          ai_suggestions_enabled?: boolean | null
+          automation_triggers?: Json | null
+          code?: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_fields_config?: Json | null
+          description?: string | null
+          hidden_fields?: Json | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          kpi_config?: Json | null
+          module_settings?: Json | null
+          name?: string
+          profile_type?: Database["public"]["Enums"]["activity_profile_type"]
+          updated_at?: string
+          visible_fields?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_audit_logs: {
         Row: {
           action_type: string
@@ -1440,6 +1565,8 @@ export type Database = {
       }
       companies: {
         Row: {
+          activity_profile_id: string | null
+          activity_profile_override: Json | null
           address: string | null
           ai_analyzed_at: string | null
           ai_company_type: string | null
@@ -1504,6 +1631,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          activity_profile_id?: string | null
+          activity_profile_override?: Json | null
           address?: string | null
           ai_analyzed_at?: string | null
           ai_company_type?: string | null
@@ -1568,6 +1697,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          activity_profile_id?: string | null
+          activity_profile_override?: Json | null
           address?: string | null
           ai_analyzed_at?: string | null
           ai_company_type?: string | null
@@ -1632,6 +1763,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "companies_activity_profile_id_fkey"
+            columns: ["activity_profile_id"]
+            isOneToOne: false
+            referencedRelation: "activity_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "companies_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -2350,6 +2488,8 @@ export type Database = {
       contacts: {
         Row: {
           abc_category: string | null
+          activity_profile_id: string | null
+          activity_profile_override: Json | null
           activity_start_date: string | null
           address: string | null
           ai_analyzed_at: string | null
@@ -2416,6 +2556,8 @@ export type Database = {
         }
         Insert: {
           abc_category?: string | null
+          activity_profile_id?: string | null
+          activity_profile_override?: Json | null
           activity_start_date?: string | null
           address?: string | null
           ai_analyzed_at?: string | null
@@ -2482,6 +2624,8 @@ export type Database = {
         }
         Update: {
           abc_category?: string | null
+          activity_profile_id?: string | null
+          activity_profile_override?: Json | null
           activity_start_date?: string | null
           address?: string | null
           ai_analyzed_at?: string | null
@@ -2547,6 +2691,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contacts_activity_profile_id_fkey"
+            columns: ["activity_profile_id"]
+            isOneToOne: false
+            referencedRelation: "activity_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contacts_company_id_fkey"
             columns: ["company_id"]
@@ -3531,6 +3682,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "email_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_profile_data: {
+        Row: {
+          activity_profile_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_values: Json | null
+          id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          activity_profile_id: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          field_values?: Json | null
+          id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          activity_profile_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          field_values?: Json | null
+          id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_profile_data_activity_profile_id_fkey"
+            columns: ["activity_profile_id"]
+            isOneToOne: false
+            referencedRelation: "activity_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_profile_data_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -11338,6 +11537,7 @@ export type Database = {
           company_status: string | null
           county: string | null
           created_at: string
+          default_activity_profile_id: string | null
           facebook_url: string | null
           fax: string | null
           founding_date: string | null
@@ -11372,6 +11572,7 @@ export type Database = {
           company_status?: string | null
           county?: string | null
           created_at?: string
+          default_activity_profile_id?: string | null
           facebook_url?: string | null
           fax?: string | null
           founding_date?: string | null
@@ -11406,6 +11607,7 @@ export type Database = {
           company_status?: string | null
           county?: string | null
           created_at?: string
+          default_activity_profile_id?: string | null
           facebook_url?: string | null
           fax?: string | null
           founding_date?: string | null
@@ -11428,6 +11630,13 @@ export type Database = {
           website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "workspaces_default_activity_profile_id_fkey"
+            columns: ["default_activity_profile_id"]
+            isOneToOne: false
+            referencedRelation: "activity_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workspaces_managed_by_workspace_id_fkey"
             columns: ["managed_by_workspace_id"]
@@ -11652,6 +11861,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      initialize_workspace_activity_profiles: {
+        Args: { p_created_by?: string; p_workspace_id: string }
+        Returns: undefined
+      }
       is_calendar_owner: { Args: { cal_id: string }; Returns: boolean }
       is_feature_enabled: {
         Args: { p_feature_key: string; p_workspace_id: string }
@@ -11696,6 +11909,15 @@ export type Database = {
       }
     }
     Enums: {
+      activity_profile_type:
+        | "formacao_educacao"
+        | "produtos"
+        | "servicos_financeiros"
+        | "marketing_digital"
+        | "avencas_contratos"
+        | "servicos_profissionais"
+        | "generico"
+        | "custom"
       app_role: "super_admin" | "admin" | "user"
       automation_action_type:
         | "create_task"
@@ -11914,6 +12136,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_profile_type: [
+        "formacao_educacao",
+        "produtos",
+        "servicos_financeiros",
+        "marketing_digital",
+        "avencas_contratos",
+        "servicos_profissionais",
+        "generico",
+        "custom",
+      ],
       app_role: ["super_admin", "admin", "user"],
       automation_action_type: [
         "create_task",
