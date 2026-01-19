@@ -20,6 +20,7 @@ export interface SmartCompany {
   industry: string | null;
   size: string | null;
   address: string | null;
+  city: string | null;
   notes: string | null;
   tags: string[] | null;
   source: string | null;
@@ -41,6 +42,14 @@ export interface SmartCompany {
   employee_count: number | null;
   hoursSinceLastContact: number | null;
   slaBreach: boolean;
+  // Relations
+  contactsCount: number;
+  opportunitiesCount: number;
+  opportunitiesValue: number;
+  linkedin_url: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  google_rating: number | null;
 }
 
 export interface SmartCompaniesFilters {
@@ -72,7 +81,11 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters) {
 
       let query = workspaceClient
         .from("companies")
-        .select("*")
+        .select(`
+          *,
+          contacts:contacts(count),
+          opportunities:opportunities(count)
+        `)
         .eq("workspace_id", currentWorkspace.id)
         .order("company_score", { ascending: false });
 
@@ -99,6 +112,10 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters) {
       let companies: SmartCompany[] = (data || []).map((c: any) => {
         const lastContact = c.last_contact_at ? new Date(c.last_contact_at) : null;
         const hoursSinceLastContact = lastContact ? differenceInHours(now, lastContact) : null;
+        
+        // Extract counts from relations
+        const contactsCount = c.contacts?.[0]?.count || 0;
+        const opportunitiesCount = c.opportunities?.[0]?.count || 0;
 
         return {
           ...c,
@@ -111,6 +128,13 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters) {
           employee_count: c.employee_count || null,
           hoursSinceLastContact,
           slaBreach: hoursSinceLastContact !== null && hoursSinceLastContact > 48,
+          contactsCount,
+          opportunitiesCount,
+          opportunitiesValue: 0, // Would need separate query
+          linkedin_url: c.linkedin_url || null,
+          facebook_url: c.facebook_url || null,
+          instagram_url: c.instagram_url || null,
+          google_rating: c.google_rating || null,
         } as SmartCompany;
       });
 

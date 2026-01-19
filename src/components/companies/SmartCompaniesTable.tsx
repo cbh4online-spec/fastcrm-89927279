@@ -6,6 +6,7 @@ import { CreateCompanyDialog } from "./CreateCompanyDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,6 +23,41 @@ import { TableSkeleton, SearchEmptyState, EmptyState } from "@/components/design
 import { toast } from "sonner";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+// Column configurations
+const COMPANY_COLUMNS: ColumnConfig[] = [
+  // Basic
+  { id: "name", label: "Empresa", category: "basic", defaultVisible: true },
+  { id: "industry", label: "Indústria", category: "basic", defaultVisible: true },
+  { id: "source", label: "Origem", category: "basic", defaultVisible: true },
+  { id: "city", label: "Cidade", category: "basic", defaultVisible: false },
+  { id: "size", label: "Dimensão", category: "basic", defaultVisible: false },
+  { id: "phone", label: "Telefone", category: "basic", defaultVisible: false },
+  { id: "email", label: "Email", category: "basic", defaultVisible: false },
+  { id: "website", label: "Website", category: "basic", defaultVisible: false },
+  
+  // AI
+  { id: "temperature", label: "Temperatura", category: "ai", defaultVisible: true, description: "Classificação IA" },
+  { id: "score", label: "Score", category: "ai", defaultVisible: true, description: "Pontuação 0-100" },
+  { id: "type", label: "Tipo", category: "ai", defaultVisible: true, description: "Cliente/Prospect/etc" },
+  { id: "next_action", label: "Próxima Ação", category: "ai", defaultVisible: true },
+  { id: "insight", label: "Insight", category: "ai", defaultVisible: false },
+  
+  // Business
+  { id: "sla", label: "SLA", category: "business", defaultVisible: true, description: "Tempo desde último contacto" },
+  { id: "estimated_value", label: "Potencial €", category: "business", defaultVisible: false },
+  { id: "conversion_prob", label: "Prob. %", category: "business", defaultVisible: false },
+  { id: "employee_count", label: "Funcionários", category: "business", defaultVisible: false },
+  { id: "annual_revenue", label: "Faturação", category: "business", defaultVisible: false },
+  { id: "automation", label: "Automação", category: "business", defaultVisible: false },
+  { id: "google_rating", label: "Rating Google", category: "business", defaultVisible: false },
+  
+  // Relations
+  { id: "contacts_count", label: "Contactos", category: "relations", defaultVisible: true, description: "Nº de contactos associados" },
+  { id: "opportunities_count", label: "Oportunidades", category: "relations", defaultVisible: true, description: "Nº de oportunidades" },
+  { id: "social_presence", label: "Redes Sociais", category: "relations", defaultVisible: false },
+];
+
 
 // Filter groups for sidebar
 const filterGroups: FilterGroup[] = [
@@ -106,7 +142,6 @@ export function SmartCompaniesTable() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -115,6 +150,9 @@ export function SmartCompaniesTable() {
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
+  
+  // Column visibility state with persistence
+  const [visibleColumns, setVisibleColumns] = useColumnPreferences("companies-table-columns", COMPANY_COLUMNS);
 
   const { data: companies, isLoading, refetch } = useSmartCompanies(filters);
   const { deleteCompany } = useCompanies();
@@ -284,10 +322,17 @@ export function SmartCompaniesTable() {
             </Button>
           }
           rightActions={
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <ColumnSelector
+                columns={COMPANY_COLUMNS}
+                visibleColumns={visibleColumns}
+                onVisibleColumnsChange={setVisibleColumns}
+              />
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Atualizar
+              </Button>
+            </div>
           }
           className="mt-4"
         />
@@ -320,42 +365,51 @@ export function SmartCompaniesTable() {
                     onCheckedChange={toggleSelectAll} 
                   />
                 </TableHead>
-                <TableHead className="min-w-[180px]">Empresa</TableHead>
-                <TableHead>Indústria</TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead>
-                  <span className="flex items-center gap-1">
-                    Temperatura
-                    <span className="text-[10px] text-muted-foreground">IA</span>
-                  </span>
-                </TableHead>
-                <TableHead>
-                  <span className="flex items-center gap-1">
-                    Score
-                    <span className="text-[10px] text-muted-foreground">IA</span>
-                  </span>
-                </TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="min-w-[150px]">
-                  <span className="flex items-center gap-1">
-                    Próxima Ação
-                    <span className="text-[10px] text-muted-foreground">IA</span>
-                  </span>
-                </TableHead>
-                <TableHead>SLA</TableHead>
-                {showAdvanced && (
-                  <>
-                    <TableHead>Potencial €</TableHead>
-                    <TableHead>Prob. %</TableHead>
-                    <TableHead>Funcionários</TableHead>
-                    <TableHead>Automação</TableHead>
-                    <TableHead className="min-w-[180px]">
-                      <span className="flex items-center gap-1">
-                        Insight
-                        <span className="text-[10px] text-muted-foreground">IA</span>
-                      </span>
-                    </TableHead>
-                  </>
+                {visibleColumns.has("name") && <TableHead className="min-w-[180px]">Empresa</TableHead>}
+                {visibleColumns.has("industry") && <TableHead>Indústria</TableHead>}
+                {visibleColumns.has("source") && <TableHead>Origem</TableHead>}
+                {visibleColumns.has("city") && <TableHead>Cidade</TableHead>}
+                {visibleColumns.has("temperature") && (
+                  <TableHead>
+                    <span className="flex items-center gap-1">
+                      Temperatura
+                      <span className="text-[10px] text-muted-foreground">IA</span>
+                    </span>
+                  </TableHead>
+                )}
+                {visibleColumns.has("score") && (
+                  <TableHead>
+                    <span className="flex items-center gap-1">
+                      Score
+                      <span className="text-[10px] text-muted-foreground">IA</span>
+                    </span>
+                  </TableHead>
+                )}
+                {visibleColumns.has("type") && <TableHead>Tipo</TableHead>}
+                {visibleColumns.has("next_action") && (
+                  <TableHead className="min-w-[150px]">
+                    <span className="flex items-center gap-1">
+                      Próxima Ação
+                      <span className="text-[10px] text-muted-foreground">IA</span>
+                    </span>
+                  </TableHead>
+                )}
+                {visibleColumns.has("sla") && <TableHead>SLA</TableHead>}
+                {visibleColumns.has("contacts_count") && <TableHead>Contactos</TableHead>}
+                {visibleColumns.has("opportunities_count") && <TableHead>Oportunidades</TableHead>}
+                {visibleColumns.has("estimated_value") && <TableHead>Potencial €</TableHead>}
+                {visibleColumns.has("conversion_prob") && <TableHead>Prob. %</TableHead>}
+                {visibleColumns.has("employee_count") && <TableHead>Funcionários</TableHead>}
+                {visibleColumns.has("annual_revenue") && <TableHead>Faturação</TableHead>}
+                {visibleColumns.has("automation") && <TableHead>Automação</TableHead>}
+                {visibleColumns.has("google_rating") && <TableHead>Rating</TableHead>}
+                {visibleColumns.has("insight") && (
+                  <TableHead className="min-w-[180px]">
+                    <span className="flex items-center gap-1">
+                      Insight
+                      <span className="text-[10px] text-muted-foreground">IA</span>
+                    </span>
+                  </TableHead>
                 )}
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
@@ -363,13 +417,13 @@ export function SmartCompaniesTable() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 15 : 10} className="p-0">
-                    <TableSkeleton rows={5} columns={showAdvanced ? 15 : 10} showHeader={false} />
+                  <TableCell colSpan={visibleColumns.size + 2} className="p-0">
+                    <TableSkeleton rows={5} columns={visibleColumns.size + 2} showHeader={false} />
                   </TableCell>
                 </TableRow>
               ) : !filteredCompanies.length ? (
                 <TableRow>
-                  <TableCell colSpan={showAdvanced ? 15 : 10} className="text-center py-8">
+                  <TableCell colSpan={visibleColumns.size + 2} className="text-center py-8">
                     {searchValue ? (
                       <SearchEmptyState query={searchValue} />
                     ) : (
@@ -394,7 +448,7 @@ export function SmartCompaniesTable() {
                     onToggleSelect={() => toggleSelect(c.id)} 
                     onAnalyze={() => handleAnalyze(c.id)} 
                     isAnalyzing={analyzingId === c.id} 
-                    showAdvanced={showAdvanced} 
+                    visibleColumns={visibleColumns}
                   />
                 ))
               )}
