@@ -42,6 +42,8 @@ export interface Company {
   credit_limit: number | null;
   preferred_payment_method: string | null;
   credit_active: boolean | null;
+  activity_profile_id: string | null;
+  profile_field_values?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -66,6 +68,8 @@ export interface CreateCompanyData {
   credit_limit?: number;
   preferred_payment_method?: string;
   credit_active?: boolean;
+  activity_profile_id?: string;
+  profile_field_values?: Record<string, unknown>;
 }
 
 export interface UpdateCompanyData extends Partial<CreateCompanyData> {

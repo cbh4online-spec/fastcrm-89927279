@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCompanies, Company } from "@/hooks/useCompanies";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,9 @@ import { CompanyInsightsPanel } from "./CompanyInsightsPanel";
 import { LinkContactDialog } from "./LinkContactDialog";
 import { SuggestedContact } from "@/hooks/useCompleteSocialAnalysis";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
+import { ActivityProfileBadge, ProfileCustomFieldsSection } from "@/components/activity-profile";
+import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
+import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -73,6 +76,8 @@ export function CompanyDetailWithSidebar() {
   const { companies, isLoading, updateCompany, deleteCompany } = useCompanies();
   const { isModuleInstalled } = useWorkspaceModules();
   const { data: counts } = useEntityCounts('company', id);
+  const { setCurrentEntityProfile } = useActivityProfileContext();
+  const { data: entityProfile } = useEntityActivityProfile('company', id);
   
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
   const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
@@ -83,6 +88,14 @@ export function CompanyDetailWithSidebar() {
   const company = companies.find(c => c.id === id);
   const showEnrichButton = isModuleInstalled('google-local-services');
   const generateSuggestions = useGenerateFieldSuggestions();
+
+  // Set entity profile when it loads
+  useEffect(() => {
+    if (entityProfile) {
+      setCurrentEntityProfile(entityProfile);
+    }
+    return () => setCurrentEntityProfile(null);
+  }, [entityProfile, setCurrentEntityProfile]);
 
   const handleFieldChange = useCallback(async (field: keyof Company, value: unknown) => {
     if (!company) return;
@@ -214,6 +227,21 @@ export function CompanyDetailWithSidebar() {
       case 'details':
         return (
           <div className="space-y-6">
+            {/* Profile-specific custom fields */}
+            {entityProfile && (
+              <ProfileCustomFieldsSection
+                entityType="company"
+                profileType={entityProfile.profile_type}
+                values={(company as any).profile_field_values || {}}
+                onFieldChange={async (fieldName, value) => {
+                  const currentValues = (company as any).profile_field_values || {};
+                  await handleFieldChange('profile_field_values' as keyof Company, {
+                    ...currentValues,
+                    [fieldName]: value,
+                  });
+                }}
+              />
+            )}
             <AddressSection company={company} onFieldChange={handleFieldChange} />
             <SocialMediaSection company={company} onFieldChange={handleFieldChange} />
             <TagsSection company={company} onFieldChange={handleFieldChange} />
@@ -263,6 +291,13 @@ export function CompanyDetailWithSidebar() {
                 <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30 font-medium">
                   Empresa
                 </Badge>
+                {/* Activity Profile Badge */}
+                <ActivityProfileBadge
+                  entityType="company"
+                  entityId={id!}
+                  currentProfile={entityProfile}
+                  currentProfileId={company.activity_profile_id}
+                />
                 {company.industry && (
                   <Badge variant="secondary" className="font-normal">{company.industry}</Badge>
                 )}

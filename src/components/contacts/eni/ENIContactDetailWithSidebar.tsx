@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useContacts } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,9 @@ import { EntitySidebarMenu } from "@/components/entity/EntitySidebarMenu";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";
+import { ActivityProfileBadge, ProfileCustomFieldsSection } from "@/components/activity-profile";
+import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
+import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -58,12 +61,22 @@ export function ENIContactDetailWithSidebar() {
   const { contacts, isLoading, updateContact, deleteContact } = useContacts();
   const analyzeContact = useAnalyzeContact();
   const { data: counts } = useEntityCounts('contact', id);
+  const { setCurrentEntityProfile } = useActivityProfileContext();
+  const { data: entityProfile } = useEntityActivityProfile('contact', id);
   
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   
   const contact = contacts.find(c => c.id === id) as unknown as ENIContact | undefined;
   const { role } = useContactPermissions();
+
+  // Set entity profile when it loads
+  useEffect(() => {
+    if (entityProfile) {
+      setCurrentEntityProfile(entityProfile);
+    }
+    return () => setCurrentEntityProfile(null);
+  }, [entityProfile, setCurrentEntityProfile]);
 
   const commercialHistoryFields = [
     'sales_2023', 'sales_2024', 'sales_2025', 'sales_2026',
@@ -201,6 +214,21 @@ export function ENIContactDetailWithSidebar() {
       case 'details':
         return (
           <div className="space-y-6">
+            {/* Profile-specific custom fields */}
+            {entityProfile && (
+              <ProfileCustomFieldsSection
+                entityType="contact"
+                profileType={entityProfile.profile_type}
+                values={(contact as any).profile_field_values || {}}
+                onFieldChange={async (fieldName, value) => {
+                  const currentValues = (contact as any).profile_field_values || {};
+                  await handleFieldChange('profile_field_values' as keyof ENIContact, {
+                    ...currentValues,
+                    [fieldName]: value,
+                  });
+                }}
+              />
+            )}
             <ProfessionalProfileSection contact={contact} onFieldChange={handleFieldChange} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <CommercialProfileSection contact={contact} onFieldChange={handleFieldChange} />
@@ -266,8 +294,15 @@ export function ENIContactDetailWithSidebar() {
                   entityType === 'empresa' && "bg-blue-500/10 text-blue-600 border-blue-500/30",
                   entityType === 'consumidor_final' && "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
                 )}>
-                  {ENTITY_TYPE_LABELS[entityType]}
+                {ENTITY_TYPE_LABELS[entityType]}
                 </Badge>
+                {/* Activity Profile Badge */}
+                <ActivityProfileBadge
+                  entityType="contact"
+                  entityId={id!}
+                  currentProfile={entityProfile}
+                  currentProfileId={(contact as any).activity_profile_id}
+                />
                 {contact.company && (
                   <Badge variant="secondary" className="gap-1 text-xs">
                     <Building2 className="w-3 h-3" />
