@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -71,6 +71,49 @@ export function CreateInvoiceDialog({
 
   const selectedCompany = companies?.find((c) => c.id === selectedCompanyId);
   const selectedContact = contacts?.find((c) => c.id === selectedContactId);
+
+  // Auto-fill fields when company is selected
+  useEffect(() => {
+    if (clientType === "company" && selectedCompany) {
+      // Auto-fill NIF/VAT
+      if (selectedCompany.tax_id) {
+        setClientTaxId(selectedCompany.tax_id);
+      }
+      
+      // Auto-fill address (use address field directly)
+      if (selectedCompany.address) {
+        setClientAddress(selectedCompany.address);
+      }
+      
+      // Auto-fill email
+      if (selectedCompany.email) {
+        setClientEmail(selectedCompany.email);
+      }
+    }
+  }, [selectedCompany, clientType]);
+
+  // Auto-fill fields when contact is selected
+  useEffect(() => {
+    if (clientType === "contact" && selectedContact) {
+      // Auto-fill email
+      if (selectedContact.email) {
+        setClientEmail(selectedContact.email);
+      }
+      
+      // Clear NIF when contact is selected (contacts typically don't have NIF)
+      setClientTaxId("");
+    }
+  }, [selectedContact, clientType]);
+
+  // Clear auto-filled fields when client type changes
+  useEffect(() => {
+    setClientTaxId("");
+    setClientAddress("");
+    setClientEmail("");
+    setSelectedCompanyId("");
+    setSelectedContactId("");
+    setClientName("");
+  }, [clientType]);
 
   const getClientInfo = () => {
     if (clientType === "company" && selectedCompany) {
