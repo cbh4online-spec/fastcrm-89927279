@@ -388,8 +388,8 @@ export function EnrichCompanyDialog({
                   </div>
                 </div>
 
-                <ScrollArea className="h-[350px] pr-4">
-                  <div className="space-y-3">
+                <ScrollArea className="h-[280px] pr-4">
+                  <div className="space-y-3 pb-2">
                     {suggestions.map((suggestion, index) => (
                       <div
                         key={suggestion.fieldKey}
