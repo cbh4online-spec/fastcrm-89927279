@@ -1596,6 +1596,54 @@ export type Database = {
           },
         ]
       }
+      company_enrichment_logs: {
+        Row: {
+          company_id: string
+          created_at: string
+          enriched_by: string
+          fields_applied: Json
+          fields_suggested: Json
+          id: string
+          source: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          enriched_by: string
+          fields_applied?: Json
+          fields_suggested?: Json
+          id?: string
+          source?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          enriched_by?: string
+          fields_applied?: Json
+          fields_suggested?: Json
+          id?: string
+          source?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_enrichment_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_enrichment_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumption_logs: {
         Row: {
           acquired_product_id: string
