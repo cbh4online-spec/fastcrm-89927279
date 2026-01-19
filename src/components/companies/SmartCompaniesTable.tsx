@@ -369,6 +369,10 @@ export function SmartCompaniesTable() {
                 {visibleColumns.has("industry") && <TableHead>Indústria</TableHead>}
                 {visibleColumns.has("source") && <TableHead>Origem</TableHead>}
                 {visibleColumns.has("city") && <TableHead>Cidade</TableHead>}
+                {visibleColumns.has("size") && <TableHead>Dimensão</TableHead>}
+                {visibleColumns.has("phone") && <TableHead>Telefone</TableHead>}
+                {visibleColumns.has("email") && <TableHead>Email</TableHead>}
+                {visibleColumns.has("website") && <TableHead>Website</TableHead>}
                 {visibleColumns.has("temperature") && (
                   <TableHead>
                     <span className="flex items-center gap-1">
@@ -403,6 +407,7 @@ export function SmartCompaniesTable() {
                 {visibleColumns.has("annual_revenue") && <TableHead>Faturação</TableHead>}
                 {visibleColumns.has("automation") && <TableHead>Automação</TableHead>}
                 {visibleColumns.has("google_rating") && <TableHead>Rating</TableHead>}
+                {visibleColumns.has("social_presence") && <TableHead>Redes Sociais</TableHead>}
                 {visibleColumns.has("insight") && (
                   <TableHead className="min-w-[180px]">
                     <span className="flex items-center gap-1">
