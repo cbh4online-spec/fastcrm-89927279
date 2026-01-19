@@ -11561,10 +11561,12 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
-      is_workspace_member: {
-        Args: { _user_id: string; _workspace_id: string }
-        Returns: boolean
-      }
+      is_workspace_member:
+        | {
+            Args: { _user_id: string; _workspace_id: string }
+            Returns: boolean
+          }
+        | { Args: { check_workspace_id: string }; Returns: boolean }
       log_admin_action: {
         Args: {
           p_action_type: string
