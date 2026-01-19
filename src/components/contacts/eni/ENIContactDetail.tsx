@@ -23,6 +23,7 @@ import { DocumentsSection } from "./sections/DocumentsSection";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
 import { CustomerJourneySection } from "@/components/customer-journey/CustomerJourneySection";
 import { AIJourneySuggestionsPanel } from "@/components/customer-journey/AIJourneySuggestionsPanel";
+import { EntitySocialMediaAnalysisSection } from "@/components/shared/EntitySocialMediaAnalysisSection";
 import { useAnalyzeContact } from "@/hooks/useSmartContacts";
 import { useContactPermissions } from "./useContactPermissions";
 import { NifLookupResult } from "@/hooks/useNifLookup";
@@ -301,7 +302,15 @@ export function ENIContactDetail() {
             <DocumentsSection contactId={id!} />
           </div>
 
-          <CommercialHistorySection 
+          {/* LinkedIn Analysis */}
+          <EntitySocialMediaAnalysisSection
+            entityType="contact"
+            entityId={id!}
+            entityName={contact.name}
+            linkedinUrl={(contact as any).linkedin_url}
+          />
+
+          <CommercialHistorySection
             contact={contact} 
             onFieldChange={handleFieldChange}
           />
