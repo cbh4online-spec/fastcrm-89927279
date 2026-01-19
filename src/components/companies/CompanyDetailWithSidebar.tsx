@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { NifLookupResult } from "@/hooks/useNifLookup";
+import { generateIndustrySummary } from "@/utils/industrySummary";
 import { useGenerateFieldSuggestions } from "@/hooks/useFieldSuggestions";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
@@ -114,7 +115,13 @@ export function CompanyDetailWithSidebar() {
     if (data.email && !company.email) updateData.email = data.email;
     if (data.phone && !company.phone) updateData.phone = data.phone;
     if (data.website && !company.website) updateData.website = data.website;
-    if (data.cae_description && !company.industry) updateData.industry = data.cae_description;
+    // Store full CAE description and codes
+    if (data.cae_description) updateData.cae_description = data.cae_description;
+    if (data.cae_codes && data.cae_codes.length > 0) updateData.cae_codes = data.cae_codes;
+    // Generate short summary for industry field
+    if (data.cae_description && !company.industry) {
+      updateData.industry = generateIndustrySummary(data.cae_description);
+    }
     if (Object.keys(updateData).length > 1) {
       await updateCompany.mutateAsync(updateData as { id: string });
       toast.success("Dados da empresa preenchidos automaticamente!");
