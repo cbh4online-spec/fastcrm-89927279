@@ -11560,7 +11560,9 @@ export type Database = {
         Args: { p_feature_key: string; p_workspace_id: string }
         Returns: boolean
       }
-      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin:
+        | { Args: never; Returns: boolean }
+        | { Args: { _user_id: string }; Returns: boolean }
       is_workspace_admin_or_owner: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
