@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ENIContactDetail } from "@/components/contacts/eni/ENIContactDetail";
+import { ENIContactDetailWithSidebar } from "@/components/contacts/eni/ENIContactDetailWithSidebar";
 
 export default function ContactDetailPage() {
   return (
     <DashboardLayout>
-      <ENIContactDetail />
+      <ENIContactDetailWithSidebar />
     </DashboardLayout>
   );
 }
