@@ -11406,6 +11406,10 @@ export type Database = {
         Args: { p_custom_field_id: string; p_entity_id: string; p_value: Json }
         Returns: boolean
       }
+      check_invoice_settings_access: {
+        Args: { check_workspace_id: string }
+        Returns: boolean
+      }
       check_meeting_conflicts: {
         Args: {
           p_end_time: string
@@ -11561,12 +11565,10 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
-      is_workspace_member:
-        | {
-            Args: { _user_id: string; _workspace_id: string }
-            Returns: boolean
-          }
-        | { Args: { check_workspace_id: string }; Returns: boolean }
+      is_workspace_member: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
       log_admin_action: {
         Args: {
           p_action_type: string
