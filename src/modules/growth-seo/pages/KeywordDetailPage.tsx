@@ -16,11 +16,11 @@ import NotFound from '@/pages/NotFound';
 export default function KeywordDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: entity, isLoading } = useSEOEntity('keyword', slug || '');
-  const { trackSEOPageView, trackScrollDepth } = useTracking();
+  const { trackPageView, trackScrollDepth } = useTracking();
 
   useEffect(() => {
     if (entity) {
-      trackSEOPageView({
+      trackPageView({
         page_type: 'keyword',
         entity_slug: slug,
         intent: entity.intent || undefined,
@@ -38,13 +38,13 @@ export default function KeywordDetailPage() {
       const scrollPercent = (scrollTop / docHeight) * 100;
 
       if (scrollPercent >= 25 && scrollPercent < 50) {
-        trackScrollDepth(25, 'keyword', slug);
+        trackScrollDepth({ depth: 25, page_type: 'keyword', entity_slug: slug });
       } else if (scrollPercent >= 50 && scrollPercent < 75) {
-        trackScrollDepth(50, 'keyword', slug);
+        trackScrollDepth({ depth: 50, page_type: 'keyword', entity_slug: slug });
       } else if (scrollPercent >= 75 && scrollPercent < 100) {
-        trackScrollDepth(75, 'keyword', slug);
+        trackScrollDepth({ depth: 75, page_type: 'keyword', entity_slug: slug });
       } else if (scrollPercent >= 100) {
-        trackScrollDepth(100, 'keyword', slug);
+        trackScrollDepth({ depth: 100, page_type: 'keyword', entity_slug: slug });
       }
     };
 

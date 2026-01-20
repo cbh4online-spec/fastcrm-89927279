@@ -16,11 +16,11 @@ import NotFound from '@/pages/NotFound';
 export default function GlossaryTermPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: entity, isLoading } = useSEOEntity('glossary', slug || '');
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
 
   useEffect(() => {
     if (entity) {
-      trackSEOPageView({
+      trackPageView({
         page_type: 'glossary',
         entity_slug: slug,
         intent: 'informational',

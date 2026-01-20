@@ -15,7 +15,7 @@ const ITEMS_PER_PAGE = 12;
 export default function KeywordsListPage() {
   const [page, setPage] = useState(1);
   const [intent, setIntent] = useState<string | null>(null);
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
 
   const { data, isLoading } = useSEOEntitiesList('keyword', {
     limit: ITEMS_PER_PAGE,
@@ -24,7 +24,7 @@ export default function KeywordsListPage() {
   });
 
   useEffect(() => {
-    trackSEOPageView({
+    trackPageView({
       page_type: 'keyword',
       intent: 'informational',
     });

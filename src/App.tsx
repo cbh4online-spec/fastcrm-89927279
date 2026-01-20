@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { WorkspaceInstanceProvider } from "@/contexts/WorkspaceInstanceContext";
@@ -69,91 +70,133 @@ import Profile from "./pages/Profile";
 import Marketing from "./pages/Marketing";
 import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
 
+// SEO Pages
+import {
+  KeywordsListPage,
+  KeywordDetailPage,
+  TemplatesListPage,
+  TemplateDetailPage,
+  ToolsListPage,
+  ToolDetailPage,
+  CategoriesListPage,
+  CategoryDetailPage,
+  ComparePage,
+  BlogListPage,
+  BlogPostPage,
+  GuidePage,
+  GlossaryListPage,
+  GlossaryTermPage,
+  GTMProvider,
+  GDPRBanner,
+} from "./modules/growth-seo";
+
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <WorkspaceProvider>
-            <ActivityProfileProvider>
-              <WorkspaceInstanceProvider>
-                <SubscriptionProvider>
-                <Routes>
-                  <Route path="/" element={<MarketingHomepage />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/dashboard/settings" element={<Settings />} />
-                  <Route path="/dashboard/settings/:section" element={<Settings />} />
-                  <Route path="/dashboard/leads" element={<Leads />} />
-                  <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
-                  <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
-                  <Route path="/dashboard/prospecting/web-search" element={<WebSearchProspecting />} />
-                  <Route path="/dashboard/prospecting/professionals" element={<ProfessionalProspecting />} />
-                  <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
-                  <Route path="/dashboard/inbox" element={<Inbox />} />
-                  <Route path="/dashboard/automations" element={<Automations />} />
-                  <Route path="/dashboard/landing-pages" element={<LandingPages />} />
-                  <Route path="/dashboard/contacts" element={<Contacts />} />
-                  <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
-                  <Route path="/dashboard/companies" element={<Companies />} />
-                  <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
-                  <Route path="/dashboard/ai-suggestions" element={<AISuggestionsHistory />} />
-                  <Route path="/dashboard/crm" element={<Crm />} />
-                  <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
-                  <Route path="/dashboard/proposals" element={<Proposals />} />
-                  <Route path="/dashboard/products" element={<Products />} />
-                  <Route path="/dashboard/packages" element={<Packages />} />
-                  <Route path="/dashboard/imports" element={<Imports />} />
-                  <Route path="/dashboard/payments" element={<Payments />} />
-                  <Route path="/dashboard/invoices" element={<Invoices />} />
-                  <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
-                  <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
-                  <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
-                  <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
-                  <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
-                  <Route path="/dashboard/reports" element={<ReportsOverview />} />
-                  <Route path="/dashboard/reports/forecasts" element={<ReportsForecasts />} />
-                  <Route path="/dashboard/reports/consumption" element={<ReportsConsumption />} />
-                  <Route path="/dashboard/reports/retention" element={<ReportsRetention />} />
-                  <Route path="/dashboard/reports/kpis" element={<ReportsKPIs />} />
-                  <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
-                  <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
-                  <Route path="/dashboard/marketplace" element={<Marketplace />} />
-                  <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
-                  <Route path="/dashboard/scheduling" element={<SchedulingPage />} />
-                  <Route path="/dashboard/calendars" element={<Navigate to="/dashboard/scheduling" replace />} />
-                  <Route path="/dashboard/meetings" element={<Navigate to="/dashboard/scheduling" replace />} />
-                  <Route path="/dashboard/services" element={<Navigate to="/dashboard/scheduling" replace />} />
-                  <Route path="/dashboard/availability" element={<Navigate to="/dashboard/scheduling" replace />} />
-                  <Route path="/dashboard/feed" element={<FeedPage />} />
-                  <Route path="/dashboard/productivity" element={<ProductivityPage />} />
-                  <Route path="/dashboard/member" element={<MemberPanelPage />} />
-                  <Route path="/dashboard/profile" element={<Profile />} />
-                  <Route path="/dashboard/marketing" element={<Marketing />} />
-                  <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
-                  <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
-                  <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
-                  <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
-                  <Route path="/product/:slug" element={<PublicProductSheet />} />
-                  <Route path="/p/:slug" element={<PublicProposalPage />} />
-                  <Route path="/super-admin" element={<SuperAdmin />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                </SubscriptionProvider>
-              </WorkspaceInstanceProvider>
-            </ActivityProfileProvider>
-          </WorkspaceProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <GTMProvider>
+            <AuthProvider>
+              <WorkspaceProvider>
+                <ActivityProfileProvider>
+                  <WorkspaceInstanceProvider>
+                    <SubscriptionProvider>
+                    <Routes>
+                      {/* SEO Public Routes */}
+                      <Route path="/keywords" element={<KeywordsListPage />} />
+                      <Route path="/keywords/:slug" element={<KeywordDetailPage />} />
+                      <Route path="/templates" element={<TemplatesListPage />} />
+                      <Route path="/templates/:slug" element={<TemplateDetailPage />} />
+                      <Route path="/tools" element={<ToolsListPage />} />
+                      <Route path="/tools/:slug" element={<ToolDetailPage />} />
+                      <Route path="/categories" element={<CategoriesListPage />} />
+                      <Route path="/categories/:slug" element={<CategoryDetailPage />} />
+                      <Route path="/compare/:slug" element={<ComparePage />} />
+                      <Route path="/blog" element={<BlogListPage />} />
+                      <Route path="/blog/:slug" element={<BlogPostPage />} />
+                      <Route path="/guides/:slug" element={<GuidePage />} />
+                      <Route path="/glossary" element={<GlossaryListPage />} />
+                      <Route path="/glossary/:slug" element={<GlossaryTermPage />} />
+                      
+                      {/* Main Routes */}
+                      <Route path="/" element={<MarketingHomepage />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/onboarding" element={<Onboarding />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/dashboard/settings" element={<Settings />} />
+                      <Route path="/dashboard/settings/:section" element={<Settings />} />
+                      <Route path="/dashboard/leads" element={<Leads />} />
+                      <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
+                      <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
+                      <Route path="/dashboard/prospecting/web-search" element={<WebSearchProspecting />} />
+                      <Route path="/dashboard/prospecting/professionals" element={<ProfessionalProspecting />} />
+                      <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
+                      <Route path="/dashboard/inbox" element={<Inbox />} />
+                      <Route path="/dashboard/automations" element={<Automations />} />
+                      <Route path="/dashboard/landing-pages" element={<LandingPages />} />
+                      <Route path="/dashboard/contacts" element={<Contacts />} />
+                      <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
+                      <Route path="/dashboard/companies" element={<Companies />} />
+                      <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
+                      <Route path="/dashboard/ai-suggestions" element={<AISuggestionsHistory />} />
+                      <Route path="/dashboard/crm" element={<Crm />} />
+                      <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
+                      <Route path="/dashboard/proposals" element={<Proposals />} />
+                      <Route path="/dashboard/products" element={<Products />} />
+                      <Route path="/dashboard/packages" element={<Packages />} />
+                      <Route path="/dashboard/imports" element={<Imports />} />
+                      <Route path="/dashboard/payments" element={<Payments />} />
+                      <Route path="/dashboard/invoices" element={<Invoices />} />
+                      <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
+                      <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
+                      <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
+                      <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
+                      <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
+                      <Route path="/dashboard/reports" element={<ReportsOverview />} />
+                      <Route path="/dashboard/reports/forecasts" element={<ReportsForecasts />} />
+                      <Route path="/dashboard/reports/consumption" element={<ReportsConsumption />} />
+                      <Route path="/dashboard/reports/retention" element={<ReportsRetention />} />
+                      <Route path="/dashboard/reports/kpis" element={<ReportsKPIs />} />
+                      <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
+                      <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
+                      <Route path="/dashboard/marketplace" element={<Marketplace />} />
+                      <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
+                      <Route path="/dashboard/scheduling" element={<SchedulingPage />} />
+                      <Route path="/dashboard/calendars" element={<Navigate to="/dashboard/scheduling" replace />} />
+                      <Route path="/dashboard/meetings" element={<Navigate to="/dashboard/scheduling" replace />} />
+                      <Route path="/dashboard/services" element={<Navigate to="/dashboard/scheduling" replace />} />
+                      <Route path="/dashboard/availability" element={<Navigate to="/dashboard/scheduling" replace />} />
+                      <Route path="/dashboard/feed" element={<FeedPage />} />
+                      <Route path="/dashboard/productivity" element={<ProductivityPage />} />
+                      <Route path="/dashboard/member" element={<MemberPanelPage />} />
+                      <Route path="/dashboard/profile" element={<Profile />} />
+                      <Route path="/dashboard/marketing" element={<Marketing />} />
+                      <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
+                      <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
+                      <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
+                      <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
+                      <Route path="/product/:slug" element={<PublicProductSheet />} />
+                      <Route path="/p/:slug" element={<PublicProposalPage />} />
+                      <Route path="/super-admin" element={<SuperAdmin />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    <GDPRBanner />
+                    </SubscriptionProvider>
+                  </WorkspaceInstanceProvider>
+                </ActivityProfileProvider>
+              </WorkspaceProvider>
+            </AuthProvider>
+          </GTMProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

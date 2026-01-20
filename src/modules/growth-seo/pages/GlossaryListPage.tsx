@@ -29,7 +29,7 @@ function groupByLetter(entities: Array<{ title: string; slug: string }>) {
 export default function GlossaryListPage() {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
 
   const { data, isLoading } = useSEOEntitiesList('glossary', {
     limit: ITEMS_PER_PAGE,
@@ -37,7 +37,7 @@ export default function GlossaryListPage() {
   });
 
   useEffect(() => {
-    trackSEOPageView({
+    trackPageView({
       page_type: 'glossary',
       intent: 'informational',
     });

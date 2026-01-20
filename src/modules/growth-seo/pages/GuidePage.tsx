@@ -16,12 +16,12 @@ import NotFound from '@/pages/NotFound';
 export default function GuidePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: entity, isLoading } = useSEOEntity('guide', slug || '');
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
   useEffect(() => {
     if (entity) {
-      trackSEOPageView({
+      trackPageView({
         page_type: 'guide',
         entity_slug: slug,
         intent: entity.intent || undefined,

@@ -15,11 +15,11 @@ import NotFound from '@/pages/NotFound';
 export default function CategoryDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: entity, isLoading } = useSEOEntity('category', slug || '');
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
 
   useEffect(() => {
     if (entity) {
-      trackSEOPageView({
+      trackPageView({
         page_type: 'category',
         entity_slug: slug,
         intent: entity.intent || undefined,
