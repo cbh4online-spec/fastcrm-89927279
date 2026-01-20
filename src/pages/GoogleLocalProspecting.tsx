@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -47,7 +48,22 @@ interface GooglePlaceResult {
   hours?: string;
   description?: string;
   services?: string[];
+  thumbnail?: string;
 }
+
+// Category to search query mapping for Google Maps
+const CATEGORY_SEARCH_TERMS: Record<string, string> = {
+  health: "clínica médica saúde hospital",
+  restaurant: "restaurante",
+  auto: "oficina automóvel mecânico",
+  services: "serviços contabilidade advogados",
+  retail: "loja comércio",
+  beauty: "cabeleireiro estética beleza",
+  education: "escola formação cursos",
+  construction: "construção obras empreiteiro",
+  fitness: "ginásio fitness",
+  real_estate: "imobiliária",
+};
 
 const MOCK_DATABASE: Record<string, GooglePlaceResult[]> = {
   health: [
@@ -666,8 +682,8 @@ export default function GoogleLocalProspecting() {
   }, [location]);
 
   const handleSearch = async () => {
-    if (!searchQuery.trim() && !location.trim()) {
-      toast.error("Introduza um termo de pesquisa ou localização");
+    if (!searchQuery.trim() && !location.trim() && category === "all") {
+      toast.error("Introduza um termo de pesquisa, localização ou categoria");
       return;
     }
 
@@ -679,53 +695,106 @@ export default function GoogleLocalProspecting() {
     }
 
     setIsSearching(true);
+    setResults([]);
     
-    // Consume 1 credit for the search
     try {
-      await consumeCredits.mutateAsync({
-        credits: 1,
-        actionKey: "search",
-        actionDescription: `Pesquisa: ${searchQuery} em ${location || "Portugal"}`,
+      // Build the search query
+      let query = searchQuery.trim();
+      
+      // If no search query but category selected, use category terms
+      if (!query && category !== "all") {
+        query = CATEGORY_SEARCH_TERMS[category] || category;
+      }
+      
+      // If still no query, use a generic term
+      if (!query) {
+        query = "empresas serviços";
+      }
+
+      // Add category terms to query for better results
+      if (category !== "all" && searchQuery.trim()) {
+        const categoryTerm = CATEGORY_SEARCH_TERMS[category];
+        if (categoryTerm && !query.toLowerCase().includes(categoryTerm.split(" ")[0])) {
+          query = `${query} ${categoryTerm}`;
+        }
+      }
+
+      const selectedLocation = location && location !== "all-locations" ? location : "";
+
+      console.log("Searching with:", { query, location: selectedLocation, category });
+
+      // Call the Edge Function
+      const { data, error } = await supabase.functions.invoke("google-local-search", {
+        body: {
+          query,
+          location: selectedLocation,
+          limit: 20,
+        },
       });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        toast.error("Erro ao pesquisar", {
+          description: error.message || "Verifique se a API está configurada corretamente"
+        });
+        setIsSearching(false);
+        return;
+      }
+
+      if (!data?.success) {
+        toast.error(data?.error || "Erro na pesquisa");
+        setIsSearching(false);
+        return;
+      }
+
+      // Consume 1 credit for the search
+      try {
+        await consumeCredits.mutateAsync({
+          credits: 1,
+          actionKey: "search",
+          actionDescription: `Pesquisa: ${query} em ${selectedLocation || "Portugal"}`,
+        });
+      } catch (creditError) {
+        console.error("Error consuming credits:", creditError);
+      }
+
+      // Map API results to our interface
+      const apiResults: GooglePlaceResult[] = (data.data || []).map((item: any) => ({
+        id: item.place_id || `temp_${Date.now()}_${Math.random()}`,
+        title: item.name || "Sem nome",
+        rating: item.rating || 0,
+        reviews_count: item.reviewCount || 0,
+        address: item.address || "",
+        phone: item.phone || undefined,
+        website: item.website || undefined,
+        category: item.businessType || category,
+        hours: item.openingHours || undefined,
+        description: item.businessType || undefined,
+        thumbnail: item.thumbnail || undefined,
+      }));
+
+      // Apply minimum rating filter
+      const minRatingValue = parseFloat(minRating);
+      const filteredByRating = minRatingValue > 0 
+        ? apiResults.filter(r => r.rating >= minRatingValue)
+        : apiResults;
+
+      setResults(filteredByRating);
+      setImportedIds([]);
+
+      if (filteredByRating.length > 0) {
+        toast.success(`Encontrados ${filteredByRating.length} resultados`);
+      } else {
+        toast.info("Nenhum resultado encontrado para esta pesquisa");
+      }
+
     } catch (error) {
-      console.error("Error consuming credits:", error);
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    let filteredResults: GooglePlaceResult[] = [];
-    
-    if (category === "all") {
-      filteredResults = Object.values(MOCK_DATABASE).flat();
-    } else {
-      filteredResults = MOCK_DATABASE[category] || [];
-    }
-    
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filteredResults = filteredResults.filter(result => 
-        result.title.toLowerCase().includes(query) ||
-        result.category.toLowerCase().includes(query) ||
-        result.description?.toLowerCase().includes(query) ||
-        result.services?.some(s => s.toLowerCase().includes(query))
-      );
-    }
-    
-    if (location && location !== "all-locations") {
-      const loc = location.toLowerCase();
-      filteredResults = filteredResults.filter(result =>
-        result.address.toLowerCase().includes(loc)
-      );
-    }
-    
-    setResults(filteredResults);
-    setIsSearching(false);
-    setImportedIds([]);
-    
-    if (filteredResults.length > 0) {
-      toast.success(`Encontrados ${filteredResults.length} resultados`);
-    } else {
-      toast.info("Nenhum resultado encontrado");
+      console.error("Search error:", error);
+      toast.error("Erro ao pesquisar", {
+        description: "Ocorreu um erro inesperado. Tente novamente."
+      });
+    } finally {
+      setIsSearching(false);
     }
   };
 
