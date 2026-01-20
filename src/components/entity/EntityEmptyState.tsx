@@ -12,8 +12,8 @@ import {
   Layers,
   History,
   Users,
+  Zap,
   Plus,
-  ArrowRight,
 } from 'lucide-react';
 import { MenuSection } from '@/types/entity';
 
@@ -116,6 +116,13 @@ const SECTION_CONFIG: Record<MenuSection, {
     description: 'Nenhum contacto ligado a esta empresa.',
     suggestion: 'Associa contactos existentes ou cria novos.',
     actionLabel: 'Associar Contacto',
+  },
+  automations: {
+    icon: Zap,
+    title: 'Sem automações',
+    description: 'Nenhuma automação configurada para esta entidade.',
+    suggestion: 'Cria automações para poupar tempo e aumentar produtividade.',
+    actionLabel: 'Criar Automação',
   },
 };
 
