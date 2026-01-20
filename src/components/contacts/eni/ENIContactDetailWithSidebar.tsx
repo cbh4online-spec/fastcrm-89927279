@@ -41,6 +41,7 @@ import { ContactMessagesSection } from "@/components/messages/ContactMessagesSec
 import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
+import { EntityOpportunitiesSection } from "@/components/opportunities/EntityOpportunitiesSection";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -277,6 +278,16 @@ export function ENIContactDetailWithSidebar() {
             entityType="contact"
             entityId={id!}
             entityName={contact.name}
+          />
+        );
+      case 'opportunities':
+        return (
+          <EntityOpportunitiesSection
+            entityType="contact"
+            entityId={id!}
+            entityName={contact.name}
+            entityIndustry={(contact as any).business_area}
+            entityNotes={contact.notes}
           />
         );
       default:
