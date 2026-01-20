@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image";
+  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video";
   productName?: string;
   sku?: string;
   category?: string;
@@ -17,6 +17,14 @@ interface AssistantRequest {
   categoryName?: string;
   description?: string;
   existingCategories?: string[];
+}
+
+interface VideoResult {
+  url: string;
+  title: string;
+  thumbnail?: string;
+  duration?: string;
+  source: string;
 }
 
 interface ProductSuggestion {
@@ -407,6 +415,94 @@ REGRAS para descrição comercial:
       return new Response(JSON.stringify({
         success: true,
         data: result
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } else if (mode === 'search-video' && (productName || sku)) {
+      // Search for product demo videos
+      if (!FIRECRAWL_API_KEY) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: { videos: [], message: 'Firecrawl API key not configured' }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const searchTerm = sku || productName;
+      const videoQueries = [
+        `"${searchTerm}" video review demo youtube`,
+        `${searchTerm} product demonstration video`,
+        `${searchTerm} unboxing review`,
+      ];
+
+      let allVideoResults: VideoResult[] = [];
+
+      for (const query of videoQueries) {
+        try {
+          console.log('Searching videos with query:', query);
+          const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              query,
+              limit: 5,
+            }),
+          });
+
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            const results = searchData.data || [];
+
+            for (const result of results) {
+              const url = result.url || '';
+              const title = result.title || '';
+
+              // Check if it's a video platform URL
+              const isYouTube = url.includes('youtube.com/watch') || url.includes('youtu.be/');
+              const isVimeo = url.includes('vimeo.com/');
+              
+              if (isYouTube || isVimeo) {
+                // Extract YouTube video ID for thumbnail
+                let thumbnail: string | undefined;
+                if (isYouTube) {
+                  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+                  if (ytMatch) {
+                    thumbnail = `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+                  }
+                }
+
+                allVideoResults.push({
+                  url,
+                  title: title.substring(0, 100),
+                  thumbnail,
+                  source: isYouTube ? 'YouTube' : 'Vimeo',
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Video search query failed:', query, e);
+        }
+
+        // Stop if we have enough results
+        if (allVideoResults.length >= 5) break;
+      }
+
+      // Deduplicate by URL
+      const uniqueVideos = allVideoResults.filter((v, i, arr) => 
+        arr.findIndex(x => x.url === v.url) === i
+      ).slice(0, 8);
+
+      console.log('Found videos:', uniqueVideos.length);
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: { videos: uniqueVideos }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

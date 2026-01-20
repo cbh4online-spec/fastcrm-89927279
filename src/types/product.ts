@@ -56,6 +56,8 @@ export interface Product {
   is_trackable: boolean | null;
   // Technical specifications
   specifications: Record<string, string> | null;
+  // Demo video
+  demo_video_url: string | null;
 }
 
 export interface ProductWithMargins extends Product {
@@ -154,6 +156,8 @@ export interface CreateProductInput {
   is_trackable?: boolean;
   // Technical specifications
   specifications?: Record<string, string>;
+  // Demo video
+  demo_video_url?: string;
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {

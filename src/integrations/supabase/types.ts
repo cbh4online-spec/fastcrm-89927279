@@ -9841,6 +9841,7 @@ export type Database = {
           created_by: string
           currency: string
           delivery_mode: string | null
+          demo_video_url: string | null
           direct_cost: number | null
           id: string
           images: string[] | null
@@ -9884,6 +9885,7 @@ export type Database = {
           created_by: string
           currency?: string
           delivery_mode?: string | null
+          demo_video_url?: string | null
           direct_cost?: number | null
           id?: string
           images?: string[] | null
@@ -9927,6 +9929,7 @@ export type Database = {
           created_by?: string
           currency?: string
           delivery_mode?: string | null
+          demo_video_url?: string | null
           direct_cost?: number | null
           id?: string
           images?: string[] | null

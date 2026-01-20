@@ -34,6 +34,8 @@ import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
 import { ProductImageGalleryManager } from "./ProductImageGalleryManager";
 import { ProductSpecificationsEditor } from "./ProductSpecificationsEditor";
+import { ProductVideoSearch } from "./ProductVideoSearch";
+import { ProductImage360Viewer } from "./ProductImage360Viewer";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
 
 const DRAFT_STORAGE_KEY = "product-form-draft";
@@ -100,6 +102,7 @@ export function CreateProductDialog({
   const [skuFoundImages, setSkuFoundImages] = useState<string[]>([]);
   const [specifications, setSpecifications] = useState<Record<string, string>>({});
   const [isSpecsAutoFilled, setIsSpecsAutoFilled] = useState(false);
+  const [demoVideoUrl, setDemoVideoUrl] = useState("");
   const [hasDraft, setHasDraft] = useState(false);
 
   const createProduct = useCreateProduct();
@@ -199,6 +202,8 @@ export function CreateProductDialog({
       // Technical specifications
       setSpecifications(product.specifications || {});
       setIsSpecsAutoFilled(false);
+      // Demo video
+      setDemoVideoUrl(product.demo_video_url || "");
       setHasDraft(false);
     } else {
       // Try to load draft
@@ -280,6 +285,7 @@ export function CreateProductDialog({
     setProductImages([]);
     setSkuFoundImages([]);
     setSpecifications({});
+    setDemoVideoUrl("");
     setIsSpecsAutoFilled(false);
   };
 
@@ -297,6 +303,7 @@ export function CreateProductDialog({
       sku: sku || undefined,
       images: productImages.length > 0 ? productImages : undefined,
       specifications: Object.keys(specifications).length > 0 ? specifications : undefined,
+      demo_video_url: demoVideoUrl || undefined,
       direct_cost: directCost ? parseFloat(directCost) : undefined,
       operational_cost: operationalCost ? parseFloat(operationalCost) : undefined,
       commission_default: commissionDefault ? parseFloat(commissionDefault) : undefined,
@@ -589,6 +596,22 @@ export function CreateProductDialog({
                 images={productImages}
                 onImagesChange={setProductImages}
                 maxImages={10}
+              />
+
+              {/* 360° Viewer - Only show if we have enough images */}
+              {productImages.length >= 3 && (
+                <ProductImage360Viewer
+                  images={productImages}
+                  productName={name}
+                />
+              )}
+
+              {/* Video Search */}
+              <ProductVideoSearch
+                productName={name}
+                sku={sku}
+                videoUrl={demoVideoUrl}
+                onVideoChange={setDemoVideoUrl}
               />
 
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
