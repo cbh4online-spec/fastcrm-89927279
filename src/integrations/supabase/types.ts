@@ -5944,6 +5944,607 @@ export type Database = {
           },
         ]
       }
+      marketing_campaigns: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          bounced_count: number | null
+          clicked_count: number | null
+          complained_count: number | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          delivered_count: number | null
+          from_name: string
+          id: string
+          name: string
+          opened_count: number | null
+          preview_text: string | null
+          reply_to: string | null
+          scheduled_at: string | null
+          segment_id: string | null
+          sent_count: number | null
+          started_at: string | null
+          status: string
+          subject: string
+          template_id: string | null
+          total_recipients: number | null
+          unsubscribed_count: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          bounced_count?: number | null
+          clicked_count?: number | null
+          complained_count?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          delivered_count?: number | null
+          from_name: string
+          id?: string
+          name: string
+          opened_count?: number | null
+          preview_text?: string | null
+          reply_to?: string | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string
+          subject: string
+          template_id?: string | null
+          total_recipients?: number | null
+          unsubscribed_count?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          bounced_count?: number | null
+          clicked_count?: number | null
+          complained_count?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          delivered_count?: number | null
+          from_name?: string
+          id?: string
+          name?: string
+          opened_count?: number | null
+          preview_text?: string | null
+          reply_to?: string | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          total_recipients?: number | null
+          unsubscribed_count?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaigns_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaigns_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_events: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          email: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          link_url: string | null
+          metadata: Json | null
+          occurred_at: string
+          recipient_id: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          email?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          link_url?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          recipient_id?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          email?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          link_url?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          recipient_id?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_events_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_recipients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_links: {
+        Row: {
+          campaign_id: string
+          click_count: number | null
+          created_at: string
+          id: string
+          original_url: string
+          tracking_code: string
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          click_count?: number | null
+          created_at?: string
+          id?: string
+          original_url: string
+          tracking_code: string
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          click_count?: number | null
+          created_at?: string
+          id?: string
+          original_url?: string
+          tracking_code?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_links_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_recipients: {
+        Row: {
+          bounce_reason: string | null
+          bounce_type: string | null
+          bounced_at: string | null
+          campaign_id: string
+          clicked_at: string | null
+          contact_id: string | null
+          created_at: string
+          delivered_at: string | null
+          email: string
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+          name: string | null
+          opened_at: string | null
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          bounce_reason?: string | null
+          bounce_type?: string | null
+          bounced_at?: string | null
+          campaign_id: string
+          clicked_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          email: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          name?: string | null
+          opened_at?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          bounce_reason?: string | null
+          bounce_type?: string | null
+          bounced_at?: string | null
+          campaign_id?: string
+          clicked_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          email?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          name?: string | null
+          opened_at?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_recipients_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_recipients_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_recipients_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_segments: {
+        Row: {
+          contact_count: number | null
+          created_at: string
+          created_by: string
+          description: string | null
+          filter_rules: Json
+          id: string
+          is_dynamic: boolean | null
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_count?: number | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          filter_rules?: Json
+          id?: string
+          is_dynamic?: boolean | null
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          contact_count?: number | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          filter_rules?: Json
+          id?: string
+          is_dynamic?: boolean | null
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_segments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_settings: {
+        Row: {
+          active_campaigns_limit: number | null
+          active_contacts_limit: number | null
+          created_at: string
+          custom_footer: string | null
+          default_from_name: string | null
+          default_reply_to: string | null
+          id: string
+          is_enabled: boolean | null
+          monthly_email_limit: number | null
+          unsubscribe_page_url: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active_campaigns_limit?: number | null
+          active_contacts_limit?: number | null
+          created_at?: string
+          custom_footer?: string | null
+          default_from_name?: string | null
+          default_reply_to?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          monthly_email_limit?: number | null
+          unsubscribe_page_url?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active_campaigns_limit?: number | null
+          active_contacts_limit?: number | null
+          created_at?: string
+          custom_footer?: string | null
+          default_from_name?: string | null
+          default_reply_to?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          monthly_email_limit?: number | null
+          unsubscribe_page_url?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_subscriptions: {
+        Row: {
+          consent_source: string | null
+          contact_id: string | null
+          created_at: string
+          email: string
+          id: string
+          lead_id: string | null
+          status: string
+          subscribed_at: string | null
+          unsubscribe_reason: string | null
+          unsubscribed_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          consent_source?: string | null
+          contact_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          lead_id?: string | null
+          status?: string
+          subscribed_at?: string | null
+          unsubscribe_reason?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          consent_source?: string | null
+          contact_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          lead_id?: string | null
+          status?: string
+          subscribed_at?: string | null
+          unsubscribe_reason?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_subscriptions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_subscriptions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_templates: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          category: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          name: string
+          subject: string | null
+          thumbnail_url: string | null
+          updated_at: string
+          usage_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name: string
+          subject?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name?: string
+          subject?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_usage: {
+        Row: {
+          active_campaigns: number | null
+          active_contacts: number | null
+          campaigns_limit: number | null
+          contacts_limit: number | null
+          created_at: string
+          emails_limit: number | null
+          emails_sent: number | null
+          id: string
+          period_end: string
+          period_start: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active_campaigns?: number | null
+          active_contacts?: number | null
+          campaigns_limit?: number | null
+          contacts_limit?: number | null
+          created_at?: string
+          emails_limit?: number | null
+          emails_sent?: number | null
+          id?: string
+          period_end: string
+          period_start: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active_campaigns?: number | null
+          active_contacts?: number | null
+          campaigns_limit?: number | null
+          contacts_limit?: number | null
+          created_at?: string
+          emails_limit?: number | null
+          emails_sent?: number | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_bundles: {
         Row: {
           bundle_price: number
