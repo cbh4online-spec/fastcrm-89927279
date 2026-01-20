@@ -272,11 +272,15 @@ export function ProductsList() {
   };
 
   // Render cell content based on column id
-  const renderProductCell = (product: Product, columnId: string) => {
+  const renderProductCell = (product: Product, columnId: string, onOpenDetail: (product: Product) => void) => {
     switch (columnId) {
       case "name":
         return (
-          <div className="flex items-center gap-2 font-medium">
+          <button
+            type="button"
+            onClick={() => onOpenDetail(product)}
+            className="flex items-center gap-2 font-medium text-left hover:text-primary hover:underline transition-colors"
+          >
             {product.images?.[0] && (
               <img
                 src={product.images[0]}
@@ -285,10 +289,18 @@ export function ProductsList() {
               />
             )}
             {product.name}
-          </div>
+          </button>
         );
       case "sku":
-        return product.sku || "-";
+        return product.sku ? (
+          <button
+            type="button"
+            onClick={() => onOpenDetail(product)}
+            className="text-muted-foreground hover:text-primary hover:underline transition-colors"
+          >
+            {product.sku}
+          </button>
+        ) : "-";
       case "product_type":
         return (
           <Badge variant="outline">
@@ -296,7 +308,15 @@ export function ProductsList() {
           </Badge>
         );
       case "category":
-        return product.category || "-";
+        return product.category ? (
+          <button
+            type="button"
+            onClick={() => onOpenDetail(product)}
+            className="hover:text-primary hover:underline transition-colors"
+          >
+            {product.category}
+          </button>
+        ) : "-";
       case "base_price":
         return formatCurrency(product.base_price, product.currency);
       case "direct_cost":
@@ -619,7 +639,7 @@ export function ProductsList() {
                           .filter((colId) => visibleColumns.has(colId))
                           .map((colId) => (
                             <TableCell key={colId}>
-                              {renderProductCell(product, colId)}
+                              {renderProductCell(product, colId, setDetailProduct)}
                             </TableCell>
                           ))}
                         <TableCell>
