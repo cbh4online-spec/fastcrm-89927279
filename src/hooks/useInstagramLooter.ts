@@ -103,6 +103,32 @@ export function useInstagramLooter() {
     return response.data;
   };
 
+  // Call AI analysis edge function
+  const callAIAnalysis = async (action: string, data: Record<string, any>) => {
+    if (!currentWorkspace?.id) throw new Error("No workspace selected");
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const response = await supabase.functions.invoke("instagram-ai-analyze", {
+      body: {
+        action,
+        data,
+        workspace_id: currentWorkspace.id,
+      },
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message || "AI analysis failed");
+    }
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || "AI analysis failed");
+    }
+
+    return response.data;
+  };
+
   // Global search
   const searchUsers = async (query: string): Promise<{ results: IGSearchResult[]; usage: UsageStats }> => {
     setIsLoading(true);
@@ -358,6 +384,47 @@ export function useInstagramLooter() {
     }
   });
 
+  // Analyze profile with AI
+  const analyzeProfile = async (profileData: {
+    username: string;
+    full_name?: string;
+    biography?: string;
+    external_url?: string;
+    followers_count?: number;
+    following_count?: number;
+    media_count?: number;
+    is_business?: boolean;
+    is_verified?: boolean;
+    category?: string;
+    recent_captions?: string[];
+    recent_hashtags?: string[];
+    city_name?: string;
+  }) => {
+    setIsLoading(true);
+    try {
+      const response = await callAIAnalysis("analyze_profile", profileData);
+      return response.data;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Analyze media with AI
+  const analyzeMedia = async (mediaData: {
+    caption: string;
+    hashtags?: string[];
+    posted_at?: string;
+    niche_context?: string;
+  }) => {
+    setIsLoading(true);
+    try {
+      const response = await callAIAnalysis("analyze_media", mediaData);
+      return response.data;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     isMetodopare,
     isLoading,
@@ -366,6 +433,8 @@ export function useInstagramLooter() {
     getUserPosts,
     searchHashtag,
     searchLocation,
+    analyzeProfile,
+    analyzeMedia,
     todayUsage,
     refetchUsage,
     cachedProfiles,
