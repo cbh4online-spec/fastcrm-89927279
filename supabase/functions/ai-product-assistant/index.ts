@@ -173,14 +173,57 @@ Responda no formato JSON:
         });
       }
 
+      // Helper function to extract image URLs from markdown/html content
+      const extractImagesFromContent = (content: string): string[] => {
+        const imageUrls: string[] = [];
+        
+        // Match markdown image syntax: ![alt](url)
+        const mdImageRegex = /!\[.*?\]\((https?:\/\/[^\s\)]+)\)/g;
+        let match;
+        while ((match = mdImageRegex.exec(content)) !== null) {
+          if (match[1]) imageUrls.push(match[1]);
+        }
+        
+        // Match HTML img tags: <img src="url">
+        const imgTagRegex = /<img[^>]+src=["']?(https?:\/\/[^\s"'>]+)["']?/gi;
+        while ((match = imgTagRegex.exec(content)) !== null) {
+          if (match[1]) imageUrls.push(match[1]);
+        }
+        
+        // Match direct image URLs in text
+        const directUrlRegex = /(https?:\/\/[^\s<>"]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s<>"]*)?)/gi;
+        while ((match = directUrlRegex.exec(content)) !== null) {
+          if (match[1]) imageUrls.push(match[1]);
+        }
+        
+        // Filter and deduplicate
+        return [...new Set(imageUrls)]
+          .filter(url => {
+            // Filter out small icons, logos, etc
+            const lower = url.toLowerCase();
+            return !lower.includes('icon') && 
+                   !lower.includes('logo') && 
+                   !lower.includes('avatar') &&
+                   !lower.includes('favicon') &&
+                   !lower.includes('placeholder') &&
+                   !lower.includes('spinner') &&
+                   !lower.includes('loading') &&
+                   !lower.includes('1x1') &&
+                   !lower.includes('pixel') &&
+                   url.length < 500;
+          })
+          .slice(0, 10);
+      };
+
       // Try multiple search queries for better results
       const searchQueries = [
-        `${sku} produto preço ficha técnica`,
-        `"${sku}" specifications price`,
-        sku.replace(/-/g, ' ') + ' produto',
+        `${sku} produto preço ficha técnica imagens`,
+        `"${sku}" specifications price images`,
+        sku.replace(/-/g, ' ') + ' produto foto',
       ];
 
       let allResults: any[] = [];
+      let extractedImages: string[] = [];
       
       for (const searchQuery of searchQueries) {
         try {
@@ -194,7 +237,7 @@ Responda no formato JSON:
             body: JSON.stringify({
               query: searchQuery,
               limit: 5,
-              scrapeOptions: { formats: ['markdown'] }
+              scrapeOptions: { formats: ['markdown', 'html'] }
             }),
           });
 
@@ -202,6 +245,14 @@ Responda no formato JSON:
             const searchData = await searchResponse.json();
             const results = searchData.data || [];
             console.log(`Query "${searchQuery}" returned ${results.length} results`);
+            
+            // Extract images from each result
+            for (const result of results) {
+              const content = (result.markdown || '') + (result.html || '') + (result.description || '');
+              const images = extractImagesFromContent(content);
+              extractedImages = [...extractedImages, ...images];
+            }
+            
             allResults = [...allResults, ...results];
           }
         } catch (e) {
@@ -211,6 +262,10 @@ Responda no formato JSON:
         // If we have enough results, stop searching
         if (allResults.length >= 5) break;
       }
+      
+      // Deduplicate extracted images
+      extractedImages = [...new Set(extractedImages)].slice(0, 10);
+      console.log('Extracted images from content:', extractedImages.length);
 
       // Remove duplicates by URL
       const uniqueResults = allResults.filter((r, i, arr) => 
@@ -235,15 +290,20 @@ Resultados:
 ${uniqueResults.slice(0, 4).map((r: any) => `
 Título: ${r.title || 'N/A'}
 URL: ${r.url || 'N/A'}
-Conteúdo: ${(r.markdown || r.description || '').substring(0, 800)}
+Conteúdo: ${(r.markdown || r.description || '').substring(0, 1000)}
 `).join('\n---\n')}
+
+${extractedImages.length > 0 ? `
+IMAGENS ENCONTRADAS AUTOMATICAMENTE (USE ESTAS NO ARRAY "images"):
+${extractedImages.slice(0, 8).join('\n')}
+` : ''}
 
 IMPORTANTE: Crie DUAS versões do nome e descrição:
 1. TÉCNICA: Focada em especificações (como aparece no fabricante)
 2. COMERCIAL: Estilo Amazon, focada em BENEFÍCIOS para o cliente, mais apelativa para vendas
 
 Extraia TODAS as especificações técnicas disponíveis.
-Identifique TODAS as imagens do produto (URLs).
+IMPORTANTE PARA IMAGENS: Se foram fornecidas URLs de imagens acima, INCLUA-AS no array "images".
 Liste TODOS os preços encontrados para calcular range.
 
 Responda APENAS em JSON válido:
@@ -317,18 +377,31 @@ REGRAS para descrição comercial:
         const jsonMatch = extractContent.match(/\{[\s\S]*\}/);
         const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { found: false };
         
+        // Merge AI-extracted images with automatically extracted ones
+        let allImages = [...(parsed.images || []), ...extractedImages];
+        // Deduplicate and filter valid URLs
+        allImages = [...new Set(allImages)]
+          .filter(url => url && typeof url === 'string' && url.startsWith('http'))
+          .slice(0, 10);
+        
         // Ensure backward compatibility
         result = {
           ...parsed,
+          images: allImages,
           name: parsed.commercialName || parsed.technicalName,
           description: parsed.commercialDescription || parsed.technicalDescription,
-          imageUrl: parsed.images?.[0],
+          imageUrl: allImages[0] || parsed.imageUrl,
           source: parsed.sources?.[0]
         };
       } catch {
-        result = { found: false };
+        // If parsing fails but we have images, return them
+        result = { 
+          found: extractedImages.length > 0,
+          images: extractedImages.length > 0 ? extractedImages : undefined
+        };
       }
 
+      console.log('Extraction result with images:', result.images?.length || 0, 'images found');
       console.log('Extraction result:', JSON.stringify(result, null, 2));
 
       return new Response(JSON.stringify({
