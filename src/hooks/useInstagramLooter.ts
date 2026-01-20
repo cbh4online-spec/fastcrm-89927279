@@ -134,23 +134,43 @@ export function useInstagramLooter() {
     setIsLoading(true);
     try {
       const response = await callAPI("search", { query });
-      // API returns { status, users: [{ position, user: {...} }], hashtags, places }
+      // instagram-looter2 API returns { status, users: [...], places: [...], hashtags: [...] }
       const apiData = response.data?.data || response.data || {};
       const usersArray = apiData.users || apiData.items || [];
+      const placesArray = apiData.places || [];
+      
+      // Parse users
+      const userResults = usersArray.map((item: any) => {
+        const userData = item.user || item;
+        return {
+          pk: userData.pk || userData.id,
+          username: userData.username,
+          full_name: userData.full_name || "",
+          profile_pic_url: userData.profile_pic_url || "",
+          is_verified: userData.is_verified || false,
+          is_private: userData.is_private || false,
+          follower_count: userData.follower_count,
+        };
+      });
+      
+      // Parse places as additional results (businesses/establishments)
+      const placeResults = placesArray.map((item: any) => {
+        const placeData = item.place || item;
+        const location = placeData.location || {};
+        return {
+          pk: location.pk || location.facebook_places_id || `place_${item.position}`,
+          username: placeData.title || location.name || "",
+          full_name: placeData.subtitle || "",
+          profile_pic_url: "",
+          is_verified: false,
+          is_private: false,
+          follower_count: undefined,
+          is_place: true, // Mark as place for UI differentiation
+        };
+      });
+      
       return {
-        results: usersArray.map((item: any) => {
-          // Handle nested user object structure: { position, user: {...} }
-          const userData = item.user || item;
-          return {
-            pk: userData.pk || userData.id,
-            username: userData.username,
-            full_name: userData.full_name || "",
-            profile_pic_url: userData.profile_pic_url || "",
-            is_verified: userData.is_verified || false,
-            is_private: userData.is_private || false,
-            follower_count: userData.follower_count,
-          };
-        }),
+        results: [...userResults, ...placeResults],
         usage: response.usage,
       };
     } finally {
