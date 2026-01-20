@@ -1,0 +1,351 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface ProfileData {
+  profileUrl: string;
+  profileName?: string;
+  profileBio?: string;
+  profileLink?: string;
+  profileImageUrl?: string;
+  platform?: string;
+}
+
+interface AnalysisResult {
+  type: "individual" | "clinic" | "company" | "unknown";
+  profession: string | null;
+  specialty: string | null;
+  location: string | null;
+  workplace: string | null;
+  confidence: number;
+  leadScore: number;
+  leadScoreExplanation: string;
+  leadScoreFactors: {
+    positive: string[];
+    negative: string[];
+  };
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { profiles, workspaceId, searchId } = await req.json();
+
+    if (!profiles || !Array.isArray(profiles) || profiles.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Profiles array is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!workspaceId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Workspace ID is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(
+        JSON.stringify({ success: false, error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Check usage limits
+    const { data: usage, error: usageError } = await supabase.rpc(
+      "get_or_create_prospecting_usage",
+      { p_workspace_id: workspaceId }
+    );
+
+    if (usageError) {
+      console.error("Error getting usage:", usageError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to check usage limits" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const remainingProfiles = usage.profiles_analyzed_limit - usage.profiles_analyzed_count;
+    if (remainingProfiles <= 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Monthly profile analysis limit reached",
+          usage: {
+            analyzed: usage.profiles_analyzed_count,
+            limit: usage.profiles_analyzed_limit
+          }
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Limit profiles to remaining quota
+    const profilesToAnalyze = profiles.slice(0, Math.min(profiles.length, remainingProfiles));
+    const results: any[] = [];
+
+    // Analyze each profile with AI
+    for (const profile of profilesToAnalyze) {
+      try {
+        const analysis = await analyzeProfile(profile, LOVABLE_API_KEY);
+        
+        // Store in database
+        const { data: savedProfile, error: saveError } = await supabase
+          .from("professional_prospecting_profiles")
+          .upsert({
+            workspace_id: workspaceId,
+            search_id: searchId || null,
+            profile_url: profile.profileUrl,
+            platform: detectPlatform(profile.profileUrl),
+            profile_name: profile.profileName || null,
+            profile_bio: profile.profileBio || null,
+            profile_link: profile.profileLink || null,
+            profile_image_url: profile.profileImageUrl || null,
+            raw_data: profile,
+            ai_analysis: analysis,
+            inferred_type: analysis.type,
+            inferred_profession: analysis.profession,
+            inferred_specialty: analysis.specialty,
+            inferred_location: analysis.location,
+            inferred_workplace: analysis.workplace,
+            confidence_score: analysis.confidence,
+            lead_score: analysis.leadScore,
+            lead_score_explanation: analysis.leadScoreExplanation,
+            lead_score_factors: analysis.leadScoreFactors,
+            status: "analyzed",
+            analyzed_at: new Date().toISOString(),
+          }, {
+            onConflict: "workspace_id,profile_url"
+          })
+          .select()
+          .single();
+
+        if (saveError) {
+          console.error("Error saving profile:", saveError);
+        }
+
+        results.push({
+          profileUrl: profile.profileUrl,
+          success: true,
+          analysis,
+          savedProfile
+        });
+      } catch (error) {
+        console.error("Error analyzing profile:", profile.profileUrl, error);
+        results.push({
+          profileUrl: profile.profileUrl,
+          success: false,
+          error: error instanceof Error ? error.message : "Analysis failed"
+        });
+      }
+    }
+
+    // Update usage count
+    const successCount = results.filter(r => r.success).length;
+    await supabase
+      .from("professional_prospecting_usage")
+      .update({ 
+        profiles_analyzed_count: usage.profiles_analyzed_count + successCount,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", usage.id);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        analyzed: successCount,
+        total: profiles.length,
+        limitedTo: profilesToAnalyze.length,
+        results,
+        usage: {
+          analyzed: usage.profiles_analyzed_count + successCount,
+          limit: usage.profiles_analyzed_limit
+        }
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("Error in professional-prospecting-analyze:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+function detectPlatform(url: string): string {
+  if (url.includes("instagram.com")) return "instagram";
+  if (url.includes("linkedin.com")) return "linkedin";
+  if (url.includes("facebook.com")) return "facebook";
+  if (url.includes("twitter.com") || url.includes("x.com")) return "twitter";
+  return "other";
+}
+
+async function analyzeProfile(profile: ProfileData, apiKey: string): Promise<AnalysisResult> {
+  const systemPrompt = `És um analista de perfis profissionais em redes sociais.
+Com base apenas em dados públicos fornecidos, identifica se o perfil representa:
+- Um profissional individual (médico, dentista, advogado, etc.)
+- Uma clínica ou consultório
+- Uma empresa/organização
+- Desconhecido/incerto
+
+Extrai:
+1. Tipo de perfil (individual/clinic/company/unknown)
+2. Profissão provável (se individual)
+3. Especialidade (se aplicável)
+4. Localização inferida (cidade/região)
+5. Local de trabalho mencionado (clínica, empresa)
+6. Score de confiança (0.0 a 1.0)
+7. Lead Score (0 a 100) baseado em:
+   - Perfil ativo e profissional
+   - Profissão claramente descrita
+   - Especialidade definida
+   - Link profissional presente
+   - Linguagem profissional
+   - Consistência de conteúdo
+
+REGRAS:
+- Nunca inventes dados que não estejam no input
+- Sempre indica nível de confiança
+- Explica as inferências
+- Se não conseguires determinar algo, retorna null`;
+
+  const userPrompt = `Analisa este perfil profissional:
+
+URL: ${profile.profileUrl}
+Nome: ${profile.profileName || "Não disponível"}
+Bio: ${profile.profileBio || "Não disponível"}
+Link na bio: ${profile.profileLink || "Não disponível"}
+
+Retorna a análise no formato especificado.`;
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "analyze_professional_profile",
+            description: "Analyze a professional profile and return structured data",
+            parameters: {
+              type: "object",
+              properties: {
+                type: {
+                  type: "string",
+                  enum: ["individual", "clinic", "company", "unknown"],
+                  description: "Type of profile"
+                },
+                profession: {
+                  type: "string",
+                  nullable: true,
+                  description: "Inferred profession"
+                },
+                specialty: {
+                  type: "string",
+                  nullable: true,
+                  description: "Professional specialty"
+                },
+                location: {
+                  type: "string",
+                  nullable: true,
+                  description: "Inferred location (city/region)"
+                },
+                workplace: {
+                  type: "string",
+                  nullable: true,
+                  description: "Mentioned workplace (clinic, company)"
+                },
+                confidence: {
+                  type: "number",
+                  minimum: 0,
+                  maximum: 1,
+                  description: "Confidence score 0-1"
+                },
+                leadScore: {
+                  type: "number",
+                  minimum: 0,
+                  maximum: 100,
+                  description: "Lead score 0-100"
+                },
+                leadScoreExplanation: {
+                  type: "string",
+                  description: "Brief explanation of the lead score"
+                },
+                positiveFactors: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Positive factors for lead score"
+                },
+                negativeFactors: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Negative factors for lead score"
+                }
+              },
+              required: ["type", "confidence", "leadScore", "leadScoreExplanation", "positiveFactors", "negativeFactors"],
+              additionalProperties: false
+            }
+          }
+        }
+      ],
+      tool_choice: { type: "function", function: { name: "analyze_professional_profile" } }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("AI API error:", response.status, errorText);
+    throw new Error(`AI analysis failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  
+  if (!toolCall || !toolCall.function?.arguments) {
+    throw new Error("Invalid AI response format");
+  }
+
+  const args = JSON.parse(toolCall.function.arguments);
+  
+  return {
+    type: args.type || "unknown",
+    profession: args.profession || null,
+    specialty: args.specialty || null,
+    location: args.location || null,
+    workplace: args.workplace || null,
+    confidence: args.confidence || 0.5,
+    leadScore: args.leadScore || 50,
+    leadScoreExplanation: args.leadScoreExplanation || "Análise inconclusiva",
+    leadScoreFactors: {
+      positive: args.positiveFactors || [],
+      negative: args.negativeFactors || []
+    }
+  };
+}

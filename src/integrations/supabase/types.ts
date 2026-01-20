@@ -10073,6 +10073,221 @@ export type Database = {
           },
         ]
       }
+      professional_prospecting_profiles: {
+        Row: {
+          ai_analysis: Json | null
+          analyzed_at: string | null
+          confidence_score: number | null
+          converted_at: string | null
+          converted_by: string | null
+          converted_lead_id: string | null
+          created_at: string
+          id: string
+          inferred_location: string | null
+          inferred_profession: string | null
+          inferred_specialty: string | null
+          inferred_type: string | null
+          inferred_workplace: string | null
+          lead_score: number | null
+          lead_score_explanation: string | null
+          lead_score_factors: Json | null
+          platform: string
+          profile_bio: string | null
+          profile_image_url: string | null
+          profile_link: string | null
+          profile_name: string | null
+          profile_url: string
+          raw_data: Json | null
+          rejection_reason: string | null
+          search_id: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          analyzed_at?: string | null
+          confidence_score?: number | null
+          converted_at?: string | null
+          converted_by?: string | null
+          converted_lead_id?: string | null
+          created_at?: string
+          id?: string
+          inferred_location?: string | null
+          inferred_profession?: string | null
+          inferred_specialty?: string | null
+          inferred_type?: string | null
+          inferred_workplace?: string | null
+          lead_score?: number | null
+          lead_score_explanation?: string | null
+          lead_score_factors?: Json | null
+          platform?: string
+          profile_bio?: string | null
+          profile_image_url?: string | null
+          profile_link?: string | null
+          profile_name?: string | null
+          profile_url: string
+          raw_data?: Json | null
+          rejection_reason?: string | null
+          search_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          analyzed_at?: string | null
+          confidence_score?: number | null
+          converted_at?: string | null
+          converted_by?: string | null
+          converted_lead_id?: string | null
+          created_at?: string
+          id?: string
+          inferred_location?: string | null
+          inferred_profession?: string | null
+          inferred_specialty?: string | null
+          inferred_type?: string | null
+          inferred_workplace?: string | null
+          lead_score?: number | null
+          lead_score_explanation?: string | null
+          lead_score_factors?: Json | null
+          platform?: string
+          profile_bio?: string | null
+          profile_image_url?: string | null
+          profile_link?: string | null
+          profile_name?: string | null
+          profile_url?: string
+          raw_data?: Json | null
+          rejection_reason?: string | null
+          search_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_prospecting_profiles_converted_lead_id_fkey"
+            columns: ["converted_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_prospecting_profiles_search_id_fkey"
+            columns: ["search_id"]
+            isOneToOne: false
+            referencedRelation: "professional_prospecting_searches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_prospecting_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_prospecting_searches: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          error_message: string | null
+          id: string
+          keywords: string[] | null
+          location: string | null
+          profession: string
+          results_count: number | null
+          search_type: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          error_message?: string | null
+          id?: string
+          keywords?: string[] | null
+          location?: string | null
+          profession: string
+          results_count?: number | null
+          search_type?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          id?: string
+          keywords?: string[] | null
+          location?: string | null
+          profession?: string
+          results_count?: number | null
+          search_type?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_prospecting_searches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_prospecting_usage: {
+        Row: {
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+          profiles_analyzed_count: number
+          profiles_analyzed_limit: number
+          searches_count: number
+          searches_limit: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period_end: string
+          period_start: string
+          profiles_analyzed_count?: number
+          profiles_analyzed_limit?: number
+          searches_count?: number
+          searches_limit?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          profiles_analyzed_count?: number
+          profiles_analyzed_limit?: number
+          searches_count?: number
+          searches_limit?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_prospecting_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -12909,6 +13124,27 @@ export type Database = {
       get_module_trial_status: {
         Args: { p_module_id: string; p_workspace_id: string }
         Returns: Json
+      }
+      get_or_create_prospecting_usage: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+          profiles_analyzed_count: number
+          profiles_analyzed_limit: number
+          searches_count: number
+          searches_limit: number
+          updated_at: string
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "professional_prospecting_usage"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_plan_limits: {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
