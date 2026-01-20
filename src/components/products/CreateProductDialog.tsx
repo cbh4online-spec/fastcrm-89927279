@@ -101,6 +101,7 @@ export function CreateProductDialog({
   const [productImages, setProductImages] = useState<string[]>([]);
   const [skuFoundImages, setSkuFoundImages] = useState<string[]>([]);
   const [specifications, setSpecifications] = useState<Record<string, string>>({});
+  const [suggestedSpecs, setSuggestedSpecs] = useState<Record<string, string>>({});
   const [isSpecsAutoFilled, setIsSpecsAutoFilled] = useState(false);
   const [demoVideoUrl, setDemoVideoUrl] = useState("");
   const [hasDraft, setHasDraft] = useState(false);
@@ -352,7 +353,33 @@ export function CreateProductDialog({
   const handleApplyProductType = (type: ProductType) => setProductType(type);
   const handleApplyName = (newName: string) => setName(newName);
   const handleApplySpecifications = (specs: Record<string, string>) => {
-    setSpecifications(prev => ({ ...prev, ...specs }));
+    // Separate specs that have values vs empty ones
+    const filledSpecs: Record<string, string> = {};
+    const emptySpecs: Record<string, string> = {};
+    
+    Object.entries(specs).forEach(([key, value]) => {
+      if (value) {
+        filledSpecs[key] = value;
+      } else {
+        emptySpecs[key] = value;
+      }
+    });
+    
+    // Apply filled specs directly
+    setSpecifications(prev => ({ ...prev, ...filledSpecs }));
+    
+    // Store any additional found specs as suggestions (for specs not yet in specifications)
+    setSuggestedSpecs(prev => {
+      const newSuggested = { ...prev };
+      Object.entries(filledSpecs).forEach(([key, value]) => {
+        // Only suggest if not already in specifications
+        if (!specifications[key]) {
+          newSuggested[key] = value;
+        }
+      });
+      return newSuggested;
+    });
+    
     setIsSpecsAutoFilled(true);
   };
   const handleApplyAll = (data: { name?: string; price?: number; description?: string; category?: string; images?: string[]; specifications?: Record<string, string> }) => {
@@ -368,8 +395,8 @@ export function CreateProductDialog({
       });
     }
     if (data.specifications && Object.keys(data.specifications).length > 0) {
-      setSpecifications(prev => ({ ...prev, ...data.specifications }));
-      setIsSpecsAutoFilled(true);
+      // Apply specs and also set as suggestions for the editor
+      handleApplySpecifications(data.specifications);
     }
   };
 
@@ -583,9 +610,18 @@ export function CreateProductDialog({
               {/* Technical Specifications Editor */}
               <ProductSpecificationsEditor
                 specifications={specifications}
-                onChange={setSpecifications}
+                onChange={(specs) => {
+                  setSpecifications(specs);
+                  // Remove from suggested when added to specifications
+                  const newSuggested = { ...suggestedSpecs };
+                  Object.keys(specs).forEach(key => {
+                    delete newSuggested[key];
+                  });
+                  setSuggestedSpecs(newSuggested);
+                }}
                 suggestedCategory={category}
                 isAutoFilled={isSpecsAutoFilled}
+                suggestedSpecs={suggestedSpecs}
               />
 
               {/* AI Image Generator */}
