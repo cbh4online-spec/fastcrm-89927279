@@ -67,6 +67,7 @@ import ProductivityPage from "./pages/ProductivityPage";
 import MemberPanelPage from "./pages/MemberPanelPage";
 import Profile from "./pages/Profile";
 import Marketing from "./pages/Marketing";
+import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
 
 const queryClient = new QueryClient();
 
@@ -136,6 +137,8 @@ const App = () => (
                   <Route path="/dashboard/member" element={<MemberPanelPage />} />
                   <Route path="/dashboard/profile" element={<Profile />} />
                   <Route path="/dashboard/marketing" element={<Marketing />} />
+                  <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
+                  <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />

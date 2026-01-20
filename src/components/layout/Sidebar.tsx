@@ -51,6 +51,8 @@ import {
   CalendarClock,
   Newspaper,
   Sparkles,
+  Hash,
+  FolderOpen,
 } from "lucide-react";
 import {
   Collapsible,
@@ -450,6 +452,30 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <div className="space-y-1">
               {filteredNavigationGroups.slice(5).map(renderNavGroup)}
             </div>
+
+            {/* Instagram Looter - Only for metodopare workspace */}
+            {currentWorkspace?.slug === "metodopare" && (
+              <>
+                <div className="my-3 mx-3 border-t border-white/10" />
+                <div className="space-y-1">
+                  {renderNavGroup({
+                    name: "Instagram Looter",
+                    icon: Instagram,
+                    tooltip: "Prospecção via Instagram",
+                    highlight: true,
+                    items: [
+                      { name: "Busca Global", href: "/dashboard/instagram-looter", icon: Search, tooltip: "Pesquisar utilizadores" },
+                      { name: "Hashtags", href: "/dashboard/instagram-looter/hashtag", icon: Hash, tooltip: "Pesquisar por hashtag" },
+                      { name: "Localização", href: "/dashboard/instagram-looter/location", icon: MapPin, tooltip: "Pesquisar por local" },
+                      { name: "Explore", href: "/dashboard/instagram-looter/explore", icon: Compass, tooltip: "Feed de tendências" },
+                      { name: "Coleções", href: "/dashboard/instagram-looter/collections", icon: FolderOpen, tooltip: "Perfis guardados" },
+                      { name: "Leads", href: "/dashboard/instagram-looter/leads", icon: UserPlus, tooltip: "Leads gerados" },
+                      { name: "Configurações", href: "/dashboard/instagram-looter/settings", icon: Settings, tooltip: "Configurações admin", requiresAdmin: true },
+                    ],
+                  })}
+                </div>
+              </>
+            )}
           </nav>
 
           {/* Settings at Bottom - Outside scroll area */}
