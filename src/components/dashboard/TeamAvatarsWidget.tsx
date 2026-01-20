@@ -2,6 +2,7 @@ import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -13,6 +14,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function TeamAvatarsWidget() {
   const { data: members, isLoading } = useWorkspaceMembers();
+  const navigate = useNavigate();
   
   if (isLoading) {
     return (
@@ -48,10 +50,17 @@ export function TeamAvatarsWidget() {
             .toUpperCase()
             .slice(0, 2);
           
+          const handleClick = () => {
+            navigate(`/dashboard/feed?user=${member.user_id}`);
+          };
+          
           return (
             <Tooltip key={member.id}>
               <TooltipTrigger asChild>
-                <Avatar className="h-8 w-8 border-2 border-background cursor-pointer hover:z-10 transition-transform hover:scale-110">
+                <Avatar 
+                  className="h-8 w-8 border-2 border-background cursor-pointer hover:z-10 transition-transform hover:scale-110"
+                  onClick={handleClick}
+                >
                   <AvatarImage src={member.profile?.avatar_url || undefined} />
                   <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-medium">
                     {initials}
@@ -64,6 +73,7 @@ export function TeamAvatarsWidget() {
                   <p className="text-xs text-muted-foreground">
                     {ROLE_LABELS[member.role] || member.role}
                   </p>
+                  <p className="text-xs text-primary mt-1">Clique para enviar mensagem</p>
                 </div>
               </TooltipContent>
             </Tooltip>
