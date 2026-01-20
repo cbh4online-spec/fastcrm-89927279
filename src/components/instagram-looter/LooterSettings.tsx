@@ -45,11 +45,11 @@ export function LooterSettings() {
       setDailyLimit(config.daily_action_limit || 200);
       setRateLimit(config.rate_limit_seconds || 3);
       const configFeatures = config.enabled_features as Record<string, boolean> | null;
-      setFeatures(configFeatures || {
-        global_search: true,
-        hashtag: true,
-        location: true,
-        explore: true,
+      setFeatures({
+        global_search: configFeatures?.global_search ?? true,
+        hashtag: configFeatures?.hashtag ?? true,
+        location: configFeatures?.location ?? true,
+        explore: configFeatures?.explore ?? true,
       });
     }
   }, [config]);
