@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,7 @@ const PROFESSION_SUGGESTIONS = [
 export function ProspectingSearch({ onSearchComplete }: ProspectingSearchProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchMode, setSearchMode] = useState<"web" | "manual">("web");
   const [isSearching, setIsSearching] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -105,9 +107,13 @@ export function ProspectingSearch({ onSearchComplete }: ProspectingSearchProps) 
           toast.error("Erro na análise de perfis");
         } else if (analysisData.success) {
           toast.success(`${analysisData.analyzed} perfis analisados`);
+          // Invalidate cache to force refresh
+          queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
         }
       }
 
+      // Invalidate cache before navigating
+      queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       onSearchComplete(data.searchId);
     } catch (error) {
       console.error("Search error:", error);
