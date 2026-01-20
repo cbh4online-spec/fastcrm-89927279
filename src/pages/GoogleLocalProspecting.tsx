@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { 
   MapPin, 
@@ -24,11 +26,14 @@ import {
   Settings,
   CreditCard,
   CheckCircle2,
-  History
+  History,
+  ChevronsUpDown,
+  Check
 } from "lucide-react";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { useCreateLead, useLeads } from "@/hooks/useLeads";
 import { useCredits } from "@/hooks/useCredits";
+import { cn } from "@/lib/utils";
 
 interface GooglePlaceResult {
   id: string;
@@ -739,6 +744,8 @@ const LOCATIONS = [
 export default function GoogleLocalProspecting() {
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [locationSearch, setLocationSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<GooglePlaceResult[]>([]);
@@ -760,6 +767,23 @@ export default function GoogleLocalProspecting() {
   const prospectionLeads = recentLeads
     .filter(lead => lead.source === "google_local")
     .slice(0, 10);
+
+  // Filter locations based on search
+  const filteredLocations = useMemo(() => {
+    if (!locationSearch) return LOCATIONS;
+    const search = locationSearch.toLowerCase();
+    return LOCATIONS.filter(loc => 
+      loc.label.toLowerCase().includes(search) || 
+      loc.value.toLowerCase().includes(search)
+    );
+  }, [locationSearch]);
+
+  // Get selected location label
+  const selectedLocationLabel = useMemo(() => {
+    if (!location || location === "all-locations") return "Todas as localidades";
+    const found = LOCATIONS.find(loc => loc.value === location);
+    return found?.label || location;
+  }, [location]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim() && !location.trim()) {
@@ -988,18 +1012,59 @@ export default function GoogleLocalProspecting() {
                   />
                 </div>
                 <div>
-                  <Select value={location} onValueChange={setLocation}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Localização" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
-                      {LOCATIONS.map(loc => (
-                        <SelectItem key={loc.value || "all"} value={loc.value || "all-locations"}>
-                          {loc.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={locationOpen} onOpenChange={setLocationOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={locationOpen}
+                        className="w-full justify-between font-normal"
+                      >
+                        <span className="truncate">
+                          {selectedLocationLabel}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput 
+                          placeholder="Pesquisar localidade..." 
+                          value={locationSearch}
+                          onValueChange={setLocationSearch}
+                        />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma localidade encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            <ScrollArea className="h-[300px]">
+                              {filteredLocations.map((loc) => (
+                                <CommandItem
+                                  key={loc.value || "all"}
+                                  value={loc.value || "all-locations"}
+                                  onSelect={(value) => {
+                                    setLocation(value === "all-locations" ? "" : value);
+                                    setLocationOpen(false);
+                                    setLocationSearch("");
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      location === loc.value || (!location && !loc.value) 
+                                        ? "opacity-100" 
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                                  {loc.label}
+                                </CommandItem>
+                              ))}
+                            </ScrollArea>
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <Select value={category} onValueChange={setCategory}>
