@@ -46,11 +46,14 @@ import {
   Plus,
   Clock,
   MessageCircle,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTemplates, Template, TemplateGoal } from "@/hooks/useTemplates";
 import { useCopilot, ReplySuggestion } from "@/hooks/useCopilot";
+import { TemplateFormDialog } from "@/components/communication/TemplateFormDialog";
+import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
 
 interface ContactMessagesSectionProps {
   entityType: 'contact' | 'company';
@@ -133,6 +136,8 @@ export function ContactMessagesSection({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [templateSearch, setTemplateSearch] = useState('');
   const [showAllTemplates, setShowAllTemplates] = useState(false);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [templateToEdit, setTemplateToEdit] = useState<CommunicationTemplate | null>(null);
   
   // AI state
   const [aiSuggestions, setAiSuggestions] = useState<ReplySuggestion[] | null>(null);
@@ -329,6 +334,36 @@ export function ContactMessagesSection({
     }
   }, [draft.content, suggestReplies]);
 
+  // Map channel to template channel type
+  const getTemplateChannel = useCallback((): TemplateChannel => {
+    switch (selectedChannel) {
+      case 'email': return 'email';
+      case 'whatsapp': return 'whatsapp';
+      default: return 'inbox';
+    }
+  }, [selectedChannel]);
+
+  // Handle save as template
+  const handleSaveAsTemplate = useCallback(() => {
+    const prefilledTemplate: Partial<CommunicationTemplate> = {
+      channel: getTemplateChannel(),
+      subject: draft.subject || undefined,
+      body: draft.content,
+      language: 'pt',
+      tone: 'professional',
+      journeyContexts: ['followup'],
+      isActive: true,
+    };
+    setTemplateToEdit(prefilledTemplate as CommunicationTemplate);
+    setShowTemplateDialog(true);
+  }, [draft, getTemplateChannel]);
+
+  // Handle create new template
+  const handleCreateTemplate = useCallback(() => {
+    setTemplateToEdit(null);
+    setShowTemplateDialog(true);
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Header with channel selector */}
@@ -489,6 +524,17 @@ export function ContactMessagesSection({
                     <RefreshCw className="h-3 w-3" />
                     Reescrever
                   </Button>
+                  <Separator orientation="vertical" className="h-5 mx-1" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSaveAsTemplate}
+                    disabled={!draft.content.trim()}
+                    className="h-7 text-xs gap-1"
+                  >
+                    <Save className="h-3 w-3" />
+                    Guardar como Template
+                  </Button>
                 </div>
 
                 <Separator />
@@ -512,11 +558,21 @@ export function ContactMessagesSection({
 
               {/* Templates Tab */}
               <TabsContent value="templates" className="m-0 space-y-4">
-                <div className="flex items-start gap-2 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                  <FileText className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-700">
-                    Escolha um template e personalize-o. As variáveis serão substituídas automaticamente com os dados do {entityType === 'contact' ? 'contacto' : 'empresa'}.
-                  </p>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-start gap-2 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 flex-1">
+                    <FileText className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-700">
+                      Escolha um template e personalize-o. As variáveis serão substituídas automaticamente.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleCreateTemplate}
+                    size="sm"
+                    className="gap-1.5 shrink-0"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo Template
+                  </Button>
                 </div>
 
                 <Input
@@ -786,6 +842,17 @@ export function ContactMessagesSection({
           </Card>
         </div>
       </div>
+
+      {/* Template Form Dialog */}
+      <TemplateFormDialog
+        open={showTemplateDialog}
+        onOpenChange={setShowTemplateDialog}
+        template={templateToEdit}
+        onClose={() => {
+          setShowTemplateDialog(false);
+          setTemplateToEdit(null);
+        }}
+      />
     </div>
   );
 }
