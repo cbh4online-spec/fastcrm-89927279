@@ -60,6 +60,7 @@ import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { ActivityProfileBadge, ProfileCustomFieldsSection } from "@/components/activity-profile";
 import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
 import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
+import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -258,6 +259,16 @@ export function CompanyDetailWithSidebar() {
         return <CompanyContactsHistory companyId={id || ''} />;
       case 'payments':
         return <AcquiredProductsSection companyId={id} />;
+      case 'messages':
+        return (
+          <ContactMessagesSection
+            entityType="company"
+            entityId={id!}
+            entityName={company.name}
+            entityEmail={company.email}
+            entityPhone={company.phone}
+          />
+        );
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">

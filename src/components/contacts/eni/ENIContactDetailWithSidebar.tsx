@@ -37,6 +37,7 @@ import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";
 import { ActivityProfileBadge, ProfileCustomFieldsSection } from "@/components/activity-profile";
 import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
 import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
+import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -249,6 +250,16 @@ export function ENIContactDetailWithSidebar() {
         );
       case 'custom-fields':
         return <DocumentsSection contactId={id!} />;
+      case 'messages':
+        return (
+          <ContactMessagesSection
+            entityType="contact"
+            entityId={id!}
+            entityName={contact.name}
+            entityEmail={contact.email}
+            entityPhone={contact.phone}
+          />
+        );
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
