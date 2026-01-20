@@ -224,6 +224,111 @@ const MOCK_DATABASE: Record<string, GooglePlaceResult[]> = {
       description: "Empresa de construção civil especializada em remodelações",
       services: ["Construção", "Remodelação", "Pintura", "Canalização"]
     }
+  ],
+  beauty: [
+    {
+      id: "b1",
+      title: "Cabeleireiro Elegance",
+      rating: 4.9,
+      reviews_count: 342,
+      address: "Av. Roma 156, Lisboa",
+      phone: "+351 21 555 6666",
+      website: "https://elegancehair.pt",
+      category: "Cabeleireiro",
+      hours: "09:00 - 20:00",
+      description: "Cabeleireiro unisexo especializado em coloração e cortes modernos",
+      services: ["Corte", "Coloração", "Madeixas", "Tratamentos Capilares", "Penteados"]
+    },
+    {
+      id: "b2",
+      title: "Estética & Beleza Maria",
+      rating: 4.8,
+      reviews_count: 278,
+      address: "Rua Castilho 45, Lisboa",
+      phone: "+351 21 666 7777",
+      website: "https://esteticamaria.pt",
+      category: "Centro de Estética",
+      hours: "10:00 - 19:00",
+      description: "Centro de estética com tratamentos faciais e corporais",
+      services: ["Limpeza de Pele", "Massagens", "Depilação", "Tratamentos Anti-idade", "Manicure"]
+    },
+    {
+      id: "b3",
+      title: "Barbearia Clássica",
+      rating: 4.7,
+      reviews_count: 198,
+      address: "Baixa-Chiado, Lisboa",
+      phone: "+351 21 777 8888",
+      website: "https://barbeiraclassica.pt",
+      category: "Barbearia",
+      hours: "10:00 - 20:00",
+      description: "Barbearia tradicional com serviços premium",
+      services: ["Corte de Cabelo", "Barba", "Tratamentos", "Hot Towel"]
+    },
+    {
+      id: "b4",
+      title: "Nail Art Studio",
+      rating: 4.6,
+      reviews_count: 156,
+      address: "Centro Comercial Vasco da Gama, Lisboa",
+      phone: "+351 21 888 9999",
+      website: "https://nailartstudio.pt",
+      category: "Manicure & Pedicure",
+      hours: "10:00 - 22:00",
+      description: "Estúdio especializado em nail art e extensões de unhas",
+      services: ["Manicure", "Pedicure", "Gel", "Extensões", "Nail Art"]
+    },
+    {
+      id: "b5",
+      title: "SPA Bem-Estar Lisboa",
+      rating: 4.9,
+      reviews_count: 423,
+      address: "Hotel Ritz, Lisboa",
+      phone: "+351 21 999 0000",
+      website: "https://spabemestar.pt",
+      category: "SPA",
+      hours: "08:00 - 21:00",
+      description: "SPA de luxo com tratamentos relaxantes e terapêuticos",
+      services: ["Massagens", "Sauna", "Jacuzzi", "Tratamentos Corporais", "Aromaterapia"]
+    },
+    {
+      id: "b6",
+      title: "Clínica Estética Avançada",
+      rating: 4.8,
+      reviews_count: 312,
+      address: "Av. da Liberdade 200, Lisboa",
+      phone: "+351 21 000 1111",
+      website: "https://clinicaestetica.pt",
+      category: "Clínica Estética",
+      hours: "09:00 - 19:00",
+      description: "Clínica de medicina estética com tratamentos avançados",
+      services: ["Botox", "Preenchimentos", "Laser", "Peeling", "Mesoterapia"]
+    },
+    {
+      id: "b7",
+      title: "Sobrancelhas Perfeitas",
+      rating: 4.5,
+      reviews_count: 234,
+      address: "Amoreiras Shopping, Lisboa",
+      phone: "+351 21 111 2222",
+      website: "https://sobrancelhasperfeitas.pt",
+      category: "Sobrancelhas & Pestanas",
+      hours: "10:00 - 22:00",
+      description: "Especialistas em design de sobrancelhas e extensões de pestanas",
+      services: ["Design Sobrancelhas", "Micropigmentação", "Extensões Pestanas", "Laminação"]
+    },
+    {
+      id: "b8",
+      title: "Centro de Bronzeamento Solar",
+      rating: 4.3,
+      reviews_count: 145,
+      address: "Rua Augusta 89, Lisboa",
+      phone: "+351 21 222 3333",
+      category: "Solário",
+      hours: "09:00 - 21:00",
+      description: "Centro de bronzeamento com equipamentos de última geração",
+      services: ["Bronzeamento UV", "Spray Tan", "Bronzeamento Natural"]
+    }
   ]
 };
 
@@ -232,6 +337,7 @@ const CATEGORIES = [
   { value: "restaurant", label: "Restaurantes" },
   { value: "auto", label: "Automóvel" },
   { value: "health", label: "Saúde" },
+  { value: "beauty", label: "Cabeleireiros & Estética" },
   { value: "services", label: "Serviços" },
   { value: "retail", label: "Retalho" },
   { value: "construction", label: "Construção" },
