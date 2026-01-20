@@ -107,7 +107,12 @@ export function ConvertProfileDialog({
     });
   };
 
-  const hasInstagramData = !!profile.instagram_enriched_at;
+  // Verificar se há dados Instagram disponíveis (não depender de enriched_at)
+  const hasInstagramData = !!(profile.instagram_enriched_at || 
+                              profile.instagram_full_bio || 
+                              profile.profile_bio || 
+                              profile.instagram_followers_count || 
+                              profile.instagram_posts_count);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -185,9 +190,10 @@ export function ConvertProfileDialog({
                         <div className="text-xs text-muted-foreground">A seguir</div>
                       </div>
                     </div>
-                    {profile.instagram_full_bio && (
+                    {/* Mostrar bio do Instagram ou do profile como fallback */}
+                    {(profile.instagram_full_bio || profile.profile_bio) && (
                       <p className="text-muted-foreground line-clamp-3">
-                        "{profile.instagram_full_bio}"
+                        "{profile.instagram_full_bio || profile.profile_bio}"
                       </p>
                     )}
                   </div>

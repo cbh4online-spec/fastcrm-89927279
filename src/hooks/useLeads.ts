@@ -26,6 +26,38 @@ export interface Lead {
   created_by: string;
   created_at: string;
   updated_at: string;
+  
+  // Avatar
+  avatar_url: string | null;
+  
+  // Instagram Enrichment
+  instagram_followers_count: number | null;
+  instagram_following_count: number | null;
+  instagram_posts_count: number | null;
+  instagram_bio: string | null;
+  instagram_external_url: string | null;
+  instagram_category: string | null;
+  instagram_is_verified: boolean | null;
+  instagram_is_business: boolean | null;
+  instagram_enriched_at: string | null;
+  
+  // AI Analysis
+  inferred_type: string | null;
+  inferred_profession: string | null;
+  inferred_specialty: string | null;
+  inferred_workplace: string | null;
+  confidence_score: number | null;
+  lead_score: number | null;
+  lead_score_explanation: string | null;
+  lead_score_factors: Record<string, unknown> | null;
+  
+  // Prospecting reference
+  prospecting_profile_id: string | null;
+  notes: string | null;
+  
+  // Location
+  city: string | null;
+  business_category: string | null;
 }
 
 export interface CreateLeadInput {

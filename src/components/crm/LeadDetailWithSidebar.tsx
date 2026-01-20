@@ -50,6 +50,8 @@ import { ContactMessagesSection } from "@/components/messages/ContactMessagesSec
 import { ProductSuggestionsCard } from "@/components/ai-suggestions/ProductSuggestionsCard";
 import { EntityContext } from "@/hooks/useEntityProductSuggestions";
 import { CustomFieldsSection } from "@/components/leads/sections/CustomFieldsSection";
+import { InstagramDataSection } from "@/components/leads/sections/InstagramDataSection";
+import { AIAnalysisSection } from "@/components/leads/sections/AIAnalysisSection";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -196,6 +198,10 @@ export function LeadDetailWithSidebar() {
       case 'details':
         return (
           <div className="space-y-6">
+            {/* Secção de Dados Instagram */}
+            <InstagramDataSection lead={lead} />
+            {/* Secção de Análise IA */}
+            <AIAnalysisSection lead={lead} />
             <SocialMediaSection lead={lead} onFieldChange={handleFieldChange} />
             <TagsSection lead={lead} onFieldChange={handleFieldChange} />
           </div>
