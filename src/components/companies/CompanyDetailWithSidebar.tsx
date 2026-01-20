@@ -62,6 +62,7 @@ import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
 import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 import { EntityTasksSection } from "@/components/tasks";
+import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -273,7 +274,15 @@ export function CompanyDetailWithSidebar() {
       case 'tasks':
         return (
           <EntityTasksSection
-            entityType="lead"
+            entityType="company"
+            entityId={id!}
+            entityName={company.name}
+          />
+        );
+      case 'automations':
+        return (
+          <EntityAutomationSection
+            entityType="company"
             entityId={id!}
             entityName={company.name}
           />

@@ -4,7 +4,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type TaskStatus = "pending" | "done";
-export type TaskRelatedType = "lead" | "opportunity";
+export type TaskRelatedType = "lead" | "contact" | "company" | "opportunity";
 
 export interface Task {
   id: string;

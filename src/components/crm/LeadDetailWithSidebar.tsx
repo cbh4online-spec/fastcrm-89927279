@@ -45,6 +45,7 @@ import { EntitySidebarMenu } from "@/components/entity/EntitySidebarMenu";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { EntityTasksSection } from "@/components/tasks";
+import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -172,6 +173,14 @@ export function LeadDetailWithSidebar() {
       case 'tasks':
         return (
           <EntityTasksSection
+            entityType="lead"
+            entityId={id!}
+            entityName={lead.name}
+          />
+        );
+      case 'automations':
+        return (
+          <EntityAutomationSection
             entityType="lead"
             entityId={id!}
             entityName={lead.name}

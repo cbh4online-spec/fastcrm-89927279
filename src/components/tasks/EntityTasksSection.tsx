@@ -21,7 +21,7 @@ import { TaskTemplate } from "@/types/taskTemplate";
 import { isToday, isPast, parseISO } from "date-fns";
 
 interface EntityTasksSectionProps {
-  entityType: 'lead' | 'opportunity';
+  entityType: 'lead' | 'contact' | 'company' | 'opportunity';
   entityId: string;
   entityName: string;
 }
