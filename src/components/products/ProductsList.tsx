@@ -76,6 +76,7 @@ import { ProductSettingsTabContent } from "./settings/ProductSettingsTabContent"
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import {
   productTypeLabels,
   productStatusLabels,
@@ -85,6 +86,29 @@ import {
 import { toast } from "sonner";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+// Column configuration for products table
+const PRODUCT_COLUMNS: ColumnConfig[] = [
+  { id: "name", label: "Nome", category: "basic", defaultVisible: true },
+  { id: "sku", label: "SKU", category: "basic", defaultVisible: false },
+  { id: "product_type", label: "Tipo", category: "basic", defaultVisible: true },
+  { id: "category", label: "Categoria", category: "basic", defaultVisible: true },
+  { id: "base_price", label: "Preço", category: "business", defaultVisible: true },
+  { id: "direct_cost", label: "Custo Direto", category: "business", defaultVisible: false },
+  { id: "operational_cost", label: "Custo Operacional", category: "business", defaultVisible: false },
+  { id: "margin", label: "Margem", category: "business", defaultVisible: false },
+  { id: "billing_type", label: "Cobrança", category: "business", defaultVisible: true },
+  { id: "billing_frequency", label: "Frequência", category: "business", defaultVisible: false },
+  { id: "status", label: "Estado", category: "basic", defaultVisible: true },
+  { id: "total_units", label: "Unidades", category: "business", defaultVisible: false },
+  { id: "unit_duration", label: "Duração", category: "business", defaultVisible: false },
+  { id: "validity_days", label: "Validade (dias)", category: "business", defaultVisible: false },
+  { id: "tax_rate_estimate_pct", label: "Taxa IVA", category: "business", defaultVisible: false },
+  { id: "commission_default", label: "Comissão", category: "business", defaultVisible: false },
+  { id: "delivery_mode", label: "Modo Entrega", category: "business", defaultVisible: false },
+  { id: "created_at", label: "Criado em", category: "basic", defaultVisible: false },
+  { id: "updated_at", label: "Atualizado", category: "basic", defaultVisible: true },
+];
 
 const pageTabs = [
   { id: "products", label: "Produtos" },
@@ -120,6 +144,12 @@ export function ProductsList() {
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("updated_desc");
+
+  // Column preferences with persistence
+  const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences(
+    "products-table-columns",
+    PRODUCT_COLUMNS
+  );
 
   // Debounce search for API calls
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -239,6 +269,79 @@ export function ProductsList() {
       style: "currency",
       currency,
     }).format(value);
+  };
+
+  // Render cell content based on column id
+  const renderProductCell = (product: Product, columnId: string) => {
+    switch (columnId) {
+      case "name":
+        return (
+          <div className="flex items-center gap-2 font-medium">
+            {product.images?.[0] && (
+              <img
+                src={product.images[0]}
+                alt={product.name}
+                className="w-8 h-8 rounded object-cover"
+              />
+            )}
+            {product.name}
+          </div>
+        );
+      case "sku":
+        return product.sku || "-";
+      case "product_type":
+        return (
+          <Badge variant="outline">
+            {productTypeLabels[product.product_type]}
+          </Badge>
+        );
+      case "category":
+        return product.category || "-";
+      case "base_price":
+        return formatCurrency(product.base_price, product.currency);
+      case "direct_cost":
+        return product.direct_cost ? formatCurrency(product.direct_cost, product.currency) : "-";
+      case "operational_cost":
+        return product.operational_cost ? formatCurrency(product.operational_cost, product.currency) : "-";
+      case "margin":
+        if (product.base_price && product.direct_cost) {
+          const margin = ((product.base_price - product.direct_cost) / product.base_price) * 100;
+          return (
+            <span className={margin >= 30 ? "text-green-600" : margin >= 15 ? "text-yellow-600" : "text-destructive"}>
+              {margin.toFixed(1)}%
+            </span>
+          );
+        }
+        return "-";
+      case "billing_type":
+        return billingTypeLabels[product.billing_type];
+      case "billing_frequency":
+        return product.billing_frequency || "-";
+      case "status":
+        return (
+          <Badge variant={product.status === "active" ? "default" : "secondary"}>
+            {productStatusLabels[product.status]}
+          </Badge>
+        );
+      case "total_units":
+        return product.total_units ?? "-";
+      case "unit_duration":
+        return product.unit_duration ? `${product.unit_duration} min` : "-";
+      case "validity_days":
+        return product.validity_days ? `${product.validity_days} dias` : "-";
+      case "tax_rate_estimate_pct":
+        return product.tax_rate_estimate_pct ? `${product.tax_rate_estimate_pct}%` : "-";
+      case "commission_default":
+        return product.commission_default ? `${product.commission_default}%` : "-";
+      case "delivery_mode":
+        return product.delivery_mode || "-";
+      case "created_at":
+        return format(new Date(product.created_at), "dd/MM/yyyy", { locale: pt });
+      case "updated_at":
+        return format(new Date(product.updated_at), "dd/MM/yyyy", { locale: pt });
+      default:
+        return "-";
+    }
   };
 
   const handleArchive = async (product: Product) => {
@@ -426,9 +529,19 @@ export function ProductsList() {
                 </Button>
               }
               rightActions={
-                <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <ColumnSelector
+                    columns={PRODUCT_COLUMNS}
+                    visibleColumns={visibleColumns}
+                    columnOrder={columnOrder}
+                    onVisibleColumnsChange={setVisibleColumns}
+                    onColumnOrderChange={setColumnOrder}
+                    storageKey="products-table-columns"
+                  />
+                  <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
               }
             />
 
@@ -481,13 +594,13 @@ export function ProductsList() {
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead>Preço</TableHead>
-                      <TableHead>Cobrança</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Atualizado</TableHead>
+                      {columnOrder
+                        .filter((colId) => visibleColumns.has(colId))
+                        .map((colId) => {
+                          const col = PRODUCT_COLUMNS.find((c) => c.id === colId);
+                          if (!col) return null;
+                          return <TableHead key={col.id}>{col.label}</TableHead>;
+                        })}
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -502,40 +615,13 @@ export function ProductsList() {
                             }
                           />
                         </TableCell>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {product.images?.[0] && (
-                              <img
-                                src={product.images[0]}
-                                alt={product.name}
-                                className="w-8 h-8 rounded object-cover"
-                              />
-                            )}
-                            {product.name}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {productTypeLabels[product.product_type]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{product.category || "-"}</TableCell>
-                        <TableCell>
-                          {formatCurrency(product.base_price, product.currency)}
-                        </TableCell>
-                        <TableCell>{billingTypeLabels[product.billing_type]}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={product.status === "active" ? "default" : "secondary"}
-                          >
-                            {productStatusLabels[product.status]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {format(new Date(product.updated_at), "dd/MM/yyyy", {
-                            locale: pt,
-                          })}
-                        </TableCell>
+                        {columnOrder
+                          .filter((colId) => visibleColumns.has(colId))
+                          .map((colId) => (
+                            <TableCell key={colId}>
+                              {renderProductCell(product, colId)}
+                            </TableCell>
+                          ))}
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
