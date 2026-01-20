@@ -225,8 +225,30 @@ export function useInstagramLooter() {
     setIsLoading(true);
     try {
       const response = await callAPI("location", { query });
+      // instagram-looter2 API with select=places returns { places: [...] }
+      const apiData = response.data?.data || response.data || {};
+      const placesArray = apiData.places || apiData.items || [];
+      
+      // Parse places into a usable format
+      const results = placesArray.map((item: any) => {
+        const placeData = item.place || item;
+        const location = placeData.location || {};
+        return {
+          pk: location.pk || location.facebook_places_id || `place_${item.position}`,
+          name: placeData.title || location.name || "",
+          title: placeData.title || location.name || "",
+          subtitle: placeData.subtitle || "",
+          address: location.address || location.short_name || "",
+          city: location.city || "",
+          lat: location.lat,
+          lng: location.lng,
+          external_id: location.external_id || location.external_id_source,
+          media_count: location.media_count,
+        };
+      });
+      
       return {
-        results: response.data?.data?.items || [],
+        results,
         usage: response.usage,
       };
     } finally {
