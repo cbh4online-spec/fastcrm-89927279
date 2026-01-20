@@ -6,6 +6,14 @@ interface GTMProviderProps {
   containerId?: string;
 }
 
+// Extend Window interface for tracking scripts
+declare global {
+  interface Window {
+    dataLayer: Record<string, unknown>[];
+    fbq?: (...args: unknown[]) => void;
+  }
+}
+
 export function GTMProvider({ children, containerId }: GTMProviderProps) {
   const { consent, hasConsented } = useConsent();
 
@@ -49,8 +57,12 @@ export function GTMProvider({ children, containerId }: GTMProviderProps) {
     document.body.insertBefore(noscript, document.body.firstChild);
 
     return () => {
-      document.head.removeChild(script);
-      document.body.removeChild(noscript);
+      if (script.parentNode) {
+        document.head.removeChild(script);
+      }
+      if (noscript.parentNode) {
+        document.body.removeChild(noscript);
+      }
     };
   }, [containerId]);
 
@@ -80,8 +92,8 @@ export function initializeGA4(measurementId: string, hasConsent: boolean) {
   document.head.appendChild(script);
 
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({ 'js': new Date() });
-  window.dataLayer.push({ 'config': measurementId, send_page_view: false });
+  window.dataLayer.push({ js: new Date() });
+  window.dataLayer.push({ config: measurementId, send_page_view: false });
 }
 
 export function initializeMetaPixel(pixelId: string, hasConsent: boolean) {
@@ -93,9 +105,9 @@ export function initializeMetaPixel(pixelId: string, hasConsent: boolean) {
   document.head.appendChild(script);
   
   script.onload = () => {
-    if ((window as Record<string, unknown>).fbq) {
-      (window as Record<string, unknown>).fbq('init', pixelId);
-      (window as Record<string, unknown>).fbq('track', 'PageView');
+    if (window.fbq) {
+      window.fbq('init', pixelId);
+      window.fbq('track', 'PageView');
     }
   };
 }

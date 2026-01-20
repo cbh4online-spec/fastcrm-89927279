@@ -1,5 +1,49 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useConsent } from './useConsent';
+import type { EntityType, Intent } from '../types';
+
+// Inline type definitions for tracking params
+interface PageViewParams {
+  page_type: EntityType | 'compare' | 'home' | 'pricing';
+  entity_slug?: string;
+  intent?: Intent;
+  language?: string;
+  country?: string;
+}
+
+interface CTAClickParams {
+  cta_type: 'signup' | 'try_tool' | 'export' | 'install' | 'contact' | 'upgrade';
+  placement: 'hero' | 'sidebar' | 'inline' | 'footer' | 'nav';
+  page_type?: string;
+  entity_slug?: string;
+}
+
+interface SearchParams {
+  search_term: string;
+  search_context: string;
+  filters_used?: string[];
+  results_count?: number;
+}
+
+interface ScrollParams {
+  depth: 25 | 50 | 75 | 100;
+  page_type?: string;
+  entity_slug?: string;
+}
+
+interface ToolParams {
+  tool_name: string;
+  input_type?: string;
+  result_type?: string;
+  credits_used?: number;
+}
+
+interface PurchaseParams {
+  plan: string;
+  value: number;
+  currency: string;
+  transaction_id?: string;
+}
 
 // Push event to dataLayer (GTM will handle routing to GA4/Meta/Clarity)
 function pushToDataLayer(event: string, params?: object) {
@@ -22,17 +66,17 @@ export function useTracking() {
   const canTrackMarketing = consent.marketing;
 
   // SEO/Content Events
-  const trackPageView = useCallback((params: GA4PageViewParams) => {
+  const trackPageView = useCallback((params: PageViewParams) => {
     if (!canTrackAnalytics) return;
     pushToDataLayer('seo_page_view', params);
   }, [canTrackAnalytics]);
 
-  const trackSearch = useCallback((params: GA4SearchParams) => {
+  const trackSearch = useCallback((params: SearchParams) => {
     if (!canTrackAnalytics) return;
     pushToDataLayer('internal_search', params);
   }, [canTrackAnalytics]);
 
-  const trackCTAClick = useCallback((params: GA4CTAClickParams) => {
+  const trackCTAClick = useCallback((params: CTAClickParams) => {
     // CTA clicks are tracked even without analytics consent (essential for product)
     pushToDataLayer('cta_click', params);
     
@@ -50,7 +94,7 @@ export function useTracking() {
     });
   }, [canTrackAnalytics]);
 
-  const trackScrollDepth = useCallback((params: GA4ScrollParams) => {
+  const trackScrollDepth = useCallback((params: ScrollParams) => {
     if (!canTrackAnalytics) return;
     if (scrollDepthsTracked.current.has(params.depth)) return;
     
@@ -85,11 +129,11 @@ export function useTracking() {
     pushToDataLayer('onboarding_completed', {});
   }, []);
 
-  const trackToolRunStarted = useCallback((params: Omit<GA4ToolParams, 'result_type' | 'credits_used'>) => {
+  const trackToolRunStarted = useCallback((params: Omit<ToolParams, 'result_type' | 'credits_used'>) => {
     pushToDataLayer('tool_run_started', params);
   }, []);
 
-  const trackToolRunCompleted = useCallback((params: GA4ToolParams) => {
+  const trackToolRunCompleted = useCallback((params: ToolParams) => {
     pushToDataLayer('tool_run_completed', params);
   }, []);
 
@@ -127,7 +171,7 @@ export function useTracking() {
     }
   }, [canTrackMarketing]);
 
-  const trackPurchaseCompleted = useCallback((params: GA4PurchaseParams) => {
+  const trackPurchaseCompleted = useCallback((params: PurchaseParams) => {
     pushToDataLayer('purchase_completed', params);
     if (canTrackMarketing) {
       pushToDataLayer('meta_purchase', {
