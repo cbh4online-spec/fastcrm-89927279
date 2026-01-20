@@ -182,9 +182,9 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
         {/* Profile Header */}
         <div className="flex items-start gap-4">
           <Avatar className="h-16 w-16">
-            <AvatarImage src={profile.profile_pic_url} alt={profile.username} />
+            <AvatarImage src={profile.profile_pic_url} alt={profile.username || ''} />
             <AvatarFallback>
-              {profile.username.substring(0, 2).toUpperCase()}
+              {(profile.username || 'IG').substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
