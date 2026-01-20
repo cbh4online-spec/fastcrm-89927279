@@ -102,7 +102,7 @@ export function HashtagSearch() {
               {results.map((post: any, index: number) => (
                 <Card 
                   key={post.id || index} 
-                  className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                  className="overflow-hidden hover:shadow-md transition-shadow group"
                 >
                   <a 
                     href={post.link || `https://instagram.com/p/${post.code}`} 
@@ -114,7 +114,7 @@ export function HashtagSearch() {
                         <img
                           src={post.thumbnail_url || post.display_url}
                           alt="Post"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -123,6 +123,14 @@ export function HashtagSearch() {
                       )}
                       {post.is_video && (
                         <Badge className="absolute top-2 right-2">Vídeo</Badge>
+                      )}
+                      {/* Overlay with user info */}
+                      {post.user?.username && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                          <p className="text-white text-xs font-medium truncate">
+                            @{post.user.username}
+                          </p>
+                        </div>
                       )}
                     </div>
                     <CardContent className="p-3">

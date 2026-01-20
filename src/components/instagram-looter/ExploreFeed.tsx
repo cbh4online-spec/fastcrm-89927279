@@ -1,24 +1,27 @@
 import { useState } from "react";
-import { Compass, Loader2, TrendingUp } from "lucide-react";
+import { Compass, Loader2, TrendingUp, Save, ExternalLink, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useInstagramLooter } from "@/hooks/useInstagramLooter";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useInstagramLooter, IGSearchResult } from "@/hooks/useInstagramLooter";
 import { toast } from "sonner";
 
 const EXPLORE_CATEGORIES = [
-  { id: "dentista", label: "Dentistas", icon: "🦷" },
-  { id: "ortodontia", label: "Ortodontia", icon: "😁" },
-  { id: "cabeleireiro", label: "Cabeleireiros", icon: "💇" },
-  { id: "esteticista", label: "Esteticistas", icon: "💅" },
-  { id: "clinica dental", label: "Clínicas Dentais", icon: "🏥" },
-  { id: "salao beleza", label: "Salões de Beleza", icon: "💄" },
+  { id: "dentista", label: "Dentistas", icon: "🦷", color: "bg-blue-500/10 text-blue-600" },
+  { id: "ortodontia", label: "Ortodontia", icon: "😁", color: "bg-cyan-500/10 text-cyan-600" },
+  { id: "cabeleireiro", label: "Cabeleireiros", icon: "💇", color: "bg-pink-500/10 text-pink-600" },
+  { id: "esteticista", label: "Esteticistas", icon: "💅", color: "bg-purple-500/10 text-purple-600" },
+  { id: "clinica dental", label: "Clínicas Dentais", icon: "🏥", color: "bg-green-500/10 text-green-600" },
+  { id: "salao beleza", label: "Salões de Beleza", icon: "💄", color: "bg-rose-500/10 text-rose-600" },
+  { id: "nutricionista", label: "Nutricionistas", icon: "🥗", color: "bg-lime-500/10 text-lime-600" },
+  { id: "personal trainer", label: "Personal Trainers", icon: "💪", color: "bg-orange-500/10 text-orange-600" },
 ];
 
 export function ExploreFeed() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [results, setResults] = useState<any[]>([]);
-  const { isLoading, searchUsers } = useInstagramLooter();
+  const [results, setResults] = useState<IGSearchResult[]>([]);
+  const { isLoading, searchUsers, getProfile, saveProfile } = useInstagramLooter();
 
   const handleExplore = async (categoryId: string) => {
     setSelectedCategory(categoryId);
@@ -37,6 +40,17 @@ export function ExploreFeed() {
     }
   };
 
+  const handleSaveProfile = async (result: IGSearchResult) => {
+    try {
+      const { profile } = await getProfile(result.username);
+      if (profile) {
+        await saveProfile.mutateAsync(profile);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao guardar");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Categories */}
@@ -48,17 +62,17 @@ export function ExploreFeed() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
             {EXPLORE_CATEGORIES.map((category) => (
               <Button
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
-                className="h-auto py-4 flex flex-col gap-2"
+                className={`h-auto py-4 flex flex-col gap-2 ${selectedCategory !== category.id ? category.color : ""}`}
                 onClick={() => handleExplore(category.id)}
                 disabled={isLoading}
               >
                 <span className="text-2xl">{category.icon}</span>
-                <span className="text-sm">{category.label}</span>
+                <span className="text-xs font-medium">{category.label}</span>
               </Button>
             ))}
           </div>
@@ -88,17 +102,23 @@ export function ExploreFeed() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {results.slice(0, 50).map((result: any) => (
+            {results.slice(0, 50).map((result) => (
               <Card key={result.pk} className="hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
-                    <img
-                      src={result.profile_pic_url}
-                      alt={result.username}
-                      className="h-12 w-12 rounded-full object-cover"
-                    />
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={result.profile_pic_url} alt={result.username} />
+                      <AvatarFallback>
+                        {result.username.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">@{result.username}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-semibold truncate">@{result.username}</p>
+                        {result.is_verified && (
+                          <Star className="h-3 w-3 text-primary fill-primary" />
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground truncate">
                         {result.full_name || "—"}
                       </p>
@@ -108,6 +128,31 @@ export function ExploreFeed() {
                         </p>
                       )}
                     </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleSaveProfile(result)}
+                      disabled={saveProfile.isPending}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      Guardar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      asChild
+                    >
+                      <a 
+                        href={`https://instagram.com/${result.username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

@@ -11,6 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useInstagramLooter } from "@/hooks/useInstagramLooter";
+import { CreateLeadModal } from "./CreateLeadModal";
 import { toast } from "sonner";
 
 interface ProfileDetailPanelProps {
@@ -58,6 +59,7 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
   const [aiInsight, setAiInsight] = useState<AIInsight | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
   const { getProfile, analyzeProfile, saveProfile } = useInstagramLooter();
 
   useEffect(() => {
@@ -365,7 +367,7 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
           <Button
             variant="default"
             className="flex-1"
-            disabled={!aiInsight}
+            onClick={() => setShowCreateLead(true)}
           >
             <UserPlus className="h-4 w-4 mr-2" />
             Criar Lead
@@ -384,6 +386,19 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
             <ExternalLink className="h-3 w-3 ml-2" />
           </a>
         </Button>
+
+        {/* Create Lead Modal */}
+        {profile && (
+          <CreateLeadModal
+            open={showCreateLead}
+            onOpenChange={setShowCreateLead}
+            profile={profile}
+            insight={aiInsight}
+            onSuccess={() => {
+              toast.success("Lead criado - pode vê-lo na secção de Leads do CRM");
+            }}
+          />
+        )}
       </CardContent>
     </Card>
   );
