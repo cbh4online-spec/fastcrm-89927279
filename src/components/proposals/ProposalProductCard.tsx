@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { ExternalLink, Video, FileText, Package } from "lucide-react";
+import { ExternalLink, Video, FileText, Package, Wrench, Clock } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
 
 interface ProposalProductCardProps {
@@ -118,6 +118,13 @@ export function ProposalProductCard({
                   <Badge variant="secondary" className="text-xs">
                     -{discount}%
                   </Badge>
+                )}
+                {/* Labor display - separate line */}
+                {product.labor_hours && product.labor_hourly_rate && !product.labor_included_in_price && (
+                  <div className="mt-1 text-xs text-primary flex items-center gap-1">
+                    <Wrench className="h-3 w-3" />
+                    +{formatCurrency((product.labor_hours * product.labor_hourly_rate), currency)} mão de obra
+                  </div>
                 )}
               </div>
             </div>

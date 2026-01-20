@@ -24,8 +24,9 @@ import {
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { LaborConfigEditor } from "./LaborConfigEditor";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
 import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFrequency } from "@/types/product";
 import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/product";
@@ -105,6 +106,11 @@ export function CreateProductDialog({
   const [isSpecsAutoFilled, setIsSpecsAutoFilled] = useState(false);
   const [demoVideoUrl, setDemoVideoUrl] = useState("");
   const [hasDraft, setHasDraft] = useState(false);
+  // Labor config
+  const [laborHours, setLaborHours] = useState(0);
+  const [laborHourlyRate, setLaborHourlyRate] = useState<number | null>(null);
+  const [laborIncludedInPrice, setLaborIncludedInPrice] = useState(true);
+  const [laborNotes, setLaborNotes] = useState("");
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -288,6 +294,11 @@ export function CreateProductDialog({
     setSpecifications({});
     setDemoVideoUrl("");
     setIsSpecsAutoFilled(false);
+    // Reset labor
+    setLaborHours(0);
+    setLaborHourlyRate(null);
+    setLaborIncludedInPrice(true);
+    setLaborNotes("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -323,6 +334,12 @@ export function CreateProductDialog({
     data.recommended_frequency = recommendedFrequency || undefined;
     data.typical_duration_days = typicalDurationDays ? parseInt(typicalDurationDays) : undefined;
     data.is_trackable = isTrackable;
+
+    // Labor fields
+    data.labor_hours = laborHours > 0 ? laborHours : undefined;
+    data.labor_hourly_rate = laborHourlyRate || undefined;
+    data.labor_included_in_price = laborIncludedInPrice;
+    data.labor_notes = laborNotes || undefined;
 
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product.id, ...data });
@@ -648,6 +665,23 @@ export function CreateProductDialog({
                 sku={sku}
                 videoUrl={demoVideoUrl}
                 onVideoChange={setDemoVideoUrl}
+              />
+
+              {/* Labor Configuration */}
+              <LaborConfigEditor
+                laborHours={laborHours}
+                laborHourlyRate={laborHourlyRate}
+                laborIncludedInPrice={laborIncludedInPrice}
+                laborNotes={laborNotes}
+                onChange={(config) => {
+                  setLaborHours(config.laborHours);
+                  setLaborHourlyRate(config.laborHourlyRate);
+                  setLaborIncludedInPrice(config.laborIncludedInPrice);
+                  setLaborNotes(config.laborNotes);
+                }}
+                productName={name}
+                productCategory={category}
+                productType={productType}
               />
 
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>

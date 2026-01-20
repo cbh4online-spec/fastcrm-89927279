@@ -9940,6 +9940,10 @@ export type Database = {
           images: string[] | null
           included_quantity: number | null
           is_trackable: boolean | null
+          labor_hourly_rate: number | null
+          labor_hours: number | null
+          labor_included_in_price: boolean | null
+          labor_notes: string | null
           name: string
           operational_cost: number | null
           primary_image_index: number | null
@@ -9984,6 +9988,10 @@ export type Database = {
           images?: string[] | null
           included_quantity?: number | null
           is_trackable?: boolean | null
+          labor_hourly_rate?: number | null
+          labor_hours?: number | null
+          labor_included_in_price?: boolean | null
+          labor_notes?: string | null
           name: string
           operational_cost?: number | null
           primary_image_index?: number | null
@@ -10028,6 +10036,10 @@ export type Database = {
           images?: string[] | null
           included_quantity?: number | null
           is_trackable?: boolean | null
+          labor_hourly_rate?: number | null
+          labor_hours?: number | null
+          labor_included_in_price?: boolean | null
+          labor_notes?: string | null
           name?: string
           operational_cost?: number | null
           primary_image_index?: number | null
@@ -12047,6 +12059,50 @@ export type Database = {
             foreignKeyName: "workspace_instances_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_labor_rates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          hourly_rate: number
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          hourly_rate?: number
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          hourly_rate?: number
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_labor_rates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
