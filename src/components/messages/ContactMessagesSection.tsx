@@ -56,7 +56,7 @@ import { TemplateFormDialog } from "@/components/communication/TemplateFormDialo
 import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
 
 interface ContactMessagesSectionProps {
-  entityType: 'contact' | 'company';
+  entityType: 'contact' | 'company' | 'lead';
   entityId: string;
   entityName: string;
   entityEmail?: string | null;

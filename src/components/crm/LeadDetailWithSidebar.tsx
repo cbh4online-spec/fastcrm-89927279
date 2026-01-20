@@ -46,6 +46,7 @@ import { MenuSection } from "@/types/entity";
 import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
+import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -185,6 +186,16 @@ export function LeadDetailWithSidebar() {
             entityName={lead.name}
           />
         );
+      case 'messages':
+        return (
+          <ContactMessagesSection
+            entityType="lead"
+            entityId={id!}
+            entityName={lead.name}
+            entityEmail={lead.email}
+            entityPhone={lead.phone}
+          />
+        );
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
@@ -247,11 +258,15 @@ export function LeadDetailWithSidebar() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" asChild>
-                      <a href={`mailto:${lead.email}`}><Mail className="w-4 h-4" /></a>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setActiveSection('messages')}
+                    >
+                      <Mail className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Enviar E-mail</TooltipContent>
+                  <TooltipContent>Enviar Mensagem</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
@@ -259,11 +274,15 @@ export function LeadDetailWithSidebar() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" asChild>
-                      <a href={`tel:${lead.phone}`}><Phone className="w-4 h-4" /></a>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setActiveSection('messages')}
+                    >
+                      <Phone className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Ligar</TooltipContent>
+                  <TooltipContent>Enviar Mensagem</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
