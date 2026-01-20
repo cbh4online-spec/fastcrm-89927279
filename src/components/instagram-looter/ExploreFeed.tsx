@@ -107,9 +107,9 @@ export function ExploreFeed() {
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={result.profile_pic_url} alt={result.username} />
+                      <AvatarImage src={result.profile_pic_url} alt={result.username || ''} />
                       <AvatarFallback>
-                        {result.username.substring(0, 2).toUpperCase()}
+                        {(result.username || 'IG').substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
