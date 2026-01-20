@@ -90,6 +90,25 @@ export function LeadDetailWithSidebar() {
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
   const generateSuggestions = useGenerateFieldSuggestions();
 
+  // Build entity context for AI product suggestions - MUST be before any returns
+  const entityContext: EntityContext | null = useMemo(() => {
+    if (!lead || !id) return null;
+    const leadAny = lead as any;
+    return {
+      entityType: "lead" as const,
+      entityId: id,
+      name: lead.name,
+      email: lead.email || undefined,
+      phone: lead.phone || undefined,
+      source: lead.source || undefined,
+      notes: leadAny.notes || undefined,
+      tags: lead.tags || undefined,
+      inferredProfession: leadAny.business_category || undefined,
+      inferredLocation: leadAny.city || undefined,
+      leadScore: leadAny.lead_score || undefined,
+    };
+  }, [lead, id]);
+
   const handleFieldChange = useCallback(async (field: keyof Lead, value: unknown) => {
     if (!lead) return;
     await updateLead.mutateAsync({
@@ -139,25 +158,6 @@ export function LeadDetailWithSidebar() {
 
   const sourceTag = lead.source?.toLowerCase() || "outro";
   const SourceIcon = sourceIcons[sourceTag] || <Tag className="w-3 h-3" />;
-
-  // Build entity context for AI product suggestions
-  const entityContext: EntityContext | null = useMemo(() => {
-    if (!lead || !id) return null;
-    const leadAny = lead as any;
-    return {
-      entityType: "lead" as const,
-      entityId: id,
-      name: lead.name,
-      email: lead.email || undefined,
-      phone: lead.phone || undefined,
-      source: lead.source || undefined,
-      notes: leadAny.notes || undefined,
-      tags: lead.tags || undefined,
-      inferredProfession: leadAny.business_category || undefined,
-      inferredLocation: leadAny.city || undefined,
-      leadScore: leadAny.lead_score || undefined,
-    };
-  }, [lead, id]);
 
   const renderSectionContent = () => {
     switch (activeSection) {
