@@ -6,6 +6,131 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface Profile {
+  profileUrl: string;
+  profileName: string;
+  profileBio: string | null;
+  source: string;
+  sourceTitle: string;
+}
+
+// Generate multiple search queries for better coverage
+function generateSearchQueries(profession: string, location: string | null, keywords: string | null): string[] {
+  const queries: string[] = [];
+  const professionLower = profession.toLowerCase();
+  
+  // Map common professions to variations and related terms
+  const professionVariations: Record<string, string[]> = {
+    "médico dentista": ["dentista", "odontologista", "médico dentista", "cirurgião dentista", "dental"],
+    "medico dentista": ["dentista", "odontologista", "médico dentista", "cirurgião dentista", "dental"],
+    "dentista": ["dentista", "odontologista", "médico dentista", "cirurgião dentista"],
+    "cabeleireiro": ["cabeleireiro", "cabeleireira", "hairstylist", "hair stylist", "cabelo"],
+    "cabeleireira": ["cabeleireira", "cabeleireiro", "hairstylist", "hair stylist", "cabelo"],
+    "esteticista": ["esteticista", "estética", "beauty", "beleza", "skin care"],
+    "médico": ["médico", "dr.", "dra.", "doctor", "medicina"],
+    "advogado": ["advogado", "advogada", "lawyer", "jurídico", "direito"],
+    "arquiteto": ["arquiteto", "arquiteta", "architect", "arquitetura"],
+    "personal trainer": ["personal trainer", "personal", "fitness", "gym", "treino"],
+    "nutricionista": ["nutricionista", "nutrição", "nutri", "nutrition"],
+    "psicólogo": ["psicólogo", "psicóloga", "psicologo", "psicologa", "psicologia", "terapeuta"],
+    "fisioterapeuta": ["fisioterapeuta", "fisioterapia", "physio", "reabilitação"],
+    "massagista": ["massagista", "massagem", "massage", "spa", "terapeuta"],
+    "maquilhador": ["maquilhador", "maquilhadora", "makeup artist", "maquilhagem", "makeup"],
+    "fotógrafo": ["fotógrafo", "fotógrafa", "photographer", "fotografia", "photo"],
+  };
+
+  // Get variations for the profession
+  let variations = [profession];
+  for (const [key, vals] of Object.entries(professionVariations)) {
+    if (professionLower.includes(key) || key.includes(professionLower)) {
+      variations = [...new Set([...variations, ...vals])];
+      break;
+    }
+  }
+
+  // Location variations for Portugal
+  const locationStr = location || "";
+  const locationParts = locationStr ? [locationStr, "Portugal"] : ["Portugal"];
+  
+  // Strategy 1: Direct Instagram site search with profession
+  for (const variant of variations.slice(0, 3)) {
+    queries.push(`site:instagram.com "${variant}" ${locationParts.join(" ")}`);
+  }
+  
+  // Strategy 2: Search for professionals with Instagram mentions
+  queries.push(`"${profession}" instagram ${locationParts.join(" ")}`);
+  
+  // Strategy 3: Search with keywords if provided
+  if (keywords) {
+    queries.push(`site:instagram.com "${profession}" ${keywords} ${locationStr}`);
+    queries.push(`"${profession}" "${keywords}" instagram ${locationStr}`);
+  }
+  
+  // Strategy 4: Bio-style searches
+  for (const variant of variations.slice(0, 2)) {
+    queries.push(`site:instagram.com "${variant}" "📍" ${locationStr || "Portugal"}`);
+    queries.push(`site:instagram.com "${variant}" clínica ${locationStr || ""}`);
+  }
+
+  // Return unique queries (max 6 to avoid too many API calls)
+  return [...new Set(queries)].slice(0, 6);
+}
+
+// Extract Instagram profiles from search results
+function extractProfiles(results: any[], seenUrls: Set<string>): Profile[] {
+  const profiles: Profile[] = [];
+  const skipUsernames = new Set(["p", "reel", "reels", "stories", "explore", "accounts", "direct", "tv", "about", "legal", "help", "privacy", "safety", "instagram"]);
+
+  for (const result of results) {
+    const url = result.url || "";
+    const title = result.title || "";
+    const description = result.description || "";
+    const markdown = result.markdown || "";
+    
+    // Strategy 1: Direct Instagram profile URLs
+    const directMatch = url.match(/instagram\.com\/([a-zA-Z0-9._]{1,30})\/?(?:\?|$)/);
+    if (directMatch) {
+      const username = directMatch[1].toLowerCase();
+      if (!skipUsernames.has(username)) {
+        const profileUrl = `https://www.instagram.com/${username}`;
+        if (!seenUrls.has(profileUrl)) {
+          seenUrls.add(profileUrl);
+          profiles.push({
+            profileUrl,
+            profileName: username,
+            profileBio: description || null,
+            source: url,
+            sourceTitle: title
+          });
+        }
+      }
+    }
+    
+    // Strategy 2: Extract from content/markdown
+    const content = `${markdown} ${description} ${title}`;
+    const contentMatches = content.matchAll(/(?:instagram\.com\/|@)([a-zA-Z0-9._]{3,30})(?:\s|$|[,\.\!\?\)])/g);
+    
+    for (const match of contentMatches) {
+      const username = match[1].toLowerCase();
+      if (!skipUsernames.has(username) && !username.startsWith("p/") && !username.startsWith("reel")) {
+        const profileUrl = `https://www.instagram.com/${username}`;
+        if (!seenUrls.has(profileUrl)) {
+          seenUrls.add(profileUrl);
+          profiles.push({
+            profileUrl,
+            profileName: username,
+            profileBio: null,
+            source: url,
+            sourceTitle: title
+          });
+        }
+      }
+    }
+  }
+
+  return profiles;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -91,126 +216,74 @@ serve(async (req) => {
       );
     }
 
-    // Build search query for Instagram profiles - more specific query
-    const queryParts = [`site:instagram.com "${profession}"`];
-    if (location) queryParts.push(location);
-    if (keywords) queryParts.push(keywords);
-    
-    const searchQuery = queryParts.join(" ");
-    console.log("Searching for:", searchQuery);
+    // Generate multiple search queries for better coverage
+    const searchQueries = generateSearchQueries(profession, location, keywords);
+    console.log("Search queries:", searchQueries);
 
-    // Use Firecrawl to search
-    const firecrawlResponse = await fetch("https://api.firecrawl.dev/v1/search", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: searchQuery,
-        limit: 50,
-        lang: "pt",
-        country: "PT",
-        scrapeOptions: {
-          formats: ["markdown"]
-        }
-      }),
-    });
-
-    if (!firecrawlResponse.ok) {
-      const errorText = await firecrawlResponse.text();
-      console.error("Firecrawl error:", firecrawlResponse.status, errorText);
-      
-      // Update search status to failed
-      await supabase
-        .from("professional_prospecting_searches")
-        .update({ status: "failed", error_message: `Search failed: ${firecrawlResponse.status}` })
-        .eq("id", search.id);
-
-      return new Response(
-        JSON.stringify({ success: false, error: "Web search failed" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const searchResults = await firecrawlResponse.json();
-    console.log("Search results count:", searchResults.data?.length || 0);
-
-    // Extract Instagram profiles from search results
-    const profiles: any[] = [];
+    const allProfiles: Profile[] = [];
     const seenUrls = new Set<string>();
+    let totalResults = 0;
 
-    for (const result of searchResults.data || []) {
-      const url = result.url || "";
-      const title = result.title || "";
-      const description = result.description || "";
-      const markdown = result.markdown || "";
+    // Execute multiple searches in parallel (max 3 at a time to avoid rate limits)
+    const batchSize = 3;
+    for (let i = 0; i < searchQueries.length && allProfiles.length < 50; i += batchSize) {
+      const batch = searchQueries.slice(i, i + batchSize);
       
-      // Check if this is an Instagram profile URL (not a post or reel)
-      const instagramProfileMatch = url.match(/instagram\.com\/([a-zA-Z0-9._]+)\/?$/);
-      
-      if (instagramProfileMatch) {
-        const username = instagramProfileMatch[1];
-        // Skip common non-profile pages
-        if (["p", "reel", "reels", "stories", "explore", "accounts", "direct", "tv"].includes(username)) {
-          continue;
-        }
-        
-        const profileUrl = `https://www.instagram.com/${username}`;
-        if (!seenUrls.has(profileUrl)) {
-          seenUrls.add(profileUrl);
-          
-          // Extract bio/description from the result
-          const bio = description || (markdown ? markdown.substring(0, 300) : null);
-          
-          profiles.push({
-            profileUrl,
-            profileName: username,
-            profileBio: bio,
-            source: url,
-            sourceTitle: title
+      const batchPromises = batch.map(async (query) => {
+        try {
+          console.log("Executing query:", query);
+          const response = await fetch("https://api.firecrawl.dev/v1/search", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query,
+              limit: 20,
+              lang: "pt",
+              country: "PT",
+              scrapeOptions: {
+                formats: ["markdown"]
+              }
+            }),
           });
-        }
-      } else {
-        // Try to find Instagram profile URLs in the content
-        const contentMatches = (markdown + " " + description).match(/instagram\.com\/([a-zA-Z0-9._]+)/g) || [];
-        
-        for (const match of contentMatches) {
-          const usernameMatch = match.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
-          if (usernameMatch) {
-            const username = usernameMatch[1];
-            // Skip non-profile pages
-            if (["p", "reel", "reels", "stories", "explore", "accounts", "direct", "tv"].includes(username)) {
-              continue;
-            }
-            
-            const profileUrl = `https://www.instagram.com/${username}`;
-            if (!seenUrls.has(profileUrl)) {
-              seenUrls.add(profileUrl);
-              profiles.push({
-                profileUrl,
-                profileName: username,
-                profileBio: null,
-                source: url,
-                sourceTitle: title
-              });
-            }
-          }
-        }
-      }
 
-      // Limit to 50 profiles max
-      if (profiles.length >= 50) break;
+          if (!response.ok) {
+            console.error(`Query failed: ${query}`, response.status);
+            return [];
+          }
+
+          const data = await response.json();
+          return data.data || [];
+        } catch (err) {
+          console.error(`Query error: ${query}`, err);
+          return [];
+        }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      
+      for (const results of batchResults) {
+        totalResults += results.length;
+        const newProfiles = extractProfiles(results, seenUrls);
+        allProfiles.push(...newProfiles);
+        
+        if (allProfiles.length >= 50) break;
+      }
     }
-    
-    console.log("Profiles extracted:", profiles.length);
+
+    console.log(`Total search results: ${totalResults}, Profiles extracted: ${allProfiles.length}`);
+
+    // Limit to 50 profiles
+    const finalProfiles = allProfiles.slice(0, 50);
 
     // Update search record with results count
     await supabase
       .from("professional_prospecting_searches")
       .update({ 
         status: "completed", 
-        results_count: profiles.length,
+        results_count: finalProfiles.length,
         completed_at: new Date().toISOString()
       })
       .eq("id", search.id);
@@ -228,8 +301,9 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         searchId: search.id,
-        profiles,
-        count: profiles.length,
+        profiles: finalProfiles,
+        count: finalProfiles.length,
+        queriesExecuted: searchQueries.length,
         usage: {
           searches: usage.searches_count + 1,
           limit: usage.searches_limit
