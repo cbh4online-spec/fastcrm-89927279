@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 interface SKUSearchPanelProps {
   sku: string;
   currentPrice?: number;
+  searchTrigger?: number; // External trigger to start search
   onApplyName: (name: string) => void;
   onApplyPrice: (price: number) => void;
   onApplyDescription: (description: string) => void;
@@ -34,6 +35,7 @@ interface SKUSearchPanelProps {
 export function SKUSearchPanel({
   sku,
   currentPrice,
+  searchTrigger,
   onApplyName,
   onApplyPrice,
   onApplyDescription,
@@ -82,6 +84,14 @@ export function SKUSearchPanel({
   useEffect(() => {
     specsAutoAppliedRef.current = false;
   }, [sku]);
+
+  // Handle external search trigger
+  useEffect(() => {
+    if (searchTrigger && searchTrigger > 0 && sku && sku.length >= 3) {
+      searchBySKU.mutate(sku);
+      setAppliedItems(new Set());
+    }
+  }, [searchTrigger]);
 
   const handleSearch = () => {
     if (sku && sku.length >= 3) {

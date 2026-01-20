@@ -24,7 +24,17 @@ import {
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench } from "lucide-react";
+import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { LaborConfigEditor } from "./LaborConfigEditor";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
@@ -111,6 +121,8 @@ export function CreateProductDialog({
   const [laborHourlyRate, setLaborHourlyRate] = useState<number | null>(null);
   const [laborIncludedInPrice, setLaborIncludedInPrice] = useState(true);
   const [laborNotes, setLaborNotes] = useState("");
+  const [showCostWarning, setShowCostWarning] = useState(false);
+  const [skuSearchTrigger, setSkuSearchTrigger] = useState(0);
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -211,6 +223,14 @@ export function CreateProductDialog({
       setIsSpecsAutoFilled(false);
       // Demo video
       setDemoVideoUrl(product.demo_video_url || "");
+      // Load existing images from product
+      setProductImages(product.images || []);
+      setSkuFoundImages([]);
+      // Labor config
+      setLaborHours(product.labor_hours || 0);
+      setLaborHourlyRate(product.labor_hourly_rate || null);
+      setLaborIncludedInPrice(product.labor_included_in_price ?? true);
+      setLaborNotes(product.labor_notes || "");
       setHasDraft(false);
     } else {
       // Try to load draft
@@ -301,9 +321,7 @@ export function CreateProductDialog({
     setLaborNotes("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleActualSubmit = async () => {
     const data: any = {
       name,
       product_type: productType,
@@ -342,7 +360,7 @@ export function CreateProductDialog({
     data.labor_notes = laborNotes || undefined;
 
     if (isEditing) {
-      await updateProduct.mutateAsync({ id: product.id, ...data });
+      await updateProduct.mutateAsync({ id: product!.id, ...data });
     } else {
       await createProduct.mutateAsync(data);
     }
@@ -350,7 +368,28 @@ export function CreateProductDialog({
     // Clear draft after successful save
     sessionStorage.removeItem(DRAFT_STORAGE_KEY);
     setHasDraft(false);
+    setShowCostWarning(false);
     onOpenChange(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Check if missing cost price when there's a sale price
+    const priceValue = parseFloat(basePrice) || 0;
+    const costValue = parseFloat(directCost) || 0;
+    
+    if (priceValue > 0 && costValue === 0) {
+      setShowCostWarning(true);
+      return;
+    }
+    
+    await handleActualSubmit();
+  };
+
+  const handleConfirmWithoutCost = async () => {
+    setShowCostWarning(false);
+    await handleActualSubmit();
   };
 
   // For bundles in auto mode, price is optional (calculated from components)
@@ -467,6 +506,33 @@ export function CreateProductDialog({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Form - Left Side */}
             <div className="lg:col-span-2 space-y-4">
+              {/* SKU / Reference field - FIRST with inline search */}
+              <div className="space-y-2">
+                <Label htmlFor="sku">Código / SKU / Referência</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="sku"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    placeholder="Código EAN, referência, SKU..."
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={!sku.trim()}
+                    onClick={() => setSkuSearchTrigger(prev => prev + 1)}
+                    title="Pesquisar dados do produto"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Insira o código e clique na lupa para pesquisar informações automaticamente
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="name">Nome *</Label>
                 <Input
@@ -603,16 +669,6 @@ export function CreateProductDialog({
                   onChange={(e) => setShortDescription(e.target.value)}
                   placeholder="Breve descrição do produto"
                   rows={2}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sku">Código interno (SKU)</Label>
-                <Input
-                  id="sku"
-                  value={sku}
-                  onChange={(e) => setSku(e.target.value)}
-                  placeholder="Código EAN, referência, etc."
                 />
               </div>
 
@@ -950,6 +1006,7 @@ export function CreateProductDialog({
                   <SKUSearchPanel
                     sku={sku}
                     currentPrice={parseFloat(basePrice) || undefined}
+                    searchTrigger={skuSearchTrigger}
                     onApplyName={handleApplyName}
                     onApplyPrice={handleApplyPrice}
                     onApplyDescription={handleApplyDescription}
@@ -978,6 +1035,47 @@ export function CreateProductDialog({
             </Button>
           </DialogFooter>
         </form>
+
+        {/* Cost Warning Dialog */}
+        <AlertDialog open={showCostWarning} onOpenChange={setShowCostWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Produto sem Preço de Custo
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-3">
+                <p>
+                  Este produto tem preço de venda ({new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(parseFloat(basePrice) || 0)}) 
+                  mas não tem preço de custo definido.
+                </p>
+                <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                  <p className="font-medium mb-1">Sem custo, não é possível calcular:</p>
+                  <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                    <li>Margem bruta</li>
+                    <li>Margem de contribuição</li>
+                    <li>Rentabilidade do produto</li>
+                  </ul>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setShowCostWarning(false);
+                setShowAdvanced(true);
+                // Focus on cost field after a short delay
+                setTimeout(() => {
+                  document.getElementById("directCost")?.focus();
+                }, 100);
+              }}>
+                Adicionar Custo
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmWithoutCost}>
+                Gravar Sem Custo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
