@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { UserAvatarUpload } from "@/components/shared/UserAvatarUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,8 +18,7 @@ import {
   Shield, 
   LogOut,
   Save,
-  Loader2,
-  Camera
+  Loader2
 } from "lucide-react";
 
 export default function Profile() {
@@ -53,14 +52,7 @@ export default function Profile() {
     navigate("/login");
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+
 
   return (
     <DashboardLayout>
@@ -73,21 +65,11 @@ export default function Profile() {
         />
 
         <div className="flex items-center gap-4">
-          <div className="relative group">
-            <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
-              <AvatarImage src={user?.user_metadata?.avatar_url} />
-              <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
-                {getInitials(fullName || user?.email || "U")}
-              </AvatarFallback>
-            </Avatar>
-            <Button 
-              variant="secondary" 
-              size="icon" 
-              className="absolute bottom-0 right-0 h-7 w-7 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Camera className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <UserAvatarUpload
+            currentAvatarUrl={user?.user_metadata?.avatar_url}
+            userName={fullName || user?.email || "Utilizador"}
+            size="lg"
+          />
           <div>
             <h1 className="text-2xl font-bold">{fullName || "Utilizador"}</h1>
             <p className="text-muted-foreground">{user?.email}</p>
