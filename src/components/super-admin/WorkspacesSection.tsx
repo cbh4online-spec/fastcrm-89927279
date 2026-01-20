@@ -48,10 +48,14 @@ import {
   AlertTriangle,
   Building2,
   Filter,
-  Shield
+  Shield,
+  Plus,
+  Users
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { CreateWorkspaceDialog } from "./CreateWorkspaceDialog";
+import { WorkspaceMembersPanel } from "./WorkspaceMembersPanel";
 
 interface OnboardingData {
   business_type?: string;
@@ -112,6 +116,14 @@ export function WorkspacesSection() {
   }>({ type: null, workspace: null });
   const [newPlan, setNewPlan] = useState<string>("");
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
+  
+  // New state for create workspace and members panel
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [membersPanel, setMembersPanel] = useState<{ open: boolean; workspaceId: string | null; workspaceName: string }>({
+    open: false,
+    workspaceId: null,
+    workspaceName: ""
+  });
   
   const queryClient = useQueryClient();
 
@@ -429,11 +441,17 @@ export function WorkspacesSection() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Gestão de Workspaces</h1>
-        <p className="text-muted-foreground">
-          {workspaces?.length} workspaces registados
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Gestão de Workspaces</h1>
+          <p className="text-muted-foreground">
+            {workspaces?.length} workspaces registados
+          </p>
+        </div>
+        <Button onClick={() => setCreateDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Criar Workspace
+        </Button>
       </div>
 
       {/* Filters */}
@@ -567,6 +585,10 @@ export function WorkspacesSection() {
                         <DropdownMenuItem onClick={() => setSelectedWorkspace(ws)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Ver detalhes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setMembersPanel({ open: true, workspaceId: ws.id, workspaceName: ws.name })}>
+                          <Users className="h-4 w-4 mr-2" />
+                          Gerir membros
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => syncStripe.mutate(ws.id)}>
                           <RefreshCw className="h-4 w-4 mr-2" />
@@ -1031,6 +1053,20 @@ export function WorkspacesSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Workspace Dialog */}
+      <CreateWorkspaceDialog 
+        open={createDialogOpen} 
+        onOpenChange={setCreateDialogOpen} 
+      />
+
+      {/* Workspace Members Panel */}
+      <WorkspaceMembersPanel
+        workspaceId={membersPanel.workspaceId}
+        workspaceName={membersPanel.workspaceName}
+        open={membersPanel.open}
+        onOpenChange={(open) => setMembersPanel(prev => ({ ...prev, open }))}
+      />
     </div>
   );
 }

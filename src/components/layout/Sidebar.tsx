@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
 import {
@@ -69,6 +70,46 @@ interface SidebarProps {
 }
 
 type FeatureKey = "ai_suggestions" | "dashboard_customization" | "automation_custom_fields";
+
+// Menu key mapping for permissions
+const menuKeyMap: Record<string, string> = {
+  "Dashboard": "dashboard",
+  "Mural Interno": "feed",
+  "Coach IA": "productivity",
+  "Inbox": "inbox",
+  "Instagram": "inbox",
+  "WhatsApp": "inbox",
+  "Email": "inbox",
+  "Templates": "inbox",
+  "Leads": "leads",
+  "Contactos": "contacts",
+  "Empresas": "companies",
+  "Oportunidades": "pipeline",
+  "Pipeline": "pipeline",
+  "Propostas": "proposals",
+  "Faturas": "invoices",
+  "Agendamento": "calendar",
+  "Produtos": "products",
+  "Email Marketing": "marketing",
+  "Google Local": "marketing",
+  "Pesquisa Web": "marketing",
+  "Automações": "automations",
+  "Landing Pages": "marketing",
+  "Visão Geral": "reports",
+  "KPIs": "reports",
+  "Previsões": "reports",
+  "Consumo": "reports",
+  "Form Studio": "settings",
+  "Importações": "settings",
+  "Integrações": "integrations",
+  "Perfis IA": "settings",
+  "Bases Conhecimento": "settings",
+  "Marketplace": "settings",
+  "Campos & Módulos": "settings",
+  "Pipelines": "settings",
+  "Utilizadores": "team",
+  "Faturação": "settings",
+};
 
 interface NavItem {
   name: string;
@@ -195,17 +236,26 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { currentWorkspace } = useWorkspace();
   const { plan, canUseFeature } = useSubscription();
   const { installedModuleIds } = useWorkspaceModules();
+  const { canAccessMenu, isLoading: permissionsLoading } = useMenuPermissions();
   
-  // Filter navigation based on installed modules
+  // Filter navigation based on installed modules AND permissions
   const filteredNavigationGroups = useMemo(() => {
     return navigationGroups
       .map(group => {
-        // Filter items based on moduleSlug
+        // Filter items based on moduleSlug and permissions
         const filteredItems = group.items.filter(item => {
-          // If item has no moduleSlug requirement, always show it
-          if (!item.moduleSlug) return true;
-          // Otherwise, check if the module is installed
-          return installedModuleIds.includes(item.moduleSlug);
+          // If item has no moduleSlug requirement, check just permissions
+          if (item.moduleSlug && !installedModuleIds.includes(item.moduleSlug)) {
+            return false;
+          }
+          
+          // Check menu permissions
+          const menuKey = menuKeyMap[item.name];
+          if (menuKey && !permissionsLoading) {
+            return canAccessMenu(menuKey);
+          }
+          
+          return true;
         });
 
         // If group requires a module and it's not installed, hide entire group
@@ -213,13 +263,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           return null;
         }
 
-        // If group has no items after filtering, hide it (except if it never had module-dependent items)
+        // If group has no items after filtering, hide it
         if (filteredItems.length === 0) return null;
 
         return { ...group, items: filteredItems };
       })
       .filter((group): group is NavGroup => group !== null);
-  }, [installedModuleIds]);
+  }, [installedModuleIds, canAccessMenu, permissionsLoading]);
   
   // Track which groups are open
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
