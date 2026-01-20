@@ -38,6 +38,7 @@ import {
   FileText
 } from "lucide-react";
 import { OpportunityKPICards } from "./OpportunityKPICards";
+import { PipelineSummaryBar } from "./PipelineSummaryBar";
 import { OpportunityKanbanColumn } from "./OpportunityKanbanColumn";
 import { OpportunityTableView } from "./OpportunityTableView";
 import { CreateOpportunityEnhancedDialog } from "./CreateOpportunityEnhancedDialog";
@@ -183,6 +184,14 @@ export function OpportunitiesModule() {
         </div>
       </div>
 
+      {/* Pipeline Summary Bar */}
+      {stages && stages.length > 0 && opportunities && (
+        <PipelineSummaryBar 
+          opportunities={opportunities} 
+          stages={stages} 
+        />
+      )}
+
       {/* KPIs */}
       <OpportunityKPICards />
 
@@ -259,6 +268,7 @@ export function OpportunitiesModule() {
                 opportunities={opportunitiesByStage[stage.id] || []}
                 onMoveOpportunity={handleMoveOpportunity}
                 onOpportunityClick={setSelectedOpportunity}
+                onCreateOpportunity={() => setIsCreateDialogOpen(true)}
                 draggedId={draggedId}
                 onDragStart={setDraggedId}
                 onDragEnd={() => setDraggedId(null)}
