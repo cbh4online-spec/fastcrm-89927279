@@ -5,6 +5,7 @@ import { CustomFieldsManager } from "@/components/custom-fields/CustomFieldsMana
 import { FormLayoutEditor } from "@/components/custom-fields/FormLayoutEditor";
 import { IndustryLabelsSettings } from "../IndustryLabelsSettings";
 import { ActivityProfileSettings } from "../ActivityProfileSettings";
+import { AIPipelineGenerator } from "@/components/pipelines/AIPipelineGenerator";
 import {
   Users,
   Briefcase,
@@ -427,10 +428,24 @@ export function CrmDataSettings({ searchQuery = "", matchedSections }: CrmDataSe
                 </div>
               ))}
             </div>
-            <Button className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Novo Pipeline
-            </Button>
+            <div className="flex gap-2">
+              <AIPipelineGenerator
+                onPipelineCreated={() => {
+                  toast.success("Pipeline criado com sucesso!");
+                  setActiveDialog(null);
+                }}
+                trigger={
+                  <Button variant="outline" className="flex-1 gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Criar com IA
+                  </Button>
+                }
+              />
+              <Button className="flex-1">
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Manual
+              </Button>
+            </div>
           </div>
         );
 
