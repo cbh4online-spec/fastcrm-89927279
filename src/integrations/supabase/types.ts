@@ -9849,6 +9849,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          status: string | null
           updated_at: string
           user_id: string
         }
@@ -9858,6 +9859,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          status?: string | null
           updated_at?: string
           user_id: string
         }
@@ -9867,6 +9869,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          status?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -12673,6 +12676,10 @@ export type Database = {
           p_user_id?: string
           p_workspace_id: string
         }
+        Returns: Json
+      }
+      update_user_status_admin: {
+        Args: { p_status: string; p_user_id: string }
         Returns: Json
       }
       update_workspace_member_role_admin: {
