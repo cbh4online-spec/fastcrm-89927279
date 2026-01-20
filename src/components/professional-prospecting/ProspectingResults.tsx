@@ -152,12 +152,19 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
         if (profile.lead_score) noteParts.push(`- Lead Score: ${profile.lead_score}/100`);
       }
 
-      if (options.includeInstagramData && profile.instagram_enriched_at) {
+      // Dados Instagram - incluir sempre que existirem dados (não depender de enriched_at)
+      const hasInstagramData = profile.instagram_full_bio || profile.profile_bio || 
+                               profile.instagram_followers_count || profile.instagram_posts_count;
+      
+      if (options.includeInstagramData && hasInstagramData) {
         noteParts.push(`\n📱 **Dados Instagram**`);
         if (profile.instagram_followers_count) noteParts.push(`- Seguidores: ${profile.instagram_followers_count.toLocaleString()}`);
+        if (profile.instagram_following_count) noteParts.push(`- A seguir: ${profile.instagram_following_count.toLocaleString()}`);
         if (profile.instagram_posts_count) noteParts.push(`- Publicações: ${profile.instagram_posts_count.toLocaleString()}`);
         if (profile.instagram_category) noteParts.push(`- Categoria: ${profile.instagram_category}`);
-        if (profile.instagram_full_bio) noteParts.push(`- Bio: "${profile.instagram_full_bio}"`);
+        // Usar instagram_full_bio ou fallback para profile_bio
+        const bio = profile.instagram_full_bio || profile.profile_bio;
+        if (bio) noteParts.push(`- Bio: "${bio}"`);
         if (profile.instagram_is_business) noteParts.push(`- Conta profissional: Sim`);
         if (profile.instagram_is_verified) noteParts.push(`- Verificado: Sim`);
       }
@@ -219,17 +226,21 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
         });
       }
 
-      // Add Instagram enrichment data if selected
-      if (options.includeInstagramData && profile.instagram_enriched_at) {
+      // Add Instagram data - SEMPRE que existirem dados (não depender de enriched_at)
+      const hasInstagramDataForLead = profile.instagram_full_bio || profile.profile_bio || 
+                                       profile.instagram_followers_count || profile.instagram_posts_count;
+      
+      if (options.includeInstagramData && hasInstagramDataForLead) {
         Object.assign(leadData, {
           instagram_followers_count: profile.instagram_followers_count || null,
           instagram_following_count: profile.instagram_following_count || null,
           instagram_posts_count: profile.instagram_posts_count || null,
-          instagram_bio: profile.instagram_full_bio || null,
+          // Usar instagram_full_bio ou fallback para profile_bio
+          instagram_bio: profile.instagram_full_bio || profile.profile_bio || null,
           instagram_external_url: profile.instagram_external_url || null,
           instagram_category: profile.instagram_category || null,
-          instagram_is_verified: profile.instagram_is_verified || false,
-          instagram_is_business: profile.instagram_is_business || false,
+          instagram_is_verified: profile.instagram_is_verified ?? false,
+          instagram_is_business: profile.instagram_is_business ?? false,
           instagram_enriched_at: profile.instagram_enriched_at || null,
         });
       }
