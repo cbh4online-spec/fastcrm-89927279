@@ -63,6 +63,7 @@ import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
+import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -316,11 +317,14 @@ export function CompanyDetailWithSidebar() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/companies")} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <Avatar className="h-16 w-16 text-xl ring-2 ring-blue-500/20">
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <EntityAvatarUpload
+              entityType="company"
+              entityId={id!}
+              entityName={company.name}
+              currentAvatarUrl={(company as any).avatar_url}
+              onAvatarChange={(url) => handleFieldChange('avatar_url' as keyof Company, url)}
+              size="md"
+            />
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-semibold text-foreground">{company.name}</h1>

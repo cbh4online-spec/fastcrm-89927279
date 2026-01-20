@@ -10,16 +10,8 @@ import { LeadManagementTable } from "@/components/dashboard/LeadManagementTable"
 import { SalesGoalsWidget } from "@/components/dashboard/SalesGoalsWidget";
 import { SalesPipelineWidget } from "@/components/dashboard/SalesPipelineWidget";
 import { InactivityAlertsBanner } from "@/components/productivity/InactivityAlertsBanner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-// Demo team avatars
-const teamMembers = [
-  { name: "Maria Costa", initials: "MC" },
-  { name: "Pedro Santos", initials: "PS" },
-  { name: "Ana Ferreira", initials: "AF" },
-  { name: "Carlos Mendes", initials: "CM" },
-];
+import { TeamAvatarsWidget } from "@/components/dashboard/TeamAvatarsWidget";
 
 export default function Dashboard() {
   const {
@@ -51,19 +43,7 @@ export default function Dashboard() {
               dayStatus={dayStatus}
               isLoading={isLoading || aiLoading}
             />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground mr-2">Equipa:</span>
-              <div className="flex -space-x-2">
-                {teamMembers.map((member, i) => (
-                  <Avatar key={i} className="h-8 w-8 border-2 border-background">
-                    <AvatarImage src="" />
-                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                      {member.initials}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-              </div>
-            </div>
+            <TeamAvatarsWidget />
           </div>
 
           {/* Main Grid Layout */}
