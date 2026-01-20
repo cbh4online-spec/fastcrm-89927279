@@ -49,6 +49,7 @@ export { ToolWidget } from './components/pages/shared/ToolWidget';
 
 // Components - Admin
 export { SEOContentGenerator } from './components/admin/SEOContentGenerator';
+export { SitemapManager } from './components/admin/SitemapManager';
 
 // Hooks - Content Generation
 export { useGenerateSEOContent } from './hooks/useGenerateSEOContent';
