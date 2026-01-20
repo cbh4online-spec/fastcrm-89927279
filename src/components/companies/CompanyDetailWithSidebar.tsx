@@ -61,6 +61,7 @@ import { ActivityProfileBadge, ProfileCustomFieldsSection } from "@/components/a
 import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
 import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
+import { EntityTasksSection } from "@/components/tasks";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -267,6 +268,14 @@ export function CompanyDetailWithSidebar() {
             entityName={company.name}
             entityEmail={company.email}
             entityPhone={company.phone}
+          />
+        );
+      case 'tasks':
+        return (
+          <EntityTasksSection
+            entityType="lead"
+            entityId={id!}
+            entityName={company.name}
           />
         );
       default:
