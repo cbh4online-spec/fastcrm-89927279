@@ -65,6 +65,7 @@ import FeedPage from "./pages/FeedPage";
 import ProductivityPage from "./pages/ProductivityPage";
 import MemberPanelPage from "./pages/MemberPanelPage";
 import Profile from "./pages/Profile";
+import Marketing from "./pages/Marketing";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +133,7 @@ const App = () => (
                   <Route path="/dashboard/productivity" element={<ProductivityPage />} />
                   <Route path="/dashboard/member" element={<MemberPanelPage />} />
                   <Route path="/dashboard/profile" element={<Profile />} />
+                  <Route path="/dashboard/marketing" element={<Marketing />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />
