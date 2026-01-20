@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Globe, Link, Loader2, MapPin, Briefcase, Tags } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Search, Globe, Link, Loader2, MapPin, Briefcase, Tags, Instagram, Facebook } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ProspectingSearchProps {
@@ -44,9 +45,18 @@ export function ProspectingSearch({ onSearchComplete }: ProspectingSearchProps) 
   const [profession, setProfession] = useState("");
   const [location, setLocation] = useState("");
   const [keywords, setKeywords] = useState("");
+  const [platforms, setPlatforms] = useState<string[]>(["instagram", "facebook"]);
 
   // Manual input state
   const [manualUrls, setManualUrls] = useState("");
+
+  const togglePlatform = (platform: string) => {
+    setPlatforms(prev => 
+      prev.includes(platform) 
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
+  };
 
   const handleWebSearch = async () => {
     if (!profession.trim()) {
@@ -68,6 +78,7 @@ export function ProspectingSearch({ onSearchComplete }: ProspectingSearchProps) 
           keywords: keywords.trim() || null,
           workspaceId: currentWorkspace.id,
           userId: user.id,
+          platforms: platforms.length > 0 ? platforms : ["instagram"],
         },
       });
 
@@ -265,10 +276,43 @@ export function ProspectingSearch({ onSearchComplete }: ProspectingSearchProps) 
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Plataformas</Label>
+                <div className="flex gap-6">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="platform-instagram"
+                      checked={platforms.includes("instagram")}
+                      onCheckedChange={() => togglePlatform("instagram")}
+                      disabled={isLoading}
+                    />
+                    <label htmlFor="platform-instagram" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                      <Instagram className="w-4 h-4 text-pink-500" />
+                      Instagram
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="platform-facebook"
+                      checked={platforms.includes("facebook")}
+                      onCheckedChange={() => togglePlatform("facebook")}
+                      disabled={isLoading}
+                    />
+                    <label htmlFor="platform-facebook" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                      <Facebook className="w-4 h-4 text-blue-600" />
+                      Facebook
+                    </label>
+                  </div>
+                </div>
+                {platforms.length === 0 && (
+                  <p className="text-xs text-destructive">Selecione pelo menos uma plataforma</p>
+                )}
+              </div>
+
               <Button
                 className="w-full"
                 onClick={handleWebSearch}
-                disabled={isLoading || !profession.trim()}
+                disabled={isLoading || !profession.trim() || platforms.length === 0}
               >
                 {isSearching ? (
                   <>

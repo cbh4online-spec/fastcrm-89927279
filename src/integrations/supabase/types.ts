@@ -10883,6 +10883,7 @@ export type Database = {
           id: string
           keywords: string[] | null
           location: string | null
+          platforms: string[] | null
           profession: string
           results_count: number | null
           search_type: string
@@ -10897,6 +10898,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           location?: string | null
+          platforms?: string[] | null
           profession: string
           results_count?: number | null
           search_type?: string
@@ -10911,6 +10913,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           location?: string | null
+          platforms?: string[] | null
           profession?: string
           results_count?: number | null
           search_type?: string

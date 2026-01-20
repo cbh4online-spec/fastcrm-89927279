@@ -12,10 +12,11 @@ interface Profile {
   profileBio: string | null;
   source: string;
   sourceTitle: string;
+  platform: "instagram" | "facebook";
 }
 
-// Generate multiple search queries for better coverage
-function generateSearchQueries(profession: string, location: string | null, keywords: string | null): string[] {
+// Generate Instagram search queries
+function generateInstagramQueries(profession: string, location: string | null, keywords: string | null): string[] {
   const queries: string[] = [];
   const professionLower = profession.toLowerCase();
   
@@ -76,8 +77,31 @@ function generateSearchQueries(profession: string, location: string | null, keyw
   return [...new Set(queries)].slice(0, 6);
 }
 
+// Generate Facebook search queries
+function generateFacebookQueries(profession: string, location: string | null, keywords: string | null): string[] {
+  const queries: string[] = [];
+  const locationStr = location || "Portugal";
+  
+  // Facebook business pages
+  queries.push(`site:facebook.com "${profession}" ${locationStr}`);
+  queries.push(`site:facebook.com/pages "${profession}" ${locationStr}`);
+  queries.push(`site:facebook.com "${profession}" clínica ${locationStr}`);
+  queries.push(`site:facebook.com "${profession}" consultório ${locationStr}`);
+  
+  // With keywords if available
+  if (keywords) {
+    queries.push(`site:facebook.com "${profession}" ${keywords} ${locationStr}`);
+  }
+  
+  // Professional services
+  queries.push(`site:facebook.com "dr." "${profession}" ${locationStr}`);
+  queries.push(`site:facebook.com "dra." "${profession}" ${locationStr}`);
+  
+  return [...new Set(queries)].slice(0, 4);
+}
+
 // Extract Instagram profiles from search results
-function extractProfiles(results: any[], seenUrls: Set<string>): Profile[] {
+function extractInstagramProfiles(results: any[], seenUrls: Set<string>): Profile[] {
   const profiles: Profile[] = [];
   const skipUsernames = new Set(["p", "reel", "reels", "stories", "explore", "accounts", "direct", "tv", "about", "legal", "help", "privacy", "safety", "instagram"]);
 
@@ -100,7 +124,8 @@ function extractProfiles(results: any[], seenUrls: Set<string>): Profile[] {
             profileName: username,
             profileBio: description || null,
             source: url,
-            sourceTitle: title
+            sourceTitle: title,
+            platform: "instagram"
           });
         }
       }
@@ -121,9 +146,69 @@ function extractProfiles(results: any[], seenUrls: Set<string>): Profile[] {
             profileName: username,
             profileBio: null,
             source: url,
-            sourceTitle: title
+            sourceTitle: title,
+            platform: "instagram"
           });
         }
+      }
+    }
+  }
+
+  return profiles;
+}
+
+// Extract Facebook profiles from search results
+function extractFacebookProfiles(results: any[], seenUrls: Set<string>): Profile[] {
+  const profiles: Profile[] = [];
+  const skipPaths = new Set([
+    "groups", "events", "marketplace", "gaming", "watch", "help", "policies", 
+    "login", "register", "recover", "privacy", "terms", "settings", "notifications",
+    "messages", "friends", "photos", "videos", "about", "community", "ads", "business"
+  ]);
+
+  for (const result of results) {
+    const url = result.url || "";
+    const title = result.title || "";
+    const description = result.description || "";
+    
+    // Match Facebook page URLs: facebook.com/PageName or facebook.com/pages/category/PageName
+    // Also match profile URLs: facebook.com/profile.php?id=123
+    
+    // Strategy 1: Direct page URLs
+    const pageMatch = url.match(/facebook\.com\/([a-zA-Z0-9._-]+)\/?(?:\?|$)/);
+    if (pageMatch) {
+      const pageName = pageMatch[1];
+      if (!skipPaths.has(pageName.toLowerCase()) && !pageName.startsWith("pages")) {
+        const profileUrl = `https://www.facebook.com/${pageName}`;
+        if (!seenUrls.has(profileUrl)) {
+          seenUrls.add(profileUrl);
+          profiles.push({
+            profileUrl,
+            profileName: pageName.replace(/[.-]/g, " "),
+            profileBio: description || null,
+            source: url,
+            sourceTitle: title,
+            platform: "facebook"
+          });
+        }
+      }
+    }
+    
+    // Strategy 2: Pages directory URLs
+    const pagesMatch = url.match(/facebook\.com\/pages\/[^\/]+\/([a-zA-Z0-9._-]+)/);
+    if (pagesMatch) {
+      const pageName = pagesMatch[1];
+      const profileUrl = `https://www.facebook.com/${pageName}`;
+      if (!seenUrls.has(profileUrl)) {
+        seenUrls.add(profileUrl);
+        profiles.push({
+          profileUrl,
+          profileName: pageName.replace(/-/g, " "),
+          profileBio: description || null,
+          source: url,
+          sourceTitle: title,
+          platform: "facebook"
+        });
       }
     }
   }
@@ -137,7 +222,7 @@ serve(async (req) => {
   }
 
   try {
-    const { profession, location, keywords, workspaceId, userId } = await req.json();
+    const { profession, location, keywords, workspaceId, userId, platforms = ["instagram"] } = await req.json();
 
     if (!profession) {
       return new Response(
@@ -193,7 +278,7 @@ serve(async (req) => {
       );
     }
 
-    // Create search record
+    // Create search record with platforms
     const { data: search, error: searchError } = await supabase
       .from("professional_prospecting_searches")
       .insert({
@@ -203,7 +288,8 @@ serve(async (req) => {
         location,
         keywords: keywords ? keywords.split(",").map((k: string) => k.trim()) : null,
         search_type: "web",
-        status: "processing"
+        status: "processing",
+        platforms: platforms
       })
       .select()
       .single();
@@ -216,9 +302,20 @@ serve(async (req) => {
       );
     }
 
-    // Generate multiple search queries for better coverage
-    const searchQueries = generateSearchQueries(profession, location, keywords);
-    console.log("Search queries:", searchQueries);
+    // Generate search queries per platform
+    const allQueries: Array<{query: string, platform: "instagram" | "facebook"}> = [];
+    
+    if (platforms.includes("instagram")) {
+      generateInstagramQueries(profession, location, keywords)
+        .forEach(q => allQueries.push({query: q, platform: "instagram"}));
+    }
+    
+    if (platforms.includes("facebook")) {
+      generateFacebookQueries(profession, location, keywords)
+        .forEach(q => allQueries.push({query: q, platform: "facebook"}));
+    }
+
+    console.log("Search queries:", allQueries.map(q => `[${q.platform}] ${q.query}`));
 
     const allProfiles: Profile[] = [];
     const seenUrls = new Set<string>();
@@ -226,12 +323,12 @@ serve(async (req) => {
 
     // Execute multiple searches in parallel (max 3 at a time to avoid rate limits)
     const batchSize = 3;
-    for (let i = 0; i < searchQueries.length && allProfiles.length < 50; i += batchSize) {
-      const batch = searchQueries.slice(i, i + batchSize);
+    for (let i = 0; i < allQueries.length && allProfiles.length < 50; i += batchSize) {
+      const batch = allQueries.slice(i, i + batchSize);
       
-      const batchPromises = batch.map(async (query) => {
+      const batchPromises = batch.map(async ({query, platform}) => {
         try {
-          console.log("Executing query:", query);
+          console.log(`Executing [${platform}] query:`, query);
           const response = await fetch("https://api.firecrawl.dev/v1/search", {
             method: "POST",
             headers: {
@@ -251,23 +348,30 @@ serve(async (req) => {
 
           if (!response.ok) {
             console.error(`Query failed: ${query}`, response.status);
-            return [];
+            return { results: [], platform };
           }
 
           const data = await response.json();
-          return data.data || [];
+          return { results: data.data || [], platform };
         } catch (err) {
           console.error(`Query error: ${query}`, err);
-          return [];
+          return { results: [], platform };
         }
       });
 
       const batchResults = await Promise.all(batchPromises);
       
-      for (const results of batchResults) {
+      for (const {results, platform} of batchResults) {
         totalResults += results.length;
-        const newProfiles = extractProfiles(results, seenUrls);
-        allProfiles.push(...newProfiles);
+        
+        // Extract profiles based on platform
+        if (platform === "instagram") {
+          const newProfiles = extractInstagramProfiles(results, seenUrls);
+          allProfiles.push(...newProfiles);
+        } else if (platform === "facebook") {
+          const newProfiles = extractFacebookProfiles(results, seenUrls);
+          allProfiles.push(...newProfiles);
+        }
         
         if (allProfiles.length >= 50) break;
       }
@@ -303,7 +407,8 @@ serve(async (req) => {
         searchId: search.id,
         profiles: finalProfiles,
         count: finalProfiles.length,
-        queriesExecuted: searchQueries.length,
+        queriesExecuted: allQueries.length,
+        platforms,
         usage: {
           searches: usage.searches_count + 1,
           limit: usage.searches_limit

@@ -15,7 +15,7 @@ import {
   UserPlus, ThumbsDown, Search, Filter, Loader2,
   ChevronDown, ChevronUp, MapPin, Briefcase, Star,
   CheckCircle, XCircle, AlertCircle, RefreshCw, Instagram,
-  Eye
+  Eye, Facebook
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
@@ -86,6 +86,7 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
   const queryClient = useQueryClient();
   const [searchFilter, setSearchFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set());
@@ -360,8 +361,9 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
       p.inferred_location?.toLowerCase().includes(searchFilter.toLowerCase());
 
     const matchesType = !typeFilter || p.inferred_type === typeFilter;
+    const matchesPlatform = !platformFilter || p.platform === platformFilter;
 
-    return matchesSearch && matchesType;
+    return matchesSearch && matchesType && matchesPlatform;
   });
 
   const toggleSelect = (id: string) => {
@@ -426,7 +428,30 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {/* Platform filters */}
+          <Button
+            variant={platformFilter === "instagram" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setPlatformFilter(platformFilter === "instagram" ? null : "instagram")}
+            className="gap-1"
+          >
+            <Instagram className="w-3 h-3" />
+            Instagram
+          </Button>
+          <Button
+            variant={platformFilter === "facebook" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setPlatformFilter(platformFilter === "facebook" ? null : "facebook")}
+            className="gap-1"
+          >
+            <Facebook className="w-3 h-3" />
+            Facebook
+          </Button>
+          
+          <div className="w-px bg-border mx-1" />
+          
+          {/* Type filters */}
           {Object.entries(TYPE_LABELS).map(([key, label]) => (
             <Button
               key={key}
@@ -511,8 +536,16 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
                             </h3>
                             <Badge
                               variant="outline"
-                              className={PLATFORM_COLORS[profile.platform] || PLATFORM_COLORS.other}
+                              className={cn(
+                                "gap-1",
+                                PLATFORM_COLORS[profile.platform] || PLATFORM_COLORS.other
+                              )}
                             >
+                              {profile.platform === "instagram" ? (
+                                <Instagram className="w-3 h-3" />
+                              ) : profile.platform === "facebook" ? (
+                                <Facebook className="w-3 h-3" />
+                              ) : null}
                               {profile.platform}
                             </Badge>
                           </div>

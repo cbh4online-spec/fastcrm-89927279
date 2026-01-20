@@ -293,7 +293,9 @@ function detectPlatform(url: string): string {
 }
 
 async function analyzeProfile(profile: ProfileData, apiKey: string): Promise<AnalysisResult> {
-  const systemPrompt = `És um analista de perfis profissionais em redes sociais.
+  const platform = profile.platform || detectPlatform(profile.profileUrl);
+  
+  const systemPrompt = `És um analista de perfis profissionais em redes sociais (${platform === "facebook" ? "Facebook" : "Instagram"}).
 Com base apenas em dados públicos fornecidos, identifica se o perfil representa:
 - Um profissional individual (médico, dentista, advogado, etc.)
 - Uma clínica ou consultório
@@ -314,6 +316,17 @@ Extrai:
    - Link profissional presente
    - Linguagem profissional
    - Consistência de conteúdo
+
+CONTEXTO ESPECÍFICO:
+${platform === "facebook" ? `
+- Estás a analisar uma página Facebook (geralmente negócio/profissional)
+- Páginas Facebook costumam ter descrições mais formais
+- Considera que pode ser uma página de negócio de um profissional individual
+` : `
+- Estás a analisar um perfil Instagram
+- Perfis podem ser mais informais mas profissionais usam bio estruturada
+- Procura indicadores como "📍", "🩺", "📞" na bio
+`}
 
 REGRAS:
 - Nunca inventes dados que não estejam no input
