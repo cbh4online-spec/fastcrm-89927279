@@ -217,6 +217,7 @@ const navigationGroups: NavGroup[] = [
     icon: FileEdit,
     tooltip: "Utilitários do sistema",
     items: [
+      { name: "SEO & Growth", href: "/dashboard/seo", icon: TrendingUp, tooltip: "Gestão de conteúdo SEO", highlight: true },
       { name: "Form Studio", href: "/dashboard/form-studio", icon: FileEdit, tooltip: "Construtor de formulários" },
       { name: "Importações", href: "/dashboard/imports", icon: Download, tooltip: "Importar dados" },
       { name: "Integrações", href: "/dashboard/settings/integrations", icon: Link2, tooltip: "Conectar apps" },

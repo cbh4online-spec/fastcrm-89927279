@@ -53,6 +53,14 @@ export { SitemapManager } from './components/admin/SitemapManager';
 
 // Hooks - Content Generation
 export { useGenerateSEOContent } from './hooks/useGenerateSEOContent';
+export { 
+  useAdminSEOEntities, 
+  useUpdateEntityStatus, 
+  useDeleteEntity, 
+  useBulkUpdateStatus,
+  useSEOStats,
+  useTopPerformingPages,
+} from './hooks/useAdminSEOEntities';
 
 // Pages
 export { default as KeywordsListPage } from './pages/KeywordsListPage';
