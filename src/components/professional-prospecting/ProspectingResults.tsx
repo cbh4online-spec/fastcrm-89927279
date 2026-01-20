@@ -77,8 +77,8 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Fetch profiles
-  const { data: profiles = [], isLoading } = useQuery({
+  // Fetch profiles - if searchId provided, filter by it; otherwise get recent analyzed profiles
+  const { data: profiles = [], isLoading, refetch } = useQuery({
     queryKey: ["prospecting-profiles", currentWorkspace?.id, searchId],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
@@ -88,13 +88,19 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "analyzed")
+        .order("created_at", { ascending: false })
         .order("lead_score", { ascending: false, nullsFirst: false });
 
       if (searchId) {
         query = query.eq("search_id", searchId);
+      } else {
+        // If no searchId, get profiles from the last 24 hours
+        const yesterday = new Date();
+        yesterday.setHours(yesterday.getHours() - 24);
+        query = query.gte("created_at", yesterday.toISOString());
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(100);
       if (error) throw error;
       return (data || []).map((p: any) => ({
         ...p,
@@ -102,6 +108,7 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
       })) as Profile[];
     },
     enabled: !!currentWorkspace?.id,
+    refetchInterval: 5000, // Refetch every 5 seconds while analyzing
   });
 
   // Convert to lead mutation
@@ -217,9 +224,18 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
         <CardContent className="py-12 text-center">
           <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">Sem resultados</h3>
-          <p className="text-muted-foreground">
-            Execute uma pesquisa para ver perfis analisados
+          <p className="text-muted-foreground mb-4">
+            {searchId 
+              ? "A aguardar análise dos perfis... Os resultados aparecerão automaticamente."
+              : "Execute uma pesquisa para ver perfis analisados"
+            }
           </p>
+          {searchId && (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              A carregar resultados...
+            </div>
+          )}
         </CardContent>
       </Card>
     );
