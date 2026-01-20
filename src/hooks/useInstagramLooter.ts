@@ -134,17 +134,23 @@ export function useInstagramLooter() {
     setIsLoading(true);
     try {
       const response = await callAPI("search", { query });
-      const items = response.data?.data?.items || [];
+      // API returns { status, users: [{ position, user: {...} }], hashtags, places }
+      const apiData = response.data?.data || response.data || {};
+      const usersArray = apiData.users || apiData.items || [];
       return {
-        results: items.map((item: any) => ({
-          pk: item.pk || item.id,
-          username: item.username,
-          full_name: item.full_name || "",
-          profile_pic_url: item.profile_pic_url || "",
-          is_verified: item.is_verified || false,
-          is_private: item.is_private || false,
-          follower_count: item.follower_count,
-        })),
+        results: usersArray.map((item: any) => {
+          // Handle nested user object structure: { position, user: {...} }
+          const userData = item.user || item;
+          return {
+            pk: userData.pk || userData.id,
+            username: userData.username,
+            full_name: userData.full_name || "",
+            profile_pic_url: userData.profile_pic_url || "",
+            is_verified: userData.is_verified || false,
+            is_private: userData.is_private || false,
+            follower_count: userData.follower_count,
+          };
+        }),
         usage: response.usage,
       };
     } finally {
