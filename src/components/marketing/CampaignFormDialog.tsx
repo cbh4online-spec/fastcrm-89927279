@@ -268,7 +268,7 @@ export function CampaignFormDialog({
             <div className="border rounded-lg p-4 bg-white">
               <div className="mb-4 pb-4 border-b">
                 <p className="text-sm text-muted-foreground">
-                  <strong>De:</strong> {formData.fromName || 'Remetente'} &lt;no-reply@resend.dev&gt;
+                  <strong>De:</strong> {formData.fromName || 'Remetente'} &lt;news@m.fastcrm.metodopare.ai&gt;
                 </p>
                 <p className="text-sm text-muted-foreground">
                   <strong>Assunto:</strong> {formData.subject || 'Sem assunto'}
