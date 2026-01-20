@@ -109,7 +109,7 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
     mutationFn: async (profile: Profile) => {
       if (!currentWorkspace?.id || !user?.id) throw new Error("Missing context");
 
-      // Create lead
+      // Create lead - use fields that exist in the leads table
       const { data: lead, error: leadError } = await supabase
         .from("leads")
         .insert([{
@@ -117,8 +117,13 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
           name: profile.profile_name || "Sem nome",
           source: "professional_prospecting",
           status: "new",
-          notes: `**Perfil:** ${profile.profile_url}\n**Profissão:** ${profile.inferred_profession || "N/A"}\n**Especialidade:** ${profile.inferred_specialty || "N/A"}\n**Localização:** ${profile.inferred_location || "N/A"}\n**Lead Score:** ${profile.lead_score || 0}/100`,
-          owner_id: user.id,
+          website: profile.profile_url,
+          city: profile.inferred_location || null,
+          business_category: profile.inferred_profession || null,
+          ai_insight: `Profissão: ${profile.inferred_profession || "N/A"} | Especialidade: ${profile.inferred_specialty || "N/A"} | Local: ${profile.inferred_workplace || "N/A"} | Score: ${profile.lead_score || 0}/100`,
+          lead_score: profile.lead_score || null,
+          assigned_to: user.id,
+          created_by: user.id,
         }])
         .select()
         .single();

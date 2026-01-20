@@ -164,6 +164,7 @@ const navigationGroups: NavGroup[] = [
     tooltip: "Gestão de relacionamentos",
     items: [
       { name: "Leads", href: "/dashboard/leads", icon: Target, tooltip: "Potenciais clientes" },
+      { name: "Prospecção Pro", href: "/dashboard/prospecting/professionals", icon: UserPlus, tooltip: "Descobrir profissionais (Beta)", highlight: true },
       { name: "Contactos", href: "/dashboard/contacts", icon: UsersRound, tooltip: "Pessoas" },
       { name: "Empresas", href: "/dashboard/companies", icon: Building2, tooltip: "Organizações" },
       { name: "Oportunidades", href: "/dashboard/opportunities", icon: Kanban, tooltip: "Negócios em curso" },
