@@ -9857,6 +9857,7 @@ export type Database = {
           sheet_slug: string | null
           short_description: string | null
           sku: string | null
+          specifications: Json | null
           status: string
           target_margin_pct: number | null
           tax_rate_estimate_pct: number | null
@@ -9899,6 +9900,7 @@ export type Database = {
           sheet_slug?: string | null
           short_description?: string | null
           sku?: string | null
+          specifications?: Json | null
           status?: string
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
@@ -9941,6 +9943,7 @@ export type Database = {
           sheet_slug?: string | null
           short_description?: string | null
           sku?: string | null
+          specifications?: Json | null
           status?: string
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null

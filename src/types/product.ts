@@ -54,6 +54,8 @@ export interface Product {
   recommended_frequency: RecommendedFrequency | null;
   typical_duration_days: number | null;
   is_trackable: boolean | null;
+  // Technical specifications
+  specifications: Record<string, string> | null;
 }
 
 export interface ProductWithMargins extends Product {
@@ -150,6 +152,8 @@ export interface CreateProductInput {
   recommended_frequency?: RecommendedFrequency;
   typical_duration_days?: number;
   is_trackable?: boolean;
+  // Technical specifications
+  specifications?: Record<string, string>;
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {
