@@ -187,6 +187,8 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
           created_by: user.id,
           // Store Instagram context for AI suggestions
           instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
+          // Use Instagram profile picture as avatar
+          avatar_url: profile.profile_image_url || null,
         }])
         .select()
         .single();
