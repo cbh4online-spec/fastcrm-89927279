@@ -64,6 +64,7 @@ import AvailabilityPage from "./pages/AvailabilityPage";
 import FeedPage from "./pages/FeedPage";
 import ProductivityPage from "./pages/ProductivityPage";
 import MemberPanelPage from "./pages/MemberPanelPage";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -130,6 +131,7 @@ const App = () => (
                   <Route path="/dashboard/feed" element={<FeedPage />} />
                   <Route path="/dashboard/productivity" element={<ProductivityPage />} />
                   <Route path="/dashboard/member" element={<MemberPanelPage />} />
+                  <Route path="/dashboard/profile" element={<Profile />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                   <Route path="/product/:slug" element={<PublicProductSheet />} />
