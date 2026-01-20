@@ -39,6 +39,7 @@ import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
 import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 import { EntityTasksSection } from "@/components/tasks";
+import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -264,7 +265,15 @@ export function ENIContactDetailWithSidebar() {
       case 'tasks':
         return (
           <EntityTasksSection
-            entityType="lead"
+            entityType="contact"
+            entityId={id!}
+            entityName={contact.name}
+          />
+        );
+      case 'automations':
+        return (
+          <EntityAutomationSection
+            entityType="contact"
             entityId={id!}
             entityName={contact.name}
           />
