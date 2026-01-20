@@ -165,19 +165,39 @@ serve(async (req) => {
     const url = `${RAPIDAPI_BASE_URL}${endpoint}?${queryParams.toString()}`;
     logStep("Making API request", { action, url });
 
-    // Make request to RapidAPI
-    const apiResponse = await fetch(url, {
-      method: "GET",
-      headers: {
-        "X-RapidAPI-Key": rapidApiKey,
-        "X-RapidAPI-Host": RAPIDAPI_HOST,
-      },
-    });
-
-    if (!apiResponse.ok) {
+    // Make request to RapidAPI with retry logic for transient errors
+    let apiResponse: Response | null = null;
+    let lastError = "";
+    
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      apiResponse = await fetch(url, {
+        method: "GET",
+        headers: {
+          "X-RapidAPI-Key": rapidApiKey,
+          "X-RapidAPI-Host": RAPIDAPI_HOST,
+        },
+      });
+      
+      if (apiResponse.ok) break;
+      
       const errorText = await apiResponse.text();
-      logStep("API error", { status: apiResponse.status, error: errorText });
-      throw new Error(`Instagram API error: ${apiResponse.status}`);
+      lastError = errorText;
+      logStep(`API error (attempt ${attempt})`, { status: apiResponse.status, error: errorText });
+      
+      // Only retry on 5xx errors (server-side issues)
+      if (apiResponse.status >= 500 && attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+        continue;
+      }
+      break;
+    }
+
+    if (!apiResponse || !apiResponse.ok) {
+      const status = apiResponse?.status || 500;
+      if (status >= 500) {
+        throw new Error("API Instagram temporariamente indisponível. Tente novamente em alguns segundos.");
+      }
+      throw new Error(`Instagram API error: ${status}`);
     }
 
     const apiData = await apiResponse.json();
