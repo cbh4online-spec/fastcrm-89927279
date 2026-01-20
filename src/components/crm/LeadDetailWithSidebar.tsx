@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLead, useUpdateLead, useDeleteLead, Lead } from "@/hooks/useLeads";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,8 @@ import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
+import { ProductSuggestionsCard } from "@/components/ai-suggestions/ProductSuggestionsCard";
+import { EntityContext } from "@/hooks/useEntityProductSuggestions";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -138,12 +140,39 @@ export function LeadDetailWithSidebar() {
   const sourceTag = lead.source?.toLowerCase() || "outro";
   const SourceIcon = sourceIcons[sourceTag] || <Tag className="w-3 h-3" />;
 
+  // Build entity context for AI product suggestions
+  const entityContext: EntityContext | null = useMemo(() => {
+    if (!lead || !id) return null;
+    const leadAny = lead as any;
+    return {
+      entityType: "lead" as const,
+      entityId: id,
+      name: lead.name,
+      email: lead.email || undefined,
+      phone: lead.phone || undefined,
+      source: lead.source || undefined,
+      notes: leadAny.notes || undefined,
+      tags: lead.tags || undefined,
+      inferredProfession: leadAny.business_category || undefined,
+      inferredLocation: leadAny.city || undefined,
+      leadScore: leadAny.lead_score || undefined,
+    };
+  }, [lead, id]);
+
   const renderSectionContent = () => {
     switch (activeSection) {
       case 'overview':
         return (
           <div className="space-y-6">
             <InsightsSidebar entityType="lead" entityId={id || ''} />
+            {entityContext && (
+              <ProductSuggestionsCard 
+                context={entityContext}
+                onAddToOpportunity={(productId) => {
+                  toast.info("Funcionalidade em desenvolvimento: criar oportunidade com este produto");
+                }}
+              />
+            )}
             <IdentificationSection lead={lead} onFieldChange={handleFieldChange} />
           </div>
         );

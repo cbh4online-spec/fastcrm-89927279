@@ -18,6 +18,7 @@ import {
   Eye
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
 
 interface ProspectingResultsProps {
   searchId: string | null;
@@ -88,6 +89,8 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set());
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [profileToConvert, setProfileToConvert] = useState<Profile | null>(null);
 
   // Fetch profiles - if searchId provided, filter by it; otherwise get recent analyzed profiles
   const { data: profiles = [], isLoading, refetch } = useQuery({
@@ -133,12 +136,39 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
     refetchInterval: searchId ? 3000 : false, // Refetch every 3 seconds only when analyzing
   });
 
-  // Convert to lead mutation
+  // Convert to lead mutation with enriched data
   const convertMutation = useMutation({
-    mutationFn: async (profile: Profile) => {
+    mutationFn: async ({ profile, options }: { profile: Profile; options: ConversionOptions }) => {
       if (!currentWorkspace?.id || !user?.id) throw new Error("Missing context");
 
-      // Create lead - use fields that exist in the leads table
+      // Build enriched notes
+      const noteParts: string[] = [];
+      
+      if (options.includeAnalysisData) {
+        noteParts.push(`📊 **Análise IA**`);
+        if (profile.inferred_profession) noteParts.push(`- Profissão: ${profile.inferred_profession}`);
+        if (profile.inferred_specialty) noteParts.push(`- Especialidade: ${profile.inferred_specialty}`);
+        if (profile.inferred_workplace) noteParts.push(`- Local de trabalho: ${profile.inferred_workplace}`);
+        if (profile.lead_score) noteParts.push(`- Lead Score: ${profile.lead_score}/100`);
+      }
+
+      if (options.includeInstagramData && profile.instagram_enriched_at) {
+        noteParts.push(`\n📱 **Dados Instagram**`);
+        if (profile.instagram_followers_count) noteParts.push(`- Seguidores: ${profile.instagram_followers_count.toLocaleString()}`);
+        if (profile.instagram_posts_count) noteParts.push(`- Publicações: ${profile.instagram_posts_count.toLocaleString()}`);
+        if (profile.instagram_category) noteParts.push(`- Categoria: ${profile.instagram_category}`);
+        if (profile.instagram_full_bio) noteParts.push(`- Bio: "${profile.instagram_full_bio}"`);
+        if (profile.instagram_is_business) noteParts.push(`- Conta profissional: Sim`);
+        if (profile.instagram_is_verified) noteParts.push(`- Verificado: Sim`);
+      }
+
+      if (options.additionalNotes) {
+        noteParts.push(`\n📝 **Notas**\n${options.additionalNotes}`);
+      }
+
+      const enrichedNotes = noteParts.join("\n");
+
+      // Create lead with enriched data
       const { data: lead, error: leadError } = await supabase
         .from("leads")
         .insert([{
@@ -149,10 +179,14 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
           website: profile.profile_url,
           city: profile.inferred_location || null,
           business_category: profile.inferred_profession || null,
-          ai_insight: `Profissão: ${profile.inferred_profession || "N/A"} | Especialidade: ${profile.inferred_specialty || "N/A"} | Local: ${profile.inferred_workplace || "N/A"} | Score: ${profile.lead_score || 0}/100`,
+          ai_insight: `Profissão: ${profile.inferred_profession || "N/A"} | Especialidade: ${profile.inferred_specialty || "N/A"} | Score: ${profile.lead_score || 0}/100`,
           lead_score: profile.lead_score || null,
+          notes: enrichedNotes,
+          tags: options.tags.length > 0 ? options.tags : null,
           assigned_to: user.id,
           created_by: user.id,
+          // Store Instagram context for AI suggestions
+          instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
         }])
         .select()
         .single();
@@ -175,7 +209,9 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      toast.success("Lead criado com sucesso!");
+      setConvertDialogOpen(false);
+      setProfileToConvert(null);
+      toast.success("Lead criado com sucesso com dados enriquecidos!");
     },
     onError: (error) => {
       toast.error("Erro ao criar lead", {
@@ -183,6 +219,17 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
       });
     },
   });
+
+  const handleConvertClick = (profile: Profile) => {
+    setProfileToConvert(profile);
+    setConvertDialogOpen(true);
+  };
+
+  const handleConvertConfirm = (options: ConversionOptions) => {
+    if (profileToConvert) {
+      convertMutation.mutate({ profile: profileToConvert, options });
+    }
+  };
 
   // Reject profile mutation
   const rejectMutation = useMutation({
@@ -622,7 +669,7 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
 
                         <Button
                           size="sm"
-                          onClick={() => convertMutation.mutate(profile)}
+                          onClick={() => handleConvertClick(profile)}
                           disabled={convertMutation.isPending}
                         >
                           <UserPlus className="w-4 h-4 mr-1" />
@@ -637,6 +684,17 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
           })}
         </div>
       </ScrollArea>
+
+      {/* Convert Profile Dialog */}
+      {profileToConvert && (
+        <ConvertProfileDialog
+          open={convertDialogOpen}
+          onOpenChange={setConvertDialogOpen}
+          profile={profileToConvert}
+          onConfirm={handleConvertConfirm}
+          isConverting={convertMutation.isPending}
+        />
+      )}
     </div>
   );
 }
