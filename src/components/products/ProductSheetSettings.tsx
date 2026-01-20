@@ -228,6 +228,30 @@ export function ProductSheetSettings({ product }: ProductSheetSettingsProps) {
               </span>
             </div>
           )}
+
+          {/* Technical Specifications Preview */}
+          {product.specifications && typeof product.specifications === 'object' && Object.keys(product.specifications).length > 0 && (
+            <div>
+              <span className="text-muted-foreground">Especificações:</span>{" "}
+              <span>{Object.keys(product.specifications).length} campos</span>
+            </div>
+          )}
+
+          {/* Demo Video Preview */}
+          {product.demo_video_url && (
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Vídeo Demo:</span>{" "}
+              <a 
+                href={product.demo_video_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline inline-flex items-center gap-1"
+              >
+                Ver vídeo
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          )}
         </div>
       </Card>
 

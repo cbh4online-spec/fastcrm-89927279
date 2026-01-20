@@ -38,6 +38,8 @@ import {
   Calendar,
   CheckCircle,
   Trash2,
+  ClipboardList,
+  Video,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -61,6 +63,7 @@ import { ProductImagesGallery } from "./ProductImagesGallery";
 import { ProductProgressionsTab } from "./ProductProgressionsTab";
 import { ProductCyclesTabEnhanced } from "./ProductCyclesTabEnhanced";
 import { ProductSheetSettings } from "./ProductSheetSettings";
+import { ProductVideoPreview } from "./ProductVideoPreview";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -370,6 +373,48 @@ export function ProductDetailDialog({
                         </p>
                         <p>{product.is_trackable !== false ? 'Sim' : 'Não'}</p>
                       </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Technical Specifications Section */}
+                {product.specifications && typeof product.specifications === 'object' && Object.keys(product.specifications).length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4" />
+                        Especificações Técnicas
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        {Object.entries(product.specifications as Record<string, string>).map(([key, value]) => 
+                          value ? (
+                            <div key={key} className="contents">
+                              <p className="text-muted-foreground capitalize py-1 border-b border-dashed border-muted">
+                                {key.replace(/_/g, ' ')}
+                              </p>
+                              <p className="font-medium py-1 border-b border-dashed border-muted">{value}</p>
+                            </div>
+                          ) : null
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Demo Video Section */}
+                {product.demo_video_url && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <Video className="h-4 w-4" />
+                        Vídeo Demonstração
+                      </p>
+                      <ProductVideoPreview 
+                        videoUrl={product.demo_video_url} 
+                        productName={product.name}
+                      />
                     </div>
                   </>
                 )}
