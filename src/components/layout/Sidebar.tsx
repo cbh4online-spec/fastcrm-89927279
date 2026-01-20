@@ -148,6 +148,7 @@ const navigationGroups: NavGroup[] = [
     icon: Compass,
     tooltip: "Prospecção e automação",
     items: [
+      { name: "Email Marketing", href: "/dashboard/marketing", icon: Mail, tooltip: "Campanhas de email", highlight: true },
       { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar no Google Maps", moduleSlug: "google-local-services" },
       { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar na web", moduleSlug: "web-search-services" },
       { name: "Automações", href: "/dashboard/automations", icon: Zap, tooltip: "Workflows automáticos" },
