@@ -11,8 +11,8 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[INSTAGRAM-API-PROXY] ${step}${detailsStr}`);
 };
 
-// RapidAPI Instagram endpoints
-const RAPIDAPI_HOST = "instagram-scraper-api2.p.rapidapi.com";
+// RapidAPI Instagram Looter2 endpoints
+const RAPIDAPI_HOST = "instagram-looter2.p.rapidapi.com";
 const RAPIDAPI_BASE_URL = `https://${RAPIDAPI_HOST}`;
 
 interface RequestBody {
@@ -125,32 +125,32 @@ serve(async (req) => {
 
     switch (action) {
       case "search":
-        endpoint = "/v1/search_users";
-        if (params.query) queryParams.append("search_query", params.query);
+        endpoint = "/search";
+        if (params.query) queryParams.append("query", params.query);
         break;
       case "profile":
-        endpoint = "/v1/info";
-        if (params.username) queryParams.append("username_or_id_or_url", params.username);
+        endpoint = "/profile";
+        if (params.username) queryParams.append("username", params.username);
         break;
       case "user_posts":
-        endpoint = "/v1/posts";
-        if (params.username) queryParams.append("username_or_id_or_url", params.username);
+        endpoint = "/posts";
+        if (params.username) queryParams.append("username", params.username);
         break;
       case "media":
-        endpoint = "/v1/post_info";
-        if (params.code) queryParams.append("code_or_id_or_url", params.code);
+        endpoint = "/media";
+        if (params.code) queryParams.append("shortcode", params.code);
         break;
       case "hashtag":
-        endpoint = "/v1/hashtag";
-        if (params.hashtag) queryParams.append("hashtag", params.hashtag.replace("#", ""));
+        endpoint = "/hashtag";
+        if (params.hashtag) queryParams.append("tag", params.hashtag.replace("#", ""));
         break;
       case "location":
-        endpoint = "/v1/search_location";
-        if (params.query) queryParams.append("search_query", params.query);
+        endpoint = "/location";
+        if (params.query) queryParams.append("query", params.query);
         break;
       case "explore":
-        endpoint = "/v1/search_users";
-        if (params.query) queryParams.append("search_query", params.query);
+        endpoint = "/search";
+        if (params.query) queryParams.append("query", params.query);
         break;
       default:
         throw new Error(`Unknown action: ${action}`);
