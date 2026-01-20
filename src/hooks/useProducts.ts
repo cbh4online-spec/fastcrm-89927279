@@ -185,6 +185,11 @@ export function useUpdateProduct() {
       if (input.specifications !== undefined) updateData.specifications = input.specifications;
       // Demo video
       if (input.demo_video_url !== undefined) updateData.demo_video_url = input.demo_video_url;
+      // Labor fields
+      if (input.labor_hours !== undefined) updateData.labor_hours = input.labor_hours;
+      if (input.labor_hourly_rate !== undefined) updateData.labor_hourly_rate = input.labor_hourly_rate;
+      if (input.labor_included_in_price !== undefined) updateData.labor_included_in_price = input.labor_included_in_price;
+      if (input.labor_notes !== undefined) updateData.labor_notes = input.labor_notes;
 
       const { data, error } = await supabase
         .from("products")

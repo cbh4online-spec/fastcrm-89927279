@@ -58,6 +58,11 @@ export interface Product {
   specifications: Record<string, string> | null;
   // Demo video
   demo_video_url: string | null;
+  // Labor/service time tracking
+  labor_hours: number | null;
+  labor_hourly_rate: number | null;
+  labor_included_in_price: boolean | null;
+  labor_notes: string | null;
 }
 
 export interface ProductWithMargins extends Product {
@@ -158,6 +163,11 @@ export interface CreateProductInput {
   specifications?: Record<string, string>;
   // Demo video
   demo_video_url?: string;
+  // Labor/service time tracking
+  labor_hours?: number;
+  labor_hourly_rate?: number;
+  labor_included_in_price?: boolean;
+  labor_notes?: string;
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {
