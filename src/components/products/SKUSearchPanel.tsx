@@ -17,11 +17,13 @@ interface SKUSearchPanelProps {
   onApplyPrice: (price: number) => void;
   onApplyDescription: (description: string) => void;
   onApplyCategory: (category: string) => void;
+  onApplyImages?: (images: string[]) => void;
   onApplyAll: (data: {
     name?: string;
     price?: number;
     description?: string;
     category?: string;
+    images?: string[];
   }) => void;
 }
 
@@ -32,6 +34,7 @@ export function SKUSearchPanel({
   onApplyPrice,
   onApplyDescription,
   onApplyCategory,
+  onApplyImages,
   onApplyAll,
 }: SKUSearchPanelProps) {
   const [appliedItems, setAppliedItems] = useState<Set<string>>(new Set());
@@ -92,6 +95,13 @@ export function SKUSearchPanel({
     }
   };
 
+  const handleApplyImages = () => {
+    if (searchBySKU.data?.images && onApplyImages) {
+      onApplyImages(searchBySKU.data.images);
+      setAppliedItems((prev) => new Set(prev).add("images"));
+    }
+  };
+
   const handleApplyAll = (version: "commercial" | "technical") => {
     if (searchBySKU.data) {
       const name = version === "commercial" 
@@ -106,8 +116,9 @@ export function SKUSearchPanel({
         price: searchBySKU.data.suggestedPrice,
         description,
         category: searchBySKU.data.category,
+        images: searchBySKU.data.images,
       });
-      setAppliedItems(new Set(["name", "price", "description", "category"]));
+      setAppliedItems(new Set(["name", "price", "description", "category", "images"]));
     }
   };
 
@@ -213,9 +224,23 @@ export function SKUSearchPanel({
             {/* Images Gallery */}
             {hasImages && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <ImageIcon className="h-3 w-3" />
-                  <span>Imagens ({searchBySKU.data.images!.length})</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <ImageIcon className="h-3 w-3" />
+                    <span>Imagens ({searchBySKU.data.images!.length})</span>
+                  </div>
+                  {onApplyImages && (
+                    <Button
+                      type="button"
+                      variant={appliedItems.has("images") ? "secondary" : "outline"}
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={handleApplyImages}
+                    >
+                      {appliedItems.has("images") ? <Check className="h-3 w-3 mr-1" /> : <ImageIcon className="h-3 w-3 mr-1" />}
+                      {appliedItems.has("images") ? "Adicionadas" : "Usar Imagens"}
+                    </Button>
+                  )}
                 </div>
                 <ScrollArea className="w-full whitespace-nowrap rounded-md border">
                   <div className="flex w-max space-x-2 p-2">

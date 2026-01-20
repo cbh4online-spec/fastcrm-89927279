@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles } from "lucide-react";
+import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
 import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFrequency } from "@/types/product";
@@ -33,6 +33,32 @@ import { AIProductAssistant } from "./AIProductAssistant";
 import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
+
+const DRAFT_STORAGE_KEY = "product-form-draft";
+
+interface ProductFormDraft {
+  name: string;
+  productType: ProductType;
+  category: string;
+  basePrice: string;
+  currency: string;
+  billingType: BillingType;
+  shortDescription: string;
+  sku: string;
+  directCost: string;
+  operationalCost: string;
+  commissionDefault: string;
+  taxRateEstimate: string;
+  targetMargin: string;
+  bundlePriceMode: "auto" | "manual";
+  consumptionModel: ConsumptionModel;
+  includedQuantity: string;
+  recommendedFrequency: RecommendedFrequency | "";
+  typicalDurationDays: string;
+  isTrackable: boolean;
+  productImages: string[];
+  savedAt: number;
+}
 
 interface CreateProductDialogProps {
   open: boolean;
@@ -69,6 +95,7 @@ export function CreateProductDialog({
   const [showConsumption, setShowConsumption] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(true);
   const [productImages, setProductImages] = useState<string[]>([]);
+  const [hasDraft, setHasDraft] = useState(false);
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -87,7 +114,49 @@ export function CreateProductDialog({
   const contributionMargin = price - cost - opCost;
   const contributionMarginPct = price > 0 ? (contributionMargin / price) * 100 : 0;
 
+  // Save draft to sessionStorage whenever form changes (only for new products)
+  const saveDraft = useCallback(() => {
+    if (isEditing) return;
+    
+    const hasContent = name || sku || basePrice || shortDescription || category;
+    if (!hasContent) return;
+    
+    const draft: ProductFormDraft = {
+      name,
+      productType,
+      category,
+      basePrice,
+      currency,
+      billingType,
+      shortDescription,
+      sku,
+      directCost,
+      operationalCost,
+      commissionDefault,
+      taxRateEstimate,
+      targetMargin,
+      bundlePriceMode,
+      consumptionModel,
+      includedQuantity,
+      recommendedFrequency,
+      typicalDurationDays,
+      isTrackable,
+      productImages,
+      savedAt: Date.now(),
+    };
+    
+    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  }, [
+    isEditing, name, productType, category, basePrice, currency, billingType,
+    shortDescription, sku, directCost, operationalCost, commissionDefault,
+    taxRateEstimate, targetMargin, bundlePriceMode, consumptionModel,
+    includedQuantity, recommendedFrequency, typicalDurationDays, isTrackable, productImages
+  ]);
+
+  // Load draft or product data on open
   useEffect(() => {
+    if (!open) return;
+    
     if (product) {
       setName(product.name);
       setProductType(product.product_type);
@@ -122,10 +191,60 @@ export function CreateProductDialog({
           !!product.recommended_frequency ||
           !!product.typical_duration_days
       );
+      setHasDraft(false);
     } else {
+      // Try to load draft
+      const savedDraft = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        try {
+          const draft: ProductFormDraft = JSON.parse(savedDraft);
+          // Only restore if saved within last 30 minutes
+          if (Date.now() - draft.savedAt < 30 * 60 * 1000) {
+            setName(draft.name);
+            setProductType(draft.productType);
+            setCategory(draft.category);
+            setBasePrice(draft.basePrice);
+            setCurrency(draft.currency);
+            setBillingType(draft.billingType);
+            setShortDescription(draft.shortDescription);
+            setSku(draft.sku);
+            setDirectCost(draft.directCost);
+            setOperationalCost(draft.operationalCost);
+            setCommissionDefault(draft.commissionDefault);
+            setTaxRateEstimate(draft.taxRateEstimate);
+            setTargetMargin(draft.targetMargin);
+            setBundlePriceMode(draft.bundlePriceMode);
+            setConsumptionModel(draft.consumptionModel);
+            setIncludedQuantity(draft.includedQuantity);
+            setRecommendedFrequency(draft.recommendedFrequency);
+            setTypicalDurationDays(draft.typicalDurationDays);
+            setIsTrackable(draft.isTrackable);
+            setProductImages(draft.productImages || []);
+            setHasDraft(true);
+            return;
+          }
+        } catch {
+          // Invalid draft, ignore
+        }
+      }
+      // No valid draft, reset form
       resetForm();
+      setHasDraft(false);
     }
   }, [product, open]);
+
+  // Auto-save draft on changes (debounced via effect cleanup)
+  useEffect(() => {
+    if (!open || isEditing) return;
+    const timeout = setTimeout(saveDraft, 500);
+    return () => clearTimeout(timeout);
+  }, [open, saveDraft, isEditing]);
+
+  const clearDraft = () => {
+    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    setHasDraft(false);
+    resetForm();
+  };
 
   const resetForm = () => {
     setName("");
@@ -150,6 +269,7 @@ export function CreateProductDialog({
     setTypicalDurationDays("");
     setIsTrackable(true);
     setShowConsumption(false);
+    setProductImages([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,6 +310,9 @@ export function CreateProductDialog({
       await createProduct.mutateAsync(data);
     }
 
+    // Clear draft after successful save
+    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    setHasDraft(false);
     onOpenChange(false);
   };
 
@@ -209,25 +332,57 @@ export function CreateProductDialog({
   const handleApplyDescription = (desc: string) => setShortDescription(desc);
   const handleApplyProductType = (type: ProductType) => setProductType(type);
   const handleApplyName = (newName: string) => setName(newName);
-  const handleApplyAll = (data: { name?: string; price?: number; description?: string; category?: string }) => {
+  const handleApplyAll = (data: { name?: string; price?: number; description?: string; category?: string; images?: string[] }) => {
     if (data.name) setName(data.name);
     if (data.price) setBasePrice(data.price.toString());
     if (data.description) setShortDescription(data.description);
     if (data.category) setCategory(data.category);
+    if (data.images && data.images.length > 0) {
+      setProductImages(prev => {
+        const newImages = data.images!.filter(img => !prev.includes(img));
+        return [...prev, ...newImages].slice(0, 5);
+      });
+    }
+  };
+
+  const handleApplyImages = (images: string[]) => {
+    setProductImages(prev => {
+      const newImages = images.filter(img => !prev.includes(img));
+      return [...prev, ...newImages].slice(0, 5);
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {isBundle ? (
-              <Layers className="h-5 w-5 text-primary" />
-            ) : (
-              <Package className="h-5 w-5" />
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              {isBundle ? (
+                <Layers className="h-5 w-5 text-primary" />
+              ) : (
+                <Package className="h-5 w-5" />
+              )}
+              {isEditing ? "Editar Produto" : "Criar Produto"}
+            </DialogTitle>
+            {hasDraft && !isEditing && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground hover:text-destructive"
+                onClick={clearDraft}
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Limpar rascunho
+              </Button>
             )}
-            {isEditing ? "Editar Produto" : "Criar Produto"}
-          </DialogTitle>
+          </div>
+          {hasDraft && !isEditing && (
+            <p className="text-xs text-muted-foreground mt-1">
+              📝 Rascunho restaurado automaticamente
+            </p>
+          )}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -658,10 +813,12 @@ export function CreateProductDialog({
                   
                   <SKUSearchPanel
                     sku={sku}
+                    currentPrice={parseFloat(basePrice) || undefined}
                     onApplyName={handleApplyName}
                     onApplyPrice={handleApplyPrice}
                     onApplyDescription={handleApplyDescription}
                     onApplyCategory={handleApplyCategory}
+                    onApplyImages={handleApplyImages}
                     onApplyAll={handleApplyAll}
                   />
                 </CollapsibleContent>
