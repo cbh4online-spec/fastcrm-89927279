@@ -51,289 +51,169 @@ interface GooglePlaceResult {
 
 const MOCK_DATABASE: Record<string, GooglePlaceResult[]> = {
   health: [
-    {
-      id: "h1",
-      title: "Clínica Médica São Lucas",
-      rating: 4.8,
-      reviews_count: 312,
-      address: "Av. da Liberdade 45, Lisboa",
-      phone: "+351 21 345 6789",
-      website: "https://clinicasaolucas.pt",
-      category: "Clínica Médica",
-      hours: "08:00 - 20:00",
-      description: "Clínica multidisciplinar com especialidades em medicina geral, cardiologia e dermatologia",
-      services: ["Medicina Geral", "Cardiologia", "Dermatologia", "Análises Clínicas"]
-    },
-    {
-      id: "h2",
-      title: "Centro de Fisioterapia Lisboa",
-      rating: 4.6,
-      reviews_count: 187,
-      address: "Rua Augusta 123, Lisboa",
-      phone: "+351 21 456 7890",
-      website: "https://fisioterapialisboa.pt",
-      category: "Fisioterapia",
-      hours: "09:00 - 19:00",
-      description: "Centro especializado em reabilitação física e desportiva",
-      services: ["Fisioterapia", "Reabilitação", "Massagem Terapêutica", "Pilates Clínico"]
-    },
-    {
-      id: "h3",
-      title: "Clínica Dentária Sorriso Perfeito",
-      rating: 4.9,
-      reviews_count: 423,
-      address: "Praça do Comércio 67, Lisboa",
-      phone: "+351 21 567 8901",
-      website: "https://sorrisoperfeito.pt",
-      category: "Clínica Dentária",
-      hours: "09:00 - 19:00",
-      description: "Clínica moderna especializada em ortodontia, implantes e estética dentária",
-      services: ["Ortodontia", "Implantes", "Branqueamento", "Higiene Oral"]
-    },
-    {
-      id: "h4",
-      title: "Hospital Veterinário do Lumiar",
-      rating: 4.7,
-      reviews_count: 256,
-      address: "Alameda das Linhas de Torres 200, Lisboa",
-      phone: "+351 21 678 9012",
-      website: "https://hvlumiar.pt",
-      category: "Veterinário",
-      hours: "24 horas",
-      description: "Hospital veterinário com serviço de urgência 24 horas",
-      services: ["Consultas", "Cirurgia", "Urgências", "Internamento"]
-    },
-    {
-      id: "h5",
-      title: "Farmácia Central Lisboa",
-      rating: 4.5,
-      reviews_count: 178,
-      address: "Rossio 45, Lisboa",
-      phone: "+351 21 789 0123",
-      website: "https://farmaciacentral.pt",
-      category: "Farmácia",
-      hours: "08:00 - 22:00",
-      description: "Farmácia com serviços de aconselhamento farmacêutico e medição de tensão",
-      services: ["Medicamentos", "Dermofarmácia", "Ortopedia", "Veterinária"]
-    }
+    // Lisboa
+    { id: "h1", title: "Clínica Médica São Lucas", rating: 4.8, reviews_count: 312, address: "Av. da Liberdade 45, Lisboa", phone: "+351 21 345 6789", website: "https://clinicasaolucas.pt", category: "Clínica Médica", hours: "08:00 - 20:00", description: "Clínica multidisciplinar com especialidades", services: ["Medicina Geral", "Cardiologia", "Dermatologia"] },
+    { id: "h2", title: "Centro de Fisioterapia Lisboa", rating: 4.6, reviews_count: 187, address: "Rua Augusta 123, Lisboa", phone: "+351 21 456 7890", website: "https://fisioterapialisboa.pt", category: "Fisioterapia", hours: "09:00 - 19:00", description: "Centro especializado em reabilitação física", services: ["Fisioterapia", "Reabilitação", "Pilates Clínico"] },
+    { id: "h3", title: "Clínica Dentária Sorriso Perfeito", rating: 4.9, reviews_count: 423, address: "Praça do Comércio 67, Lisboa", phone: "+351 21 567 8901", website: "https://sorrisoperfeito.pt", category: "Clínica Dentária", hours: "09:00 - 19:00", description: "Clínica moderna de ortodontia e implantes", services: ["Ortodontia", "Implantes", "Branqueamento"] },
+    // Porto
+    { id: "h4", title: "Hospital CUF Porto", rating: 4.9, reviews_count: 567, address: "Av. da Boavista 1234, Porto", phone: "+351 22 123 4567", website: "https://cufporto.pt", category: "Hospital", hours: "24 horas", description: "Hospital privado com todas as especialidades", services: ["Urgência", "Internamento", "Cirurgia"] },
+    { id: "h5", title: "Clínica Médica Ribeira", rating: 4.7, reviews_count: 234, address: "Rua das Flores 56, Porto", phone: "+351 22 234 5678", category: "Clínica Médica", hours: "08:00 - 20:00", description: "Clínica médica no centro do Porto", services: ["Medicina Geral", "Pediatria", "Ginecologia"] },
+    // Braga
+    { id: "h6", title: "Clínica São Geraldo", rating: 4.6, reviews_count: 198, address: "Av. Central 78, Braga", phone: "+351 253 123 456", category: "Clínica Médica", hours: "08:00 - 19:00", description: "Clínica de referência em Braga", services: ["Medicina Geral", "Ortopedia", "Fisioterapia"] },
+    // Coimbra
+    { id: "h7", title: "Centro Médico de Coimbra", rating: 4.8, reviews_count: 345, address: "Praça da República 23, Coimbra", phone: "+351 239 123 456", website: "https://cmcoimbra.pt", category: "Centro Médico", hours: "08:00 - 20:00", description: "Centro médico junto à Universidade", services: ["Clínica Geral", "Nutrição", "Psicologia"] },
+    // Faro
+    { id: "h8", title: "Clínica do Algarve", rating: 4.5, reviews_count: 156, address: "Av. 5 de Outubro 89, Faro", phone: "+351 289 123 456", category: "Clínica Médica", hours: "09:00 - 18:00", description: "Clínica médica no centro de Faro", services: ["Medicina Geral", "Dermatologia"] },
+    // Setúbal
+    { id: "h9", title: "Hospital Particular Setúbal", rating: 4.7, reviews_count: 289, address: "Av. Luísa Todi 45, Setúbal", phone: "+351 265 123 456", website: "https://hpsetubal.pt", category: "Hospital", hours: "24 horas", description: "Hospital privado em Setúbal", services: ["Urgência", "Consultas", "Exames"] },
+    // Aveiro
+    { id: "h10", title: "Clínica Médica Aveiro", rating: 4.6, reviews_count: 178, address: "Rua do Canal 34, Aveiro", phone: "+351 234 123 456", category: "Clínica Médica", hours: "08:00 - 19:00", description: "Clínica junto à Ria de Aveiro", services: ["Medicina Familiar", "Pediatria"] },
+    // Leiria
+    { id: "h11", title: "Centro de Saúde Leiria", rating: 4.4, reviews_count: 167, address: "Rua dos Mártires 12, Leiria", phone: "+351 244 123 456", category: "Centro de Saúde", hours: "08:00 - 18:00", description: "Centro de saúde com várias especialidades", services: ["Clínica Geral", "Vacinação"] },
+    // Funchal
+    { id: "h12", title: "Clínica Santa Catarina", rating: 4.8, reviews_count: 234, address: "Rua da Carreira 67, Funchal", phone: "+351 291 123 456", website: "https://clinicasantacatarina.pt", category: "Clínica Médica", hours: "08:00 - 20:00", description: "Clínica de referência na Madeira", services: ["Medicina Geral", "Cardiologia", "Oftalmologia"] },
+    // Viseu
+    { id: "h13", title: "Hospital Privado Viseu", rating: 4.5, reviews_count: 145, address: "Av. Alberto Sampaio 90, Viseu", phone: "+351 232 123 456", category: "Hospital", hours: "24 horas", description: "Hospital privado no centro de Viseu", services: ["Consultas", "Cirurgia", "Urgência"] },
+    // Vila Nova de Gaia
+    { id: "h14", title: "Clínica Gaia Saúde", rating: 4.6, reviews_count: 198, address: "Av. da República 234, Vila Nova de Gaia", phone: "+351 22 345 6789", category: "Clínica Médica", hours: "08:00 - 20:00", description: "Clínica multidisciplinar em Gaia", services: ["Medicina Geral", "Ortopedia", "Fisioterapia"] },
+    // Guimarães
+    { id: "h15", title: "Centro Médico Vitasaúde", rating: 4.7, reviews_count: 176, address: "Largo do Toural 15, Guimarães", phone: "+351 253 456 789", category: "Centro Médico", hours: "08:00 - 19:00", description: "Centro médico no berço de Portugal", services: ["Clínica Geral", "Pediatria", "Ginecologia"] },
   ],
   restaurant: [
-    {
-      id: "r1",
-      title: "Restaurante O Pescador",
-      rating: 4.5,
-      reviews_count: 234,
-      address: "Rua da Praia 123, Lisboa",
-      phone: "+351 21 123 4567",
-      website: "https://opescador.pt",
-      category: "Restaurante",
-      hours: "12:00 - 23:00",
-      description: "Restaurante de marisco tradicional com vista para o mar",
-      services: ["Entrega ao domicílio", "Reservas", "Wi-Fi grátis"]
-    },
-    {
-      id: "r2",
-      title: "Tasca do Chico",
-      rating: 4.7,
-      reviews_count: 567,
-      address: "Bairro Alto, Lisboa",
-      phone: "+351 21 234 5678",
-      website: "https://tascadochico.pt",
-      category: "Restaurante Tradicional",
-      hours: "19:00 - 02:00",
-      description: "Tasca típica portuguesa com fado ao vivo",
-      services: ["Fado ao Vivo", "Reservas", "Grupos"]
-    }
+    // Lisboa
+    { id: "r1", title: "Restaurante O Pescador", rating: 4.5, reviews_count: 234, address: "Rua da Praia 123, Lisboa", phone: "+351 21 123 4567", website: "https://opescador.pt", category: "Restaurante", hours: "12:00 - 23:00", description: "Restaurante de marisco tradicional", services: ["Entrega ao domicílio", "Reservas"] },
+    { id: "r2", title: "Tasca do Chico", rating: 4.7, reviews_count: 567, address: "Bairro Alto, Lisboa", phone: "+351 21 234 5678", category: "Restaurante Tradicional", hours: "19:00 - 02:00", description: "Tasca típica com fado ao vivo", services: ["Fado ao Vivo", "Reservas"] },
+    // Porto
+    { id: "r3", title: "Casa da Música Restaurante", rating: 4.8, reviews_count: 456, address: "Av. da Boavista 604, Porto", phone: "+351 22 345 6789", website: "https://casamusicarestaurante.pt", category: "Restaurante Moderno", hours: "12:00 - 24:00", description: "Restaurante gourmet junto à Casa da Música", services: ["Reservas", "Eventos"] },
+    { id: "r4", title: "Cervejaria Brasão", rating: 4.6, reviews_count: 789, address: "Rua das Flores 89, Porto", phone: "+351 22 456 7890", category: "Cervejaria", hours: "12:00 - 23:00", description: "Famosa pelos francesinha", services: ["Takeaway", "Reservas"] },
+    // Braga
+    { id: "r5", title: "Restaurante Brac", rating: 4.7, reviews_count: 234, address: "Campo das Hortas 4, Braga", phone: "+351 253 234 567", category: "Restaurante", hours: "12:00 - 15:00, 19:00 - 23:00", description: "Cozinha portuguesa moderna", services: ["Reservas", "Grupos"] },
+    // Coimbra
+    { id: "r6", title: "Restaurante Arcadas", rating: 4.5, reviews_count: 345, address: "Rua Ferreira Borges 56, Coimbra", phone: "+351 239 345 678", category: "Restaurante Tradicional", hours: "12:00 - 22:00", description: "Cozinha regional de Coimbra", services: ["Reservas", "Wi-Fi"] },
+    // Faro
+    { id: "r7", title: "Restaurante Ria Formosa", rating: 4.8, reviews_count: 278, address: "Doca de Faro, Faro", phone: "+351 289 456 789", website: "https://riaformosa.pt", category: "Restaurante de Peixe", hours: "12:00 - 23:00", description: "Peixe fresco com vista para a Ria", services: ["Reservas", "Esplanada"] },
+    // Cascais
+    { id: "r8", title: "Casa da Guia", rating: 4.6, reviews_count: 456, address: "Av. Nossa Senhora do Cabo, Cascais", phone: "+351 21 567 8901", category: "Restaurante", hours: "12:00 - 24:00", description: "Restaurante com vista mar em Cascais", services: ["Reservas", "Eventos"] },
+    // Sintra
+    { id: "r9", title: "Restaurante Palácio", rating: 4.7, reviews_count: 234, address: "Centro Histórico, Sintra", phone: "+351 21 678 9012", category: "Restaurante Tradicional", hours: "12:00 - 22:00", description: "Cozinha tradicional em Sintra", services: ["Reservas", "Grupos turísticos"] },
+    // Albufeira
+    { id: "r10", title: "Restaurante Mar Azul", rating: 4.5, reviews_count: 567, address: "Praia dos Pescadores, Albufeira", phone: "+351 289 567 890", category: "Restaurante de Praia", hours: "10:00 - 24:00", description: "Marisco fresco na praia", services: ["Reservas", "Esplanada"] },
+    // Matosinhos
+    { id: "r11", title: "Marisqueira Matosinhos", rating: 4.9, reviews_count: 678, address: "Rua Heróis de França, Matosinhos", phone: "+351 22 789 0123", category: "Marisqueira", hours: "12:00 - 23:00", description: "Marisco fresco junto ao porto", services: ["Reservas", "Grupos"] },
+    // Évora
+    { id: "r12", title: "Fialho Restaurante", rating: 4.8, reviews_count: 345, address: "Travessa das Mascarenhas 16, Évora", phone: "+351 266 123 456", category: "Restaurante Tradicional", hours: "12:00 - 15:00, 19:00 - 22:00", description: "Gastronomia alentejana tradicional", services: ["Reservas"] },
+    // Portimão
+    { id: "r13", title: "Restaurante Titanic", rating: 4.6, reviews_count: 456, address: "Largo da Barca, Portimão", phone: "+351 282 234 567", category: "Restaurante de Peixe", hours: "12:00 - 23:00", description: "Peixe grelhado junto ao rio", services: ["Reservas", "Esplanada"] },
   ],
   auto: [
-    {
-      id: "a1",
-      title: "Auto Mecânica Lisboa",
-      rating: 4.8,
-      reviews_count: 156,
-      address: "Av. Almirante Reis 456, Lisboa",
-      phone: "+351 21 345 6789",
-      website: "https://automecanicalisboa.pt",
-      category: "Oficina Automóvel",
-      hours: "08:00 - 18:00",
-      description: "Oficina especializada em manutenção e reparação automóvel",
-      services: ["Revisões", "Pneus", "Ar condicionado", "Diagnóstico"]
-    },
-    {
-      id: "a2",
-      title: "Centro de Inspeções Lisboa",
-      rating: 4.3,
-      reviews_count: 890,
-      address: "Zona Industrial, Lisboa",
-      phone: "+351 21 456 7890",
-      category: "Centro de Inspeções",
-      hours: "08:00 - 19:00",
-      description: "Centro de inspeções automóveis certificado",
-      services: ["Inspeção Periódica", "Inspeção Extraordinária"]
-    }
+    // Lisboa
+    { id: "a1", title: "Auto Mecânica Lisboa", rating: 4.8, reviews_count: 156, address: "Av. Almirante Reis 456, Lisboa", phone: "+351 21 345 6789", website: "https://automecanicalisboa.pt", category: "Oficina Automóvel", hours: "08:00 - 18:00", description: "Oficina especializada", services: ["Revisões", "Pneus", "Diagnóstico"] },
+    { id: "a2", title: "Centro de Inspeções Lisboa", rating: 4.3, reviews_count: 890, address: "Zona Industrial, Lisboa", phone: "+351 21 456 7890", category: "Centro de Inspeções", hours: "08:00 - 19:00", description: "Centro de inspeções certificado", services: ["Inspeção Periódica"] },
+    // Porto
+    { id: "a3", title: "Auto Reparadora do Porto", rating: 4.7, reviews_count: 234, address: "Rua de Campanhã 234, Porto", phone: "+351 22 567 8901", category: "Oficina Automóvel", hours: "08:00 - 18:00", description: "Oficina de confiança no Porto", services: ["Mecânica", "Eletricidade Auto"] },
+    { id: "a4", title: "Pneumáticos Norte", rating: 4.5, reviews_count: 178, address: "Via Norte, Porto", phone: "+351 22 678 9012", category: "Pneus", hours: "08:00 - 19:00", description: "Especialistas em pneus", services: ["Pneus", "Alinhamento", "Equilibragem"] },
+    // Braga
+    { id: "a5", title: "Oficina Auto Braga", rating: 4.6, reviews_count: 145, address: "Zona Industrial de Braga, Braga", phone: "+351 253 345 678", category: "Oficina Automóvel", hours: "08:00 - 18:00", description: "Oficina multimarca em Braga", services: ["Revisões", "Mecânica Geral"] },
+    // Setúbal
+    { id: "a6", title: "Centro Auto Setúbal", rating: 4.4, reviews_count: 167, address: "Av. Luísa Todi 234, Setúbal", phone: "+351 265 456 789", category: "Oficina Automóvel", hours: "08:00 - 18:00", description: "Oficina em Setúbal", services: ["Mecânica", "Ar Condicionado"] },
+    // Faro
+    { id: "a7", title: "Auto Algarve", rating: 4.5, reviews_count: 198, address: "Zona Industrial, Faro", phone: "+351 289 567 890", category: "Oficina Automóvel", hours: "08:00 - 18:00", description: "Oficina no Algarve", services: ["Mecânica", "Elétrica"] },
+    // Aveiro
+    { id: "a8", title: "Oficina Central Aveiro", rating: 4.6, reviews_count: 134, address: "Rua da Estação 45, Aveiro", phone: "+351 234 234 567", category: "Oficina Automóvel", hours: "08:00 - 18:00", description: "Oficina no centro de Aveiro", services: ["Revisões", "Diagnóstico"] },
+    // Coimbra
+    { id: "a9", title: "Auto Mondego", rating: 4.7, reviews_count: 189, address: "Zona Industrial Norton de Matos, Coimbra", phone: "+351 239 456 789", category: "Oficina Automóvel", hours: "08:00 - 18:00", description: "Oficina de referência em Coimbra", services: ["Mecânica", "Chapa e Pintura"] },
+    // Vila Nova de Gaia
+    { id: "a10", title: "Oficina Gaia Motors", rating: 4.5, reviews_count: 156, address: "Av. da República 567, Vila Nova de Gaia", phone: "+351 22 890 1234", category: "Oficina Automóvel", hours: "08:00 - 18:00", description: "Oficina multimarca em Gaia", services: ["Revisões", "Mecânica"] },
   ],
   services: [
-    {
-      id: "s1",
-      title: "Contabilidade & Consultoria Lda",
-      rating: 4.3,
-      reviews_count: 45,
-      address: "Rua do Comércio 321, Lisboa",
-      phone: "+351 21 111 2222",
-      website: "https://contabilidadeconsultoria.pt",
-      category: "Contabilidade",
-      hours: "09:00 - 18:00",
-      description: "Serviços de contabilidade, fiscalidade e consultoria empresarial",
-      services: ["Contabilidade", "IRS", "IRC", "Apoio a empresas"]
-    },
-    {
-      id: "s2",
-      title: "Advogados Associados Lisboa",
-      rating: 4.6,
-      reviews_count: 123,
-      address: "Av. da República 100, Lisboa",
-      phone: "+351 21 222 3333",
-      website: "https://advogadoslisboa.pt",
-      category: "Escritório de Advogados",
-      hours: "09:00 - 18:00",
-      description: "Escritório de advogados especializado em direito comercial e laboral",
-      services: ["Direito Comercial", "Direito Laboral", "Contratos", "Litígios"]
-    }
+    // Lisboa
+    { id: "s1", title: "Contabilidade & Consultoria Lda", rating: 4.3, reviews_count: 45, address: "Rua do Comércio 321, Lisboa", phone: "+351 21 111 2222", website: "https://contabilidadeconsultoria.pt", category: "Contabilidade", hours: "09:00 - 18:00", description: "Serviços de contabilidade e consultoria", services: ["Contabilidade", "IRS", "IRC"] },
+    { id: "s2", title: "Advogados Associados Lisboa", rating: 4.6, reviews_count: 123, address: "Av. da República 100, Lisboa", phone: "+351 21 222 3333", website: "https://advogadoslisboa.pt", category: "Escritório de Advogados", hours: "09:00 - 18:00", description: "Escritório de advogados", services: ["Direito Comercial", "Direito Laboral"] },
+    // Porto
+    { id: "s3", title: "Gabinete Jurídico Porto", rating: 4.7, reviews_count: 167, address: "Rua de Santa Catarina 456, Porto", phone: "+351 22 333 4444", category: "Advogados", hours: "09:00 - 18:00", description: "Gabinete de advogados no Porto", services: ["Direito Civil", "Direito Penal"] },
+    { id: "s4", title: "Contabilidade Norte", rating: 4.5, reviews_count: 98, address: "Rua do Almada 78, Porto", phone: "+351 22 444 5555", category: "Contabilidade", hours: "09:00 - 18:00", description: "Serviços contabilísticos", services: ["Contabilidade", "Fiscalidade"] },
+    // Braga
+    { id: "s5", title: "Seguros Minho", rating: 4.4, reviews_count: 87, address: "Av. Central 34, Braga", phone: "+351 253 555 666", category: "Seguros", hours: "09:00 - 18:00", description: "Mediação de seguros em Braga", services: ["Seguros Auto", "Seguros Vida", "Seguros Saúde"] },
+    // Coimbra
+    { id: "s6", title: "Imobiliária Mondego", rating: 4.6, reviews_count: 134, address: "Praça 8 de Maio 12, Coimbra", phone: "+351 239 666 777", category: "Imobiliária", hours: "09:00 - 19:00", description: "Imobiliária em Coimbra", services: ["Venda", "Arrendamento", "Avaliações"] },
+    // Faro
+    { id: "s7", title: "Algarve Properties", rating: 4.8, reviews_count: 234, address: "Av. 5 de Outubro 56, Faro", phone: "+351 289 777 888", website: "https://algarveproperties.pt", category: "Imobiliária", hours: "09:00 - 19:00", description: "Imobiliária no Algarve", services: ["Venda", "Arrendamento", "Gestão"] },
+    // Setúbal
+    { id: "s8", title: "Advogados Setúbal", rating: 4.5, reviews_count: 67, address: "Av. Luísa Todi 123, Setúbal", phone: "+351 265 888 999", category: "Advogados", hours: "09:00 - 18:00", description: "Escritório de advogados", services: ["Direito Civil", "Família"] },
+    // Funchal
+    { id: "s9", title: "Madeira Contabilidade", rating: 4.6, reviews_count: 89, address: "Rua da Carreira 89, Funchal", phone: "+351 291 999 000", category: "Contabilidade", hours: "09:00 - 18:00", description: "Contabilidade na Madeira", services: ["Contabilidade", "Fiscalidade"] },
+    // Viseu
+    { id: "s10", title: "Seguros Centro", rating: 4.4, reviews_count: 56, address: "Rua Formosa 23, Viseu", phone: "+351 232 111 222", category: "Seguros", hours: "09:00 - 18:00", description: "Mediação de seguros", services: ["Seguros Auto", "Multirriscos"] },
   ],
   retail: [
-    {
-      id: "rt1",
-      title: "Loja de Eletrónica TechZone",
-      rating: 4.2,
-      reviews_count: 234,
-      address: "Centro Comercial Colombo, Lisboa",
-      phone: "+351 21 333 4444",
-      website: "https://techzone.pt",
-      category: "Loja de Eletrónica",
-      hours: "10:00 - 23:00",
-      description: "Loja especializada em eletrónica e informática",
-      services: ["Reparações", "Garantia", "Assistência Técnica"]
-    }
+    // Lisboa
+    { id: "rt1", title: "Loja de Eletrónica TechZone", rating: 4.2, reviews_count: 234, address: "Centro Comercial Colombo, Lisboa", phone: "+351 21 333 4444", website: "https://techzone.pt", category: "Loja de Eletrónica", hours: "10:00 - 23:00", description: "Loja de eletrónica e informática", services: ["Reparações", "Assistência Técnica"] },
+    { id: "rt2", title: "Moda Lisboa", rating: 4.5, reviews_count: 178, address: "Avenida Roma 56, Lisboa", phone: "+351 21 444 5555", category: "Loja de Roupa", hours: "10:00 - 20:00", description: "Moda feminina e masculina", services: ["Ajustes", "Personal Shopper"] },
+    // Porto
+    { id: "rt3", title: "Livraria Lello", rating: 4.9, reviews_count: 2345, address: "Rua das Carmelitas 144, Porto", phone: "+351 22 555 6666", website: "https://livrarialello.pt", category: "Livraria", hours: "09:00 - 19:00", description: "Livraria histórica do Porto", services: ["Livros", "Eventos"] },
+    { id: "rt4", title: "Porto Tech Store", rating: 4.4, reviews_count: 189, address: "NorteShopping, Porto", phone: "+351 22 666 7777", category: "Loja de Eletrónica", hours: "10:00 - 23:00", description: "Tecnologia e gadgets", services: ["Venda", "Reparações"] },
+    // Braga
+    { id: "rt5", title: "Papelaria Académica", rating: 4.3, reviews_count: 123, address: "Rua do Souto 45, Braga", phone: "+351 253 777 888", category: "Papelaria", hours: "09:00 - 19:00", description: "Papelaria e material escolar", services: ["Material Escolar", "Impressões"] },
+    // Coimbra
+    { id: "rt6", title: "Livraria Académica Coimbra", rating: 4.7, reviews_count: 456, address: "Rua Ferreira Borges 78, Coimbra", phone: "+351 239 888 999", category: "Livraria", hours: "09:00 - 19:00", description: "Livraria junto à Universidade", services: ["Livros", "Material Académico"] },
+    // Cascais
+    { id: "rt7", title: "Surf Shop Cascais", rating: 4.6, reviews_count: 234, address: "Av. Marginal 234, Cascais", phone: "+351 21 999 0000", category: "Loja de Surf", hours: "10:00 - 20:00", description: "Artigos de surf e praia", services: ["Equipamento", "Aulas"] },
+    // Albufeira
+    { id: "rt8", title: "Algarve Souvenirs", rating: 4.2, reviews_count: 567, address: "Rua 5 de Outubro, Albufeira", phone: "+351 289 111 222", category: "Loja de Souvenirs", hours: "10:00 - 24:00", description: "Lembranças do Algarve", services: ["Souvenirs", "Artesanato"] },
   ],
   construction: [
-    {
-      id: "c1",
-      title: "Construções Lisboa Lda",
-      rating: 4.4,
-      reviews_count: 78,
-      address: "Zona Industrial Sacavém, Lisboa",
-      phone: "+351 21 444 5555",
-      website: "https://construcoeslisboa.pt",
-      category: "Construção Civil",
-      hours: "08:00 - 17:00",
-      description: "Empresa de construção civil especializada em remodelações",
-      services: ["Construção", "Remodelação", "Pintura", "Canalização"]
-    }
+    // Lisboa
+    { id: "c1", title: "Construções Lisboa Lda", rating: 4.4, reviews_count: 78, address: "Zona Industrial Sacavém, Lisboa", phone: "+351 21 444 5555", website: "https://construcoeslisboa.pt", category: "Construção Civil", hours: "08:00 - 17:00", description: "Empresa de construção civil", services: ["Construção", "Remodelação", "Pintura"] },
+    // Porto
+    { id: "c2", title: "Construções Norte", rating: 4.6, reviews_count: 134, address: "Zona Industrial Maia, Porto", phone: "+351 22 555 6666", category: "Construção Civil", hours: "08:00 - 17:00", description: "Construção e remodelação", services: ["Construção", "Renovação"] },
+    { id: "c3", title: "Eletricista Porto", rating: 4.7, reviews_count: 89, address: "Rua da Alegria 123, Porto", phone: "+351 22 666 7777", category: "Eletricista", hours: "08:00 - 18:00", description: "Serviços elétricos", services: ["Instalações", "Reparações", "Certificações"] },
+    // Braga
+    { id: "c4", title: "Remodelações Minho", rating: 4.5, reviews_count: 67, address: "Zona Industrial Celeirós, Braga", phone: "+351 253 777 888", category: "Remodelações", hours: "08:00 - 17:00", description: "Especialistas em remodelações", services: ["Remodelação", "Decoração"] },
+    // Setúbal
+    { id: "c5", title: "Canalizador Setúbal", rating: 4.3, reviews_count: 56, address: "Prainha, Setúbal", phone: "+351 265 888 999", category: "Canalizador", hours: "08:00 - 18:00", description: "Serviços de canalização", services: ["Canalização", "Aquecimento"] },
+    // Faro
+    { id: "c6", title: "Construções Algarve", rating: 4.6, reviews_count: 145, address: "Zona Industrial Loulé, Faro", phone: "+351 289 999 000", category: "Construção Civil", hours: "08:00 - 17:00", description: "Construção no Algarve", services: ["Construção", "Piscinas", "Jardins"] },
+    // Aveiro
+    { id: "c7", title: "Pinturas Aveiro", rating: 4.4, reviews_count: 78, address: "Rua de Viseu 34, Aveiro", phone: "+351 234 111 222", category: "Pintor", hours: "08:00 - 18:00", description: "Serviços de pintura", services: ["Pintura Interior", "Pintura Exterior"] },
+    // Coimbra
+    { id: "c8", title: "Carpintaria Mondego", rating: 4.7, reviews_count: 123, address: "Zona Industrial Taveiro, Coimbra", phone: "+351 239 222 333", category: "Carpintaria", hours: "08:00 - 17:00", description: "Carpintaria e marcenaria", services: ["Móveis", "Portas", "Janelas"] },
+    // Viseu
+    { id: "c9", title: "Serralharia Viseu", rating: 4.5, reviews_count: 67, address: "Zona Industrial, Viseu", phone: "+351 232 333 444", category: "Serralharia", hours: "08:00 - 17:00", description: "Trabalhos em ferro e alumínio", services: ["Portões", "Gradeamentos", "Estruturas"] },
   ],
   beauty: [
-    {
-      id: "b1",
-      title: "Cabeleireiro Elegance",
-      rating: 4.9,
-      reviews_count: 342,
-      address: "Av. Roma 156, Lisboa",
-      phone: "+351 21 555 6666",
-      website: "https://elegancehair.pt",
-      category: "Cabeleireiro",
-      hours: "09:00 - 20:00",
-      description: "Cabeleireiro unisexo especializado em coloração e cortes modernos",
-      services: ["Corte", "Coloração", "Madeixas", "Tratamentos Capilares", "Penteados"]
-    },
-    {
-      id: "b2",
-      title: "Estética & Beleza Maria",
-      rating: 4.8,
-      reviews_count: 278,
-      address: "Rua Castilho 45, Lisboa",
-      phone: "+351 21 666 7777",
-      website: "https://esteticamaria.pt",
-      category: "Centro de Estética",
-      hours: "10:00 - 19:00",
-      description: "Centro de estética com tratamentos faciais e corporais",
-      services: ["Limpeza de Pele", "Massagens", "Depilação", "Tratamentos Anti-idade", "Manicure"]
-    },
-    {
-      id: "b3",
-      title: "Barbearia Clássica",
-      rating: 4.7,
-      reviews_count: 198,
-      address: "Baixa-Chiado, Lisboa",
-      phone: "+351 21 777 8888",
-      website: "https://barbeiraclassica.pt",
-      category: "Barbearia",
-      hours: "10:00 - 20:00",
-      description: "Barbearia tradicional com serviços premium",
-      services: ["Corte de Cabelo", "Barba", "Tratamentos", "Hot Towel"]
-    },
-    {
-      id: "b4",
-      title: "Nail Art Studio",
-      rating: 4.6,
-      reviews_count: 156,
-      address: "Centro Comercial Vasco da Gama, Lisboa",
-      phone: "+351 21 888 9999",
-      website: "https://nailartstudio.pt",
-      category: "Manicure & Pedicure",
-      hours: "10:00 - 22:00",
-      description: "Estúdio especializado em nail art e extensões de unhas",
-      services: ["Manicure", "Pedicure", "Gel", "Extensões", "Nail Art"]
-    },
-    {
-      id: "b5",
-      title: "SPA Bem-Estar Lisboa",
-      rating: 4.9,
-      reviews_count: 423,
-      address: "Hotel Ritz, Lisboa",
-      phone: "+351 21 999 0000",
-      website: "https://spabemestar.pt",
-      category: "SPA",
-      hours: "08:00 - 21:00",
-      description: "SPA de luxo com tratamentos relaxantes e terapêuticos",
-      services: ["Massagens", "Sauna", "Jacuzzi", "Tratamentos Corporais", "Aromaterapia"]
-    },
-    {
-      id: "b6",
-      title: "Clínica Estética Avançada",
-      rating: 4.8,
-      reviews_count: 312,
-      address: "Av. da Liberdade 200, Lisboa",
-      phone: "+351 21 000 1111",
-      website: "https://clinicaestetica.pt",
-      category: "Clínica Estética",
-      hours: "09:00 - 19:00",
-      description: "Clínica de medicina estética com tratamentos avançados",
-      services: ["Botox", "Preenchimentos", "Laser", "Peeling", "Mesoterapia"]
-    },
-    {
-      id: "b7",
-      title: "Sobrancelhas Perfeitas",
-      rating: 4.5,
-      reviews_count: 234,
-      address: "Amoreiras Shopping, Lisboa",
-      phone: "+351 21 111 2222",
-      website: "https://sobrancelhasperfeitas.pt",
-      category: "Sobrancelhas & Pestanas",
-      hours: "10:00 - 22:00",
-      description: "Especialistas em design de sobrancelhas e extensões de pestanas",
-      services: ["Design Sobrancelhas", "Micropigmentação", "Extensões Pestanas", "Laminação"]
-    },
-    {
-      id: "b8",
-      title: "Centro de Bronzeamento Solar",
-      rating: 4.3,
-      reviews_count: 145,
-      address: "Rua Augusta 89, Lisboa",
-      phone: "+351 21 222 3333",
-      category: "Solário",
-      hours: "09:00 - 21:00",
-      description: "Centro de bronzeamento com equipamentos de última geração",
-      services: ["Bronzeamento UV", "Spray Tan", "Bronzeamento Natural"]
-    }
+    // Lisboa
+    { id: "b1", title: "Cabeleireiro Elegance", rating: 4.9, reviews_count: 342, address: "Av. Roma 156, Lisboa", phone: "+351 21 555 6666", website: "https://elegancehair.pt", category: "Cabeleireiro", hours: "09:00 - 20:00", description: "Cabeleireiro unisexo especializado", services: ["Corte", "Coloração", "Madeixas"] },
+    { id: "b2", title: "Estética & Beleza Maria", rating: 4.8, reviews_count: 278, address: "Rua Castilho 45, Lisboa", phone: "+351 21 666 7777", category: "Centro de Estética", hours: "10:00 - 19:00", description: "Centro de estética", services: ["Limpeza de Pele", "Massagens", "Depilação"] },
+    { id: "b3", title: "Barbearia Clássica", rating: 4.7, reviews_count: 198, address: "Baixa-Chiado, Lisboa", phone: "+351 21 777 8888", category: "Barbearia", hours: "10:00 - 20:00", description: "Barbearia tradicional", services: ["Corte de Cabelo", "Barba"] },
+    // Porto
+    { id: "b4", title: "Salão de Beleza Porto", rating: 4.8, reviews_count: 234, address: "Rua de Santa Catarina 234, Porto", phone: "+351 22 888 9999", category: "Cabeleireiro", hours: "09:00 - 20:00", description: "Salão de beleza premium", services: ["Corte", "Coloração", "Tratamentos"] },
+    { id: "b5", title: "Barbearia Invicta", rating: 4.9, reviews_count: 345, address: "Rua das Flores 67, Porto", phone: "+351 22 999 0000", category: "Barbearia", hours: "10:00 - 20:00", description: "Barbearia moderna no Porto", services: ["Corte", "Barba", "Tratamentos"] },
+    { id: "b6", title: "SPA Ribeira", rating: 4.7, reviews_count: 189, address: "Cais da Ribeira 12, Porto", phone: "+351 22 000 1111", category: "SPA", hours: "10:00 - 21:00", description: "SPA com vista para o Douro", services: ["Massagens", "Tratamentos Corporais"] },
+    // Braga
+    { id: "b7", title: "Cabeleireiro Minho Style", rating: 4.6, reviews_count: 156, address: "Rua do Souto 78, Braga", phone: "+351 253 111 222", category: "Cabeleireiro", hours: "09:00 - 19:00", description: "Cabeleireiro no centro de Braga", services: ["Corte", "Coloração"] },
+    { id: "b8", title: "Centro Estético Bracara", rating: 4.7, reviews_count: 167, address: "Av. Central 56, Braga", phone: "+351 253 222 333", category: "Centro de Estética", hours: "10:00 - 19:00", description: "Estética e bem-estar", services: ["Tratamentos Faciais", "Depilação Laser"] },
+    // Coimbra
+    { id: "b9", title: "Hair Studio Coimbra", rating: 4.5, reviews_count: 178, address: "Rua Ferreira Borges 34, Coimbra", phone: "+351 239 333 444", category: "Cabeleireiro", hours: "09:00 - 19:00", description: "Cabeleireiro junto à Baixa", services: ["Corte", "Coloração", "Penteados"] },
+    // Faro
+    { id: "b10", title: "Beauty Algarve", rating: 4.8, reviews_count: 234, address: "Rua de Santo António 45, Faro", phone: "+351 289 444 555", category: "Centro de Estética", hours: "10:00 - 20:00", description: "Centro de estética premium", services: ["Tratamentos", "Massagens", "Depilação"] },
+    { id: "b11", title: "Cabeleireiro Sol & Mar", rating: 4.6, reviews_count: 189, address: "Marina de Faro, Faro", phone: "+351 289 555 666", category: "Cabeleireiro", hours: "09:00 - 19:00", description: "Cabeleireiro na marina", services: ["Corte", "Coloração"] },
+    // Setúbal
+    { id: "b12", title: "Estética Arrábida", rating: 4.5, reviews_count: 145, address: "Av. Luísa Todi 67, Setúbal", phone: "+351 265 666 777", category: "Centro de Estética", hours: "10:00 - 19:00", description: "Centro de estética", services: ["Tratamentos Faciais", "Corporais"] },
+    // Funchal
+    { id: "b13", title: "Cabeleireiro Madeira Style", rating: 4.7, reviews_count: 198, address: "Rua da Carreira 23, Funchal", phone: "+351 291 777 888", category: "Cabeleireiro", hours: "09:00 - 19:00", description: "Cabeleireiro na Madeira", services: ["Corte", "Coloração", "Tratamentos"] },
+    { id: "b14", title: "SPA Monte Palace", rating: 4.9, reviews_count: 267, address: "Monte, Funchal", phone: "+351 291 888 999", website: "https://spamonte.pt", category: "SPA", hours: "09:00 - 21:00", description: "SPA de luxo no Monte", services: ["Massagens", "Tratamentos", "Piscina"] },
+    // Vila Nova de Gaia
+    { id: "b15", title: "Cabeleireiro Gaia Center", rating: 4.6, reviews_count: 167, address: "GaiaShopping, Vila Nova de Gaia", phone: "+351 22 111 2222", category: "Cabeleireiro", hours: "10:00 - 22:00", description: "Cabeleireiro no shopping", services: ["Corte", "Coloração"] },
+    // Cascais
+    { id: "b16", title: "SPA Cascais Bay", rating: 4.8, reviews_count: 234, address: "Baía de Cascais, Cascais", phone: "+351 21 222 3333", category: "SPA", hours: "09:00 - 21:00", description: "SPA com vista mar", services: ["Massagens", "Tratamentos Premium"] },
+    // Albufeira
+    { id: "b17", title: "Beach Beauty", rating: 4.5, reviews_count: 189, address: "Praia da Oura, Albufeira", phone: "+351 289 333 444", category: "Centro de Estética", hours: "10:00 - 20:00", description: "Beleza na praia", services: ["Manicure", "Pedicure", "Massagens"] },
+    // Guimarães
+    { id: "b18", title: "Cabeleireiro Berço", rating: 4.7, reviews_count: 145, address: "Largo do Toural 8, Guimarães", phone: "+351 253 444 555", category: "Cabeleireiro", hours: "09:00 - 19:00", description: "Cabeleireiro no centro histórico", services: ["Corte", "Coloração", "Tratamentos"] },
+    // Leiria
+    { id: "b19", title: "Estética Lis", rating: 4.4, reviews_count: 123, address: "Rua Barão de Viamonte 34, Leiria", phone: "+351 244 555 666", category: "Centro de Estética", hours: "10:00 - 19:00", description: "Centro de estética", services: ["Tratamentos", "Massagens"] },
+    // Viseu
+    { id: "b20", title: "Barbearia Tradicional Viseu", rating: 4.6, reviews_count: 98, address: "Rua Direita 56, Viseu", phone: "+351 232 666 777", category: "Barbearia", hours: "09:00 - 19:00", description: "Barbearia tradicional", services: ["Corte", "Barba", "Tratamentos"] },
   ]
 };
 
