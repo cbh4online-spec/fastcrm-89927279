@@ -18,6 +18,7 @@ import {
   RefreshCw,
   CheckCircle2,
   Copy,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -25,6 +26,8 @@ import { useInboxAI, LeadData, OpportunityData, ReplySuggestion, ModifyAction } 
 import { Message } from "@/hooks/useMessages";
 import { InboxTemplatePanel } from "./InboxTemplatePanel";
 import { VariableContext } from "@/lib/templateVariables";
+import { TemplateFormDialog } from "@/components/communication/TemplateFormDialog";
+import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
 
 interface AIMessageComposerProps {
   conversationId: string;
@@ -50,9 +53,38 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     const [reasoning, setReasoning] = useState<string>("");
     const [isModifying, setIsModifying] = useState(false);
     const [modifyingAction, setModifyingAction] = useState<ModifyAction | null>(null);
+    const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+    const [templateToCreate, setTemplateToCreate] = useState<CommunicationTemplate | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     
     const { isLoading, suggestReplies, modifyReply } = useInboxAI();
+
+    // Map channel to template channel type
+    const getTemplateChannel = (): TemplateChannel => {
+      switch (channel) {
+        case 'email': return 'email';
+        case 'whatsapp': return 'whatsapp';
+        default: return 'inbox';
+      }
+    };
+
+    // Handle save current message as template
+    const handleSaveAsTemplate = () => {
+      if (!message.trim()) {
+        toast.error("Escreva uma mensagem primeiro para guardar como template");
+        return;
+      }
+      const prefilledTemplate: Partial<CommunicationTemplate> = {
+        channel: getTemplateChannel(),
+        body: message,
+        language: 'pt',
+        tone: 'professional',
+        journeyContexts: ['followup'],
+        isActive: true,
+      };
+      setTemplateToCreate(prefilledTemplate as CommunicationTemplate);
+      setShowTemplateDialog(true);
+    };
 
     useImperativeHandle(ref, () => ({
       focus: () => textareaRef.current?.focus(),
@@ -370,6 +402,17 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
         <p className="text-[10px] text-muted-foreground text-center">
           AI sugere respostas • Revisão humana sempre necessária antes de enviar
         </p>
+
+        {/* Template Form Dialog */}
+        <TemplateFormDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
+          template={templateToCreate}
+          onClose={() => {
+            setShowTemplateDialog(false);
+            setTemplateToCreate(null);
+          }}
+        />
       </div>
     );
   }

@@ -40,6 +40,8 @@ import {
   MessageCircle,
   Calendar,
   Lightbulb,
+  Plus,
+  Save,
 } from "lucide-react";
 import { useTemplates, Template, TemplateGoal, TemplateType } from "@/hooks/useTemplates";
 import { useInboxAI, LeadData, OpportunityData } from "@/hooks/useInboxAI";
@@ -52,6 +54,8 @@ import {
 } from "@/lib/templateVariables";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { TemplateFormDialog } from "@/components/communication/TemplateFormDialog";
+import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
 
 interface InboxTemplatePanelProps {
   channel: string;
@@ -96,9 +100,45 @@ export function InboxTemplatePanel({
   const [isAdapting, setIsAdapting] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [templateToCreate, setTemplateToCreate] = useState<CommunicationTemplate | null>(null);
 
   const { data: templates, isLoading: templatesLoading } = useTemplates({ isActive: true });
   const { personalizeTemplate, isLoading: aiLoading } = useInboxAI();
+
+  // Map channel to template channel type
+  const getTemplateChannel = (): TemplateChannel => {
+    switch (channel) {
+      case 'email': return 'email';
+      case 'whatsapp': return 'whatsapp';
+      default: return 'inbox';
+    }
+  };
+
+  // Handle create new template
+  const handleCreateTemplate = () => {
+    setTemplateToCreate(null);
+    setShowTemplateDialog(true);
+  };
+
+  // Handle save current content as template
+  const handleSaveAsTemplate = () => {
+    if (!editedContent.trim()) {
+      toast.error("Escreva conteúdo primeiro para guardar como template");
+      return;
+    }
+    const prefilledTemplate: Partial<CommunicationTemplate> = {
+      channel: getTemplateChannel(),
+      subject: editedSubject || undefined,
+      body: editedContent,
+      language: 'pt',
+      tone: 'professional',
+      journeyContexts: ['followup'],
+      isActive: true,
+    };
+    setTemplateToCreate(prefilledTemplate as CommunicationTemplate);
+    setShowTemplateDialog(true);
+  };
 
   // Get channel config
   const currentChannel = channelConfig[channel] || channelConfig.email;
@@ -312,9 +352,19 @@ export function InboxTemplatePanel({
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
         <SheetHeader className="p-4 border-b">
-          <div className="flex items-center gap-2">
-            <currentChannel.icon className="w-5 h-5 text-primary" />
-            <SheetTitle>Templates de {currentChannel.label}</SheetTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <currentChannel.icon className="w-5 h-5 text-primary" />
+              <SheetTitle>Templates de {currentChannel.label}</SheetTitle>
+            </div>
+            <Button
+              onClick={handleCreateTemplate}
+              size="sm"
+              className="gap-1.5"
+            >
+              <Plus className="h-4 w-4" />
+              Novo
+            </Button>
           </div>
           <p className="text-sm text-muted-foreground">
             Escolha um template e deixe a AI adaptá-lo à conversa
@@ -488,12 +538,22 @@ export function InboxTemplatePanel({
                     Copiar
                   </Button>
                   <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSaveAsTemplate}
+                    disabled={!editedContent.trim()}
+                    className="gap-1"
+                  >
+                    <Save className="w-3 h-3" />
+                    Guardar
+                  </Button>
+                  <Button
                     size="sm"
                     onClick={handleApply}
                     className="flex-1 gap-1"
                   >
                     <CheckCircle2 className="w-3 h-3" />
-                    Inserir na mensagem
+                    Inserir
                   </Button>
                 </div>
               </>
@@ -509,6 +569,17 @@ export function InboxTemplatePanel({
             )}
           </div>
         </div>
+
+        {/* Template Form Dialog */}
+        <TemplateFormDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
+          template={templateToCreate}
+          onClose={() => {
+            setShowTemplateDialog(false);
+            setTemplateToCreate(null);
+          }}
+        />
       </SheetContent>
     </Sheet>
   );
