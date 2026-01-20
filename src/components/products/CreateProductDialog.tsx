@@ -33,6 +33,7 @@ import { AIProductAssistant } from "./AIProductAssistant";
 import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
 import { ProductImageGalleryManager } from "./ProductImageGalleryManager";
+import { ProductSpecificationsEditor } from "./ProductSpecificationsEditor";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
 
 const DRAFT_STORAGE_KEY = "product-form-draft";
@@ -97,6 +98,8 @@ export function CreateProductDialog({
   const [showAIPanel, setShowAIPanel] = useState(true);
   const [productImages, setProductImages] = useState<string[]>([]);
   const [skuFoundImages, setSkuFoundImages] = useState<string[]>([]);
+  const [specifications, setSpecifications] = useState<Record<string, string>>({});
+  const [isSpecsAutoFilled, setIsSpecsAutoFilled] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
 
   const createProduct = useCreateProduct();
@@ -193,6 +196,9 @@ export function CreateProductDialog({
           !!product.recommended_frequency ||
           !!product.typical_duration_days
       );
+      // Technical specifications
+      setSpecifications(product.specifications || {});
+      setIsSpecsAutoFilled(false);
       setHasDraft(false);
     } else {
       // Try to load draft
@@ -273,6 +279,8 @@ export function CreateProductDialog({
     setShowConsumption(false);
     setProductImages([]);
     setSkuFoundImages([]);
+    setSpecifications({});
+    setIsSpecsAutoFilled(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -288,6 +296,7 @@ export function CreateProductDialog({
       short_description: shortDescription || undefined,
       sku: sku || undefined,
       images: productImages.length > 0 ? productImages : undefined,
+      specifications: Object.keys(specifications).length > 0 ? specifications : undefined,
       direct_cost: directCost ? parseFloat(directCost) : undefined,
       operational_cost: operationalCost ? parseFloat(operationalCost) : undefined,
       commission_default: commissionDefault ? parseFloat(commissionDefault) : undefined,
@@ -335,7 +344,11 @@ export function CreateProductDialog({
   const handleApplyDescription = (desc: string) => setShortDescription(desc);
   const handleApplyProductType = (type: ProductType) => setProductType(type);
   const handleApplyName = (newName: string) => setName(newName);
-  const handleApplyAll = (data: { name?: string; price?: number; description?: string; category?: string; images?: string[] }) => {
+  const handleApplySpecifications = (specs: Record<string, string>) => {
+    setSpecifications(prev => ({ ...prev, ...specs }));
+    setIsSpecsAutoFilled(true);
+  };
+  const handleApplyAll = (data: { name?: string; price?: number; description?: string; category?: string; images?: string[]; specifications?: Record<string, string> }) => {
     if (data.name) setName(data.name);
     if (data.price) setBasePrice(data.price.toString());
     if (data.description) setShortDescription(data.description);
@@ -346,6 +359,10 @@ export function CreateProductDialog({
         const allImages = [...prev, ...data.images!];
         return [...new Set(allImages)];
       });
+    }
+    if (data.specifications && Object.keys(data.specifications).length > 0) {
+      setSpecifications(prev => ({ ...prev, ...data.specifications }));
+      setIsSpecsAutoFilled(true);
     }
   };
 
@@ -554,6 +571,14 @@ export function CreateProductDialog({
                 onImagesChange={setProductImages}
                 skuImages={skuFoundImages}
                 maxImages={10}
+              />
+
+              {/* Technical Specifications Editor */}
+              <ProductSpecificationsEditor
+                specifications={specifications}
+                onChange={setSpecifications}
+                suggestedCategory={category}
+                isAutoFilled={isSpecsAutoFilled}
               />
 
               {/* AI Image Generator */}
@@ -838,6 +863,7 @@ export function CreateProductDialog({
                     onApplyCategory={handleApplyCategory}
                     onApplyImages={handleApplyImages}
                     onImagesFound={handleSkuImagesFound}
+                    onApplySpecifications={handleApplySpecifications}
                     onApplyAll={handleApplyAll}
                   />
                 </CollapsibleContent>

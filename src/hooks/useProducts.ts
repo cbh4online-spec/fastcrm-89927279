@@ -181,6 +181,8 @@ export function useUpdateProduct() {
       if (input.recommended_frequency !== undefined) updateData.recommended_frequency = input.recommended_frequency;
       if (input.typical_duration_days !== undefined) updateData.typical_duration_days = input.typical_duration_days;
       if (input.is_trackable !== undefined) updateData.is_trackable = input.is_trackable;
+      // Technical specifications
+      if (input.specifications !== undefined) updateData.specifications = input.specifications;
 
       const { data, error } = await supabase
         .from("products")

@@ -19,12 +19,14 @@ interface SKUSearchPanelProps {
   onApplyCategory: (category: string) => void;
   onApplyImages?: (images: string[]) => void;
   onImagesFound?: (images: string[]) => void;
+  onApplySpecifications?: (specs: Record<string, string>) => void;
   onApplyAll: (data: {
     name?: string;
     price?: number;
     description?: string;
     category?: string;
     images?: string[];
+    specifications?: Record<string, string>;
   }) => void;
 }
 
@@ -37,6 +39,7 @@ export function SKUSearchPanel({
   onApplyCategory,
   onApplyImages,
   onImagesFound,
+  onApplySpecifications,
   onApplyAll,
 }: SKUSearchPanelProps) {
   const [appliedItems, setAppliedItems] = useState<Set<string>>(new Set());
@@ -111,6 +114,17 @@ export function SKUSearchPanel({
     }
   };
 
+  const handleApplySpecifications = () => {
+    if (searchBySKU.data?.specifications && onApplySpecifications) {
+      // Filter out empty values
+      const specs = Object.fromEntries(
+        Object.entries(searchBySKU.data.specifications).filter(([_, v]) => v)
+      ) as Record<string, string>;
+      onApplySpecifications(specs);
+      setAppliedItems((prev) => new Set(prev).add("specifications"));
+    }
+  };
+
   const handleApplyAll = (version: "commercial" | "technical") => {
     if (searchBySKU.data) {
       const name = version === "commercial" 
@@ -120,14 +134,22 @@ export function SKUSearchPanel({
         ? (searchBySKU.data.commercialDescription || searchBySKU.data.description)
         : (searchBySKU.data.technicalDescription || searchBySKU.data.description);
       
+      // Get specifications
+      const specs = searchBySKU.data.specifications 
+        ? Object.fromEntries(
+            Object.entries(searchBySKU.data.specifications).filter(([_, v]) => v)
+          ) as Record<string, string>
+        : undefined;
+      
       onApplyAll({
         name,
         price: searchBySKU.data.suggestedPrice,
         description,
         category: searchBySKU.data.category,
         images: searchBySKU.data.images,
+        specifications: specs,
       });
-      setAppliedItems(new Set(["name", "price", "description", "category", "images"]));
+      setAppliedItems(new Set(["name", "price", "description", "category", "images", "specifications"]));
     }
   };
 
@@ -357,12 +379,12 @@ export function SKUSearchPanel({
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="w-full justify-between h-8 text-xs">
                     <span className="flex items-center gap-2">
-                      📊 Especificações Técnicas
+                      📊 Especificações Técnicas ({Object.values(searchBySKU.data.specifications || {}).filter(v => v).length})
                     </span>
                     {specsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2">
+                <CollapsibleContent className="mt-2 space-y-2">
                   <div className="grid grid-cols-2 gap-2 text-xs bg-muted/50 rounded p-3">
                     {Object.entries(searchBySKU.data.specifications || {}).map(([key, value]) => 
                       value ? (
@@ -375,6 +397,18 @@ export function SKUSearchPanel({
                       ) : null
                     )}
                   </div>
+                  {onApplySpecifications && (
+                    <Button
+                      type="button"
+                      variant={appliedItems.has("specifications") ? "secondary" : "outline"}
+                      size="sm"
+                      className="w-full h-7 text-xs"
+                      onClick={handleApplySpecifications}
+                    >
+                      {appliedItems.has("specifications") ? <Check className="h-3 w-3 mr-1" /> : null}
+                      Usar Especificações
+                    </Button>
+                  )}
                 </CollapsibleContent>
               </Collapsible>
             )}
