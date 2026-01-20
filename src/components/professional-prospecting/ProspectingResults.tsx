@@ -14,7 +14,8 @@ import {
   User, Building2, Users, HelpCircle, ExternalLink, 
   UserPlus, ThumbsDown, Search, Filter, Loader2,
   ChevronDown, ChevronUp, MapPin, Briefcase, Star,
-  CheckCircle, XCircle, AlertCircle
+  CheckCircle, XCircle, AlertCircle, RefreshCw, Instagram,
+  Eye
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,16 @@ interface Profile {
   status: string;
   converted_lead_id: string | null;
   created_at: string;
+  // Instagram enrichment fields
+  instagram_followers_count: number | null;
+  instagram_following_count: number | null;
+  instagram_posts_count: number | null;
+  instagram_full_bio: string | null;
+  instagram_external_url: string | null;
+  instagram_category: string | null;
+  instagram_is_verified: boolean | null;
+  instagram_is_business: boolean | null;
+  instagram_enriched_at: string | null;
 }
 
 const TYPE_ICONS = {
@@ -76,6 +87,7 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set());
 
   // Fetch profiles - if searchId provided, filter by it; otherwise get recent analyzed profiles
   const { data: profiles = [], isLoading, refetch } = useQuery({
@@ -188,6 +200,48 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
       toast.success("Perfil rejeitado");
     },
   });
+
+  // Enrich profile with Instagram data
+  const enrichProfile = async (profile: Profile) => {
+    if (profile.platform !== "instagram") {
+      toast.error("Enriquecimento apenas disponível para perfis Instagram");
+      return;
+    }
+
+    // Extract username from URL
+    const urlMatch = profile.profile_url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
+    if (!urlMatch) {
+      toast.error("Não foi possível extrair o username do perfil");
+      return;
+    }
+    const username = urlMatch[1];
+
+    setEnrichingIds(prev => new Set(prev).add(profile.id));
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("enrich-instagram-profile", {
+        body: {
+          profileId: profile.id,
+          username,
+          workspaceId: currentWorkspace?.id,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      toast.success(`Perfil enriquecido: ${data.data.followers?.toLocaleString() || 0} seguidores`);
+      queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao enriquecer perfil");
+    } finally {
+      setEnrichingIds(prev => {
+        const next = new Set(prev);
+        next.delete(profile.id);
+        return next;
+      });
+    }
+  };
 
   // Filter profiles
   const filteredProfiles = profiles.filter((p) => {
@@ -388,6 +442,69 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
                       {/* Expanded Details */}
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t space-y-4">
+                          {/* Instagram Enrichment Data */}
+                          {profile.instagram_enriched_at && (
+                            <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-lg p-4 border border-pink-500/20">
+                              <div className="flex items-center gap-2 mb-3">
+                                <Instagram className="w-4 h-4 text-pink-500" />
+                                <span className="text-sm font-medium">Dados Instagram</span>
+                                {profile.instagram_is_verified && (
+                                  <Badge variant="secondary" className="text-xs">✓ Verificado</Badge>
+                                )}
+                                {profile.instagram_is_business && (
+                                  <Badge variant="outline" className="text-xs">Profissional</Badge>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                  <div className="text-xl font-bold">{profile.instagram_posts_count?.toLocaleString() || 0}</div>
+                                  <div className="text-xs text-muted-foreground">Publicações</div>
+                                </div>
+                                <div>
+                                  <div className="text-xl font-bold">{profile.instagram_followers_count?.toLocaleString() || 0}</div>
+                                  <div className="text-xs text-muted-foreground">Seguidores</div>
+                                </div>
+                                <div>
+                                  <div className="text-xl font-bold">{profile.instagram_following_count?.toLocaleString() || 0}</div>
+                                  <div className="text-xs text-muted-foreground">A seguir</div>
+                                </div>
+                              </div>
+                              {profile.instagram_full_bio && (
+                                <div className="mt-3 pt-3 border-t border-pink-500/20">
+                                  <p className="text-sm text-muted-foreground">{profile.instagram_full_bio}</p>
+                                </div>
+                              )}
+                              {profile.instagram_category && (
+                                <div className="mt-2">
+                                  <Badge variant="outline">{profile.instagram_category}</Badge>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Enrich Button if Instagram and not enriched */}
+                          {profile.platform === "instagram" && !profile.instagram_enriched_at && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => enrichProfile(profile)}
+                              disabled={enrichingIds.has(profile.id)}
+                              className="w-full border-pink-500/30 hover:bg-pink-500/10"
+                            >
+                              {enrichingIds.has(profile.id) ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  A buscar dados Instagram...
+                                </>
+                              ) : (
+                                <>
+                                  <Instagram className="w-4 h-4 mr-2 text-pink-500" />
+                                  Enriquecer com dados Instagram
+                                </>
+                              )}
+                            </Button>
+                          )}
+
                           {/* Specialty & Workplace */}
                           <div className="grid md:grid-cols-2 gap-4 text-sm">
                             {profile.inferred_specialty && (
