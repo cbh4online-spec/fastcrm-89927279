@@ -7,3 +7,6 @@ export { LogsSection } from "./LogsSection";
 export { AIUsageSection } from "./AIUsageSection";
 export { PlansSection } from "./PlansSection";
 export { UsersSection } from "./UsersSection";
+export { MenuPermissionsSection } from "./MenuPermissionsSection";
+export { CreateWorkspaceDialog } from "./CreateWorkspaceDialog";
+export { WorkspaceMembersPanel } from "./WorkspaceMembersPanel";

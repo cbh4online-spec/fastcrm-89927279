@@ -7648,6 +7648,36 @@ export type Database = {
           },
         ]
       }
+      menu_permissions: {
+        Row: {
+          can_access: boolean | null
+          can_edit: boolean | null
+          created_at: string | null
+          id: string
+          menu_key: string
+          role: Database["public"]["Enums"]["workspace_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          can_access?: boolean | null
+          can_edit?: boolean | null
+          created_at?: string | null
+          id?: string
+          menu_key: string
+          role: Database["public"]["Enums"]["workspace_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          can_access?: boolean | null
+          can_edit?: boolean | null
+          created_at?: string | null
+          id?: string
+          menu_key?: string
+          role?: Database["public"]["Enums"]["workspace_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachments: Json | null
@@ -12410,6 +12440,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      add_workspace_member_admin: {
+        Args: {
+          p_role?: Database["public"]["Enums"]["workspace_role"]
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       calculate_module_margin: {
         Args: {
           p_end_date?: string
@@ -12527,6 +12565,15 @@ export type Database = {
         }
         Returns: string
       }
+      create_workspace_for_user: {
+        Args: {
+          p_name: string
+          p_owner_user_id: string
+          p_plan?: string
+          p_slug: string
+        }
+        Returns: Json
+      }
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
@@ -12608,6 +12655,10 @@ export type Database = {
         }
         Returns: string
       }
+      remove_workspace_member_admin: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: Json
+      }
       revoke_module_sessions: {
         Args: {
           p_module_id: string
@@ -12620,6 +12671,14 @@ export type Database = {
         Args: {
           p_module_id: string
           p_user_id?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      update_workspace_member_role_admin: {
+        Args: {
+          p_new_role: Database["public"]["Enums"]["workspace_role"]
+          p_user_id: string
           p_workspace_id: string
         }
         Returns: Json

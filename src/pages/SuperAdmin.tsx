@@ -14,6 +14,7 @@ import {
   AIUsageSection,
   PlansSection,
   UsersSection,
+  MenuPermissionsSection,
 } from "@/components/super-admin";
 import { AdminSettingsPanel } from "@/components/admin/AdminSettingsPanel";
 import { UserRolesPanel } from "@/components/admin/UserRolesPanel";
@@ -95,6 +96,8 @@ export default function SuperAdmin() {
         return <WorkspacesSection />; // Filter for suspended
       case "logs":
         return <LogsSection />;
+      case "permissions":
+        return <MenuPermissionsSection />;
       case "settings":
         return (
           <div className="space-y-6">
