@@ -88,7 +88,7 @@ export function useGenerateSEOContent() {
     try {
       const { data, error: insertError } = await supabase
         .from('seo_entities')
-        .insert({
+        .insert([{
           workspace_id: workspaceId || null,
           entity_type: metadata.entity_type,
           slug: metadata.slug,
@@ -96,20 +96,20 @@ export function useGenerateSEOContent() {
           meta_description: content.meta_description,
           h1: content.h1,
           tldr: content.tldr,
-          content: {
+          content: JSON.parse(JSON.stringify({
             sections: content.sections,
             faqs: content.faqs,
             cta: content.cta,
-          },
+          })),
           intent: metadata.intent,
-          status: 'draft',
-          schema_markup: content.schema_markup,
+          status: 'draft' as const,
+          schema_markup: content.schema_markup ? JSON.parse(JSON.stringify(content.schema_markup)) : null,
           language: metadata.language,
           priority: 0.5,
           change_frequency: 'weekly',
           ai_generated_at: new Date().toISOString(),
           ai_quality_score: 0.8,
-        })
+        }])
         .select()
         .single();
 
