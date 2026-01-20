@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FolderOpen, Plus, Loader2 } from "lucide-react";
+import { FolderOpen, Plus, Loader2, Trash2, MoreVertical, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,17 +10,59 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useInstagramLooter } from "@/hooks/useInstagramLooter";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CollectionDetail } from "./CollectionDetail";
 
 export function Collections() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [newCollectionDesc, setNewCollectionDesc] = useState("");
+  const [selectedCollection, setSelectedCollection] = useState<any>(null);
+  const [collectionToDelete, setCollectionToDelete] = useState<string | null>(null);
   const { collections, createCollection, isLoading } = useInstagramLooter();
+  const queryClient = useQueryClient();
+
+  // Delete collection mutation
+  const deleteCollection = useMutation({
+    mutationFn: async (collectionId: string) => {
+      const { error } = await supabase
+        .from("ig_collections")
+        .delete()
+        .eq("id", collectionId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ig-collections"] });
+      toast.success("Coleção eliminada");
+      setCollectionToDelete(null);
+    },
+    onError: (error) => {
+      toast.error(`Erro ao eliminar coleção: ${error.message}`);
+    },
+  });
 
   const handleCreateCollection = async () => {
     if (!newCollectionName.trim()) {
@@ -40,6 +82,16 @@ export function Collections() {
       // Error handled by mutation
     }
   };
+
+  // If a collection is selected, show its details
+  if (selectedCollection) {
+    return (
+      <CollectionDetail
+        collection={selectedCollection}
+        onBack={() => setSelectedCollection(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -97,24 +149,54 @@ export function Collections() {
           {collections.map((collection: any) => (
             <Card 
               key={collection.id} 
-              className="hover:shadow-md transition-shadow cursor-pointer"
+              className="hover:shadow-md transition-shadow cursor-pointer group"
               style={{ borderColor: collection.color }}
             >
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
+                  <span 
+                    className="flex items-center gap-2 flex-1"
+                    onClick={() => setSelectedCollection(collection)}
+                  >
                     <FolderOpen 
                       className="h-5 w-5" 
                       style={{ color: collection.color }} 
                     />
                     {collection.name}
                   </span>
-                  <Badge variant="secondary">
-                    {collection.items_count} itens
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">
+                      {collection.items_count || 0} itens
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setSelectedCollection(collection)}>
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          Abrir
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => setCollectionToDelete(collection.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent onClick={() => setSelectedCollection(collection)}>
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {collection.description || "Sem descrição"}
                 </p>
@@ -146,6 +228,30 @@ export function Collections() {
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!collectionToDelete} onOpenChange={() => setCollectionToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Coleção</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tens a certeza que queres eliminar esta coleção? Todos os itens serão removidos. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => collectionToDelete && deleteCollection.mutate(collectionToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteCollection.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
