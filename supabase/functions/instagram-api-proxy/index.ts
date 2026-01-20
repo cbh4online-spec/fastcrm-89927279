@@ -141,16 +141,14 @@ serve(async (req) => {
         if (params.code) queryParams.append("shortcode", params.code);
         break;
       case "hashtag":
-        // Instagram Looter2 doesn't have a dedicated hashtag endpoint
-        // Use global search with hashtag as query
         endpoint = "/search";
         if (params.hashtag) queryParams.append("query", params.hashtag.replace("#", ""));
+        queryParams.append("select", "hashtags");
         break;
       case "location":
-        // Instagram Looter2 doesn't have a dedicated location search endpoint
-        // Use global search with location as query  
         endpoint = "/search";
         if (params.query) queryParams.append("query", params.query);
+        queryParams.append("select", "places");
         break;
       case "explore":
         endpoint = "/search";
