@@ -320,13 +320,47 @@ export function SmartLeadsTable() {
     });
   }, [leads, searchValue]);
 
+  // Apply sorting
+  const sortedLeads = useMemo(() => {
+    if (!filteredLeads.length) return filteredLeads;
+    
+    const sorted = [...filteredLeads];
+    switch (sortValue) {
+      case "created_desc":
+        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case "created_asc":
+        sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case "score_desc":
+        sorted.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0));
+        break;
+      case "score_asc":
+        sorted.sort((a, b) => (a.lead_score || 0) - (b.lead_score || 0));
+        break;
+      case "value_desc":
+        sorted.sort((a, b) => (b.estimated_value || 0) - (a.estimated_value || 0));
+        break;
+      case "last_contact_desc":
+        sorted.sort((a, b) => {
+          const dateA = a.last_contact_at ? new Date(a.last_contact_at).getTime() : 0;
+          const dateB = b.last_contact_at ? new Date(b.last_contact_at).getTime() : 0;
+          return dateB - dateA;
+        });
+        break;
+      default:
+        break;
+    }
+    return sorted;
+  }, [filteredLeads, sortValue]);
+
   // Pagination
-  const totalLeads = filteredLeads.length;
+  const totalLeads = sortedLeads.length;
   const totalPages = Math.ceil(totalLeads / pageSize);
   const paginatedLeads = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
-    return filteredLeads.slice(startIndex, startIndex + pageSize);
-  }, [filteredLeads, currentPage, pageSize]);
+    return sortedLeads.slice(startIndex, startIndex + pageSize);
+  }, [sortedLeads, currentPage, pageSize]);
 
   const handlePageSizeChange = (newSize: string) => {
     setPageSize(Number(newSize));
