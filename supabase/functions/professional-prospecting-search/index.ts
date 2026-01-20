@@ -157,6 +157,18 @@ function extractInstagramProfiles(results: any[], seenUrls: Set<string>): Profil
   return profiles;
 }
 
+// Clean Facebook page title by removing common suffixes
+function cleanFacebookTitle(title: string): string {
+  if (!title) return "";
+  return title
+    .replace(/\s*[-|–]\s*(Facebook|Página inicial|Homepage|Home|Page|Posts|Fotos|Photos|About|Sobre|Publicações|Vídeos|Videos).*$/i, "")
+    .replace(/\s*[-|–]\s*होम पेज.*$/i, "") // Hindi suffix
+    .replace(/\s*\|\s*Facebook$/i, "")
+    .replace(/\s*-\s*Home$/i, "")
+    .replace(/\s*·\s*Facebook$/i, "")
+    .trim();
+}
+
 // Extract Facebook profiles from search results
 function extractFacebookProfiles(results: any[], seenUrls: Set<string>): Profile[] {
   const profiles: Profile[] = [];
@@ -182,9 +194,22 @@ function extractFacebookProfiles(results: any[], seenUrls: Set<string>): Profile
         const profileUrl = `https://www.facebook.com/${pageName}`;
         if (!seenUrls.has(profileUrl)) {
           seenUrls.add(profileUrl);
+          
+          // Determine the display name - use title if pageName is numeric ID
+          let displayName: string;
+          const isNumericId = /^\d+$/.test(pageName);
+          
+          if (isNumericId && title) {
+            // Use cleaned title for numeric IDs
+            displayName = cleanFacebookTitle(title);
+          } else {
+            // Use page name from URL, formatting it nicely
+            displayName = pageName.replace(/[.-]/g, " ");
+          }
+          
           profiles.push({
             profileUrl,
-            profileName: pageName.replace(/[.-]/g, " "),
+            profileName: displayName || pageName,
             profileBio: description || null,
             source: url,
             sourceTitle: title,
@@ -201,9 +226,16 @@ function extractFacebookProfiles(results: any[], seenUrls: Set<string>): Profile
       const profileUrl = `https://www.facebook.com/${pageName}`;
       if (!seenUrls.has(profileUrl)) {
         seenUrls.add(profileUrl);
+        
+        // For /pages/ URLs, prefer the title as name (usually has real page name)
+        const isNumericId = /^\d+$/.test(pageName);
+        const displayName = (isNumericId && title) 
+          ? cleanFacebookTitle(title) 
+          : pageName.replace(/-/g, " ");
+        
         profiles.push({
           profileUrl,
-          profileName: pageName.replace(/-/g, " "),
+          profileName: displayName || pageName,
           profileBio: description || null,
           source: url,
           sourceTitle: title,
