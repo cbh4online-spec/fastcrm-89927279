@@ -343,6 +343,68 @@ const CATEGORIES = [
   { value: "construction", label: "Construção" },
 ];
 
+const LOCATIONS = [
+  { value: "", label: "Todas as localidades" },
+  // Distritos principais
+  { value: "Lisboa", label: "Lisboa" },
+  { value: "Porto", label: "Porto" },
+  { value: "Braga", label: "Braga" },
+  { value: "Setúbal", label: "Setúbal" },
+  { value: "Aveiro", label: "Aveiro" },
+  { value: "Faro", label: "Faro" },
+  { value: "Leiria", label: "Leiria" },
+  { value: "Coimbra", label: "Coimbra" },
+  { value: "Santarém", label: "Santarém" },
+  { value: "Viseu", label: "Viseu" },
+  { value: "Viana do Castelo", label: "Viana do Castelo" },
+  { value: "Vila Real", label: "Vila Real" },
+  { value: "Castelo Branco", label: "Castelo Branco" },
+  { value: "Guarda", label: "Guarda" },
+  { value: "Évora", label: "Évora" },
+  { value: "Beja", label: "Beja" },
+  { value: "Portalegre", label: "Portalegre" },
+  { value: "Bragança", label: "Bragança" },
+  // Cidades principais
+  { value: "Almada", label: "Almada" },
+  { value: "Amadora", label: "Amadora" },
+  { value: "Cascais", label: "Cascais" },
+  { value: "Sintra", label: "Sintra" },
+  { value: "Oeiras", label: "Oeiras" },
+  { value: "Loures", label: "Loures" },
+  { value: "Odivelas", label: "Odivelas" },
+  { value: "Vila Nova de Gaia", label: "Vila Nova de Gaia" },
+  { value: "Matosinhos", label: "Matosinhos" },
+  { value: "Maia", label: "Maia" },
+  { value: "Gondomar", label: "Gondomar" },
+  { value: "Guimarães", label: "Guimarães" },
+  { value: "Barcelos", label: "Barcelos" },
+  { value: "Funchal", label: "Funchal (Madeira)" },
+  { value: "Ponta Delgada", label: "Ponta Delgada (Açores)" },
+  { value: "Portimão", label: "Portimão" },
+  { value: "Albufeira", label: "Albufeira" },
+  { value: "Lagos", label: "Lagos" },
+  { value: "Loulé", label: "Loulé" },
+  { value: "Caldas da Rainha", label: "Caldas da Rainha" },
+  { value: "Torres Vedras", label: "Torres Vedras" },
+  { value: "Peniche", label: "Peniche" },
+  { value: "Pombal", label: "Pombal" },
+  { value: "Marinha Grande", label: "Marinha Grande" },
+  { value: "Tomar", label: "Tomar" },
+  { value: "Entroncamento", label: "Entroncamento" },
+  { value: "Figueira da Foz", label: "Figueira da Foz" },
+  { value: "Póvoa de Varzim", label: "Póvoa de Varzim" },
+  { value: "Vila do Conde", label: "Vila do Conde" },
+  { value: "Espinho", label: "Espinho" },
+  { value: "Valongo", label: "Valongo" },
+  { value: "Paredes", label: "Paredes" },
+  { value: "Penafiel", label: "Penafiel" },
+  { value: "Amarante", label: "Amarante" },
+  { value: "Felgueiras", label: "Felgueiras" },
+  { value: "Famalicão", label: "Vila Nova de Famalicão" },
+  { value: "Santo Tirso", label: "Santo Tirso" },
+  { value: "Trofa", label: "Trofa" },
+];
+
 export default function GoogleLocalProspecting() {
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
@@ -414,7 +476,7 @@ export default function GoogleLocalProspecting() {
       );
     }
     
-    if (location.trim()) {
+    if (location && location !== "all-locations") {
       const loc = location.toLowerCase();
       filteredResults = filteredResults.filter(result =>
         result.address.toLowerCase().includes(loc)
@@ -595,12 +657,18 @@ export default function GoogleLocalProspecting() {
                   />
                 </div>
                 <div>
-                  <Input
-                    placeholder="Localização (ex: Lisboa)"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  />
+                  <Select value={location} onValueChange={setLocation}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Localização" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {LOCATIONS.map(loc => (
+                        <SelectItem key={loc.value || "all"} value={loc.value || "all-locations"}>
+                          {loc.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Select value={category} onValueChange={setCategory}>
