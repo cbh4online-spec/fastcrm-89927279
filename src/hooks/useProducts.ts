@@ -183,6 +183,8 @@ export function useUpdateProduct() {
       if (input.is_trackable !== undefined) updateData.is_trackable = input.is_trackable;
       // Technical specifications
       if (input.specifications !== undefined) updateData.specifications = input.specifications;
+      // Demo video
+      if (input.demo_video_url !== undefined) updateData.demo_video_url = input.demo_video_url;
 
       const { data, error } = await supabase
         .from("products")
