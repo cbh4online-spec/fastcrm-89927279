@@ -11,11 +11,9 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[INSTAGRAM-API-PROXY] ${step}${detailsStr}`);
 };
 
-// RapidAPI Instagram endpoints
-const RAPIDAPI_LOOTER_HOST = "instagram-looter2.p.rapidapi.com";
-const RAPIDAPI_PROFILE_HOST = "instagram-profile-data-scraper.p.rapidapi.com";
-const RAPIDAPI_LOOTER_URL = `https://${RAPIDAPI_LOOTER_HOST}`;
-const RAPIDAPI_PROFILE_URL = `https://${RAPIDAPI_PROFILE_HOST}`;
+// RapidAPI Instagram Looter2 endpoints
+const RAPIDAPI_HOST = "instagram-looter2.p.rapidapi.com";
+const RAPIDAPI_BASE_URL = `https://${RAPIDAPI_HOST}`;
 
 interface RequestBody {
   action: "search" | "profile" | "media" | "hashtag" | "location" | "location_info" | "explore" | "user_posts";
@@ -124,7 +122,6 @@ serve(async (req) => {
     // Build endpoint URL based on action
     let endpoint = "";
     let queryParams = new URLSearchParams();
-    let useProfileApi = false;
 
     switch (action) {
       case "search":
@@ -132,8 +129,7 @@ serve(async (req) => {
         if (params.query) queryParams.append("query", params.query);
         break;
       case "profile":
-        useProfileApi = true;
-        endpoint = "/instagram/profile";
+        endpoint = "/profile";
         if (params.username) queryParams.append("username", params.username);
         break;
       case "user_posts":
@@ -166,10 +162,8 @@ serve(async (req) => {
         throw new Error(`Unknown action: ${action}`);
     }
 
-    const baseUrl = useProfileApi ? RAPIDAPI_PROFILE_URL : RAPIDAPI_LOOTER_URL;
-    const apiHost = useProfileApi ? RAPIDAPI_PROFILE_HOST : RAPIDAPI_LOOTER_HOST;
-    const url = `${baseUrl}${endpoint}?${queryParams.toString()}`;
-    logStep("Making API request", { action, url, apiHost });
+    const url = `${RAPIDAPI_BASE_URL}${endpoint}?${queryParams.toString()}`;
+    logStep("Making API request", { action, url });
 
     // Make request to RapidAPI with retry logic for transient errors
     let apiResponse: Response | null = null;
@@ -180,7 +174,7 @@ serve(async (req) => {
         method: "GET",
         headers: {
           "X-RapidAPI-Key": rapidApiKey,
-          "X-RapidAPI-Host": apiHost,
+          "X-RapidAPI-Host": RAPIDAPI_HOST,
         },
       });
       
