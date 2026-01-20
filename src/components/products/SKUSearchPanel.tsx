@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ interface SKUSearchPanelProps {
   onApplyDescription: (description: string) => void;
   onApplyCategory: (category: string) => void;
   onApplyImages?: (images: string[]) => void;
+  onImagesFound?: (images: string[]) => void;
   onApplyAll: (data: {
     name?: string;
     price?: number;
@@ -35,6 +36,7 @@ export function SKUSearchPanel({
   onApplyDescription,
   onApplyCategory,
   onApplyImages,
+  onImagesFound,
   onApplyAll,
 }: SKUSearchPanelProps) {
   const [appliedItems, setAppliedItems] = useState<Set<string>>(new Set());
@@ -43,6 +45,13 @@ export function SKUSearchPanel({
   const [descVersion, setDescVersion] = useState<"commercial" | "technical">("commercial");
   const [compareOpen, setCompareOpen] = useState(false);
   const { searchBySKU } = useProductAIAssistant();
+
+  // Notify parent when images are found
+  useEffect(() => {
+    if (searchBySKU.data?.images && searchBySKU.data.images.length > 0 && onImagesFound) {
+      onImagesFound(searchBySKU.data.images);
+    }
+  }, [searchBySKU.data?.images, onImagesFound]);
 
   const handleSearch = () => {
     if (sku && sku.length >= 3) {
