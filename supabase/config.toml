@@ -114,3 +114,6 @@ verify_jwt = false
 
 [functions.marketing-campaign-insights]
 verify_jwt = true
+
+[functions.generate-seo-content]
+verify_jwt = false
