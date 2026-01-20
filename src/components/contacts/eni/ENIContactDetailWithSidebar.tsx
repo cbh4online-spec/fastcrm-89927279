@@ -38,6 +38,7 @@ import { ActivityProfileBadge, ProfileCustomFieldsSection } from "@/components/a
 import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
 import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
+import { EntityTasksSection } from "@/components/tasks";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -258,6 +259,14 @@ export function ENIContactDetailWithSidebar() {
             entityName={contact.name}
             entityEmail={contact.email}
             entityPhone={contact.phone}
+          />
+        );
+      case 'tasks':
+        return (
+          <EntityTasksSection
+            entityType="lead"
+            entityId={id!}
+            entityName={contact.name}
           />
         );
       default:
