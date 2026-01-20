@@ -62,7 +62,7 @@ export function CreateLeadModal({
   
   // Form state with pre-filled data from AI
   const [formData, setFormData] = useState({
-    name: profile.full_name || profile.username,
+    name: profile?.full_name || profile?.username || "",
     source: "instagram_looter",
     notes: "",
   });
@@ -265,7 +265,7 @@ ${formData.notes ? `## Notas Adicionais\n${formData.notes}` : ""}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleCreate} disabled={isCreating || !formData.name.trim()}>
+          <Button onClick={handleCreate} disabled={isCreating || !(formData.name || "").trim()}>
             {isCreating ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (
