@@ -16,7 +16,7 @@ const RAPIDAPI_HOST = "instagram-looter2.p.rapidapi.com";
 const RAPIDAPI_BASE_URL = `https://${RAPIDAPI_HOST}`;
 
 interface RequestBody {
-  action: "search" | "profile" | "media" | "hashtag" | "location" | "explore" | "user_posts";
+  action: "search" | "profile" | "media" | "hashtag" | "location" | "location_info" | "explore" | "user_posts";
   params: Record<string, string>;
   workspaceId: string;
 }
@@ -149,6 +149,10 @@ serve(async (req) => {
         endpoint = "/search";
         if (params.query) queryParams.append("query", params.query);
         queryParams.append("select", "places");
+        break;
+      case "location_info":
+        endpoint = "/location-info";
+        if (params.id) queryParams.append("id", params.id);
         break;
       case "explore":
         endpoint = "/search";
