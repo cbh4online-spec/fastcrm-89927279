@@ -253,47 +253,49 @@ export function useDashboardAIInsights(dashboardData: OperationalKPIs | null, us
 
         if (error) {
           // Check for rate limit or payment errors in the error message
-          const errorMessage = error.message || "";
-          if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("rate limit")) {
-            toast.error("Limite de pedidos AI excedido. Tenta novamente em alguns minutos.");
+          const errorMessage = String(error.message || error || "");
+          const errorContext = JSON.stringify(error);
+          
+          if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("rate limit") || errorContext.includes("429")) {
+            console.warn("AI rate limit hit, using fallback insights");
             return generateFallbackInsights(dashboardData, userName);
           }
-          if (errorMessage.includes("402") || errorMessage.toLowerCase().includes("payment")) {
-            toast.error("Créditos AI esgotados. Adiciona créditos para continuar.");
+          if (errorMessage.includes("402") || errorMessage.toLowerCase().includes("payment") || errorContext.includes("402")) {
+            console.warn("AI credits exhausted, using fallback insights");
             return generateFallbackInsights(dashboardData, userName);
           }
-          throw error;
+          console.error("AI insights error:", error);
+          return generateFallbackInsights(dashboardData, userName);
         }
         
         // Check if data contains an error (edge function may return 200 with error in body for edge cases)
         if (data?.error) {
-          if (data.error.includes("Rate limit") || data.error.includes("429")) {
-            toast.error("Limite de pedidos AI excedido. Tenta novamente em alguns minutos.");
+          const errorStr = String(data.error);
+          if (errorStr.includes("Rate limit") || errorStr.includes("429")) {
+            console.warn("AI rate limit hit (in body), using fallback insights");
             return generateFallbackInsights(dashboardData, userName);
           }
-          if (data.error.includes("Payment") || data.error.includes("402")) {
-            toast.error("Créditos AI esgotados. Adiciona créditos para continuar.");
+          if (errorStr.includes("Payment") || errorStr.includes("402")) {
+            console.warn("AI credits exhausted (in body), using fallback insights");
             return generateFallbackInsights(dashboardData, userName);
           }
+          console.warn("AI insights returned error:", data.error);
+          return generateFallbackInsights(dashboardData, userName);
         }
         
         return data as DashboardAIResponse;
       } catch (error: any) {
-        console.error("AI insights error:", error);
-        // Check error message for rate limiting
-        const errorMessage = error?.message || "";
-        if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("rate limit")) {
-          toast.error("Limite de pedidos AI excedido. Tenta novamente em alguns minutos.");
-        } else if (errorMessage.includes("402") || errorMessage.toLowerCase().includes("payment")) {
-          toast.error("Créditos AI esgotados. Adiciona créditos para continuar.");
-        }
-        // Fallback to basic insights
+        console.error("AI insights exception:", error);
+        // Always return fallback - never let AI errors break the dashboard
         return generateFallbackInsights(dashboardData, userName);
       }
     },
     enabled: !!dashboardData,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes to reduce AI calls
+    gcTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false, // Don't retry on error - we handle fallback ourselves
   });
 }
 
