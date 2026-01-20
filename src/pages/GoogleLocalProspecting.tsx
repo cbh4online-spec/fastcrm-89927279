@@ -345,64 +345,395 @@ const CATEGORIES = [
 
 const LOCATIONS = [
   { value: "", label: "Todas as localidades" },
-  // Distritos principais
-  { value: "Lisboa", label: "Lisboa" },
-  { value: "Porto", label: "Porto" },
-  { value: "Braga", label: "Braga" },
-  { value: "Setúbal", label: "Setúbal" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE AVEIRO
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Águeda", label: "Águeda" },
+  { value: "Albergaria-a-Velha", label: "Albergaria-a-Velha" },
+  { value: "Anadia", label: "Anadia" },
+  { value: "Arouca", label: "Arouca" },
   { value: "Aveiro", label: "Aveiro" },
-  { value: "Faro", label: "Faro" },
-  { value: "Leiria", label: "Leiria" },
-  { value: "Coimbra", label: "Coimbra" },
-  { value: "Santarém", label: "Santarém" },
-  { value: "Viseu", label: "Viseu" },
-  { value: "Viana do Castelo", label: "Viana do Castelo" },
-  { value: "Vila Real", label: "Vila Real" },
-  { value: "Castelo Branco", label: "Castelo Branco" },
-  { value: "Guarda", label: "Guarda" },
-  { value: "Évora", label: "Évora" },
+  { value: "Castelo de Paiva", label: "Castelo de Paiva" },
+  { value: "Espinho", label: "Espinho" },
+  { value: "Estarreja", label: "Estarreja" },
+  { value: "Ílhavo", label: "Ílhavo" },
+  { value: "Mealhada", label: "Mealhada" },
+  { value: "Murtosa", label: "Murtosa" },
+  { value: "Oliveira de Azeméis", label: "Oliveira de Azeméis" },
+  { value: "Oliveira do Bairro", label: "Oliveira do Bairro" },
+  { value: "Ovar", label: "Ovar" },
+  { value: "Santa Maria da Feira", label: "Santa Maria da Feira" },
+  { value: "São João da Madeira", label: "São João da Madeira" },
+  { value: "Sever do Vouga", label: "Sever do Vouga" },
+  { value: "Vagos", label: "Vagos" },
+  { value: "Vale de Cambra", label: "Vale de Cambra" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE BEJA
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Aljustrel", label: "Aljustrel" },
+  { value: "Almodôvar", label: "Almodôvar" },
+  { value: "Alvito", label: "Alvito" },
+  { value: "Barrancos", label: "Barrancos" },
   { value: "Beja", label: "Beja" },
-  { value: "Portalegre", label: "Portalegre" },
-  { value: "Bragança", label: "Bragança" },
-  // Cidades principais
-  { value: "Almada", label: "Almada" },
-  { value: "Amadora", label: "Amadora" },
-  { value: "Cascais", label: "Cascais" },
-  { value: "Sintra", label: "Sintra" },
-  { value: "Oeiras", label: "Oeiras" },
-  { value: "Loures", label: "Loures" },
-  { value: "Odivelas", label: "Odivelas" },
-  { value: "Vila Nova de Gaia", label: "Vila Nova de Gaia" },
-  { value: "Matosinhos", label: "Matosinhos" },
-  { value: "Maia", label: "Maia" },
-  { value: "Gondomar", label: "Gondomar" },
-  { value: "Guimarães", label: "Guimarães" },
+  { value: "Castro Verde", label: "Castro Verde" },
+  { value: "Cuba", label: "Cuba" },
+  { value: "Ferreira do Alentejo", label: "Ferreira do Alentejo" },
+  { value: "Mértola", label: "Mértola" },
+  { value: "Moura", label: "Moura" },
+  { value: "Odemira", label: "Odemira" },
+  { value: "Ourique", label: "Ourique" },
+  { value: "Serpa", label: "Serpa" },
+  { value: "Vidigueira", label: "Vidigueira" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE BRAGA
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Amares", label: "Amares" },
   { value: "Barcelos", label: "Barcelos" },
-  { value: "Funchal", label: "Funchal (Madeira)" },
-  { value: "Ponta Delgada", label: "Ponta Delgada (Açores)" },
-  { value: "Portimão", label: "Portimão" },
+  { value: "Braga", label: "Braga" },
+  { value: "Cabeceiras de Basto", label: "Cabeceiras de Basto" },
+  { value: "Celorico de Basto", label: "Celorico de Basto" },
+  { value: "Esposende", label: "Esposende" },
+  { value: "Fafe", label: "Fafe" },
+  { value: "Guimarães", label: "Guimarães" },
+  { value: "Póvoa de Lanhoso", label: "Póvoa de Lanhoso" },
+  { value: "Terras de Bouro", label: "Terras de Bouro" },
+  { value: "Vieira do Minho", label: "Vieira do Minho" },
+  { value: "Vila Nova de Famalicão", label: "Vila Nova de Famalicão" },
+  { value: "Vila Verde", label: "Vila Verde" },
+  { value: "Vizela", label: "Vizela" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE BRAGANÇA
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Alfândega da Fé", label: "Alfândega da Fé" },
+  { value: "Bragança", label: "Bragança" },
+  { value: "Carrazeda de Ansiães", label: "Carrazeda de Ansiães" },
+  { value: "Freixo de Espada à Cinta", label: "Freixo de Espada à Cinta" },
+  { value: "Macedo de Cavaleiros", label: "Macedo de Cavaleiros" },
+  { value: "Miranda do Douro", label: "Miranda do Douro" },
+  { value: "Mirandela", label: "Mirandela" },
+  { value: "Mogadouro", label: "Mogadouro" },
+  { value: "Torre de Moncorvo", label: "Torre de Moncorvo" },
+  { value: "Vila Flor", label: "Vila Flor" },
+  { value: "Vimioso", label: "Vimioso" },
+  { value: "Vinhais", label: "Vinhais" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE CASTELO BRANCO
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Belmonte", label: "Belmonte" },
+  { value: "Castelo Branco", label: "Castelo Branco" },
+  { value: "Covilhã", label: "Covilhã" },
+  { value: "Fundão", label: "Fundão" },
+  { value: "Idanha-a-Nova", label: "Idanha-a-Nova" },
+  { value: "Oleiros", label: "Oleiros" },
+  { value: "Penamacor", label: "Penamacor" },
+  { value: "Proença-a-Nova", label: "Proença-a-Nova" },
+  { value: "Sertã", label: "Sertã" },
+  { value: "Vila de Rei", label: "Vila de Rei" },
+  { value: "Vila Velha de Ródão", label: "Vila Velha de Ródão" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE COIMBRA
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Arganil", label: "Arganil" },
+  { value: "Cantanhede", label: "Cantanhede" },
+  { value: "Coimbra", label: "Coimbra" },
+  { value: "Condeixa-a-Nova", label: "Condeixa-a-Nova" },
+  { value: "Figueira da Foz", label: "Figueira da Foz" },
+  { value: "Góis", label: "Góis" },
+  { value: "Lousã", label: "Lousã" },
+  { value: "Mira", label: "Mira" },
+  { value: "Miranda do Corvo", label: "Miranda do Corvo" },
+  { value: "Montemor-o-Velho", label: "Montemor-o-Velho" },
+  { value: "Oliveira do Hospital", label: "Oliveira do Hospital" },
+  { value: "Pampilhosa da Serra", label: "Pampilhosa da Serra" },
+  { value: "Penacova", label: "Penacova" },
+  { value: "Penela", label: "Penela" },
+  { value: "Soure", label: "Soure" },
+  { value: "Tábua", label: "Tábua" },
+  { value: "Vila Nova de Poiares", label: "Vila Nova de Poiares" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE ÉVORA
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Alandroal", label: "Alandroal" },
+  { value: "Arraiolos", label: "Arraiolos" },
+  { value: "Borba", label: "Borba" },
+  { value: "Estremoz", label: "Estremoz" },
+  { value: "Évora", label: "Évora" },
+  { value: "Montemor-o-Novo", label: "Montemor-o-Novo" },
+  { value: "Mora", label: "Mora" },
+  { value: "Mourão", label: "Mourão" },
+  { value: "Portel", label: "Portel" },
+  { value: "Redondo", label: "Redondo" },
+  { value: "Reguengos de Monsaraz", label: "Reguengos de Monsaraz" },
+  { value: "Vendas Novas", label: "Vendas Novas" },
+  { value: "Viana do Alentejo", label: "Viana do Alentejo" },
+  { value: "Vila Viçosa", label: "Vila Viçosa" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE FARO (ALGARVE)
+  // ═══════════════════════════════════════════════════════════════
   { value: "Albufeira", label: "Albufeira" },
+  { value: "Alcoutim", label: "Alcoutim" },
+  { value: "Aljezur", label: "Aljezur" },
+  { value: "Castro Marim", label: "Castro Marim" },
+  { value: "Faro", label: "Faro" },
+  { value: "Lagoa", label: "Lagoa (Algarve)" },
   { value: "Lagos", label: "Lagos" },
   { value: "Loulé", label: "Loulé" },
+  { value: "Monchique", label: "Monchique" },
+  { value: "Olhão", label: "Olhão" },
+  { value: "Portimão", label: "Portimão" },
+  { value: "Quarteira", label: "Quarteira" },
+  { value: "São Brás de Alportel", label: "São Brás de Alportel" },
+  { value: "Silves", label: "Silves" },
+  { value: "Tavira", label: "Tavira" },
+  { value: "Vila do Bispo", label: "Vila do Bispo" },
+  { value: "Vila Real de Santo António", label: "Vila Real de Santo António" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DA GUARDA
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Aguiar da Beira", label: "Aguiar da Beira" },
+  { value: "Almeida", label: "Almeida" },
+  { value: "Celorico da Beira", label: "Celorico da Beira" },
+  { value: "Figueira de Castelo Rodrigo", label: "Figueira de Castelo Rodrigo" },
+  { value: "Fornos de Algodres", label: "Fornos de Algodres" },
+  { value: "Gouveia", label: "Gouveia" },
+  { value: "Guarda", label: "Guarda" },
+  { value: "Manteigas", label: "Manteigas" },
+  { value: "Mêda", label: "Mêda" },
+  { value: "Pinhel", label: "Pinhel" },
+  { value: "Sabugal", label: "Sabugal" },
+  { value: "Seia", label: "Seia" },
+  { value: "Trancoso", label: "Trancoso" },
+  { value: "Vila Nova de Foz Côa", label: "Vila Nova de Foz Côa" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE LEIRIA
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Alcobaça", label: "Alcobaça" },
+  { value: "Alvaiázere", label: "Alvaiázere" },
+  { value: "Ansião", label: "Ansião" },
+  { value: "Batalha", label: "Batalha" },
+  { value: "Bombarral", label: "Bombarral" },
   { value: "Caldas da Rainha", label: "Caldas da Rainha" },
-  { value: "Torres Vedras", label: "Torres Vedras" },
+  { value: "Castanheira de Pêra", label: "Castanheira de Pêra" },
+  { value: "Figueiró dos Vinhos", label: "Figueiró dos Vinhos" },
+  { value: "Leiria", label: "Leiria" },
+  { value: "Marinha Grande", label: "Marinha Grande" },
+  { value: "Nazaré", label: "Nazaré" },
+  { value: "Óbidos", label: "Óbidos" },
+  { value: "Pedrógão Grande", label: "Pedrógão Grande" },
   { value: "Peniche", label: "Peniche" },
   { value: "Pombal", label: "Pombal" },
-  { value: "Marinha Grande", label: "Marinha Grande" },
-  { value: "Tomar", label: "Tomar" },
-  { value: "Entroncamento", label: "Entroncamento" },
-  { value: "Figueira da Foz", label: "Figueira da Foz" },
-  { value: "Póvoa de Varzim", label: "Póvoa de Varzim" },
-  { value: "Vila do Conde", label: "Vila do Conde" },
-  { value: "Espinho", label: "Espinho" },
-  { value: "Valongo", label: "Valongo" },
+  { value: "Porto de Mós", label: "Porto de Mós" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE LISBOA
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Alenquer", label: "Alenquer" },
+  { value: "Amadora", label: "Amadora" },
+  { value: "Arruda dos Vinhos", label: "Arruda dos Vinhos" },
+  { value: "Azambuja", label: "Azambuja" },
+  { value: "Cadaval", label: "Cadaval" },
+  { value: "Cascais", label: "Cascais" },
+  { value: "Lisboa", label: "Lisboa" },
+  { value: "Loures", label: "Loures" },
+  { value: "Lourinhã", label: "Lourinhã" },
+  { value: "Mafra", label: "Mafra" },
+  { value: "Odivelas", label: "Odivelas" },
+  { value: "Oeiras", label: "Oeiras" },
+  { value: "Sintra", label: "Sintra" },
+  { value: "Sobral de Monte Agraço", label: "Sobral de Monte Agraço" },
+  { value: "Torres Vedras", label: "Torres Vedras" },
+  { value: "Vila Franca de Xira", label: "Vila Franca de Xira" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE PORTALEGRE
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Alter do Chão", label: "Alter do Chão" },
+  { value: "Arronches", label: "Arronches" },
+  { value: "Avis", label: "Avis" },
+  { value: "Campo Maior", label: "Campo Maior" },
+  { value: "Castelo de Vide", label: "Castelo de Vide" },
+  { value: "Crato", label: "Crato" },
+  { value: "Elvas", label: "Elvas" },
+  { value: "Fronteira", label: "Fronteira" },
+  { value: "Gavião", label: "Gavião" },
+  { value: "Marvão", label: "Marvão" },
+  { value: "Monforte", label: "Monforte" },
+  { value: "Nisa", label: "Nisa" },
+  { value: "Ponte de Sor", label: "Ponte de Sor" },
+  { value: "Portalegre", label: "Portalegre" },
+  { value: "Sousel", label: "Sousel" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DO PORTO
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Amarante", label: "Amarante" },
+  { value: "Baião", label: "Baião" },
+  { value: "Felgueiras", label: "Felgueiras" },
+  { value: "Gondomar", label: "Gondomar" },
+  { value: "Lousada", label: "Lousada" },
+  { value: "Maia", label: "Maia" },
+  { value: "Marco de Canaveses", label: "Marco de Canaveses" },
+  { value: "Matosinhos", label: "Matosinhos" },
+  { value: "Paços de Ferreira", label: "Paços de Ferreira" },
   { value: "Paredes", label: "Paredes" },
   { value: "Penafiel", label: "Penafiel" },
-  { value: "Amarante", label: "Amarante" },
-  { value: "Felgueiras", label: "Felgueiras" },
-  { value: "Famalicão", label: "Vila Nova de Famalicão" },
+  { value: "Porto", label: "Porto" },
+  { value: "Póvoa de Varzim", label: "Póvoa de Varzim" },
   { value: "Santo Tirso", label: "Santo Tirso" },
   { value: "Trofa", label: "Trofa" },
+  { value: "Valongo", label: "Valongo" },
+  { value: "Vila do Conde", label: "Vila do Conde" },
+  { value: "Vila Nova de Gaia", label: "Vila Nova de Gaia" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE SANTARÉM
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Abrantes", label: "Abrantes" },
+  { value: "Alcanena", label: "Alcanena" },
+  { value: "Almeirim", label: "Almeirim" },
+  { value: "Alpiarça", label: "Alpiarça" },
+  { value: "Benavente", label: "Benavente" },
+  { value: "Cartaxo", label: "Cartaxo" },
+  { value: "Chamusca", label: "Chamusca" },
+  { value: "Constância", label: "Constância" },
+  { value: "Coruche", label: "Coruche" },
+  { value: "Entroncamento", label: "Entroncamento" },
+  { value: "Ferreira do Zêzere", label: "Ferreira do Zêzere" },
+  { value: "Golegã", label: "Golegã" },
+  { value: "Mação", label: "Mação" },
+  { value: "Ourém", label: "Ourém" },
+  { value: "Rio Maior", label: "Rio Maior" },
+  { value: "Salvaterra de Magos", label: "Salvaterra de Magos" },
+  { value: "Santarém", label: "Santarém" },
+  { value: "Sardoal", label: "Sardoal" },
+  { value: "Tomar", label: "Tomar" },
+  { value: "Torres Novas", label: "Torres Novas" },
+  { value: "Vila Nova da Barquinha", label: "Vila Nova da Barquinha" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE SETÚBAL
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Alcácer do Sal", label: "Alcácer do Sal" },
+  { value: "Alcochete", label: "Alcochete" },
+  { value: "Almada", label: "Almada" },
+  { value: "Barreiro", label: "Barreiro" },
+  { value: "Grândola", label: "Grândola" },
+  { value: "Moita", label: "Moita" },
+  { value: "Montijo", label: "Montijo" },
+  { value: "Palmela", label: "Palmela" },
+  { value: "Santiago do Cacém", label: "Santiago do Cacém" },
+  { value: "Seixal", label: "Seixal" },
+  { value: "Sesimbra", label: "Sesimbra" },
+  { value: "Setúbal", label: "Setúbal" },
+  { value: "Sines", label: "Sines" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE VIANA DO CASTELO
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Arcos de Valdevez", label: "Arcos de Valdevez" },
+  { value: "Caminha", label: "Caminha" },
+  { value: "Melgaço", label: "Melgaço" },
+  { value: "Monção", label: "Monção" },
+  { value: "Paredes de Coura", label: "Paredes de Coura" },
+  { value: "Ponte da Barca", label: "Ponte da Barca" },
+  { value: "Ponte de Lima", label: "Ponte de Lima" },
+  { value: "Valença", label: "Valença" },
+  { value: "Viana do Castelo", label: "Viana do Castelo" },
+  { value: "Vila Nova de Cerveira", label: "Vila Nova de Cerveira" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE VILA REAL
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Alijó", label: "Alijó" },
+  { value: "Boticas", label: "Boticas" },
+  { value: "Chaves", label: "Chaves" },
+  { value: "Mesão Frio", label: "Mesão Frio" },
+  { value: "Mondim de Basto", label: "Mondim de Basto" },
+  { value: "Montalegre", label: "Montalegre" },
+  { value: "Murça", label: "Murça" },
+  { value: "Peso da Régua", label: "Peso da Régua" },
+  { value: "Ribeira de Pena", label: "Ribeira de Pena" },
+  { value: "Sabrosa", label: "Sabrosa" },
+  { value: "Santa Marta de Penaguião", label: "Santa Marta de Penaguião" },
+  { value: "Valpaços", label: "Valpaços" },
+  { value: "Vila Pouca de Aguiar", label: "Vila Pouca de Aguiar" },
+  { value: "Vila Real", label: "Vila Real" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // DISTRITO DE VISEU
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Armamar", label: "Armamar" },
+  { value: "Carregal do Sal", label: "Carregal do Sal" },
+  { value: "Castro Daire", label: "Castro Daire" },
+  { value: "Cinfães", label: "Cinfães" },
+  { value: "Lamego", label: "Lamego" },
+  { value: "Mangualde", label: "Mangualde" },
+  { value: "Moimenta da Beira", label: "Moimenta da Beira" },
+  { value: "Mortágua", label: "Mortágua" },
+  { value: "Nelas", label: "Nelas" },
+  { value: "Oliveira de Frades", label: "Oliveira de Frades" },
+  { value: "Penalva do Castelo", label: "Penalva do Castelo" },
+  { value: "Penedono", label: "Penedono" },
+  { value: "Resende", label: "Resende" },
+  { value: "Santa Comba Dão", label: "Santa Comba Dão" },
+  { value: "São João da Pesqueira", label: "São João da Pesqueira" },
+  { value: "São Pedro do Sul", label: "São Pedro do Sul" },
+  { value: "Sátão", label: "Sátão" },
+  { value: "Sernancelhe", label: "Sernancelhe" },
+  { value: "Tabuaço", label: "Tabuaço" },
+  { value: "Tarouca", label: "Tarouca" },
+  { value: "Tondela", label: "Tondela" },
+  { value: "Vila Nova de Paiva", label: "Vila Nova de Paiva" },
+  { value: "Viseu", label: "Viseu" },
+  { value: "Vouzela", label: "Vouzela" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // REGIÃO AUTÓNOMA DOS AÇORES
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Angra do Heroísmo", label: "Angra do Heroísmo (Terceira)" },
+  { value: "Calheta (Açores)", label: "Calheta (São Jorge)" },
+  { value: "Corvo", label: "Corvo" },
+  { value: "Horta", label: "Horta (Faial)" },
+  { value: "Lagoa (Açores)", label: "Lagoa (São Miguel)" },
+  { value: "Lajes das Flores", label: "Lajes das Flores" },
+  { value: "Lajes do Pico", label: "Lajes do Pico" },
+  { value: "Madalena", label: "Madalena (Pico)" },
+  { value: "Nordeste", label: "Nordeste (São Miguel)" },
+  { value: "Ponta Delgada", label: "Ponta Delgada (São Miguel)" },
+  { value: "Povoação", label: "Povoação (São Miguel)" },
+  { value: "Praia da Vitória", label: "Praia da Vitória (Terceira)" },
+  { value: "Ribeira Grande", label: "Ribeira Grande (São Miguel)" },
+  { value: "Santa Cruz da Graciosa", label: "Santa Cruz da Graciosa" },
+  { value: "Santa Cruz das Flores", label: "Santa Cruz das Flores" },
+  { value: "São Roque do Pico", label: "São Roque do Pico" },
+  { value: "Velas", label: "Velas (São Jorge)" },
+  { value: "Vila do Porto", label: "Vila do Porto (Santa Maria)" },
+  { value: "Vila Franca do Campo", label: "Vila Franca do Campo (São Miguel)" },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // REGIÃO AUTÓNOMA DA MADEIRA
+  // ═══════════════════════════════════════════════════════════════
+  { value: "Calheta (Madeira)", label: "Calheta (Madeira)" },
+  { value: "Câmara de Lobos", label: "Câmara de Lobos" },
+  { value: "Funchal", label: "Funchal" },
+  { value: "Machico", label: "Machico" },
+  { value: "Ponta do Sol", label: "Ponta do Sol" },
+  { value: "Porto Moniz", label: "Porto Moniz" },
+  { value: "Porto Santo", label: "Porto Santo" },
+  { value: "Ribeira Brava", label: "Ribeira Brava" },
+  { value: "Santa Cruz (Madeira)", label: "Santa Cruz (Madeira)" },
+  { value: "Santana", label: "Santana" },
+  { value: "São Vicente", label: "São Vicente" },
 ];
 
 export default function GoogleLocalProspecting() {
