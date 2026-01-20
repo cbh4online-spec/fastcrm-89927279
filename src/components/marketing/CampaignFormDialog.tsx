@@ -234,14 +234,14 @@ export function CampaignFormDialog({
               <div className="grid gap-2">
                 <Label htmlFor="segment">Segmento de Destinatários</Label>
                 <Select
-                  value={formData.segmentId}
-                  onValueChange={(value) => setFormData({ ...formData, segmentId: value })}
+                  value={formData.segmentId || "_all"}
+                  onValueChange={(value) => setFormData({ ...formData, segmentId: value === "_all" ? "" : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecionar segmento (ou todos os contactos)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os contactos subscritos</SelectItem>
+                    <SelectItem value="_all">Todos os contactos subscritos</SelectItem>
                     {segments.map((segment) => (
                       <SelectItem key={segment.id} value={segment.id}>
                         {segment.name} ({segment.contactCount} contactos)
