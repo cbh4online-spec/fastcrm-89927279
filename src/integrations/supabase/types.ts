@@ -6537,6 +6537,7 @@ export type Database = {
           city: string | null
           company_name: string | null
           company_status: string | null
+          confidence_score: number | null
           conversion_probability: number | null
           county: string | null
           created_at: string
@@ -6552,19 +6553,36 @@ export type Database = {
           founding_date: string | null
           google_place_id: string | null
           id: string
+          inferred_profession: string | null
+          inferred_specialty: string | null
+          inferred_type: string | null
+          inferred_workplace: string | null
+          instagram_bio: string | null
+          instagram_category: string | null
+          instagram_enriched_at: string | null
+          instagram_external_url: string | null
+          instagram_followers_count: number | null
+          instagram_following_count: number | null
+          instagram_is_business: boolean | null
+          instagram_is_verified: boolean | null
+          instagram_posts_count: number | null
           instagram_url: string | null
           last_contact_at: string | null
           latitude: number | null
           lead_score: number | null
+          lead_score_explanation: string | null
+          lead_score_factors: Json | null
           legal_nature: string | null
           linkedin_url: string | null
           longitude: number | null
           name: string
+          notes: string | null
           parish: string | null
           phone: string | null
           photos: string[] | null
           postal_code: string | null
           price_level: number | null
+          prospecting_profile_id: string | null
           rating: number | null
           region: string | null
           reviews: Json | null
@@ -6598,6 +6616,7 @@ export type Database = {
           city?: string | null
           company_name?: string | null
           company_status?: string | null
+          confidence_score?: number | null
           conversion_probability?: number | null
           county?: string | null
           created_at?: string
@@ -6613,19 +6632,36 @@ export type Database = {
           founding_date?: string | null
           google_place_id?: string | null
           id?: string
+          inferred_profession?: string | null
+          inferred_specialty?: string | null
+          inferred_type?: string | null
+          inferred_workplace?: string | null
+          instagram_bio?: string | null
+          instagram_category?: string | null
+          instagram_enriched_at?: string | null
+          instagram_external_url?: string | null
+          instagram_followers_count?: number | null
+          instagram_following_count?: number | null
+          instagram_is_business?: boolean | null
+          instagram_is_verified?: boolean | null
+          instagram_posts_count?: number | null
           instagram_url?: string | null
           last_contact_at?: string | null
           latitude?: number | null
           lead_score?: number | null
+          lead_score_explanation?: string | null
+          lead_score_factors?: Json | null
           legal_nature?: string | null
           linkedin_url?: string | null
           longitude?: number | null
           name: string
+          notes?: string | null
           parish?: string | null
           phone?: string | null
           photos?: string[] | null
           postal_code?: string | null
           price_level?: number | null
+          prospecting_profile_id?: string | null
           rating?: number | null
           region?: string | null
           reviews?: Json | null
@@ -6659,6 +6695,7 @@ export type Database = {
           city?: string | null
           company_name?: string | null
           company_status?: string | null
+          confidence_score?: number | null
           conversion_probability?: number | null
           county?: string | null
           created_at?: string
@@ -6674,19 +6711,36 @@ export type Database = {
           founding_date?: string | null
           google_place_id?: string | null
           id?: string
+          inferred_profession?: string | null
+          inferred_specialty?: string | null
+          inferred_type?: string | null
+          inferred_workplace?: string | null
+          instagram_bio?: string | null
+          instagram_category?: string | null
+          instagram_enriched_at?: string | null
+          instagram_external_url?: string | null
+          instagram_followers_count?: number | null
+          instagram_following_count?: number | null
+          instagram_is_business?: boolean | null
+          instagram_is_verified?: boolean | null
+          instagram_posts_count?: number | null
           instagram_url?: string | null
           last_contact_at?: string | null
           latitude?: number | null
           lead_score?: number | null
+          lead_score_explanation?: string | null
+          lead_score_factors?: Json | null
           legal_nature?: string | null
           linkedin_url?: string | null
           longitude?: number | null
           name?: string
+          notes?: string | null
           parish?: string | null
           phone?: string | null
           photos?: string[] | null
           postal_code?: string | null
           price_level?: number | null
+          prospecting_profile_id?: string | null
           rating?: number | null
           region?: string | null
           reviews?: Json | null
@@ -6702,6 +6756,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_prospecting_profile_id_fkey"
+            columns: ["prospecting_profile_id"]
+            isOneToOne: false
+            referencedRelation: "professional_prospecting_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_workspace_id_fkey"
             columns: ["workspace_id"]

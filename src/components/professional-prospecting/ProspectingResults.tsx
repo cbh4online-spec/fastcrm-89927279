@@ -181,27 +181,62 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
       // Full insight includes notes as extra context
       const fullAiInsight = aiInsightParts.join(" | ") + (enrichedNotes ? `\n\n${enrichedNotes}` : "");
 
-      // Create lead with enriched data
-      const { data: lead, error: leadError } = await supabase
-        .from("leads")
-        .insert([{
-          workspace_id: currentWorkspace.id,
-          name: profile.profile_name || "Sem nome",
-          source: "professional_prospecting",
-          status: "new",
-          website: profile.profile_url,
+      // Create lead with ALL enriched data from prospecting profile
+      const leadData: Record<string, unknown> = {
+        workspace_id: currentWorkspace.id,
+        name: profile.profile_name || "Sem nome",
+        source: "professional_prospecting",
+        status: "new",
+        website: profile.profile_url,
+        assigned_to: user.id,
+        created_by: user.id,
+        // Reference to original prospecting profile
+        prospecting_profile_id: profile.id,
+        // Avatar from Instagram
+        avatar_url: profile.profile_image_url || null,
+        // Instagram URL
+        instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
+        // Notes with full context
+        notes: enrichedNotes || null,
+        ai_insight: fullAiInsight,
+        // Tags
+        tags: options.tags.length > 0 ? options.tags : null,
+      };
+
+      // Add AI analysis data if selected
+      if (options.includeAnalysisData) {
+        Object.assign(leadData, {
+          inferred_type: profile.inferred_type || null,
+          inferred_profession: profile.inferred_profession || null,
+          inferred_specialty: profile.inferred_specialty || null,
+          inferred_workplace: profile.inferred_workplace || null,
           city: profile.inferred_location || null,
           business_category: profile.inferred_profession || null,
-          ai_insight: fullAiInsight,
+          confidence_score: profile.confidence_score || null,
           lead_score: profile.lead_score || null,
-          tags: options.tags.length > 0 ? options.tags : null,
-          assigned_to: user.id,
-          created_by: user.id,
-          // Store Instagram context for AI suggestions
-          instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
-          // Use Instagram profile picture as avatar
-          avatar_url: profile.profile_image_url || null,
-        }])
+          lead_score_explanation: profile.lead_score_explanation || null,
+          lead_score_factors: profile.lead_score_factors || null,
+        });
+      }
+
+      // Add Instagram enrichment data if selected
+      if (options.includeInstagramData && profile.instagram_enriched_at) {
+        Object.assign(leadData, {
+          instagram_followers_count: profile.instagram_followers_count || null,
+          instagram_following_count: profile.instagram_following_count || null,
+          instagram_posts_count: profile.instagram_posts_count || null,
+          instagram_bio: profile.instagram_full_bio || null,
+          instagram_external_url: profile.instagram_external_url || null,
+          instagram_category: profile.instagram_category || null,
+          instagram_is_verified: profile.instagram_is_verified || false,
+          instagram_is_business: profile.instagram_is_business || false,
+          instagram_enriched_at: profile.instagram_enriched_at || null,
+        });
+      }
+
+      const { data: lead, error: leadError } = await supabase
+        .from("leads")
+        .insert([leadData as any])
         .select()
         .single();
 
