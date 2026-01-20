@@ -18,11 +18,11 @@ import NotFound from '@/pages/NotFound';
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: entity, isLoading } = useSEOEntity('blog', slug || '');
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
 
   useEffect(() => {
     if (entity) {
-      trackSEOPageView({
+      trackPageView({
         page_type: 'blog',
         entity_slug: slug,
         intent: entity.intent || undefined,

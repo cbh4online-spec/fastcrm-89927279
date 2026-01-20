@@ -14,11 +14,11 @@ import NotFound from '@/pages/NotFound';
 export default function ComparePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: comparison, isLoading } = useSEOComparison(slug || '');
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
 
   useEffect(() => {
     if (comparison) {
-      trackSEOPageView({
+      trackPageView({
         page_type: 'compare',
         entity_slug: slug,
         intent: 'commercial',

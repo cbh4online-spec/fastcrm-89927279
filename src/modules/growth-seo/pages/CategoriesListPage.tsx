@@ -14,7 +14,7 @@ const ITEMS_PER_PAGE = 12;
 
 export default function CategoriesListPage() {
   const [page, setPage] = useState(1);
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
 
   const { data, isLoading } = useSEOEntitiesList('category', {
     limit: ITEMS_PER_PAGE,
@@ -22,7 +22,7 @@ export default function CategoriesListPage() {
   });
 
   useEffect(() => {
-    trackSEOPageView({
+    trackPageView({
       page_type: 'category',
       intent: 'informational',
     });

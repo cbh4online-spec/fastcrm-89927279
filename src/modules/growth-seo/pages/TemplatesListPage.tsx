@@ -15,7 +15,7 @@ const ITEMS_PER_PAGE = 12;
 export default function TemplatesListPage() {
   const [page, setPage] = useState(1);
   const [intent, setIntent] = useState<string | null>(null);
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
 
   const { data, isLoading } = useSEOEntitiesList('template', {
     limit: ITEMS_PER_PAGE,
@@ -24,7 +24,7 @@ export default function TemplatesListPage() {
   });
 
   useEffect(() => {
-    trackSEOPageView({
+    trackPageView({
       page_type: 'template',
       intent: 'commercial',
     });

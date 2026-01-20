@@ -16,11 +16,11 @@ import NotFound from '@/pages/NotFound';
 export default function ToolDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: entity, isLoading } = useSEOEntity('tool', slug || '');
-  const { trackSEOPageView } = useTracking();
+  const { trackPageView } = useTracking();
 
   useEffect(() => {
     if (entity) {
-      trackSEOPageView({
+      trackPageView({
         page_type: 'tool',
         entity_slug: slug,
         intent: 'transactional',
