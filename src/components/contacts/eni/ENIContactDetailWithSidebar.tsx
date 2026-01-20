@@ -40,6 +40,7 @@ import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
+import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -304,16 +305,14 @@ export function ENIContactDetailWithSidebar() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/contacts")} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <Avatar className="h-16 w-16 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
-              <AvatarFallback className={cn(
-                "text-white font-bold text-lg",
-                entityType === 'eni' ? "bg-gradient-to-br from-amber-500 to-orange-600" :
-                entityType === 'empresa' ? "bg-gradient-to-br from-blue-500 to-indigo-600" :
-                "bg-gradient-to-br from-emerald-500 to-emerald-600"
-              )}>
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <EntityAvatarUpload
+              entityType="contact"
+              entityId={id!}
+              entityName={contact.name}
+              currentAvatarUrl={(contact as any).avatar_url}
+              onAvatarChange={(url) => handleFieldChange('avatar_url' as keyof ENIContact, url)}
+              size="md"
+            />
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold tracking-tight">{contact.name}</h1>

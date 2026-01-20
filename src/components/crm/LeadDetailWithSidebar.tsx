@@ -4,7 +4,6 @@ import { useLead, useUpdateLead, useDeleteLead, Lead } from "@/hooks/useLeads";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import {
@@ -46,6 +45,7 @@ import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
+import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -134,7 +134,6 @@ export function LeadDetailWithSidebar() {
     );
   }
 
-  const initials = lead.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   const sourceTag = lead.source?.toLowerCase() || "outro";
   const SourceIcon = sourceIcons[sourceTag] || <Tag className="w-3 h-3" />;
 
@@ -215,11 +214,14 @@ export function LeadDetailWithSidebar() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/leads")} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <Avatar className="h-16 w-16 text-xl ring-2 ring-violet-500/20">
-              <AvatarFallback className="bg-gradient-to-br from-violet-500 to-violet-600 text-white font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <EntityAvatarUpload
+              entityType="lead"
+              entityId={id!}
+              entityName={lead.name}
+              currentAvatarUrl={(lead as any).avatar_url}
+              onAvatarChange={(url) => handleFieldChange('avatar_url' as keyof Lead, url)}
+              size="md"
+            />
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-semibold text-foreground">{lead.name}</h1>

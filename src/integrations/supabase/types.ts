@@ -1577,6 +1577,7 @@ export type Database = {
           annual_revenue: number | null
           assigned_to: string | null
           automation_active: boolean | null
+          avatar_url: string | null
           business_status: string | null
           cae_codes: string[] | null
           cae_description: string | null
@@ -1643,6 +1644,7 @@ export type Database = {
           annual_revenue?: number | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          avatar_url?: string | null
           business_status?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
@@ -1709,6 +1711,7 @@ export type Database = {
           annual_revenue?: number | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          avatar_url?: string | null
           business_status?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
@@ -2500,6 +2503,7 @@ export type Database = {
           ai_temperature: string | null
           assigned_to: string | null
           automation_active: boolean | null
+          avatar_url: string | null
           average_ticket: number | null
           business_area: string | null
           cae_code: string | null
@@ -2568,6 +2572,7 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          avatar_url?: string | null
           average_ticket?: number | null
           business_area?: string | null
           cae_code?: string | null
@@ -2636,6 +2641,7 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          avatar_url?: string | null
           average_ticket?: number | null
           business_area?: string | null
           cae_code?: string | null
@@ -5755,6 +5761,7 @@ export type Database = {
           ai_temperature: string | null
           assigned_to: string | null
           automation_active: boolean | null
+          avatar_url: string | null
           business_category: string | null
           business_hours: Json | null
           cae_codes: string[] | null
@@ -5815,6 +5822,7 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          avatar_url?: string | null
           business_category?: string | null
           business_hours?: Json | null
           cae_codes?: string[] | null
@@ -5875,6 +5883,7 @@ export type Database = {
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
+          avatar_url?: string | null
           business_category?: string | null
           business_hours?: Json | null
           cae_codes?: string[] | null

@@ -8,11 +8,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, Bell, LogOut, User, Settings, Search, ShieldCheck } from "lucide-react";
+import { Menu, LogOut, User, Settings, Search, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GlobalSearch } from "./GlobalSearch";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { NotificationsDropdown } from "./NotificationsDropdown";
+import { HelpSupportDropdown } from "./HelpSupportDropdown";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -82,10 +84,9 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           </Tooltip>
         )}
 
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
-        </Button>
+        <HelpSupportDropdown />
+        
+        <NotificationsDropdown />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
