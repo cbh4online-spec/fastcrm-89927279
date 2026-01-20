@@ -86,9 +86,21 @@ export interface MarketingCampaign {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  // AI Insights
+  aiInsights?: CampaignInsights;
+  aiInsightsGeneratedAt?: string;
+  sendHour?: number;
+  linkCount?: number;
   // Computed
   segment?: MarketingSegment;
   template?: MarketingTemplate;
+}
+
+export interface CampaignInsights {
+  resumo: string;
+  funcionou: string[];
+  melhorar: string[];
+  sugestoes: string[];
 }
 
 export type RecipientStatus = 'pending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'unsubscribed' | 'failed';
