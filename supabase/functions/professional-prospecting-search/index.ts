@@ -91,11 +91,10 @@ serve(async (req) => {
       );
     }
 
-    // Build search query for Instagram profiles
-    const queryParts = [profession];
+    // Build search query for Instagram profiles - more specific query
+    const queryParts = [`site:instagram.com "${profession}"`];
     if (location) queryParts.push(location);
     if (keywords) queryParts.push(keywords);
-    queryParts.push("instagram");
     
     const searchQuery = queryParts.join(" ");
     console.log("Searching for:", searchQuery);
@@ -109,7 +108,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 30,
+        limit: 50,
         lang: "pt",
         country: "PT",
         scrapeOptions: {
@@ -137,41 +136,74 @@ serve(async (req) => {
     const searchResults = await firecrawlResponse.json();
     console.log("Search results count:", searchResults.data?.length || 0);
 
-    // Filter and extract Instagram profile URLs
+    // Extract Instagram profiles from search results
     const profiles: any[] = [];
     const seenUrls = new Set<string>();
 
     for (const result of searchResults.data || []) {
       const url = result.url || "";
+      const title = result.title || "";
+      const description = result.description || "";
+      const markdown = result.markdown || "";
       
-      // Extract Instagram URLs from the content or URL itself
-      const instagramMatches = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/g) || [];
-      const contentMatches = (result.markdown || "").match(/instagram\.com\/([a-zA-Z0-9._]+)/g) || [];
+      // Check if this is an Instagram profile URL (not a post or reel)
+      const instagramProfileMatch = url.match(/instagram\.com\/([a-zA-Z0-9._]+)\/?$/);
       
-      const allMatches = [...instagramMatches, ...contentMatches];
-      
-      for (const match of allMatches) {
-        const profileUrl = `https://www.${match}`;
-        if (!seenUrls.has(profileUrl) && !profileUrl.includes("/p/") && !profileUrl.includes("/reel/")) {
+      if (instagramProfileMatch) {
+        const username = instagramProfileMatch[1];
+        // Skip common non-profile pages
+        if (["p", "reel", "reels", "stories", "explore", "accounts", "direct", "tv"].includes(username)) {
+          continue;
+        }
+        
+        const profileUrl = `https://www.instagram.com/${username}`;
+        if (!seenUrls.has(profileUrl)) {
           seenUrls.add(profileUrl);
           
-          // Try to extract name from markdown content
-          const usernameMatch = match.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
-          const username = usernameMatch ? usernameMatch[1] : null;
+          // Extract bio/description from the result
+          const bio = description || (markdown ? markdown.substring(0, 300) : null);
           
           profiles.push({
             profileUrl,
             profileName: username,
-            profileBio: null,
-            source: result.url,
-            sourceTitle: result.title
+            profileBio: bio,
+            source: url,
+            sourceTitle: title
           });
+        }
+      } else {
+        // Try to find Instagram profile URLs in the content
+        const contentMatches = (markdown + " " + description).match(/instagram\.com\/([a-zA-Z0-9._]+)/g) || [];
+        
+        for (const match of contentMatches) {
+          const usernameMatch = match.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
+          if (usernameMatch) {
+            const username = usernameMatch[1];
+            // Skip non-profile pages
+            if (["p", "reel", "reels", "stories", "explore", "accounts", "direct", "tv"].includes(username)) {
+              continue;
+            }
+            
+            const profileUrl = `https://www.instagram.com/${username}`;
+            if (!seenUrls.has(profileUrl)) {
+              seenUrls.add(profileUrl);
+              profiles.push({
+                profileUrl,
+                profileName: username,
+                profileBio: null,
+                source: url,
+                sourceTitle: title
+              });
+            }
+          }
         }
       }
 
       // Limit to 50 profiles max
       if (profiles.length >= 50) break;
     }
+    
+    console.log("Profiles extracted:", profiles.length);
 
     // Update search record with results count
     await supabase
