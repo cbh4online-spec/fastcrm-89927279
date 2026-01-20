@@ -279,6 +279,25 @@ export function useInstagramLooter() {
     enabled: !!currentWorkspace?.id && isMetodopare,
   });
 
+  // Get recent searches
+  const { data: recentSearches, refetch: refetchSearches } = useQuery({
+    queryKey: ["ig-searches", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id || !isMetodopare) return [];
+
+      const { data, error } = await supabase
+        .from("ig_searches")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!currentWorkspace?.id && isMetodopare,
+  });
+
   // Get cached profiles
   const { data: cachedProfiles, refetch: refetchProfiles } = useQuery({
     queryKey: ["ig-profiles", currentWorkspace?.id],
@@ -321,22 +340,30 @@ export function useInstagramLooter() {
     mutationFn: async (profile: any) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
 
+      // Handle different API response structures
+      const instagramId = profile.pk || profile.id || profile.username;
+      const followersCount = profile.follower_count || profile.edge_followed_by?.count || null;
+      const followingCount = profile.following_count || profile.edge_follow?.count || null;
+      const mediaCount = profile.media_count || profile.edge_owner_to_timeline_media?.count || null;
+      const isBusiness = profile.is_business_account || profile.is_business || false;
+      const profilePicUrl = profile.profile_pic_url_hd || profile.profile_pic_url || null;
+      
       const { data, error } = await supabase
         .from("ig_profiles")
         .upsert({
           workspace_id: currentWorkspace.id,
-          instagram_id: profile.pk || profile.id,
+          instagram_id: String(instagramId),
           username: profile.username,
-          full_name: profile.full_name,
-          biography: profile.biography,
-          external_url: profile.external_url,
-          profile_pic_url: profile.profile_pic_url || profile.profile_pic_url_hd,
-          followers_count: profile.follower_count,
-          following_count: profile.following_count,
-          media_count: profile.media_count,
-          is_business: profile.is_business_account,
-          is_verified: profile.is_verified,
-          category: profile.category,
+          full_name: profile.full_name || null,
+          biography: profile.biography || null,
+          external_url: profile.external_url || null,
+          profile_pic_url: profilePicUrl,
+          followers_count: followersCount,
+          following_count: followingCount,
+          media_count: mediaCount,
+          is_business: isBusiness,
+          is_verified: profile.is_verified || false,
+          category: profile.category_name || profile.category || null,
           raw_data: profile,
           last_fetched_at: new Date().toISOString(),
         }, {
@@ -485,6 +512,8 @@ export function useInstagramLooter() {
     analyzeMedia,
     todayUsage,
     refetchUsage,
+    recentSearches,
+    refetchSearches,
     cachedProfiles,
     refetchProfiles,
     collections,

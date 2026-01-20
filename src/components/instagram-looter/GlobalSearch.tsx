@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Loader2, User, ExternalLink, Star, Save, Brain, ChevronRight } from "lucide-react";
+import { Search, Loader2, User, ExternalLink, Star, Save, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useInstagramLooter, IGSearchResult } from "@/hooks/useInstagramLooter";
 import { ProfileDetailPanel } from "./ProfileDetailPanel";
+import { SearchHistory } from "./SearchHistory";
 import { toast } from "sonner";
 
 export function GlobalSearch() {
@@ -14,19 +15,26 @@ export function GlobalSearch() {
   const [results, setResults] = useState<IGSearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
-  const { isLoading, searchUsers, getProfile, saveProfile } = useInstagramLooter();
+  const { isLoading, searchUsers, getProfile, saveProfile, recentSearches, refetchSearches } = useInstagramLooter();
 
-  const handleSearch = async () => {
-    if (!query.trim()) {
+  const handleSearch = async (searchQuery?: string) => {
+    const queryToUse = searchQuery || query;
+    if (!queryToUse.trim()) {
       toast.error("Digite um termo de pesquisa");
       return;
     }
 
+    // Update the input if using a preset search
+    if (searchQuery) {
+      setQuery(searchQuery);
+    }
+
     try {
-      const response = await searchUsers(query);
+      const response = await searchUsers(queryToUse);
       setResults(response.results);
       setHasSearched(true);
       setSelectedUsername(null);
+      refetchSearches();
       
       if (response.results.length === 0) {
         toast.info("Nenhum resultado encontrado");
@@ -55,6 +63,9 @@ export function GlobalSearch() {
     }
   };
 
+  // Filter recent searches for global type only
+  const globalSearches = recentSearches?.filter(s => s.search_type === "global") || [];
+
   return (
     <div className="flex gap-6">
       {/* Main content */}
@@ -73,7 +84,7 @@ export function GlobalSearch() {
                   className="pl-10"
                 />
               </div>
-              <Button onClick={handleSearch} disabled={isLoading}>
+              <Button onClick={() => handleSearch()} disabled={isLoading}>
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
@@ -88,34 +99,42 @@ export function GlobalSearch() {
               <Badge 
                 variant="outline" 
                 className="cursor-pointer hover:bg-accent"
-                onClick={() => setQuery("dentista portugal")}
+                onClick={() => handleSearch("dentista portugal")}
               >
                 Dentistas
               </Badge>
               <Badge 
                 variant="outline" 
                 className="cursor-pointer hover:bg-accent"
-                onClick={() => setQuery("cabeleireiro lisboa")}
+                onClick={() => handleSearch("cabeleireiro lisboa")}
               >
                 Cabeleireiros
               </Badge>
               <Badge 
                 variant="outline" 
                 className="cursor-pointer hover:bg-accent"
-                onClick={() => setQuery("esteticista porto")}
+                onClick={() => handleSearch("esteticista porto")}
               >
                 Esteticistas
               </Badge>
               <Badge 
                 variant="outline" 
                 className="cursor-pointer hover:bg-accent"
-                onClick={() => setQuery("clinica dental")}
+                onClick={() => handleSearch("clinica dental")}
               >
                 Clínicas Dentais
               </Badge>
             </div>
           </CardContent>
         </Card>
+
+        {/* Search History */}
+        {!hasSearched && globalSearches.length > 0 && (
+          <SearchHistory 
+            searches={globalSearches} 
+            onSelectSearch={(q) => handleSearch(q)} 
+          />
+        )}
 
         {/* Results */}
         {hasSearched && (

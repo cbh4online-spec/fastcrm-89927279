@@ -5,25 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useInstagramLooter } from "@/hooks/useInstagramLooter";
+import { SearchHistory } from "./SearchHistory";
 import { toast } from "sonner";
 
 export function HashtagSearch() {
   const [hashtag, setHashtag] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-  const { isLoading, searchHashtag } = useInstagramLooter();
+  const { isLoading, searchHashtag, recentSearches, refetchSearches } = useInstagramLooter();
 
-  const handleSearch = async () => {
-    const cleanHashtag = hashtag.trim().replace("#", "");
+  const handleSearch = async (searchQuery?: string) => {
+    const queryToUse = searchQuery || hashtag;
+    const cleanHashtag = queryToUse.trim().replace("#", "");
     if (!cleanHashtag) {
       toast.error("Digite uma hashtag");
       return;
+    }
+
+    // Update the input if using a preset search
+    if (searchQuery) {
+      setHashtag(cleanHashtag);
     }
 
     try {
       const response = await searchHashtag(cleanHashtag);
       setResults(response.results);
       setHasSearched(true);
+      refetchSearches();
       
       if (response.results.length === 0) {
         toast.info("Nenhum post encontrado com esta hashtag");
@@ -41,6 +49,9 @@ export function HashtagSearch() {
     }
   };
 
+  // Filter recent searches for hashtag type only
+  const hashtagSearches = recentSearches?.filter(s => s.search_type === "hashtag") || [];
+
   return (
     <div className="space-y-6">
       {/* Search Input */}
@@ -57,7 +68,7 @@ export function HashtagSearch() {
                 className="pl-10"
               />
             </div>
-            <Button onClick={handleSearch} disabled={isLoading}>
+            <Button onClick={() => handleSearch()} disabled={isLoading}>
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
@@ -74,7 +85,7 @@ export function HashtagSearch() {
                 key={tag}
                 variant="outline" 
                 className="cursor-pointer hover:bg-accent"
-                onClick={() => setHashtag(tag)}
+                onClick={() => handleSearch(tag)}
               >
                 #{tag}
               </Badge>
@@ -82,6 +93,14 @@ export function HashtagSearch() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Search History */}
+      {!hasSearched && hashtagSearches.length > 0 && (
+        <SearchHistory 
+          searches={hashtagSearches} 
+          onSelectSearch={(q) => handleSearch(q)} 
+        />
+      )}
 
       {/* Results */}
       {hasSearched && (
