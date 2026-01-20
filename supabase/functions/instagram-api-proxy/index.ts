@@ -129,7 +129,7 @@ serve(async (req) => {
         if (params.query) queryParams.append("query", params.query);
         break;
       case "profile":
-        endpoint = "/web-profile";
+        endpoint = "/profile2";
         if (params.username) queryParams.append("username", params.username);
         break;
       case "user_posts":
