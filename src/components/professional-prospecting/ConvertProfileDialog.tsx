@@ -41,6 +41,11 @@ interface Profile {
   inferred_workplace: string | null;
   confidence_score: number | null;
   lead_score: number | null;
+  lead_score_explanation: string | null;
+  lead_score_factors: {
+    positive: string[];
+    negative: string[];
+  } | null;
   // Instagram enrichment fields
   instagram_followers_count: number | null;
   instagram_following_count: number | null;
