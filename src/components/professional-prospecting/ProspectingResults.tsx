@@ -83,32 +83,42 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
+      console.log("Fetching profiles for workspace:", currentWorkspace.id, "searchId:", searchId);
+
+      // Build query - RLS will automatically filter by accessible workspaces
       let query = supabase
         .from("professional_prospecting_profiles")
         .select("*")
-        .eq("workspace_id", currentWorkspace.id)
         .eq("status", "analyzed")
         .order("created_at", { ascending: false })
         .order("lead_score", { ascending: false, nullsFirst: false });
 
       if (searchId) {
+        // When we have a searchId, filter by it directly
         query = query.eq("search_id", searchId);
       } else {
-        // If no searchId, get profiles from the last 24 hours
+        // Otherwise get recent profiles from current workspace
+        query = query.eq("workspace_id", currentWorkspace.id);
         const yesterday = new Date();
         yesterday.setHours(yesterday.getHours() - 24);
         query = query.gte("created_at", yesterday.toISOString());
       }
 
       const { data, error } = await query.limit(100);
-      if (error) throw error;
+      
+      console.log("Profiles query result:", data?.length || 0, "profiles, error:", error);
+      
+      if (error) {
+        console.error("Error fetching profiles:", error);
+        throw error;
+      }
       return (data || []).map((p: any) => ({
         ...p,
         lead_score_factors: p.lead_score_factors as { positive: string[]; negative: string[] } | null,
       })) as Profile[];
     },
     enabled: !!currentWorkspace?.id,
-    refetchInterval: 5000, // Refetch every 5 seconds while analyzing
+    refetchInterval: searchId ? 3000 : false, // Refetch every 3 seconds only when analyzing
   });
 
   // Convert to lead mutation
