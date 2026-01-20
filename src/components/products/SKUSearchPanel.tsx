@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Check, ExternalLink, Package, ChevronDown, ChevronUp, Sparkles, FileText, Image as ImageIcon, Globe } from "lucide-react";
+import { Loader2, Search, Check, ExternalLink, Package, ChevronDown, ChevronUp, Sparkles, FileText, Image as ImageIcon, Globe, ClipboardList } from "lucide-react";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { PriceValidationIndicator } from "./PriceValidationIndicator";
 import { CompareSourcesDialog } from "./CompareSourcesDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface SKUSearchPanelProps {
   sku: string;
@@ -47,6 +48,8 @@ export function SKUSearchPanel({
   const [nameVersion, setNameVersion] = useState<"commercial" | "technical">("commercial");
   const [descVersion, setDescVersion] = useState<"commercial" | "technical">("commercial");
   const [compareOpen, setCompareOpen] = useState(false);
+  const specsAutoAppliedRef = useRef(false);
+  const { toast } = useToast();
   const { searchBySKU } = useProductAIAssistant();
 
   // Notify parent when images are found
@@ -55,6 +58,30 @@ export function SKUSearchPanel({
       onImagesFound(searchBySKU.data.images);
     }
   }, [searchBySKU.data?.images, onImagesFound]);
+
+  // AUTO-APPLY specifications when search completes
+  useEffect(() => {
+    if (searchBySKU.data?.specifications && onApplySpecifications && !specsAutoAppliedRef.current) {
+      const specs = Object.fromEntries(
+        Object.entries(searchBySKU.data.specifications).filter(([_, v]) => v)
+      ) as Record<string, string>;
+      
+      if (Object.keys(specs).length > 0) {
+        onApplySpecifications(specs);
+        setAppliedItems((prev) => new Set(prev).add("specifications"));
+        specsAutoAppliedRef.current = true;
+        toast({
+          title: "Ficha técnica preenchida",
+          description: `${Object.keys(specs).length} especificações aplicadas automaticamente`,
+        });
+      }
+    }
+  }, [searchBySKU.data?.specifications, onApplySpecifications, toast]);
+
+  // Reset auto-applied ref when SKU changes
+  useEffect(() => {
+    specsAutoAppliedRef.current = false;
+  }, [sku]);
 
   const handleSearch = () => {
     if (sku && sku.length >= 3) {
