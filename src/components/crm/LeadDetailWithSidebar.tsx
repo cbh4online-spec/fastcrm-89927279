@@ -49,6 +49,7 @@ import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
 import { ProductSuggestionsCard } from "@/components/ai-suggestions/ProductSuggestionsCard";
 import { EntityContext } from "@/hooks/useEntityProductSuggestions";
+import { CustomFieldsSection } from "@/components/leads/sections/CustomFieldsSection";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -224,6 +225,10 @@ export function LeadDetailWithSidebar() {
             entityEmail={lead.email}
             entityPhone={lead.phone}
           />
+        );
+      case 'custom-fields':
+        return (
+          <CustomFieldsSection leadId={id!} />
         );
       default:
         return (
