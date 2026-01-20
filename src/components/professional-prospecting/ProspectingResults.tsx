@@ -15,7 +15,7 @@ import {
   UserPlus, ThumbsDown, Search, Filter, Loader2,
   ChevronDown, ChevronUp, MapPin, Briefcase, Star,
   CheckCircle, XCircle, AlertCircle, RefreshCw, Instagram,
-  Eye, Facebook
+  Eye, Facebook, Mail, Phone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
@@ -56,6 +56,10 @@ interface Profile {
   instagram_is_verified: boolean | null;
   instagram_is_business: boolean | null;
   instagram_enriched_at: string | null;
+  // Extracted contacts
+  extracted_email: string | null;
+  extracted_phone: string | null;
+  contact_source: string | null;
 }
 
 const TYPE_ICONS = {
@@ -204,6 +208,9 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
         avatar_url: profile.profile_image_url || null,
         // Instagram URL
         instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
+        // Extracted contacts from prospecting
+        email: profile.extracted_email || null,
+        phone: profile.extracted_phone || null,
         // Notes with full context
         notes: enrichedNotes || null,
         ai_insight: fullAiInsight,
@@ -550,7 +557,7 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
                             </Badge>
                           </div>
 
-                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1">
                               <TypeIcon className="w-3 h-3" />
                               {TYPE_LABELS[profile.inferred_type as keyof typeof TYPE_LABELS] || "Desconhecido"}
@@ -568,6 +575,32 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
                               </span>
                             )}
                           </div>
+                          
+                          {/* Extracted Contacts */}
+                          {(profile.extracted_email || profile.extracted_phone) && (
+                            <div className="flex items-center gap-3 mt-2">
+                              {profile.extracted_email && (
+                                <a 
+                                  href={`mailto:${profile.extracted_email}`}
+                                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Mail className="w-3 h-3" />
+                                  {profile.extracted_email}
+                                </a>
+                              )}
+                              {profile.extracted_phone && (
+                                <a 
+                                  href={`tel:${profile.extracted_phone}`}
+                                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Phone className="w-3 h-3" />
+                                  {profile.extracted_phone}
+                                </a>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Score */}
