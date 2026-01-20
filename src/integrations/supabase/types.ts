@@ -10683,6 +10683,16 @@ export type Database = {
           inferred_specialty: string | null
           inferred_type: string | null
           inferred_workplace: string | null
+          instagram_category: string | null
+          instagram_enriched_at: string | null
+          instagram_external_url: string | null
+          instagram_followers_count: number | null
+          instagram_following_count: number | null
+          instagram_full_bio: string | null
+          instagram_is_business: boolean | null
+          instagram_is_verified: boolean | null
+          instagram_posts_count: number | null
+          instagram_raw_data: Json | null
           lead_score: number | null
           lead_score_explanation: string | null
           lead_score_factors: Json | null
@@ -10713,6 +10723,16 @@ export type Database = {
           inferred_specialty?: string | null
           inferred_type?: string | null
           inferred_workplace?: string | null
+          instagram_category?: string | null
+          instagram_enriched_at?: string | null
+          instagram_external_url?: string | null
+          instagram_followers_count?: number | null
+          instagram_following_count?: number | null
+          instagram_full_bio?: string | null
+          instagram_is_business?: boolean | null
+          instagram_is_verified?: boolean | null
+          instagram_posts_count?: number | null
+          instagram_raw_data?: Json | null
           lead_score?: number | null
           lead_score_explanation?: string | null
           lead_score_factors?: Json | null
@@ -10743,6 +10763,16 @@ export type Database = {
           inferred_specialty?: string | null
           inferred_type?: string | null
           inferred_workplace?: string | null
+          instagram_category?: string | null
+          instagram_enriched_at?: string | null
+          instagram_external_url?: string | null
+          instagram_followers_count?: number | null
+          instagram_following_count?: number | null
+          instagram_full_bio?: string | null
+          instagram_is_business?: boolean | null
+          instagram_is_verified?: boolean | null
+          instagram_posts_count?: number | null
+          instagram_raw_data?: Json | null
           lead_score?: number | null
           lead_score_explanation?: string | null
           lead_score_factors?: Json | null

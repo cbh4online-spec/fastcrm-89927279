@@ -36,7 +36,7 @@ serve(async (req) => {
   }
 
   try {
-    const { profiles, workspaceId, searchId } = await req.json();
+    const { profiles, workspaceId, searchId, autoEnrichInstagram } = await req.json();
 
     if (!profiles || !Array.isArray(profiles) || profiles.length === 0) {
       return new Response(
@@ -98,36 +98,68 @@ serve(async (req) => {
     const results: any[] = [];
 
     // Analyze each profile with AI
+    const RAPIDAPI_KEY = Deno.env.get("RAPIDAPI_KEY");
+    const canEnrichInstagram = !!RAPIDAPI_KEY && autoEnrichInstagram !== false;
+
     for (const profile of profilesToAnalyze) {
       try {
         const analysis = await analyzeProfile(profile, LOVABLE_API_KEY);
+        const platform = detectPlatform(profile.profileUrl);
+        
+        // Prepare profile data
+        const profileData: any = {
+          workspace_id: workspaceId,
+          search_id: searchId || null,
+          profile_url: profile.profileUrl,
+          platform,
+          profile_name: profile.profileName || null,
+          profile_bio: profile.profileBio || null,
+          profile_link: profile.profileLink || null,
+          profile_image_url: profile.profileImageUrl || null,
+          raw_data: profile,
+          ai_analysis: analysis,
+          inferred_type: analysis.type,
+          inferred_profession: analysis.profession,
+          inferred_specialty: analysis.specialty,
+          inferred_location: analysis.location,
+          inferred_workplace: analysis.workplace,
+          confidence_score: analysis.confidence,
+          lead_score: analysis.leadScore,
+          lead_score_explanation: analysis.leadScoreExplanation,
+          lead_score_factors: analysis.leadScoreFactors,
+          status: "analyzed",
+          analyzed_at: new Date().toISOString(),
+        };
+
+        // Auto-enrich Instagram profiles
+        if (canEnrichInstagram && platform === "instagram") {
+          try {
+            const enrichedData = await enrichInstagramProfile(profile.profileUrl, RAPIDAPI_KEY);
+            if (enrichedData) {
+              profileData.instagram_followers_count = enrichedData.followersCount;
+              profileData.instagram_following_count = enrichedData.followingCount;
+              profileData.instagram_posts_count = enrichedData.postsCount;
+              profileData.instagram_full_bio = enrichedData.fullBio;
+              profileData.instagram_external_url = enrichedData.externalUrl;
+              profileData.instagram_category = enrichedData.category;
+              profileData.instagram_is_verified = enrichedData.isVerified;
+              profileData.instagram_is_business = enrichedData.isBusiness;
+              profileData.instagram_enriched_at = new Date().toISOString();
+              profileData.instagram_raw_data = enrichedData.rawData;
+              // Update profile data with enriched values
+              if (enrichedData.fullName) profileData.profile_name = enrichedData.fullName;
+              if (enrichedData.fullBio) profileData.profile_bio = enrichedData.fullBio;
+              if (enrichedData.profilePicUrl) profileData.profile_image_url = enrichedData.profilePicUrl;
+            }
+          } catch (enrichError) {
+            console.error("Error enriching Instagram profile:", profile.profileUrl, enrichError);
+          }
+        }
         
         // Store in database
         const { data: savedProfile, error: saveError } = await supabase
           .from("professional_prospecting_profiles")
-          .upsert({
-            workspace_id: workspaceId,
-            search_id: searchId || null,
-            profile_url: profile.profileUrl,
-            platform: detectPlatform(profile.profileUrl),
-            profile_name: profile.profileName || null,
-            profile_bio: profile.profileBio || null,
-            profile_link: profile.profileLink || null,
-            profile_image_url: profile.profileImageUrl || null,
-            raw_data: profile,
-            ai_analysis: analysis,
-            inferred_type: analysis.type,
-            inferred_profession: analysis.profession,
-            inferred_specialty: analysis.specialty,
-            inferred_location: analysis.location,
-            inferred_workplace: analysis.workplace,
-            confidence_score: analysis.confidence,
-            lead_score: analysis.leadScore,
-            lead_score_explanation: analysis.leadScoreExplanation,
-            lead_score_factors: analysis.leadScoreFactors,
-            status: "analyzed",
-            analyzed_at: new Date().toISOString(),
-          }, {
+          .upsert(profileData, {
             onConflict: "workspace_id,profile_url"
           })
           .select()
@@ -189,6 +221,68 @@ serve(async (req) => {
     );
   }
 });
+
+// Instagram API constants
+const RAPIDAPI_HOST = "instagram-looter2.p.rapidapi.com";
+const RAPIDAPI_URL = `https://${RAPIDAPI_HOST}`;
+
+// Function to enrich Instagram profile with API data
+async function enrichInstagramProfile(profileUrl: string, apiKey: string): Promise<{
+  followersCount: number | null;
+  followingCount: number | null;
+  postsCount: number | null;
+  fullBio: string | null;
+  externalUrl: string | null;
+  category: string | null;
+  isVerified: boolean;
+  isBusiness: boolean;
+  fullName: string | null;
+  profilePicUrl: string | null;
+  rawData: any;
+} | null> {
+  // Extract username from URL
+  const urlMatch = profileUrl.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
+  if (!urlMatch) return null;
+  const username = urlMatch[1];
+
+  try {
+    const url = `${RAPIDAPI_URL}/profile?username=${encodeURIComponent(username)}`;
+    console.log("Enriching Instagram profile:", username);
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "X-RapidAPI-Key": apiKey,
+        "X-RapidAPI-Host": RAPIDAPI_HOST,
+      },
+    });
+
+    if (!response.ok) {
+      console.error("Instagram API error:", response.status);
+      return null;
+    }
+
+    const apiData = await response.json();
+    const profileData = apiData.data || apiData;
+
+    return {
+      followersCount: profileData.follower_count || profileData.edge_followed_by?.count || null,
+      followingCount: profileData.following_count || profileData.edge_follow?.count || null,
+      postsCount: profileData.media_count || profileData.edge_owner_to_timeline_media?.count || null,
+      fullBio: profileData.biography || null,
+      externalUrl: profileData.external_url || null,
+      category: profileData.category_name || profileData.category || null,
+      isVerified: profileData.is_verified || false,
+      isBusiness: profileData.is_business_account || profileData.is_professional_account || false,
+      fullName: profileData.full_name || null,
+      profilePicUrl: profileData.profile_pic_url_hd || profileData.profile_pic_url || null,
+      rawData: profileData,
+    };
+  } catch (error) {
+    console.error("Error fetching Instagram profile:", error);
+    return null;
+  }
+}
 
 function detectPlatform(url: string): string {
   if (url.includes("instagram.com")) return "instagram";
