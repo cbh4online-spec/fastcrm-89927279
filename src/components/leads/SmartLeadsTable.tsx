@@ -334,7 +334,53 @@ export function SmartLeadsTable() {
   };
 
   const handleFilterSelect = (filterId: string) => {
-    setActiveFilterId(filterId === activeFilterId ? undefined : filterId);
+    const newFilterId = filterId === activeFilterId ? undefined : filterId;
+    setActiveFilterId(newFilterId);
+    
+    // Map filter IDs to actual filter values
+    if (!newFilterId) {
+      setFilters({});
+      return;
+    }
+    
+    // Temperature filters
+    if (newFilterId === "temp_hot") {
+      setFilters({ temperature: "hot" });
+    } else if (newFilterId === "temp_warm") {
+      setFilters({ temperature: "warm" });
+    } else if (newFilterId === "temp_cold") {
+      setFilters({ temperature: "cold" });
+    }
+    // Status filters
+    else if (newFilterId === "status_new") {
+      setFilters({ status: "new" });
+    } else if (newFilterId === "status_contacted") {
+      setFilters({ status: "in_progress" });
+    } else if (newFilterId === "status_qualified") {
+      setFilters({ status: "completed" });
+    } else if (newFilterId === "status_proposal") {
+      setFilters({ status: "in_progress" });
+    } else if (newFilterId === "status_lost") {
+      setFilters({ status: "completed" });
+    }
+    // Activity filters - use smart filters
+    else if (newFilterId === "activity_waiting") {
+      setFilters({ smartFilter: "no_response" });
+    } else if (newFilterId === "activity_no_reply") {
+      setFilters({ smartFilter: "no_response" });
+    } else if (newFilterId === "activity_engaged") {
+      setFilters({ smartFilter: "high_intent" });
+    }
+    // Smart filters
+    else if (newFilterId === "smart_hot") {
+      setFilters({ smartFilter: "hot" });
+    } else if (newFilterId === "smart_ready") {
+      setFilters({ smartFilter: "high_intent" });
+    } else if (newFilterId === "smart_nurture") {
+      setFilters({ temperature: "warm" });
+    } else if (newFilterId === "smart_risk") {
+      setFilters({ smartFilter: "no_response" });
+    }
   };
 
   const allSelected = paginatedLeads.length > 0 && paginatedLeads.every(l => selectedIds.has(l.id));
@@ -575,11 +621,11 @@ export function SmartLeadsTable() {
             )}
 
             {/* Table */}
-            <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
-          <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
-            <TableHeader>
-              <TableRow>
-                <TableHead className={cn("w-[40px] whitespace-nowrap", stickyHeaderCheckboxStyles)}>
+            <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0 max-h-[calc(100vh-320px)] overflow-y-auto">
+              <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className={cn("w-[40px] whitespace-nowrap", stickyHeaderCheckboxStyles)}>
                   <Checkbox
                     checked={allSelected}
                     ref={(el) => { if (el) (el as any).indeterminate = someSelected; }}
