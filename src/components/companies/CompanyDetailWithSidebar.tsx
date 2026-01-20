@@ -64,6 +64,7 @@ import { ContactMessagesSection } from "@/components/messages/ContactMessagesSec
 import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
+import { EntityOpportunitiesSection } from "@/components/opportunities/EntityOpportunitiesSection";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -286,6 +287,16 @@ export function CompanyDetailWithSidebar() {
             entityType="company"
             entityId={id!}
             entityName={company.name}
+          />
+        );
+      case 'opportunities':
+        return (
+          <EntityOpportunitiesSection
+            entityType="company"
+            entityId={id!}
+            entityName={company.name}
+            entityIndustry={company.industry || undefined}
+            entityNotes={company.notes || undefined}
           />
         );
       default:
