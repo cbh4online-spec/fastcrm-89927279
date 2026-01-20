@@ -4418,6 +4418,104 @@ export type Database = {
           },
         ]
       }
+      gdpr_consents: {
+        Row: {
+          consent_analytics: boolean | null
+          consent_given_at: string | null
+          consent_marketing: boolean | null
+          consent_necessary: boolean | null
+          consent_updated_at: string | null
+          id: string
+          ip_hash: string | null
+          user_agent: string | null
+          user_id: string | null
+          visitor_id: string
+        }
+        Insert: {
+          consent_analytics?: boolean | null
+          consent_given_at?: string | null
+          consent_marketing?: boolean | null
+          consent_necessary?: boolean | null
+          consent_updated_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          visitor_id: string
+        }
+        Update: {
+          consent_analytics?: boolean | null
+          consent_given_at?: string | null
+          consent_marketing?: boolean | null
+          consent_necessary?: boolean | null
+          consent_updated_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          visitor_id?: string
+        }
+        Relationships: []
+      }
+      growth_settings: {
+        Row: {
+          clarity_project_id: string | null
+          created_at: string | null
+          default_og_image: string | null
+          ga4_measurement_id: string | null
+          gdpr_banner_text: string | null
+          gdpr_enabled: boolean | null
+          gdpr_policy_url: string | null
+          gtm_container_id: string | null
+          id: string
+          meta_pixel_id: string | null
+          sitemap_auto_update: boolean | null
+          social_share_hashtags: string[] | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          clarity_project_id?: string | null
+          created_at?: string | null
+          default_og_image?: string | null
+          ga4_measurement_id?: string | null
+          gdpr_banner_text?: string | null
+          gdpr_enabled?: boolean | null
+          gdpr_policy_url?: string | null
+          gtm_container_id?: string | null
+          id?: string
+          meta_pixel_id?: string | null
+          sitemap_auto_update?: boolean | null
+          social_share_hashtags?: string[] | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          clarity_project_id?: string | null
+          created_at?: string | null
+          default_og_image?: string | null
+          ga4_measurement_id?: string | null
+          gdpr_banner_text?: string | null
+          gdpr_enabled?: boolean | null
+          gdpr_policy_url?: string | null
+          gtm_container_id?: string | null
+          id?: string
+          meta_pixel_id?: string | null
+          sitemap_auto_update?: boolean | null
+          social_share_hashtags?: string[] | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growth_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ig_ai_media_insights: {
         Row: {
           analyzed_at: string | null
@@ -11613,6 +11711,291 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_comparisons: {
+        Row: {
+          content: Json | null
+          created_at: string | null
+          entity_a_id: string | null
+          entity_b_id: string | null
+          id: string
+          meta_description: string | null
+          published_at: string | null
+          schema_markup: Json | null
+          slug: string
+          status: string | null
+          title: string
+          updated_at: string | null
+          views_count: number | null
+          winner: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string | null
+          entity_a_id?: string | null
+          entity_b_id?: string | null
+          id?: string
+          meta_description?: string | null
+          published_at?: string | null
+          schema_markup?: Json | null
+          slug: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          views_count?: number | null
+          winner?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string | null
+          entity_a_id?: string | null
+          entity_b_id?: string | null
+          id?: string
+          meta_description?: string | null
+          published_at?: string | null
+          schema_markup?: Json | null
+          slug?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          views_count?: number | null
+          winner?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_comparisons_entity_a_id_fkey"
+            columns: ["entity_a_id"]
+            isOneToOne: false
+            referencedRelation: "seo_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_comparisons_entity_b_id_fkey"
+            columns: ["entity_b_id"]
+            isOneToOne: false
+            referencedRelation: "seo_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_comparisons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_entities: {
+        Row: {
+          ai_generated_at: string | null
+          ai_quality_score: number | null
+          canonical_url: string | null
+          change_frequency: string | null
+          content: Json | null
+          country: string | null
+          created_at: string | null
+          entity_type: string
+          h1: string | null
+          id: string
+          intent: string | null
+          language: string | null
+          meta_description: string | null
+          og_image: string | null
+          priority: number | null
+          published_at: string | null
+          schema_markup: Json | null
+          slug: string
+          status: string | null
+          title: string
+          tldr: string | null
+          updated_at: string | null
+          views_count: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          ai_generated_at?: string | null
+          ai_quality_score?: number | null
+          canonical_url?: string | null
+          change_frequency?: string | null
+          content?: Json | null
+          country?: string | null
+          created_at?: string | null
+          entity_type: string
+          h1?: string | null
+          id?: string
+          intent?: string | null
+          language?: string | null
+          meta_description?: string | null
+          og_image?: string | null
+          priority?: number | null
+          published_at?: string | null
+          schema_markup?: Json | null
+          slug: string
+          status?: string | null
+          title: string
+          tldr?: string | null
+          updated_at?: string | null
+          views_count?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          ai_generated_at?: string | null
+          ai_quality_score?: number | null
+          canonical_url?: string | null
+          change_frequency?: string | null
+          content?: Json | null
+          country?: string | null
+          created_at?: string | null
+          entity_type?: string
+          h1?: string | null
+          id?: string
+          intent?: string | null
+          language?: string | null
+          meta_description?: string | null
+          og_image?: string | null
+          priority?: number | null
+          published_at?: string | null
+          schema_markup?: Json | null
+          slug?: string
+          status?: string | null
+          title?: string
+          tldr?: string | null
+          updated_at?: string | null
+          views_count?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_entities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_faqs: {
+        Row: {
+          answer: string
+          created_at: string | null
+          entity_id: string | null
+          id: string
+          is_featured: boolean | null
+          position: number | null
+          question: string
+          workspace_id: string | null
+        }
+        Insert: {
+          answer: string
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          is_featured?: boolean | null
+          position?: number | null
+          question: string
+          workspace_id?: string | null
+        }
+        Update: {
+          answer?: string
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          is_featured?: boolean | null
+          position?: number | null
+          question?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_faqs_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "seo_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_faqs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_page_analytics: {
+        Row: {
+          comparison_id: string | null
+          country_code: string | null
+          created_at: string | null
+          device_type: string | null
+          entity_id: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          referrer: string | null
+          session_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          comparison_id?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          entity_id?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          referrer?: string | null
+          session_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          comparison_id?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          entity_id?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          referrer?: string | null
+          session_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_page_analytics_comparison_id_fkey"
+            columns: ["comparison_id"]
+            isOneToOne: false
+            referencedRelation: "seo_comparisons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_page_analytics_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "seo_entities"
             referencedColumns: ["id"]
           },
         ]
