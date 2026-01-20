@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   X, Loader2, User, MapPin, Link as LinkIcon, Instagram, 
   Brain, Save, UserPlus, ExternalLink, CheckCircle2, AlertTriangle,
-  Briefcase, Users, Image as ImageIcon
+  Briefcase, Users, Image as ImageIcon, FolderPlus
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useInstagramLooter } from "@/hooks/useInstagramLooter";
 import { CreateLeadModal } from "./CreateLeadModal";
+import { AddToCollectionModal } from "./AddToCollectionModal";
 import { toast } from "sonner";
 
 interface ProfileDetailPanelProps {
@@ -60,6 +61,8 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showAddToCollection, setShowAddToCollection] = useState(false);
+  const [savedProfileId, setSavedProfileId] = useState<string | null>(null);
   const { getProfile, analyzeProfile, saveProfile } = useInstagramLooter();
 
   useEffect(() => {
@@ -108,9 +111,25 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
   const handleSave = async () => {
     if (!profile) return;
     try {
-      await saveProfile.mutateAsync(profile);
+      const result = await saveProfile.mutateAsync(profile);
+      setSavedProfileId(result.id);
+      return result;
     } catch (error) {
       // Toast already shown by mutation
+      return null;
+    }
+  };
+
+  const handleAddToCollection = async () => {
+    if (!savedProfileId && profile) {
+      // Save first, then open modal
+      const result = await handleSave();
+      if (result) {
+        setSavedProfileId(result.id);
+        setShowAddToCollection(true);
+      }
+    } else {
+      setShowAddToCollection(true);
     }
   };
 
@@ -354,10 +373,9 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
         <Separator />
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
-            className="flex-1"
             onClick={handleSave}
             disabled={saveProfile.isPending}
           >
@@ -365,8 +383,16 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
             Guardar
           </Button>
           <Button
+            variant="outline"
+            onClick={handleAddToCollection}
+            disabled={saveProfile.isPending}
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            Coleção
+          </Button>
+          <Button
             variant="default"
-            className="flex-1"
+            className="col-span-2"
             onClick={() => setShowCreateLead(true)}
           >
             <UserPlus className="h-4 w-4 mr-2" />
@@ -397,6 +423,17 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
             onSuccess={() => {
               toast.success("Lead criado - pode vê-lo na secção de Leads do CRM");
             }}
+          />
+        )}
+
+        {/* Add to Collection Modal */}
+        {savedProfileId && (
+          <AddToCollectionModal
+            open={showAddToCollection}
+            onOpenChange={setShowAddToCollection}
+            itemType="profile"
+            profileId={savedProfileId}
+            itemName={`@${profile.username}`}
           />
         )}
       </CardContent>
