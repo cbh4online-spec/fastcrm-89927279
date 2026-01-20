@@ -143,6 +143,19 @@ export function MarketingSettingsPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Domain Info Banner */}
+          <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
+            <p className="text-sm font-medium">Domínio de Envio</p>
+            <p className="text-sm text-muted-foreground">
+              Todos os emails são enviados de: <code className="bg-background px-1.5 py-0.5 rounded text-xs font-mono">m.fastcrm.metodopare.ai</code>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              O cliente vê a sua marca, não o provedor técnico. DNS e autenticação são geridos automaticamente.
+            </p>
+          </div>
+
+          <Separator />
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="fromName">Nome do Remetente Padrão</Label>
@@ -152,6 +165,9 @@ export function MarketingSettingsPanel() {
                 value={formData.defaultFromName}
                 onChange={(e) => setFormData({ ...formData, defaultFromName: e.target.value })}
               />
+              <p className="text-xs text-muted-foreground">
+                Exemplo: {formData.defaultFromName || 'Nome'} &lt;news@m.fastcrm.metodopare.ai&gt;
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -163,6 +179,9 @@ export function MarketingSettingsPanel() {
                 value={formData.defaultReplyTo}
                 onChange={(e) => setFormData({ ...formData, defaultReplyTo: e.target.value })}
               />
+              <p className="text-xs text-muted-foreground">
+                As respostas dos destinatários serão enviadas para este endereço
+              </p>
             </div>
           </div>
         </CardContent>
@@ -176,25 +195,50 @@ export function MarketingSettingsPanel() {
             Compliance & RGPD
           </CardTitle>
           <CardDescription>
-            Configurações de conformidade legal
+            Configurações de conformidade legal e tracking
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Tracking Info Banner */}
+          <div className="bg-muted/50 border rounded-lg p-4 space-y-3">
+            <p className="text-sm font-medium">Tracking Automático</p>
+            <div className="grid gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                <span><strong>Click tracking:</strong> <code className="bg-background px-1 py-0.5 rounded font-mono">r.fastcrm.metodopare.ai</code></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                <span><strong>Open tracking:</strong> <code className="bg-background px-1 py-0.5 rounded font-mono">u.fastcrm.metodopare.ai</code></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full" />
+                <span><strong>Unsubscribe:</strong> <code className="bg-background px-1 py-0.5 rounded font-mono">u.fastcrm.metodopare.ai/unsub/</code></span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Todos os links são automaticamente rastreados. O footer de unsubscribe é injetado automaticamente.
+            </p>
+          </div>
+
+          <Separator />
+
           <div className="grid gap-2">
-            <Label htmlFor="unsubscribeUrl">URL de Cancelamento de Subscrição</Label>
+            <Label htmlFor="unsubscribeUrl">URL de Cancelamento Personalizada (opcional)</Label>
             <Input
               id="unsubscribeUrl"
-              placeholder="https://empresa.com/unsubscribe"
+              placeholder="https://u.fastcrm.metodopare.ai/unsub/{token}"
               value={formData.unsubscribePageUrl}
               onChange={(e) => setFormData({ ...formData, unsubscribePageUrl: e.target.value })}
+              disabled
             />
             <p className="text-xs text-muted-foreground">
-              Deixa vazio para usar a página padrão do sistema
+              ✓ A página de unsubscribe padrão é gerida automaticamente pelo sistema
             </p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="footer">Rodapé Personalizado</Label>
+            <Label htmlFor="footer">Rodapé Personalizado (adicional)</Label>
             <Textarea
               id="footer"
               placeholder="Texto adicional para o rodapé dos emails..."
@@ -203,7 +247,7 @@ export function MarketingSettingsPanel() {
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
-              Este texto será adicionado automaticamente ao final de todos os emails
+              Este texto será adicionado antes do footer obrigatório (morada + link unsubscribe)
             </p>
           </div>
         </CardContent>
