@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Opportunity } from "@/types/opportunity";
 import {
   Dialog,
@@ -10,34 +10,31 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  User,
-  Building2,
-  DollarSign,
-  Calendar,
-  TrendingUp,
   CheckCircle2,
   XCircle,
   Sparkles,
-  Mail,
-  Phone,
-  ExternalLink,
   Clock,
-  Target,
   AlertTriangle,
   Lightbulb,
   Activity,
   FileText,
-  MessageSquare,
+  User,
+  DollarSign,
+  Calendar,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { useOpportunityDetail, useUpdateOpportunityEnhanced } from "@/hooks/useOpportunitiesEnhanced";
+import { useOpportunityDetail, useUpdateOpportunityEnhanced, usePipelineStagesEnhanced } from "@/hooks/useOpportunitiesEnhanced";
+import { useLeads } from "@/hooks/useLeads";
+import { useContacts } from "@/hooks/useContacts";
+import { useCompanies } from "@/hooks/useCompanies";
 import { toast } from "sonner";
+import { OpportunityDetailsSection } from "./sections/OpportunityDetailsSection";
+import { OpportunityAssociationsSection } from "./sections/OpportunityAssociationsSection";
 
 interface OpportunityDetailDialogProps {
   opportunity: Opportunity;
@@ -56,10 +53,33 @@ export function OpportunityDetailDialog({
 }: OpportunityDetailDialogProps) {
   const { data: opportunity } = useOpportunityDetail(initialOpp.id);
   const updateOpportunity = useUpdateOpportunityEnhanced();
+  const { data: stages = [] } = usePipelineStagesEnhanced();
+  const { data: leads = [], isLoading: isLoadingLeads } = useLeads();
+  const { contacts, isLoading: isLoadingContacts } = useContacts();
+  const { companies, isLoading: isLoadingCompanies } = useCompanies();
   const [notes, setNotes] = useState(initialOpp.notes || "");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const opp = opportunity || initialOpp;
+
+  const handleOpportunityUpdate = async (updates: { id: string } & Record<string, unknown>) => {
+    await updateOpportunity.mutateAsync(updates);
+  };
+
+  const leadOptions = useMemo(() => 
+    leads.map(l => ({ id: l.id, name: l.name, email: l.email, phone: l.phone })),
+    [leads]
+  );
+
+  const contactOptions = useMemo(() => 
+    contacts.map(c => ({ id: c.id, name: c.name, email: c.email, phone: c.phone, company: c.company })),
+    [contacts]
+  );
+
+  const companyOptions = useMemo(() => 
+    companies.map(c => ({ id: c.id, name: c.name, website: c.website })),
+    [companies]
+  );
 
   const formatCurrency = (value: number, currency: string = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
@@ -164,133 +184,32 @@ export function OpportunityDetailDialog({
 
           <ScrollArea className="flex-1 mt-4">
             <TabsContent value="overview" className="space-y-4 m-0">
-              {/* Key Metrics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <DollarSign className="w-4 h-4" />
-                      <span className="text-xs">Valor</span>
-                    </div>
-                    <p className="text-xl font-bold text-primary">
-                      {formatCurrency(Number(opp.value), opp.currency)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-xs">Probabilidade</span>
-                    </div>
-                    <p className="text-xl font-bold">{opp.probability}%</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Target className="w-4 h-4" />
-                      <span className="text-xs">Valor Ponderado</span>
-                    </div>
-                    <p className="text-xl font-bold">
-                      {formatCurrency(Number(opp.value) * opp.probability / 100, opp.currency)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Calendar className="w-4 h-4" />
-                      <span className="text-xs">Data Fecho</span>
-                    </div>
-                    <p className="text-lg font-medium">
-                      {opp.expected_close_date
-                        ? format(new Date(opp.expected_close_date), "d MMM yyyy", { locale: pt })
-                        : "-"}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+              {/* Inline Editable Details */}
+              <OpportunityDetailsSection
+                opportunity={opp}
+                stages={stages}
+                onUpdate={handleOpportunityUpdate}
+              />
 
-              {/* Contact & Company */}
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Contact/Lead */}
-                {(opp.contact || opp.lead) && (
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        {opp.contact ? "Contacto" : "Lead"}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <p className="font-medium">{opp.contact?.name || opp.lead?.name}</p>
-                      {(opp.contact?.email || opp.lead?.email) && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="w-3.5 h-3.5" />
-                          <a 
-                            href={`mailto:${opp.contact?.email || opp.lead?.email}`}
-                            className="hover:text-primary"
-                          >
-                            {opp.contact?.email || opp.lead?.email}
-                          </a>
-                        </div>
-                      )}
-                      {(opp.contact?.phone || opp.lead?.phone) && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="w-3.5 h-3.5" />
-                          <a 
-                            href={`tel:${opp.contact?.phone || opp.lead?.phone}`}
-                            className="hover:text-primary"
-                          >
-                            {opp.contact?.phone || opp.lead?.phone}
-                          </a>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
+              {/* Associations */}
+              <OpportunityAssociationsSection
+                opportunity={opp}
+                leads={leadOptions}
+                contacts={contactOptions}
+                companies={companyOptions}
+                onUpdate={handleOpportunityUpdate}
+                isLoadingLeads={isLoadingLeads}
+                isLoadingContacts={isLoadingContacts}
+                isLoadingCompanies={isLoadingCompanies}
+              />
 
-                {/* Company */}
-                {opp.company && (
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        Empresa
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <p className="font-medium">{opp.company.name}</p>
-                      {opp.company.website && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <a 
-                            href={opp.company.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:text-primary"
-                          >
-                            {opp.company.website}
-                          </a>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-
-              {/* Details */}
+              {/* Additional Details */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Detalhes</CardTitle>
+                  <CardTitle className="text-sm font-medium">Informações Adicionais</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Origem:</span>
-                      <span className="ml-2 font-medium">{opp.source || "-"}</span>
-                    </div>
                     <div>
                       <span className="text-muted-foreground">Criada em:</span>
                       <span className="ml-2 font-medium">
