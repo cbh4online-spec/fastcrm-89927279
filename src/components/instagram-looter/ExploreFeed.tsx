@@ -1,0 +1,134 @@
+import { useState } from "react";
+import { Compass, Loader2, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useInstagramLooter } from "@/hooks/useInstagramLooter";
+import { toast } from "sonner";
+
+const EXPLORE_CATEGORIES = [
+  { id: "dentista", label: "Dentistas", icon: "🦷" },
+  { id: "ortodontia", label: "Ortodontia", icon: "😁" },
+  { id: "cabeleireiro", label: "Cabeleireiros", icon: "💇" },
+  { id: "esteticista", label: "Esteticistas", icon: "💅" },
+  { id: "clinica dental", label: "Clínicas Dentais", icon: "🏥" },
+  { id: "salao beleza", label: "Salões de Beleza", icon: "💄" },
+];
+
+export function ExploreFeed() {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [results, setResults] = useState<any[]>([]);
+  const { isLoading, searchUsers } = useInstagramLooter();
+
+  const handleExplore = async (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    
+    try {
+      const response = await searchUsers(categoryId);
+      setResults(response.results);
+      
+      if (response.results.length === 0) {
+        toast.info("Nenhum resultado encontrado");
+      } else {
+        toast.success(`${response.results.length} perfis encontrados`);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro na pesquisa");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Categories */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Explorar por Categoria
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {EXPLORE_CATEGORIES.map((category) => (
+              <Button
+                key={category.id}
+                variant={selectedCategory === category.id ? "default" : "outline"}
+                className="h-auto py-4 flex flex-col gap-2"
+                onClick={() => handleExplore(category.id)}
+                disabled={isLoading}
+              >
+                <span className="text-2xl">{category.icon}</span>
+                <span className="text-sm">{category.label}</span>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Loading */}
+      {isLoading && (
+        <Card>
+          <CardContent className="py-12 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3">A explorar...</span>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Results */}
+      {!isLoading && selectedCategory && results.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">
+              Resultados para "{selectedCategory}" ({results.length})
+            </h3>
+            <Badge variant="secondary">
+              Limitado a 50 resultados
+            </Badge>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {results.slice(0, 50).map((result: any) => (
+              <Card key={result.pk} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <img
+                      src={result.profile_pic_url}
+                      alt={result.username}
+                      className="h-12 w-12 rounded-full object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">@{result.username}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {result.full_name || "—"}
+                      </p>
+                      {result.follower_count && (
+                        <p className="text-xs text-muted-foreground">
+                          {result.follower_count.toLocaleString()} seguidores
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!selectedCategory && (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <Compass className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Explore o Feed</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Selecione uma categoria acima para descobrir perfis relevantes.
+              Esta é uma forma rápida de pesquisa e descoberta.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
