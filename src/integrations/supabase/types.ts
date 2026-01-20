@@ -1498,6 +1498,93 @@ export type Database = {
           },
         ]
       }
+      client_requirements: {
+        Row: {
+          category: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          opportunity_id: string | null
+          priority: string | null
+          requirements: Json
+          status: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          priority?: string | null
+          requirements?: Json
+          status?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          priority?: string | null
+          requirements?: Json
+          status?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_requirements_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_requirements_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_requirements_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_requirements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_templates: {
         Row: {
           body: string
@@ -1619,6 +1706,7 @@ export type Database = {
           payment_conditions: string | null
           phone: string | null
           postal_code: string | null
+          preferred_currency: string | null
           preferred_payment_method: string | null
           price_level: string | null
           region: string | null
@@ -1686,6 +1774,7 @@ export type Database = {
           payment_conditions?: string | null
           phone?: string | null
           postal_code?: string | null
+          preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_level?: string | null
           region?: string | null
@@ -1753,6 +1842,7 @@ export type Database = {
           payment_conditions?: string | null
           phone?: string | null
           postal_code?: string | null
+          preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_level?: string | null
           region?: string | null
@@ -2544,6 +2634,7 @@ export type Database = {
           payment_conditions: string | null
           phone: string | null
           postal_code: string | null
+          preferred_currency: string | null
           preferred_payment_method: string | null
           sales_2023: number | null
           sales_2024: number | null
@@ -2613,6 +2704,7 @@ export type Database = {
           payment_conditions?: string | null
           phone?: string | null
           postal_code?: string | null
+          preferred_currency?: string | null
           preferred_payment_method?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
@@ -2682,6 +2774,7 @@ export type Database = {
           payment_conditions?: string | null
           phone?: string | null
           postal_code?: string | null
+          preferred_currency?: string | null
           preferred_payment_method?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
