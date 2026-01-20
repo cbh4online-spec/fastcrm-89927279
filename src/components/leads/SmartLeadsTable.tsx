@@ -85,6 +85,7 @@ import {
   LoadingSpinner,
   TableSkeleton,
 } from "@/components/design-system";
+import { EntityAutomationsSection } from "@/components/automations/EntityAutomationsSection";
 
 // Column configurations for leads table - ALL form fields
 const LEAD_COLUMNS: ColumnConfig[] = [
@@ -531,27 +532,50 @@ export function SmartLeadsTable() {
           className="mt-4"
         />
 
-        {/* Bulk Actions */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
-            <span className="text-sm text-muted-foreground">{selectedIds.size} selecionado(s)</span>
-            <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}>
-              <Sparkles className="w-4 h-4 mr-2" />Analisar com IA
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleBulkAnalyzeLinkedIn} disabled={bulkAnalyzeLinkedIn.isPending}>
-              <Linkedin className="w-4 h-4 mr-2" />Analisar LinkedIn
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />Exportar
-            </Button>
-            <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
-              <Trash2 className="w-4 h-4 mr-2" />Eliminar
-            </Button>
+        {/* Tab Content */}
+        {activeTab === "automations" ? (
+          <div className="mt-4 flex-1">
+            <EntityAutomationsSection entityType="lead" showHeader={false} />
           </div>
-        )}
+        ) : activeTab === "smart-lists" ? (
+          <div className="mt-4 flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="text-center py-12">
+              <Target className="w-12 h-12 mx-auto mb-4 opacity-20" />
+              <p className="font-medium">Listas Inteligentes</p>
+              <p className="text-sm mt-1">Funcionalidade em desenvolvimento</p>
+            </div>
+          </div>
+        ) : activeTab === "import" ? (
+          <div className="mt-4 flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="text-center py-12">
+              <Download className="w-12 h-12 mx-auto mb-4 opacity-20" />
+              <p className="font-medium">Importar Leads</p>
+              <p className="text-sm mt-1">Funcionalidade em desenvolvimento</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Bulk Actions */}
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
+                <span className="text-sm text-muted-foreground">{selectedIds.size} selecionado(s)</span>
+                <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}>
+                  <Sparkles className="w-4 h-4 mr-2" />Analisar com IA
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleBulkAnalyzeLinkedIn} disabled={bulkAnalyzeLinkedIn.isPending}>
+                  <Linkedin className="w-4 h-4 mr-2" />Analisar LinkedIn
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExport}>
+                  <Download className="w-4 h-4 mr-2" />Exportar
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
+                  <Trash2 className="w-4 h-4 mr-2" />Eliminar
+                </Button>
+              </div>
+            )}
 
-        {/* Table */}
-        <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
+            {/* Table */}
+            <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
           <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
             <TableHeader>
               <TableRow>
@@ -789,6 +813,8 @@ export function SmartLeadsTable() {
               </div>
             </div>
           </div>
+        )}
+          </>
         )}
 
         {/* Dialogs */}
