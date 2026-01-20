@@ -1,16 +1,17 @@
+import { useState } from "react";
 import { SettingsSection, SettingsItem } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   Shield,
   History,
   Key,
-  UserCog,
-  Lock,
   Fingerprint,
   FileKey,
 } from "lucide-react";
+import { ObjectPermissionsDialog } from "../security/ObjectPermissionsDialog";
+import { FieldPermissionsDialog } from "../security/FieldPermissionsDialog";
+import { IPRestrictionsDialog } from "../security/IPRestrictionsDialog";
 
 interface SecuritySettingsProps {
   searchQuery?: string;
@@ -21,6 +22,10 @@ export function SecuritySettings({ searchQuery = "", matchedSections }: Security
   const { plan } = useSubscription();
   const isAgency = plan === "agency";
   const hasSearch = searchQuery.trim().length > 0;
+
+  const [objectPermissionsOpen, setObjectPermissionsOpen] = useState(false);
+  const [fieldPermissionsOpen, setFieldPermissionsOpen] = useState(false);
+  const [ipRestrictionsOpen, setIPRestrictionsOpen] = useState(false);
 
   const shouldShow = (sectionId: string) => {
     if (!hasSearch || !matchedSections) return true;
@@ -41,17 +46,29 @@ export function SecuritySettings({ searchQuery = "", matchedSections }: Security
         <SettingsItem
           title="Permissões por Objeto"
           description="Controlar acesso a registos específicos"
-          action={<Button variant="outline">Configurar</Button>}
+          action={
+            <Button variant="outline" onClick={() => setObjectPermissionsOpen(true)}>
+              Configurar
+            </Button>
+          }
         />
         <SettingsItem
           title="Permissões por Campo"
           description="Definir quem pode ver/editar cada campo"
-          action={<Button variant="outline">Configurar</Button>}
+          action={
+            <Button variant="outline" onClick={() => setFieldPermissionsOpen(true)}>
+              Configurar
+            </Button>
+          }
         />
         <SettingsItem
           title="Restrições por IP"
           description="Limitar acesso a IPs específicos"
-          action={<Button variant="outline">Configurar</Button>}
+          action={
+            <Button variant="outline" onClick={() => setIPRestrictionsOpen(true)}>
+              Configurar
+            </Button>
+          }
         />
       </SettingsSection>
 
@@ -149,6 +166,20 @@ export function SecuritySettings({ searchQuery = "", matchedSections }: Security
           action={<Button variant="outline">Exportar</Button>}
         />
       </SettingsSection>
+
+      {/* Dialogs */}
+      <ObjectPermissionsDialog
+        open={objectPermissionsOpen}
+        onOpenChange={setObjectPermissionsOpen}
+      />
+      <FieldPermissionsDialog
+        open={fieldPermissionsOpen}
+        onOpenChange={setFieldPermissionsOpen}
+      />
+      <IPRestrictionsDialog
+        open={ipRestrictionsOpen}
+        onOpenChange={setIPRestrictionsOpen}
+      />
     </div>
   );
 }

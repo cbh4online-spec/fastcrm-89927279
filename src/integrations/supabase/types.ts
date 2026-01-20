@@ -3743,6 +3743,47 @@ export type Database = {
           },
         ]
       }
+      field_permissions: {
+        Row: {
+          created_at: string
+          field_key: string
+          id: string
+          object_key: string
+          permission_level: string
+          role: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          field_key: string
+          id?: string
+          object_key: string
+          permission_level?: string
+          role: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          field_key?: string
+          id?: string
+          object_key?: string
+          permission_level?: string
+          role?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_permissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_builder_submissions: {
         Row: {
           ai_score: number | null
@@ -5008,6 +5049,44 @@ export type Database = {
           },
           {
             foreignKeyName: "invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ip_restrictions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          ip_address: string
+          is_active: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          ip_address: string
+          is_active?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          ip_address?: string
+          is_active?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ip_restrictions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -8422,6 +8501,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "module_usage_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_permissions: {
+        Row: {
+          allowed: boolean
+          created_at: string
+          id: string
+          object_key: string
+          permission_key: string
+          role: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          object_key: string
+          permission_key: string
+          role: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          object_key?: string
+          permission_key?: string
+          role?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_permissions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -12135,6 +12255,38 @@ export type Database = {
             foreignKeyName: "workspace_overrides_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_settings: {
+        Row: {
+          created_at: string
+          id: string
+          ip_restrictions_enabled: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_restrictions_enabled?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_restrictions_enabled?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
