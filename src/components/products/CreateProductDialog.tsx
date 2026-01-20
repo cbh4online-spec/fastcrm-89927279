@@ -32,6 +32,7 @@ import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/prod
 import { AIProductAssistant } from "./AIProductAssistant";
 import { SKUSearchPanel } from "./SKUSearchPanel";
 import { ProductImageGenerator } from "./ProductImageGenerator";
+import { ProductImageGalleryManager } from "./ProductImageGalleryManager";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
 
 const DRAFT_STORAGE_KEY = "product-form-draft";
@@ -95,6 +96,7 @@ export function CreateProductDialog({
   const [showConsumption, setShowConsumption] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(true);
   const [productImages, setProductImages] = useState<string[]>([]);
+  const [skuFoundImages, setSkuFoundImages] = useState<string[]>([]);
   const [hasDraft, setHasDraft] = useState(false);
 
   const createProduct = useCreateProduct();
@@ -270,6 +272,7 @@ export function CreateProductDialog({
     setIsTrackable(true);
     setShowConsumption(false);
     setProductImages([]);
+    setSkuFoundImages([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -338,18 +341,25 @@ export function CreateProductDialog({
     if (data.description) setShortDescription(data.description);
     if (data.category) setCategory(data.category);
     if (data.images && data.images.length > 0) {
-      setProductImages(prev => {
-        const newImages = data.images!.filter(img => !prev.includes(img));
-        return [...prev, ...newImages].slice(0, 5);
+      // Store found images for gallery selection
+      setSkuFoundImages(prev => {
+        const allImages = [...prev, ...data.images!];
+        return [...new Set(allImages)];
       });
     }
   };
 
   const handleApplyImages = (images: string[]) => {
-    setProductImages(prev => {
-      const newImages = images.filter(img => !prev.includes(img));
-      return [...prev, ...newImages].slice(0, 5);
+    // Store found images for gallery selection
+    setSkuFoundImages(prev => {
+      const allImages = [...prev, ...images];
+      return [...new Set(allImages)];
     });
+  };
+
+  const handleSkuImagesFound = (images: string[]) => {
+    // Store SKU found images without auto-applying
+    setSkuFoundImages(images);
   };
 
   return (
@@ -538,14 +548,22 @@ export function CreateProductDialog({
                 />
               </div>
 
-              {/* Product Images */}
+              {/* Product Images Gallery */}
+              <ProductImageGalleryManager
+                images={productImages}
+                onImagesChange={setProductImages}
+                skuImages={skuFoundImages}
+                maxImages={10}
+              />
+
+              {/* AI Image Generator */}
               <ProductImageGenerator
                 productName={name}
                 category={category}
                 description={shortDescription}
                 images={productImages}
                 onImagesChange={setProductImages}
-                maxImages={5}
+                maxImages={10}
               />
 
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
@@ -819,6 +837,7 @@ export function CreateProductDialog({
                     onApplyDescription={handleApplyDescription}
                     onApplyCategory={handleApplyCategory}
                     onApplyImages={handleApplyImages}
+                    onImagesFound={handleSkuImagesFound}
                     onApplyAll={handleApplyAll}
                   />
                 </CollapsibleContent>
