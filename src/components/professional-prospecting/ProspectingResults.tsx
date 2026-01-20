@@ -168,6 +168,19 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
 
       const enrichedNotes = noteParts.join("\n");
 
+      // Build comprehensive ai_insight including enriched data
+      const aiInsightParts: string[] = [];
+      aiInsightParts.push(`Profissão: ${profile.inferred_profession || "N/A"}`);
+      aiInsightParts.push(`Especialidade: ${profile.inferred_specialty || "N/A"}`);
+      aiInsightParts.push(`Score: ${profile.lead_score || 0}/100`);
+      
+      if (options.includeInstagramData && profile.instagram_followers_count) {
+        aiInsightParts.push(`Seguidores: ${profile.instagram_followers_count.toLocaleString()}`);
+      }
+      
+      // Full insight includes notes as extra context
+      const fullAiInsight = aiInsightParts.join(" | ") + (enrichedNotes ? `\n\n${enrichedNotes}` : "");
+
       // Create lead with enriched data
       const { data: lead, error: leadError } = await supabase
         .from("leads")
@@ -179,9 +192,8 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
           website: profile.profile_url,
           city: profile.inferred_location || null,
           business_category: profile.inferred_profession || null,
-          ai_insight: `Profissão: ${profile.inferred_profession || "N/A"} | Especialidade: ${profile.inferred_specialty || "N/A"} | Score: ${profile.lead_score || 0}/100`,
+          ai_insight: fullAiInsight,
           lead_score: profile.lead_score || null,
-          notes: enrichedNotes,
           tags: options.tags.length > 0 ? options.tags : null,
           assigned_to: user.id,
           created_by: user.id,
