@@ -28,6 +28,7 @@ const SECTION_LABELS: Record<MenuSection, string> = {
   'custom-fields': 'Campos Personalizados',
   'history': 'Histórico',
   'contacts': 'Contactos',
+  'automations': 'Automações',
 };
 
 const ENTITY_LABELS: Record<EntityType, string> = {
