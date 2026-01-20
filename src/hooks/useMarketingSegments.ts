@@ -85,14 +85,14 @@ export function useCreateSegment() {
 
       const { data: result, error } = await supabase
         .from('marketing_segments')
-        .insert({
+        .insert([{
           workspace_id: currentWorkspace.id,
           name: data.name,
           description: data.description,
-          filter_rules: data.filterRules as unknown as Record<string, unknown>,
+          filter_rules: JSON.parse(JSON.stringify(data.filterRules)),
           is_dynamic: data.isDynamic ?? true,
           created_by: user.user.id,
-        })
+        }])
         .select()
         .single();
 
