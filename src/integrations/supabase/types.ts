@@ -5946,6 +5946,8 @@ export type Database = {
       }
       marketing_campaigns: {
         Row: {
+          ai_insights: Json | null
+          ai_insights_generated_at: string | null
           body_html: string
           body_text: string | null
           bounced_count: number | null
@@ -5957,12 +5959,14 @@ export type Database = {
           delivered_count: number | null
           from_name: string
           id: string
+          link_count: number | null
           name: string
           opened_count: number | null
           preview_text: string | null
           reply_to: string | null
           scheduled_at: string | null
           segment_id: string | null
+          send_hour: number | null
           sent_count: number | null
           started_at: string | null
           status: string
@@ -5974,6 +5978,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          ai_insights?: Json | null
+          ai_insights_generated_at?: string | null
           body_html: string
           body_text?: string | null
           bounced_count?: number | null
@@ -5985,12 +5991,14 @@ export type Database = {
           delivered_count?: number | null
           from_name: string
           id?: string
+          link_count?: number | null
           name: string
           opened_count?: number | null
           preview_text?: string | null
           reply_to?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
+          send_hour?: number | null
           sent_count?: number | null
           started_at?: string | null
           status?: string
@@ -6002,6 +6010,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          ai_insights?: Json | null
+          ai_insights_generated_at?: string | null
           body_html?: string
           body_text?: string | null
           bounced_count?: number | null
@@ -6013,12 +6023,14 @@ export type Database = {
           delivered_count?: number | null
           from_name?: string
           id?: string
+          link_count?: number | null
           name?: string
           opened_count?: number | null
           preview_text?: string | null
           reply_to?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
+          send_hour?: number | null
           sent_count?: number | null
           started_at?: string | null
           status?: string
@@ -6167,6 +6179,7 @@ export type Database = {
       }
       marketing_recipients: {
         Row: {
+          bounce_code: string | null
           bounce_reason: string | null
           bounce_type: string | null
           bounced_at: string | null
@@ -6189,6 +6202,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          bounce_code?: string | null
           bounce_reason?: string | null
           bounce_type?: string | null
           bounced_at?: string | null
@@ -6211,6 +6225,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          bounce_code?: string | null
           bounce_reason?: string | null
           bounce_type?: string | null
           bounced_at?: string | null
@@ -6314,43 +6329,76 @@ export type Database = {
         Row: {
           active_campaigns_limit: number | null
           active_contacts_limit: number | null
+          bounce_rate: number | null
+          complaint_rate: number | null
           created_at: string
           custom_footer: string | null
+          daily_campaigns_limit: number | null
+          daily_email_limit: number | null
           default_from_name: string | null
           default_reply_to: string | null
+          health_score: number | null
           id: string
           is_enabled: boolean | null
+          kill_switch: boolean | null
+          kill_switch_reason: string | null
+          last_health_check: string | null
           monthly_email_limit: number | null
           unsubscribe_page_url: string | null
           updated_at: string
+          warmup_days_completed: number | null
+          warmup_enabled: boolean | null
+          warmup_started_at: string | null
           workspace_id: string
         }
         Insert: {
           active_campaigns_limit?: number | null
           active_contacts_limit?: number | null
+          bounce_rate?: number | null
+          complaint_rate?: number | null
           created_at?: string
           custom_footer?: string | null
+          daily_campaigns_limit?: number | null
+          daily_email_limit?: number | null
           default_from_name?: string | null
           default_reply_to?: string | null
+          health_score?: number | null
           id?: string
           is_enabled?: boolean | null
+          kill_switch?: boolean | null
+          kill_switch_reason?: string | null
+          last_health_check?: string | null
           monthly_email_limit?: number | null
           unsubscribe_page_url?: string | null
           updated_at?: string
+          warmup_days_completed?: number | null
+          warmup_enabled?: boolean | null
+          warmup_started_at?: string | null
           workspace_id: string
         }
         Update: {
           active_campaigns_limit?: number | null
           active_contacts_limit?: number | null
+          bounce_rate?: number | null
+          complaint_rate?: number | null
           created_at?: string
           custom_footer?: string | null
+          daily_campaigns_limit?: number | null
+          daily_email_limit?: number | null
           default_from_name?: string | null
           default_reply_to?: string | null
+          health_score?: number | null
           id?: string
           is_enabled?: boolean | null
+          kill_switch?: boolean | null
+          kill_switch_reason?: string | null
+          last_health_check?: string | null
           monthly_email_limit?: number | null
           unsubscribe_page_url?: string | null
           updated_at?: string
+          warmup_days_completed?: number | null
+          warmup_enabled?: boolean | null
+          warmup_started_at?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -6485,6 +6533,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "marketing_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_tenant_health: {
+        Row: {
+          alerts_triggered: Json | null
+          bounce_rate: number | null
+          check_date: string
+          complaint_rate: number | null
+          created_at: string
+          hard_bounces: number | null
+          health_score: number | null
+          id: string
+          soft_bounces: number | null
+          total_bounced: number | null
+          total_complained: number | null
+          total_delivered: number | null
+          total_sent: number | null
+          workspace_id: string
+        }
+        Insert: {
+          alerts_triggered?: Json | null
+          bounce_rate?: number | null
+          check_date?: string
+          complaint_rate?: number | null
+          created_at?: string
+          hard_bounces?: number | null
+          health_score?: number | null
+          id?: string
+          soft_bounces?: number | null
+          total_bounced?: number | null
+          total_complained?: number | null
+          total_delivered?: number | null
+          total_sent?: number | null
+          workspace_id: string
+        }
+        Update: {
+          alerts_triggered?: Json | null
+          bounce_rate?: number | null
+          check_date?: string
+          complaint_rate?: number | null
+          created_at?: string
+          hard_bounces?: number | null
+          health_score?: number | null
+          id?: string
+          soft_bounces?: number | null
+          total_bounced?: number | null
+          total_complained?: number | null
+          total_delivered?: number | null
+          total_sent?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_tenant_health_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

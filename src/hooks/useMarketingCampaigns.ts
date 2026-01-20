@@ -33,6 +33,11 @@ function mapCampaign(row: any): MarketingCampaign {
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    // AI Insights
+    aiInsights: row.ai_insights,
+    aiInsightsGeneratedAt: row.ai_insights_generated_at,
+    sendHour: row.send_hour,
+    linkCount: row.link_count,
   };
 }
 
