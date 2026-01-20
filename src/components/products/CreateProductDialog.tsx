@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle } from "lucide-react";
+import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle, Save } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +72,13 @@ interface ProductFormDraft {
   typicalDurationDays: string;
   isTrackable: boolean;
   productImages: string[];
+  specifications: Record<string, string>;
+  demoVideoUrl: string;
+  laborHours: number;
+  laborHourlyRate: number | null;
+  laborIncludedInPrice: boolean;
+  laborNotes: string;
+  skuFoundImages: string[];
   savedAt: number;
 }
 
@@ -116,6 +123,7 @@ export function CreateProductDialog({
   const [isSpecsAutoFilled, setIsSpecsAutoFilled] = useState(false);
   const [demoVideoUrl, setDemoVideoUrl] = useState("");
   const [hasDraft, setHasDraft] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   // Labor config
   const [laborHours, setLaborHours] = useState(0);
   const [laborHourlyRate, setLaborHourlyRate] = useState<number | null>(null);
@@ -141,13 +149,14 @@ export function CreateProductDialog({
   const contributionMargin = price - cost - opCost;
   const contributionMarginPct = price > 0 ? (contributionMargin / price) * 100 : 0;
 
-  // Save draft to sessionStorage whenever form changes (only for new products)
+  // Save draft to localStorage whenever form changes (only for new products)
   const saveDraft = useCallback(() => {
     if (isEditing) return;
     
     const hasContent = name || sku || basePrice || shortDescription || category;
     if (!hasContent) return;
     
+    const now = Date.now();
     const draft: ProductFormDraft = {
       name,
       productType,
@@ -169,15 +178,25 @@ export function CreateProductDialog({
       typicalDurationDays,
       isTrackable,
       productImages,
-      savedAt: Date.now(),
+      specifications,
+      demoVideoUrl,
+      laborHours,
+      laborHourlyRate,
+      laborIncludedInPrice,
+      laborNotes,
+      skuFoundImages,
+      savedAt: now,
     };
     
-    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    setDraftSavedAt(now);
   }, [
     isEditing, name, productType, category, basePrice, currency, billingType,
     shortDescription, sku, directCost, operationalCost, commissionDefault,
     taxRateEstimate, targetMargin, bundlePriceMode, consumptionModel,
-    includedQuantity, recommendedFrequency, typicalDurationDays, isTrackable, productImages
+    includedQuantity, recommendedFrequency, typicalDurationDays, isTrackable, 
+    productImages, specifications, demoVideoUrl, laborHours, laborHourlyRate,
+    laborIncludedInPrice, laborNotes, skuFoundImages
   ]);
 
   // Load draft or product data on open
@@ -233,8 +252,8 @@ export function CreateProductDialog({
       setLaborNotes(product.labor_notes || "");
       setHasDraft(false);
     } else {
-      // Try to load draft
-      const savedDraft = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+      // Try to load draft from localStorage
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (savedDraft) {
         try {
           const draft: ProductFormDraft = JSON.parse(savedDraft);
@@ -260,6 +279,15 @@ export function CreateProductDialog({
             setTypicalDurationDays(draft.typicalDurationDays);
             setIsTrackable(draft.isTrackable);
             setProductImages(draft.productImages || []);
+            // Restore new fields
+            setSpecifications(draft.specifications || {});
+            setDemoVideoUrl(draft.demoVideoUrl || "");
+            setLaborHours(draft.laborHours || 0);
+            setLaborHourlyRate(draft.laborHourlyRate || null);
+            setLaborIncludedInPrice(draft.laborIncludedInPrice ?? true);
+            setLaborNotes(draft.laborNotes || "");
+            setSkuFoundImages(draft.skuFoundImages || []);
+            setDraftSavedAt(draft.savedAt);
             setHasDraft(true);
             return;
           }
@@ -270,6 +298,7 @@ export function CreateProductDialog({
       // No valid draft, reset form
       resetForm();
       setHasDraft(false);
+      setDraftSavedAt(null);
     }
   }, [product, open]);
 
@@ -280,9 +309,44 @@ export function CreateProductDialog({
     return () => clearTimeout(timeout);
   }, [open, saveDraft, isEditing]);
 
+  // Save immediately when tab becomes hidden or window loses focus
+  useEffect(() => {
+    if (!open || isEditing) return;
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        saveDraft();
+      }
+    };
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      saveDraft();
+      const hasContent = name || sku || basePrice;
+      if (hasContent) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    
+    const handleBlur = () => {
+      saveDraft();
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('blur', handleBlur);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [open, isEditing, saveDraft, name, sku, basePrice]);
+
   const clearDraft = () => {
-    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
     setHasDraft(false);
+    setDraftSavedAt(null);
     resetForm();
   };
 
@@ -366,8 +430,9 @@ export function CreateProductDialog({
     }
 
     // Clear draft after successful save
-    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
     setHasDraft(false);
+    setDraftSavedAt(null);
     setShowCostWarning(false);
     onOpenChange(false);
   };
@@ -482,18 +547,26 @@ export function CreateProductDialog({
               )}
               {isEditing ? "Editar Produto" : "Criar Produto"}
             </DialogTitle>
-            {hasDraft && !isEditing && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground hover:text-destructive"
-                onClick={clearDraft}
-              >
-                <Trash2 className="h-3 w-3 mr-1" />
-                Limpar rascunho
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {hasDraft && !isEditing && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground hover:text-destructive"
+                  onClick={clearDraft}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Limpar rascunho
+                </Button>
+              )}
+              {draftSavedAt && !isEditing && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Save className="h-3 w-3" />
+                  Guardado ✓
+                </span>
+              )}
+            </div>
           </div>
           {hasDraft && !isEditing && (
             <p className="text-xs text-muted-foreground mt-1">
