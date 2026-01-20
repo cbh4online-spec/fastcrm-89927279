@@ -1,15 +1,25 @@
 import { useEffect } from "react";
-import { useNavigate, Outlet, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Hash, MapPin, Compass, FolderOpen, UserPlus, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useInstagramLooter } from "@/hooks/useInstagramLooter";
 
+// Tab Components
+import { GlobalSearch } from "@/components/instagram-looter/GlobalSearch";
+import { HashtagSearch } from "@/components/instagram-looter/HashtagSearch";
+import { LocationSearch } from "@/components/instagram-looter/LocationSearch";
+import { ExploreFeed } from "@/components/instagram-looter/ExploreFeed";
+import { Collections } from "@/components/instagram-looter/Collections";
+import { LeadsTab } from "@/components/instagram-looter/LeadsTab";
+import { LooterSettings } from "@/components/instagram-looter/LooterSettings";
+
 export default function InstagramLooterPage() {
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const location = useLocation();
+  const { tab } = useParams<{ tab?: string }>();
   const { isMetodopare, todayUsage } = useInstagramLooter();
 
   // Redirect if not metodopare workspace
@@ -32,17 +42,7 @@ export default function InstagramLooterPage() {
     );
   }
 
-  const currentPath = location.pathname;
-  const getCurrentTab = () => {
-    if (currentPath.includes("/search")) return "search";
-    if (currentPath.includes("/hashtag")) return "hashtag";
-    if (currentPath.includes("/location")) return "location";
-    if (currentPath.includes("/explore")) return "explore";
-    if (currentPath.includes("/collections")) return "collections";
-    if (currentPath.includes("/leads")) return "leads";
-    if (currentPath.includes("/settings")) return "settings";
-    return "search";
-  };
+  const currentTab = tab || "search";
 
   const handleTabChange = (value: string) => {
     navigate(`/dashboard/instagram-looter/${value}`);
@@ -51,6 +51,27 @@ export default function InstagramLooterPage() {
   const dailyLimit = 200;
   const usedToday = todayUsage?.actions_count || 0;
   const remainingActions = dailyLimit - usedToday;
+
+  const renderTabContent = () => {
+    switch (currentTab) {
+      case "search":
+        return <GlobalSearch />;
+      case "hashtag":
+        return <HashtagSearch />;
+      case "location":
+        return <LocationSearch />;
+      case "explore":
+        return <ExploreFeed />;
+      case "collections":
+        return <Collections />;
+      case "leads":
+        return <LeadsTab />;
+      case "settings":
+        return <LooterSettings />;
+      default:
+        return <GlobalSearch />;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -74,7 +95,7 @@ export default function InstagramLooterPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <Tabs value={getCurrentTab()} onValueChange={handleTabChange}>
+      <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList className="grid grid-cols-7 w-full max-w-4xl">
           <TabsTrigger value="search" className="flex items-center gap-2">
             <Search className="h-4 w-4" />
@@ -109,7 +130,7 @@ export default function InstagramLooterPage() {
 
       {/* Content */}
       <div className="min-h-[60vh]">
-        <Outlet />
+        {renderTabContent()}
       </div>
     </div>
   );
