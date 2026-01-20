@@ -30,6 +30,62 @@ interface AnalysisResult {
   };
 }
 
+interface ExtractedContacts {
+  email: string | null;
+  phone: string | null;
+  source: "bio" | "external_link" | "website" | null;
+}
+
+// Extract email and phone from text using regex
+function extractContactsFromText(text: string | null | undefined): { email: string | null; phone: string | null } {
+  if (!text) return { email: null, phone: null };
+  
+  // Email regex - common patterns
+  const emailMatch = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,})/i);
+  
+  // Portuguese phone patterns:
+  // +351 xxx xxx xxx, +351xxxxxxxxx, 9xxxxxxxx, 2xxxxxxxx
+  // Also international: +xx xxx xxx xxx
+  const phonePatterns = [
+    /(?:\+351\s?)?(?:9[1-9]\d|2[1-9]\d)\s?\d{3}\s?\d{3}/g,  // PT format with optional +351
+    /\+351\s?\d{3}\s?\d{3}\s?\d{3}/g,                       // +351 format
+    /(?:\+\d{1,3}\s?)?\d{3}[\s.-]?\d{3}[\s.-]?\d{3,4}/g,    // International format
+  ];
+  
+  let phone: string | null = null;
+  for (const pattern of phonePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      // Clean and normalize phone number
+      phone = match[0].replace(/[\s.-]/g, "").replace(/^\+/, "+");
+      break;
+    }
+  }
+  
+  return {
+    email: emailMatch?.[1] || null,
+    phone,
+  };
+}
+
+// Extract contacts from WhatsApp links
+function extractWhatsAppNumber(url: string | null | undefined): string | null {
+  if (!url) return null;
+  
+  // WhatsApp link patterns: wa.me/XXXXX, api.whatsapp.com/send?phone=XXXXX
+  const waMatch = url.match(/wa\.me\/(\+?\d+)/i) || 
+                  url.match(/whatsapp\.com\/send\?phone=(\+?\d+)/i) ||
+                  url.match(/api\.whatsapp\.com\/.*phone=(\+?\d+)/i);
+  
+  if (waMatch) {
+    const number = waMatch[1];
+    // Add + if not present
+    return number.startsWith("+") ? number : `+${number}`;
+  }
+  
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -131,6 +187,24 @@ serve(async (req) => {
           analyzed_at: new Date().toISOString(),
         };
 
+        // Extract contacts from bio/link
+        let extractedContacts: ExtractedContacts = { email: null, phone: null, source: null };
+        
+        // First try to extract from bio
+        const bioContacts = extractContactsFromText(profile.profileBio);
+        if (bioContacts.email || bioContacts.phone) {
+          extractedContacts = { ...bioContacts, source: "bio" };
+        }
+        
+        // Check for WhatsApp link
+        if (!extractedContacts.phone && profile.profileLink) {
+          const waNumber = extractWhatsAppNumber(profile.profileLink);
+          if (waNumber) {
+            extractedContacts.phone = waNumber;
+            extractedContacts.source = extractedContacts.source || "external_link";
+          }
+        }
+
         // Auto-enrich Instagram profiles
         if (canEnrichInstagram && platform === "instagram") {
           try {
@@ -150,11 +224,46 @@ serve(async (req) => {
               if (enrichedData.fullName) profileData.profile_name = enrichedData.fullName;
               if (enrichedData.fullBio) profileData.profile_bio = enrichedData.fullBio;
               if (enrichedData.profilePicUrl) profileData.profile_image_url = enrichedData.profilePicUrl;
+              
+              // Try to extract contacts from enriched bio (more complete)
+              if (enrichedData.fullBio) {
+                const enrichedBioContacts = extractContactsFromText(enrichedData.fullBio);
+                if (!extractedContacts.email && enrichedBioContacts.email) {
+                  extractedContacts.email = enrichedBioContacts.email;
+                  extractedContacts.source = "bio";
+                }
+                if (!extractedContacts.phone && enrichedBioContacts.phone) {
+                  extractedContacts.phone = enrichedBioContacts.phone;
+                  extractedContacts.source = extractedContacts.source || "bio";
+                }
+              }
+              
+              // Check external URL for WhatsApp
+              if (!extractedContacts.phone && enrichedData.externalUrl) {
+                const waNumber = extractWhatsAppNumber(enrichedData.externalUrl);
+                if (waNumber) {
+                  extractedContacts.phone = waNumber;
+                  extractedContacts.source = extractedContacts.source || "external_link";
+                }
+              }
             }
           } catch (enrichError) {
             console.error("Error enriching Instagram profile:", profile.profileUrl, enrichError);
           }
         }
+        
+        // Add extracted contacts to profile data
+        if (extractedContacts.email) {
+          profileData.extracted_email = extractedContacts.email;
+        }
+        if (extractedContacts.phone) {
+          profileData.extracted_phone = extractedContacts.phone;
+        }
+        if (extractedContacts.source) {
+          profileData.contact_source = extractedContacts.source;
+        }
+        
+        console.log(`Extracted contacts for ${profile.profileName}: email=${extractedContacts.email}, phone=${extractedContacts.phone}`);
         
         // Store in database
         const { data: savedProfile, error: saveError } = await supabase

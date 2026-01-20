@@ -10734,10 +10734,13 @@ export type Database = {
           ai_analysis: Json | null
           analyzed_at: string | null
           confidence_score: number | null
+          contact_source: string | null
           converted_at: string | null
           converted_by: string | null
           converted_lead_id: string | null
           created_at: string
+          extracted_email: string | null
+          extracted_phone: string | null
           id: string
           inferred_location: string | null
           inferred_profession: string | null
@@ -10774,10 +10777,13 @@ export type Database = {
           ai_analysis?: Json | null
           analyzed_at?: string | null
           confidence_score?: number | null
+          contact_source?: string | null
           converted_at?: string | null
           converted_by?: string | null
           converted_lead_id?: string | null
           created_at?: string
+          extracted_email?: string | null
+          extracted_phone?: string | null
           id?: string
           inferred_location?: string | null
           inferred_profession?: string | null
@@ -10814,10 +10820,13 @@ export type Database = {
           ai_analysis?: Json | null
           analyzed_at?: string | null
           confidence_score?: number | null
+          contact_source?: string | null
           converted_at?: string | null
           converted_by?: string | null
           converted_lead_id?: string | null
           created_at?: string
+          extracted_email?: string | null
+          extracted_phone?: string | null
           id?: string
           inferred_location?: string | null
           inferred_profession?: string | null
