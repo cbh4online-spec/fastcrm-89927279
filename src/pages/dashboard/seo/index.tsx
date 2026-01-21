@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,8 @@ export default function SEOAdminPage() {
   const [activeTab, setActiveTab] = useState("content");
 
   return (
-    <DashboardLayout>
+    <ModuleGuard moduleSlug="seo-growth" moduleName="SEO & Growth">
+      <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -81,6 +83,7 @@ export default function SEOAdminPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </ModuleGuard>
   );
 }
