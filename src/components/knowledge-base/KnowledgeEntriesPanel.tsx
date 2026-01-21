@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,44 +17,90 @@ import {
   FileText,
   Clock,
   Search,
-  Filter,
-  Archive
+  Archive,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { ENTRY_STATUS_CONFIG, ENTRY_TYPE_CONFIG } from '@/types/knowledge-base';
+import { ENTRY_STATUS_CONFIG } from '@/types/knowledge-base';
 import type { KnowledgeEntry, EntryStatus } from '@/types/knowledge-base';
 
 interface KnowledgeEntriesPanelProps {
   entries: KnowledgeEntry[];
   isLoading: boolean;
+  knowledgeBaseId?: string;
   onValidate: (entryId: string) => Promise<void>;
   onUpdate: (entryId: string, data: Partial<KnowledgeEntry>) => Promise<void>;
   onDelete: (entryId: string) => Promise<void>;
   onArchive: (entryId: string) => Promise<void>;
+  onSemanticSearch?: (query: string, kbId?: string) => Promise<KnowledgeEntry[]>;
 }
 
 export function KnowledgeEntriesPanel({
   entries,
   isLoading,
+  knowledgeBaseId,
   onValidate,
   onUpdate,
   onDelete,
-  onArchive
+  onArchive,
+  onSemanticSearch
 }: KnowledgeEntriesPanelProps) {
   const [searchValue, setSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState<EntryStatus | 'all'>('all');
   const [editingEntry, setEditingEntry] = useState<KnowledgeEntry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<KnowledgeEntry | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Semantic search state
+  const [searchMode, setSearchMode] = useState<'text' | 'semantic'>('text');
+  const [semanticResults, setSemanticResults] = useState<(KnowledgeEntry & { similarity?: number })[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Edit form state
   const [editTitle, setEditTitle] = useState('');
   const [editQuestion, setEditQuestion] = useState('');
   const [editContent, setEditContent] = useState('');
 
-  const filteredEntries = entries.filter(entry => {
-    const matchesSearch = 
+  // Debounced semantic search
+  useEffect(() => {
+    if (searchMode !== 'semantic' || !searchValue.trim() || !onSemanticSearch) {
+      setSemanticResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await onSemanticSearch(searchValue, knowledgeBaseId);
+        setSemanticResults(results);
+      } catch (error) {
+        console.error('Semantic search error:', error);
+        setSemanticResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchValue, searchMode, knowledgeBaseId, onSemanticSearch]);
+
+  // Reset semantic results when switching modes
+  useEffect(() => {
+    if (searchMode === 'text') {
+      setSemanticResults([]);
+    }
+  }, [searchMode]);
+
+  // Determine which entries to display
+  const displayEntries = searchMode === 'semantic' && searchValue.trim() 
+    ? semanticResults 
+    : entries;
+
+  const filteredEntries = displayEntries.filter(entry => {
+    // Text search filter (only apply if in text mode)
+    const matchesSearch = searchMode === 'semantic' || !searchValue.trim() ||
       entry.title.toLowerCase().includes(searchValue.toLowerCase()) ||
       entry.content.toLowerCase().includes(searchValue.toLowerCase()) ||
       (entry.question?.toLowerCase().includes(searchValue.toLowerCase()));
@@ -97,6 +143,10 @@ export function KnowledgeEntriesPanel({
     setIsSubmitting(false);
   };
 
+  const toggleSearchMode = useCallback(() => {
+    setSearchMode(prev => prev === 'text' ? 'semantic' : 'text');
+  }, []);
+
   const getEntryTypeIcon = (type: string) => {
     return type === 'faq' ? HelpCircle : FileText;
   };
@@ -125,10 +175,10 @@ export function KnowledgeEntriesPanel({
               Entradas ({entries.length})
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-amber-600 bg-amber-50">
+              <Badge variant="outline" className="text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400">
                 {entries.filter(e => e.status === 'draft').length} rascunhos
               </Badge>
-              <Badge variant="outline" className="text-green-600 bg-green-50">
+              <Badge variant="outline" className="text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400">
                 {entries.filter(e => e.status === 'validated').length} validados
               </Badge>
             </div>
@@ -138,43 +188,76 @@ export function KnowledgeEntriesPanel({
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Filters */}
+          {/* Search and Filters */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Pesquisar entradas..."
+                placeholder={searchMode === 'semantic' ? "Busca semântica IA..." : "Pesquisar entradas..."}
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                className="pl-9"
+                className="pl-9 pr-9"
               />
+              {isSearching && (
+                <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
             </div>
-            <div className="flex items-center gap-1">
+            
+            {/* Semantic Search Toggle */}
+            {onSemanticSearch && (
               <Button
-                variant={statusFilter === 'all' ? 'secondary' : 'ghost'}
+                variant={searchMode === 'semantic' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setStatusFilter('all')}
+                onClick={toggleSearchMode}
+                className={searchMode === 'semantic' ? 'bg-primary text-primary-foreground' : ''}
+                title={searchMode === 'semantic' ? 'Busca Semântica ativa' : 'Ativar Busca IA'}
               >
-                Todos
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                Busca IA
               </Button>
-              <Button
-                variant={statusFilter === 'draft' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setStatusFilter('draft')}
-              >
-                <Edit className="h-3 w-3 mr-1" />
-                Rascunhos
-              </Button>
-              <Button
-                variant={statusFilter === 'validated' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setStatusFilter('validated')}
-              >
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Validados
-              </Button>
-            </div>
+            )}
           </div>
+
+          {/* Status Filters */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant={statusFilter === 'all' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setStatusFilter('all')}
+            >
+              Todos
+            </Button>
+            <Button
+              variant={statusFilter === 'draft' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setStatusFilter('draft')}
+            >
+              <Edit className="h-3 w-3 mr-1" />
+              Rascunhos
+            </Button>
+            <Button
+              variant={statusFilter === 'validated' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setStatusFilter('validated')}
+            >
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Validados
+            </Button>
+          </div>
+
+          {/* Semantic Search Info */}
+          {searchMode === 'semantic' && searchValue.trim() && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              {isSearching ? (
+                <span>A procurar resultados semelhantes...</span>
+              ) : semanticResults.length > 0 ? (
+                <span>Encontrados {semanticResults.length} resultados por similaridade</span>
+              ) : (
+                <span>Nenhum resultado semelhante encontrado</span>
+              )}
+            </div>
+          )}
 
           {/* Entries List */}
           <ScrollArea className="h-[400px] pr-4">
@@ -182,12 +265,16 @@ export function KnowledgeEntriesPanel({
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
                 <p>Nenhuma entrada encontrada</p>
+                {searchMode === 'semantic' && searchValue.trim() && (
+                  <p className="text-xs mt-1">Tente termos diferentes ou mude para busca textual</p>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
                 {filteredEntries.map(entry => {
                   const TypeIcon = getEntryTypeIcon(entry.entryType);
                   const statusConfig = ENTRY_STATUS_CONFIG[entry.status];
+                  const similarity = (entry as any).similarity;
                   
                   return (
                     <div 
@@ -207,6 +294,15 @@ export function KnowledgeEntriesPanel({
                             >
                               {statusConfig.label}
                             </Badge>
+                            {/* Similarity Badge for semantic results */}
+                            {similarity !== undefined && (
+                              <Badge 
+                                variant="outline" 
+                                className="bg-primary/10 text-primary text-xs shrink-0"
+                              >
+                                {Math.round(similarity * 100)}% similar
+                              </Badge>
+                            )}
                           </div>
                           
                           {entry.question && (
@@ -238,7 +334,7 @@ export function KnowledgeEntriesPanel({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/30"
                               onClick={() => handleValidate(entry.id)}
                               disabled={isSubmitting}
                               title="Validar"

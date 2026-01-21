@@ -6138,6 +6138,7 @@ export type Database = {
           content: string
           created_at: string
           created_by: string
+          embedding: string | null
           entry_type: string
           expires_at: string | null
           id: string
@@ -6159,6 +6160,7 @@ export type Database = {
           content: string
           created_at?: string
           created_by: string
+          embedding?: string | null
           entry_type?: string
           expires_at?: string | null
           id?: string
@@ -6180,6 +6182,7 @@ export type Database = {
           content?: string
           created_at?: string
           created_by?: string
+          embedding?: string | null
           entry_type?: string
           expires_at?: string | null
           id?: string
@@ -14297,6 +14300,30 @@ export type Database = {
           p_workspace_id?: string
         }
         Returns: string
+      }
+      match_knowledge_entries: {
+        Args: {
+          filter_knowledge_base_id?: string
+          filter_status?: string
+          filter_workspace_id?: string
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          content: string
+          created_at: string
+          entry_type: string
+          id: string
+          keywords: string[]
+          knowledge_base_id: string
+          question: string
+          similarity: number
+          status: string
+          title: string
+          usage_count: number
+        }[]
       }
       remove_workspace_member_admin: {
         Args: { p_user_id: string; p_workspace_id: string }
