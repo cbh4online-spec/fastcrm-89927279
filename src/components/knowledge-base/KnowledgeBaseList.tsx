@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 interface KnowledgeBaseListProps {
   knowledgeBases: KnowledgeBase[];
   isLoading?: boolean;
+  selectedId?: string | null;
   onSelect?: (kb: KnowledgeBase) => void;
   onCreateNew?: () => void;
 }
@@ -26,6 +27,7 @@ interface KnowledgeBaseListProps {
 export function KnowledgeBaseList({ 
   knowledgeBases, 
   isLoading,
+  selectedId,
   onSelect,
   onCreateNew
 }: KnowledgeBaseListProps) {
@@ -109,7 +111,8 @@ export function KnowledgeBaseList({
                 key={kb.id}
                 className={cn(
                   "p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
-                  !kb.isActive && "opacity-60"
+                  !kb.isActive && "opacity-60",
+                  selectedId === kb.id && "border-primary bg-primary/5 shadow-md"
                 )}
                 onClick={() => onSelect?.(kb)}
               >

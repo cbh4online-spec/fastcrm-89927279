@@ -284,6 +284,144 @@ export function useKnowledgeBase() {
     }
   };
 
+  // Update entry
+  const updateEntry = async (entryId: string, data: Partial<KnowledgeEntry>) => {
+    try {
+      const { error } = await supabase
+        .from('knowledge_entries')
+        .update({
+          title: data.title,
+          question: data.question,
+          content: data.content,
+          summary: data.summary,
+          keywords: data.keywords,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', entryId);
+
+      if (error) throw error;
+
+      toast.success('Entrada atualizada');
+    } catch (error) {
+      console.error('Error updating entry:', error);
+      toast.error('Erro ao atualizar entrada');
+    }
+  };
+
+  // Delete entry
+  const deleteEntry = async (entryId: string) => {
+    try {
+      const { error } = await supabase
+        .from('knowledge_entries')
+        .delete()
+        .eq('id', entryId);
+
+      if (error) throw error;
+
+      toast.success('Entrada eliminada');
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      toast.error('Erro ao eliminar entrada');
+    }
+  };
+
+  // Archive entry
+  const archiveEntry = async (entryId: string) => {
+    try {
+      const { error } = await supabase
+        .from('knowledge_entries')
+        .update({
+          status: 'archived',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', entryId);
+
+      if (error) throw error;
+
+      toast.success('Entrada arquivada');
+    } catch (error) {
+      console.error('Error archiving entry:', error);
+      toast.error('Erro ao arquivar entrada');
+    }
+  };
+
+  // Fetch entries for a knowledge base
+  const fetchEntries = async (knowledgeBaseId: string): Promise<KnowledgeEntry[]> => {
+    if (!currentWorkspace?.id) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('knowledge_entries')
+        .select('*')
+        .eq('knowledge_base_id', knowledgeBaseId)
+        .eq('workspace_id', currentWorkspace.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(e => ({
+        id: e.id,
+        knowledgeBaseId: e.knowledge_base_id,
+        sourceId: e.source_id,
+        workspaceId: e.workspace_id,
+        entryType: e.entry_type,
+        title: e.title,
+        question: e.question,
+        content: e.content,
+        summary: e.summary,
+        keywords: e.keywords,
+        status: e.status,
+        validatedBy: e.validated_by,
+        validatedAt: e.validated_at,
+        usageCount: e.usage_count || 0,
+        lastUsedAt: e.last_used_at,
+        createdBy: e.created_by,
+        createdAt: e.created_at,
+        updatedAt: e.updated_at
+      })) as KnowledgeEntry[];
+    } catch (error) {
+      console.error('Error fetching entries:', error);
+      return [];
+    }
+  };
+
+  // Fetch sources for a knowledge base
+  const fetchSources = async (knowledgeBaseId: string): Promise<any[]> => {
+    if (!currentWorkspace?.id) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('knowledge_sources')
+        .select('*')
+        .eq('knowledge_base_id', knowledgeBaseId)
+        .eq('workspace_id', currentWorkspace.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(s => ({
+        id: s.id,
+        knowledgeBaseId: s.knowledge_base_id,
+        workspaceId: s.workspace_id,
+        sourceType: s.source_type,
+        sourceUrl: s.source_url,
+        sourceFilePath: s.source_file_path,
+        originalContent: s.original_content,
+        processedContent: s.processed_content,
+        extractedTopics: s.extracted_topics,
+        processingStatus: s.processing_status,
+        processingError: s.processing_error,
+        lastProcessedAt: s.last_processed_at,
+        createdBy: s.created_by,
+        createdAt: s.created_at,
+        updatedAt: s.updated_at
+      }));
+    } catch (error) {
+      console.error('Error fetching sources:', error);
+      return [];
+    }
+  };
+
   // Query knowledge base with AI
   const queryKnowledge = async (
     query: string, 
@@ -474,6 +612,11 @@ export function useKnowledgeBase() {
     addSource,
     createEntry,
     validateEntry,
+    updateEntry,
+    deleteEntry,
+    archiveEntry,
+    fetchEntries,
+    fetchSources,
     createPersona,
     queryKnowledge,
     refresh: () => Promise.all([fetchKnowledgeBases(), fetchPersonas(), fetchMetrics()])
