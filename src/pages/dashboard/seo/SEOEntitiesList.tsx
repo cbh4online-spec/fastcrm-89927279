@@ -330,14 +330,14 @@ export function SEOEntitiesList() {
                     {entity.ai_quality_score ? (
                       <span
                         className={
-                          entity.ai_quality_score >= 80
+                          entity.ai_quality_score >= 0.8
                             ? "text-green-600"
-                            : entity.ai_quality_score >= 60
+                            : entity.ai_quality_score >= 0.6
                             ? "text-amber-600"
                             : "text-red-600"
                         }
                       >
-                        {entity.ai_quality_score}%
+                        {Math.round(entity.ai_quality_score * 100)}%
                       </span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
