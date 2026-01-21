@@ -10,6 +10,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import { Users, Target, DollarSign, ExternalLink, TrendingUp, Zap, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 // Mock audience segments
 const audienceSegments = [
@@ -301,9 +302,11 @@ export function GrowthRetargetingDashboard() {
               <Button 
                 variant="outline"
                 onClick={() => {
-                  toast.info('Configuração do Pixel Meta', {
-                    description: 'Configure o pixel Meta nas Definições SEO → Tracking',
-                  });
+                  const params = new URLSearchParams(window.location.search);
+                  params.set('tab', 'settings');
+                  window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                  toast.info('Configure o Meta Pixel ID na secção Tracking & Analytics');
                 }}
               >
                 <Settings className="h-4 w-4 mr-2" />
