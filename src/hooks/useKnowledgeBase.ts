@@ -254,6 +254,18 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
+      // Generate embedding in background
+      if (entry) {
+        supabase.functions.invoke('knowledge-embedding', {
+          body: { 
+            entryId: entry.id, 
+            title: data.title, 
+            question: data.question, 
+            content: data.content 
+          }
+        }).catch(err => console.warn('Embedding generation failed:', err));
+      }
+
       toast.success('Entrada criada');
       return entry;
     } catch (error) {
@@ -300,6 +312,18 @@ export function useKnowledgeBase() {
         .eq('id', entryId);
 
       if (error) throw error;
+
+      // Regenerate embedding in background
+      if (data.title || data.question || data.content) {
+        supabase.functions.invoke('knowledge-embedding', {
+          body: { 
+            entryId, 
+            title: data.title, 
+            question: data.question, 
+            content: data.content 
+          }
+        }).catch(err => console.warn('Embedding regeneration failed:', err));
+      }
 
       toast.success('Entrada atualizada');
     } catch (error) {
@@ -418,6 +442,60 @@ export function useKnowledgeBase() {
       }));
     } catch (error) {
       console.error('Error fetching sources:', error);
+      return [];
+    }
+  }, [currentWorkspace?.id]);
+
+  // Generate embedding for an entry
+  const generateEmbedding = useCallback(async (entryId: string, title: string, question?: string, content?: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('knowledge-embedding', {
+        body: { entryId, title, question, content }
+      });
+      if (error) console.warn('Embedding generation failed:', error);
+    } catch (error) {
+      console.warn('Embedding generation failed:', error);
+    }
+  }, []);
+
+  // Semantic search across knowledge entries
+  const semanticSearch = useCallback(async (
+    query: string,
+    knowledgeBaseId?: string,
+    options?: { threshold?: number; limit?: number; status?: string }
+  ): Promise<KnowledgeEntry[]> => {
+    if (!currentWorkspace?.id || !query.trim()) return [];
+
+    try {
+      const { data, error } = await supabase.functions.invoke('knowledge-semantic-search', {
+        body: {
+          query,
+          workspaceId: currentWorkspace.id,
+          knowledgeBaseId,
+          ...options
+        }
+      });
+
+      if (error) throw error;
+
+      // Map results to KnowledgeEntry format with similarity score
+      return (data?.results || []).map((r: any) => ({
+        id: r.id,
+        knowledgeBaseId: r.knowledge_base_id,
+        workspaceId: currentWorkspace.id,
+        entryType: r.entry_type,
+        title: r.title,
+        question: r.question,
+        content: r.content,
+        keywords: r.keywords,
+        category: r.category,
+        status: r.status,
+        usageCount: r.usage_count || 0,
+        createdAt: r.created_at,
+        similarity: r.similarity
+      })) as KnowledgeEntry[];
+    } catch (error) {
+      console.error('Semantic search error:', error);
       return [];
     }
   }, [currentWorkspace?.id]);
@@ -619,6 +697,8 @@ export function useKnowledgeBase() {
     fetchSources,
     createPersona,
     queryKnowledge,
+    semanticSearch,
+    generateEmbedding,
     refresh: () => Promise.all([fetchKnowledgeBases(), fetchPersonas(), fetchMetrics()])
   };
 }

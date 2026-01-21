@@ -58,6 +58,7 @@ export function KnowledgeBaseModule() {
     fetchSources,
     createPersona,
     queryKnowledge,
+    semanticSearch,
     refresh
   } = useKnowledgeBase();
 
@@ -380,6 +381,7 @@ export function KnowledgeBaseModule() {
                     <KnowledgeEntriesPanel
                       entries={entries}
                       isLoading={isLoadingDetails}
+                      knowledgeBaseId={selectedKB}
                       onValidate={async (id) => {
                         await validateEntry(id);
                         const updated = await fetchEntries(selectedKB);
@@ -400,6 +402,7 @@ export function KnowledgeBaseModule() {
                         const updated = await fetchEntries(selectedKB);
                         setEntries(updated);
                       }}
+                      onSemanticSearch={semanticSearch}
                     />
                   </TabsContent>
 
