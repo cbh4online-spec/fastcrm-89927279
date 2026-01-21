@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { EntityType, Intent } from '../types';
+import { calculateQualityScore } from '../utils/calculateQualityScore';
 
 interface GenerateContentParams {
   entity_type: EntityType;
@@ -86,6 +87,20 @@ export function useGenerateSEOContent() {
     workspaceId?: string
   ) => {
     try {
+      // Calculate dynamic quality score based on content
+      const qualityBreakdown = calculateQualityScore({
+        title: content.title,
+        metaDescription: content.meta_description,
+        h1: content.h1,
+        tldr: content.tldr,
+        content: {
+          sections: content.sections,
+          faqs: content.faqs,
+          cta: content.cta as any,
+        },
+        schemaMarkup: content.schema_markup,
+      });
+
       const { data, error: insertError } = await supabase
         .from('seo_entities')
         .insert([{
@@ -108,7 +123,7 @@ export function useGenerateSEOContent() {
           priority: 0.5,
           change_frequency: 'weekly',
           ai_generated_at: new Date().toISOString(),
-          ai_quality_score: 0.8,
+          ai_quality_score: qualityBreakdown.totalScore,
         }])
         .select()
         .single();
