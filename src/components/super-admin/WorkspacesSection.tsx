@@ -50,8 +50,10 @@ import {
   Filter,
   Shield,
   Plus,
-  Users
+  Users,
+  Pencil
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { CreateWorkspaceDialog } from "./CreateWorkspaceDialog";
@@ -111,9 +113,11 @@ export function WorkspacesSection() {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceDetails | null>(null);
   const [actionDialog, setActionDialog] = useState<{
-    type: "suspend" | "reactivate" | "change-plan" | "assign-agency" | null;
+    type: "suspend" | "reactivate" | "change-plan" | "assign-agency" | "edit-name" | null;
     workspace: WorkspaceDetails | null;
   }>({ type: null, workspace: null });
+  const [editName, setEditName] = useState("");
+  const [editSlug, setEditSlug] = useState("");
   const [newPlan, setNewPlan] = useState<string>("");
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
   
@@ -388,6 +392,48 @@ export function WorkspacesSection() {
     },
   });
 
+  const updateWorkspaceName = useMutation({
+    mutationFn: async ({ workspaceId, name, slug }: { workspaceId: string; name: string; slug: string }) => {
+      // Check if slug already exists (excluding current workspace)
+      const { data: existing } = await supabase
+        .from("workspaces")
+        .select("id")
+        .eq("slug", slug)
+        .neq("id", workspaceId)
+        .maybeSingle();
+
+      if (existing) {
+        throw new Error("Este slug já está em uso por outro workspace");
+      }
+
+      const { error } = await supabase
+        .from("workspaces")
+        .update({ name, slug })
+        .eq("id", workspaceId);
+      
+      if (error) throw error;
+
+      // Log the action
+      await supabase.rpc("log_admin_action", {
+        p_action_type: "workspace_renamed",
+        p_target_type: "workspace",
+        p_target_id: workspaceId,
+        p_workspace_id: workspaceId,
+        p_details: { new_name: name, new_slug: slug },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
+      toast.success("Nome do workspace atualizado");
+      setActionDialog({ type: null, workspace: null });
+      setEditName("");
+      setEditSlug("");
+    },
+    onError: (error) => {
+      toast.error("Erro ao atualizar: " + error.message);
+    },
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -593,6 +639,16 @@ export function WorkspacesSection() {
                         <DropdownMenuItem onClick={() => syncStripe.mutate(ws.id)}>
                           <RefreshCw className="h-4 w-4 mr-2" />
                           Sync Stripe
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            setEditName(ws.name);
+                            setEditSlug(ws.slug);
+                            setActionDialog({ type: "edit-name", workspace: ws });
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar nome
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
@@ -1049,6 +1105,87 @@ export function WorkspacesSection() {
               }}
             >
               {selectedAgencyId === "none" ? "Remover Agência" : "Atribuir Agência"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Name Dialog */}
+      <Dialog 
+        open={actionDialog.type === "edit-name"} 
+        onOpenChange={() => {
+          setActionDialog({ type: null, workspace: null });
+          setEditName("");
+          setEditSlug("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Editar Workspace
+            </DialogTitle>
+            <DialogDescription>
+              Alterar o nome e slug do workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nome do Workspace</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => {
+                  setEditName(e.target.value);
+                  // Auto-generate slug
+                  const generatedSlug = e.target.value
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-+|-+$/g, "");
+                  setEditSlug(generatedSlug);
+                }}
+                placeholder="Nome do workspace"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-slug">Slug (URL)</Label>
+              <Input
+                id="edit-slug"
+                value={editSlug}
+                onChange={(e) => setEditSlug(e.target.value)}
+                placeholder="slug-do-workspace"
+              />
+              <p className="text-xs text-muted-foreground">
+                Identificador único usado em URLs
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setActionDialog({ type: null, workspace: null });
+                setEditName("");
+                setEditSlug("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              disabled={!editName || !editSlug || updateWorkspaceName.isPending}
+              onClick={() => {
+                if (actionDialog.workspace) {
+                  updateWorkspaceName.mutate({
+                    workspaceId: actionDialog.workspace.id,
+                    name: editName,
+                    slug: editSlug,
+                  });
+                }
+              }}
+            >
+              {updateWorkspaceName.isPending ? "A guardar..." : "Guardar alterações"}
             </Button>
           </DialogFooter>
         </DialogContent>
