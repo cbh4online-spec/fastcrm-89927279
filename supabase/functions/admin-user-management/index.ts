@@ -99,27 +99,69 @@ serve(async (req) => {
 
         // Criar workspace se solicitado
         if (workspaceName && workspaceSlug) {
-          const { data: wsData, error: wsError } = await supabaseAdmin.rpc("create_workspace_for_user", {
-            p_name: workspaceName,
-            p_slug: workspaceSlug,
-            p_owner_user_id: newUser.user.id,
-            p_plan: plan || "free"
-          });
+          // Verificar se slug já existe
+          const { data: existingWs } = await supabaseAdmin
+            .from("workspaces")
+            .select("id")
+            .eq("slug", workspaceSlug)
+            .single();
+
+          if (existingWs) {
+            throw new Error(`Workspace com slug "${workspaceSlug}" já existe`);
+          }
+
+          // Criar workspace diretamente (bypass da função que verifica auth.uid())
+          const { data: wsData, error: wsError } = await supabaseAdmin
+            .from("workspaces")
+            .insert({
+              name: workspaceName,
+              slug: workspaceSlug,
+              created_by: user.id // admin que está a criar
+            })
+            .select("id")
+            .single();
 
           if (wsError) {
             console.error("Workspace creation error:", wsError);
-          } else {
-            workspaceId = wsData;
+            throw new Error("Erro ao criar workspace: " + wsError.message);
+          }
+          
+          workspaceId = wsData.id;
 
-            // Marcar workspace para requerer onboarding se solicitado
-            if (requiresOnboarding && workspaceId) {
-              await supabaseAdmin.from("workspace_onboarding").upsert({
-                workspace_id: workspaceId,
-                requires_onboarding: true,
-                skipped: false,
-                created_by_admin: user.id
-              }, { onConflict: "workspace_id" });
-            }
+          // Adicionar utilizador como owner
+          const { error: memberError } = await supabaseAdmin
+            .from("workspace_members")
+            .insert({
+              workspace_id: workspaceId,
+              user_id: newUser.user.id,
+              role: "owner"
+            });
+
+          if (memberError) {
+            console.error("Member add error:", memberError);
+          }
+
+          // Criar subscription
+          const { error: subError } = await supabaseAdmin
+            .from("workspace_subscriptions")
+            .insert({
+              workspace_id: workspaceId,
+              plan: plan || "free",
+              status: "active"
+            });
+
+          if (subError) {
+            console.error("Subscription creation error:", subError);
+          }
+
+          // Marcar workspace para requerer onboarding se solicitado
+          if (requiresOnboarding && workspaceId) {
+            await supabaseAdmin.from("workspace_onboarding").upsert({
+              workspace_id: workspaceId,
+              requires_onboarding: true,
+              skipped: false,
+              created_by_admin: user.id
+            }, { onConflict: "workspace_id" });
           }
         }
 
