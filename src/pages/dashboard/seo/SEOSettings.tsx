@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,10 @@ import {
   Code,
   Save,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const languages = [
   { code: "pt", label: "Português" },
@@ -30,10 +33,12 @@ const languages = [
 ];
 
 export function SEOSettings() {
+  const { currentWorkspace } = useWorkspace();
+  const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState({
     baseUrl: "https://fastcrm.lovable.app",
     defaultLanguage: "pt",
-    supportedLanguages: ["pt", "en"],
+    supportedLanguages: ["pt", "en"] as string[],
     defaultOgImage: "",
     gtmContainerId: "",
     ga4MeasurementId: "",
@@ -44,18 +49,88 @@ export function SEOSettings() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Load settings from database
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!currentWorkspace?.id) return;
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('growth_settings')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id)
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setSettings({
+            baseUrl: data.base_url || "https://fastcrm.lovable.app",
+            defaultLanguage: data.default_language || "pt",
+            supportedLanguages: data.supported_languages || ["pt"],
+            defaultOgImage: data.default_og_image || "",
+            gtmContainerId: data.gtm_container_id || "",
+            ga4MeasurementId: data.ga4_measurement_id || "",
+            metaPixelId: data.meta_pixel_id || "",
+            clarityProjectId: data.clarity_project_id || "",
+            autoSitemapUpdate: data.sitemap_auto_update ?? true,
+            enableSchemaMarkup: data.enable_schema_markup ?? true,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        toast.error("Erro ao carregar configurações");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadSettings();
+  }, [currentWorkspace?.id]);
+
   const handleSave = async () => {
+    if (!currentWorkspace?.id) {
+      toast.error("Workspace não encontrado");
+      return;
+    }
+    
     setIsSaving(true);
     try {
-      // TODO: Save settings to database
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const { error } = await supabase
+        .from('growth_settings')
+        .upsert({
+          workspace_id: currentWorkspace.id,
+          base_url: settings.baseUrl,
+          default_language: settings.defaultLanguage,
+          supported_languages: settings.supportedLanguages,
+          default_og_image: settings.defaultOgImage,
+          gtm_container_id: settings.gtmContainerId,
+          ga4_measurement_id: settings.ga4MeasurementId,
+          meta_pixel_id: settings.metaPixelId,
+          clarity_project_id: settings.clarityProjectId,
+          sitemap_auto_update: settings.autoSitemapUpdate,
+          enable_schema_markup: settings.enableSchemaMarkup,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'workspace_id' });
+
+      if (error) throw error;
       toast.success("Configurações guardadas com sucesso");
     } catch (error) {
+      console.error('Error saving settings:', error);
       toast.error("Erro ao guardar configurações");
     } finally {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
