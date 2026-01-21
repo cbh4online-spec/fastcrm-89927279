@@ -76,6 +76,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { WorkspaceMembersPanel } from "./WorkspaceMembersPanel";
+import { CreateUserWithWorkspaceDialog } from "./CreateUserWithWorkspaceDialog";
 
 interface UserProfile {
   id: string;
@@ -129,6 +130,9 @@ export function UsersSection() {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Create user dialog
+  const [createUserOpen, setCreateUserOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -422,10 +426,16 @@ export function UsersSection() {
             Gestão global de utilizadores, permissões e acessos
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setCreateUserOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Criar Utilizador
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -843,6 +853,12 @@ export function UsersSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create User Dialog */}
+      <CreateUserWithWorkspaceDialog
+        open={createUserOpen}
+        onOpenChange={setCreateUserOpen}
+      />
     </div>
   );
 }

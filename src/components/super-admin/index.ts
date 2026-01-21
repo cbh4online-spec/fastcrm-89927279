@@ -10,3 +10,4 @@ export { UsersSection } from "./UsersSection";
 export { MenuPermissionsSection } from "./MenuPermissionsSection";
 export { CreateWorkspaceDialog } from "./CreateWorkspaceDialog";
 export { WorkspaceMembersPanel } from "./WorkspaceMembersPanel";
+export { CreateUserWithWorkspaceDialog } from "./CreateUserWithWorkspaceDialog";
