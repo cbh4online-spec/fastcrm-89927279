@@ -53,6 +53,7 @@ import {
   Sparkles,
   Hash,
   FolderOpen,
+  Landmark,
 } from "lucide-react";
 import {
   Collapsible,
@@ -224,6 +225,17 @@ const navigationGroups: NavGroup[] = [
       { name: "Perfis IA", href: "/dashboard/ai-profiles", icon: Brain, tooltip: "Comportamento da IA" },
       { name: "Bases Conhecimento", href: "/dashboard/knowledge-base", icon: Brain, tooltip: "Treinar a IA" },
       { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, tooltip: "Módulos", highlight: true },
+    ],
+  },
+  // INTERMEDIAÇÃO DE CRÉDITO (Module-gated)
+  {
+    name: "Crédito",
+    icon: Landmark,
+    tooltip: "Intermediação de crédito",
+    highlight: true,
+    moduleSlug: "credit-intermediation",
+    items: [
+      { name: "Dashboard Crédito", href: "/dashboard/credit", icon: Landmark, tooltip: "Gestão de propostas de crédito", moduleSlug: "credit-intermediation" },
     ],
   },
 ];

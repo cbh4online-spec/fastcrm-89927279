@@ -70,6 +70,7 @@ import Profile from "./pages/Profile";
 import Marketing from "./pages/Marketing";
 import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
 import SEOAdminPage from "./pages/dashboard/seo";
+import CreditIntermediation from "./pages/CreditIntermediation";
 
 // SEO Pages
 import {
@@ -183,6 +184,7 @@ const App = () => (
                       <Route path="/dashboard/seo" element={<SEOAdminPage />} />
                       <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
                       <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
+                      <Route path="/dashboard/credit" element={<CreditIntermediation />} />
                       <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                       <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                       <Route path="/product/:slug" element={<PublicProductSheet />} />
