@@ -87,6 +87,7 @@ import {
   GuidePage,
   GlossaryListPage,
   GlossaryTermPage,
+  KeywordIdeasToolPage,
   GTMProvider,
   GDPRBanner,
 } from "./modules/growth-seo";
@@ -113,6 +114,7 @@ const App = () => (
                       <Route path="/templates" element={<TemplatesListPage />} />
                       <Route path="/templates/:slug" element={<TemplateDetailPage />} />
                       <Route path="/tools" element={<ToolsListPage />} />
+                      <Route path="/tools/keyword-ideas" element={<KeywordIdeasToolPage />} />
                       <Route path="/tools/:slug" element={<ToolDetailPage />} />
                       <Route path="/categories" element={<CategoriesListPage />} />
                       <Route path="/categories/:slug" element={<CategoryDetailPage />} />

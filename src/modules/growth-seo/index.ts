@@ -4,6 +4,7 @@
 
 // Types
 export * from './types';
+export * from './types/keywords';
 
 // Hooks
 export { useConsent } from './hooks/useConsent';
@@ -16,6 +17,7 @@ export {
   useRelatedEntities,
   useSEOFAQs,
 } from './hooks/useSEOEntity';
+export { useKeywordGenerator } from './hooks/useKeywordGenerator';
 
 // Components - Consent
 export { GDPRBanner } from './components/consent/GDPRBanner';
@@ -47,6 +49,12 @@ export { CTASection } from './components/pages/shared/CTASection';
 export { RelatedContent } from './components/pages/shared/RelatedContent';
 export { ToolWidget } from './components/pages/shared/ToolWidget';
 
+// Components - Tools (Keyword Generator)
+export { KeywordGeneratorWidget } from './components/tools/KeywordGeneratorWidget';
+export { KeywordResultCard } from './components/tools/KeywordResultCard';
+export { KeywordResultsList } from './components/tools/KeywordResultsList';
+export { KeywordUnlockCTA } from './components/tools/KeywordUnlockCTA';
+
 // Components - Admin
 export { SEOContentGenerator } from './components/admin/SEOContentGenerator';
 export { SitemapManager } from './components/admin/SitemapManager';
@@ -69,6 +77,7 @@ export { default as TemplatesListPage } from './pages/TemplatesListPage';
 export { default as TemplateDetailPage } from './pages/TemplateDetailPage';
 export { default as ToolsListPage } from './pages/ToolsListPage';
 export { default as ToolDetailPage } from './pages/ToolDetailPage';
+export { default as KeywordIdeasToolPage } from './pages/KeywordIdeasToolPage';
 export { default as CategoriesListPage } from './pages/CategoriesListPage';
 export { default as CategoryDetailPage } from './pages/CategoryDetailPage';
 export { default as ComparePage } from './pages/ComparePage';
