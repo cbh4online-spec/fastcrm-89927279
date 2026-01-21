@@ -1,15 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
 import { KnowledgeBaseList } from './KnowledgeBaseList';
 import { PersonaList } from './PersonaList';
 import { AddSourcePanel } from './AddSourcePanel';
 import { AIQueryPanel } from './AIQueryPanel';
 import { KnowledgeMetricsCard } from './KnowledgeMetricsCard';
+import { KnowledgeEntriesPanel } from './KnowledgeEntriesPanel';
+import { KnowledgeSourcesPanel } from './KnowledgeSourcesPanel';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,9 +25,12 @@ import {
   Plus,
   FileText,
   Users,
-  MessageSquare
+  MessageSquare,
+  Link as LinkIcon,
+  ListChecks
 } from 'lucide-react';
 import { KNOWLEDGE_BASE_TYPES, PERSONA_TYPES, TONE_OPTIONS } from '@/types/knowledge-base';
+import type { KnowledgeEntry, KnowledgeSource } from '@/types/knowledge-base';
 import { toast } from 'sonner';
 
 type ActiveTab = "bases" | "personas" | "query";
@@ -44,6 +50,12 @@ export function KnowledgeBaseModule() {
     createKnowledgeBase,
     addSource,
     createEntry,
+    validateEntry,
+    updateEntry,
+    deleteEntry,
+    archiveEntry,
+    fetchEntries,
+    fetchSources,
     createPersona,
     queryKnowledge,
     refresh
@@ -56,6 +68,12 @@ export function KnowledgeBaseModule() {
   const [showCreatePersona, setShowCreatePersona] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [kbDetailTab, setKbDetailTab] = useState<'add' | 'entries' | 'sources'>('entries');
+
+  // Knowledge base entries and sources for selected KB
+  const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
+  const [sources, setSources] = useState<KnowledgeSource[]>([]);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   // Create KB form state
   const [kbName, setKbName] = useState('');
@@ -67,6 +85,28 @@ export function KnowledgeBaseModule() {
   const [personaDescription, setPersonaDescription] = useState('');
   const [personaType, setPersonaType] = useState('atendimento');
   const [personaTone, setPersonaTone] = useState('empático');
+
+  // Load entries and sources when a KB is selected
+  useEffect(() => {
+    const loadKBDetails = async () => {
+      if (!selectedKB) {
+        setEntries([]);
+        setSources([]);
+        return;
+      }
+      
+      setIsLoadingDetails(true);
+      const [entriesData, sourcesData] = await Promise.all([
+        fetchEntries(selectedKB),
+        fetchSources(selectedKB)
+      ]);
+      setEntries(entriesData);
+      setSources(sourcesData as KnowledgeSource[]);
+      setIsLoadingDetails(false);
+    };
+
+    loadKBDetails();
+  }, [selectedKB, fetchEntries, fetchSources]);
 
   // Tabs with counts
   const tabsWithCounts = useMemo(() => {
@@ -93,6 +133,14 @@ export function KnowledgeBaseModule() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refresh();
+    if (selectedKB) {
+      const [entriesData, sourcesData] = await Promise.all([
+        fetchEntries(selectedKB),
+        fetchSources(selectedKB)
+      ]);
+      setEntries(entriesData);
+      setSources(sourcesData as KnowledgeSource[]);
+    }
     setIsRefreshing(false);
     toast.success('Dados atualizados');
   };
@@ -292,19 +340,94 @@ export function KnowledgeBaseModule() {
                 kb.name.toLowerCase().includes(searchValue.toLowerCase())
               )}
               isLoading={isLoading}
-              onSelect={(kb) => setSelectedKB(kb.id)}
+              selectedId={selectedKB}
+              onSelect={(kb) => {
+                setSelectedKB(kb.id);
+                setKbDetailTab('entries');
+              }}
               onCreateNew={() => setShowCreateKB(true)}
             />
           </div>
 
-          {/* Add Source */}
-          <div className="lg:col-span-2">
+          {/* KB Details Panel */}
+          <div className="lg:col-span-2 space-y-4">
             {selectedKB ? (
-              <AddSourcePanel 
-                onAddUrl={handleAddUrl}
-                onAddManual={handleAddManual}
-                isProcessing={isProcessing}
-              />
+              <>
+                {/* Sub-tabs for KB details */}
+                <Tabs value={kbDetailTab} onValueChange={(v) => setKbDetailTab(v as any)}>
+                  <TabsList className="grid grid-cols-3 w-full max-w-md">
+                    <TabsTrigger value="entries" className="flex items-center gap-1">
+                      <ListChecks className="h-4 w-4" />
+                      Entradas ({entries.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="sources" className="flex items-center gap-1">
+                      <LinkIcon className="h-4 w-4" />
+                      Fontes ({sources.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="add" className="flex items-center gap-1">
+                      <Plus className="h-4 w-4" />
+                      Adicionar
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="entries" className="mt-4">
+                    <KnowledgeEntriesPanel
+                      entries={entries}
+                      isLoading={isLoadingDetails}
+                      onValidate={async (id) => {
+                        await validateEntry(id);
+                        const updated = await fetchEntries(selectedKB);
+                        setEntries(updated);
+                      }}
+                      onUpdate={async (id, data) => {
+                        await updateEntry(id, data);
+                        const updated = await fetchEntries(selectedKB);
+                        setEntries(updated);
+                      }}
+                      onDelete={async (id) => {
+                        await deleteEntry(id);
+                        const updated = await fetchEntries(selectedKB);
+                        setEntries(updated);
+                      }}
+                      onArchive={async (id) => {
+                        await archiveEntry(id);
+                        const updated = await fetchEntries(selectedKB);
+                        setEntries(updated);
+                      }}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="sources" className="mt-4">
+                    <KnowledgeSourcesPanel
+                      sources={sources}
+                      isLoading={isLoadingDetails}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="add" className="mt-4">
+                    <AddSourcePanel 
+                      onAddUrl={async (url) => {
+                        await handleAddUrl(url);
+                        // Refresh after processing
+                        setTimeout(async () => {
+                          const [entriesData, sourcesData] = await Promise.all([
+                            fetchEntries(selectedKB),
+                            fetchSources(selectedKB)
+                          ]);
+                          setEntries(entriesData);
+                          setSources(sourcesData as KnowledgeSource[]);
+                        }, 3000);
+                      }}
+                      onAddManual={async (data) => {
+                        await handleAddManual(data);
+                        const updated = await fetchEntries(selectedKB);
+                        setEntries(updated);
+                      }}
+                      isProcessing={isProcessing}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </>
             ) : (
               <Card className="border-dashed">
                 <CardContent className="py-12">
