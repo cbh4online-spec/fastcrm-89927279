@@ -702,5 +702,59 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2025-01-10T00:00:00Z",
     updated_at: "2025-01-16T00:00:00Z",
     published_at: "2025-01-15T00:00:00Z"
+  },
+  {
+    id: "credit-intermediation",
+    slug: "credit-intermediation",
+    name: "Intermediação de Crédito",
+    tagline: "Gestão completa de propostas de crédito",
+    description: "Módulo especializado para intermediários de crédito. Gerencie propostas de crédito habitação, pessoal, empresarial e automóvel com análise de viabilidade por IA, simulador integrado e gestão de parcerias bancárias.",
+    category: "finance",
+    icon: "Landmark",
+    target_audience: "Intermediários de crédito, brokers financeiros e consultores",
+    expected_results: [
+      "Análise de viabilidade automática com IA",
+      "Matching inteligente com bancos parceiros",
+      "Simulações precisas com sistema francês",
+      "Gestão centralizada de propostas"
+    ],
+    use_cases: [
+      "Avaliar viabilidade de propostas de crédito",
+      "Simular prestações e TAEG",
+      "Comparar condições entre bancos",
+      "Acompanhar status de aprovações",
+      "Extrair dados de documentos com OCR"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "leads", read: true, write: true, delete: false },
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "companies", read: true, write: true, delete: false },
+        { entity: "opportunities", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: true,
+      can_send_whatsapp: true,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 149,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.9,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-01-21T00:00:00Z",
+    updated_at: "2025-01-21T00:00:00Z",
+    published_at: "2025-01-21T00:00:00Z"
   }
 ];
