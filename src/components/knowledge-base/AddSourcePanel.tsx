@@ -51,7 +51,7 @@ export const AddSourcePanel = forwardRef<HTMLDivElement, AddSourcePanelProps>(({
   };
 
   return (
-    <Card>
+    <Card ref={ref}>
       <CardHeader>
         <CardTitle className="text-base">Adicionar Conhecimento</CardTitle>
         <p className="text-sm text-muted-foreground">
