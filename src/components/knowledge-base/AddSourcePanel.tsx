@@ -1,4 +1,4 @@
-import { useState, forwardRef } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,11 +21,11 @@ interface AddSourcePanelProps {
   isProcessing?: boolean;
 }
 
-export const AddSourcePanel = forwardRef<HTMLDivElement, AddSourcePanelProps>(({ 
+export function AddSourcePanel({ 
   onAddUrl, 
   onAddManual,
   isProcessing 
-}, ref) => {
+}: AddSourcePanelProps) {
   const [activeTab, setActiveTab] = useState('url');
   const [url, setUrl] = useState('');
   const [manualTitle, setManualTitle] = useState('');
@@ -51,7 +51,7 @@ export const AddSourcePanel = forwardRef<HTMLDivElement, AddSourcePanelProps>(({
   };
 
   return (
-    <Card ref={ref}>
+    <Card>
       <CardHeader>
         <CardTitle className="text-base">Adicionar Conhecimento</CardTitle>
         <p className="text-sm text-muted-foreground">
@@ -185,9 +185,7 @@ export const AddSourcePanel = forwardRef<HTMLDivElement, AddSourcePanelProps>(({
             </Button>
           </TabsContent>
         </Tabs>
-      </CardContent>
+    </CardContent>
     </Card>
   );
-});
-
-AddSourcePanel.displayName = 'AddSourcePanel';
+}
