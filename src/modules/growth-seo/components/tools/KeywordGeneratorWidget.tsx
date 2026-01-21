@@ -20,6 +20,9 @@ interface KeywordGeneratorWidgetProps {
   className?: string;
   showResults?: boolean;
   compact?: boolean;
+  initialSeedKeyword?: string;
+  autoFocus?: boolean;
+  placement?: 'hero' | 'inline' | 'page' | 'widget';
 }
 
 const countries = [
@@ -39,9 +42,12 @@ const languages = [
 export function KeywordGeneratorWidget({ 
   className = '', 
   showResults = true,
-  compact = false 
+  compact = false,
+  initialSeedKeyword = '',
+  autoFocus = false,
+  placement = 'widget'
 }: KeywordGeneratorWidgetProps) {
-  const [seedKeyword, setSeedKeyword] = useState('');
+  const [seedKeyword, setSeedKeyword] = useState(initialSeedKeyword);
   const [country, setCountry] = useState<string>('');
   const [language, setLanguage] = useState<string>('');
   const navigate = useNavigate();
