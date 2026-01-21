@@ -4459,9 +4459,12 @@ export type Database = {
       }
       growth_settings: {
         Row: {
+          base_url: string | null
           clarity_project_id: string | null
           created_at: string | null
+          default_language: string | null
           default_og_image: string | null
+          enable_schema_markup: boolean | null
           ga4_measurement_id: string | null
           gdpr_banner_text: string | null
           gdpr_enabled: boolean | null
@@ -4471,13 +4474,17 @@ export type Database = {
           meta_pixel_id: string | null
           sitemap_auto_update: boolean | null
           social_share_hashtags: string[] | null
+          supported_languages: string[] | null
           updated_at: string | null
           workspace_id: string | null
         }
         Insert: {
+          base_url?: string | null
           clarity_project_id?: string | null
           created_at?: string | null
+          default_language?: string | null
           default_og_image?: string | null
+          enable_schema_markup?: boolean | null
           ga4_measurement_id?: string | null
           gdpr_banner_text?: string | null
           gdpr_enabled?: boolean | null
@@ -4487,13 +4494,17 @@ export type Database = {
           meta_pixel_id?: string | null
           sitemap_auto_update?: boolean | null
           social_share_hashtags?: string[] | null
+          supported_languages?: string[] | null
           updated_at?: string | null
           workspace_id?: string | null
         }
         Update: {
+          base_url?: string | null
           clarity_project_id?: string | null
           created_at?: string | null
+          default_language?: string | null
           default_og_image?: string | null
+          enable_schema_markup?: boolean | null
           ga4_measurement_id?: string | null
           gdpr_banner_text?: string | null
           gdpr_enabled?: boolean | null
@@ -4503,6 +4514,7 @@ export type Database = {
           meta_pixel_id?: string | null
           sitemap_auto_update?: boolean | null
           social_share_hashtags?: string[] | null
+          supported_languages?: string[] | null
           updated_at?: string | null
           workspace_id?: string | null
         }
