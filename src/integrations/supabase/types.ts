@@ -13638,9 +13638,11 @@ export type Database = {
           channels: string[] | null
           completed_at: string | null
           created_at: string
+          created_by_admin: string | null
           custom_business_type: string | null
           id: string
           process_description: string | null
+          requires_onboarding: boolean | null
           skipped: boolean | null
           success_definition: string | null
           updated_at: string
@@ -13651,9 +13653,11 @@ export type Database = {
           channels?: string[] | null
           completed_at?: string | null
           created_at?: string
+          created_by_admin?: string | null
           custom_business_type?: string | null
           id?: string
           process_description?: string | null
+          requires_onboarding?: boolean | null
           skipped?: boolean | null
           success_definition?: string | null
           updated_at?: string
@@ -13664,9 +13668,11 @@ export type Database = {
           channels?: string[] | null
           completed_at?: string | null
           created_at?: string
+          created_by_admin?: string | null
           custom_business_type?: string | null
           id?: string
           process_description?: string | null
+          requires_onboarding?: boolean | null
           skipped?: boolean | null
           success_definition?: string | null
           updated_at?: string

@@ -51,11 +51,101 @@ serve(async (req) => {
       throw new Error("Unauthorized: Only super admins can perform this action");
     }
 
-    const { action, userId, password, email } = await req.json();
+    const { action, userId, password, email, fullName, workspaceName, workspaceSlug, plan, requiresOnboarding } = await req.json();
 
     let result;
 
     switch (action) {
+      case "create_user": {
+        if (!email || !password || !fullName) {
+          throw new Error("email, password and fullName are required");
+        }
+
+        // Verificar se email já existe
+        const { data: existingUsers } = await supabaseAdmin
+          .from("profiles")
+          .select("id")
+          .eq("email", email)
+          .limit(1);
+
+        if (existingUsers && existingUsers.length > 0) {
+          throw new Error("Email já está em uso");
+        }
+
+        // Criar utilizador no Auth
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: fullName }
+        });
+
+        if (createError) throw createError;
+
+        // Criar perfil
+        const { error: profileError } = await supabaseAdmin.from("profiles").upsert({
+          id: newUser.user.id,
+          user_id: newUser.user.id,
+          email,
+          full_name: fullName,
+          status: "active"
+        });
+
+        if (profileError) {
+          console.error("Profile creation error:", profileError);
+        }
+
+        let workspaceId = null;
+
+        // Criar workspace se solicitado
+        if (workspaceName && workspaceSlug) {
+          const { data: wsData, error: wsError } = await supabaseAdmin.rpc("create_workspace_for_user", {
+            p_name: workspaceName,
+            p_slug: workspaceSlug,
+            p_owner_user_id: newUser.user.id,
+            p_plan: plan || "free"
+          });
+
+          if (wsError) {
+            console.error("Workspace creation error:", wsError);
+          } else {
+            workspaceId = wsData;
+
+            // Marcar workspace para requerer onboarding se solicitado
+            if (requiresOnboarding && workspaceId) {
+              await supabaseAdmin.from("workspace_onboarding").upsert({
+                workspace_id: workspaceId,
+                requires_onboarding: true,
+                skipped: false,
+                created_by_admin: user.id
+              }, { onConflict: "workspace_id" });
+            }
+          }
+        }
+
+        // Log da ação
+        await supabaseAdmin.from("admin_audit_logs").insert({
+          admin_user_id: user.id,
+          action_type: "create_user",
+          target_type: "user",
+          target_id: newUser.user.id,
+          details: { 
+            email, 
+            full_name: fullName, 
+            created_by_admin: true,
+            workspace_id: workspaceId,
+            requires_onboarding: requiresOnboarding
+          }
+        });
+
+        result = { 
+          success: true, 
+          userId: newUser.user.id,
+          workspaceId 
+        };
+        break;
+      }
+
       case "set_password": {
         if (!userId || !password) {
           throw new Error("userId and password are required");
