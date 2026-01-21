@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -847,6 +848,7 @@ export default function GoogleLocalProspecting() {
   };
 
   return (
+    <ModuleGuard moduleSlug="google-local-services" moduleName="Google Local Services">
     <div className="space-y-6">
       <PageBreadcrumbs 
         items={[
@@ -1207,5 +1209,6 @@ export default function GoogleLocalProspecting() {
         </div>
       </div>
     </div>
+    </ModuleGuard>
   );
 }
