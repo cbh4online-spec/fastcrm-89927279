@@ -12,8 +12,8 @@ interface PageViewParams {
 }
 
 interface CTAClickParams {
-  cta_type: 'signup' | 'try_tool' | 'export' | 'install' | 'contact' | 'upgrade';
-  placement: 'hero' | 'sidebar' | 'inline' | 'footer' | 'nav';
+  cta_type: 'signup' | 'try_tool' | 'export' | 'install' | 'contact' | 'upgrade' | 'generate_keywords' | 'unlock_signup' | 'export_gated' | 'copy_keyword' | 'unlock_keywords';
+  placement: 'hero' | 'sidebar' | 'inline' | 'footer' | 'nav' | 'widget' | 'results' | 'results_list' | 'banner' | 'overlay';
   page_type?: string;
   entity_slug?: string;
 }
@@ -36,6 +36,7 @@ interface ToolParams {
   input_type?: string;
   result_type?: string;
   credits_used?: number;
+  results_count?: number;
 }
 
 interface PurchaseParams {

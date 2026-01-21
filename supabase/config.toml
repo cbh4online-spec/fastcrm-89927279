@@ -117,3 +117,6 @@ verify_jwt = true
 
 [functions.generate-seo-content]
 verify_jwt = false
+
+[functions.generate-keyword-ideas]
+verify_jwt = false
