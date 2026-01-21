@@ -166,7 +166,7 @@ const navigationGroups: NavGroup[] = [
     tooltip: "Gestão de relacionamentos",
     items: [
       { name: "Leads", href: "/dashboard/leads", icon: Target, tooltip: "Potenciais clientes" },
-      { name: "Prospecção Pro", href: "/dashboard/prospecting/professionals", icon: UserPlus, tooltip: "Descobrir profissionais (Beta)", highlight: true },
+      { name: "Prospecção Pro", href: "/dashboard/prospecting/professionals", icon: UserPlus, tooltip: "Descobrir profissionais (Beta)", highlight: true, moduleSlug: "prospecting-pro" },
       { name: "Contactos", href: "/dashboard/contacts", icon: UsersRound, tooltip: "Pessoas" },
       { name: "Empresas", href: "/dashboard/companies", icon: Building2, tooltip: "Organizações" },
       { name: "Oportunidades", href: "/dashboard/opportunities", icon: Kanban, tooltip: "Negócios em curso" },
@@ -217,7 +217,7 @@ const navigationGroups: NavGroup[] = [
     icon: FileEdit,
     tooltip: "Utilitários do sistema",
     items: [
-      { name: "SEO & Growth", href: "/dashboard/seo", icon: TrendingUp, tooltip: "Gestão de conteúdo SEO", highlight: true },
+      { name: "SEO & Growth", href: "/dashboard/seo", icon: TrendingUp, tooltip: "Gestão de conteúdo SEO", highlight: true, moduleSlug: "seo-growth" },
       { name: "Form Studio", href: "/dashboard/form-studio", icon: FileEdit, tooltip: "Construtor de formulários" },
       { name: "Importações", href: "/dashboard/imports", icon: Download, tooltip: "Importar dados" },
       { name: "Integrações", href: "/dashboard/settings/integrations", icon: Link2, tooltip: "Conectar apps" },

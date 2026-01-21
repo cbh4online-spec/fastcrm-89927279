@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Search, Users, History, BarChart3 } from "lucide-react";
@@ -13,7 +14,8 @@ export default function ProfessionalProspecting() {
   const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
 
   return (
-    <DashboardLayout>
+    <ModuleGuard moduleSlug="prospecting-pro" moduleName="Prospecção Profissional">
+      <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -82,6 +84,7 @@ export default function ProfessionalProspecting() {
           </ul>
         </div>
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </ModuleGuard>
   );
 }
