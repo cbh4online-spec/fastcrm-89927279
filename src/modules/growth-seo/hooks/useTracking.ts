@@ -12,8 +12,15 @@ interface PageViewParams {
 }
 
 interface CTAClickParams {
-  cta_type: 'signup' | 'try_tool' | 'export' | 'install' | 'contact' | 'upgrade' | 'generate_keywords' | 'unlock_signup' | 'export_gated' | 'copy_keyword' | 'unlock_keywords';
-  placement: 'hero' | 'sidebar' | 'inline' | 'footer' | 'nav' | 'widget' | 'results' | 'results_list' | 'banner' | 'overlay';
+  cta_type: 
+    | 'signup' | 'try_tool' | 'export' | 'install' | 'contact' | 'upgrade' 
+    | 'generate_keywords' | 'unlock_signup' | 'export_gated' | 'copy_keyword' | 'unlock_keywords'
+    | 'primary' | 'secondary' | 'sticky_cta' | 'sticky_cta_impression'
+    | 'value_gate_soft' | 'value_gate_hard' | 'value_gate_soft_impression' | 'value_gate_hard_impression';
+  placement: 
+    | 'hero' | 'sidebar' | 'inline' | 'footer' | 'nav' | 'widget' 
+    | 'results' | 'results_list' | 'banner' | 'overlay'
+    | 'top' | 'bottom' | 'sample_preview' | 'sticky';
   page_type?: string;
   entity_slug?: string;
 }
