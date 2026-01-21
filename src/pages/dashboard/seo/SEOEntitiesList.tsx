@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -56,7 +56,9 @@ import {
   useDeleteEntity,
   useBulkUpdateStatus,
 } from "@/modules/growth-seo/hooks/useAdminSEOEntities";
-import type { EntityType, EntityStatus, Intent, SEOEntity } from "@/modules/growth-seo/types";
+import { calculateEntityScore } from "@/modules/growth-seo/utils/calculateQualityScore";
+import { AIScoreTooltip } from "@/modules/growth-seo/components/admin/AIScoreTooltip";
+import type { EntityType, EntityStatus, Intent, SEOEntity, SEOContent } from "@/modules/growth-seo/types";
 
 const entityTypeLabels: Record<EntityType, string> = {
   keyword: "Palavra-chave",
@@ -97,6 +99,32 @@ const intentLabels: Record<Intent, string> = {
   commercial: "Comercial",
   transactional: "Transacional",
 };
+
+// Component to calculate and display AI Score with tooltip
+function EntityAIScore({ entity }: { entity: SEOEntity }) {
+  const breakdown = useMemo(() => {
+    try {
+      return calculateEntityScore({
+        title: entity.title,
+        meta_description: entity.meta_description,
+        h1: entity.h1,
+        tldr: entity.tldr,
+        content: entity.content as SEOContent,
+        schema_markup: entity.schema_markup,
+      });
+    } catch {
+      return null;
+    }
+  }, [entity]);
+
+  const score = breakdown?.totalScore ?? entity.ai_quality_score ?? 0;
+
+  if (!score && score !== 0) {
+    return <span className="text-muted-foreground">-</span>;
+  }
+
+  return <AIScoreTooltip score={score} breakdown={breakdown} />;
+}
 
 export function SEOEntitiesList() {
   const [filters, setFilters] = useState({
@@ -327,21 +355,7 @@ export function SEOEntitiesList() {
                     {entity.views_count.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    {entity.ai_quality_score ? (
-                      <span
-                        className={
-                          entity.ai_quality_score >= 0.8
-                            ? "text-green-600"
-                            : entity.ai_quality_score >= 0.6
-                            ? "text-amber-600"
-                            : "text-red-600"
-                        }
-                      >
-                        {Math.round(entity.ai_quality_score * 100)}%
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                    <EntityAIScore entity={entity} />
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(entity.updated_at), "dd MMM yyyy", { locale: pt })}
