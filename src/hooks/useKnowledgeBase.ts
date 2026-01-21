@@ -346,7 +346,7 @@ export function useKnowledgeBase() {
   };
 
   // Fetch entries for a knowledge base
-  const fetchEntries = async (knowledgeBaseId: string): Promise<KnowledgeEntry[]> => {
+  const fetchEntries = useCallback(async (knowledgeBaseId: string): Promise<KnowledgeEntry[]> => {
     if (!currentWorkspace?.id) return [];
 
     try {
@@ -383,10 +383,10 @@ export function useKnowledgeBase() {
       console.error('Error fetching entries:', error);
       return [];
     }
-  };
+  }, [currentWorkspace?.id]);
 
   // Fetch sources for a knowledge base
-  const fetchSources = async (knowledgeBaseId: string): Promise<any[]> => {
+  const fetchSources = useCallback(async (knowledgeBaseId: string): Promise<any[]> => {
     if (!currentWorkspace?.id) return [];
 
     try {
@@ -420,7 +420,7 @@ export function useKnowledgeBase() {
       console.error('Error fetching sources:', error);
       return [];
     }
-  };
+  }, [currentWorkspace?.id]);
 
   // Query knowledge base with AI
   const queryKnowledge = async (

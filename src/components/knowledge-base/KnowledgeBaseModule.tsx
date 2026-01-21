@@ -92,17 +92,23 @@ export function KnowledgeBaseModule() {
       if (!selectedKB) {
         setEntries([]);
         setSources([]);
+        setIsLoadingDetails(false);
         return;
       }
       
       setIsLoadingDetails(true);
-      const [entriesData, sourcesData] = await Promise.all([
-        fetchEntries(selectedKB),
-        fetchSources(selectedKB)
-      ]);
-      setEntries(entriesData);
-      setSources(sourcesData as KnowledgeSource[]);
-      setIsLoadingDetails(false);
+      try {
+        const [entriesData, sourcesData] = await Promise.all([
+          fetchEntries(selectedKB),
+          fetchSources(selectedKB)
+        ]);
+        setEntries(entriesData);
+        setSources(sourcesData as KnowledgeSource[]);
+      } catch (error) {
+        console.error('Error loading KB details:', error);
+      } finally {
+        setIsLoadingDetails(false);
+      }
     };
 
     loadKBDetails();
