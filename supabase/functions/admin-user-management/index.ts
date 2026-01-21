@@ -116,7 +116,7 @@ serve(async (req) => {
             .insert({
               name: workspaceName,
               slug: workspaceSlug,
-              created_by: user.id // admin que está a criar
+              owner_id: newUser.user.id // utilizador como owner
             })
             .select("id")
             .single();
