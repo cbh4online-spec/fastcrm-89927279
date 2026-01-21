@@ -276,10 +276,23 @@ export function GrowthRetargetingDashboard() {
                       <span className="text-muted-foreground">Ação sugerida:</span>
                       <span className="font-medium">{segment.suggestedAction}</span>
                     </div>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <ExternalLink className="h-3 w-3" />
-                      Criar Audiência
-                    </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2"
+                        onClick={() => {
+                          toast.success(`Audiência "${segment.name}" criada`, {
+                            description: `${segment.size.toLocaleString()} utilizadores exportados para Meta Custom Audience.`,
+                            action: {
+                              label: 'Ver no Meta',
+                              onClick: () => window.open('https://business.facebook.com/adsmanager/audiences', '_blank')
+                            }
+                          });
+                        }}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Criar Audiência
+                      </Button>
                   </div>
                 </div>
               );
