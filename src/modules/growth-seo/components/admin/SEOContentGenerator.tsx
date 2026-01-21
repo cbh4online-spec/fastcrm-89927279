@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -72,6 +73,7 @@ export function SEOContentGenerator() {
   const [copied, setCopied] = useState(false);
 
   const { generateContent, saveGeneratedContent, isGenerating, error } = useGenerateSEOContent();
+  const { currentWorkspace } = useWorkspace();
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
@@ -97,9 +99,12 @@ export function SEOContentGenerator() {
   };
 
   const handleSave = async () => {
-    if (!generatedContent || !metadata) return;
+    if (!generatedContent || !metadata || !currentWorkspace?.id) {
+      toast.error('Workspace não selecionado');
+      return;
+    }
 
-    const saved = await saveGeneratedContent(generatedContent, metadata);
+    const saved = await saveGeneratedContent(generatedContent, metadata, currentWorkspace.id);
     
     if (saved) {
       toast.success('Conteúdo guardado como rascunho!');
