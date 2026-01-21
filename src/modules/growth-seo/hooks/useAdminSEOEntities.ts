@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import type { SEOEntity, EntityType, EntityStatus, Intent } from "../types";
 import { toast } from "sonner";
 
@@ -22,15 +23,21 @@ export function useAdminSEOEntities(
   filters: AdminFilters = {},
   pagination: PaginationOptions = { page: 1, pageSize: 20 }
 ) {
+  const { currentWorkspace } = useWorkspace();
   const { page, pageSize, sortBy = "updated_at", sortOrder = "desc" } = pagination;
   const offset = (page - 1) * pageSize;
 
   return useQuery({
-    queryKey: ["admin-seo-entities", filters, pagination],
+    queryKey: ["admin-seo-entities", currentWorkspace?.id, filters, pagination],
     queryFn: async () => {
+      if (!currentWorkspace?.id) {
+        return { entities: [], total: 0, totalPages: 0 };
+      }
+
       let query = supabase
         .from("seo_entities")
-        .select("*", { count: "exact" });
+        .select("*", { count: "exact" })
+        .eq("workspace_id", currentWorkspace.id); // FILTRO CRÍTICO DE SEGURANÇA
 
       // Apply filters
       if (filters.entityType && filters.entityType !== "all") {
@@ -64,6 +71,7 @@ export function useAdminSEOEntities(
         totalPages: Math.ceil((count || 0) / pageSize),
       };
     },
+    enabled: !!currentWorkspace?.id,
     staleTime: 30000,
   });
 }
@@ -162,34 +170,44 @@ export function useBulkUpdateStatus() {
 }
 
 export function useSEOStats() {
+  const { currentWorkspace } = useWorkspace();
+
   return useQuery({
-    queryKey: ["seo-stats"],
+    queryKey: ["seo-stats", currentWorkspace?.id],
     queryFn: async () => {
-      // Get counts by status
+      if (!currentWorkspace?.id) {
+        return { total: 0, byStatus: {}, byType: {}, totalViews: 0, avgAIScore: 0 };
+      }
+
+      // Get counts by status - FILTRO POR WORKSPACE
       const { data: statusCounts, error: statusError } = await supabase
         .from("seo_entities")
-        .select("status");
+        .select("status")
+        .eq("workspace_id", currentWorkspace.id);
 
       if (statusError) throw statusError;
 
-      // Get counts by type
+      // Get counts by type - FILTRO POR WORKSPACE
       const { data: typeCounts, error: typeError } = await supabase
         .from("seo_entities")
-        .select("entity_type");
+        .select("entity_type")
+        .eq("workspace_id", currentWorkspace.id);
 
       if (typeError) throw typeError;
 
-      // Get total views
+      // Get total views - FILTRO POR WORKSPACE
       const { data: viewsData, error: viewsError } = await supabase
         .from("seo_entities")
-        .select("views_count");
+        .select("views_count")
+        .eq("workspace_id", currentWorkspace.id);
 
       if (viewsError) throw viewsError;
 
-      // Get average AI score
+      // Get average AI score - FILTRO POR WORKSPACE
       const { data: scoreData, error: scoreError } = await supabase
         .from("seo_entities")
         .select("ai_quality_score")
+        .eq("workspace_id", currentWorkspace.id)
         .not("ai_quality_score", "is", null);
 
       if (scoreError) throw scoreError;
@@ -226,17 +244,25 @@ export function useSEOStats() {
         avgAIScore: Math.round(avgScore * 10) / 10,
       };
     },
+    enabled: !!currentWorkspace?.id,
     staleTime: 60000,
   });
 }
 
 export function useTopPerformingPages(limit = 10) {
+  const { currentWorkspace } = useWorkspace();
+
   return useQuery({
-    queryKey: ["seo-top-pages", limit],
+    queryKey: ["seo-top-pages", currentWorkspace?.id, limit],
     queryFn: async () => {
+      if (!currentWorkspace?.id) {
+        return [];
+      }
+
       const { data, error } = await supabase
         .from("seo_entities")
         .select("id, title, slug, entity_type, views_count, status")
+        .eq("workspace_id", currentWorkspace.id) // FILTRO POR WORKSPACE
         .eq("status", "published")
         .order("views_count", { ascending: false })
         .limit(limit);
@@ -244,6 +270,7 @@ export function useTopPerformingPages(limit = 10) {
       if (error) throw error;
       return data;
     },
+    enabled: !!currentWorkspace?.id,
     staleTime: 60000,
   });
 }
