@@ -83,14 +83,19 @@ serve(async (req) => {
     const prompt = buildPrompt(entity_type, topic, intent, language, additional_context);
 
     // Call Lovable AI (Google Gemini)
-    const aiResponse = await fetch("https://api.lovable.dev/v1/ai/chat", {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY") || supabaseAnonKey}`,
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           {
             role: "system",
@@ -101,7 +106,6 @@ serve(async (req) => {
             content: prompt,
           },
         ],
-        response_format: { type: "json_object" },
       }),
     });
 
