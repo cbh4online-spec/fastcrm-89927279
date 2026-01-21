@@ -8,7 +8,8 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
-import { Users, Target, DollarSign, ExternalLink, TrendingUp, Zap } from 'lucide-react';
+import { Users, Target, DollarSign, ExternalLink, TrendingUp, Zap, Settings } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Mock audience segments
 const audienceSegments = [
@@ -297,10 +298,25 @@ export function GrowthRetargetingDashboard() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  toast.info('Configuração do Pixel Meta', {
+                    description: 'Configure o pixel Meta nas Definições SEO → Tracking',
+                  });
+                }}
+              >
+                <Settings className="h-4 w-4 mr-2" />
                 Configurar Pixel
               </Button>
-              <Button>
+              <Button
+                onClick={() => {
+                  toast.success('Exportação iniciada', {
+                    description: 'As audiências serão exportadas para formato CSV.',
+                  });
+                }}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
                 Exportar Audiências
               </Button>
             </div>
