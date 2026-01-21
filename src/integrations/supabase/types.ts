@@ -804,6 +804,77 @@ export type Database = {
           },
         ]
       }
+      bank_partners: {
+        Row: {
+          avg_approval_rate: number | null
+          avg_processing_days: number | null
+          commission_rates: Json | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          credit_types: string[] | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          name: string
+          notes: string | null
+          terms: Json | null
+          total_funded: number | null
+          total_proposals_submitted: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          avg_approval_rate?: number | null
+          avg_processing_days?: number | null
+          commission_rates?: Json | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          credit_types?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name: string
+          notes?: string | null
+          terms?: Json | null
+          total_funded?: number | null
+          total_proposals_submitted?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          avg_approval_rate?: number | null
+          avg_processing_days?: number | null
+          commission_rates?: Json | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          credit_types?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name?: string
+          notes?: string | null
+          terms?: Json | null
+          total_funded?: number | null
+          total_proposals_submitted?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_partners_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_events: {
         Row: {
           created_at: string
@@ -3113,6 +3184,155 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_proposals: {
+        Row: {
+          ai_analyzed_at: string | null
+          ai_approval_probability: number | null
+          ai_optimization_tips: Json | null
+          ai_recommended_banks: Json | null
+          ai_risk_assessment: string | null
+          ai_viability_score: number | null
+          amount_requested: number
+          approved_amount: number | null
+          approved_monthly_payment: number | null
+          approved_rate: number | null
+          approved_taeg: number | null
+          approved_term: number | null
+          assigned_to: string | null
+          bank_submissions: Json | null
+          commission_amount: number | null
+          commission_paid: boolean | null
+          commission_paid_at: string | null
+          created_at: string
+          created_by: string
+          credit_type: string
+          current_stage_since: string | null
+          documents_complete: boolean | null
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          id: string
+          ltv_ratio: number | null
+          notes: string | null
+          property_location: string | null
+          property_value: number | null
+          purpose: string | null
+          reference_number: string
+          required_documents: Json | null
+          selected_bank_id: string | null
+          status: string
+          status_history: Json | null
+          tags: string[] | null
+          term_months: number
+          updated_at: string
+          vehicle_brand: string | null
+          vehicle_model: string | null
+          vehicle_value: number | null
+          vehicle_year: number | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_analyzed_at?: string | null
+          ai_approval_probability?: number | null
+          ai_optimization_tips?: Json | null
+          ai_recommended_banks?: Json | null
+          ai_risk_assessment?: string | null
+          ai_viability_score?: number | null
+          amount_requested: number
+          approved_amount?: number | null
+          approved_monthly_payment?: number | null
+          approved_rate?: number | null
+          approved_taeg?: number | null
+          approved_term?: number | null
+          assigned_to?: string | null
+          bank_submissions?: Json | null
+          commission_amount?: number | null
+          commission_paid?: boolean | null
+          commission_paid_at?: string | null
+          created_at?: string
+          created_by: string
+          credit_type: string
+          current_stage_since?: string | null
+          documents_complete?: boolean | null
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          id?: string
+          ltv_ratio?: number | null
+          notes?: string | null
+          property_location?: string | null
+          property_value?: number | null
+          purpose?: string | null
+          reference_number: string
+          required_documents?: Json | null
+          selected_bank_id?: string | null
+          status?: string
+          status_history?: Json | null
+          tags?: string[] | null
+          term_months: number
+          updated_at?: string
+          vehicle_brand?: string | null
+          vehicle_model?: string | null
+          vehicle_value?: number | null
+          vehicle_year?: number | null
+          workspace_id: string
+        }
+        Update: {
+          ai_analyzed_at?: string | null
+          ai_approval_probability?: number | null
+          ai_optimization_tips?: Json | null
+          ai_recommended_banks?: Json | null
+          ai_risk_assessment?: string | null
+          ai_viability_score?: number | null
+          amount_requested?: number
+          approved_amount?: number | null
+          approved_monthly_payment?: number | null
+          approved_rate?: number | null
+          approved_taeg?: number | null
+          approved_term?: number | null
+          assigned_to?: string | null
+          bank_submissions?: Json | null
+          commission_amount?: number | null
+          commission_paid?: boolean | null
+          commission_paid_at?: string | null
+          created_at?: string
+          created_by?: string
+          credit_type?: string
+          current_stage_since?: string | null
+          documents_complete?: boolean | null
+          entity_id?: string
+          entity_name?: string
+          entity_type?: string
+          id?: string
+          ltv_ratio?: number | null
+          notes?: string | null
+          property_location?: string | null
+          property_value?: number | null
+          purpose?: string | null
+          reference_number?: string
+          required_documents?: Json | null
+          selected_bank_id?: string | null
+          status?: string
+          status_history?: Json | null
+          tags?: string[] | null
+          term_months?: number
+          updated_at?: string
+          vehicle_brand?: string | null
+          vehicle_model?: string | null
+          vehicle_value?: number | null
+          vehicle_year?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_purchases: {
         Row: {
           amount_paid: number
@@ -3870,6 +4090,95 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "field_permissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_profiles: {
+        Row: {
+          annual_income: number
+          assets: Json | null
+          created_at: string
+          credit_score: number | null
+          debt_to_income_ratio: number | null
+          disposable_income: number | null
+          effort_rate: number | null
+          entity_id: string
+          entity_type: string
+          existing_credits: Json | null
+          id: string
+          income_stability: string | null
+          income_type: string | null
+          monthly_expenses: number | null
+          monthly_income: number
+          notes: string | null
+          score_calculated_at: string | null
+          score_factors: Json | null
+          total_assets_value: number | null
+          total_monthly_installments: number | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          annual_income?: number
+          assets?: Json | null
+          created_at?: string
+          credit_score?: number | null
+          debt_to_income_ratio?: number | null
+          disposable_income?: number | null
+          effort_rate?: number | null
+          entity_id: string
+          entity_type: string
+          existing_credits?: Json | null
+          id?: string
+          income_stability?: string | null
+          income_type?: string | null
+          monthly_expenses?: number | null
+          monthly_income?: number
+          notes?: string | null
+          score_calculated_at?: string | null
+          score_factors?: Json | null
+          total_assets_value?: number | null
+          total_monthly_installments?: number | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          annual_income?: number
+          assets?: Json | null
+          created_at?: string
+          credit_score?: number | null
+          debt_to_income_ratio?: number | null
+          disposable_income?: number | null
+          effort_rate?: number | null
+          entity_id?: string
+          entity_type?: string
+          existing_credits?: Json | null
+          id?: string
+          income_stability?: string | null
+          income_type?: string | null
+          monthly_expenses?: number | null
+          monthly_income?: number
+          notes?: string | null
+          score_calculated_at?: string | null
+          score_factors?: Json | null
+          total_assets_value?: number | null
+          total_monthly_installments?: number | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_profiles_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
