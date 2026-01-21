@@ -124,6 +124,13 @@ const SECTION_CONFIG: Record<MenuSection, {
     suggestion: 'Cria automações para poupar tempo e aumentar produtividade.',
     actionLabel: 'Criar Automação',
   },
+  credit: {
+    icon: CreditCard,
+    title: 'Sem propostas de crédito',
+    description: 'Nenhuma proposta de crédito associada.',
+    suggestion: 'Cria uma proposta quando identificares necessidade de financiamento.',
+    actionLabel: 'Criar Proposta de Crédito',
+  },
 };
 
 export function EntityEmptyState({

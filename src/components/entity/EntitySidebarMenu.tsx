@@ -17,9 +17,11 @@ import {
   Layers,
   History,
   Users,
+  Landmark,
 } from 'lucide-react';
 import { EntityType, MenuSection } from '@/types/entity';
 import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
+import { useWorkspaceModules } from '@/hooks/useWorkspaceModules';
 
 interface EntitySidebarMenuProps {
   entityType: EntityType;
@@ -31,6 +33,7 @@ interface EntitySidebarMenuProps {
     opportunities?: number;
     proposals?: number;
     contacts?: number;
+    credit?: number;
   };
 }
 
@@ -67,6 +70,7 @@ const MENU_SECTIONS: {
     items: [
       { id: 'opportunities', label: 'Oportunidades', icon: Target, showFor: ['lead', 'contact', 'company'] },
       { id: 'proposals', label: 'Propostas', icon: FileText, showFor: ['lead', 'contact', 'company'] },
+      { id: 'credit', label: 'Crédito', icon: Landmark, showFor: ['lead', 'contact', 'company'] },
       { id: 'payments', label: 'Pagamentos', icon: CreditCard, showFor: ['contact', 'company'] },
       { id: 'contacts', label: 'Contactos', icon: Users, showFor: ['company'] },
     ],
@@ -89,7 +93,7 @@ export function EntitySidebarMenu({
 }: EntitySidebarMenuProps) {
   const { data: layoutConfig } = useWorkspaceLayoutConfig(entityType);
   const visibleSections = getVisibleSections(entityType, layoutConfig);
-
+  const { isModuleInstalled } = useWorkspaceModules();
   const getCount = (id: MenuSection): number | undefined => {
     switch (id) {
       case 'messages': return counts.messages;
@@ -97,11 +101,16 @@ export function EntitySidebarMenu({
       case 'opportunities': return counts.opportunities;
       case 'proposals': return counts.proposals;
       case 'contacts': return counts.contacts;
+      case 'credit': return counts.credit;
       default: return undefined;
     }
   };
 
   const isVisible = (sectionId: MenuSection): boolean => {
+    // Credit section is only visible if module is installed
+    if (sectionId === 'credit' && !isModuleInstalled('credit-intermediation')) {
+      return false;
+    }
     return visibleSections.includes(sectionId);
   };
 

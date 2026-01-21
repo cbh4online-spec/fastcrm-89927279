@@ -42,6 +42,7 @@ import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 import { EntityOpportunitiesSection } from "@/components/opportunities/EntityOpportunitiesSection";
+import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/components/EntityCreditProposalsSection";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -288,6 +289,14 @@ export function ENIContactDetailWithSidebar() {
             entityName={contact.name}
             entityIndustry={(contact as any).business_area}
             entityNotes={contact.notes}
+          />
+        );
+      case 'credit':
+        return (
+          <EntityCreditProposalsSection
+            entityType="contact"
+            entityId={id!}
+            entityName={contact.name}
           />
         );
       default:
