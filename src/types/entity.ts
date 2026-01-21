@@ -75,7 +75,8 @@ export type MenuSection =
   | 'custom-fields'
   | 'history'
   | 'contacts'
-  | 'automations'; // AI-powered automations
+  | 'automations'
+  | 'credit'; // Credit intermediation proposals
 
 export interface MenuItemConfig {
   id: MenuSection;

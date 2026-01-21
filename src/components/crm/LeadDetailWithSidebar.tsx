@@ -52,6 +52,7 @@ import { EntityContext } from "@/hooks/useEntityProductSuggestions";
 import { CustomFieldsSection } from "@/components/leads/sections/CustomFieldsSection";
 import { InstagramDataSection } from "@/components/leads/sections/InstagramDataSection";
 import { AIAnalysisSection } from "@/components/leads/sections/AIAnalysisSection";
+import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/components/EntityCreditProposalsSection";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -235,6 +236,14 @@ export function LeadDetailWithSidebar() {
       case 'custom-fields':
         return (
           <CustomFieldsSection leadId={id!} />
+        );
+      case 'credit':
+        return (
+          <EntityCreditProposalsSection
+            entityType="lead"
+            entityId={id!}
+            entityName={lead.name}
+          />
         );
       default:
         return (
