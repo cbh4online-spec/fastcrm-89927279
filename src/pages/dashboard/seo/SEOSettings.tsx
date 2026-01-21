@@ -37,6 +37,8 @@ export function SEOSettings() {
     defaultOgImage: "",
     gtmContainerId: "",
     ga4MeasurementId: "",
+    metaPixelId: "",
+    clarityProjectId: "",
     autoSitemapUpdate: true,
     enableSchemaMarkup: true,
   });
@@ -186,6 +188,32 @@ export function SEOSettings() {
                 onChange={(e) => setSettings((s) => ({ ...s, ga4MeasurementId: e.target.value }))}
                 placeholder="G-XXXXXXXXXX"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="metaPixelId">Meta Pixel ID</Label>
+              <Input
+                id="metaPixelId"
+                value={settings.metaPixelId}
+                onChange={(e) => setSettings((s) => ({ ...s, metaPixelId: e.target.value }))}
+                placeholder="XXXXXXXXXXXXXXX"
+              />
+              <p className="text-xs text-muted-foreground">
+                ID do pixel Meta/Facebook para tracking de conversões
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="clarityProjectId">Microsoft Clarity ID</Label>
+              <Input
+                id="clarityProjectId"
+                value={settings.clarityProjectId}
+                onChange={(e) => setSettings((s) => ({ ...s, clarityProjectId: e.target.value }))}
+                placeholder="xxxxxxxxxx"
+              />
+              <p className="text-xs text-muted-foreground">
+                ID do projeto Clarity para heatmaps e recordings
+              </p>
             </div>
           </div>
         </CardContent>
