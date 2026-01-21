@@ -27,10 +27,11 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, Save, Eye, Copy, Check } from 'lucide-react';
+import { Loader2, Sparkles, Save, Eye, Copy, Check, Target } from 'lucide-react';
 import { useGenerateSEOContent } from '../../hooks/useGenerateSEOContent';
 import { ContentSections } from '../../components/shared/ContentSections';
 import { FAQSection } from '../../components/pages/shared/FAQSection';
+import { getCTAForEntity, ctaConfigByEntityType } from '../../config/ctaConfig';
 import type { EntityType, Intent } from '../../types';
 import { toast } from 'sonner';
 
@@ -183,6 +184,32 @@ export function SEOContentGenerator() {
               onChange={(e) => setTopic(e.target.value)}
             />
           </div>
+
+          {/* CTA Preview based on entity type */}
+          {topic && (
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">CTAs sugeridos para este tipo:</span>
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="text-xs">Primary</Badge>
+                  <span className="text-muted-foreground">
+                    {getCTAForEntity(entityType, { keyword: topic, category: topic, topic, term: topic }).primary.text}
+                  </span>
+                </div>
+                {ctaConfigByEntityType[entityType].secondary && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">Secondary</Badge>
+                    <span className="text-muted-foreground">
+                      {getCTAForEntity(entityType, { keyword: topic, category: topic, topic, term: topic }).secondary?.text}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="context">Contexto Adicional (opcional)</Label>
