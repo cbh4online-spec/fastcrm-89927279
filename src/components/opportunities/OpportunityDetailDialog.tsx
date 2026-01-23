@@ -24,6 +24,7 @@ import {
   User,
   DollarSign,
   Calendar,
+  Bot,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -36,6 +37,7 @@ import { toast } from "sonner";
 import { OpportunityDetailsSection } from "./sections/OpportunityDetailsSection";
 import { OpportunityAssociationsSection } from "./sections/OpportunityAssociationsSection";
 import { OpportunityRecurrenceSection } from "./sections/OpportunityRecurrenceSection";
+import { BillingAssistantButton } from "@/components/billing-assistant";
 
 interface OpportunityDetailDialogProps {
   opportunity: Opportunity;
@@ -157,18 +159,21 @@ export function OpportunityDetailDialog({
                 )}
               </div>
             </div>
-            {opp.status === "open" && (
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="text-green-600" onClick={onMarkAsWon}>
-                  <CheckCircle2 className="w-4 h-4 mr-1" />
-                  Ganho
-                </Button>
-                <Button size="sm" variant="outline" className="text-red-600" onClick={onMarkAsLost}>
-                  <XCircle className="w-4 h-4 mr-1" />
-                  Perdido
-                </Button>
-              </div>
-            )}
+            <div className="flex gap-2">
+              <BillingAssistantButton opportunityId={opp.id} />
+              {opp.status === "open" && (
+                <>
+                  <Button size="sm" variant="outline" className="text-green-600" onClick={onMarkAsWon}>
+                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                    Ganho
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-red-600" onClick={onMarkAsLost}>
+                    <XCircle className="w-4 h-4 mr-1" />
+                    Perdido
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </DialogHeader>
 
