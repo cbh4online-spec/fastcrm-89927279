@@ -12798,6 +12798,60 @@ export type Database = {
           },
         ]
       }
+      subscription_events: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string | null
+          event_type: Database["public"]["Enums"]["subscription_event_type"]
+          id: string
+          notes: string | null
+          occurred_at: string
+          raw_payload: Json | null
+          subscription_id: string
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          event_type: Database["public"]["Enums"]["subscription_event_type"]
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          raw_payload?: Json | null
+          subscription_id: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          event_type?: Database["public"]["Enums"]["subscription_event_type"]
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          raw_payload?: Json | null
+          subscription_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -14957,6 +15011,16 @@ export type Database = {
         | "winners"
         | "ai_alert"
       sso_token_status: "pending" | "active" | "used" | "expired" | "revoked"
+      subscription_event_type:
+        | "created"
+        | "payment_succeeded"
+        | "payment_failed"
+        | "paused"
+        | "resumed"
+        | "canceled"
+        | "renewed"
+        | "plan_changed"
+        | "manual_adjustment"
       subscription_plan: "free" | "basic" | "pro" | "agency"
       subscription_status:
         | "draft"
@@ -15226,6 +15290,17 @@ export const Constants = {
         "ai_alert",
       ],
       sso_token_status: ["pending", "active", "used", "expired", "revoked"],
+      subscription_event_type: [
+        "created",
+        "payment_succeeded",
+        "payment_failed",
+        "paused",
+        "resumed",
+        "canceled",
+        "renewed",
+        "plan_changed",
+        "manual_adjustment",
+      ],
       subscription_plan: ["free", "basic", "pro", "agency"],
       subscription_status: [
         "draft",
