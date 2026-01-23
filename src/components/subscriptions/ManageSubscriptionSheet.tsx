@@ -74,6 +74,7 @@ export function ManageSubscriptionSheet({
   const [isEditing, setIsEditing] = useState(false);
   const [editedMrr, setEditedMrr] = useState(subscription.mrr_amount);
   const [editedFrequency, setEditedFrequency] = useState(subscription.frequency);
+  const [cancelReason, setCancelReason] = useState("");
 
   const updateSubscription = useUpdateSubscription();
   const cancelSubscription = useCancelSubscription();
@@ -102,8 +103,12 @@ export function ManageSubscriptionSheet({
   };
 
   const handleCancel = async () => {
-    await cancelSubscription.mutateAsync(subscription.id);
+    await cancelSubscription.mutateAsync({ 
+      id: subscription.id, 
+      reason: cancelReason || undefined 
+    });
     setShowCancelDialog(false);
+    setCancelReason("");
   };
 
   const handleSaveChanges = async () => {
@@ -330,7 +335,10 @@ export function ManageSubscriptionSheet({
       </Sheet>
 
       {/* Cancel Confirmation Dialog */}
-      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+      <AlertDialog open={showCancelDialog} onOpenChange={(open) => {
+        setShowCancelDialog(open);
+        if (!open) setCancelReason("");
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar Subscrição?</AlertDialogTitle>
@@ -339,6 +347,26 @@ export function ManageSubscriptionSheet({
               e a subscrição será marcada como cancelada.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
+          <div className="space-y-2 py-4">
+            <Label htmlFor="cancel-reason">Motivo do cancelamento (opcional)</Label>
+            <Select value={cancelReason} onValueChange={setCancelReason}>
+              <SelectTrigger id="cancel-reason">
+                <SelectValue placeholder="Selecione um motivo..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="price">Preço elevado</SelectItem>
+                <SelectItem value="not_using">Não está a usar o serviço</SelectItem>
+                <SelectItem value="competitor">Mudou para concorrente</SelectItem>
+                <SelectItem value="closing">Encerramento de atividade</SelectItem>
+                <SelectItem value="quality">Insatisfeito com qualidade</SelectItem>
+                <SelectItem value="support">Problemas de suporte</SelectItem>
+                <SelectItem value="temporary">Pausa temporária</SelectItem>
+                <SelectItem value="other">Outro motivo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction

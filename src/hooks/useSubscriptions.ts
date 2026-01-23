@@ -219,8 +219,8 @@ export function useCancelSubscription() {
   const { currentWorkspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      if (!workspaceClient) {
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      if (!workspaceClient || !currentWorkspace) {
         throw new Error("Workspace not available");
       }
 
@@ -229,17 +229,30 @@ export function useCancelSubscription() {
         .update({
           status: "cancelled" as const,
           canceled_at: new Date().toISOString(),
+          cancellation_reason: reason || null,
         })
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
+
+      // Create subscription event for cancellation
+      await workspaceClient.from("subscription_events").insert({
+        subscription_id: id,
+        workspace_id: currentWorkspace.id,
+        event_type: "canceled",
+        occurred_at: new Date().toISOString(),
+        notes: reason ? `Motivo: ${reason}` : "Subscrição cancelada manualmente",
+        currency: "EUR",
+      });
+
       return data as Subscription;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["subscriptions", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["subscription", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["subscription-events", data.id] });
       toast.success("Subscrição cancelada");
     },
     onError: (error) => {
