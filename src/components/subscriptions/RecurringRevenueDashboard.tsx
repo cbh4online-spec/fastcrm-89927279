@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +15,7 @@ import {
   Target,
   TrendingUp,
   Eye,
+  Bot,
 } from "lucide-react";
 import { useSaaSMetrics, useUpcomingRenewals, useAtRiskSubscriptions } from "@/hooks/useSaaSMetrics";
 import { format } from "date-fns";
@@ -29,6 +30,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { BillingAssistantDrawer } from "@/components/billing-assistant";
 
 interface RecurringRevenueDashboardProps {
   className?: string;
@@ -39,6 +41,7 @@ export function RecurringRevenueDashboard({ className }: RecurringRevenueDashboa
   const { metrics, isLoading, subscriptions } = useSaaSMetrics();
   const { upcomingRenewals } = useUpcomingRenewals(7);
   const { atRiskSubscriptions } = useAtRiskSubscriptions();
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   // Generate mock MRR evolution data (in real app, this would come from metrics_snapshots)
   const mrrEvolutionData = useMemo(() => {
@@ -138,6 +141,24 @@ export function RecurringRevenueDashboard({ className }: RecurringRevenueDashboa
 
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Header with Assistant Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Dashboard de Recorrência</h2>
+          <p className="text-sm text-muted-foreground">Visão geral de receita recorrente</p>
+        </div>
+        <Button variant="outline" onClick={() => setAssistantOpen(true)}>
+          <Bot className="mr-2 h-4 w-4" />
+          Assistente IA
+        </Button>
+      </div>
+
+      {/* Assistant Drawer */}
+      <BillingAssistantDrawer
+        open={assistantOpen}
+        onOpenChange={setAssistantOpen}
+      />
+
       {/* Main Metrics Cards */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
         {mainMetrics.map((metric) => (
