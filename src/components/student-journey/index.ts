@@ -3,3 +3,8 @@ export { SJSidebar } from "./SJSidebar";
 export { SJCopilotDrawer } from "./SJCopilotDrawer";
 export { CreateProfileDialog } from "./CreateProfileDialog";
 export { CreateCohortDialog } from "./CreateCohortDialog";
+export { CreateCourseDialog } from "./CreateCourseDialog";
+export { CreateEnrollmentDialog } from "./CreateEnrollmentDialog";
+export { CreateTouchpointDialog } from "./CreateTouchpointDialog";
+export { CreateTaskDialog } from "./CreateTaskDialog";
+export { ScheduleFollowUpDialog } from "./ScheduleFollowUpDialog";
