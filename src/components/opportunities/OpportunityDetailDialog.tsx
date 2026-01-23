@@ -35,6 +35,7 @@ import { useCompanies } from "@/hooks/useCompanies";
 import { toast } from "sonner";
 import { OpportunityDetailsSection } from "./sections/OpportunityDetailsSection";
 import { OpportunityAssociationsSection } from "./sections/OpportunityAssociationsSection";
+import { OpportunityRecurrenceSection } from "./sections/OpportunityRecurrenceSection";
 
 interface OpportunityDetailDialogProps {
   opportunity: Opportunity;
@@ -172,8 +173,12 @@ export function OpportunityDetailDialog({
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Resumo</TabsTrigger>
+            <TabsTrigger value="recurrence">
+              <DollarSign className="w-4 h-4 mr-1" />
+              Recorrência
+            </TabsTrigger>
             <TabsTrigger value="ai">
               <Sparkles className="w-4 h-4 mr-1" />
               IA
@@ -233,6 +238,13 @@ export function OpportunityDetailDialog({
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="recurrence" className="space-y-4 m-0">
+              <OpportunityRecurrenceSection
+                opportunity={opp}
+                onUpdate={handleOpportunityUpdate}
+              />
             </TabsContent>
 
             <TabsContent value="ai" className="space-y-4 m-0">
