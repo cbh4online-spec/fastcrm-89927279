@@ -9000,6 +9000,59 @@ export type Database = {
           },
         ]
       }
+      metrics_snapshots: {
+        Row: {
+          active_subscriptions: number | null
+          arr_total: number
+          churn_mrr: number
+          contraction_mrr: number
+          created_at: string
+          date: string
+          expansion_mrr: number
+          id: string
+          mrr_total: number
+          new_mrr: number
+          total_customers: number | null
+          workspace_id: string
+        }
+        Insert: {
+          active_subscriptions?: number | null
+          arr_total?: number
+          churn_mrr?: number
+          contraction_mrr?: number
+          created_at?: string
+          date: string
+          expansion_mrr?: number
+          id?: string
+          mrr_total?: number
+          new_mrr?: number
+          total_customers?: number | null
+          workspace_id: string
+        }
+        Update: {
+          active_subscriptions?: number | null
+          arr_total?: number
+          churn_mrr?: number
+          contraction_mrr?: number
+          created_at?: string
+          date?: string
+          expansion_mrr?: number
+          id?: string
+          mrr_total?: number
+          new_mrr?: number
+          total_customers?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metrics_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_access_logs: {
         Row: {
           action_details: Json | null
