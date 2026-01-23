@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSubscriptions, useBillingRecords } from "./useSubscriptions";
 import { calculateMRR, BILLING_CYCLE_MONTHS } from "@/types/subscription";
 import type { Subscription, SubscriptionBillingRecord, SubscriptionMetrics } from "@/types/subscription";
@@ -46,7 +47,7 @@ export interface SaaSMetricsData {
 }
 
 export function useSaaSMetrics() {
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
   const { data: subscriptions = [], isLoading: subsLoading } = useSubscriptions();
   const { data: billingRecords = [], isLoading: billingLoading } = useBillingRecords();
 
@@ -197,7 +198,8 @@ export function useSaaSMetrics() {
 // =====================================================
 
 export function useSubscriptionMetricsHistory(periodType: "daily" | "monthly" = "monthly") {
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useQuery({
     queryKey: ["subscription-metrics", currentWorkspace?.id, periodType],
