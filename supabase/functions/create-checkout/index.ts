@@ -12,31 +12,58 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Plan price mappings
-const PLAN_PRICES = {
-  basic: "price_1SpWYGQpSN9dntDnbou09co0",
-  pro: "price_1SpWYwQpSN9dntDneKmQwHUU",
-  agency: "price_1SpWZ8QpSN9dntDnMeNvHIVO",
-};
+interface WorkspaceStripeConfig {
+  stripe_secret_key_encrypted: string | null;
+  stripe_publishable_key: string | null;
+  is_active: boolean;
+  test_mode: boolean;
+}
+
+// Helper to get workspace Stripe config
+async function getWorkspaceStripeConfig(
+  supabaseUrl: string, 
+  supabaseKey: string, 
+  workspaceId: string
+): Promise<WorkspaceStripeConfig> {
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  const { data, error } = await supabase
+    .from("workspace_stripe_config")
+    .select("stripe_secret_key_encrypted, stripe_publishable_key, is_active, test_mode")
+    .eq("workspace_id", workspaceId)
+    .eq("is_active", true)
+    .single();
+
+  if (error || !data) {
+    throw new Error("Stripe não configurado para este workspace");
+  }
+
+  const config = data as WorkspaceStripeConfig;
+  
+  if (!config.stripe_secret_key_encrypted) {
+    throw new Error("Chave secreta Stripe não configurada");
+  }
+
+  return config;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
   try {
     logStep("Function started");
 
-    const { plan, workspaceId } = await req.json();
-    logStep("Request body", { plan, workspaceId });
+    const { priceId, workspaceId, subscriptionId, successUrl, cancelUrl } = await req.json();
+    logStep("Request body", { priceId, workspaceId, subscriptionId });
 
-    if (!plan || !PLAN_PRICES[plan as keyof typeof PLAN_PRICES]) {
-      throw new Error("Invalid plan selected");
+    if (!priceId) {
+      throw new Error("Price ID is required");
     }
 
     if (!workspaceId) {
@@ -54,7 +81,11 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
+    // Get workspace Stripe config
+    const stripeConfig = await getWorkspaceStripeConfig(supabaseUrl, supabaseKey, workspaceId);
+    logStep("Stripe config loaded", { testMode: stripeConfig.test_mode });
+
+    const stripe = new Stripe(stripeConfig.stripe_secret_key_encrypted!, { 
       apiVersion: "2025-08-27.basil" 
     });
 
@@ -67,7 +98,6 @@ serve(async (req) => {
       logStep("Found existing customer", { customerId });
     }
 
-    const priceId = PLAN_PRICES[plan as keyof typeof PLAN_PRICES];
     const origin = req.headers.get("origin") || "https://fastcrm.lovable.app";
 
     const session = await stripe.checkout.sessions.create({
@@ -80,17 +110,17 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${origin}/dashboard/settings?checkout=success&plan=${plan}`,
-      cancel_url: `${origin}/dashboard/settings?checkout=canceled`,
+      success_url: successUrl || `${origin}/dashboard/billing?checkout=success`,
+      cancel_url: cancelUrl || `${origin}/dashboard/billing?checkout=canceled`,
       metadata: {
         workspace_id: workspaceId,
-        plan: plan,
+        subscription_id: subscriptionId || null,
         user_id: user.id,
       },
       subscription_data: {
         metadata: {
           workspace_id: workspaceId,
-          plan: plan,
+          subscription_id: subscriptionId || null,
         },
       },
     });
