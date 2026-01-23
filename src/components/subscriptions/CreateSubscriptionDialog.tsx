@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,14 +12,12 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -29,30 +26,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 import { useCreateSubscription } from "@/hooks/useSubscriptions";
 import { useContacts } from "@/hooks/useContacts";
 import { useCompanies } from "@/hooks/useCompanies";
 import {
-  BILLING_CYCLE_LABELS,
-  PAYMENT_METHOD_LABELS,
+  BILLING_FREQUENCY_LABELS,
+  PAYMENT_PROVIDER_LABELS,
   getNextBillingDate,
 } from "@/types/subscription";
-import type { BillingCycle, PaymentMethodType, SubscriptionStatus } from "@/types/subscription";
+import type { BillingFrequency, PaymentProvider } from "@/types/subscription";
 
 const formSchema = z.object({
-  name: z.string().min(1, "Nome obrigatório"),
-  description: z.string().optional(),
   customer_type: z.enum(["contact", "company"]),
   customer_id: z.string().min(1, "Cliente obrigatório"),
-  amount: z.coerce.number().min(0, "Valor deve ser positivo"),
-  currency: z.string().default("EUR"),
-  billing_cycle: z.enum(["weekly", "monthly", "quarterly", "semi_annual", "annual"]),
-  payment_method: z.enum(["stripe", "bank_transfer", "check", "cash", "other"]),
+  mrr_amount: z.coerce.number().min(0, "Valor deve ser positivo"),
+  frequency: z.enum(["weekly", "monthly", "quarterly", "semi_annual", "yearly"]),
+  provider: z.enum(["stripe", "manual", "other"]),
   start_date: z.string().min(1, "Data de início obrigatória"),
-  auto_renew: z.boolean().default(true),
-  notes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -83,44 +74,34 @@ export function CreateSubscriptionDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
-      description: "",
       customer_type: defaultCompanyId ? "company" : "contact",
       customer_id: defaultCompanyId || defaultContactId || "",
-      amount: opportunityValue || 0,
-      currency: "EUR",
-      billing_cycle: "monthly",
-      payment_method: "bank_transfer",
+      mrr_amount: opportunityValue || 0,
+      frequency: "monthly",
+      provider: "manual",
       start_date: new Date().toISOString().split("T")[0],
-      auto_renew: true,
-      notes: "",
     },
   });
 
   const customerType = form.watch("customer_type");
   const startDate = form.watch("start_date");
-  const billingCycle = form.watch("billing_cycle");
+  const frequency = form.watch("frequency");
 
-  const nextBillingDate = startDate
-    ? getNextBillingDate(new Date(startDate), billingCycle as BillingCycle)
+  const nextPaymentDate = startDate
+    ? getNextBillingDate(new Date(startDate), frequency as BillingFrequency)
     : null;
 
   const onSubmit = async (values: FormValues) => {
     const subscriptionData = {
-      name: values.name,
-      description: values.description,
       contact_id: values.customer_type === "contact" ? values.customer_id : undefined,
       company_id: values.customer_type === "company" ? values.customer_id : undefined,
       opportunity_id: opportunityId,
-      amount: values.amount,
-      currency: values.currency,
-      billing_cycle: values.billing_cycle as BillingCycle,
-      payment_method: values.payment_method as PaymentMethodType,
+      mrr_amount: values.mrr_amount,
+      frequency: values.frequency as BillingFrequency,
+      provider: values.provider as PaymentProvider,
       start_date: values.start_date,
-      next_billing_date: nextBillingDate?.toISOString().split("T")[0],
-      auto_renew: values.auto_renew,
-      notes: values.notes,
-      status: "active" as SubscriptionStatus,
+      next_payment_date: nextPaymentDate?.toISOString().split("T")[0],
+      status: "active" as const,
     };
 
     await createSubscription.mutateAsync(subscriptionData);
@@ -141,37 +122,6 @@ export function CreateSubscriptionDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome da Subscrição</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Plano Pro Mensal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Detalhes do serviço incluído..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -236,10 +186,10 @@ export function CreateSubscriptionDialog({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="amount"
+                name="mrr_amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor (€)</FormLabel>
+                    <FormLabel>MRR (€)</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" min="0" {...field} />
                     </FormControl>
@@ -250,10 +200,10 @@ export function CreateSubscriptionDialog({
 
               <FormField
                 control={form.control}
-                name="billing_cycle"
+                name="frequency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ciclo de Cobrança</FormLabel>
+                    <FormLabel>Frequência</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
@@ -261,7 +211,7 @@ export function CreateSubscriptionDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(BILLING_CYCLE_LABELS).map(([value, label]) => (
+                        {Object.entries(BILLING_FREQUENCY_LABELS).map(([value, label]) => (
                           <SelectItem key={value} value={value}>
                             {label}
                           </SelectItem>
@@ -291,10 +241,10 @@ export function CreateSubscriptionDialog({
 
               <FormField
                 control={form.control}
-                name="payment_method"
+                name="provider"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Método de Pagamento</FormLabel>
+                    <FormLabel>Provider</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
@@ -302,7 +252,7 @@ export function CreateSubscriptionDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                        {Object.entries(PAYMENT_PROVIDER_LABELS).map(([value, label]) => (
                           <SelectItem key={value} value={value}>
                             {label}
                           </SelectItem>
@@ -315,46 +265,11 @@ export function CreateSubscriptionDialog({
               />
             </div>
 
-            {nextBillingDate && (
+            {nextPaymentDate && (
               <p className="text-sm text-muted-foreground">
-                Próxima cobrança: {nextBillingDate.toLocaleDateString("pt-PT")}
+                Próximo pagamento: {nextPaymentDate.toLocaleDateString("pt-PT")}
               </p>
             )}
-
-            <FormField
-              control={form.control}
-              name="auto_renew"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel>Renovação Automática</FormLabel>
-                    <FormDescription>
-                      A subscrição será renovada automaticamente.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notas</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Notas internas..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <DialogFooter>
               <Button
