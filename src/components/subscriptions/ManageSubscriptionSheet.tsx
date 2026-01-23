@@ -36,6 +36,8 @@ import {
   CalendarClock,
   DollarSign,
   Loader2,
+  Receipt,
+  TrendingUp,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -52,6 +54,8 @@ import {
 } from "@/types/subscription";
 import type { Subscription, BillingFrequency } from "@/types/subscription";
 import { SubscriptionTimeline } from "./SubscriptionTimeline";
+import { RegisterManualPaymentDialog } from "./RegisterManualPaymentDialog";
+import { CreateUpsellOpportunityDialog } from "./CreateUpsellOpportunityDialog";
 
 interface ManageSubscriptionSheetProps {
   open: boolean;
@@ -65,6 +69,8 @@ export function ManageSubscriptionSheet({
   subscription,
 }: ManageSubscriptionSheetProps) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showManualPayment, setShowManualPayment] = useState(false);
+  const [showUpsell, setShowUpsell] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedMrr, setEditedMrr] = useState(subscription.mrr_amount);
   const [editedFrequency, setEditedFrequency] = useState(subscription.frequency);
@@ -75,6 +81,7 @@ export function ManageSubscriptionSheet({
 
   const statusConfig = SUBSCRIPTION_STATUS_CONFIG[subscription.status];
   const mrr = calculateMRR(subscription.mrr_amount, subscription.frequency);
+  const isManualProvider = subscription.provider === "manual" || !subscription.provider_subscription_id;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-PT", {
@@ -250,6 +257,30 @@ export function ManageSubscriptionSheet({
 
             <Separator />
 
+            {/* Manual Payment & Upsell Actions */}
+            <div className="space-y-2">
+              {isManualProvider && (subscription.status === "active" || subscription.status === "past_due") && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowManualPayment(true)}
+                >
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Registar Pagamento Manual
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowUpsell(true)}
+              >
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Criar Oportunidade de Upsell
+              </Button>
+            </div>
+
+            <Separator />
+
             {/* Action Buttons */}
             <div className="space-y-2">
               {subscription.status === "active" && (
@@ -322,6 +353,21 @@ export function ManageSubscriptionSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Manual Payment Dialog */}
+      <RegisterManualPaymentDialog
+        open={showManualPayment}
+        onOpenChange={setShowManualPayment}
+        subscription={subscription}
+      />
+
+      {/* Upsell Opportunity Dialog */}
+      <CreateUpsellOpportunityDialog
+        open={showUpsell}
+        onOpenChange={setShowUpsell}
+        subscription={subscription}
+        originalOpportunityId={subscription.opportunity_id || undefined}
+      />
     </>
   );
 }

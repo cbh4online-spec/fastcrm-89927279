@@ -6,3 +6,5 @@ export { SaaSMetricsDashboard } from "./SaaSMetricsDashboard";
 export { RecurringRevenueDashboard } from "./RecurringRevenueDashboard";
 export { ManageSubscriptionSheet } from "./ManageSubscriptionSheet";
 export { SubscriptionTimeline } from "./SubscriptionTimeline";
+export { RegisterManualPaymentDialog } from "./RegisterManualPaymentDialog";
+export { CreateUpsellOpportunityDialog } from "./CreateUpsellOpportunityDialog";
