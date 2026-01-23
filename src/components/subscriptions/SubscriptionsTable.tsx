@@ -135,7 +135,7 @@ export function SubscriptionsTable({ onSelectSubscription }: SubscriptionsTableP
   };
 
   const handleCancel = async (subscription: Subscription) => {
-    await cancelSubscription.mutateAsync(subscription.id);
+    await cancelSubscription.mutateAsync({ id: subscription.id });
   };
 
   const handleSelectAll = (checked: boolean) => {

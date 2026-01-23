@@ -94,7 +94,7 @@ export function SubscriptionsList({
   };
 
   const handleCancel = async (subscription: Subscription) => {
-    await cancelSubscription.mutateAsync(subscription.id);
+    await cancelSubscription.mutateAsync({ id: subscription.id });
   };
 
   if (isLoading) {

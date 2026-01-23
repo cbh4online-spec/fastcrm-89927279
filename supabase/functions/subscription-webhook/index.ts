@@ -306,7 +306,7 @@ serve(async (req) => {
         break;
       }
 
-      // Payment failed - mark as past_due
+      // Payment failed - mark as past_due, create task + notification
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         if (!invoice.subscription) break;
@@ -318,6 +318,8 @@ serve(async (req) => {
         const subscription = await findSubscription(stripeSubId);
 
         if (subscription) {
+          const amount = (invoice.amount_due || 0) / 100;
+
           // Update subscription status
           await supabase
             .from("subscriptions")
@@ -336,12 +338,46 @@ serve(async (req) => {
           await createSubscriptionEvent(
             subscription.id,
             "payment_failed",
-            (invoice.amount_due || 0) / 100,
+            amount,
             "Falha no pagamento Stripe",
             { stripe_invoice_id: invoice.id, stripe_event_id: event.id }
           );
 
-          logStep("Payment failed processed", { subscriptionId: subscription.id });
+          // Create task for follow-up
+          const { data: subDetails } = await supabase
+            .from("subscriptions")
+            .select("contact:contacts(name), company:companies(name)")
+            .eq("id", subscription.id)
+            .single();
+
+          type SubDetailsResult = { contact: { name: string }[] | null; company: { name: string }[] | null } | null;
+          const details = subDetails as SubDetailsResult;
+          const customerName = details?.company?.[0]?.name 
+            || details?.contact?.[0]?.name 
+            || "Cliente";
+
+          await supabase.from("tasks").insert({
+            workspace_id: workspaceId,
+            title: `Falha de pagamento - ${customerName}`,
+            description: `O pagamento de €${amount.toFixed(2)} falhou. Contactar cliente para regularização.`,
+            entity_type: "subscription",
+            entity_id: subscription.id,
+            priority: "high",
+            status: "todo",
+            due_at: new Date().toISOString(),
+          });
+
+          // Create notification
+          await supabase.from("notifications").insert({
+            workspace_id: workspaceId,
+            title: "Falha de Pagamento",
+            message: `Pagamento de €${amount.toFixed(2)} falhou para ${customerName}. Subscrição marcada como past_due.`,
+            notification_type: "payment_failed",
+            priority: "high",
+            data: { subscription_id: subscription.id, amount },
+          });
+
+          logStep("Payment failed processed with task and notification", { subscriptionId: subscription.id });
         }
         break;
       }
