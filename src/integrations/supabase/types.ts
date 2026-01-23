@@ -14349,6 +14349,53 @@ export type Database = {
           },
         ]
       }
+      workspace_stripe_config: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          stripe_account_id: string | null
+          stripe_publishable_key: string | null
+          stripe_secret_key_encrypted: string | null
+          stripe_webhook_secret_encrypted: string | null
+          test_mode: boolean | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          stripe_account_id?: string | null
+          stripe_publishable_key?: string | null
+          stripe_secret_key_encrypted?: string | null
+          stripe_webhook_secret_encrypted?: string | null
+          test_mode?: boolean | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          stripe_account_id?: string | null
+          stripe_publishable_key?: string | null
+          stripe_secret_key_encrypted?: string | null
+          stripe_webhook_secret_encrypted?: string | null
+          test_mode?: boolean | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_stripe_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -14853,6 +14900,15 @@ export type Database = {
       }
       get_user_calendar_ids: { Args: never; Returns: string[] }
       get_user_workspace_ids: { Args: never; Returns: string[] }
+      get_workspace_stripe_config: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          is_active: boolean
+          stripe_secret_key: string
+          stripe_webhook_secret: string
+          test_mode: boolean
+        }[]
+      }
       get_workspace_usage_counts: {
         Args: { p_workspace_id: string }
         Returns: Json

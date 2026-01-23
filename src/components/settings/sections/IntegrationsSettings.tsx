@@ -1,7 +1,6 @@
 import { SettingsSection, SettingsItem } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   CreditCard,
   Code,
@@ -12,16 +11,12 @@ import {
   Boxes,
   Key,
   Zap,
+  Settings,
 } from "lucide-react";
+import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
+import { useWorkspaceStripeConfig } from "@/hooks/useWorkspaceStripeConfig";
 
 const integrations = [
-  {
-    name: "Stripe",
-    description: "Processar pagamentos e subscrições",
-    icon: CreditCard,
-    connected: true,
-    color: "text-purple-500",
-  },
   {
     name: "Zapier",
     description: "Conectar com milhares de apps",
@@ -44,6 +39,7 @@ interface IntegrationsSettingsProps {
 }
 
 export function IntegrationsSettings({ searchQuery = "", matchedSections }: IntegrationsSettingsProps) {
+  const { isConfigured } = useWorkspaceStripeConfig();
   const hasSearch = searchQuery.trim().length > 0;
 
   const shouldShow = (sectionId: string) => {
@@ -73,33 +69,10 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
       {shouldShow("integrations-stripe") && (
         <SettingsSection
           title="Stripe"
-          description="Pagamentos, faturas e subscrições"
+          description="Configure a integração Stripe para este workspace"
           icon={<CreditCard className="h-5 w-5" />}
         >
-          <div className="flex items-center justify-between p-4 border border-border rounded-lg mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-500/10">
-                <CreditCard className="h-6 w-6 text-purple-500" />
-              </div>
-              <div>
-                <p className="font-medium">Stripe</p>
-                <p className="text-sm text-muted-foreground">
-                  Processar pagamentos e gerir subscrições
-                </p>
-              </div>
-            </div>
-            <Badge className="bg-emerald-500 text-white">Conectado</Badge>
-          </div>
-          <SettingsItem
-            title="Webhook Settings"
-            description="Configurar eventos de webhook do Stripe"
-            action={<Button variant="outline">Configurar</Button>}
-          />
-          <SettingsItem
-            title="Produtos & Preços"
-            description="Sincronizar produtos do Stripe"
-            action={<Button variant="outline">Sincronizar</Button>}
-          />
+          <WorkspaceStripeSettings />
         </SettingsSection>
       )}
 
@@ -136,6 +109,26 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
           description="Conectar com outras ferramentas"
           icon={<Plug className="h-5 w-5" />}
         >
+          {/* Stripe summary card */}
+          <div className="flex items-center justify-between p-4 border border-border rounded-lg mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-500/10">
+                <CreditCard className="h-5 w-5 text-purple-500" />
+              </div>
+              <div>
+                <p className="font-medium">Stripe</p>
+                <p className="text-sm text-muted-foreground">
+                  Processar pagamentos e gerir subscrições
+                </p>
+              </div>
+            </div>
+            {isConfigured ? (
+              <Badge className="bg-emerald-500 text-white">Conectado</Badge>
+            ) : (
+              <Badge variant="secondary">Não configurado</Badge>
+            )}
+          </div>
+          
           <div className="grid gap-4">
             {integrations.map((integration) => (
               <div

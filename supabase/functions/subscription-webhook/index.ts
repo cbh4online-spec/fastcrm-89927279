@@ -1,11 +1,26 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[SUBSCRIPTION-WEBHOOK] ${step}${detailsStr}`);
 };
+
+interface WorkspaceStripeConfig {
+  stripe_secret_key_encrypted: string;
+  stripe_webhook_secret_encrypted: string | null;
+  is_active: boolean;
+}
+
+interface SubscriptionRow {
+  id: string;
+  workspace_id: string;
+  opportunity_id: string | null;
+  frequency: string;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+}
 
 // Map billing frequency from Stripe interval
 function mapBillingFrequency(interval: string): string {
@@ -43,11 +58,76 @@ function calculateNextPaymentDate(frequency: string, fromDate: Date = new Date()
   return date;
 }
 
-serve(async (req) => {
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
-    apiVersion: "2025-08-27.basil" 
-  });
+// Helper to get workspace Stripe config by workspace ID
+async function getWorkspaceStripeConfig(
+  supabase: SupabaseClient, 
+  workspaceId: string
+): Promise<WorkspaceStripeConfig | null> {
+  const { data, error } = await supabase
+    .from("workspace_stripe_config")
+    .select("stripe_secret_key_encrypted, stripe_webhook_secret_encrypted, is_active")
+    .eq("workspace_id", workspaceId)
+    .eq("is_active", true)
+    .single();
 
+  if (error || !data) {
+    return null;
+  }
+
+  return data as WorkspaceStripeConfig;
+}
+
+// Helper to find workspace by subscription metadata or customer
+async function findWorkspaceFromEvent(
+  supabase: SupabaseClient,
+  event: Stripe.Event
+): Promise<{ workspaceId: string; stripeConfig: WorkspaceStripeConfig } | null> {
+  // Try to get workspace from subscription metadata
+  const eventObject = event.data.object as { 
+    metadata?: { workspace_id?: string }; 
+    subscription?: string | Stripe.Subscription 
+  };
+  
+  // Check event object metadata first
+  if (eventObject.metadata?.workspace_id) {
+    const config = await getWorkspaceStripeConfig(supabase, eventObject.metadata.workspace_id);
+    if (config) {
+      return { 
+        workspaceId: eventObject.metadata.workspace_id, 
+        stripeConfig: config
+      };
+    }
+  }
+
+  // If it's an invoice, check the subscription metadata
+  if (eventObject.subscription) {
+    const subId = typeof eventObject.subscription === "string" 
+      ? eventObject.subscription 
+      : eventObject.subscription.id;
+    
+    // Find subscription in our database
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("workspace_id")
+      .eq("stripe_subscription_id", subId)
+      .maybeSingle();
+
+    if (subscription) {
+      const sub = subscription as { workspace_id: string };
+      const config = await getWorkspaceStripeConfig(supabase, sub.workspace_id);
+      if (config) {
+        return { 
+          workspaceId: sub.workspace_id, 
+          stripeConfig: config
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+serve(async (req) => {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -62,53 +142,82 @@ serve(async (req) => {
       throw new Error("No stripe signature found");
     }
 
-    const webhookSecret = Deno.env.get("STRIPE_SUBSCRIPTION_WEBHOOK_SECRET");
-    let event: Stripe.Event;
+    // First, parse the event without verification to get workspace info
+    const rawEvent = JSON.parse(body) as Stripe.Event;
+    logStep("Received raw event", { type: rawEvent.type, id: rawEvent.id });
 
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } else {
-      // For development without webhook secret
-      event = JSON.parse(body) as Stripe.Event;
+    // Find the workspace and its Stripe config
+    const workspaceInfo = await findWorkspaceFromEvent(supabase, rawEvent);
+    
+    if (!workspaceInfo) {
+      logStep("Could not determine workspace for event, skipping");
+      return new Response(JSON.stringify({ received: true, skipped: true }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
-    logStep("Received event", { type: event.type, id: event.id });
+    const { workspaceId, stripeConfig } = workspaceInfo;
+    logStep("Found workspace", { workspaceId });
+
+    // Now verify the webhook signature with workspace's secret
+    const stripe = new Stripe(stripeConfig.stripe_secret_key_encrypted, { 
+      apiVersion: "2025-08-27.basil" 
+    });
+
+    let event: Stripe.Event;
+    if (stripeConfig.stripe_webhook_secret_encrypted) {
+      event = stripe.webhooks.constructEvent(
+        body, 
+        signature, 
+        stripeConfig.stripe_webhook_secret_encrypted
+      );
+    } else {
+      // For development without webhook secret
+      event = rawEvent;
+    }
+
+    logStep("Event verified", { type: event.type, id: event.id });
 
     // Helper to find subscription by stripe_subscription_id
-    const findSubscription = async (stripeSubscriptionId: string) => {
+    const findSubscription = async (stripeSubscriptionId: string): Promise<SubscriptionRow | null> => {
       const { data } = await supabase
         .from("subscriptions")
-        .select("*")
+        .select("id, workspace_id, opportunity_id, frequency, stripe_subscription_id, stripe_price_id")
         .eq("stripe_subscription_id", stripeSubscriptionId)
+        .eq("workspace_id", workspaceId)
         .maybeSingle();
-      return data;
+      return data as SubscriptionRow | null;
     };
 
     // Helper to find subscription by Stripe customer email
-    const findSubscriptionByCustomer = async (customerId: string) => {
+    const findSubscriptionByCustomer = async (customerId: string): Promise<SubscriptionRow | null> => {
       const customer = await stripe.customers.retrieve(customerId);
       if (customer.deleted) return null;
 
       const email = (customer as Stripe.Customer).email;
       if (!email) return null;
 
-      // Find contact or company with this email
+      // Find contact with this email in the workspace
       const { data: contact } = await supabase
         .from("contacts")
-        .select("id, workspace_id")
+        .select("id")
         .eq("email", email)
+        .eq("workspace_id", workspaceId)
         .maybeSingle();
 
       if (contact) {
+        const contactData = contact as { id: string };
         const { data } = await supabase
           .from("subscriptions")
-          .select("*")
-          .eq("contact_id", contact.id)
+          .select("id, workspace_id, opportunity_id, frequency, stripe_subscription_id, stripe_price_id")
+          .eq("contact_id", contactData.id)
+          .eq("workspace_id", workspaceId)
           .eq("status", "active")
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        return data;
+        return data as SubscriptionRow | null;
       }
 
       return null;
@@ -117,7 +226,6 @@ serve(async (req) => {
     // Helper to create subscription event
     const createSubscriptionEvent = async (
       subscriptionId: string,
-      workspaceId: string,
       eventType: string,
       amount?: number,
       notes?: string,
@@ -187,7 +295,6 @@ serve(async (req) => {
           // Create subscription event
           await createSubscriptionEvent(
             subscription.id,
-            subscription.workspace_id,
             "payment_succeeded",
             amount,
             `Pagamento Stripe: €${amount.toFixed(2)}`,
@@ -228,7 +335,6 @@ serve(async (req) => {
           // Create subscription event
           await createSubscriptionEvent(
             subscription.id,
-            subscription.workspace_id,
             "payment_failed",
             (invoice.amount_due || 0) / 100,
             "Falha no pagamento Stripe",
@@ -266,7 +372,6 @@ serve(async (req) => {
           // Create subscription event
           await createSubscriptionEvent(
             subscription.id,
-            subscription.workspace_id,
             "canceled",
             undefined,
             "Subscrição cancelada via Stripe",
@@ -278,7 +383,7 @@ serve(async (req) => {
         break;
       }
 
-      // Subscription paused (via Stripe pause collection)
+      // Subscription paused
       case "customer.subscription.paused": {
         const stripeSubscription = event.data.object as Stripe.Subscription;
         const subscription = await findSubscription(stripeSubscription.id);
@@ -298,7 +403,6 @@ serve(async (req) => {
 
           await createSubscriptionEvent(
             subscription.id,
-            subscription.workspace_id,
             "paused",
             undefined,
             "Subscrição pausada via Stripe",
@@ -330,7 +434,6 @@ serve(async (req) => {
 
           await createSubscriptionEvent(
             subscription.id,
-            subscription.workspace_id,
             "resumed",
             undefined,
             "Subscrição retomada via Stripe",
@@ -374,7 +477,6 @@ serve(async (req) => {
             // Create plan_changed event
             await createSubscriptionEvent(
               subscription.id,
-              subscription.workspace_id,
               "plan_changed",
               newAmount,
               isUpsell 
@@ -391,7 +493,7 @@ serve(async (req) => {
             // If upsell, create task to potentially create upsell opportunity
             if (isUpsell && subscription.opportunity_id) {
               await supabase.from("tasks").insert({
-                workspace_id: subscription.workspace_id,
+                workspace_id: workspaceId,
                 title: "Upsell realizado - Verificar criação de oportunidade",
                 description: `O cliente fez upgrade de €${oldAmount.toFixed(2)} para €${newAmount.toFixed(2)}. Considere criar uma oportunidade de upsell para rastreamento.`,
                 entity_type: "opportunity",

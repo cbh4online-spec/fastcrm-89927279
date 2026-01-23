@@ -130,6 +130,9 @@ verify_jwt = false
 [functions.subscription-webhook]
 verify_jwt = false
 
+[functions.test-stripe-connection]
+verify_jwt = false
+
 [functions.check-renewals]
 verify_jwt = false
 
