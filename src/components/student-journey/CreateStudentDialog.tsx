@@ -17,9 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useStudents } from "@/hooks/useStudentJourney";
+import { useProfiles } from "@/hooks/useStudentJourney";
 import { useContacts } from "@/hooks/useContacts";
-import { STUDENT_STAGE_CONFIG, StudentStage } from "@/types/studentJourney";
+import { LIFECYCLE_STAGE_CONFIG, LifecycleStage } from "@/types/studentJourney";
 import { Loader2, Link2, UserPlus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -32,7 +32,7 @@ export function CreateStudentDialog({
   open,
   onOpenChange,
 }: CreateStudentDialogProps) {
-  const { createStudent } = useStudents();
+  const { createProfile } = useProfiles();
   const { contacts } = useContacts();
   const [tab, setTab] = useState<"new" | "link">("new");
 
@@ -40,7 +40,7 @@ export function CreateStudentDialog({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [stage, setStage] = useState<StudentStage>("lead");
+  const [stage, setStage] = useState<LifecycleStage>("lead");
   const [interests, setInterests] = useState("");
   const [source, setSource] = useState("");
   const [notes, setNotes] = useState("");
@@ -64,28 +64,27 @@ export function CreateStudentDialog({
     if (tab === "new") {
       if (!name.trim()) return;
 
-      await createStudent.mutateAsync({
-        name: name.trim(),
+      await createProfile.mutateAsync({
+        full_name: name.trim(),
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
-        stage,
+        lifecycle_stage: stage,
         interests: interests
           .split(",")
           .map((i) => i.trim())
           .filter(Boolean),
-        source: source.trim() || undefined,
-        notes: notes.trim() || undefined,
+        primary_interest: source.trim() || undefined,
       });
     } else {
       const contact = contacts.find((c) => c.id === selectedContactId);
       if (!contact) return;
 
-      await createStudent.mutateAsync({
-        name: contact.name,
+      await createProfile.mutateAsync({
+        full_name: contact.name,
         email: contact.email || undefined,
         phone: contact.phone || undefined,
         contact_id: contact.id,
-        stage: "lead",
+        lifecycle_stage: "lead",
       });
     }
 
@@ -93,8 +92,8 @@ export function CreateStudentDialog({
     onOpenChange(false);
   };
 
-  const stages = Object.entries(STUDENT_STAGE_CONFIG).filter(
-    ([key]) => key !== "churn"
+  const stages = Object.entries(LIFECYCLE_STAGE_CONFIG).filter(
+    ([key]) => key !== "churned"
   );
 
   return (
@@ -153,7 +152,7 @@ export function CreateStudentDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="stage">Etapa</Label>
-                  <Select value={stage} onValueChange={(v) => setStage(v as StudentStage)}>
+                  <Select value={stage} onValueChange={(v) => setStage(v as LifecycleStage)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -167,12 +166,12 @@ export function CreateStudentDialog({
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="source">Origem</Label>
+                  <Label htmlFor="source">Interesse Principal</Label>
                   <Input
                     id="source"
                     value={source}
                     onChange={(e) => setSource(e.target.value)}
-                    placeholder="Ex: Website, Referral..."
+                    placeholder="Ex: Marketing, Design..."
                   />
                 </div>
               </div>
@@ -239,11 +238,11 @@ export function CreateStudentDialog({
           <Button
             onClick={handleSubmit}
             disabled={
-              createStudent.isPending ||
+              createProfile.isPending ||
               (tab === "new" ? !name.trim() : !selectedContactId)
             }
           >
-            {createStudent.isPending && (
+            {createProfile.isPending && (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             )}
             Criar Aluno
