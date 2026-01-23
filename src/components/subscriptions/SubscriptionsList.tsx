@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import {
@@ -39,8 +38,8 @@ import {
 } from "@/hooks/useSubscriptions";
 import {
   SUBSCRIPTION_STATUS_CONFIG,
-  BILLING_CYCLE_LABELS,
-  PAYMENT_METHOD_LABELS,
+  BILLING_FREQUENCY_LABELS,
+  PAYMENT_PROVIDER_LABELS,
   calculateMRR,
 } from "@/types/subscription";
 import type { Subscription, SubscriptionStatus } from "@/types/subscription";
@@ -125,12 +124,10 @@ export function SubscriptionsList({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Subscrição</TableHead>
             <TableHead>Cliente</TableHead>
-            <TableHead>Valor</TableHead>
             <TableHead>MRR</TableHead>
             <TableHead>Ciclo</TableHead>
-            <TableHead>Próx. Cobrança</TableHead>
+            <TableHead>Próx. Pagamento</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -138,11 +135,11 @@ export function SubscriptionsList({
         <TableBody>
           {subscriptions.map((subscription) => {
             const statusConfig = SUBSCRIPTION_STATUS_CONFIG[subscription.status];
-            const mrr = calculateMRR(subscription.amount, subscription.billing_cycle);
+            const mrr = calculateMRR(subscription.mrr_amount, subscription.frequency);
             const customerName =
               subscription.company?.name ||
               subscription.contact?.name ||
-              subscription.lead?.name ||
+              subscription.plan?.name ||
               "—";
             const CustomerIcon = subscription.company ? Building2 : User;
 
@@ -153,40 +150,25 @@ export function SubscriptionsList({
                 onClick={() => handleViewDetails(subscription)}
               >
                 <TableCell>
-                  <div>
-                    <p className="font-medium">{subscription.name}</p>
-                    {subscription.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">
-                        {subscription.description}
-                      </p>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
                   <div className="flex items-center gap-2">
                     <CustomerIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{customerName}</span>
+                    <span className="font-medium">{customerName}</span>
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">
-                  {formatCurrency(subscription.amount, subscription.currency)}
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-muted-foreground">
-                    {formatCurrency(mrr, subscription.currency)}
-                  </span>
+                  {formatCurrency(mrr)}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs">
-                    {BILLING_CYCLE_LABELS[subscription.billing_cycle]}
+                    {BILLING_FREQUENCY_LABELS[subscription.frequency]}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {subscription.next_billing_date ? (
+                  {subscription.next_payment_date ? (
                     <div className="flex items-center gap-1 text-sm">
                       <CalendarClock className="h-3 w-3 text-muted-foreground" />
                       {format(
-                        new Date(subscription.next_billing_date),
+                        new Date(subscription.next_payment_date),
                         "dd MMM yyyy",
                         { locale: pt }
                       )}

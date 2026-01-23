@@ -1,18 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type {
   Subscription,
-  SubscriptionItem,
-  SubscriptionBillingRecord,
   CreateSubscriptionInput,
   UpdateSubscriptionInput,
-  CreateSubscriptionItemInput,
-  CreateBillingRecordInput,
   SubscriptionStatus,
-  BillingRecordStatus,
 } from "@/types/subscription";
 
 // =====================================================
@@ -38,8 +32,8 @@ export function useSubscriptions(filters?: {
           *,
           contact:contacts(id, name, email),
           company:companies(id, name),
-          lead:leads(id, name, email),
-          opportunity:opportunities(id, title, value)
+          opportunity:opportunities(id, title, value),
+          plan:products(id, name)
         `)
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
@@ -56,7 +50,7 @@ export function useSubscriptions(filters?: {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as Subscription[];
+      return (data || []) as Subscription[];
     },
     enabled: !!workspaceClient && !!currentWorkspace,
   });
@@ -76,8 +70,8 @@ export function useSubscription(id: string | undefined) {
           *,
           contact:contacts(id, name, email),
           company:companies(id, name),
-          lead:leads(id, name, email),
-          opportunity:opportunities(id, title, value)
+          opportunity:opportunities(id, title, value),
+          plan:products(id, name)
         `)
         .eq("id", id)
         .single();
@@ -107,10 +101,10 @@ export function useActiveSubscriptions() {
         `)
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active")
-        .order("next_billing_date", { ascending: true });
+        .order("next_payment_date", { ascending: true });
 
       if (error) throw error;
-      return data as Subscription[];
+      return (data || []) as Subscription[];
     },
     enabled: !!workspaceClient && !!currentWorkspace,
   });
@@ -124,7 +118,6 @@ export function useCreateSubscription() {
   const queryClient = useQueryClient();
   const { workspaceClient } = useWorkspaceInstance();
   const { currentWorkspace } = useWorkspace();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CreateSubscriptionInput) => {
@@ -132,43 +125,19 @@ export function useCreateSubscription() {
         throw new Error("Workspace not available");
       }
 
-      const { items, ...subscriptionData } = input;
-
-      // Create subscription
-      const { data: subscription, error } = await workspaceClient
+      const { data, error } = await workspaceClient
         .from("subscriptions")
         .insert({
-          ...subscriptionData,
+          ...input,
           workspace_id: currentWorkspace.id,
-          created_by: user?.id,
-          status: input.status || "draft",
-          currency: input.currency || "EUR",
-          payment_method: input.payment_method || "bank_transfer",
-          auto_renew: input.auto_renew ?? true,
+          status: input.status || "active",
+          provider: input.provider || "manual",
         })
         .select()
         .single();
 
       if (error) throw error;
-
-      // Create items if provided
-      if (items && items.length > 0) {
-        const itemsToInsert = items.map((item) => ({
-          ...item,
-          subscription_id: subscription.id,
-          workspace_id: currentWorkspace.id,
-        }));
-
-        const { error: itemsError } = await workspaceClient
-          .from("subscription_items")
-          .insert(itemsToInsert);
-
-        if (itemsError) {
-          console.error("Error creating subscription items:", itemsError);
-        }
-      }
-
-      return subscription as Subscription;
+      return data as Subscription;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
@@ -258,8 +227,8 @@ export function useCancelSubscription() {
       const { data, error } = await workspaceClient
         .from("subscriptions")
         .update({
-          status: "cancelled",
-          cancelled_at: new Date().toISOString(),
+          status: "cancelled" as const,
+          canceled_at: new Date().toISOString(),
         })
         .eq("id", id)
         .select()
@@ -295,7 +264,7 @@ export function useActivateSubscription() {
         .from("subscriptions")
         .update({
           status: "active",
-          cancelled_at: null,
+          canceled_at: null,
         })
         .eq("id", id)
         .select()
@@ -317,252 +286,6 @@ export function useActivateSubscription() {
 }
 
 // =====================================================
-// SUBSCRIPTION ITEMS
-// =====================================================
-
-export function useSubscriptionItems(subscriptionId: string | undefined) {
-  const { workspaceClient } = useWorkspaceInstance();
-
-  return useQuery({
-    queryKey: ["subscription-items", subscriptionId],
-    queryFn: async () => {
-      if (!workspaceClient || !subscriptionId) return [];
-
-      const { data, error } = await workspaceClient
-        .from("subscription_items")
-        .select(`
-          *,
-          product:products(id, name)
-        `)
-        .eq("subscription_id", subscriptionId)
-        .order("created_at");
-
-      if (error) throw error;
-      return data as SubscriptionItem[];
-    },
-    enabled: !!workspaceClient && !!subscriptionId,
-  });
-}
-
-export function useAddSubscriptionItem() {
-  const queryClient = useQueryClient();
-  const { workspaceClient } = useWorkspaceInstance();
-  const { currentWorkspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: async ({
-      subscriptionId,
-      item,
-    }: {
-      subscriptionId: string;
-      item: CreateSubscriptionItemInput;
-    }) => {
-      if (!workspaceClient || !currentWorkspace) {
-        throw new Error("Workspace not available");
-      }
-
-      const { data, error } = await workspaceClient
-        .from("subscription_items")
-        .insert({
-          ...item,
-          subscription_id: subscriptionId,
-          workspace_id: currentWorkspace.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as SubscriptionItem;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["subscription-items", variables.subscriptionId],
-      });
-      toast.success("Item adicionado");
-    },
-    onError: (error) => {
-      console.error("Error adding subscription item:", error);
-      toast.error("Erro ao adicionar item");
-    },
-  });
-}
-
-export function useRemoveSubscriptionItem() {
-  const queryClient = useQueryClient();
-  const { workspaceClient } = useWorkspaceInstance();
-
-  return useMutation({
-    mutationFn: async ({
-      itemId,
-      subscriptionId,
-    }: {
-      itemId: string;
-      subscriptionId: string;
-    }) => {
-      if (!workspaceClient) {
-        throw new Error("Workspace not available");
-      }
-
-      const { error } = await workspaceClient
-        .from("subscription_items")
-        .delete()
-        .eq("id", itemId);
-
-      if (error) throw error;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["subscription-items", variables.subscriptionId],
-      });
-      toast.success("Item removido");
-    },
-    onError: (error) => {
-      console.error("Error removing subscription item:", error);
-      toast.error("Erro ao remover item");
-    },
-  });
-}
-
-// =====================================================
-// BILLING RECORDS
-// =====================================================
-
-export function useBillingRecords(filters?: {
-  subscription_id?: string;
-  status?: BillingRecordStatus;
-}) {
-  const { workspaceClient } = useWorkspaceInstance();
-  const { currentWorkspace } = useWorkspace();
-
-  return useQuery({
-    queryKey: ["billing-records", currentWorkspace?.id, filters],
-    queryFn: async () => {
-      if (!workspaceClient || !currentWorkspace) return [];
-
-      let query = workspaceClient
-        .from("subscription_billing_records")
-        .select(`
-          *,
-          subscription:subscriptions(id, name, contact_id, company_id)
-        `)
-        .eq("workspace_id", currentWorkspace.id)
-        .order("period_start", { ascending: false });
-
-      if (filters?.subscription_id) {
-        query = query.eq("subscription_id", filters.subscription_id);
-      }
-      if (filters?.status) {
-        query = query.eq("status", filters.status);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as SubscriptionBillingRecord[];
-    },
-    enabled: !!workspaceClient && !!currentWorkspace,
-  });
-}
-
-export function useSubscriptionBillingRecords(subscriptionId: string | undefined) {
-  const { workspaceClient } = useWorkspaceInstance();
-
-  return useQuery({
-    queryKey: ["billing-records", "subscription", subscriptionId],
-    queryFn: async () => {
-      if (!workspaceClient || !subscriptionId) return [];
-
-      const { data, error } = await workspaceClient
-        .from("subscription_billing_records")
-        .select("*")
-        .eq("subscription_id", subscriptionId)
-        .order("period_start", { ascending: false });
-
-      if (error) throw error;
-      return data as SubscriptionBillingRecord[];
-    },
-    enabled: !!workspaceClient && !!subscriptionId,
-  });
-}
-
-export function useCreateBillingRecord() {
-  const queryClient = useQueryClient();
-  const { workspaceClient } = useWorkspaceInstance();
-  const { currentWorkspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: async (input: CreateBillingRecordInput) => {
-      if (!workspaceClient || !currentWorkspace) {
-        throw new Error("Workspace not available");
-      }
-
-      const { data, error } = await workspaceClient
-        .from("subscription_billing_records")
-        .insert({
-          ...input,
-          workspace_id: currentWorkspace.id,
-          event_type: input.event_type || "payment",
-          status: input.status || "pending",
-          currency: input.currency || "EUR",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as SubscriptionBillingRecord;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["billing-records"] });
-      queryClient.invalidateQueries({
-        queryKey: ["billing-records", "subscription", data.subscription_id],
-      });
-      toast.success("Registo de cobrança criado");
-    },
-    onError: (error) => {
-      console.error("Error creating billing record:", error);
-      toast.error("Erro ao criar registo de cobrança");
-    },
-  });
-}
-
-export function useMarkBillingRecordPaid() {
-  const queryClient = useQueryClient();
-  const { workspaceClient } = useWorkspaceInstance();
-  const { currentWorkspace } = useWorkspace();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      if (!workspaceClient) {
-        throw new Error("Workspace not available");
-      }
-
-      const { data, error } = await workspaceClient
-        .from("subscription_billing_records")
-        .update({
-          status: "paid",
-          paid_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as SubscriptionBillingRecord;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["billing-records", currentWorkspace?.id] });
-      queryClient.invalidateQueries({
-        queryKey: ["billing-records", "subscription", data.subscription_id],
-      });
-      toast.success("Pagamento registado");
-    },
-    onError: (error) => {
-      console.error("Error marking billing record paid:", error);
-      toast.error("Erro ao registar pagamento");
-    },
-  });
-}
-
-// =====================================================
 // CONVERT OPPORTUNITY TO SUBSCRIPTION
 // =====================================================
 
@@ -570,7 +293,6 @@ export function useConvertOpportunityToSubscription() {
   const queryClient = useQueryClient();
   const { workspaceClient } = useWorkspaceInstance();
   const { currentWorkspace } = useWorkspace();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -587,7 +309,7 @@ export function useConvertOpportunityToSubscription() {
       // Get opportunity details
       const { data: opportunity, error: oppError } = await workspaceClient
         .from("opportunities")
-        .select("*, lead:leads(id, name, email, contact_id)")
+        .select("*, lead:leads(id, name, email)")
         .eq("id", opportunityId)
         .single();
 
@@ -600,8 +322,6 @@ export function useConvertOpportunityToSubscription() {
           ...subscriptionData,
           workspace_id: currentWorkspace.id,
           opportunity_id: opportunityId,
-          lead_id: opportunity.lead_id,
-          created_by: user?.id,
           status: "active",
         })
         .select()

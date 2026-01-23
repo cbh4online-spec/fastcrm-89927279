@@ -1,10 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import {
-  TrendingUp,
-  TrendingDown,
   DollarSign,
   Users,
   RefreshCw,
@@ -17,7 +15,6 @@ import {
 import { useSaaSMetrics, useUpcomingRenewals, useAtRiskSubscriptions } from "@/hooks/useSaaSMetrics";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { SUBSCRIPTION_STATUS_CONFIG, BILLING_CYCLE_LABELS } from "@/types/subscription";
 
 interface SaaSMetricsDashboardProps {
   className?: string;
@@ -170,7 +167,7 @@ export function SaaSMetricsDashboard({ className, compact = false }: SaaSMetrics
           </div>
 
           {/* Health Metrics */}
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             {/* Churn Rate */}
             <Card>
               <CardHeader className="pb-2">
@@ -238,35 +235,6 @@ export function SaaSMetricsDashboard({ className, compact = false }: SaaSMetrics
                 />
               </CardContent>
             </Card>
-
-            {/* Net Revenue Retention */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">NRR</CardTitle>
-                <CardDescription>Net Revenue Retention</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">
-                    {metrics.netRevenueRetention.toFixed(0)}%
-                  </span>
-                  <Badge
-                    variant="secondary"
-                    className={
-                      metrics.netRevenueRetention >= 100
-                        ? "bg-green-50 text-green-600"
-                        : "bg-yellow-50 text-yellow-600"
-                    }
-                  >
-                    {metrics.netRevenueRetention >= 100 ? "Crescimento" : "Contração"}
-                  </Badge>
-                </div>
-                <Progress
-                  value={Math.min(metrics.netRevenueRetention, 150) / 1.5}
-                  className="mt-2 h-2"
-                />
-              </CardContent>
-            </Card>
           </div>
 
           {/* Upcoming Renewals & At Risk */}
@@ -292,14 +260,13 @@ export function SaaSMetricsDashboard({ className, compact = false }: SaaSMetrics
                         className="flex items-center justify-between text-sm"
                       >
                         <div>
-                          <p className="font-medium">{sub.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {sub.contact?.name || sub.company?.name}
+                          <p className="font-medium">
+                            {sub.contact?.name || sub.company?.name || "—"}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium">
-                            {formatCurrency(sub.amount)}
+                            {formatCurrency(sub.mrr_amount)}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {sub.daysUntilRenewal === 0
@@ -335,7 +302,9 @@ export function SaaSMetricsDashboard({ className, compact = false }: SaaSMetrics
                         className="flex items-center justify-between text-sm"
                       >
                         <div>
-                          <p className="font-medium">{sub.name}</p>
+                          <p className="font-medium">
+                            {sub.contact?.name || sub.company?.name || "—"}
+                          </p>
                           <p className="text-xs text-muted-foreground line-clamp-1">
                             {sub.riskFactors.join(", ")}
                           </p>
@@ -359,31 +328,6 @@ export function SaaSMetricsDashboard({ className, compact = false }: SaaSMetrics
               </CardContent>
             </Card>
           </div>
-
-          {/* Billing Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Resumo de Billing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-yellow-50 p-4">
-                  <p className="text-xs text-yellow-600 font-medium">Pendente</p>
-                  <p className="text-xl font-bold text-yellow-700">
-                    {formatCurrency(metrics.pendingBillingAmount)}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-green-50 p-4">
-                  <p className="text-xs text-green-600 font-medium">
-                    Pago Este Mês
-                  </p>
-                  <p className="text-xl font-bold text-green-700">
-                    {formatCurrency(metrics.paidThisMonth)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </>
       )}
     </div>

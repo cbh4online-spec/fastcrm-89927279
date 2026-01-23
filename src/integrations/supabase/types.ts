@@ -12798,327 +12798,73 @@ export type Database = {
           },
         ]
       }
-      subscription_billing_records: {
-        Row: {
-          amount: number
-          created_at: string
-          currency: string
-          due_date: string | null
-          event_type: string
-          id: string
-          invoice_id: string | null
-          notes: string | null
-          paid_at: string | null
-          payment_method:
-            | Database["public"]["Enums"]["payment_method_type"]
-            | null
-          period_end: string
-          period_start: string
-          status: string
-          stripe_invoice_id: string | null
-          stripe_payment_intent_id: string | null
-          subscription_id: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          currency?: string
-          due_date?: string | null
-          event_type?: string
-          id?: string
-          invoice_id?: string | null
-          notes?: string | null
-          paid_at?: string | null
-          payment_method?:
-            | Database["public"]["Enums"]["payment_method_type"]
-            | null
-          period_end: string
-          period_start: string
-          status?: string
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
-          subscription_id: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          currency?: string
-          due_date?: string | null
-          event_type?: string
-          id?: string
-          invoice_id?: string | null
-          notes?: string | null
-          paid_at?: string | null
-          payment_method?:
-            | Database["public"]["Enums"]["payment_method_type"]
-            | null
-          period_end?: string
-          period_start?: string
-          status?: string
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
-          subscription_id?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscription_billing_records_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subscription_billing_records_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "subscriptions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subscription_billing_records_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      subscription_items: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          product_id: string | null
-          quantity: number
-          subscription_id: string
-          unit_price: number
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          product_id?: string | null
-          quantity?: number
-          subscription_id: string
-          unit_price?: number
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          product_id?: string | null
-          quantity?: number
-          subscription_id?: string
-          unit_price?: number
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscription_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
-          },
-          {
-            foreignKeyName: "subscription_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subscription_items_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "subscriptions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subscription_items_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      subscription_metrics: {
-        Row: {
-          active_subscriptions: number
-          arr: number
-          avg_revenue_per_customer: number
-          calculated_at: string
-          churn_rate: number
-          churned_mrr: number
-          churned_subscriptions: number
-          contraction_mrr: number
-          expansion_mrr: number
-          id: string
-          ltv_estimate: number
-          mrr: number
-          net_mrr_change: number
-          net_revenue_retention: number
-          new_mrr: number
-          new_subscriptions: number
-          period_date: string
-          period_type: string
-          retention_rate: number
-          total_customers: number
-          workspace_id: string
-        }
-        Insert: {
-          active_subscriptions?: number
-          arr?: number
-          avg_revenue_per_customer?: number
-          calculated_at?: string
-          churn_rate?: number
-          churned_mrr?: number
-          churned_subscriptions?: number
-          contraction_mrr?: number
-          expansion_mrr?: number
-          id?: string
-          ltv_estimate?: number
-          mrr?: number
-          net_mrr_change?: number
-          net_revenue_retention?: number
-          new_mrr?: number
-          new_subscriptions?: number
-          period_date: string
-          period_type?: string
-          retention_rate?: number
-          total_customers?: number
-          workspace_id: string
-        }
-        Update: {
-          active_subscriptions?: number
-          arr?: number
-          avg_revenue_per_customer?: number
-          calculated_at?: string
-          churn_rate?: number
-          churned_mrr?: number
-          churned_subscriptions?: number
-          contraction_mrr?: number
-          expansion_mrr?: number
-          id?: string
-          ltv_estimate?: number
-          mrr?: number
-          net_mrr_change?: number
-          net_revenue_retention?: number
-          new_mrr?: number
-          new_subscriptions?: number
-          period_date?: string
-          period_type?: string
-          retention_rate?: number
-          total_customers?: number
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscription_metrics_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       subscriptions: {
         Row: {
-          amount: number
-          auto_renew: boolean
-          billing_cycle: Database["public"]["Enums"]["billing_cycle"]
-          cancelled_at: string | null
+          cancel_at_period_end: boolean
+          canceled_at: string | null
           company_id: string | null
           contact_id: string | null
-          contract_value: number | null
           created_at: string
-          created_by: string | null
-          currency: string
-          description: string | null
-          end_date: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          frequency: Database["public"]["Enums"]["billing_frequency"]
           id: string
-          lead_id: string | null
-          name: string
-          next_billing_date: string | null
-          notes: string | null
+          last_payment_date: string | null
+          mrr_amount: number
+          next_payment_date: string | null
           opportunity_id: string | null
-          payment_method: Database["public"]["Enums"]["payment_method_type"]
-          renewal_reminder_days: number | null
+          plan_id: string | null
+          provider: Database["public"]["Enums"]["payment_provider"]
+          provider_subscription_id: string | null
+          renewal_date: string | null
           start_date: string
           status: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
-          tags: string[] | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
-          amount?: number
-          auto_renew?: boolean
-          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
-          cancelled_at?: string | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
           company_id?: string | null
           contact_id?: string | null
-          contract_value?: number | null
           created_at?: string
-          created_by?: string | null
-          currency?: string
-          description?: string | null
-          end_date?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          frequency?: Database["public"]["Enums"]["billing_frequency"]
           id?: string
-          lead_id?: string | null
-          name: string
-          next_billing_date?: string | null
-          notes?: string | null
+          last_payment_date?: string | null
+          mrr_amount?: number
+          next_payment_date?: string | null
           opportunity_id?: string | null
-          payment_method?: Database["public"]["Enums"]["payment_method_type"]
-          renewal_reminder_days?: number | null
+          plan_id?: string | null
+          provider?: Database["public"]["Enums"]["payment_provider"]
+          provider_subscription_id?: string | null
+          renewal_date?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          tags?: string[] | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
-          amount?: number
-          auto_renew?: boolean
-          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
-          cancelled_at?: string | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
           company_id?: string | null
           contact_id?: string | null
-          contract_value?: number | null
           created_at?: string
-          created_by?: string | null
-          currency?: string
-          description?: string | null
-          end_date?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          frequency?: Database["public"]["Enums"]["billing_frequency"]
           id?: string
-          lead_id?: string | null
-          name?: string
-          next_billing_date?: string | null
-          notes?: string | null
+          last_payment_date?: string | null
+          mrr_amount?: number
+          next_payment_date?: string | null
           opportunity_id?: string | null
-          payment_method?: Database["public"]["Enums"]["payment_method_type"]
-          renewal_reminder_days?: number | null
+          plan_id?: string | null
+          provider?: Database["public"]["Enums"]["payment_provider"]
+          provider_subscription_id?: string | null
+          renewal_date?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          tags?: string[] | null
           updated_at?: string
           workspace_id?: string
         }
@@ -13138,17 +12884,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "subscriptions_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "subscriptions_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
