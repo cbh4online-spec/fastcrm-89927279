@@ -8,3 +8,5 @@ export { CreateEnrollmentDialog } from "./CreateEnrollmentDialog";
 export { CreateTouchpointDialog } from "./CreateTouchpointDialog";
 export { CreateTaskDialog } from "./CreateTaskDialog";
 export { ScheduleFollowUpDialog } from "./ScheduleFollowUpDialog";
+export { LinkContactDialog } from "./LinkContactDialog";
+export { CreateOpportunityDialog } from "./CreateOpportunityDialog";

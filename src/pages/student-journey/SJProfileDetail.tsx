@@ -23,13 +23,14 @@ import {
   GraduationCap,
   User,
   Zap,
+  TrendingUp,
+  ExternalLink,
 } from "lucide-react";
 import {
   useProfile,
   useEnrollments,
   useTouchpoints,
   useSJTasks,
-  useProfiles,
 } from "@/hooks/useStudentJourney";
 import {
   LIFECYCLE_STAGE_CONFIG,
@@ -44,7 +45,10 @@ import { CreateEnrollmentDialog } from "@/components/student-journey/CreateEnrol
 import { CreateTouchpointDialog } from "@/components/student-journey/CreateTouchpointDialog";
 import { CreateTaskDialog } from "@/components/student-journey/CreateTaskDialog";
 import { ScheduleFollowUpDialog } from "@/components/student-journey/ScheduleFollowUpDialog";
+import { LinkContactDialog } from "@/components/student-journey/LinkContactDialog";
+import { CreateOpportunityDialog } from "@/components/student-journey/CreateOpportunityDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { SJEnrollment } from "@/types/studentJourney";
 
 export default function SJProfileDetail() {
   const { id } = useParams<{ id: string }>();
@@ -58,6 +62,9 @@ export default function SJProfileDetail() {
   const [touchpointDialogOpen, setTouchpointDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
+  const [linkContactDialogOpen, setLinkContactDialogOpen] = useState(false);
+  const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
+  const [selectedEnrollment, setSelectedEnrollment] = useState<SJEnrollment | null>(null);
 
   if (isLoading) {
     return (
@@ -171,18 +178,25 @@ export default function SJProfileDetail() {
                 )}
               </div>
               {!profile.contact_id && (
-                <Button variant="outline" size="sm" className="w-full mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-3"
+                  onClick={() => setLinkContactDialogOpen(true)}
+                >
                   <Link2 className="h-4 w-4 mr-2" />
-                  Ligar a Contacto CRM
+                  Criar/Ligar Contacto CRM
                 </Button>
               )}
               {profile.contact_id && (
-                <Link to={`/dashboard/contacts/${profile.contact_id}`}>
-                  <Button variant="outline" size="sm" className="w-full mt-3">
-                    <User className="h-4 w-4 mr-2" />
-                    Ver Contacto CRM
-                  </Button>
-                </Link>
+                <div className="flex gap-2 mt-3">
+                  <Link to={`/dashboard/contacts/${profile.contact_id}`} className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Ver Contacto CRM
+                    </Button>
+                  </Link>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -311,6 +325,22 @@ export default function SJProfileDetail() {
                               </div>
                               <Progress value={enrollment.progress_percent} className="h-2" />
                             </div>
+                            {profile.contact_id && (
+                              <div className="mt-3 pt-3 border-t">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full gap-2"
+                                  onClick={() => {
+                                    setSelectedEnrollment(enrollment);
+                                    setOpportunityDialogOpen(true);
+                                  }}
+                                >
+                                  <TrendingUp className="h-4 w-4" />
+                                  Criar Oportunidade
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -464,6 +494,24 @@ export default function SJProfileDetail() {
         onOpenChange={setFollowUpDialogOpen}
         profileId={id || null}
       />
+      {profile && (
+        <LinkContactDialog
+          open={linkContactDialogOpen}
+          onOpenChange={setLinkContactDialogOpen}
+          profile={profile}
+        />
+      )}
+      {selectedEnrollment && (
+        <CreateOpportunityDialog
+          open={opportunityDialogOpen}
+          onOpenChange={(open) => {
+            setOpportunityDialogOpen(open);
+            if (!open) setSelectedEnrollment(null);
+          }}
+          enrollment={selectedEnrollment}
+          contactId={profile?.contact_id || undefined}
+        />
+      )}
     </div>
   );
 }
