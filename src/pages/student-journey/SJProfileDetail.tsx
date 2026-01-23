@@ -24,6 +24,7 @@ import {
   User,
   Zap,
   TrendingUp,
+  Sparkles,
   ExternalLink,
 } from "lucide-react";
 import {
@@ -47,6 +48,7 @@ import { CreateTaskDialog } from "@/components/student-journey/CreateTaskDialog"
 import { ScheduleFollowUpDialog } from "@/components/student-journey/ScheduleFollowUpDialog";
 import { LinkContactDialog } from "@/components/student-journey/LinkContactDialog";
 import { CreateOpportunityDialog } from "@/components/student-journey/CreateOpportunityDialog";
+import { SJCopilotDrawer } from "@/components/student-journey/SJCopilotDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SJEnrollment } from "@/types/studentJourney";
 
@@ -64,6 +66,7 @@ export default function SJProfileDetail() {
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [linkContactDialogOpen, setLinkContactDialogOpen] = useState(false);
   const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
+  const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState<SJEnrollment | null>(null);
 
   if (isLoading) {
@@ -129,9 +132,14 @@ export default function SJProfileDetail() {
             <Calendar className="h-4 w-4 mr-2" />
             Follow-up
           </Button>
-          <Button variant="outline" size="sm">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Mensagem IA
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCopilotDrawerOpen(true)}
+            className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 hover:from-purple-500/20 hover:to-indigo-500/20 border-purple-500/30"
+          >
+            <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+            SJ Copilot
           </Button>
           <Button size="sm" onClick={() => setEnrollmentDialogOpen(true)}>
             <ClipboardList className="h-4 w-4 mr-2" />
@@ -512,6 +520,11 @@ export default function SJProfileDetail() {
           contactId={profile?.contact_id || undefined}
         />
       )}
+      <SJCopilotDrawer
+        open={copilotDrawerOpen}
+        onOpenChange={setCopilotDrawerOpen}
+        studentId={id}
+      />
     </div>
   );
 }
