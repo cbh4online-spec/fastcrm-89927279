@@ -126,3 +126,12 @@ verify_jwt = false
 
 [functions.knowledge-semantic-search]
 verify_jwt = false
+
+[functions.subscription-webhook]
+verify_jwt = false
+
+[functions.check-renewals]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
