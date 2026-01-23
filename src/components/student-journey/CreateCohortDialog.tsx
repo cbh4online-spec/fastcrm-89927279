@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,19 +11,24 @@ import { Loader2 } from "lucide-react";
 interface CreateCohortDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultCourseId?: string;
 }
 
-export function CreateCohortDialog({ open, onOpenChange }: CreateCohortDialogProps) {
+export function CreateCohortDialog({ open, onOpenChange, defaultCourseId }: CreateCohortDialogProps) {
   const { createCohort } = useCohorts();
   const { courses } = useCourses();
   const [name, setName] = useState("");
-  const [courseId, setCourseId] = useState("");
+  const [courseId, setCourseId] = useState(defaultCourseId || "");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [capacity, setCapacity] = useState("");
   const [status, setStatus] = useState<CohortStatus>("planned");
 
-  const resetForm = () => { setName(""); setCourseId(""); setStartDate(""); setEndDate(""); setCapacity(""); setStatus("planned"); };
+  useEffect(() => {
+    if (defaultCourseId) setCourseId(defaultCourseId);
+  }, [defaultCourseId]);
+
+  const resetForm = () => { setName(""); setCourseId(defaultCourseId || ""); setStartDate(""); setEndDate(""); setCapacity(""); setStatus("planned"); };
 
   const handleSubmit = async () => {
     if (!name.trim() || !courseId) return;
