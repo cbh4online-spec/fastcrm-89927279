@@ -12862,14 +12862,12 @@ export type Database = {
       }
       sj_cohorts: {
         Row: {
-          course_category: string | null
-          course_name: string | null
+          capacity: number | null
+          course_id: string
           created_at: string | null
           created_by: string | null
-          description: string | null
           end_date: string | null
           id: string
-          max_students: number | null
           name: string
           settings: Json | null
           start_date: string | null
@@ -12878,14 +12876,12 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          course_category?: string | null
-          course_name?: string | null
+          capacity?: number | null
+          course_id: string
           created_at?: string | null
           created_by?: string | null
-          description?: string | null
           end_date?: string | null
           id?: string
-          max_students?: number | null
           name: string
           settings?: Json | null
           start_date?: string | null
@@ -12894,14 +12890,12 @@ export type Database = {
           workspace_id: string
         }
         Update: {
-          course_category?: string | null
-          course_name?: string | null
+          capacity?: number | null
+          course_id?: string
           created_at?: string | null
           created_by?: string | null
-          description?: string | null
           end_date?: string | null
           id?: string
-          max_students?: number | null
           name?: string
           settings?: Json | null
           start_date?: string | null
@@ -12911,7 +12905,79 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sj_cohorts_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "sj_courses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sj_cohorts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sj_courses: {
+        Row: {
+          cohort_enabled: boolean | null
+          course_type: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          provider: string
+          provider_course_id: string | null
+          settings: Json | null
+          start_date: string | null
+          tags: Json | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          cohort_enabled?: boolean | null
+          course_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          provider?: string
+          provider_course_id?: string | null
+          settings?: Json | null
+          start_date?: string | null
+          tags?: Json | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          cohort_enabled?: boolean | null
+          course_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          provider?: string
+          provider_course_id?: string | null
+          settings?: Json | null
+          start_date?: string | null
+          tags?: Json | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_courses_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -12921,56 +12987,53 @@ export type Database = {
       }
       sj_enrollments: {
         Row: {
-          certificate_issued: boolean | null
-          certificate_url: string | null
-          cohort_id: string
+          cohort_id: string | null
           completed_at: string | null
+          course_id: string
           created_at: string | null
-          enrolled_at: string | null
           id: string
           last_activity_at: string | null
-          modules_completed: number | null
-          modules_total: number | null
           notes: string | null
-          progress_percentage: number | null
+          payment_status: string
+          profile_id: string
+          progress_percent: number | null
+          source: string
+          started_at: string | null
           status: string
-          student_id: string
           updated_at: string | null
           workspace_id: string
         }
         Insert: {
-          certificate_issued?: boolean | null
-          certificate_url?: string | null
-          cohort_id: string
+          cohort_id?: string | null
           completed_at?: string | null
+          course_id: string
           created_at?: string | null
-          enrolled_at?: string | null
           id?: string
           last_activity_at?: string | null
-          modules_completed?: number | null
-          modules_total?: number | null
           notes?: string | null
-          progress_percentage?: number | null
+          payment_status?: string
+          profile_id: string
+          progress_percent?: number | null
+          source?: string
+          started_at?: string | null
           status?: string
-          student_id: string
           updated_at?: string | null
           workspace_id: string
         }
         Update: {
-          certificate_issued?: boolean | null
-          certificate_url?: string | null
-          cohort_id?: string
+          cohort_id?: string | null
           completed_at?: string | null
+          course_id?: string
           created_at?: string | null
-          enrolled_at?: string | null
           id?: string
           last_activity_at?: string | null
-          modules_completed?: number | null
-          modules_total?: number | null
           notes?: string | null
-          progress_percentage?: number | null
+          payment_status?: string
+          profile_id?: string
+          progress_percent?: number | null
+          source?: string
+          started_at?: string | null
           status?: string
-          student_id?: string
           updated_at?: string | null
           workspace_id?: string
         }
@@ -12983,10 +13046,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sj_enrollments_student_id_fkey"
-            columns: ["student_id"]
+            foreignKeyName: "sj_enrollments_course_id_fkey"
+            columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "sj_students"
+            referencedRelation: "sj_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_enrollments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "sj_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -12998,7 +13068,7 @@ export type Database = {
           },
         ]
       }
-      sj_import_logs: {
+      sj_import_jobs: {
         Row: {
           completed_at: string | null
           created_at: string | null
@@ -13006,10 +13076,13 @@ export type Database = {
           error_count: number | null
           errors: Json | null
           file_name: string | null
+          file_url: string | null
           id: string
-          import_type: string
-          skip_count: number | null
-          source: string | null
+          mapping_config: Json | null
+          processed_rows: number | null
+          results_summary: Json | null
+          skipped_count: number | null
+          source: string
           started_at: string | null
           status: string
           success_count: number | null
@@ -13023,10 +13096,13 @@ export type Database = {
           error_count?: number | null
           errors?: Json | null
           file_name?: string | null
+          file_url?: string | null
           id?: string
-          import_type: string
-          skip_count?: number | null
-          source?: string | null
+          mapping_config?: Json | null
+          processed_rows?: number | null
+          results_summary?: Json | null
+          skipped_count?: number | null
+          source: string
           started_at?: string | null
           status?: string
           success_count?: number | null
@@ -13040,10 +13116,13 @@ export type Database = {
           error_count?: number | null
           errors?: Json | null
           file_name?: string | null
+          file_url?: string | null
           id?: string
-          import_type?: string
-          skip_count?: number | null
-          source?: string | null
+          mapping_config?: Json | null
+          processed_rows?: number | null
+          results_summary?: Json | null
+          skipped_count?: number | null
+          source?: string
           started_at?: string | null
           status?: string
           success_count?: number | null
@@ -13052,7 +13131,48 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "sj_import_logs_workspace_id_fkey"
+            foreignKeyName: "sj_import_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sj_interests_taxonomy: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          synonyms: Json | null
+          topic: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          synonyms?: Json | null
+          topic: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          synonyms?: Json | null
+          topic?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_interests_taxonomy_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -13095,86 +13215,77 @@ export type Database = {
           },
         ]
       }
-      sj_students: {
+      sj_profiles: {
         Row: {
-          ai_analyzed_at: string | null
-          ai_insight: string | null
-          ai_next_action: string | null
-          churn_risk: string | null
           contact_id: string | null
           created_at: string | null
-          created_by: string | null
-          custom_fields: Json | null
+          dropout_risk: string | null
           email: string | null
+          external_ref: string | null
+          full_name: string
           id: string
-          interests: string[] | null
-          name: string
-          notes: string | null
+          interests: Json | null
+          last_activity_at: string | null
+          lifecycle_stage: string
+          next_follow_up_at: string | null
+          owner_user_id: string | null
           phone: string | null
-          source: string | null
-          source_detail: string | null
-          stage: string
-          stage_changed_at: string | null
-          tags: string[] | null
+          preferred_channel: string | null
+          primary_interest: string | null
+          student_score: number | null
           updated_at: string | null
           workspace_id: string
         }
         Insert: {
-          ai_analyzed_at?: string | null
-          ai_insight?: string | null
-          ai_next_action?: string | null
-          churn_risk?: string | null
           contact_id?: string | null
           created_at?: string | null
-          created_by?: string | null
-          custom_fields?: Json | null
+          dropout_risk?: string | null
           email?: string | null
+          external_ref?: string | null
+          full_name: string
           id?: string
-          interests?: string[] | null
-          name: string
-          notes?: string | null
+          interests?: Json | null
+          last_activity_at?: string | null
+          lifecycle_stage?: string
+          next_follow_up_at?: string | null
+          owner_user_id?: string | null
           phone?: string | null
-          source?: string | null
-          source_detail?: string | null
-          stage?: string
-          stage_changed_at?: string | null
-          tags?: string[] | null
+          preferred_channel?: string | null
+          primary_interest?: string | null
+          student_score?: number | null
           updated_at?: string | null
           workspace_id: string
         }
         Update: {
-          ai_analyzed_at?: string | null
-          ai_insight?: string | null
-          ai_next_action?: string | null
-          churn_risk?: string | null
           contact_id?: string | null
           created_at?: string | null
-          created_by?: string | null
-          custom_fields?: Json | null
+          dropout_risk?: string | null
           email?: string | null
+          external_ref?: string | null
+          full_name?: string
           id?: string
-          interests?: string[] | null
-          name?: string
-          notes?: string | null
+          interests?: Json | null
+          last_activity_at?: string | null
+          lifecycle_stage?: string
+          next_follow_up_at?: string | null
+          owner_user_id?: string | null
           phone?: string | null
-          source?: string | null
-          source_detail?: string | null
-          stage?: string
-          stage_changed_at?: string | null
-          tags?: string[] | null
+          preferred_channel?: string | null
+          primary_interest?: string | null
+          student_score?: number | null
           updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "sj_students_contact_id_fkey"
+            foreignKeyName: "sj_profiles_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sj_students_workspace_id_fkey"
+            foreignKeyName: "sj_profiles_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -13185,68 +13296,62 @@ export type Database = {
       sj_tasks: {
         Row: {
           assigned_to: string | null
-          cohort_id: string | null
           completed_at: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
           due_date: string | null
+          enrollment_id: string | null
           id: string
-          priority: string | null
+          profile_id: string | null
           status: string
-          student_id: string | null
-          task_type: string | null
           title: string
           updated_at: string | null
           workspace_id: string
         }
         Insert: {
           assigned_to?: string | null
-          cohort_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          enrollment_id?: string | null
           id?: string
-          priority?: string | null
+          profile_id?: string | null
           status?: string
-          student_id?: string | null
-          task_type?: string | null
           title: string
           updated_at?: string | null
           workspace_id: string
         }
         Update: {
           assigned_to?: string | null
-          cohort_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          enrollment_id?: string | null
           id?: string
-          priority?: string | null
+          profile_id?: string | null
           status?: string
-          student_id?: string | null
-          task_type?: string | null
           title?: string
           updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "sj_tasks_cohort_id_fkey"
-            columns: ["cohort_id"]
+            foreignKeyName: "sj_tasks_enrollment_id_fkey"
+            columns: ["enrollment_id"]
             isOneToOne: false
-            referencedRelation: "sj_cohorts"
+            referencedRelation: "sj_enrollments"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sj_tasks_student_id_fkey"
-            columns: ["student_id"]
+            foreignKeyName: "sj_tasks_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "sj_students"
+            referencedRelation: "sj_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -13260,69 +13365,60 @@ export type Database = {
       }
       sj_touchpoints: {
         Row: {
-          channel: string | null
-          cohort_id: string | null
           created_at: string | null
           created_by: string | null
-          description: string | null
+          enrollment_id: string | null
           id: string
+          message_preview: string | null
           metadata: Json | null
+          next_action: string | null
           occurred_at: string | null
           outcome: string | null
-          sentiment: string | null
-          student_id: string
-          task_id: string | null
-          title: string
+          profile_id: string
           touchpoint_type: string
           workspace_id: string
         }
         Insert: {
-          channel?: string | null
-          cohort_id?: string | null
           created_at?: string | null
           created_by?: string | null
-          description?: string | null
+          enrollment_id?: string | null
           id?: string
+          message_preview?: string | null
           metadata?: Json | null
+          next_action?: string | null
           occurred_at?: string | null
           outcome?: string | null
-          sentiment?: string | null
-          student_id: string
-          task_id?: string | null
-          title: string
+          profile_id: string
           touchpoint_type: string
           workspace_id: string
         }
         Update: {
-          channel?: string | null
-          cohort_id?: string | null
           created_at?: string | null
           created_by?: string | null
-          description?: string | null
+          enrollment_id?: string | null
           id?: string
+          message_preview?: string | null
           metadata?: Json | null
+          next_action?: string | null
           occurred_at?: string | null
           outcome?: string | null
-          sentiment?: string | null
-          student_id?: string
-          task_id?: string | null
-          title?: string
+          profile_id?: string
           touchpoint_type?: string
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "sj_touchpoints_cohort_id_fkey"
-            columns: ["cohort_id"]
+            foreignKeyName: "sj_touchpoints_enrollment_id_fkey"
+            columns: ["enrollment_id"]
             isOneToOne: false
-            referencedRelation: "sj_cohorts"
+            referencedRelation: "sj_enrollments"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sj_touchpoints_student_id_fkey"
-            columns: ["student_id"]
+            foreignKeyName: "sj_touchpoints_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "sj_students"
+            referencedRelation: "sj_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -15526,6 +15622,10 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: number
+      }
+      sj_match_profile_to_contact: {
+        Args: { p_profile_id: string }
+        Returns: string
       }
       start_module_trial: {
         Args: {

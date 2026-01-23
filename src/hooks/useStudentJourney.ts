@@ -3,35 +3,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import type {
-  SJStudent,
+  SJProfile,
+  SJCourse,
   SJCohort,
   SJEnrollment,
   SJTouchpoint,
   SJTask,
   SJDashboardMetrics,
-  CreateStudentData,
+  CreateProfileData,
+  CreateCourseData,
   CreateCohortData,
   CreateEnrollmentData,
   CreateTouchpointData,
   CreateTaskData,
-  StudentStage,
+  LifecycleStage,
 } from "@/types/studentJourney";
 
 // ============================================
-// STUDENTS HOOKS
+// PROFILES HOOKS
 // ============================================
 
-export function useStudents() {
+export function useProfiles() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["sj-students", currentWorkspace?.id],
-    queryFn: async (): Promise<SJStudent[]> => {
+    queryKey: ["sj-profiles", currentWorkspace?.id],
+    queryFn: async (): Promise<SJProfile[]> => {
       if (!currentWorkspace?.id) return [];
 
       const { data, error } = await supabase
-        .from("sj_students")
+        .from("sj_profiles")
         .select(`
           *,
           contact:contacts(id, name, email)
@@ -40,79 +42,77 @@ export function useStudents() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as unknown as SJStudent[];
+      return (data || []) as unknown as SJProfile[];
     },
     enabled: !!currentWorkspace?.id,
   });
 
-  const createStudent = useMutation({
-    mutationFn: async (data: CreateStudentData) => {
+  const createProfile = useMutation({
+    mutationFn: async (data: CreateProfileData) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
 
-      const { data: student, error } = await supabase
-        .from("sj_students")
+      const { data: profile, error } = await supabase
+        .from("sj_profiles")
         .insert({
           workspace_id: currentWorkspace.id,
           ...data,
+          interests: data.interests || [],
         })
         .select()
         .single();
 
       if (error) throw error;
-      return student;
+      return profile;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sj-students"] });
+      queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
-      toast.success("Aluno criado com sucesso");
+      toast.success("Perfil criado com sucesso");
     },
     onError: (error) => {
-      console.error("Error creating student:", error);
-      toast.error("Erro ao criar aluno");
+      console.error("Error creating profile:", error);
+      toast.error("Erro ao criar perfil");
     },
   });
 
-  const updateStudent = useMutation({
-    mutationFn: async ({ id, ...data }: Partial<SJStudent> & { id: string }) => {
-      const { custom_fields, contact, enrollments_count, active_enrollments, ...updateData } = data;
-      const { data: student, error } = await supabase
-        .from("sj_students")
+  const updateProfile = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<SJProfile> & { id: string }) => {
+      const { contact, enrollments_count, ...updateData } = data;
+      const { data: profile, error } = await supabase
+        .from("sj_profiles")
         .update(updateData)
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return student;
+      return profile;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sj-students"] });
+      queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
-      toast.success("Aluno atualizado");
+      toast.success("Perfil atualizado");
     },
     onError: (error) => {
-      console.error("Error updating student:", error);
-      toast.error("Erro ao atualizar aluno");
+      console.error("Error updating profile:", error);
+      toast.error("Erro ao atualizar perfil");
     },
   });
 
-  const updateStudentStage = useMutation({
-    mutationFn: async ({ id, stage }: { id: string; stage: StudentStage }) => {
-      const { data: student, error } = await supabase
-        .from("sj_students")
-        .update({ 
-          stage, 
-          stage_changed_at: new Date().toISOString() 
-        })
+  const updateLifecycleStage = useMutation({
+    mutationFn: async ({ id, stage }: { id: string; stage: LifecycleStage }) => {
+      const { data: profile, error } = await supabase
+        .from("sj_profiles")
+        .update({ lifecycle_stage: stage })
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return student;
+      return profile;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sj-students"] });
+      queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
       toast.success("Etapa atualizada");
     },
@@ -122,85 +122,197 @@ export function useStudents() {
     },
   });
 
-  const deleteStudent = useMutation({
+  const deleteProfile = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("sj_students")
+        .from("sj_profiles")
         .delete()
         .eq("id", id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sj-students"] });
+      queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
-      toast.success("Aluno removido");
+      toast.success("Perfil removido");
     },
     onError: (error) => {
-      console.error("Error deleting student:", error);
-      toast.error("Erro ao remover aluno");
+      console.error("Error deleting profile:", error);
+      toast.error("Erro ao remover perfil");
     },
   });
 
   return {
-    students: query.data || [],
+    profiles: query.data || [],
     isLoading: query.isLoading,
     error: query.error,
-    createStudent,
-    updateStudent,
-    updateStudentStage,
-    deleteStudent,
+    createProfile,
+    updateProfile,
+    updateLifecycleStage,
+    deleteProfile,
   };
 }
 
-export function useStudent(studentId: string | undefined) {
+export function useProfile(profileId: string | undefined) {
   const { currentWorkspace } = useWorkspace();
 
   return useQuery({
-    queryKey: ["sj-student", studentId],
-    queryFn: async (): Promise<SJStudent | null> => {
-      if (!studentId) return null;
+    queryKey: ["sj-profile", profileId],
+    queryFn: async (): Promise<SJProfile | null> => {
+      if (!profileId) return null;
 
       const { data, error } = await supabase
-        .from("sj_students")
+        .from("sj_profiles")
         .select(`
           *,
           contact:contacts(id, name, email)
         `)
-        .eq("id", studentId)
+        .eq("id", profileId)
         .single();
 
       if (error) {
         if (error.code === "PGRST116") return null;
         throw error;
       }
-      return data as unknown as SJStudent;
+      return data as unknown as SJProfile;
     },
-    enabled: !!studentId && !!currentWorkspace?.id,
+    enabled: !!profileId && !!currentWorkspace?.id,
   });
+}
+
+// ============================================
+// COURSES HOOKS
+// ============================================
+
+export function useCourses() {
+  const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["sj-courses", currentWorkspace?.id],
+    queryFn: async (): Promise<SJCourse[]> => {
+      if (!currentWorkspace?.id) return [];
+
+      const { data, error } = await supabase
+        .from("sj_courses")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as unknown as SJCourse[];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+
+  const createCourse = useMutation({
+    mutationFn: async (data: CreateCourseData) => {
+      if (!currentWorkspace?.id) throw new Error("No workspace");
+
+      const { data: course, error } = await supabase
+        .from("sj_courses")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          ...data,
+          tags: data.tags || [],
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return course;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sj-courses"] });
+      toast.success("Curso criado com sucesso");
+    },
+    onError: (error) => {
+      console.error("Error creating course:", error);
+      toast.error("Erro ao criar curso");
+    },
+  });
+
+  const updateCourse = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<SJCourse> & { id: string }) => {
+      const { cohorts_count, enrollments_count, settings, ...updateData } = data;
+      const { data: course, error } = await supabase
+        .from("sj_courses")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return course;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sj-courses"] });
+      toast.success("Curso atualizado");
+    },
+    onError: (error) => {
+      console.error("Error updating course:", error);
+      toast.error("Erro ao atualizar curso");
+    },
+  });
+
+  const deleteCourse = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("sj_courses")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sj-courses"] });
+      toast.success("Curso removido");
+    },
+    onError: (error) => {
+      console.error("Error deleting course:", error);
+      toast.error("Erro ao remover curso");
+    },
+  });
+
+  return {
+    courses: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error,
+    createCourse,
+    updateCourse,
+    deleteCourse,
+  };
 }
 
 // ============================================
 // COHORTS HOOKS
 // ============================================
 
-export function useCohorts() {
+export function useCohorts(courseId?: string) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["sj-cohorts", currentWorkspace?.id],
+    queryKey: ["sj-cohorts", currentWorkspace?.id, courseId],
     queryFn: async (): Promise<SJCohort[]> => {
       if (!currentWorkspace?.id) return [];
 
-      const { data, error } = await supabase
+      let q = supabase
         .from("sj_cohorts")
-        .select("*")
-        .eq("workspace_id", currentWorkspace.id)
-        .order("start_date", { ascending: false });
+        .select(`
+          *,
+          course:sj_courses(id, name, course_type)
+        `)
+        .eq("workspace_id", currentWorkspace.id);
+
+      if (courseId) {
+        q = q.eq("course_id", courseId);
+      }
+
+      const { data, error } = await q.order("start_date", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as SJCohort[];
+      return (data || []) as unknown as SJCohort[];
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -233,7 +345,7 @@ export function useCohorts() {
 
   const updateCohort = useMutation({
     mutationFn: async ({ id, ...data }: Partial<SJCohort> & { id: string }) => {
-      const { settings, students_count, active_students, ...updateData } = data;
+      const { course, enrollments_count, settings, ...updateData } = data;
       const { data: cohort, error } = await supabase
         .from("sj_cohorts")
         .update(updateData)
@@ -287,7 +399,7 @@ export function useCohorts() {
 // ENROLLMENTS HOOKS
 // ============================================
 
-export function useEnrollments(filters?: { studentId?: string; cohortId?: string }) {
+export function useEnrollments(filters?: { profileId?: string; courseId?: string; cohortId?: string }) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
@@ -300,19 +412,17 @@ export function useEnrollments(filters?: { studentId?: string; cohortId?: string
         .from("sj_enrollments")
         .select(`
           *,
-          student:sj_students(id, name, email, stage),
-          cohort:sj_cohorts(id, name, course_name, status)
+          profile:sj_profiles(id, full_name, email, lifecycle_stage),
+          course:sj_courses(id, name, course_type),
+          cohort:sj_cohorts(id, name, status)
         `)
         .eq("workspace_id", currentWorkspace.id);
 
-      if (filters?.studentId) {
-        q = q.eq("student_id", filters.studentId);
-      }
-      if (filters?.cohortId) {
-        q = q.eq("cohort_id", filters.cohortId);
-      }
+      if (filters?.profileId) q = q.eq("profile_id", filters.profileId);
+      if (filters?.courseId) q = q.eq("course_id", filters.courseId);
+      if (filters?.cohortId) q = q.eq("cohort_id", filters.cohortId);
 
-      const { data, error } = await q.order("enrolled_at", { ascending: false });
+      const { data, error } = await q.order("created_at", { ascending: false });
 
       if (error) throw error;
       return (data || []) as unknown as SJEnrollment[];
@@ -348,9 +458,10 @@ export function useEnrollments(filters?: { studentId?: string; cohortId?: string
 
   const updateEnrollment = useMutation({
     mutationFn: async ({ id, ...data }: Partial<SJEnrollment> & { id: string }) => {
+      const { profile, course, cohort, ...updateData } = data;
       const { data: enrollment, error } = await supabase
         .from("sj_enrollments")
-        .update(data)
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
@@ -381,12 +492,12 @@ export function useEnrollments(filters?: { studentId?: string; cohortId?: string
 // TOUCHPOINTS HOOKS
 // ============================================
 
-export function useTouchpoints(studentId?: string) {
+export function useTouchpoints(profileId?: string) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["sj-touchpoints", currentWorkspace?.id, studentId],
+    queryKey: ["sj-touchpoints", currentWorkspace?.id, profileId],
     queryFn: async (): Promise<SJTouchpoint[]> => {
       if (!currentWorkspace?.id) return [];
 
@@ -395,14 +506,12 @@ export function useTouchpoints(studentId?: string) {
         .select("*")
         .eq("workspace_id", currentWorkspace.id);
 
-      if (studentId) {
-        q = q.eq("student_id", studentId);
-      }
+      if (profileId) q = q.eq("profile_id", profileId);
 
       const { data, error } = await q.order("occurred_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as SJTouchpoint[];
+      return (data || []) as unknown as SJTouchpoint[];
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -445,7 +554,7 @@ export function useTouchpoints(studentId?: string) {
 // TASKS HOOKS
 // ============================================
 
-export function useSJTasks(filters?: { studentId?: string; cohortId?: string }) {
+export function useSJTasks(filters?: { profileId?: string; status?: string }) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
@@ -458,17 +567,12 @@ export function useSJTasks(filters?: { studentId?: string; cohortId?: string }) 
         .from("sj_tasks")
         .select(`
           *,
-          student:sj_students(id, name),
-          cohort:sj_cohorts(id, name)
+          profile:sj_profiles(id, full_name, email)
         `)
         .eq("workspace_id", currentWorkspace.id);
 
-      if (filters?.studentId) {
-        q = q.eq("student_id", filters.studentId);
-      }
-      if (filters?.cohortId) {
-        q = q.eq("cohort_id", filters.cohortId);
-      }
+      if (filters?.profileId) q = q.eq("profile_id", filters.profileId);
+      if (filters?.status) q = q.eq("status", filters.status);
 
       const { data, error } = await q.order("due_date", { ascending: true });
 
@@ -506,9 +610,10 @@ export function useSJTasks(filters?: { studentId?: string; cohortId?: string }) 
 
   const updateTask = useMutation({
     mutationFn: async ({ id, ...data }: Partial<SJTask> & { id: string }) => {
+      const { profile, ...updateData } = data;
       const { data: task, error } = await supabase
         .from("sj_tasks")
-        .update(data)
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
@@ -547,27 +652,37 @@ export function useSJDashboardMetrics() {
     queryFn: async (): Promise<SJDashboardMetrics> => {
       if (!currentWorkspace?.id) {
         return {
-          totalStudents: 0,
-          activeStudents: 0,
-          completedStudents: 0,
+          totalProfiles: 0,
+          activeProfiles: 0,
+          completedProfiles: 0,
+          churnedProfiles: 0,
           churnRate: 0,
-          activeCohorts: 0,
+          activeCourses: 0,
+          runningCohorts: 0,
           averageProgress: 0,
-          stageBreakdown: {
+          highRiskCount: 0,
+          lifecycleBreakdown: {
             lead: 0,
-            inscrito: 0,
-            ativo: 0,
-            concluido: 0,
-            inativo: 0,
-            churn: 0,
+            prospect: 0,
+            enrolled: 0,
+            active: 0,
+            completed: 0,
+            inactive: 0,
+            churned: 0,
           },
         };
       }
 
-      // Fetch students
-      const { data: students } = await supabase
-        .from("sj_students")
-        .select("stage")
+      // Fetch profiles
+      const { data: profiles } = await supabase
+        .from("sj_profiles")
+        .select("lifecycle_stage, dropout_risk")
+        .eq("workspace_id", currentWorkspace.id);
+
+      // Fetch courses
+      const { data: courses } = await supabase
+        .from("sj_courses")
+        .select("is_active")
         .eq("workspace_id", currentWorkspace.id);
 
       // Fetch cohorts
@@ -579,47 +694,54 @@ export function useSJDashboardMetrics() {
       // Fetch enrollments for average progress
       const { data: enrollments } = await supabase
         .from("sj_enrollments")
-        .select("progress_percentage")
+        .select("progress_percent")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active");
 
-      const stageBreakdown: Record<string, number> = {
+      const lifecycleBreakdown: Record<string, number> = {
         lead: 0,
-        inscrito: 0,
-        ativo: 0,
-        concluido: 0,
-        inativo: 0,
-        churn: 0,
+        prospect: 0,
+        enrolled: 0,
+        active: 0,
+        completed: 0,
+        inactive: 0,
+        churned: 0,
       };
 
-      (students || []).forEach((s) => {
-        if (stageBreakdown[s.stage] !== undefined) {
-          stageBreakdown[s.stage]++;
+      let highRiskCount = 0;
+
+      (profiles || []).forEach((p) => {
+        if (lifecycleBreakdown[p.lifecycle_stage] !== undefined) {
+          lifecycleBreakdown[p.lifecycle_stage]++;
         }
+        if (p.dropout_risk === "high") highRiskCount++;
       });
 
-      const totalStudents = students?.length || 0;
-      const activeStudents = stageBreakdown.ativo;
-      const completedStudents = stageBreakdown.concluido;
-      const churnCount = stageBreakdown.churn;
-      const churnRate = totalStudents > 0 ? (churnCount / totalStudents) * 100 : 0;
+      const totalProfiles = profiles?.length || 0;
+      const activeProfiles = lifecycleBreakdown.active;
+      const completedProfiles = lifecycleBreakdown.completed;
+      const churnedProfiles = lifecycleBreakdown.churned;
+      const churnRate = totalProfiles > 0 ? (churnedProfiles / totalProfiles) * 100 : 0;
 
-      const activeCohorts = (cohorts || []).filter((c) => c.status === "active").length;
+      const activeCourses = (courses || []).filter((c) => c.is_active).length;
+      const runningCohorts = (cohorts || []).filter((c) => c.status === "running").length;
 
       const avgProgress =
         enrollments && enrollments.length > 0
-          ? enrollments.reduce((sum, e) => sum + (e.progress_percentage || 0), 0) /
-            enrollments.length
+          ? enrollments.reduce((sum, e) => sum + (e.progress_percent || 0), 0) / enrollments.length
           : 0;
 
       return {
-        totalStudents,
-        activeStudents,
-        completedStudents,
+        totalProfiles,
+        activeProfiles,
+        completedProfiles,
+        churnedProfiles,
         churnRate,
-        activeCohorts,
+        activeCourses,
+        runningCohorts,
         averageProgress: Math.round(avgProgress),
-        stageBreakdown: stageBreakdown as SJDashboardMetrics["stageBreakdown"],
+        highRiskCount,
+        lifecycleBreakdown: lifecycleBreakdown as SJDashboardMetrics["lifecycleBreakdown"],
       };
     },
     enabled: !!currentWorkspace?.id,

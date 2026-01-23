@@ -1,21 +1,44 @@
-// Student Journey Module Types
+// Student Journey Module Types - Revised Schema
 
-export type StudentStage = 'lead' | 'inscrito' | 'ativo' | 'concluido' | 'inativo' | 'churn';
+// ============================================
+// LIFECYCLE & STATUS ENUMS
+// ============================================
 
-export type CohortStatus = 'planned' | 'enrolling' | 'active' | 'completed' | 'cancelled';
+export type LifecycleStage = 'lead' | 'prospect' | 'enrolled' | 'active' | 'completed' | 'inactive' | 'churned';
 
-export type EnrollmentStatus = 'pending' | 'active' | 'paused' | 'completed' | 'dropped' | 'cancelled';
+export type DropoutRisk = 'low' | 'medium' | 'high';
 
-export type TouchpointType = 'call' | 'email' | 'meeting' | 'class' | 'support' | 'feedback' | 'assessment' | 'milestone' | 'other';
+export type PreferredChannel = 'email' | 'whatsapp' | 'phone' | 'in-app';
 
-export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type CourseProvider = 'internal' | 'kajabi' | 'other';
 
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type CourseType = 'online' | 'presencial' | 'hibrido';
+
+export type CohortStatus = 'planned' | 'open' | 'running' | 'finished';
+
+export type EnrollmentStatus = 'interested' | 'invited' | 'enrolled' | 'active' | 'completed' | 'dropped';
+
+export type PaymentStatus = 'unpaid' | 'paid' | 'partial' | 'refunded';
+
+export type EnrollmentSource = 'manual' | 'import' | 'checkout';
+
+export type TouchpointType = 'call' | 'whatsapp' | 'email' | 'meeting' | 'note' | 'task' | 'automation' | 'import';
+
+export type TouchpointOutcome = 'no_answer' | 'interested' | 'needs_follow_up' | 'enrolled' | 'completed' | 'churn_risk';
+
+export type TaskStatus = 'open' | 'done' | 'canceled';
+
+export type ImportSource = 'csv' | 'xlsx' | 'kajabi_api';
+
+export type ImportStatus = 'queued' | 'processing' | 'done' | 'failed';
 
 export type SJPermissionRole = 'admin' | 'agent' | 'viewer';
 
-// Stage configuration
-export const STUDENT_STAGE_CONFIG: Record<StudentStage, {
+// ============================================
+// CONFIGURATION CONSTANTS
+// ============================================
+
+export const LIFECYCLE_STAGE_CONFIG: Record<LifecycleStage, {
   label: string;
   color: string;
   bgColor: string;
@@ -27,31 +50,37 @@ export const STUDENT_STAGE_CONFIG: Record<StudentStage, {
     bgColor: 'bg-blue-100 dark:bg-blue-900/30',
     icon: 'UserPlus'
   },
-  inscrito: {
+  prospect: {
+    label: 'Prospect',
+    color: 'text-cyan-600',
+    bgColor: 'bg-cyan-100 dark:bg-cyan-900/30',
+    icon: 'Target'
+  },
+  enrolled: {
     label: 'Inscrito',
     color: 'text-purple-600',
     bgColor: 'bg-purple-100 dark:bg-purple-900/30',
     icon: 'ClipboardCheck'
   },
-  ativo: {
+  active: {
     label: 'Ativo',
     color: 'text-green-600',
     bgColor: 'bg-green-100 dark:bg-green-900/30',
     icon: 'Play'
   },
-  concluido: {
+  completed: {
     label: 'Concluído',
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
     icon: 'GraduationCap'
   },
-  inativo: {
+  inactive: {
     label: 'Inativo',
     color: 'text-gray-600',
     bgColor: 'bg-gray-100 dark:bg-gray-800/50',
     icon: 'Pause'
   },
-  churn: {
+  churned: {
     label: 'Churn',
     color: 'text-red-600',
     bgColor: 'bg-red-100 dark:bg-red-900/30',
@@ -64,136 +93,153 @@ export const COHORT_STATUS_CONFIG: Record<CohortStatus, {
   color: string;
   bgColor: string;
 }> = {
-  planned: {
-    label: 'Planeada',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30'
-  },
-  enrolling: {
-    label: 'Inscrições Abertas',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/30'
-  },
-  active: {
-    label: 'Em Curso',
-    color: 'text-green-600',
-    bgColor: 'bg-green-100 dark:bg-green-900/30'
-  },
-  completed: {
-    label: 'Concluída',
-    color: 'text-emerald-600',
-    bgColor: 'bg-emerald-100 dark:bg-emerald-900/30'
-  },
-  cancelled: {
-    label: 'Cancelada',
-    color: 'text-red-600',
-    bgColor: 'bg-red-100 dark:bg-red-900/30'
-  }
+  planned: { label: 'Planeada', color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+  open: { label: 'Aberta', color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+  running: { label: 'Em Curso', color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+  finished: { label: 'Concluída', color: 'text-gray-600', bgColor: 'bg-gray-100 dark:bg-gray-800/50' }
 };
 
-export const TOUCHPOINT_TYPE_CONFIG: Record<TouchpointType, {
+export const ENROLLMENT_STATUS_CONFIG: Record<EnrollmentStatus, {
   label: string;
-  icon: string;
+  color: string;
+  bgColor: string;
 }> = {
+  interested: { label: 'Interessado', color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+  invited: { label: 'Convidado', color: 'text-cyan-600', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
+  enrolled: { label: 'Inscrito', color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+  active: { label: 'Ativo', color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+  completed: { label: 'Concluído', color: 'text-emerald-600', bgColor: 'bg-emerald-100 dark:bg-emerald-900/30' },
+  dropped: { label: 'Desistiu', color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' }
+};
+
+export const TOUCHPOINT_TYPE_CONFIG: Record<TouchpointType, { label: string; icon: string }> = {
   call: { label: 'Chamada', icon: 'Phone' },
+  whatsapp: { label: 'WhatsApp', icon: 'MessageCircle' },
   email: { label: 'Email', icon: 'Mail' },
   meeting: { label: 'Reunião', icon: 'Video' },
-  class: { label: 'Aula', icon: 'BookOpen' },
-  support: { label: 'Suporte', icon: 'HelpCircle' },
-  feedback: { label: 'Feedback', icon: 'MessageSquare' },
-  assessment: { label: 'Avaliação', icon: 'FileCheck' },
-  milestone: { label: 'Marco', icon: 'Flag' },
-  other: { label: 'Outro', icon: 'MoreHorizontal' }
+  note: { label: 'Nota', icon: 'StickyNote' },
+  task: { label: 'Tarefa', icon: 'CheckSquare' },
+  automation: { label: 'Automação', icon: 'Zap' },
+  import: { label: 'Importação', icon: 'Upload' }
 };
 
-// Entity interfaces
-export interface SJStudent {
+export const DROPOUT_RISK_CONFIG: Record<DropoutRisk, { label: string; color: string; bgColor: string }> = {
+  low: { label: 'Baixo', color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+  medium: { label: 'Médio', color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
+  high: { label: 'Alto', color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' }
+};
+
+// ============================================
+// ENTITY INTERFACES
+// ============================================
+
+export interface SJProfile {
   id: string;
   workspace_id: string;
   contact_id: string | null;
-  name: string;
+  external_ref: string | null;
+  full_name: string;
   email: string | null;
   phone: string | null;
-  stage: StudentStage;
-  stage_changed_at: string;
+  lifecycle_stage: LifecycleStage;
+  primary_interest: string | null;
   interests: string[];
-  source: string | null;
-  source_detail: string | null;
-  notes: string | null;
+  preferred_channel: PreferredChannel;
+  student_score: number;
+  dropout_risk: DropoutRisk;
+  last_activity_at: string | null;
+  next_follow_up_at: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  contact?: { id: string; name: string; email: string | null };
+  enrollments_count?: number;
+}
+
+export interface SJInterestTaxonomy {
+  id: string;
+  workspace_id: string;
+  category: string;
+  topic: string;
+  synonyms: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SJCourse {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string | null;
+  provider: CourseProvider;
+  provider_course_id: string | null;
+  course_type: CourseType;
+  cohort_enabled: boolean;
+  start_date: string | null;
+  end_date: string | null;
   tags: string[];
-  custom_fields: Record<string, unknown>;
-  ai_insight: string | null;
-  ai_next_action: string | null;
-  ai_analyzed_at: string | null;
-  churn_risk: string;
+  settings: Record<string, unknown>;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
-  // Joined data
-  contact?: {
-    id: string;
-    name: string;
-    email: string | null;
-  };
+  // Computed
+  cohorts_count?: number;
   enrollments_count?: number;
-  active_enrollments?: number;
 }
 
 export interface SJCohort {
   id: string;
   workspace_id: string;
+  course_id: string;
   name: string;
-  description: string | null;
-  course_name: string | null;
-  course_category: string | null;
   start_date: string | null;
   end_date: string | null;
-  max_students: number | null;
+  capacity: number | null;
   status: CohortStatus;
   settings: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   created_by: string | null;
-  // Computed
-  students_count?: number;
-  active_students?: number;
+  // Joined
+  course?: SJCourse;
+  enrollments_count?: number;
 }
 
 export interface SJEnrollment {
   id: string;
   workspace_id: string;
-  student_id: string;
-  cohort_id: string;
-  enrolled_at: string;
+  profile_id: string;
+  course_id: string;
+  cohort_id: string | null;
   status: EnrollmentStatus;
-  progress_percentage: number;
-  modules_completed: number;
-  modules_total: number;
+  progress_percent: number;
   last_activity_at: string | null;
+  started_at: string | null;
   completed_at: string | null;
-  certificate_issued: boolean;
-  certificate_url: string | null;
+  payment_status: PaymentStatus;
+  source: EnrollmentSource;
   notes: string | null;
   created_at: string;
   updated_at: string;
   // Joined
-  student?: SJStudent;
+  profile?: SJProfile;
+  course?: SJCourse;
   cohort?: SJCohort;
 }
 
 export interface SJTouchpoint {
   id: string;
   workspace_id: string;
-  student_id: string;
+  profile_id: string;
+  enrollment_id: string | null;
   touchpoint_type: TouchpointType;
-  title: string;
-  description: string | null;
+  outcome: TouchpointOutcome | null;
+  message_preview: string | null;
   occurred_at: string;
-  channel: string | null;
-  outcome: string | null;
-  sentiment: string | null;
-  cohort_id: string | null;
-  task_id: string | null;
+  next_action: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
   created_by: string | null;
@@ -202,38 +248,47 @@ export interface SJTouchpoint {
 export interface SJTask {
   id: string;
   workspace_id: string;
-  student_id: string | null;
-  cohort_id: string | null;
+  profile_id: string | null;
+  enrollment_id: string | null;
   title: string;
   description: string | null;
-  task_type: string;
-  priority: TaskPriority;
-  status: TaskStatus;
-  assigned_to: string | null;
   due_date: string | null;
   completed_at: string | null;
+  status: TaskStatus;
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
   // Joined
-  student?: SJStudent;
-  cohort?: SJCohort;
+  profile?: SJProfile;
 }
 
-export interface SJImportLog {
+export interface SJImportJob {
   id: string;
   workspace_id: string;
-  import_type: string;
+  source: ImportSource;
+  status: ImportStatus;
   file_name: string | null;
-  source: string | null;
+  file_url: string | null;
+  mapping_config: Record<string, unknown>;
+  results_summary: Record<string, unknown>;
   total_rows: number;
+  processed_rows: number;
   success_count: number;
   error_count: number;
-  skip_count: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  skipped_count: number;
   errors: Array<{ row: number; error: string }>;
   started_at: string | null;
   completed_at: string | null;
+  created_at: string;
+  created_by: string | null;
+}
+
+export interface SJPermission {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: SJPermissionRole;
   created_at: string;
   created_by: string | null;
 }
@@ -251,77 +306,87 @@ export interface SJAuditLog {
   created_at: string;
 }
 
-export interface SJPermission {
-  id: string;
-  workspace_id: string;
-  user_id: string;
-  role: SJPermissionRole;
-  created_at: string;
-  created_by: string | null;
-}
+// ============================================
+// DASHBOARD METRICS
+// ============================================
 
-// Dashboard metrics
 export interface SJDashboardMetrics {
-  totalStudents: number;
-  activeStudents: number;
-  completedStudents: number;
+  totalProfiles: number;
+  activeProfiles: number;
+  completedProfiles: number;
+  churnedProfiles: number;
   churnRate: number;
-  activeCohorts: number;
+  activeCourses: number;
+  runningCohorts: number;
   averageProgress: number;
-  stageBreakdown: Record<StudentStage, number>;
+  highRiskCount: number;
+  lifecycleBreakdown: Record<LifecycleStage, number>;
 }
 
-// Form types
-export interface CreateStudentData {
-  name: string;
+// ============================================
+// FORM TYPES
+// ============================================
+
+export interface CreateProfileData {
+  full_name: string;
   email?: string;
   phone?: string;
-  stage?: StudentStage;
+  lifecycle_stage?: LifecycleStage;
+  primary_interest?: string;
   interests?: string[];
-  source?: string;
-  source_detail?: string;
-  notes?: string;
-  tags?: string[];
+  preferred_channel?: PreferredChannel;
   contact_id?: string;
+  external_ref?: string;
+  owner_user_id?: string;
+}
+
+export interface CreateCourseData {
+  name: string;
+  description?: string;
+  provider?: CourseProvider;
+  provider_course_id?: string;
+  course_type?: CourseType;
+  cohort_enabled?: boolean;
+  start_date?: string;
+  end_date?: string;
+  tags?: string[];
+  is_active?: boolean;
 }
 
 export interface CreateCohortData {
+  course_id: string;
   name: string;
-  description?: string;
-  course_name?: string;
-  course_category?: string;
   start_date?: string;
   end_date?: string;
-  max_students?: number;
+  capacity?: number;
   status?: CohortStatus;
 }
 
 export interface CreateEnrollmentData {
-  student_id: string;
-  cohort_id: string;
+  profile_id: string;
+  course_id: string;
+  cohort_id?: string;
   status?: EnrollmentStatus;
-  modules_total?: number;
+  payment_status?: PaymentStatus;
+  source?: EnrollmentSource;
+  notes?: string;
 }
 
 export interface CreateTouchpointData {
-  student_id: string;
+  profile_id: string;
+  enrollment_id?: string;
   touchpoint_type: TouchpointType;
-  title: string;
-  description?: string;
+  outcome?: TouchpointOutcome;
+  message_preview?: string;
   occurred_at?: string;
-  channel?: string;
-  outcome?: string;
-  sentiment?: string;
-  cohort_id?: string;
+  next_action?: string;
 }
 
 export interface CreateTaskData {
   title: string;
   description?: string;
-  student_id?: string;
-  cohort_id?: string;
-  task_type?: string;
-  priority?: TaskPriority;
-  assigned_to?: string;
+  profile_id?: string;
+  enrollment_id?: string;
   due_date?: string;
+  assigned_to?: string;
 }
