@@ -9726,21 +9726,39 @@ export type Database = {
           ai_insight: string | null
           ai_next_action: string | null
           ai_temperature: string | null
+          billing_frequency:
+            | Database["public"]["Enums"]["billing_frequency"]
+            | null
+          billing_type: Database["public"]["Enums"]["billing_type"] | null
+          churn_reason: string | null
           company_id: string | null
           contact_id: string | null
+          contract_months: number | null
           created_at: string
           currency: string | null
           expected_close_date: string | null
           id: string
           last_activity_at: string | null
+          last_payment_date: string | null
           lead_id: string | null
           lost_reason: string | null
+          mrr_amount: number | null
+          next_payment_date: string | null
           notes: string | null
           owner_id: string
+          payment_provider:
+            | Database["public"]["Enums"]["payment_provider"]
+            | null
           probability: number | null
+          renewal_date: string | null
           source: string | null
           stage_id: string
+          start_date: string | null
           status: string
+          subscription_status:
+            | Database["public"]["Enums"]["opportunity_subscription_status"]
+            | null
+          tcv_amount: number | null
           title: string
           updated_at: string
           value: number | null
@@ -9751,21 +9769,39 @@ export type Database = {
           ai_insight?: string | null
           ai_next_action?: string | null
           ai_temperature?: string | null
+          billing_frequency?:
+            | Database["public"]["Enums"]["billing_frequency"]
+            | null
+          billing_type?: Database["public"]["Enums"]["billing_type"] | null
+          churn_reason?: string | null
           company_id?: string | null
           contact_id?: string | null
+          contract_months?: number | null
           created_at?: string
           currency?: string | null
           expected_close_date?: string | null
           id?: string
           last_activity_at?: string | null
+          last_payment_date?: string | null
           lead_id?: string | null
           lost_reason?: string | null
+          mrr_amount?: number | null
+          next_payment_date?: string | null
           notes?: string | null
           owner_id: string
+          payment_provider?:
+            | Database["public"]["Enums"]["payment_provider"]
+            | null
           probability?: number | null
+          renewal_date?: string | null
           source?: string | null
           stage_id: string
+          start_date?: string | null
           status?: string
+          subscription_status?:
+            | Database["public"]["Enums"]["opportunity_subscription_status"]
+            | null
+          tcv_amount?: number | null
           title: string
           updated_at?: string
           value?: number | null
@@ -9776,21 +9812,39 @@ export type Database = {
           ai_insight?: string | null
           ai_next_action?: string | null
           ai_temperature?: string | null
+          billing_frequency?:
+            | Database["public"]["Enums"]["billing_frequency"]
+            | null
+          billing_type?: Database["public"]["Enums"]["billing_type"] | null
+          churn_reason?: string | null
           company_id?: string | null
           contact_id?: string | null
+          contract_months?: number | null
           created_at?: string
           currency?: string | null
           expected_close_date?: string | null
           id?: string
           last_activity_at?: string | null
+          last_payment_date?: string | null
           lead_id?: string | null
           lost_reason?: string | null
+          mrr_amount?: number | null
+          next_payment_date?: string | null
           notes?: string | null
           owner_id?: string
+          payment_provider?:
+            | Database["public"]["Enums"]["payment_provider"]
+            | null
           probability?: number | null
+          renewal_date?: string | null
           source?: string | null
           stage_id?: string
+          start_date?: string | null
           status?: string
+          subscription_status?:
+            | Database["public"]["Enums"]["opportunity_subscription_status"]
+            | null
+          tcv_amount?: number | null
           title?: string
           updated_at?: string
           value?: number | null
@@ -15106,6 +15160,13 @@ export type Database = {
         | "quarterly"
         | "semi_annual"
         | "annual"
+      billing_frequency:
+        | "weekly"
+        | "monthly"
+        | "quarterly"
+        | "semi_annual"
+        | "yearly"
+      billing_type: "one_time" | "recurring"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -15123,12 +15184,19 @@ export type Database = {
       goal_period: "daily" | "weekly" | "monthly" | "annual"
       goal_status: "not_started" | "in_progress" | "completed" | "failed"
       integration_mode: "embed" | "redirect" | "headless"
+      opportunity_subscription_status:
+        | "draft"
+        | "active"
+        | "paused"
+        | "past_due"
+        | "canceled"
       payment_method_type:
         | "stripe"
         | "bank_transfer"
         | "check"
         | "cash"
         | "other"
+      payment_provider: "stripe" | "manual" | "other"
       post_type:
         | "update"
         | "help_request"
@@ -15356,6 +15424,14 @@ export const Constants = {
         "semi_annual",
         "annual",
       ],
+      billing_frequency: [
+        "weekly",
+        "monthly",
+        "quarterly",
+        "semi_annual",
+        "yearly",
+      ],
+      billing_type: ["one_time", "recurring"],
       condition_operator: [
         "equals",
         "not_equals",
@@ -15374,6 +15450,13 @@ export const Constants = {
       goal_period: ["daily", "weekly", "monthly", "annual"],
       goal_status: ["not_started", "in_progress", "completed", "failed"],
       integration_mode: ["embed", "redirect", "headless"],
+      opportunity_subscription_status: [
+        "draft",
+        "active",
+        "paused",
+        "past_due",
+        "canceled",
+      ],
       payment_method_type: [
         "stripe",
         "bank_transfer",
@@ -15381,6 +15464,7 @@ export const Constants = {
         "cash",
         "other",
       ],
+      payment_provider: ["stripe", "manual", "other"],
       post_type: [
         "update",
         "help_request",
