@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type {
@@ -23,7 +24,8 @@ export function useSubscriptions(filters?: {
   contact_id?: string;
   company_id?: string;
 }) {
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useQuery({
     queryKey: ["subscriptions", currentWorkspace?.id, filters],
@@ -61,7 +63,7 @@ export function useSubscriptions(filters?: {
 }
 
 export function useSubscription(id: string | undefined) {
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["subscription", id],
@@ -88,7 +90,8 @@ export function useSubscription(id: string | undefined) {
 }
 
 export function useActiveSubscriptions() {
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useQuery({
     queryKey: ["subscriptions", currentWorkspace?.id, "active"],
@@ -119,7 +122,8 @@ export function useActiveSubscriptions() {
 
 export function useCreateSubscription() {
   const queryClient = useQueryClient();
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
 
   return useMutation({
@@ -179,7 +183,7 @@ export function useCreateSubscription() {
 
 export function useUpdateSubscription() {
   const queryClient = useQueryClient();
-  const { workspaceClient } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async (input: UpdateSubscriptionInput) => {
@@ -213,7 +217,8 @@ export function useUpdateSubscription() {
 
 export function useDeleteSubscription() {
   const queryClient = useQueryClient();
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -241,7 +246,8 @@ export function useDeleteSubscription() {
 
 export function useCancelSubscription() {
   const queryClient = useQueryClient();
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -276,7 +282,8 @@ export function useCancelSubscription() {
 
 export function useActivateSubscription() {
   const queryClient = useQueryClient();
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -314,7 +321,7 @@ export function useActivateSubscription() {
 // =====================================================
 
 export function useSubscriptionItems(subscriptionId: string | undefined) {
-  const { workspaceClient } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["subscription-items", subscriptionId],
@@ -339,7 +346,8 @@ export function useSubscriptionItems(subscriptionId: string | undefined) {
 
 export function useAddSubscriptionItem() {
   const queryClient = useQueryClient();
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async ({
@@ -381,7 +389,7 @@ export function useAddSubscriptionItem() {
 
 export function useRemoveSubscriptionItem() {
   const queryClient = useQueryClient();
-  const { workspaceClient } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
     mutationFn: async ({
@@ -423,7 +431,8 @@ export function useBillingRecords(filters?: {
   subscription_id?: string;
   status?: BillingRecordStatus;
 }) {
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useQuery({
     queryKey: ["billing-records", currentWorkspace?.id, filters],
@@ -455,7 +464,7 @@ export function useBillingRecords(filters?: {
 }
 
 export function useSubscriptionBillingRecords(subscriptionId: string | undefined) {
-  const { workspaceClient } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["billing-records", "subscription", subscriptionId],
@@ -477,7 +486,8 @@ export function useSubscriptionBillingRecords(subscriptionId: string | undefined
 
 export function useCreateBillingRecord() {
   const queryClient = useQueryClient();
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async (input: CreateBillingRecordInput) => {
@@ -516,7 +526,8 @@ export function useCreateBillingRecord() {
 
 export function useMarkBillingRecordPaid() {
   const queryClient = useQueryClient();
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -557,7 +568,8 @@ export function useMarkBillingRecordPaid() {
 
 export function useConvertOpportunityToSubscription() {
   const queryClient = useQueryClient();
-  const { workspaceClient, currentWorkspace } = useWorkspaceInstanceContext();
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
 
   return useMutation({
