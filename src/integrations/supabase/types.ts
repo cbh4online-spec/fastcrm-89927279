@@ -12813,6 +12813,70 @@ export type Database = {
           },
         ]
       }
+      sj_ai_suggestions: {
+        Row: {
+          created_at: string | null
+          enrollment_id: string | null
+          id: string
+          message: string
+          priority: string | null
+          profile_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          suggestion_type: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enrollment_id?: string | null
+          id?: string
+          message: string
+          priority?: string | null
+          profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          suggestion_type: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enrollment_id?: string | null
+          id?: string
+          message?: string
+          priority?: string | null
+          profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          suggestion_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_ai_suggestions_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sj_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_ai_suggestions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "sj_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_ai_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_audit_logs: {
         Row: {
           action_type: string
@@ -12853,6 +12917,130 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sj_audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sj_automation_logs: {
+        Row: {
+          actions_executed: Json | null
+          automation_id: string | null
+          automation_name: string
+          enrollment_id: string | null
+          executed_at: string | null
+          id: string
+          profile_id: string | null
+          status: string
+          trigger_data: Json | null
+          trigger_type: string
+          workspace_id: string
+        }
+        Insert: {
+          actions_executed?: Json | null
+          automation_id?: string | null
+          automation_name: string
+          enrollment_id?: string | null
+          executed_at?: string | null
+          id?: string
+          profile_id?: string | null
+          status?: string
+          trigger_data?: Json | null
+          trigger_type: string
+          workspace_id: string
+        }
+        Update: {
+          actions_executed?: Json | null
+          automation_id?: string | null
+          automation_name?: string
+          enrollment_id?: string | null
+          executed_at?: string | null
+          id?: string
+          profile_id?: string | null
+          status?: string
+          trigger_data?: Json | null
+          trigger_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "sj_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_automation_logs_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sj_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_automation_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "sj_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_automation_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sj_automations: {
+        Row: {
+          actions: Json | null
+          conditions: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          name: string
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          actions?: Json | null
+          conditions?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name: string
+          trigger_config?: Json | null
+          trigger_type: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          actions?: Json | null
+          conditions?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name?: string
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_automations_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -13222,6 +13410,7 @@ export type Database = {
           dropout_risk: string | null
           email: string | null
           external_ref: string | null
+          follow_up_reason: string | null
           full_name: string
           id: string
           interests: Json | null
@@ -13242,6 +13431,7 @@ export type Database = {
           dropout_risk?: string | null
           email?: string | null
           external_ref?: string | null
+          follow_up_reason?: string | null
           full_name: string
           id?: string
           interests?: Json | null
@@ -13262,6 +13452,7 @@ export type Database = {
           dropout_risk?: string | null
           email?: string | null
           external_ref?: string | null
+          follow_up_reason?: string | null
           full_name?: string
           id?: string
           interests?: Json | null
