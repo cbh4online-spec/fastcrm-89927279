@@ -14837,6 +14837,20 @@ export type Database = {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
         Returns: Json
       }
+      get_upcoming_renewals: {
+        Args: { days_ahead?: number }
+        Returns: {
+          assigned_to: string
+          company_name: string
+          contact_name: string
+          days_until_renewal: number
+          mrr_amount: number
+          opportunity_id: string
+          renewal_date: string
+          subscription_id: string
+          workspace_id: string
+        }[]
+      }
       get_user_calendar_ids: { Args: never; Returns: string[] }
       get_user_workspace_ids: { Args: never; Returns: string[] }
       get_workspace_usage_counts: {
