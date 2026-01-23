@@ -67,7 +67,7 @@ export function useSaaSMetrics() {
     // Cancelled this month
     const cancelledThisMonth = subscriptions.filter(
       (s) =>
-        s.status === "canceled" &&
+        s.status === "cancelled" &&
         s.canceled_at &&
         new Date(s.canceled_at) >= startOfThisMonth
     );
