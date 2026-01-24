@@ -344,11 +344,18 @@ export function useCohorts(courseId?: string) {
   });
 
   const updateCohort = useMutation({
-    mutationFn: async ({ id, ...data }: Partial<SJCohort> & { id: string }) => {
-      const { course, enrollments_count, settings, ...updateData } = data;
+    mutationFn: async ({ id, settings, ...data }: Partial<SJCohort> & { id: string }) => {
+      const { course, enrollments_count, ...updateData } = data;
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatePayload: any = { ...updateData };
+      if (settings !== undefined) {
+        updatePayload.settings = settings;
+      }
+      
       const { data: cohort, error } = await supabase
         .from("sj_cohorts")
-        .update(updateData)
+        .update(updatePayload)
         .eq("id", id)
         .select()
         .single();
@@ -358,6 +365,7 @@ export function useCohorts(courseId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sj-cohorts"] });
+      queryClient.invalidateQueries({ queryKey: ["sj-cohort"] });
       toast.success("Turma atualizada");
     },
     onError: (error) => {
