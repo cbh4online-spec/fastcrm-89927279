@@ -71,6 +71,7 @@ import Marketing from "./pages/Marketing";
 import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
 import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
+import LeadEnricher from "./pages/LeadEnricher";
 
 // Student Journey Pages
 import {
@@ -193,6 +194,7 @@ const App = () => (
                       <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
                       <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
                       <Route path="/dashboard/credit" element={<CreditIntermediation />} />
+                      <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
                       
                       {/* Student Journey Module Routes */}
                       <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
