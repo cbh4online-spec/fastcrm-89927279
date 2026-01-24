@@ -13108,6 +13108,88 @@ export type Database = {
           },
         ]
       }
+      sj_course_recommendations: {
+        Row: {
+          contacted_at: string | null
+          converted_at: string | null
+          course_id: string
+          created_at: string | null
+          created_by: string
+          dismissed_at: string | null
+          dismissed_reason: string | null
+          expires_at: string | null
+          id: string
+          match_reasons: Json
+          match_score: number
+          profile_id: string
+          recommended_at: string | null
+          score_breakdown: Json | null
+          status: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contacted_at?: string | null
+          converted_at?: string | null
+          course_id: string
+          created_at?: string | null
+          created_by?: string
+          dismissed_at?: string | null
+          dismissed_reason?: string | null
+          expires_at?: string | null
+          id?: string
+          match_reasons?: Json
+          match_score?: number
+          profile_id: string
+          recommended_at?: string | null
+          score_breakdown?: Json | null
+          status?: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contacted_at?: string | null
+          converted_at?: string | null
+          course_id?: string
+          created_at?: string | null
+          created_by?: string
+          dismissed_at?: string | null
+          dismissed_reason?: string | null
+          expires_at?: string | null
+          id?: string
+          match_reasons?: Json
+          match_score?: number
+          profile_id?: string
+          recommended_at?: string | null
+          score_breakdown?: Json | null
+          status?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_course_recommendations_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "sj_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_course_recommendations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "sj_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_course_recommendations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_courses: {
         Row: {
           cohort_enabled: boolean | null
@@ -13115,17 +13197,24 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          duration_hours: number | null
           end_date: string | null
           id: string
           is_active: boolean | null
+          level: string | null
           name: string
+          next_courses: Json | null
+          prerequisites: Json | null
+          price: number | null
           provider: string
           provider_course_id: string | null
+          recommended_for: Json | null
           settings: Json | null
           specialty_id: string | null
           start_date: string | null
           tags: Json | null
           updated_at: string | null
+          urgency_score: number | null
           workspace_id: string
         }
         Insert: {
@@ -13134,17 +13223,24 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          duration_hours?: number | null
           end_date?: string | null
           id?: string
           is_active?: boolean | null
+          level?: string | null
           name: string
+          next_courses?: Json | null
+          prerequisites?: Json | null
+          price?: number | null
           provider?: string
           provider_course_id?: string | null
+          recommended_for?: Json | null
           settings?: Json | null
           specialty_id?: string | null
           start_date?: string | null
           tags?: Json | null
           updated_at?: string | null
+          urgency_score?: number | null
           workspace_id: string
         }
         Update: {
@@ -13153,17 +13249,24 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          duration_hours?: number | null
           end_date?: string | null
           id?: string
           is_active?: boolean | null
+          level?: string | null
           name?: string
+          next_courses?: Json | null
+          prerequisites?: Json | null
+          price?: number | null
           provider?: string
           provider_course_id?: string | null
+          recommended_for?: Json | null
           settings?: Json | null
           specialty_id?: string | null
           start_date?: string | null
           tags?: Json | null
           updated_at?: string | null
+          urgency_score?: number | null
           workspace_id?: string
         }
         Relationships: [
@@ -13418,6 +13521,7 @@ export type Database = {
           activation_potential: string | null
           contact_id: string | null
           created_at: string | null
+          current_level: string | null
           dropout_risk: string | null
           email: string | null
           external_ref: string | null
@@ -13435,6 +13539,8 @@ export type Database = {
           preferred_channel: string | null
           primary_interest: string | null
           primary_specialty: string | null
+          recommendations_enabled: boolean | null
+          role: string | null
           specialties_progress: Json | null
           student_score: number | null
           total_courses_completed: number | null
@@ -13445,6 +13551,7 @@ export type Database = {
           activation_potential?: string | null
           contact_id?: string | null
           created_at?: string | null
+          current_level?: string | null
           dropout_risk?: string | null
           email?: string | null
           external_ref?: string | null
@@ -13462,6 +13569,8 @@ export type Database = {
           preferred_channel?: string | null
           primary_interest?: string | null
           primary_specialty?: string | null
+          recommendations_enabled?: boolean | null
+          role?: string | null
           specialties_progress?: Json | null
           student_score?: number | null
           total_courses_completed?: number | null
@@ -13472,6 +13581,7 @@ export type Database = {
           activation_potential?: string | null
           contact_id?: string | null
           created_at?: string | null
+          current_level?: string | null
           dropout_risk?: string | null
           email?: string | null
           external_ref?: string | null
@@ -13489,6 +13599,8 @@ export type Database = {
           preferred_channel?: string | null
           primary_interest?: string | null
           primary_specialty?: string | null
+          recommendations_enabled?: boolean | null
+          role?: string | null
           specialties_progress?: Json | null
           student_score?: number | null
           total_courses_completed?: number | null

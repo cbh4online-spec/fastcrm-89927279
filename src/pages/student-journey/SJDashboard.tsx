@@ -10,6 +10,7 @@ import {
   SuccessMetrics,
   QuickActionsPanel,
 } from "@/components/student-journey/dashboard";
+import { DashboardOpportunitiesCard } from "@/components/student-journey/recommendations";
 import { JourneyFunnel } from "@/components/student-journey/journey";
 import { CreateProfileDialog } from "@/components/student-journey/CreateProfileDialog";
 import { ImportProfilesDialog } from "@/components/student-journey/ImportProfilesDialog";
@@ -114,6 +115,9 @@ export default function SJDashboard() {
 
         {/* Right: Action Lists */}
         <div className="lg:col-span-2 space-y-6">
+          {/* AI Opportunities */}
+          <DashboardOpportunitiesCard minScore={70} maxItems={5} />
+
           {/* Success Metrics */}
           <SuccessMetrics />
 
