@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CohortSettingsTab } from "@/components/student-journey/CohortSettingsTab";
 
 export default function SJCohortDetail() {
   const { id } = useParams<{ id: string }>();
@@ -259,17 +260,7 @@ export default function SJCohortDetail() {
 
             {/* Settings Tab */}
             <TabsContent value="settings" className="mt-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Configurações da Turma</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Settings className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>Configurações avançadas em breve</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <CohortSettingsTab cohort={cohort} enrollmentsCount={enrollments.length} />
             </TabsContent>
           </Tabs>
         </div>
