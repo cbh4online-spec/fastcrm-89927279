@@ -25,6 +25,12 @@ export interface SJTriggerContext {
   previousValue?: unknown;
   newValue?: unknown;
   workspaceId: string;
+  // Phase 4 additions
+  lifecycleStage?: string;
+  studentScore?: number;
+  totalCoursesCompleted?: number;
+  lastCourseCompletedAt?: string;
+  activationPotential?: string;
 }
 
 export interface SJActionResult {
@@ -217,6 +223,15 @@ export class SJAutomationEngine {
           return await this.executeUpdateStage(action.config, context);
         case "add_note":
           return await this.executeAddNote(action.config, context);
+        // Phase 4 actions
+        case "update_lifecycle_stage":
+          return await this.executeUpdateLifecycleStage(action.config, context);
+        case "update_activation_potential":
+          return await this.executeUpdateActivationPotential(action.config, context);
+        case "notify_owner":
+          return await this.executeNotifyOwner(action.config, context);
+        case "suggest_personalized_message":
+          return await this.executeSuggestPersonalizedMessage(action.config, context);
         default:
           return {
             type: action.type,
@@ -446,7 +461,10 @@ export class SJAutomationEngine {
       .replace(/\{\{profile_email\}\}/g, context.profileEmail || "")
       .replace(/\{\{course_name\}\}/g, context.courseName || "")
       .replace(/\{\{interests\}\}/g, (context.interests || []).join(", "))
-      .replace(/\{\{dropout_risk\}\}/g, context.dropoutRisk || "");
+      .replace(/\{\{dropout_risk\}\}/g, context.dropoutRisk || "")
+      .replace(/\{\{student_score\}\}/g, String(context.studentScore || 0))
+      .replace(/\{\{total_courses_completed\}\}/g, String(context.totalCoursesCompleted || 0))
+      .replace(/\{\{lifecycle_stage\}\}/g, context.lifecycleStage || "");
   }
 
   /**
@@ -474,6 +492,115 @@ export class SJAutomationEngine {
       status,
       executed_at: new Date().toISOString(),
     });
+  }
+
+  // ================================================================
+  // PHASE 4: New action implementations
+  // ================================================================
+
+  /**
+   * Update lifecycle stage
+   */
+  private async executeUpdateLifecycleStage(
+    config: Record<string, unknown>,
+    context: SJTriggerContext
+  ): Promise<SJActionResult> {
+    const newStage = config.newStage as string;
+
+    const { error } = await this.client
+      .from("sj_profiles")
+      .update({ lifecycle_stage: newStage })
+      .eq("id", context.profileId);
+
+    if (error) throw error;
+
+    return {
+      type: "update_lifecycle_stage",
+      success: true,
+      result: { newStage },
+    };
+  }
+
+  /**
+   * Update activation potential
+   */
+  private async executeUpdateActivationPotential(
+    config: Record<string, unknown>,
+    context: SJTriggerContext
+  ): Promise<SJActionResult> {
+    const newPotential = config.newPotential as string;
+
+    const { error } = await this.client
+      .from("sj_profiles")
+      .update({ activation_potential: newPotential })
+      .eq("id", context.profileId);
+
+    if (error) throw error;
+
+    return {
+      type: "update_activation_potential",
+      success: true,
+      result: { newPotential },
+    };
+  }
+
+  /**
+   * Notify owner (creates a notification/alert)
+   */
+  private async executeNotifyOwner(
+    config: Record<string, unknown>,
+    context: SJTriggerContext
+  ): Promise<SJActionResult> {
+    const title = this.replaceVariables(config.title as string, context);
+    const message = this.replaceVariables(config.message as string, context);
+
+    // Create an AI suggestion as notification (can be expanded to push notifications)
+    const { error } = await this.client.from("sj_ai_suggestions").insert({
+      workspace_id: this.workspaceId,
+      profile_id: context.profileId,
+      suggestion_type: "notification",
+      message: `${title}: ${message}`,
+      priority: "high",
+      status: "pending",
+    });
+
+    if (error) throw error;
+
+    return {
+      type: "notify_owner",
+      success: true,
+      result: { title, message },
+    };
+  }
+
+  /**
+   * Suggest personalized message
+   */
+  private async executeSuggestPersonalizedMessage(
+    config: Record<string, unknown>,
+    context: SJTriggerContext
+  ): Promise<SJActionResult> {
+    const messageType = config.messageType as string;
+    const channel = config.channel as string;
+    const template = config.template as string;
+
+    const { error } = await this.client.from("sj_ai_suggestions").insert({
+      workspace_id: this.workspaceId,
+      profile_id: context.profileId,
+      suggestion_type: "personalized_message",
+      message: `Sugestão de mensagem ${messageType} via ${channel}. Template: ${template}`,
+      priority: "medium",
+      status: "pending",
+      metadata: { messageType, channel, template },
+    });
+
+    if (error) throw error;
+
+    return {
+      type: "suggest_personalized_message",
+      success: true,
+      result: { messageType, channel, template },
+    };
   }
 }
 
