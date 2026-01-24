@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -34,19 +35,24 @@ import {
   Calendar,
   MessageSquare,
   ClipboardList,
-  Filter,
   X,
-  AlertTriangle,
+  TrendingUp,
+  Star,
+  Clock,
+  Filter,
 } from "lucide-react";
 import { useProfiles, useCourses } from "@/hooks/useStudentJourney";
+import { useJourneyTransitions } from "@/hooks/useJourneyTransitions";
 import {
   LIFECYCLE_STAGE_CONFIG,
   DROPOUT_RISK_CONFIG,
   LifecycleStage,
   DropoutRisk,
+  ActivationPotential,
 } from "@/types/studentJourney";
+import { JOURNEY_STATE_CONFIG, JourneyState } from "@/types/sjJourney";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, differenceInDays, parseISO } from "date-fns";
 import { pt } from "date-fns/locale";
 import { CreateProfileDialog } from "@/components/student-journey/CreateProfileDialog";
 import { ScheduleFollowUpDialog } from "@/components/student-journey/ScheduleFollowUpDialog";
@@ -55,6 +61,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 export default function SJProfiles() {
   const { profiles, isLoading, deleteProfile } = useProfiles();
+  const { journeyProfiles } = useJourneyTransitions();
   const { courses } = useCourses();
   const [searchParams] = useSearchParams();
 
@@ -65,64 +72,103 @@ export default function SJProfiles() {
   const [riskFilter, setRiskFilter] = useState<DropoutRisk | "all">(
     searchParams.get("risk") === "high" ? "high" : "all"
   );
+  const [potentialFilter, setPotentialFilter] = useState<ActivationPotential | "all">("all");
   const [interestFilter, setInterestFilter] = useState<string>("all");
-  const [hasFollowUpFilter, setHasFollowUpFilter] = useState<"all" | "with" | "without">("all");
+  const [timeFilter, setTimeFilter] = useState<string>("all");
+  const [hasFollowUpFilter, setHasFollowUpFilter] = useState<"all" | "with" | "without" | "overdue">("all");
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
-  // Get unique interests
+  // Get unique interests and specialties
   const allInterests = useMemo(() => {
     const interests = new Set<string>();
     profiles.forEach((p) => {
       if (p.primary_interest) interests.add(p.primary_interest);
+      if (p.primary_specialty) interests.add(p.primary_specialty);
       p.interests?.forEach((i) => interests.add(i));
     });
     return Array.from(interests).sort();
   }, [profiles]);
 
+  // Map profiles with journey data
+  const enrichedProfiles = useMemo(() => {
+    return profiles.map(profile => {
+      const journeyProfile = journeyProfiles.find(jp => jp.profile.id === profile.id);
+      return {
+        ...profile,
+        journeyState: journeyProfile?.currentState,
+        activationScore: journeyProfile?.activationScore || 0,
+        daysSinceCompletion: journeyProfile?.daysSinceLastCompletion,
+        completedCourses: journeyProfile?.completedEnrollments || 0,
+      };
+    });
+  }, [profiles, journeyProfiles]);
+
   const filteredProfiles = useMemo(() => {
-    return profiles.filter((p) => {
+    const now = new Date();
+    return enrichedProfiles.filter((p) => {
       const matchesSearch =
         p.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.phone?.includes(searchQuery);
       const matchesStage = stageFilter === "all" || p.lifecycle_stage === stageFilter;
       const matchesRisk = riskFilter === "all" || p.dropout_risk === riskFilter;
+      const matchesPotential = potentialFilter === "all" || p.activation_potential === potentialFilter;
       const matchesInterest =
         interestFilter === "all" ||
         p.primary_interest === interestFilter ||
+        p.primary_specialty === interestFilter ||
         p.interests?.includes(interestFilter);
-      const matchesFollowUp =
-        hasFollowUpFilter === "all" ||
-        (hasFollowUpFilter === "with" && p.next_follow_up_at) ||
-        (hasFollowUpFilter === "without" && !p.next_follow_up_at);
-      return matchesSearch && matchesStage && matchesRisk && matchesInterest && matchesFollowUp;
+      
+      // Time since last course filter
+      let matchesTime = true;
+      if (timeFilter !== "all" && p.last_course_completed_at) {
+        const daysSince = differenceInDays(now, parseISO(p.last_course_completed_at));
+        if (timeFilter === "30") matchesTime = daysSince <= 30;
+        else if (timeFilter === "90") matchesTime = daysSince <= 90;
+        else if (timeFilter === "180") matchesTime = daysSince <= 180;
+        else if (timeFilter === "180+") matchesTime = daysSince > 180;
+      } else if (timeFilter !== "all" && !p.last_course_completed_at) {
+        matchesTime = false;
+      }
+
+      // Follow-up filter
+      let matchesFollowUp = true;
+      if (hasFollowUpFilter === "with") matchesFollowUp = !!p.next_follow_up_at;
+      else if (hasFollowUpFilter === "without") matchesFollowUp = !p.next_follow_up_at;
+      else if (hasFollowUpFilter === "overdue" && p.next_follow_up_at) {
+        matchesFollowUp = parseISO(p.next_follow_up_at) < now;
+      } else if (hasFollowUpFilter === "overdue") {
+        matchesFollowUp = false;
+      }
+
+      return matchesSearch && matchesStage && matchesRisk && matchesPotential && 
+             matchesInterest && matchesTime && matchesFollowUp;
     });
-  }, [profiles, searchQuery, stageFilter, riskFilter, interestFilter, hasFollowUpFilter]);
+  }, [enrichedProfiles, searchQuery, stageFilter, riskFilter, potentialFilter, 
+      interestFilter, timeFilter, hasFollowUpFilter]);
 
   const stages: (LifecycleStage | "all")[] = [
-    "all",
-    "lead",
-    "prospect",
-    "enrolled",
-    "active",
-    "completed",
-    "inactive",
-    "churned",
+    "all", "lead", "new_student", "active_student", "completed_active",
+    "eligible_progression", "alumni", "inactive", "churned",
   ];
 
   const hasActiveFilters =
     stageFilter !== "all" ||
     riskFilter !== "all" ||
+    potentialFilter !== "all" ||
     interestFilter !== "all" ||
+    timeFilter !== "all" ||
     hasFollowUpFilter !== "all";
 
   const clearFilters = () => {
     setStageFilter("all");
     setRiskFilter("all");
+    setPotentialFilter("all");
     setInterestFilter("all");
+    setTimeFilter("all");
     setHasFollowUpFilter("all");
     setSearchQuery("");
   };
@@ -130,6 +176,18 @@ export default function SJProfiles() {
   const handleScheduleFollowUp = (profileId: string) => {
     setSelectedProfileId(profileId);
     setFollowUpDialogOpen(true);
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-emerald-600';
+    if (score >= 60) return 'text-amber-600';
+    return 'text-gray-500';
+  };
+
+  const getScoreBg = (score: number) => {
+    if (score >= 80) return 'bg-emerald-100 dark:bg-emerald-900/30';
+    if (score >= 60) return 'bg-amber-100 dark:bg-amber-900/30';
+    return 'bg-gray-100 dark:bg-gray-800/50';
   };
 
   return (
@@ -163,23 +221,38 @@ export default function SJProfiles() {
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Select value={riskFilter} onValueChange={(v) => setRiskFilter(v as DropoutRisk | "all")}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Risco" />
+            <Select value={potentialFilter} onValueChange={(v) => setPotentialFilter(v as ActivationPotential | "all")}>
+              <SelectTrigger className="w-[160px]">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Potencial" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os riscos</SelectItem>
-                <SelectItem value="low">Baixo</SelectItem>
-                <SelectItem value="medium">Médio</SelectItem>
+                <SelectItem value="all">Todo potencial</SelectItem>
                 <SelectItem value="high">Alto</SelectItem>
+                <SelectItem value="medium">Médio</SelectItem>
+                <SelectItem value="low">Baixo</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={timeFilter} onValueChange={setTimeFilter}>
+              <SelectTrigger className="w-[180px]">
+                <Clock className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Tempo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todo o tempo</SelectItem>
+                <SelectItem value="30">Última formação ≤30d</SelectItem>
+                <SelectItem value="90">Última formação ≤90d</SelectItem>
+                <SelectItem value="180">Última formação ≤180d</SelectItem>
+                <SelectItem value="180+">Última formação &gt;180d</SelectItem>
               </SelectContent>
             </Select>
             <Select value={interestFilter} onValueChange={setInterestFilter}>
               <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Interesse" />
+                <Star className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Especialidade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos interesses</SelectItem>
+                <SelectItem value="all">Todas áreas</SelectItem>
                 {allInterests.map((interest) => (
                   <SelectItem key={interest} value={interest}>
                     {interest}
@@ -187,14 +260,16 @@ export default function SJProfiles() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={hasFollowUpFilter} onValueChange={(v) => setHasFollowUpFilter(v as "all" | "with" | "without")}>
+            <Select value={hasFollowUpFilter} onValueChange={(v) => setHasFollowUpFilter(v as "all" | "with" | "without" | "overdue")}>
               <SelectTrigger className="w-[160px]">
+                <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Follow-up" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="with">Com follow-up</SelectItem>
                 <SelectItem value="without">Sem follow-up</SelectItem>
+                <SelectItem value="overdue">Atrasados</SelectItem>
               </SelectContent>
             </Select>
             {hasActiveFilters && (
@@ -216,7 +291,7 @@ export default function SJProfiles() {
               onClick={() => setStageFilter(stage)}
               className="whitespace-nowrap"
             >
-              {stage === "all" ? "Todos" : LIFECYCLE_STAGE_CONFIG[stage].label}
+              {stage === "all" ? "Todos" : LIFECYCLE_STAGE_CONFIG[stage]?.label || stage}
               {stage !== "all" && (
                 <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
                   {profiles.filter((p) => p.lifecycle_stage === stage).length}
@@ -234,10 +309,10 @@ export default function SJProfiles() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Etapa</TableHead>
-                <TableHead>Risco</TableHead>
-                <TableHead>Interesse</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Score</TableHead>
+                <TableHead>Cursos</TableHead>
+                <TableHead>Especialidade</TableHead>
                 <TableHead>Próximo Follow-up</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
@@ -258,7 +333,6 @@ export default function SJProfiles() {
               ) : (
                 filteredProfiles.map((profile) => {
                   const stageConfig = LIFECYCLE_STAGE_CONFIG[profile.lifecycle_stage];
-                  const riskConfig = DROPOUT_RISK_CONFIG[profile.dropout_risk];
                   return (
                     <TableRow key={profile.id}>
                       <TableCell className="font-medium">
@@ -279,34 +353,41 @@ export default function SJProfiles() {
                           </div>
                         </Link>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {profile.email || "-"}
-                      </TableCell>
                       <TableCell>
-                        <Badge className={cn(stageConfig.bgColor, stageConfig.color, "border-0")}>
-                          {stageConfig.label}
+                        <Badge className={cn(stageConfig?.bgColor, stageConfig?.color, "border-0")}>
+                          {stageConfig?.label || profile.lifecycle_stage}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          {profile.dropout_risk === "high" && (
-                            <AlertTriangle className="h-3 w-3 text-red-500" />
-                          )}
-                          <Badge className={cn(riskConfig.bgColor, riskConfig.color, "border-0")}>
-                            {riskConfig.label}
-                          </Badge>
+                        <div className={cn(
+                          "inline-flex px-2 py-1 rounded-md text-xs font-semibold",
+                          getScoreBg(profile.activationScore),
+                          getScoreColor(profile.activationScore)
+                        )}>
+                          {profile.activationScore}%
                         </div>
                       </TableCell>
                       <TableCell>
-                        {profile.primary_interest ? (
-                          <Badge variant="secondary">{profile.primary_interest}</Badge>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">{profile.completedCourses}</span>
+                          <span className="text-muted-foreground text-xs">completado(s)</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {profile.primary_specialty || profile.primary_interest ? (
+                          <Badge variant="secondary">
+                            {profile.primary_specialty || profile.primary_interest}
+                          </Badge>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell>
                         {profile.next_follow_up_at ? (
-                          <span className="text-sm">
+                          <span className={cn(
+                            "text-sm",
+                            parseISO(profile.next_follow_up_at) < new Date() && "text-red-600 font-medium"
+                          )}>
                             {format(new Date(profile.next_follow_up_at), "dd MMM, HH:mm", { locale: pt })}
                           </span>
                         ) : (
@@ -321,23 +402,29 @@ export default function SJProfiles() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
                             <DropdownMenuItem asChild>
                               <Link to={`/dashboard/student-journey/profiles/${profile.id}`}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 Ver Detalhe
                               </Link>
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleScheduleFollowUp(profile.id)}>
                               <Calendar className="h-4 w-4 mr-2" />
                               Marcar Follow-up
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <ClipboardList className="h-4 w-4 mr-2" />
-                              Criar Inscrição
+                              Nova Inscrição
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <MessageSquare className="h-4 w-4 mr-2" />
                               Gerar Mensagem IA
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Star className="h-4 w-4 mr-2" />
+                              Marcar Interesse
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
