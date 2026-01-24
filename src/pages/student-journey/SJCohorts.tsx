@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { pt } from "date-fns/locale";
 import { CreateCohortDialog } from "@/components/student-journey/CreateCohortDialog";
 
 export default function SJCohorts() {
+  const navigate = useNavigate();
   const { cohorts, isLoading, deleteCohort } = useCohorts();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CohortStatus | "all">("all");
@@ -73,7 +75,7 @@ export default function SJCohorts() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem><Eye className="h-4 w-4 mr-2" />Ver</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`/dashboard/student-journey/cohorts/${cohort.id}`)}><Eye className="h-4 w-4 mr-2" />Ver</DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive" onClick={() => confirm("Remover?") && deleteCohort.mutate(cohort.id)}><Trash2 className="h-4 w-4 mr-2" />Remover</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
