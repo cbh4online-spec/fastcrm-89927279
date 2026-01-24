@@ -712,6 +712,59 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     published_at: "2025-01-15T00:00:00Z"
   },
   {
+    id: "prospecting-pro",
+    slug: "prospecting-pro",
+    name: "Prospecção Profissional",
+    tagline: "Descobrir e qualificar profissionais",
+    description: "Descubra profissionais (médicos, dentistas, advogados) através de redes sociais e qualifique-os automaticamente com análise de perfil Instagram. Lead score inteligente baseado em engajamento e presença digital.",
+    category: "prospecting",
+    icon: "UserPlus",
+    target_audience: "Equipas B2B que vendem a profissionais liberais",
+    expected_results: [
+      "+500 leads qualificados/mês",
+      "Análise automática de perfis Instagram",
+      "Lead score inteligente",
+      "Conversão direta para CRM"
+    ],
+    use_cases: [
+      "Encontrar médicos/dentistas",
+      "Analisar perfis Instagram",
+      "Qualificar leads automaticamente",
+      "Converter para CRM"
+    ],
+    internal_type: "ai_service",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "leads", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "credits",
+      base_price: 79,
+      currency: "EUR",
+      credits_included: 500,
+      price_per_credit: 0.15,
+      trial_days: 7,
+      trial_credits: 50
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: undefined,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-01-21T00:00:00Z",
+    updated_at: "2025-01-21T00:00:00Z",
+    published_at: "2025-01-21T00:00:00Z"
+  },
+  {
     id: "credit-intermediation",
     slug: "credit-intermediation",
     name: "Intermediação de Crédito",
