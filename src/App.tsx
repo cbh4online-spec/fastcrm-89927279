@@ -80,6 +80,7 @@ import {
   SJProfileDetail,
   SJCourses,
   SJCohorts,
+  SJCohortDetail,
 } from "./pages/student-journey";
 import { SJLayout } from "./components/student-journey";
 import {
@@ -202,6 +203,7 @@ const App = () => (
                       <Route path="/dashboard/student-journey/profiles/:id" element={<SJLayout><SJProfileDetail /></SJLayout>} />
                       <Route path="/dashboard/student-journey/courses" element={<SJLayout><SJCourses /></SJLayout>} />
                       <Route path="/dashboard/student-journey/cohorts" element={<SJLayout><SJCohorts /></SJLayout>} />
+                      <Route path="/dashboard/student-journey/cohorts/:id" element={<SJLayout><SJCohortDetail /></SJLayout>} />
                       
                       <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                       <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
