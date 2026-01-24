@@ -22,45 +22,27 @@ interface SJSidebarProps {
 const menuItems = [
   {
     id: "dashboard",
-    label: "Dashboard",
+    label: "Painel",
     icon: LayoutDashboard,
     path: "/dashboard/student-journey",
   },
   {
-    id: "students",
-    label: "Alunos",
+    id: "profiles",
+    label: "Perfis",
     icon: Users,
-    path: "/dashboard/student-journey/students",
+    path: "/dashboard/student-journey/profiles",
+  },
+  {
+    id: "courses",
+    label: "Cursos",
+    icon: GraduationCap,
+    path: "/dashboard/student-journey/courses",
   },
   {
     id: "cohorts",
     label: "Turmas",
-    icon: GraduationCap,
-    path: "/dashboard/student-journey/cohorts",
-  },
-  {
-    id: "enrollments",
-    label: "Inscrições",
     icon: ClipboardList,
-    path: "/dashboard/student-journey/enrollments",
-  },
-  {
-    id: "tasks",
-    label: "Tarefas",
-    icon: Calendar,
-    path: "/dashboard/student-journey/tasks",
-  },
-  {
-    id: "import",
-    label: "Importação",
-    icon: FileUp,
-    path: "/dashboard/student-journey/import",
-  },
-  {
-    id: "settings",
-    label: "Definições",
-    icon: Settings,
-    path: "/dashboard/student-journey/settings",
+    path: "/dashboard/student-journey/cohorts",
   },
 ];
 

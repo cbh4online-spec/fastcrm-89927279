@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -14,17 +15,27 @@ import {
   CalendarClock,
   UserCheck,
   Percent,
+  Plus,
+  MessageSquare,
+  Sparkles,
+  Phone,
 } from "lucide-react";
 import { useSJDashboardMetrics, useProfiles } from "@/hooks/useStudentJourney";
 import { LIFECYCLE_STAGE_CONFIG, LifecycleStage, DROPOUT_RISK_CONFIG } from "@/types/studentJourney";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow, parseISO } from "date-fns";
 import { pt } from "date-fns/locale";
+import { CreateProfileDialog } from "@/components/student-journey/CreateProfileDialog";
+import { ImportProfilesDialog } from "@/components/student-journey/ImportProfilesDialog";
+import { SJCopilotDrawer } from "@/components/student-journey/SJCopilotDrawer";
 
 export default function SJDashboard() {
+  const navigate = useNavigate();
   const { data: metrics, isLoading } = useSJDashboardMetrics();
   const { profiles } = useProfiles();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
 
   // Calculate conversion rate
   const totalLeadsProspects = (metrics?.lifecycleBreakdown?.lead || 0) + (metrics?.lifecycleBreakdown?.prospect || 0);
@@ -61,16 +72,50 @@ export default function SJDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Quick Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard Student Journey</h1>
-          <p className="text-muted-foreground">Visão geral da jornada de formação</p>
+          <h1 className="text-2xl font-bold text-foreground">Painel Student Journey</h1>
+          <p className="text-muted-foreground">Visão operacional da jornada de formação</p>
         </div>
-        <Link to="/dashboard/student-journey/profiles">
-          <Button variant="outline" className="gap-2">
-            Ver Perfis <ArrowUpRight className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+          <ImportProfilesDialog />
+          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Perfil
           </Button>
-        </Link>
+        </div>
+      </div>
+
+      {/* Quick Action Buttons */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => navigate("/dashboard/student-journey/profiles?risk=high")}
+        >
+          <AlertTriangle className="h-4 w-4 text-red-500" />
+          Ver em Risco ({metrics?.highRiskCount || 0})
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => navigate("/dashboard/student-journey/profiles?stage=lead")}
+        >
+          <Users className="h-4 w-4 text-blue-500" />
+          Leads ({metrics?.lifecycleBreakdown?.lead || 0})
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border-purple-500/30"
+          onClick={() => setCopilotOpen(true)}
+        >
+          <Sparkles className="h-4 w-4 text-purple-600" />
+          Diagnóstico IA
+        </Button>
       </div>
 
       {/* KPIs */}
@@ -259,6 +304,10 @@ export default function SJDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialogs */}
+      <CreateProfileDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      <SJCopilotDrawer open={copilotOpen} onOpenChange={setCopilotOpen} />
     </div>
   );
 }
