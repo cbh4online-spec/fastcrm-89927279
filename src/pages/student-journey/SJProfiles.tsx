@@ -50,6 +50,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { CreateProfileDialog } from "@/components/student-journey/CreateProfileDialog";
 import { ScheduleFollowUpDialog } from "@/components/student-journey/ScheduleFollowUpDialog";
+import { ImportProfilesDialog } from "@/components/student-journey/ImportProfilesDialog";
 import { Link, useSearchParams } from "react-router-dom";
 
 export default function SJProfiles() {
@@ -140,10 +141,13 @@ export default function SJProfiles() {
             {filteredProfiles.length} de {profiles.length} perfis
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
-          <UserPlus className="h-4 w-4" />
-          Novo Perfil
-        </Button>
+        <div className="flex items-center gap-2">
+          <ImportProfilesDialog />
+          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+            <UserPlus className="h-4 w-4" />
+            Novo Perfil
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}

@@ -72,7 +72,15 @@ import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
 import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
 
-// SEO Pages
+// Student Journey Pages
+import {
+  SJDashboard,
+  SJProfiles,
+  SJProfileDetail,
+  SJCourses,
+  SJCohorts,
+} from "./pages/student-journey";
+import { SJLayout } from "./components/student-journey";
 import {
   KeywordsListPage,
   KeywordDetailPage,
@@ -185,6 +193,14 @@ const App = () => (
                       <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
                       <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
                       <Route path="/dashboard/credit" element={<CreditIntermediation />} />
+                      
+                      {/* Student Journey Module Routes */}
+                      <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
+                      <Route path="/dashboard/student-journey/profiles" element={<SJLayout><SJProfiles /></SJLayout>} />
+                      <Route path="/dashboard/student-journey/profiles/:id" element={<SJLayout><SJProfileDetail /></SJLayout>} />
+                      <Route path="/dashboard/student-journey/courses" element={<SJLayout><SJCourses /></SJLayout>} />
+                      <Route path="/dashboard/student-journey/cohorts" element={<SJLayout><SJCohorts /></SJLayout>} />
+                      
                       <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                       <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
                       <Route path="/product/:slug" element={<PublicProductSheet />} />
