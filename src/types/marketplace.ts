@@ -16,7 +16,8 @@ export type ModuleCategory =
   | "communication"    // Comunicação
   | "automation"       // Automação
   | "ai"               // Inteligência Artificial
-  | "integrations";    // Integrações
+  | "integrations"     // Integrações
+  | "education";       // Educação
 
 // Internal implementation types (NEVER shown to customer)
 export type ModuleInternalType = 
@@ -295,6 +296,13 @@ export const CATEGORY_INFO: Record<ModuleCategory, CategoryInfo> = {
     description: "Conectar com outros sistemas",
     icon: "Plug",
     color: "text-slate-500"
+  },
+  education: {
+    id: "education",
+    name: "Educação",
+    description: "Gestão educacional e jornada do aluno",
+    icon: "GraduationCap",
+    color: "text-teal-500"
   }
 };
 
@@ -756,5 +764,59 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2025-01-21T00:00:00Z",
     updated_at: "2025-01-21T00:00:00Z",
     published_at: "2025-01-21T00:00:00Z"
+  },
+  {
+    id: "student-journey",
+    slug: "student-journey",
+    name: "Student Journey",
+    tagline: "Gestão completa do ciclo de vida do aluno",
+    description: "Módulo vertical para instituições de ensino. Acompanhe leads educacionais desde o primeiro contacto até à conclusão do curso, com gestão de inscrições, turmas, pagamentos e comunicação automatizada.",
+    category: "education",
+    icon: "GraduationCap",
+    cover_image: "/modules/student-journey-cover.png",
+    target_audience: "Escolas, centros de formação, universidades e academias",
+    expected_results: [
+      "Visão 360º do aluno em tempo real",
+      "Redução de 50% no churn de alunos",
+      "Automação do funil de captação",
+      "Diagnóstico de risco com IA"
+    ],
+    use_cases: [
+      "Gerir candidaturas e inscrições",
+      "Acompanhar progresso e assiduidade",
+      "Identificar alunos em risco de abandono",
+      "Automatizar comunicações por etapa",
+      "Converter leads em alunos matriculados"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "leads", read: true, write: true, delete: false },
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "opportunities", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: true,
+      can_send_whatsapp: true,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 99,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.8,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-01-24T00:00:00Z",
+    updated_at: "2025-01-24T00:00:00Z",
+    published_at: "2025-01-24T00:00:00Z"
   }
 ];

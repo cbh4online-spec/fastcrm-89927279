@@ -65,6 +65,7 @@ export default function Marketplace() {
       automation: 0,
       ai: 0,
       integrations: 0,
+      education: 0,
     };
 
     SAMPLE_MODULES.forEach(m => {
