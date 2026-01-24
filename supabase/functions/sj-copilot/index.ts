@@ -127,9 +127,19 @@ serve(async (req) => {
 
     // Build system prompt based on action
     let systemPrompt = `És o Student Journey Copilot, um assistente de IA especializado em gestão de formação e jornadas de alunos.
+
+REGRAS CRÍTICAS (OBRIGATÓRIAS):
+1. NUNCA INVENTES DADOS - usa APENAS informação presente no contexto fornecido
+2. Se faltar informação essencial, PEDE EXPLICITAMENTE os campos em falta (nome do campo + tipo de dado esperado)
+3. TODAS as respostas DEVEM incluir obrigatoriamente:
+   a) **Situação Atual**: Estado factual baseado nos dados
+   b) **Risco**: Nível (low/medium/high) com justificação baseada em dados concretos
+   c) **Próxima Ação Recomendada**: 1 ação específica, prioritária e acionável
+
 Responde sempre em Português de Portugal (PT-PT) com tom profissional e empresarial.
 Sê conciso mas completo nas tuas análises.
 Foca-te em ações práticas e recomendações acionáveis.
+Quando não tiveres dados suficientes, indica claramente: "Dados insuficientes para [X]. Necessito de: [lista de campos]."
 
 Estágios do ciclo de vida:
 - lead: Primeiro contacto, ainda não qualificado
@@ -141,67 +151,83 @@ Estágios do ciclo de vida:
 - inactive: Sem atividade recente
 - churned: Abandonou/desistiu
 
-Níveis de risco de desistência:
-- low: Atividade regular, sem sinais de alerta
-- medium: Alguma inatividade ou sinais de desinteresse
-- high: Risco elevado de abandono, ação urgente necessária`;
+Níveis de risco de desistência (usa APENAS dados reais para classificar):
+- low: Atividade nos últimos 3 dias, touchpoints recentes, status ativo
+- medium: Sem atividade 4-7 dias, poucos touchpoints, sinais de desinteresse
+- high: Sem atividade >7 dias, sem resposta a follow-ups, status problemático`;
 
     let userPrompt = "";
 
     switch (action) {
       case "diagnose":
-        systemPrompt += `\n\nA tua tarefa é fazer um diagnóstico completo do perfil do aluno e identificar:
-1. Estado atual e progresso no ciclo de vida
-2. Riscos identificados (baseado em atividade, touchpoints, status)
-3. Oportunidades de conversão ou upsell
-4. Próximos passos recomendados (1-3 ações concretas)`;
+        systemPrompt += `\n\nA tua tarefa é fazer um diagnóstico completo do perfil do aluno.
+ATENÇÃO: Analisa APENAS os dados fornecidos. NÃO assumes valores.`;
 
-        userPrompt = `Analisa o seguinte perfil de aluno e fornece um diagnóstico completo:
+        userPrompt = `Analisa o seguinte perfil de aluno:
 
 ${JSON.stringify(contextData, null, 2)}
 
-Estrutura a tua resposta em:
-1. **Resumo do Estado**: Uma frase sobre o estado atual
-2. **Diagnóstico de Conversão**: O que falta para avançar para o próximo estágio
-3. **Análise de Risco**: Nível de risco e fatores identificados
-4. **Recomendações**: 1-3 ações concretas e prioritárias
-5. **Mensagem Sugerida**: Uma mensagem curta para contactar o aluno (se aplicável)`;
+RESPONDE OBRIGATORIAMENTE com esta estrutura:
+
+## Situação Atual
+[Descreve o estado atual baseado APENAS nos dados - stage, score, última atividade]
+
+## Risco
+[Nível: low/medium/high]
+[Justificação com dados concretos: dias sem atividade, nº de touchpoints, status das inscrições]
+
+## Próxima Ação Recomendada
+[1 ação específica e acionável - ex: "Ligar ao aluno para confirmar interesse na turma X"]
+
+## Dados em Falta (se aplicável)
+[Lista campos necessários para melhor análise]`;
         break;
 
       case "validate":
-        systemPrompt += `\n\nA tua tarefa é validar se um perfil de aluno está pronto para inscrição, verificando:
-1. Dados de contacto completos
-2. Interesses definidos
-3. Histórico de interações
-4. Qualquer bloqueio ou problema`;
+        systemPrompt += `\n\nA tua tarefa é validar se um perfil de aluno está pronto para inscrição.
+Verifica: dados de contacto, interesses definidos, histórico de interações.`;
 
-        userPrompt = `Valida o seguinte perfil para inscrição numa formação:
+        userPrompt = `Valida o seguinte perfil para inscrição:
 
 ${JSON.stringify(contextData, null, 2)}
 
-Indica:
-1. **Estado de Validação**: Aprovado/Pendente/Rejeitado
-2. **Campos em Falta**: Lista de informações necessárias
-3. **Recomendações**: Passos para completar a validação`;
+RESPONDE OBRIGATORIAMENTE com esta estrutura:
+
+## Situação Atual
+[Estado de validação: Aprovado/Pendente/Rejeitado + resumo dos dados disponíveis]
+
+## Risco
+[Risco de a inscrição falhar ou ter problemas - low/medium/high com justificação]
+
+## Próxima Ação Recomendada
+[1 passo concreto para completar ou avançar a validação]
+
+## Campos em Falta
+[Lista ESPECÍFICA: nome do campo + tipo de dado esperado]`;
         break;
 
       case "analyze_churn":
-        systemPrompt += `\n\nA tua tarefa é analisar o risco de desistência (churn) do aluno:
-1. Avaliar padrões de atividade
-2. Identificar sinais de alerta
-3. Comparar com perfis similares
-4. Sugerir ações de retenção`;
+        systemPrompt += `\n\nA tua tarefa é analisar o risco de desistência (churn) do aluno.
+Usa APENAS métricas presentes nos dados: last_activity_at, touchpoints, enrollment status.`;
 
-        userPrompt = `Analisa o risco de desistência do seguinte aluno:
+        userPrompt = `Analisa o risco de desistência:
 
 ${JSON.stringify(contextData, null, 2)}
 
-Estrutura a tua resposta em:
-1. **Nível de Risco**: low/medium/high com justificação
-2. **Fatores de Risco**: Lista de sinais identificados
-3. **Probabilidade de Retenção**: Estimativa em percentagem
-4. **Plano de Retenção**: 2-3 ações urgentes para evitar desistência
-5. **Mensagem de Reengajamento**: Texto pronto para enviar`;
+RESPONDE OBRIGATORIAMENTE com esta estrutura:
+
+## Situação Atual
+[Estado factual: última atividade há X dias, Y touchpoints, Z inscrições ativas/completas]
+
+## Risco
+[Nível: low/medium/high]
+[Fatores identificados nos dados - NÃO inventes padrões]
+
+## Próxima Ação Recomendada
+[1 ação urgente de retenção com prazo sugerido]
+
+## Mensagem de Reengajamento (opcional)
+[Apenas se houver dados suficientes para personalizar]`;
         break;
 
       case "normalize_interests":
@@ -275,7 +301,12 @@ ${JSON.stringify(contextData, null, 2)}
 
 Pergunta do utilizador: ${userMessage || "Olá, preciso de ajuda com este aluno."}
 
-Responde de forma útil e acionável.`;
+LEMBRA-TE: A tua resposta DEVE incluir sempre:
+1. **Situação Atual** - baseada nos dados fornecidos
+2. **Risco** - nível e justificação
+3. **Próxima Ação Recomendada** - 1 passo concreto
+
+Se não tiveres dados suficientes, indica explicitamente o que precisas.`;
         break;
     }
 
