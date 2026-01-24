@@ -4,7 +4,7 @@
 // LIFECYCLE & STATUS ENUMS
 // ============================================
 
-export type LifecycleStage = 'lead' | 'prospect' | 'enrolled' | 'active' | 'completed' | 'inactive' | 'churned';
+export type LifecycleStage = 'lead' | 'new_student' | 'active_student' | 'completed_active' | 'eligible_progression' | 'inactive' | 'churned' | 'alumni' | 'prospect' | 'enrolled' | 'active' | 'completed';
 
 export type DropoutRisk = 'low' | 'medium' | 'high';
 
@@ -24,7 +24,11 @@ export type EnrollmentSource = 'manual' | 'import' | 'checkout';
 
 export type TouchpointType = 'call' | 'whatsapp' | 'email' | 'meeting' | 'note' | 'task' | 'automation' | 'import';
 
-export type TouchpointOutcome = 'no_answer' | 'interested' | 'needs_follow_up' | 'enrolled' | 'completed' | 'churn_risk';
+export type TouchpointOutcome = 'interested' | 'neutral' | 'follow_up_needed' | 'progression_interest' | 'no_interest' | 'no_answer' | 'needs_follow_up' | 'enrolled' | 'completed' | 'churn_risk';
+
+export type ActivationPotential = 'low' | 'medium' | 'high';
+
+export type ClinicalRiskLevel = 'low' | 'medium' | 'high';
 
 export type TaskStatus = 'open' | 'done' | 'canceled';
 
@@ -56,6 +60,12 @@ export const LIFECYCLE_STAGE_CONFIG: Record<LifecycleStage, {
     bgColor: 'bg-cyan-100 dark:bg-cyan-900/30',
     icon: 'Target'
   },
+  new_student: {
+    label: 'Novo Aluno',
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-100 dark:bg-indigo-900/30',
+    icon: 'UserCheck'
+  },
   enrolled: {
     label: 'Inscrito',
     color: 'text-purple-600',
@@ -68,11 +78,35 @@ export const LIFECYCLE_STAGE_CONFIG: Record<LifecycleStage, {
     bgColor: 'bg-green-100 dark:bg-green-900/30',
     icon: 'Play'
   },
+  active_student: {
+    label: 'Aluno Ativo',
+    color: 'text-green-600',
+    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    icon: 'BookOpen'
+  },
   completed: {
     label: 'Concluído',
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
     icon: 'GraduationCap'
+  },
+  completed_active: {
+    label: 'Concluído Ativo',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
+    icon: 'Award'
+  },
+  eligible_progression: {
+    label: 'Elegível Progressão',
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+    icon: 'TrendingUp'
+  },
+  alumni: {
+    label: 'Alumni',
+    color: 'text-violet-600',
+    bgColor: 'bg-violet-100 dark:bg-violet-900/30',
+    icon: 'Crown'
   },
   inactive: {
     label: 'Inativo',
@@ -152,9 +186,28 @@ export interface SJProfile {
   owner_user_id: string | null;
   created_at: string;
   updated_at: string;
+  // New Growth Engine fields
+  primary_specialty: string | null;
+  specialties_progress: Record<string, unknown>;
+  total_courses_completed: number;
+  last_course_completed_at: string | null;
+  activation_potential: ActivationPotential;
+  next_best_action: string | null;
   // Joined data
   contact?: { id: string; name: string; email: string | null };
   enrollments_count?: number;
+}
+
+// Specialty (área de formação)
+export interface SJSpecialty {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string | null;
+  clinical_risk_level: ClinicalRiskLevel;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SJInterestTaxonomy {
