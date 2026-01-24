@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Sparkles, RefreshCw, Upload } from "lucide-react";
+import { Plus, Sparkles, RefreshCw } from "lucide-react";
 import { useProfiles } from "@/hooks/useStudentJourney";
 import { useJourneyTransitions } from "@/hooks/useJourneyTransitions";
-import { JourneyKPIs, ActionableList, WeeklyContacts } from "@/components/student-journey/dashboard";
+import { 
+  JourneyKPIs, 
+  ActionableList, 
+  WeeklyContacts, 
+  SuccessMetrics,
+  QuickActionsPanel,
+} from "@/components/student-journey/dashboard";
 import { JourneyFunnel } from "@/components/student-journey/journey";
 import { CreateProfileDialog } from "@/components/student-journey/CreateProfileDialog";
 import { ImportProfilesDialog } from "@/components/student-journey/ImportProfilesDialog";
@@ -100,13 +106,17 @@ export default function SJDashboard() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Funnel */}
-        <div className="lg:col-span-1">
+        {/* Left: Quick Actions */}
+        <div className="lg:col-span-1 space-y-6">
+          <QuickActionsPanel />
           <JourneyFunnel stats={funnelStats} />
         </div>
 
         {/* Right: Action Lists */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Success Metrics */}
+          <SuccessMetrics />
+
           {/* Weekly Contacts */}
           <WeeklyContacts profiles={profiles} maxItems={5} />
 
