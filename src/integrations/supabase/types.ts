@@ -13122,6 +13122,7 @@ export type Database = {
           provider: string
           provider_course_id: string | null
           settings: Json | null
+          specialty_id: string | null
           start_date: string | null
           tags: Json | null
           updated_at: string | null
@@ -13140,6 +13141,7 @@ export type Database = {
           provider?: string
           provider_course_id?: string | null
           settings?: Json | null
+          specialty_id?: string | null
           start_date?: string | null
           tags?: Json | null
           updated_at?: string | null
@@ -13158,12 +13160,20 @@ export type Database = {
           provider?: string
           provider_course_id?: string | null
           settings?: Json | null
+          specialty_id?: string | null
           start_date?: string | null
           tags?: Json | null
           updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sj_courses_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "sj_specialties"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sj_courses_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -13405,6 +13415,7 @@ export type Database = {
       }
       sj_profiles: {
         Row: {
+          activation_potential: string | null
           contact_id: string | null
           created_at: string | null
           dropout_risk: string | null
@@ -13415,17 +13426,23 @@ export type Database = {
           id: string
           interests: Json | null
           last_activity_at: string | null
+          last_course_completed_at: string | null
           lifecycle_stage: string
+          next_best_action: string | null
           next_follow_up_at: string | null
           owner_user_id: string | null
           phone: string | null
           preferred_channel: string | null
           primary_interest: string | null
+          primary_specialty: string | null
+          specialties_progress: Json | null
           student_score: number | null
+          total_courses_completed: number | null
           updated_at: string | null
           workspace_id: string
         }
         Insert: {
+          activation_potential?: string | null
           contact_id?: string | null
           created_at?: string | null
           dropout_risk?: string | null
@@ -13436,17 +13453,23 @@ export type Database = {
           id?: string
           interests?: Json | null
           last_activity_at?: string | null
+          last_course_completed_at?: string | null
           lifecycle_stage?: string
+          next_best_action?: string | null
           next_follow_up_at?: string | null
           owner_user_id?: string | null
           phone?: string | null
           preferred_channel?: string | null
           primary_interest?: string | null
+          primary_specialty?: string | null
+          specialties_progress?: Json | null
           student_score?: number | null
+          total_courses_completed?: number | null
           updated_at?: string | null
           workspace_id: string
         }
         Update: {
+          activation_potential?: string | null
           contact_id?: string | null
           created_at?: string | null
           dropout_risk?: string | null
@@ -13457,13 +13480,18 @@ export type Database = {
           id?: string
           interests?: Json | null
           last_activity_at?: string | null
+          last_course_completed_at?: string | null
           lifecycle_stage?: string
+          next_best_action?: string | null
           next_follow_up_at?: string | null
           owner_user_id?: string | null
           phone?: string | null
           preferred_channel?: string | null
           primary_interest?: string | null
+          primary_specialty?: string | null
+          specialties_progress?: Json | null
           student_score?: number | null
+          total_courses_completed?: number | null
           updated_at?: string | null
           workspace_id?: string
         }
@@ -13477,6 +13505,47 @@ export type Database = {
           },
           {
             foreignKeyName: "sj_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sj_specialties: {
+        Row: {
+          clinical_risk_level: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          clinical_risk_level?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          clinical_risk_level?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_specialties_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

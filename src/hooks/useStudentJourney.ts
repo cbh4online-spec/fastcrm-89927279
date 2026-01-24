@@ -77,7 +77,13 @@ export function useProfiles() {
 
   const updateProfile = useMutation({
     mutationFn: async ({ id, ...data }: Partial<SJProfile> & { id: string }) => {
-      const { contact, enrollments_count, ...updateData } = data;
+      // Remove fields that shouldn't be sent to the database
+      const { contact, enrollments_count, specialties_progress, ...rest } = data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateData: any = { ...rest };
+      if (specialties_progress !== undefined) {
+        updateData.specialties_progress = specialties_progress;
+      }
       const { data: profile, error } = await supabase
         .from("sj_profiles")
         .update(updateData)
@@ -697,9 +703,14 @@ export function useSJDashboardMetrics() {
           lifecycleBreakdown: {
             lead: 0,
             prospect: 0,
+            new_student: 0,
             enrolled: 0,
             active: 0,
+            active_student: 0,
             completed: 0,
+            completed_active: 0,
+            eligible_progression: 0,
+            alumni: 0,
             inactive: 0,
             churned: 0,
           },
@@ -734,9 +745,14 @@ export function useSJDashboardMetrics() {
       const lifecycleBreakdown: Record<string, number> = {
         lead: 0,
         prospect: 0,
+        new_student: 0,
         enrolled: 0,
         active: 0,
+        active_student: 0,
         completed: 0,
+        completed_active: 0,
+        eligible_progression: 0,
+        alumni: 0,
         inactive: 0,
         churned: 0,
       };
