@@ -167,6 +167,7 @@ const navigationGroups: NavGroup[] = [
     tooltip: "Gestão de relacionamentos",
     items: [
       { name: "Leads", href: "/dashboard/leads", icon: Target, tooltip: "Potenciais clientes" },
+      { name: "Lead Enricher", href: "/dashboard/lead-enricher", icon: Sparkles, tooltip: "Enriquecer leads com IA", highlight: true, moduleSlug: "lead-enricher" },
       { name: "Prospecção Pro", href: "/dashboard/prospecting/professionals", icon: UserPlus, tooltip: "Descobrir profissionais (Beta)", highlight: true, moduleSlug: "prospecting-pro" },
       { name: "Contactos", href: "/dashboard/contacts", icon: UsersRound, tooltip: "Pessoas" },
       { name: "Empresas", href: "/dashboard/companies", icon: Building2, tooltip: "Organizações" },
@@ -236,6 +237,20 @@ const navigationGroups: NavGroup[] = [
     moduleSlug: "credit-intermediation",
     items: [
       { name: "Dashboard Crédito", href: "/dashboard/credit", icon: Landmark, tooltip: "Gestão de propostas de crédito", moduleSlug: "credit-intermediation" },
+    ],
+  },
+  // STUDENT JOURNEY (Module-gated)
+  {
+    name: "Student Journey",
+    icon: UsersRound,
+    tooltip: "Gestão do ciclo de vida do aluno",
+    highlight: true,
+    moduleSlug: "student-journey",
+    items: [
+      { name: "Painel", href: "/dashboard/student-journey", icon: LayoutDashboard, tooltip: "Dashboard educacional", moduleSlug: "student-journey" },
+      { name: "Perfis", href: "/dashboard/student-journey/profiles", icon: UsersRound, tooltip: "Perfis de alunos", moduleSlug: "student-journey" },
+      { name: "Cursos", href: "/dashboard/student-journey/courses", icon: FolderOpen, tooltip: "Gestão de cursos", moduleSlug: "student-journey" },
+      { name: "Turmas", href: "/dashboard/student-journey/cohorts", icon: Users, tooltip: "Gestão de turmas", moduleSlug: "student-journey" },
     ],
   },
 ];
