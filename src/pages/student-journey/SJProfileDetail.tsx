@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ import {
   useTouchpoints,
   useSJTasks,
 } from "@/hooks/useStudentJourney";
+import { useJourneyTransitions } from "@/hooks/useJourneyTransitions";
 import {
   LIFECYCLE_STAGE_CONFIG,
   DROPOUT_RISK_CONFIG,
@@ -49,6 +50,7 @@ import { ScheduleFollowUpDialog } from "@/components/student-journey/ScheduleFol
 import { LinkContactDialog } from "@/components/student-journey/LinkContactDialog";
 import { CreateOpportunityDialog } from "@/components/student-journey/CreateOpportunityDialog";
 import { SJCopilotDrawer } from "@/components/student-journey/SJCopilotDrawer";
+import { NextBestActionCard, JourneyProgressCard } from "@/components/student-journey/profile";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SJEnrollment } from "@/types/studentJourney";
 
@@ -59,6 +61,13 @@ export default function SJProfileDetail() {
   const { enrollments } = useEnrollments({ profileId: id });
   const { touchpoints } = useTouchpoints(id);
   const { tasks } = useSJTasks({ profileId: id });
+  const { journeyProfiles } = useJourneyTransitions();
+
+  // Find this profile's journey data
+  const journeyProfile = useMemo(() => 
+    journeyProfiles.find(jp => jp.profile.id === id),
+    [journeyProfiles, id]
+  );
 
   const [enrollmentDialogOpen, setEnrollmentDialogOpen] = useState(false);
   const [touchpointDialogOpen, setTouchpointDialogOpen] = useState(false);
@@ -148,6 +157,14 @@ export default function SJProfileDetail() {
         </div>
       </div>
 
+      {/* Next Best Action - Highlighted */}
+      <NextBestActionCard 
+        journeyProfile={journeyProfile}
+        onScheduleFollowUp={() => setFollowUpDialogOpen(true)}
+        onCreateEnrollment={() => setEnrollmentDialogOpen(true)}
+        onOpenCopilot={() => setCopilotDrawerOpen(true)}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Profile Info */}
         <div className="space-y-6">
@@ -235,6 +252,9 @@ export default function SJProfileDetail() {
             </CardContent>
           </Card>
 
+          {/* Journey Progress Card */}
+          <JourneyProgressCard journeyProfile={journeyProfile} />
+
           {/* Status Info */}
           <Card>
             <CardHeader className="pb-3">
@@ -256,14 +276,6 @@ export default function SJProfileDetail() {
                   <span className="text-sm text-muted-foreground">Próximo Follow-up</span>
                   <span className="text-sm">
                     {format(new Date(profile.next_follow_up_at), "dd MMM, HH:mm", { locale: pt })}
-                  </span>
-                </div>
-              )}
-              {profile.last_activity_at && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Última Atividade</span>
-                  <span className="text-sm">
-                    {format(new Date(profile.last_activity_at), "dd MMM yyyy", { locale: pt })}
                   </span>
                 </div>
               )}
