@@ -13,6 +13,8 @@ import {
   Bot,
   ChevronLeft,
   Sparkles,
+  Zap,
+  TrendingUp,
 } from "lucide-react";
 
 interface SJSidebarProps {
@@ -25,6 +27,13 @@ const menuItems = [
     label: "Painel",
     icon: LayoutDashboard,
     path: "/dashboard/student-journey",
+  },
+  {
+    id: "activation",
+    label: "Ativação",
+    icon: Zap,
+    path: "/dashboard/student-journey/activation",
+    highlight: true,
   },
   {
     id: "profiles",

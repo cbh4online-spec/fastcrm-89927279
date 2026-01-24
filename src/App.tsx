@@ -76,6 +76,7 @@ import LeadEnricher from "./pages/LeadEnricher";
 // Student Journey Pages
 import {
   SJDashboard,
+  SJActivationDashboard,
   SJProfiles,
   SJProfileDetail,
   SJCourses,
@@ -199,6 +200,7 @@ const App = () => (
                       
                       {/* Student Journey Module Routes */}
                       <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
+                      <Route path="/dashboard/student-journey/activation" element={<SJLayout><SJActivationDashboard /></SJLayout>} />
                       <Route path="/dashboard/student-journey/profiles" element={<SJLayout><SJProfiles /></SJLayout>} />
                       <Route path="/dashboard/student-journey/profiles/:id" element={<SJLayout><SJProfileDetail /></SJLayout>} />
                       <Route path="/dashboard/student-journey/courses" element={<SJLayout><SJCourses /></SJLayout>} />
