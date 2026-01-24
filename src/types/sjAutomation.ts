@@ -34,7 +34,9 @@ export type SJActionType =
   | "update_lifecycle_stage"
   | "update_activation_potential"
   | "notify_owner"
-  | "suggest_personalized_message";
+  | "suggest_personalized_message"
+  // Recommendation engine actions
+  | "recalculate_recommendations";
 
 // Condition operators
 export type SJConditionOperator =
@@ -105,6 +107,8 @@ export const SJ_ACTION_LABELS: Record<SJActionType, string> = {
   update_activation_potential: "Atualizar potencial de ativação",
   notify_owner: "Notificar responsável",
   suggest_personalized_message: "Sugerir mensagem personalizada",
+  // Recommendation engine
+  recalculate_recommendations: "Recalcular recomendações",
 };
 
 export const SJ_STAGE_VALUES = [
@@ -353,6 +357,13 @@ export const DEFAULT_SJ_AUTOMATIONS: Omit<
           message:
             "Preparar proposta personalizada com base no perfil e formações anteriores. Aguardar período de reflexão antes de contactar.",
           priority: "low",
+        },
+      },
+      {
+        type: "recalculate_recommendations",
+        config: {
+          delayDays: 7, // Recalcular recomendações após 7 dias
+          priority: "high",
         },
       },
     ],
@@ -685,6 +696,8 @@ export function getSJActionIcon(action: SJActionType): string {
     update_activation_potential: "Gauge",
     notify_owner: "BellRing",
     suggest_personalized_message: "MessageSquareText",
+    // Recommendation engine
+    recalculate_recommendations: "Target",
   };
   return icons[action] || "Zap";
 }

@@ -61,7 +61,7 @@ export function SJCopilotDrawer({
   const [generatedAutomation, setGeneratedAutomation] = useState<GeneratedAutomation | null>(null);
   const [suggestedMessage, setSuggestedMessage] = useState<SuggestedMessage | null>(null);
   const [messageChannel, setMessageChannel] = useState<"whatsapp" | "email">("whatsapp");
-  const [messagePurpose, setMessagePurpose] = useState<"followup" | "welcome" | "reminder" | "congratulations">("followup");
+  const [messagePurpose, setMessagePurpose] = useState<MessageContext["purpose"]>("followup");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {

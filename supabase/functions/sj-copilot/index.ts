@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface CopilotRequest {
   workspaceId: string;
-  action: "diagnose" | "validate" | "analyze_churn" | "chat" | "normalize_interests" | "suggest_message" | "generate_automation";
+  action: "diagnose" | "validate" | "analyze_churn" | "chat" | "normalize_interests" | "suggest_message" | "generate_automation" | "generate_recommendations" | "explain_recommendation" | "generate_invitation";
   studentId?: string;
   cohortId?: string;
   enrollmentId?: string;
@@ -16,9 +16,14 @@ interface CopilotRequest {
   interests?: string[];
   messageContext?: {
     channel: "whatsapp" | "email";
-    purpose: "followup" | "welcome" | "reminder" | "congratulations";
+    purpose: "followup" | "welcome" | "reminder" | "congratulations" | "course_invitation";
   };
   automationDescription?: string;
+  // Recommendation context
+  courseId?: string;
+  recommendationId?: string;
+  matchScore?: number;
+  matchReasons?: string[];
 }
 
 const INTEREST_TAXONOMY = [
@@ -60,7 +65,7 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     const body: CopilotRequest = await req.json();
-    const { workspaceId, action, studentId, cohortId, enrollmentId, userMessage, interests, messageContext, automationDescription } = body;
+    const { workspaceId, action, studentId, cohortId, enrollmentId, userMessage, interests, messageContext, automationDescription, courseId, recommendationId, matchScore, matchReasons } = body;
 
     // Fetch context data based on action
     let contextData: Record<string, unknown> = {};
@@ -102,6 +107,37 @@ serve(async (req) => {
           activeEnrollments: profile.enrollments?.filter((e: { status: string }) => e.status === "active").length || 0,
           completedEnrollments: profile.enrollments?.filter((e: { status: string }) => e.status === "completed").length || 0,
         };
+      }
+    }
+
+    // Fetch course info if courseId provided (for recommendations)
+    if (courseId) {
+      const { data: course } = await supabase
+        .from("sj_courses")
+        .select("*")
+        .eq("id", courseId)
+        .eq("workspace_id", workspaceId)
+        .single();
+
+      if (course) {
+        contextData.course = course;
+      }
+    }
+
+    // Fetch recommendation info if recommendationId provided
+    if (recommendationId) {
+      const { data: recommendation } = await supabase
+        .from("sj_course_recommendations")
+        .select(`
+          *,
+          profile:sj_profiles(*),
+          course:sj_courses(*)
+        `)
+        .eq("id", recommendationId)
+        .single();
+
+      if (recommendation) {
+        contextData.recommendation = recommendation;
       }
     }
 
@@ -294,6 +330,103 @@ Responde em formato JSON:
 }`;
         break;
 
+      case "generate_recommendations":
+        systemPrompt += `\n\nA tua tarefa é analisar o perfil do aluno e sugerir os melhores cursos com base no histórico.
+REGRAS:
+- NÃO inventes pré-requisitos ou dados que não existam
+- Se faltarem interesses/tags, sugere ao utilizador completar esses campos
+- Justifica cada recomendação com razões específicas baseadas nos dados`;
+
+        userPrompt = `Analisa o perfil do aluno e sugere recomendações de cursos:
+
+Perfil: ${JSON.stringify(contextData.profile, null, 2)}
+Histórico de inscrições: ${JSON.stringify(contextData.enrollments, null, 2)}
+
+Sugere os TOP 3 cursos mais adequados com:
+1. Nome do curso ideal
+2. Razões específicas (ex: "Concluiu X, progressão natural", "Interesse em Y")
+3. Score estimado (0-100)
+4. Próxima ação recomendada
+
+Se os dados estiverem incompletos, indica quais campos precisam ser preenchidos antes de recomendar.
+
+Responde em formato JSON:
+{
+  "recommendations": [
+    {
+      "courseType": "tipo de curso sugerido",
+      "score": 85,
+      "reasons": ["razão 1", "razão 2", "razão 3"],
+      "nextAction": "ação recomendada"
+    }
+  ],
+  "dataQuality": {
+    "hasInterests": true/false,
+    "hasCompletedCourses": true/false,
+    "missingFields": ["campo1", "campo2"]
+  }
+}`;
+        break;
+
+      case "explain_recommendation":
+        systemPrompt += `\n\nA tua tarefa é explicar de forma clara e detalhada porque um curso específico é recomendado para este aluno.
+Usa linguagem simples e direta, focando nos benefícios concretos.`;
+
+        userPrompt = `Explica porque este curso é recomendado:
+
+Perfil do aluno: ${JSON.stringify(contextData.profile, null, 2)}
+Curso recomendado: ${JSON.stringify(contextData.course, null, 2)}
+Score de match: ${matchScore || "N/A"}
+Razões do sistema: ${JSON.stringify(matchReasons || [], null, 2)}
+
+Gera uma explicação em 3-4 frases que:
+1. Conecte o histórico do aluno com o curso
+2. Explique os benefícios da progressão
+3. Mencione o timing adequado (se aplicável)
+
+Responde em formato JSON:
+{
+  "explanation": "texto explicativo completo",
+  "keyBenefits": ["benefício 1", "benefício 2"],
+  "urgencyNote": "nota sobre timing (opcional)"
+}`;
+        break;
+
+      case "generate_invitation":
+        systemPrompt += `\n\nA tua tarefa é gerar uma mensagem de convite personalizada para um curso.
+A mensagem deve ser:
+- Em PT-PT com tom profissional mas cordial
+- Personalizada com base no perfil e histórico do aluno
+- Curta e focada (máximo 3 parágrafos para email, 2-3 frases para WhatsApp)
+- Com CTA claro`;
+
+        const courseInfo = (contextData as Record<string, unknown>).course || ((contextData as Record<string, unknown>).recommendation as Record<string, unknown>)?.course;
+        const profileInfo = (contextData as Record<string, unknown>).profile || ((contextData as Record<string, unknown>).recommendation as Record<string, unknown>)?.profile;
+
+        userPrompt = `Gera uma mensagem de convite para curso:
+
+Perfil do aluno: ${JSON.stringify(profileInfo, null, 2)}
+Curso: ${JSON.stringify(courseInfo, null, 2)}
+Canal: ${messageContext?.channel || "email"}
+Score de match: ${matchScore || "N/A"}
+Razões do match: ${JSON.stringify(matchReasons || [], null, 2)}
+
+A mensagem deve:
+1. Cumprimentar pelo nome
+2. Referenciar formação anterior (se existir)
+3. Apresentar o curso como progressão natural
+4. Incluir CTA claro (inscrição, mais informações, agendar chamada)
+
+Responde em formato JSON:
+{
+  "subject": "assunto (apenas para email)",
+  "message": "corpo da mensagem",
+  "callToAction": "texto do CTA",
+  "tone": "tom utilizado",
+  "personalizationUsed": ["elemento personalizado 1", "elemento 2"]
+}`;
+        break;
+
       case "chat":
       default:
         userPrompt = `Contexto do aluno:
@@ -351,7 +484,7 @@ Se não tiveres dados suficientes, indica explicitamente o que precisas.`;
 
     // Try to parse JSON responses for structured actions
     let parsedResponse: unknown = null;
-    if (["normalize_interests", "suggest_message", "generate_automation"].includes(action)) {
+    if (["normalize_interests", "suggest_message", "generate_automation", "generate_recommendations", "explain_recommendation", "generate_invitation"].includes(action)) {
       try {
         // Extract JSON from response
         const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
