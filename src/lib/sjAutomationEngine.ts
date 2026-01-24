@@ -232,6 +232,9 @@ export class SJAutomationEngine {
           return await this.executeNotifyOwner(action.config, context);
         case "suggest_personalized_message":
           return await this.executeSuggestPersonalizedMessage(action.config, context);
+        // Recommendation engine action
+        case "recalculate_recommendations":
+          return await this.executeRecalculateRecommendations(action.config, context);
         default:
           return {
             type: action.type,
@@ -600,6 +603,52 @@ export class SJAutomationEngine {
       type: "suggest_personalized_message",
       success: true,
       result: { messageType, channel, template },
+    };
+  }
+
+  /**
+   * Recalculate recommendations for a profile
+   */
+  private async executeRecalculateRecommendations(
+    config: Record<string, unknown>,
+    context: SJTriggerContext
+  ): Promise<SJActionResult> {
+    const delayDays = (config.delayDays as number) || 7;
+    const priority = (config.priority as string) || "high";
+
+    // Create an AI suggestion to recalculate recommendations
+    const { error } = await this.client.from("sj_ai_suggestions").insert({
+      workspace_id: this.workspaceId,
+      profile_id: context.profileId,
+      suggestion_type: "recalculate_recommendations",
+      message: `Recalcular recomendações de cursos para ${context.profileName}. Curso concluído: ${context.courseName || "N/A"}`,
+      priority,
+      status: "pending",
+      metadata: { 
+        delayDays,
+        lastCourseCompleted: context.courseName,
+        totalCompleted: context.totalCoursesCompleted,
+      },
+    });
+
+    if (error) throw error;
+
+    // Also schedule a follow-up for the recommendation contact
+    const followUpDate = new Date();
+    followUpDate.setDate(followUpDate.getDate() + delayDays);
+
+    await this.client
+      .from("sj_profiles")
+      .update({
+        next_follow_up_at: followUpDate.toISOString(),
+        follow_up_reason: `Contactar sobre próxima formação (concluiu ${context.courseName || "curso"})`,
+      })
+      .eq("id", context.profileId);
+
+    return {
+      type: "recalculate_recommendations",
+      success: true,
+      result: { delayDays, followUpDate: followUpDate.toISOString() },
     };
   }
 }

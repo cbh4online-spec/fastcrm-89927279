@@ -12,7 +12,7 @@ export interface Message {
 
 export interface MessageContext {
   channel: "whatsapp" | "email";
-  purpose: "followup" | "welcome" | "reminder" | "congratulations";
+  purpose: "followup" | "welcome" | "reminder" | "congratulations" | "course_invitation";
 }
 
 export interface SuggestedMessage {
@@ -20,6 +20,29 @@ export interface SuggestedMessage {
   message: string;
   callToAction: string;
   tone: string;
+  personalizationUsed?: string[];
+}
+
+export interface RecommendationExplanation {
+  explanation: string;
+  keyBenefits: string[];
+  urgencyNote?: string;
+}
+
+export interface AIRecommendationSuggestion {
+  courseType: string;
+  score: number;
+  reasons: string[];
+  nextAction: string;
+}
+
+export interface AIRecommendationsResult {
+  recommendations: AIRecommendationSuggestion[];
+  dataQuality: {
+    hasInterests: boolean;
+    hasCompletedCourses: boolean;
+    missingFields: string[];
+  };
 }
 
 export interface NormalizedInterests {
@@ -164,6 +187,44 @@ export function useSJCopilot({ studentId, cohortId, enrollmentId }: UseSJCopilot
     [callCopilot]
   );
 
+  const generateRecommendations = useCallback(
+    async (): Promise<AIRecommendationsResult | null> => {
+      const result = await callCopilot("generate_recommendations");
+      return result?.parsed as AIRecommendationsResult | null;
+    },
+    [callCopilot]
+  );
+
+  const explainRecommendation = useCallback(
+    async (courseId: string, matchScore: number, matchReasons: string[]): Promise<RecommendationExplanation | null> => {
+      const result = await callCopilot("explain_recommendation", undefined, { 
+        courseId, 
+        matchScore, 
+        matchReasons 
+      });
+      return result?.parsed as RecommendationExplanation | null;
+    },
+    [callCopilot]
+  );
+
+  const generateInvitation = useCallback(
+    async (
+      courseId: string, 
+      channel: "whatsapp" | "email", 
+      matchScore?: number, 
+      matchReasons?: string[]
+    ): Promise<SuggestedMessage | null> => {
+      const result = await callCopilot("generate_invitation", undefined, { 
+        courseId,
+        messageContext: { channel, purpose: "course_invitation" as const },
+        matchScore, 
+        matchReasons 
+      });
+      return result?.parsed as SuggestedMessage | null;
+    },
+    [callCopilot]
+  );
+
   const clearMessages = useCallback(() => {
     setMessages([]);
   }, []);
@@ -178,6 +239,9 @@ export function useSJCopilot({ studentId, cohortId, enrollmentId }: UseSJCopilot
     normalizeInterests,
     suggestMessage,
     generateAutomation,
+    generateRecommendations,
+    explainRecommendation,
+    generateInvitation,
     clearMessages,
   };
 }
