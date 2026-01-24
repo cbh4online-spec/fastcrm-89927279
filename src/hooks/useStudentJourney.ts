@@ -395,6 +395,31 @@ export function useCohorts(courseId?: string) {
   };
 }
 
+// Single cohort hook
+export function useCohort(cohortId?: string) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["sj-cohort", cohortId],
+    queryFn: async (): Promise<SJCohort | null> => {
+      if (!cohortId) return null;
+
+      const { data, error } = await supabase
+        .from("sj_cohorts")
+        .select(`
+          *,
+          course:sj_courses(id, name, course_type)
+        `)
+        .eq("id", cohortId)
+        .single();
+
+      if (error) throw error;
+      return data as unknown as SJCohort;
+    },
+    enabled: !!cohortId && !!currentWorkspace?.id,
+  });
+}
+
 // ============================================
 // ENROLLMENTS HOOKS
 // ============================================
