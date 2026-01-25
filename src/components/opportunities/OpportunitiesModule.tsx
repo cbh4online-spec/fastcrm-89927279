@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   useOpportunitiesEnhanced, 
   useMoveOpportunityEnhanced,
@@ -42,7 +43,6 @@ import { PipelineSummaryBar } from "./PipelineSummaryBar";
 import { OpportunityKanbanColumn } from "./OpportunityKanbanColumn";
 import { OpportunityTableView } from "./OpportunityTableView";
 import { CreateOpportunityEnhancedDialog } from "./CreateOpportunityEnhancedDialog";
-import { OpportunityDetailDialog } from "./OpportunityDetailDialog";
 import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { toast } from "sonner";
@@ -53,12 +53,12 @@ type ViewMode = "kanban" | "list";
 type StatusFilter = "all" | "open" | "won" | "lost";
 
 export function OpportunitiesModule() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
-  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [wonOpportunity, setWonOpportunity] = useState<Opportunity | null>(null);
@@ -267,7 +267,7 @@ export function OpportunitiesModule() {
                 }}
                 opportunities={opportunitiesByStage[stage.id] || []}
                 onMoveOpportunity={handleMoveOpportunity}
-                onOpportunityClick={setSelectedOpportunity}
+                onOpportunityClick={(opp) => navigate(`/dashboard/opportunities/${opp.id}`)}
                 onCreateOpportunity={() => setIsCreateDialogOpen(true)}
                 draggedId={draggedId}
                 onDragStart={setDraggedId}
@@ -284,7 +284,7 @@ export function OpportunitiesModule() {
             selectedIds={selectedIds}
             onSelect={handleSelect}
             onSelectAll={handleSelectAll}
-            onOpportunityClick={setSelectedOpportunity}
+            onOpportunityClick={(opp) => navigate(`/dashboard/opportunities/${opp.id}`)}
             onMarkAsWon={handleMarkAsWon}
             onMarkAsLost={handleMarkAsLost}
           />
@@ -302,15 +302,6 @@ export function OpportunitiesModule() {
         onOpenChange={setIsSettingsDialogOpen}
       />
 
-      {selectedOpportunity && (
-        <OpportunityDetailDialog
-          opportunity={selectedOpportunity}
-          open={!!selectedOpportunity}
-          onOpenChange={(open) => !open && setSelectedOpportunity(null)}
-          onMarkAsWon={() => handleMarkAsWon(selectedOpportunity.id)}
-          onMarkAsLost={() => handleMarkAsLost(selectedOpportunity.id)}
-        />
-      )}
 
       {/* Won Opportunity - Create Invoice Prompt */}
       <AlertDialog open={showInvoicePrompt} onOpenChange={setShowInvoicePrompt}>
