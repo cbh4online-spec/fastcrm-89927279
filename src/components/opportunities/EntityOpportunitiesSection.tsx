@@ -373,134 +373,76 @@ export function EntityOpportunitiesSection({
         </Card>
       )}
 
-      {/* Opportunities List with AI Analysis */}
+      {/* Opportunities List - Clean Design */}
       {opportunities.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Oportunidades ({opportunities.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="max-h-[400px]">
-              <div className="space-y-3">
-                {opportunities.map((opp) => {
-                  const analysis = coaching?.opportunityAnalysis.find((a) => a.opportunityId === opp.id);
-                  const daysInFunnel = differenceInDays(new Date(), new Date(opp.created_at));
-                  const daysUntilClose = opp.expected_close_date 
-                    ? differenceInDays(new Date(opp.expected_close_date), new Date())
-                    : null;
+        <div className="space-y-3">
+          {opportunities.map((opp) => {
+            const analysis = coaching?.opportunityAnalysis.find((a) => a.opportunityId === opp.id);
 
-                  return (
-                    <div
-                      key={opp.id}
-                      className={cn(
-                        "p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md",
-                        analysis ? getRiskColor(analysis.riskLevel) : "bg-card"
-                      )}
-                      onClick={() => setSelectedOpportunity(opp)}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium truncate">{opp.title}</h4>
-                            {opp.stage && (
-                              <Badge variant="outline" className="shrink-0">
-                                <div
-                                  className="w-2 h-2 rounded-full mr-1.5"
-                                  style={{ backgroundColor: opp.stage.color }}
-                                />
-                                {opp.stage.name}
-                              </Badge>
-                            )}
-                            {opp.status === "won" && (
-                              <Badge className="bg-green-500">Ganho</Badge>
-                            )}
-                            {opp.status === "lost" && (
-                              <Badge variant="destructive">Perdido</Badge>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <DollarSign className="w-3.5 h-3.5" />
-                              {formatCurrency(Number(opp.value))}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <TrendingUp className="w-3.5 h-3.5" />
-                              {opp.probability}%
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5" />
-                              {daysInFunnel}d no funil
-                            </span>
-                            {daysUntilClose !== null && (
-                              <span className={cn(
-                                "flex items-center gap-1",
-                                daysUntilClose < 0 && "text-red-500",
-                                daysUntilClose <= 7 && daysUntilClose >= 0 && "text-amber-500"
-                              )}>
-                                <Calendar className="w-3.5 h-3.5" />
-                                {daysUntilClose < 0 ? `${Math.abs(daysUntilClose)}d atrasado` : `${daysUntilClose}d para fecho`}
-                              </span>
-                            )}
-                          </div>
+            return (
+              <Card
+                key={opp.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
+                  analysis ? getRiskColor(analysis.riskLevel) : ""
+                )}
+                onClick={() => setSelectedOpportunity(opp)}
+              >
+                <CardContent className="p-4">
+                  {/* Title */}
+                  <h4 className="font-semibold text-sm mb-3 truncate">{opp.title}</h4>
+                  
+                  {/* 2x2 Grid Layout */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Expected Revenue</p>
+                      <p className="font-medium">{formatCurrency(Number(opp.value))}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Stage</p>
+                      <p className="font-medium">{opp.stage?.name || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Close Date</p>
+                      <p className="font-medium">
+                        {opp.expected_close_date 
+                          ? new Date(opp.expected_close_date).toISOString().split('T')[0]
+                          : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Probability (%)</p>
+                      <p className="font-medium text-primary">{opp.probability || 50}%</p>
+                    </div>
+                  </div>
 
-                          {/* AI Analysis for this opportunity */}
-                          {analysis && (
-                            <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
-                              <div className="flex items-start gap-2">
-                                <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <p className="text-sm">{analysis.diagnosis}</p>
-                              </div>
-                              
-                              {analysis.riskReason && (
-                                <div className="flex items-start gap-2">
-                                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                                  <p className="text-sm text-amber-700">{analysis.riskReason}</p>
-                                </div>
-                              )}
+                  {/* View Details Button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedOpportunity(opp);
+                    }}
+                  >
+                    View Details
+                  </Button>
 
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-muted-foreground">Próxima ação:</span>
-                                  {getPriorityBadge(analysis.nextAction.priority)}
-                                  <span className="text-sm font-medium">{analysis.nextAction.action}</span>
-                                </div>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <div className="flex items-center gap-1 text-sm">
-                                        <Progress 
-                                          value={analysis.winProbability} 
-                                          className="w-16 h-2"
-                                        />
-                                        <span className="text-xs">{analysis.winProbability}%</span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      Probabilidade de ganho estimada pela IA
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-
-                              {analysis.coachingTips && analysis.coachingTips.length > 0 && (
-                                <div className="text-xs text-muted-foreground italic">
-                                  💡 {analysis.coachingTips[0]}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                  {/* AI Analysis (if available) */}
+                  {analysis && (
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <Sparkles className="w-3 h-3 text-primary shrink-0 mt-0.5" />
+                        <p className="line-clamp-2">{analysis.diagnosis}</p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       {/* Dialogs */}
