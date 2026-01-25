@@ -21,61 +21,61 @@ export function OpportunityDetailsGrid({ opportunity }: OpportunityDetailsGridPr
   const shortId = `OP-${opportunity.id.slice(0, 3).toUpperCase()}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Opportunity Details */}
       <div>
-        <h3 className="text-base font-semibold mb-4">Detalhes da Oportunidade</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <h3 className="text-sm md:text-base font-semibold mb-3 md:mb-4">Detalhes da Oportunidade</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">ID da Oportunidade</p>
-            <p className="text-sm font-medium">{shortId}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">ID da Oportunidade</p>
+            <p className="text-xs md:text-sm font-medium">{shortId}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Indústria</p>
-            <p className="text-sm font-medium">{(opportunity.company as any)?.industry || "Tecnologia"}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">Indústria</p>
+            <p className="text-xs md:text-sm font-medium">{(opportunity.company as any)?.industry || "Tecnologia"}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Data de Fecho</p>
-            <p className="text-sm font-medium">
+            <p className="text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">Data de Fecho</p>
+            <p className="text-xs md:text-sm font-medium">
               {opportunity.expected_close_date
                 ? format(new Date(opportunity.expected_close_date), "yyyy-MM-dd", { locale: pt })
                 : "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Probabilidade de Fecho</p>
-            <p className="text-sm font-medium">{opportunity.probability || 50}%</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">Probabilidade de Fecho</p>
+            <p className="text-xs md:text-sm font-medium">{opportunity.probability || 50}%</p>
           </div>
         </div>
       </div>
 
       {/* Financials */}
       <div>
-        <h3 className="text-base font-semibold mb-4">Financeiros</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <h3 className="text-sm md:text-base font-semibold mb-3 md:mb-4">Financeiros</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Receita Esperada</p>
-            <p className="text-sm font-medium">
+            <p className="text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">Receita Esperada</p>
+            <p className="text-xs md:text-sm font-medium">
               {formatCurrency(Number(opportunity.value) || 0, opportunity.currency || "EUR")}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Desconto Oferecido</p>
-            <p className="text-sm font-medium">
+            <p className="text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">Desconto Oferecido</p>
+            <p className="text-xs md:text-sm font-medium">
               {(opportunity as any).discount_percent || 0}%
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Detalhes Subscrição</p>
-            <p className="text-sm font-medium">
+            <p className="text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">Detalhes Subscrição</p>
+            <p className="text-xs md:text-sm font-medium truncate">
               {(opportunity as any).mrr_amount
                 ? `${formatCurrency((opportunity as any).mrr_amount, opportunity.currency || "EUR")}/mês`
                 : "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Preço Concorrente</p>
-            <p className="text-sm font-medium">
+            <p className="text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">Preço Concorrente</p>
+            <p className="text-xs md:text-sm font-medium">
               {(opportunity as any).competitor_price
                 ? formatCurrency((opportunity as any).competitor_price, opportunity.currency || "EUR")
                 : "—"}
