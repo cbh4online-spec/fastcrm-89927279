@@ -501,8 +501,8 @@ export function SmartContactsTable() {
         onClose={() => setShowFilterSidebar(false)}
       />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 p-6">
+      {/* Main Content - Nexus Style */}
+      <div className="flex-1 flex flex-col min-w-0 p-6 bg-gradient-to-br from-background via-background to-muted/20">
         {/* Page Header */}
         <PageHeader
           title="Contactos"
@@ -582,8 +582,8 @@ export function SmartContactsTable() {
           />
         )}
 
-        {/* Table */}
-        <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
+        {/* Table - Nexus Style */}
+        <div className="mt-4 rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden flex-1 min-w-0 shadow-sm">
           <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
             <TableHeader>
               <TableRow>
@@ -644,8 +644,15 @@ export function SmartContactsTable() {
                     .toUpperCase()
                     .slice(0, 2);
 
+                  // Temperature gradient for avatar
+                  const tempGradient = contact.ai_temperature === 'hot' 
+                    ? 'from-red-500/80 to-orange-500' 
+                    : contact.ai_temperature === 'warm' 
+                    ? 'from-amber-500/80 to-yellow-500' 
+                    : 'from-blue-500/80 to-cyan-500';
+
                   return (
-                    <TableRow 
+                    <TableRow
                       key={contact.id} 
                       className={cn(
                         "group transition-colors",
@@ -661,18 +668,26 @@ export function SmartContactsTable() {
                         />
                       </TableCell>
 
-                      {/* Contact Name (always visible, sticky) */}
+                      {/* Contact Name (always visible, sticky) - Nexus Style */}
                       <TableCell className={stickyNameStyles}>
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">
-                              {initials}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-9 w-9 ring-2 ring-background shadow-sm">
+                              <AvatarFallback className={cn(
+                                "bg-gradient-to-br text-white text-xs font-semibold",
+                                tempGradient
+                              )}>
+                                {initials}
+                              </AvatarFallback>
+                            </Avatar>
+                            {contact.ai_temperature === 'hot' && (
+                              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-background animate-pulse" />
+                            )}
+                          </div>
                           <div className="min-w-0">
                             <Link 
                               to={`/dashboard/contacts/${contact.id}`}
-                              className="font-medium text-foreground hover:text-primary hover:underline truncate block"
+                              className="font-medium text-foreground hover:text-primary transition-colors truncate block"
                             >
                               {contact.name}
                             </Link>
@@ -752,13 +767,13 @@ export function SmartContactsTable() {
           </StickyTableWrapper>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination - Nexus Style */}
         {totalContacts > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 px-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 p-3 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Mostrar</span>
               <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                <SelectTrigger className="w-[70px] h-8">
+                <SelectTrigger className="w-[70px] h-8 rounded-lg border-border/50 bg-background/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover z-50">
@@ -770,20 +785,23 @@ export function SmartContactsTable() {
                 </SelectContent>
               </Select>
               <span>por página</span>
-              <span className="text-muted-foreground/70 ml-2">
-                ({totalContacts} contacto{totalContacts !== 1 ? "s" : ""} no total)
-              </span>
+              <div className="flex items-center gap-1.5 ml-2 px-2 py-1 rounded-lg bg-muted/50">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                <span className="text-xs font-medium">
+                  {totalContacts} contacto{totalContacts !== 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Página {currentPage} de {totalPages || 1}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Página <span className="text-foreground">{currentPage}</span> de <span className="text-foreground">{totalPages || 1}</span>
               </span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7 rounded-md"
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
                 >
@@ -791,27 +809,27 @@ export function SmartContactsTable() {
                   <ChevronLeft className="h-4 w-4 -ml-2" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7 rounded-md"
                   onClick={() => setCurrentPage(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7 rounded-md"
                   onClick={() => setCurrentPage(currentPage + 1)}
                   disabled={currentPage === totalPages || totalPages === 0}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7 rounded-md"
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages || totalPages === 0}
                 >

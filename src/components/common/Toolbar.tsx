@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, SlidersHorizontal, ArrowUpDown, Columns3, X } from "lucide-react";
+import { Search, SlidersHorizontal, ArrowUpDown, Columns3, X, Sparkles } from "lucide-react";
 
 interface SortOption {
   value: string;
@@ -85,7 +85,7 @@ export function Toolbar({
   return (
     <div className={cn(
       "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
-      "p-3 rounded-lg border border-border bg-card",
+      "p-3 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 shadow-sm",
       className
     )}>
       {/* Left side */}
@@ -95,12 +95,15 @@ export function Toolbar({
             variant={filtersActive ? "default" : "outline"}
             size="sm"
             onClick={onToggleFilters}
-            className="gap-2"
+            className={cn(
+              "gap-2 rounded-lg transition-all duration-200",
+              filtersActive && "bg-primary/90 shadow-md shadow-primary/20"
+            )}
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filtros
             {filtersActive && (
-              <span className="ml-1 rounded-full bg-primary-foreground/20 px-1.5 text-xs">
+              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary-foreground/20 text-[10px]">
                 ✓
               </span>
             )}
@@ -112,7 +115,7 @@ export function Toolbar({
             variant="ghost"
             size="sm"
             onClick={onClearFilters}
-            className="gap-1 text-muted-foreground hover:text-foreground"
+            className="gap-1 text-muted-foreground hover:text-destructive rounded-lg"
           >
             <X className="h-3 w-3" />
             Limpar
@@ -121,11 +124,11 @@ export function Toolbar({
 
         {sortOptions && sortOptions.length > 0 && (
           <Select value={sortValue} onValueChange={onSortChange}>
-            <SelectTrigger className="w-[160px] h-8 text-sm">
-              <ArrowUpDown className="h-3 w-3 mr-2" />
+            <SelectTrigger className="w-[160px] h-8 text-sm rounded-lg border-border/50 bg-background/50">
+              <ArrowUpDown className="h-3 w-3 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Ordenar" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover z-50">
               {sortOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -138,12 +141,12 @@ export function Toolbar({
         {columns && columns.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2 rounded-lg border-border/50">
                 <Columns3 className="h-4 w-4" />
                 Colunas
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[200px]">
+            <DropdownMenuContent align="start" className="w-[200px] bg-popover z-50">
               <DropdownMenuLabel>Colunas visíveis</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {columns.map((column) => (
@@ -167,19 +170,19 @@ export function Toolbar({
         {rightActions}
         
         {onSearchChange && (
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder={searchPlaceholder}
               value={localSearch}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-9 h-8"
+              className="pl-9 pr-9 h-9 rounded-lg border-border/50 bg-background/50 focus:bg-background transition-colors"
             />
             {localSearch && (
               <button
                 onClick={() => handleSearchChange("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="h-3 w-3" />
               </button>
