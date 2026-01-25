@@ -338,6 +338,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const renderNavItem = (item: NavItem, isSubItem = false) => {
     const isPremium = item.premiumFeature && !canUseFeature(item.premiumFeature);
+    const active = isActive(item.href);
     
     return (
       <Tooltip key={item.name}>
@@ -346,22 +347,28 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             to={item.href}
             onClick={onClose}
             className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              isSubItem && "ml-4 text-[13px]",
-              isActive(item.href)
-                ? "bg-white/20 text-white"
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
+              isSubItem && "ml-3 text-[13px]",
+              active
+                ? "bg-primary/20 text-primary font-medium shadow-sm"
                 : item.highlight
-                  ? "text-white/90 hover:bg-white/10 hover:text-white"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
+                  ? "text-white/80 hover:bg-white/5 hover:text-white"
+                  : "text-white/60 hover:bg-white/5 hover:text-white/90"
             )}
           >
-            <item.icon className={cn("w-4 h-4", isSubItem && "w-4 h-4")} />
+            <item.icon className={cn(
+              "w-4 h-4 transition-colors",
+              active && "text-primary"
+            )} />
             <span className="flex-1">{item.name}</span>
-            {isPremium && <Crown className="w-4 h-4 text-amber-300" />}
+            {isPremium && <Crown className="w-3.5 h-3.5 text-amber-400" />}
+            {item.highlight && !active && (
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            )}
           </Link>
         </TooltipTrigger>
         {item.tooltip && (
-          <TooltipContent side="right" className="max-w-[200px]">
+          <TooltipContent side="right" className="max-w-[200px] text-xs">
             <p>{item.tooltip}</p>
           </TooltipContent>
         )}
@@ -380,31 +387,37 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <CollapsibleTrigger asChild>
               <button
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
                   groupActive
-                    ? "bg-white/15 text-white"
+                    ? "bg-white/10 text-white"
                     : group.highlight
-                      ? "text-white/90 hover:bg-white/10 hover:text-white"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                      ? "text-white/80 hover:bg-white/5 hover:text-white"
+                      : "text-white/60 hover:bg-white/5 hover:text-white/90"
                 )}
               >
-                <group.icon className={cn("w-5 h-5", group.highlight && "text-white")} />
-                <span className={cn("flex-1 text-left", group.highlight && "font-semibold")}>{group.name}</span>
+                <group.icon className={cn(
+                  "w-4 h-4",
+                  groupActive && "text-primary"
+                )} />
+                <span className="flex-1 text-left font-medium">{group.name}</span>
+                {group.highlight && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                )}
                 {isOpen ? (
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-3.5 h-3.5 text-white/50" />
                 ) : (
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-3.5 h-3.5 text-white/50" />
                 )}
               </button>
             </CollapsibleTrigger>
           </TooltipTrigger>
           {group.tooltip && (
-            <TooltipContent side="right" className="max-w-[200px]">
+            <TooltipContent side="right" className="max-w-[200px] text-xs">
               <p>{group.tooltip}</p>
             </TooltipContent>
           )}
         </Tooltip>
-        <CollapsibleContent className="space-y-0.5 mt-1">
+        <CollapsibleContent className="space-y-0.5 mt-0.5 animate-fade-in">
           {group.items.map((item) => renderNavItem(item, true))}
         </CollapsibleContent>
       </Collapsible>
@@ -422,62 +435,67 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           />
         )}
 
-        {/* Sidebar */}
+        {/* Sidebar - Nexus Style */}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-indigo-600 via-purple-600 to-indigo-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+            "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-out lg:translate-x-0",
+            "bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950",
+            "border-r border-white/5",
             open ? "translate-x-0" : "-translate-x-full"
           )}
         >
           <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
+            {/* Header - Nexus Brand */}
+            <div className="flex items-center justify-between h-16 px-4 border-b border-white/5">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow-lg shadow-primary/25">
                   <Building2 className="w-5 h-5 text-white" />
                 </div>
-                <span className="font-semibold text-white">FastCRM</span>
+                <div>
+                  <span className="font-bold text-white text-sm">Nexus</span>
+                  <span className="text-[10px] text-white/50 ml-1">CRM</span>
+                </div>
               </div>
               <button
                 onClick={onClose}
-                className="lg:hidden p-1 rounded-md hover:bg-white/10 text-white"
+                className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Workspace Switcher */}
-            <div className="p-4 border-b border-white/10">
+            <div className="p-3 border-b border-white/5">
               <WorkspaceSwitcher />
             </div>
 
             {/* Plan Badge */}
-            <div className="px-4 py-2 border-b border-white/10">
-              <PlanBadge plan={plan} className="w-full justify-center bg-white/10 text-white border-white/20" />
+            <div className="px-3 py-2 border-b border-white/5">
+              <PlanBadge plan={plan} className="w-full justify-center bg-white/5 text-white/80 border-white/10 text-xs" />
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 p-3 space-y-1 overflow-y-auto"
+            <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto scrollbar-thin"
               style={{ colorScheme: 'dark' }}
             >
             {/* Navigation Groups */}
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {filteredNavigationGroups.slice(0, 3).map(renderNavGroup)}
             </div>
             
             {/* Visual Separator */}
-            <div className="my-3 mx-3 border-t border-white/10" />
+            <div className="my-2 mx-2 border-t border-white/5" />
             
             {/* More Groups */}
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {filteredNavigationGroups.slice(3, 5).map(renderNavGroup)}
             </div>
             
             {/* Visual Separator */}
-            <div className="my-3 mx-3 border-t border-white/10" />
+            <div className="my-2 mx-2 border-t border-white/5" />
             
             {/* Remaining Groups */}
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {filteredNavigationGroups.slice(5).map(renderNavGroup)}
             </div>
 
@@ -507,34 +525,34 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </nav>
 
           {/* Settings at Bottom - Outside scroll area */}
-          <div className="mt-auto border-t border-white/10 p-3">
+          <div className="mt-auto border-t border-white/5 p-2">
             <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <CollapsibleTrigger asChild>
                     <button
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
                         settingsOpen
-                          ? "bg-white/15 text-white"
-                          : "text-white/70 hover:bg-white/10 hover:text-white"
+                          ? "bg-white/10 text-white"
+                          : "text-white/60 hover:bg-white/5 hover:text-white/90"
                       )}
                     >
-                      <Settings className="w-5 h-5" />
-                      <span className="flex-1 text-left">Definições</span>
+                      <Settings className={cn("w-4 h-4", settingsOpen && "text-primary")} />
+                      <span className="flex-1 text-left font-medium">Definições</span>
                       {settingsOpen ? (
-                        <ChevronDown className="w-4 h-4" />
+                        <ChevronDown className="w-3.5 h-3.5 text-white/50" />
                       ) : (
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="w-3.5 h-3.5 text-white/50" />
                       )}
                     </button>
                   </CollapsibleTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[200px]">
+                <TooltipContent side="right" className="max-w-[200px] text-xs">
                   <p>Configurações do sistema</p>
                 </TooltipContent>
               </Tooltip>
-              <CollapsibleContent className="space-y-0.5 mt-1">
+              <CollapsibleContent className="space-y-0.5 mt-0.5 animate-fade-in">
                 {settingsItems.map((item) => renderNavItem(item, true))}
               </CollapsibleContent>
             </Collapsible>
@@ -542,10 +560,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
             {/* Role indicator */}
             {currentWorkspace && (
-              <div className="p-4 border-t border-white/10">
-                <div className="px-3 py-2 rounded-lg bg-white/10">
-                  <p className="text-xs text-white/60">O seu cargo</p>
-                  <p className="text-sm font-medium text-white capitalize">
+              <div className="p-2 border-t border-white/5">
+                <div className="px-3 py-2 rounded-lg bg-gradient-to-r from-primary/10 to-violet-500/10 border border-white/5">
+                  <p className="text-[10px] text-white/50 uppercase tracking-wider">O seu cargo</p>
+                  <p className="text-sm font-medium text-white/90 capitalize">
                     {currentWorkspace.role}
                   </p>
                 </div>
