@@ -35,11 +35,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <WorkspaceStatusGuard>
-      <div className="min-h-screen flex bg-background">
+      <div className="min-h-screen flex bg-gradient-to-br from-background via-background to-muted/20">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
           <TopBar onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1 p-6 animate-fade-in">
+          <main className="flex-1 animate-fade-in">
             {children}
           </main>
         </div>
