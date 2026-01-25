@@ -60,71 +60,55 @@ export function OpportunityCard({ opportunity, isDragging, onClick }: Opportunit
       )}
       onClick={onClick}
     >
-      <CardContent className="p-3">
-        <div className="flex items-start gap-2">
-          <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0 space-y-2">
-            {/* Title and AI Badge */}
-            <div className="flex items-start justify-between gap-2">
-              <h4 className="font-medium text-foreground line-clamp-2 text-sm">
-                {opportunity.title}
-              </h4>
-              {opportunity.ai_temperature && (
-                <Badge 
-                  variant="outline" 
-                  className={cn("text-xs flex-shrink-0", getTemperatureColor(opportunity.ai_temperature))}
-                >
-                  {getTemperatureLabel(opportunity.ai_temperature)}
-                </Badge>
+      <CardContent className="p-2">
+        <div className="flex items-center gap-2">
+          <GripVertical className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+          
+          {/* Title */}
+          <h4 className="font-medium text-foreground text-xs truncate flex-1 min-w-0">
+            {opportunity.title}
+          </h4>
+
+          {/* Contact/Company inline */}
+          {(contactName || companyName) && (
+            <div className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground flex-shrink-0">
+              {companyName && (
+                <>
+                  <Building2 className="w-2.5 h-2.5" />
+                  <span className="truncate max-w-[60px]">{companyName}</span>
+                </>
               )}
             </div>
+          )}
 
-            {/* Contact/Lead */}
-            {contactName && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <User className="w-3 h-3" />
-                <span className="truncate">{contactName}</span>
-              </div>
-            )}
-
-            {/* Company */}
-            {companyName && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Building2 className="w-3 h-3" />
-                <span className="truncate">{companyName}</span>
-              </div>
-            )}
-
-            {/* Value and Probability */}
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <div className="flex items-center gap-1 text-sm font-semibold text-primary">
-                <DollarSign className="w-3.5 h-3.5" />
-                {formatCurrency(Number(opportunity.value), opportunity.currency)}
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                {opportunity.probability}%
-              </Badge>
-            </div>
-
-            {/* Expected Close Date */}
-            {opportunity.expected_close_date && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Calendar className="w-3 h-3" />
-                <span>
-                  {format(new Date(opportunity.expected_close_date), "d MMM", { locale: pt })}
-                </span>
-              </div>
-            )}
-
-            {/* AI Next Action */}
-            {opportunity.ai_next_action && (
-              <div className="flex items-start gap-1 pt-1 text-xs text-muted-foreground bg-muted/50 rounded p-1.5">
-                <Sparkles className="w-3 h-3 text-primary flex-shrink-0 mt-0.5" />
-                <span className="line-clamp-2">{opportunity.ai_next_action}</span>
-              </div>
-            )}
+          {/* Value */}
+          <div className="flex items-center gap-0.5 text-xs font-semibold text-primary flex-shrink-0">
+            <DollarSign className="w-3 h-3" />
+            {formatCurrency(Number(opportunity.value), opportunity.currency)}
           </div>
+
+          {/* Probability */}
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0">
+            {opportunity.probability}%
+          </Badge>
+
+          {/* Temperature Badge */}
+          {opportunity.ai_temperature && (
+            <Badge 
+              variant="outline" 
+              className={cn("text-[10px] px-1.5 py-0 h-4 flex-shrink-0", getTemperatureColor(opportunity.ai_temperature))}
+            >
+              {getTemperatureLabel(opportunity.ai_temperature)}
+            </Badge>
+          )}
+
+          {/* Close Date */}
+          {opportunity.expected_close_date && (
+            <div className="hidden md:flex items-center gap-0.5 text-[10px] text-muted-foreground flex-shrink-0">
+              <Calendar className="w-2.5 h-2.5" />
+              <span>{format(new Date(opportunity.expected_close_date), "d MMM", { locale: pt })}</span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
