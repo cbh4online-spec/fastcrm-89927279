@@ -14,13 +14,10 @@ import {
   ChevronDown,
   ChevronRight,
   Filter,
-  Star,
-  Clock,
-  Users,
-  Activity,
   X,
   Plus,
   Bookmark,
+  Sparkles,
 } from "lucide-react";
 
 export interface FilterItem {
@@ -89,14 +86,16 @@ export function FilterSidebar({
 
   return (
     <div className={cn(
-      "flex flex-col h-full w-64 border-r border-border bg-card",
+      "flex flex-col h-full w-64 bg-gradient-to-b from-card to-card/95 border-r border-border/50",
       className
     )}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="flex items-center justify-between p-4 border-b border-border/50">
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium text-sm">Filtros</span>
+          <div className="p-1.5 rounded-lg bg-primary/10">
+            <Filter className="h-4 w-4 text-primary" />
+          </div>
+          <span className="font-semibold text-sm">Filtros</span>
         </div>
         <div className="flex items-center gap-1">
           {activeFilterId && onClearFilter && (
@@ -104,7 +103,7 @@ export function FilterSidebar({
               variant="ghost"
               size="sm"
               onClick={onClearFilter}
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
             >
               Limpar
             </Button>
@@ -118,7 +117,7 @@ export function FilterSidebar({
       </div>
 
       {/* Search */}
-      <div className="p-3 border-b border-border">
+      <div className="p-3 border-b border-border/50">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -126,26 +125,39 @@ export function FilterSidebar({
             placeholder="Pesquisar filtros..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-8 text-sm"
+            className="pl-9 h-8 text-sm rounded-lg border-border/50 bg-background/50"
           />
+        </div>
+      </div>
+
+      {/* AI Smart Filters Highlight */}
+      <div className="p-3 border-b border-border/50">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold text-primary">Filtros Inteligentes</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Os filtros são enriquecidos com IA para priorizar contactos com maior potencial.
+          </p>
         </div>
       </div>
 
       {/* Content */}
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-4">
+        <div className="p-2 space-y-3">
           {/* Saved Filters */}
           {(filteredSaved.length > 0 || savedFilters.length > 0) && (
             <div className="space-y-1">
               <div className="flex items-center justify-between px-2 py-1">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Filtros Guardados
                 </span>
                 {onSaveFilter && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-6 w-6 rounded-md"
                     onClick={onSaveFilter}
                   >
                     <Plus className="h-3 w-3" />
@@ -178,19 +190,20 @@ export function FilterSidebar({
               onOpenChange={() => toggleGroup(group.id)}
             >
               <CollapsibleTrigger asChild>
-                <button className="flex items-center justify-between w-full px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-muted/50 transition-colors">
+                <button className="flex items-center justify-between w-full px-2 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-all duration-200">
                   <div className="flex items-center gap-2">
                     {group.icon}
                     <span>{group.label}</span>
                   </div>
-                  {openGroups[group.id] ? (
+                  <div className={cn(
+                    "transition-transform duration-200",
+                    openGroups[group.id] && "rotate-180"
+                  )}>
                     <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
+                  </div>
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-0.5 mt-1">
+              <CollapsibleContent className="space-y-0.5 mt-1 ml-2 pl-2 border-l border-border/50">
                 {group.items.map((filter) => (
                   <FilterItemButton
                     key={filter.id}
@@ -220,10 +233,10 @@ function FilterItemButton({ filter, isActive, onClick, icon }: FilterItemButtonP
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-md transition-colors",
+        "flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg transition-all duration-200",
         isActive
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-foreground hover:bg-muted"
+          ? "bg-primary/10 text-primary font-medium shadow-sm"
+          : "text-foreground hover:bg-muted/80"
       )}
     >
       <div className="flex items-center gap-2">
@@ -231,7 +244,13 @@ function FilterItemButton({ filter, isActive, onClick, icon }: FilterItemButtonP
         <span className="truncate">{filter.label}</span>
       </div>
       {typeof filter.count === "number" && (
-        <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
+        <Badge 
+          variant="secondary" 
+          className={cn(
+            "ml-2 h-5 px-1.5 text-xs",
+            isActive && "bg-primary/20 text-primary"
+          )}
+        >
           {filter.count}
         </Badge>
       )}
