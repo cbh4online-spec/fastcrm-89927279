@@ -124,47 +124,48 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2 md:gap-4">
           <Button 
             variant="ghost" 
             size="icon" 
+            className="h-8 w-8 md:h-10 md:w-10"
             onClick={() => navigate("/dashboard/opportunities")}
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
-          <h1 className="text-xl font-semibold">Detalhes da Oportunidade</h1>
+          <h1 className="text-lg md:text-xl font-semibold">Detalhes da Oportunidade</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
+        <div className="flex items-center gap-1 md:gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
+            <Bell className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
-          <Button variant="ghost" size="icon">
-            <HelpCircle className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
+            <HelpCircle className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
-          <Button variant="ghost" size="icon">
-            <Plus className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
+            <Plus className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left Column - Main Content */}
-        <div className="col-span-12 lg:col-span-9 space-y-6">
+      {/* Main Content - Mobile: sidebar first, Desktop: sidebar right */}
+      <div className="flex flex-col-reverse lg:flex-row gap-4 md:gap-6">
+        {/* Main Content */}
+        <div className="flex-1 min-w-0 space-y-4 md:space-y-6">
           {/* Title and Tabs */}
           <div>
-            <h2 className="text-2xl font-bold mb-4">{opportunity.title}</h2>
+            <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">{opportunity.title}</h2>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-                <TabsTrigger value="tasks">Tarefas</TabsTrigger>
-                <TabsTrigger value="notes">Notas</TabsTrigger>
+              <TabsList className="w-full md:w-auto">
+                <TabsTrigger value="overview" className="flex-1 md:flex-none">Visão Geral</TabsTrigger>
+                <TabsTrigger value="tasks" className="flex-1 md:flex-none">Tarefas</TabsTrigger>
+                <TabsTrigger value="notes" className="flex-1 md:flex-none">Notas</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="space-y-6 mt-6">
+              <TabsContent value="overview" className="space-y-4 md:space-y-6 mt-4 md:mt-6">
                 {/* Stages Stepper */}
                 <OpportunityStagesStepper
                   stages={stages}
@@ -183,13 +184,13 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 />
               </TabsContent>
 
-              <TabsContent value="tasks" className="mt-6">
+              <TabsContent value="tasks" className="mt-4 md:mt-6">
                 <div className="text-center py-12 text-muted-foreground">
                   <p>Gestão de tarefas em breve...</p>
                 </div>
               </TabsContent>
 
-              <TabsContent value="notes" className="mt-6">
+              <TabsContent value="notes" className="mt-4 md:mt-6">
                 <div className="text-center py-12 text-muted-foreground">
                   <p>Notas em breve...</p>
                 </div>
@@ -198,8 +199,8 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
           </div>
         </div>
 
-        {/* Right Column - Sidebar */}
-        <div className="col-span-12 lg:col-span-3">
+        {/* Sidebar - Fixed width on desktop */}
+        <div className="w-full lg:w-80 lg:flex-shrink-0">
           <OpportunityContactsSidebar
             contacts={contacts}
             company={company}
