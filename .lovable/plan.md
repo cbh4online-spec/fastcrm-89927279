@@ -1,161 +1,219 @@
 
-# Plano: Simplificar Coach de Produtividade
+# Plano: Relatório de Metas vs Resultados
 
-## Resumo da Mudança
-Separar claramente as responsabilidades entre os dois módulos:
-
-**Coach de Produtividade** (simplificar):
-- Definição e acompanhamento de metas pessoais/equipa
-- Insights e conselhos da IA para atingir as metas
-- Prioridades diárias com sugestões inteligentes
-- Progresso manual ou indicativo simples
-
-**Relatórios** (onde ficam os KPIs detalhados):
-- KPIs de gestão (individual, equipa, empresa)
-- Gráficos de evolução temporal
-- Análise de performance histórica
-- Métricas de vendas, faturação, conversão
+## Objetivo
+Criar uma nova pagina no modulo de Relatorios que compare automaticamente as metas definidas no Coach de Produtividade com os dados reais da base de dados, mantendo a separacao clara de responsabilidades entre modulos.
 
 ---
 
-## O Que Será Removido do Coach
+## Arquitectura da Solucao
 
-### 1. Remover Cálculos Automáticos Complexos
-**Ficheiros a eliminar:**
-- `src/hooks/useGoalProgressCalculation.ts` - Hook que faz queries à BD para calcular progresso
-- `src/hooks/useGoalHistoricalProgress.ts` - Hook que busca dados históricos para sparklines
-- `src/components/productivity/GoalSparkline.tsx` - Componente de gráfico sparkline
-
-### 2. Simplificar PeriodSummary
-**Ficheiro:** `src/components/productivity/PeriodSummary.tsx`
-- Manter apenas contagem simples de metas concluídas vs total
-- Remover agregação automática de valores calculados
-- Usar apenas o `current_value` manual das metas
-
-### 3. Simplificar GoalsManager
-**Ficheiro:** `src/components/productivity/GoalsManager.tsx`
-- Remover imports dos hooks de cálculo automático
-- Remover lógica de `autoProgressMap`
-- Manter progresso baseado em `current_value` (entrada manual)
-- Adicionar botão para actualizar progresso manualmente
-
----
-
-## O Que Será Mantido/Melhorado
-
-### No Coach de Produtividade
-
-1. **Definição de Metas**
-   - Períodos: diário, semanal, mensal, trimestral, semestral, anual
-   - Unidades: leads, oportunidades, propostas, vendas, etc.
-   - Metas individuais e organizacionais
-
-2. **Progresso Manual**
-   - Campo para actualizar valor actual da meta
-   - Indicador visual de progresso (barra)
-   - Status: não iniciada, em progresso, concluída, falhada
-
-3. **Coach IA (DailyCoachPanel)**
-   - Prioridades diárias sugeridas pela IA
-   - Análise de metas com insights
-   - Motivação e conselhos personalizados
-
-4. **Resumo de Período (simplificado)**
-   - X de Y metas concluídas
-   - Progresso geral em percentagem
-   - Sem breakdown por unidade automatizado
-
----
-
-## Nova Funcionalidade para Relatórios (futuro)
-
-Para não perder a funcionalidade de ver "Metas vs Resultados Reais", sugerimos criar posteriormente um novo relatório:
-
-**Página:** `/dashboard/reports/goals` ou `/dashboard/reports/kpis`
-- Comparar metas definidas com dados reais da BD
-- Gráficos de evolução temporal (sparklines)
-- KPIs por período e por membro
-- Análise de performance individual vs equipa
-
----
-
-## Detalhes Técnicos
-
-### Passo 1: Eliminar Ficheiros
 ```text
-src/hooks/useGoalProgressCalculation.ts (eliminar)
-src/hooks/useGoalHistoricalProgress.ts (eliminar)
-src/components/productivity/GoalSparkline.tsx (eliminar)
++----------------------------------+       +----------------------------------+
+|   COACH DE PRODUTIVIDADE         |       |   RELATORIOS > METAS             |
+|   (Manual + Coaching)            |       |   (Dados Automaticos)            |
++----------------------------------+       +----------------------------------+
+|  - Definir metas                 |       |  - Ver progresso real da BD      |
+|  - Actualizar current_value      |  -->  |  - Sparklines de evolucao        |
+|  - Prioridades diarias           |       |  - Comparacao meta vs resultado  |
+|  - Insights IA motivacionais     |       |  - KPIs por periodo/membro       |
++----------------------------------+       +----------------------------------+
 ```
 
-### Passo 2: Simplificar PeriodSummary.tsx
-O componente passará a usar apenas dados manuais:
+---
 
-```typescript
-// Antes (com cálculo automático)
-const currentValue = autoProgress?.isAutomatic 
-  ? autoProgress.calculatedValue 
-  : (goal.current_value || 0);
+## O Que Sera Criado
 
-// Depois (apenas manual)
-const currentValue = goal.current_value || 0;
+### 1. Nova Pagina de Relatorio
+**Rota:** `/dashboard/reports/goals`
+**Ficheiro:** `src/pages/ReportsGoals.tsx`
+
+Esta pagina ira:
+- Listar todas as metas definidas no Coach de Produtividade
+- Para cada meta, buscar os dados reais da BD (vendas, leads, propostas, etc.)
+- Mostrar comparacao visual entre meta vs resultado actual
+
+### 2. Hook de Calculo Automatico
+**Ficheiro:** `src/hooks/useGoalsVsResults.ts`
+
+Este hook ira:
+- Buscar metas da tabela `productivity_goals`
+- Para cada meta, calcular o progresso real baseado na unidade:
+  - `vendas` / `sales` -> Oportunidades com status "won" no periodo
+  - `leads` -> Leads criados no periodo
+  - `oportunidades` / `opportunities` -> Oportunidades criadas no periodo
+  - `propostas` / `proposals` -> Propostas criadas no periodo
+  - `reunioes` / `meetings` -> Reunioes realizadas no periodo
+  - `tarefas` / `tasks` -> Tarefas concluidas no periodo
+  - `facturacao` / `revenue` -> Soma dos valores das oportunidades ganhas
+- Calcular percentagem de progresso e status (on_track, at_risk, behind, ahead)
+- Gerar dados historicos para sparklines
+
+### 3. Componente Principal do Relatorio
+**Ficheiro:** `src/components/reports/GoalsVsResultsReport.tsx`
+
+Layout:
+```text
++----------------------------------------------------------+
+| Relatorio: Metas vs Resultados                           |
+| [Periodo: v] [Membro: v] [Scope: v]        [Atualizar]   |
++----------------------------------------------------------+
+| KPIs Resumo                                              |
+| +------------+ +------------+ +------------+ +----------+ |
+| | X/Y Metas  | | X% Global  | | X Atras    | | X Acima  | |
+| | Concluidas | | Progresso  | | Schedule   | | Schedule | |
+| +------------+ +------------+ +------------+ +----------+ |
++----------------------------------------------------------+
+| Metas por Periodo                                        |
+| +------------------------------------------------------+ |
+| | Diarias (2)                                          | |
+| | +--------------------------------------------------+ | |
+| | | Meta: 5 Chamadas | Real: 7 | +40% | [Sparkline]  | | |
+| | +--------------------------------------------------+ | |
+| | | Meta: 2 Reunioes | Real: 1 | -50% | [Sparkline]  | | |
+| | +--------------------------------------------------+ | |
+| +------------------------------------------------------+ |
+| +------------------------------------------------------+ |
+| | Semanais (3)                                         | |
+| | ...                                                  | |
+| +------------------------------------------------------+ |
++----------------------------------------------------------+
 ```
 
-Interface simplificada:
+### 4. Componente de Sparkline para Evolucao
+**Ficheiro:** `src/components/reports/GoalProgressSparkline.tsx`
+
+Reutiliza a logica removida do Coach, mas agora no contexto correcto:
+- Grafico de area mostrando evolucao diaria
+- Linha de referencia para o target
+- Tooltip com detalhes
+
+---
+
+## Detalhes Tecnicos
+
+### Passo 1: Criar o Hook de Dados
 ```typescript
-interface PeriodSummaryProps {
-  goals: ProductivityGoal[];
-  // Remover autoProgressMap
+// src/hooks/useGoalsVsResults.ts
+
+interface GoalWithRealProgress {
+  goal: ProductivityGoal;
+  realValue: number;           // Valor calculado da BD
+  manualValue: number;         // current_value da meta
+  targetValue: number;         // target_value da meta
+  realProgress: number;        // Percentagem real
+  status: 'on_track' | 'at_risk' | 'behind' | 'ahead';
+  historicalData: { date: string; value: number }[];
+}
+
+// Mapear unidades para queries
+const UNIT_TO_QUERY = {
+  'vendas': { table: 'opportunities', filter: { status: 'won' }, valueField: null },
+  'sales': { table: 'opportunities', filter: { status: 'won' }, valueField: null },
+  'leads': { table: 'leads', filter: {}, valueField: null },
+  'oportunidades': { table: 'opportunities', filter: {}, valueField: null },
+  'propostas': { table: 'proposals', filter: {}, valueField: null },
+  'reunioes': { table: 'meetings', filter: { status: 'completed' }, valueField: null },
+  'tarefas': { table: 'tasks', filter: { status: 'done' }, valueField: null },
+  'facturacao': { table: 'opportunities', filter: { status: 'won' }, valueField: 'value' },
+  'revenue': { table: 'opportunities', filter: { status: 'won' }, valueField: 'value' },
+};
+```
+
+### Passo 2: Criar a Pagina de Relatorio
+```typescript
+// src/pages/ReportsGoals.tsx
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { GoalsVsResultsReport } from "@/components/reports/GoalsVsResultsReport";
+
+export default function ReportsGoals() {
+  return (
+    <DashboardLayout>
+      <div className="p-6">
+        <GoalsVsResultsReport />
+      </div>
+    </DashboardLayout>
+  );
 }
 ```
 
-### Passo 3: Simplificar GoalsManager.tsx
-Remover:
-- Import de `useGoalsProgress`, `isAutoCalculatedUnit`, `getUnitDataSource`
-- Import de `useGoalsHistoricalProgress`, `supportsHistoricalData`
-- Import de `GoalSparkline`
-- Toda a lógica de `autoProgressMap` e `historicalDataMap`
-- Renderização do `GoalSparkline` nos cards
+### Passo 3: Adicionar Rota no App.tsx
+```typescript
+// Adicionar import
+import ReportsGoals from "./pages/ReportsGoals";
 
-Adicionar:
-- Botão/input para actualizar `current_value` manualmente em cada GoalCard
-- Modal de edição de progresso mais acessível
+// Adicionar rota
+<Route path="/dashboard/reports/goals" element={<ReportsGoals />} />
+```
 
-### Passo 4: Actualizar GoalCard
-O card de meta ficará mais simples:
+### Passo 4: Adicionar Link na Navegacao
+Actualizar a sidebar/navegacao de Relatorios para incluir "Metas vs Resultados"
 
-```text
-┌─────────────────────────────────────────┐
-│ 🎯 Fechar 5 Vendas                      │
-│ Meta Semanal | Individual               │
-│                                         │
-│ Progresso: 3 / 5 vendas                 │
-│ [████████████░░░░░░░░] 60%              │
-│                                         │
-│ [Actualizar Progresso]  [Editar] [🗑️]  │
-└─────────────────────────────────────────┘
+---
+
+## Filtros Disponiveis
+
+O relatorio tera os seguintes filtros:
+- **Periodo**: Diario, Semanal, Mensal, Trimestral, Semestral, Anual, Todos
+- **Membro**: Todos, ou membro especifico (para admins)
+- **Scope**: Individual, Organizacional, Todos
+
+---
+
+## Calculo de Status
+
+```typescript
+function calculateStatus(realProgress: number, daysRemaining: number, totalDays: number): Status {
+  const expectedProgress = ((totalDays - daysRemaining) / totalDays) * 100;
+  
+  if (realProgress >= 100) return 'completed';
+  if (realProgress >= expectedProgress * 1.1) return 'ahead';
+  if (realProgress >= expectedProgress * 0.8) return 'on_track';
+  if (realProgress >= expectedProgress * 0.5) return 'at_risk';
+  return 'behind';
+}
 ```
 
 ---
 
-## Impacto
+## Ficheiros a Criar
 
-### Vantagens
-- Coach focado no essencial: metas + coaching IA
-- Separação clara de responsabilidades
-- Menos queries à BD no módulo de produtividade
-- Relatórios serão a "fonte de verdade" para métricas
-
-### Considerações
-- O utilizador terá de actualizar progresso manualmente (ou criar um relatório futuro que compare automaticamente)
-- A funcionalidade de ver "resultados reais vs metas" poderá ser adicionada ao módulo de Relatórios
+| Ficheiro | Descricao |
+|----------|-----------|
+| `src/pages/ReportsGoals.tsx` | Pagina principal do relatorio |
+| `src/hooks/useGoalsVsResults.ts` | Hook para calcular progresso real |
+| `src/components/reports/GoalsVsResultsReport.tsx` | Componente principal |
+| `src/components/reports/GoalProgressSparkline.tsx` | Sparkline de evolucao |
+| `src/components/reports/GoalComparisonCard.tsx` | Card individual de meta |
 
 ---
 
-## Sequência de Implementação
+## Ficheiros a Modificar
 
-1. Eliminar ficheiros de cálculo automático
-2. Actualizar `PeriodSummary.tsx` para usar apenas dados manuais
-3. Simplificar `GoalsManager.tsx` removendo lógica automática
-4. Melhorar UX de actualização manual de progresso nos GoalCards
-5. Testar fluxo completo
+| Ficheiro | Alteracao |
+|----------|-----------|
+| `src/App.tsx` | Adicionar rota `/dashboard/reports/goals` |
+| Navegacao/Sidebar | Adicionar link para novo relatorio |
+
+---
+
+## Beneficios
+
+1. **Separacao Clara**: Coach foca em definir metas e coaching, Relatorios foca em dados
+2. **Dados Precisos**: Calculos automaticos directamente da BD
+3. **Visao Historica**: Sparklines mostram evolucao ao longo do tempo
+4. **Filtragem Flexivel**: Ver por periodo, membro ou scope
+5. **Comparacao Visual**: Facil de ver onde se esta a cumprir ou falhar
+
+---
+
+## Sequencia de Implementacao
+
+1. Criar hook `useGoalsVsResults.ts` com logica de calculo
+2. Criar componente `GoalProgressSparkline.tsx`
+3. Criar componente `GoalComparisonCard.tsx`
+4. Criar componente principal `GoalsVsResultsReport.tsx`
+5. Criar pagina `ReportsGoals.tsx`
+6. Adicionar rota no `App.tsx`
+7. Actualizar navegacao para incluir link
+8. Testar com diferentes tipos de metas
