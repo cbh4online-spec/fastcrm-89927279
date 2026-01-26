@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import {
   Plus,
@@ -30,6 +30,8 @@ import {
   LucideIcon,
   Building2,
   Lock,
+  CalendarRange,
+  CalendarDays,
 } from 'lucide-react';
 import {
   Dialog,
@@ -130,6 +132,8 @@ const PERIOD_CONFIG: Record<GoalPeriod, { label: string; icon: React.ElementType
   daily: { label: 'Diária', icon: Zap },
   weekly: { label: 'Semanal', icon: TrendingUp },
   monthly: { label: 'Mensal', icon: Target },
+  quarterly: { label: 'Trimestral', icon: CalendarRange },
+  semiannual: { label: 'Semestral', icon: CalendarDays },
   annual: { label: 'Anual', icon: Trophy },
 };
 
@@ -168,6 +172,13 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
         return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
       case 'monthly':
         return { start: startOfMonth(now), end: endOfMonth(now) };
+      case 'quarterly':
+        return { start: startOfQuarter(now), end: endOfQuarter(now) };
+      case 'semiannual': {
+        const semesterStart = new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1);
+        const semesterEnd = new Date(semesterStart.getFullYear(), semesterStart.getMonth() + 6, 0);
+        return { start: semesterStart, end: semesterEnd };
+      }
       case 'annual':
         return { start: startOfYear(now), end: endOfYear(now) };
     }

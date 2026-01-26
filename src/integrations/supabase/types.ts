@@ -17959,7 +17959,13 @@ export type Database = {
       crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
       feed_type: "workspace" | "team" | "user" | "client"
-      goal_period: "daily" | "weekly" | "monthly" | "annual"
+      goal_period:
+        | "daily"
+        | "weekly"
+        | "monthly"
+        | "annual"
+        | "quarterly"
+        | "semiannual"
       goal_status: "not_started" | "in_progress" | "completed" | "failed"
       integration_mode: "embed" | "redirect" | "headless"
       job_status: "pending" | "running" | "completed" | "failed" | "cancelled"
@@ -18263,7 +18269,14 @@ export const Constants = {
       crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
       feed_type: ["workspace", "team", "user", "client"],
-      goal_period: ["daily", "weekly", "monthly", "annual"],
+      goal_period: [
+        "daily",
+        "weekly",
+        "monthly",
+        "annual",
+        "quarterly",
+        "semiannual",
+      ],
       goal_status: ["not_started", "in_progress", "completed", "failed"],
       integration_mode: ["embed", "redirect", "headless"],
       job_status: ["pending", "running", "completed", "failed", "cancelled"],

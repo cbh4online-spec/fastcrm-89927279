@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Json } from '@/integrations/supabase/types';
 
-export type GoalPeriod = 'daily' | 'weekly' | 'monthly' | 'annual';
+export type GoalPeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
 export type GoalStatus = 'not_started' | 'in_progress' | 'completed' | 'failed';
 export type GoalScope = 'individual' | 'organizational';
 
