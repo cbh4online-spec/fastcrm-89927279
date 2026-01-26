@@ -62,7 +62,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useProductivityCoach, GoalPeriod, GoalStatus, GoalScope, ProductivityGoal } from '@/hooks/useProductivityCoach';
 import { useGoalsProgress, isAutoCalculatedUnit, getUnitDataSource } from '@/hooks/useGoalProgressCalculation';
+import { useGoalsHistoricalProgress, HistoricalDataPoint, supportsHistoricalData } from '@/hooks/useGoalHistoricalProgress';
 import { PeriodSummary } from './PeriodSummary';
+import { GoalSparkline } from './GoalSparkline';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -823,10 +825,11 @@ interface GoalCardProps {
   canManage: boolean;
   assignedMember?: WorkspaceMember | null;
   autoProgress?: { calculatedValue: number; isAutomatic: boolean; source: string } | null;
+  historicalData?: HistoricalDataPoint[];
   members: WorkspaceMember[];
 }
 
-function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoProgress, members }: GoalCardProps) {
+function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoProgress, historicalData, members }: GoalCardProps) {
   const config = PERIOD_CONFIG[goal.period];
   const statusConfig = STATUS_CONFIG[goal.status];
   const Icon = config.icon;
@@ -937,6 +940,18 @@ function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoPro
                 Calculado automaticamente a partir de {autoProgress.source}
               </p>
             )}
+            
+            {/* Sparkline de evolução temporal */}
+            {historicalData && historicalData.length >= 2 && (
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <p className="text-[10px] text-muted-foreground mb-2">Evolução no período</p>
+                <GoalSparkline 
+                  data={historicalData} 
+                  targetValue={goal.target_value || 0}
+                  height={50}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -993,6 +1008,9 @@ export function GoalsManager() {
   
   // Fetch automatic progress for all goals
   const { data: autoProgressMap = {} } = useGoalsProgress(goals);
+  
+  // Fetch historical progress data for sparklines
+  const { data: historicalProgressMap = {} } = useGoalsHistoricalProgress(goals);
 
   // Only workspace owners or super admins can manage (edit/delete) goals
   const isOwner = currentWorkspace?.role === 'owner';
@@ -1156,6 +1174,7 @@ export function GoalsManager() {
                       canManage={canManageGoals}
                       assignedMember={goal.user_id ? memberMap.get(goal.user_id) : null}
                       autoProgress={autoProgressMap[goal.id] || null}
+                      historicalData={historicalProgressMap[goal.id]}
                       members={members}
                     />
                   ))}
