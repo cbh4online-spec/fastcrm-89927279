@@ -61,6 +61,7 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useProductivityCoach, GoalPeriod, GoalStatus, GoalScope, ProductivityGoal } from '@/hooks/useProductivityCoach';
+import { useGoalsProgress, isAutoCalculatedUnit, getUnitDataSource } from '@/hooks/useGoalProgressCalculation';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -461,19 +462,26 @@ interface GoalCardProps {
   onDelete: () => void;
   canManage: boolean;
   assignedMember?: WorkspaceMember | null;
+  autoProgress?: { calculatedValue: number; isAutomatic: boolean; source: string } | null;
 }
 
-function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember }: GoalCardProps) {
+function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoProgress }: GoalCardProps) {
   const config = PERIOD_CONFIG[goal.period];
   const statusConfig = STATUS_CONFIG[goal.status];
   const Icon = config.icon;
   const isOrganizational = goal.goal_scope === 'organizational';
+  const isAutomatic = autoProgress?.isAutomatic || false;
 
-  const progress = goal.target_value && goal.current_value
-    ? Math.min((goal.current_value / goal.target_value) * 100, 100)
+  // Use automatic progress if available, otherwise use stored current_value
+  const currentValue = isAutomatic ? autoProgress.calculatedValue : (goal.current_value || 0);
+  const progress = goal.target_value && currentValue
+    ? Math.min((currentValue / goal.target_value) * 100, 100)
     : 0;
 
   const handleIncrement = () => {
+    // Only allow manual increment if not automatic
+    if (isAutomatic) return;
+    
     const newValue = (goal.current_value || 0) + 1;
     const updates: Partial<ProductivityGoal> = {
       current_value: newValue,
@@ -542,18 +550,32 @@ function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember }: GoalC
         {goal.target_value && (
           <div className="mt-4 space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Progresso</span>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <span>Progresso</span>
+                {isAutomatic && (
+                  <Badge variant="outline" className="h-4 text-[9px] px-1 bg-blue-50 text-blue-600 border-blue-200">
+                    <Zap className="h-2.5 w-2.5 mr-0.5" />
+                    Auto
+                  </Badge>
+                )}
+              </div>
               <span className="font-medium">
-                {goal.current_value || 0}/{goal.target_value} {goal.unit || ''}
+                {currentValue}/{goal.target_value} {goal.unit || ''}
               </span>
             </div>
             <Progress 
               value={progress} 
               className={cn(
                 "h-2",
-                isOrganizational && "[&>div]:bg-emerald-500"
+                isOrganizational && "[&>div]:bg-emerald-500",
+                isAutomatic && "[&>div]:bg-blue-500"
               )} 
             />
+            {isAutomatic && autoProgress?.source && (
+              <p className="text-[10px] text-muted-foreground">
+                Calculado automaticamente a partir de {autoProgress.source}
+              </p>
+            )}
           </div>
         )}
 
@@ -571,7 +593,7 @@ function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember }: GoalC
             )}
           </div>
           <div className="flex items-center gap-1">
-            {goal.target_value && goal.status !== 'completed' && canManage && (
+            {goal.target_value && goal.status !== 'completed' && canManage && !isAutomatic && (
               <Button variant="outline" size="sm" onClick={handleIncrement}>
                 <Plus className="h-3 w-3 mr-1" />
                 +1
@@ -604,6 +626,9 @@ export function GoalsManager() {
   const { data: members = [] } = useWorkspaceMembers();
   const [activeTab, setActiveTab] = useState<GoalPeriod>('daily');
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
+  
+  // Fetch automatic progress for all goals
+  const { data: autoProgressMap = {} } = useGoalsProgress(goals);
 
   // Only workspace owners or super admins can manage (edit/delete) goals
   const isOwner = currentWorkspace?.role === 'owner';
@@ -773,6 +798,7 @@ export function GoalsManager() {
                       onDelete={() => deleteGoal.mutate(goal.id)}
                       canManage={canManageGoals}
                       assignedMember={goal.user_id ? memberMap.get(goal.user_id) : null}
+                      autoProgress={autoProgressMap[goal.id] || null}
                     />
                   ))}
                 </div>
