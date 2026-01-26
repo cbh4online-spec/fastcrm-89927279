@@ -161,7 +161,9 @@ export function useProposals(opportunityId?: string) {
             title,
             value,
             lead:leads(id, name, email)
-          )
+          ),
+          contact:contacts(id, name, email, tax_id),
+          company:companies(id, name, email, tax_id, address)
         `)
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
@@ -196,7 +198,9 @@ export function useProposal(id: string | undefined) {
             title,
             value,
             lead:leads(id, name, email)
-          )
+          ),
+          contact:contacts(id, name, email, tax_id),
+          company:companies(id, name, email, tax_id, address)
         `)
         .eq("id", id)
         .single();
@@ -292,6 +296,15 @@ export function useUpdateProposal() {
       if (input.currency !== undefined) updateData.currency = input.currency;
       if (input.expires_at !== undefined) updateData.expires_at = input.expires_at;
       if (input.status !== undefined) updateData.status = input.status;
+      // Client fields
+      if (input.contact_id !== undefined) updateData.contact_id = input.contact_id;
+      if (input.company_id !== undefined) updateData.company_id = input.company_id;
+      // Conditions fields
+      if (input.payment_conditions !== undefined) updateData.payment_conditions = input.payment_conditions;
+      if (input.validity_days !== undefined) updateData.validity_days = input.validity_days;
+      if (input.notes !== undefined) updateData.notes = input.notes;
+      if (input.billing_address !== undefined) updateData.billing_address = input.billing_address;
+      if (input.billing_nif !== undefined) updateData.billing_nif = input.billing_nif;
 
       const { data, error } = await supabase
         .from("proposals")
@@ -304,7 +317,9 @@ export function useUpdateProposal() {
             title,
             value,
             lead:leads(id, name, email)
-          )
+          ),
+          contact:contacts(id, name, email, tax_id),
+          company:companies(id, name, email, tax_id, address)
         `)
         .single();
 

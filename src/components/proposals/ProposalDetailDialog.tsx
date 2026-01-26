@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Eye,
   Send,
@@ -30,12 +29,17 @@ import {
   Save,
   X,
   Package,
+  Users,
+  CreditCard,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { ProposalPreview } from "./ProposalPreview";
 import { ProposalItemsEditor } from "./ProposalItemsEditor";
+import { ProposalClientSection } from "./ProposalClientSection";
+import { ProposalConditionsSection } from "./ProposalConditionsSection";
+import { PAYMENT_CONDITIONS, type ClientType } from "./proposalConstants";
 import {
   useProposal,
   useProposalVersions,
@@ -66,7 +70,7 @@ export function ProposalDetailDialog({
   onOpenChange,
   proposalId,
 }: ProposalDetailDialogProps) {
-  const [tab, setTab] = useState<"preview" | "edit" | "items" | "versions" | "activity">("preview");
+  const [tab, setTab] = useState<"preview" | "edit" | "items" | "client" | "conditions" | "versions" | "activity">("preview");
   const [deviceView, setDeviceView] = useState<"desktop" | "mobile">("desktop");
   const [isEditing, setIsEditing] = useState(false);
   
@@ -75,6 +79,24 @@ export function ProposalDetailDialog({
   const [editPrice, setEditPrice] = useState<number | null>(null);
   const [editCtaText, setEditCtaText] = useState("");
   const [editCtaColor, setEditCtaColor] = useState("");
+  
+  // Client data state
+  const [clientData, setClientData] = useState({
+    clientType: "contact" as ClientType,
+    contactId: null as string | null,
+    companyId: null as string | null,
+    billingName: "",
+    billingNif: "",
+    billingAddress: "",
+  });
+  
+  // Conditions data state
+  const [conditionsData, setConditionsData] = useState({
+    paymentConditions: "30_dias",
+    customPaymentConditions: "",
+    validityDays: 30,
+    notes: "",
+  });
 
   const { data: proposal, isLoading } = useProposal(proposalId);
   const { data: versions } = useProposalVersions(proposalId);
@@ -90,8 +112,36 @@ export function ProposalDetailDialog({
       setEditPrice(proposal.price);
       setEditCtaText(proposal.cta_text);
       setEditCtaColor(proposal.cta_color);
+      
+      // Initialize client data
+      const hasCompany = !!proposal.company_id;
+      setClientData({
+        clientType: hasCompany ? "company" : "contact",
+        contactId: proposal.contact_id,
+        companyId: proposal.company_id,
+        billingName: proposal.billing_nif ? (proposal.contact?.name || proposal.company?.name || "") : "",
+        billingNif: proposal.billing_nif || "",
+        billingAddress: proposal.billing_address || "",
+      });
+      
+      // Initialize conditions data
+      const paymentValue = proposal.payment_conditions || "30_dias";
+      const isCustom = !PAYMENT_CONDITIONS.some(p => p.value === paymentValue);
+      setConditionsData({
+        paymentConditions: isCustom ? "custom" : paymentValue,
+        customPaymentConditions: isCustom ? paymentValue : "",
+        validityDays: proposal.validity_days || 30,
+        notes: proposal.notes || "",
+      });
     }
   };
+  
+  // Initialize when proposal loads
+  useEffect(() => {
+    if (proposal && !isEditing) {
+      initializeEditForm();
+    }
+  }, [proposal]);
   
   const handleStartEditing = () => {
     initializeEditForm();
@@ -107,6 +157,11 @@ export function ProposalDetailDialog({
   const handleSaveEdit = async () => {
     if (!proposal) return;
     
+    // Determine payment conditions value
+    const paymentConditionsValue = conditionsData.paymentConditions === "custom" 
+      ? conditionsData.customPaymentConditions 
+      : conditionsData.paymentConditions;
+    
     try {
       await updateProposal.mutateAsync({
         id: proposal.id,
@@ -114,6 +169,15 @@ export function ProposalDetailDialog({
         price: editPrice ?? undefined,
         cta_text: editCtaText,
         cta_color: editCtaColor,
+        // Client fields
+        contact_id: clientData.clientType === "contact" ? clientData.contactId : null,
+        company_id: clientData.clientType === "company" ? clientData.companyId : null,
+        billing_nif: clientData.billingNif || undefined,
+        billing_address: clientData.billingAddress || undefined,
+        // Conditions fields
+        payment_conditions: paymentConditionsValue || undefined,
+        validity_days: conditionsData.validityDays,
+        notes: conditionsData.notes || undefined,
         createVersion: true,
       });
       setIsEditing(false);
@@ -287,7 +351,7 @@ export function ProposalDetailDialog({
                   <span className="text-xs font-medium uppercase tracking-wide">Cliente</span>
                 </div>
                 <p className="font-medium text-sm truncate">
-                  {proposal.opportunity?.lead?.name || "-"}
+                  {proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name || "-"}
                 </p>
               </div>
 
@@ -321,12 +385,12 @@ export function ProposalDetailDialog({
           <Tabs
             value={tab}
             onValueChange={(v) =>
-              setTab(v as "preview" | "edit" | "items" | "versions" | "activity")
+              setTab(v as "preview" | "edit" | "items" | "client" | "conditions" | "versions" | "activity")
             }
             className="flex-1 flex flex-col min-h-0"
           >
             <div className="flex items-center justify-between px-6 py-3 border-b bg-muted/30">
-              <TabsList className="bg-transparent p-0 h-auto gap-1">
+              <TabsList className="bg-transparent p-0 h-auto gap-1 flex-wrap">
                 <TabsTrigger 
                   value="preview"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
@@ -349,6 +413,20 @@ export function ProposalDetailDialog({
                     >
                       <Package className="h-4 w-4 mr-2" />
                       Itens ({proposalItems?.length || 0})
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="client"
+                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Cliente
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="conditions"
+                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Condições
                     </TabsTrigger>
                   </>
                 )}
@@ -418,6 +496,13 @@ export function ProposalDetailDialog({
                     unit_price: item.unit_price,
                     total_price: item.total_price || (item.quantity * item.unit_price),
                   }))}
+                  clientName={proposal.company?.name || proposal.contact?.name}
+                  clientNif={proposal.billing_nif || proposal.company?.tax_id || proposal.contact?.tax_id}
+                  clientAddress={proposal.billing_address || proposal.company?.address}
+                  paymentConditions={proposal.payment_conditions}
+                  validityDays={proposal.validity_days}
+                  notes={proposal.notes}
+                  createdAt={proposal.created_at}
                 />
               </ScrollArea>
             </TabsContent>
@@ -522,6 +607,33 @@ export function ProposalDetailDialog({
                   // Optionally switch back to preview after save
                 }}
               />
+            </TabsContent>
+
+            {/* Client Tab Content */}
+            <TabsContent value="client" className="flex-1 min-h-0 mt-0 p-6">
+              <ScrollArea className="h-full">
+                <div className="max-w-2xl mx-auto">
+                  <ProposalClientSection
+                    data={clientData}
+                    onChange={setClientData}
+                    disabled={!isEditing}
+                  />
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Conditions Tab Content */}
+            <TabsContent value="conditions" className="flex-1 min-h-0 mt-0 p-6">
+              <ScrollArea className="h-full">
+                <div className="max-w-2xl mx-auto">
+                  <ProposalConditionsSection
+                    data={conditionsData}
+                    onChange={setConditionsData}
+                    createdAt={proposal?.created_at}
+                    disabled={!isEditing}
+                  />
+                </div>
+              </ScrollArea>
             </TabsContent>
 
             <TabsContent value="versions" className="flex-1 min-h-0 mt-0 p-6">

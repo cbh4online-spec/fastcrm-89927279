@@ -11834,6 +11834,10 @@ export type Database = {
       proposals: {
         Row: {
           accepted_at: string | null
+          billing_address: string | null
+          billing_nif: string | null
+          company_id: string | null
+          contact_id: string | null
           content_blocks: Json
           created_at: string
           created_by: string | null
@@ -11842,7 +11846,9 @@ export type Database = {
           currency: string | null
           expires_at: string | null
           id: string
+          notes: string | null
           opportunity_id: string
+          payment_conditions: string | null
           payment_idempotency_key: string | null
           payment_status: string | null
           price: number | null
@@ -11856,12 +11862,17 @@ export type Database = {
           template_id: string | null
           title: string
           updated_at: string
+          validity_days: number | null
           variables: Json | null
           views_count: number | null
           workspace_id: string
         }
         Insert: {
           accepted_at?: string | null
+          billing_address?: string | null
+          billing_nif?: string | null
+          company_id?: string | null
+          contact_id?: string | null
           content_blocks?: Json
           created_at?: string
           created_by?: string | null
@@ -11870,7 +11881,9 @@ export type Database = {
           currency?: string | null
           expires_at?: string | null
           id?: string
+          notes?: string | null
           opportunity_id: string
+          payment_conditions?: string | null
           payment_idempotency_key?: string | null
           payment_status?: string | null
           price?: number | null
@@ -11884,12 +11897,17 @@ export type Database = {
           template_id?: string | null
           title: string
           updated_at?: string
+          validity_days?: number | null
           variables?: Json | null
           views_count?: number | null
           workspace_id: string
         }
         Update: {
           accepted_at?: string | null
+          billing_address?: string | null
+          billing_nif?: string | null
+          company_id?: string | null
+          contact_id?: string | null
           content_blocks?: Json
           created_at?: string
           created_by?: string | null
@@ -11898,7 +11916,9 @@ export type Database = {
           currency?: string | null
           expires_at?: string | null
           id?: string
+          notes?: string | null
           opportunity_id?: string
+          payment_conditions?: string | null
           payment_idempotency_key?: string | null
           payment_status?: string | null
           price?: number | null
@@ -11912,11 +11932,26 @@ export type Database = {
           template_id?: string | null
           title?: string
           updated_at?: string
+          validity_days?: number | null
           variables?: Json | null
           views_count?: number | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proposals_opportunity_id_fkey"
             columns: ["opportunity_id"]
