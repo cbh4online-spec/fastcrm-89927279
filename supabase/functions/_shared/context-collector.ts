@@ -29,7 +29,10 @@ export type ContextSource =
   | 'important_signals'
   | 'old_memories'
   | 'low_relevance'
-  | 'redundant';
+  | 'redundant'
+  | 'rag_historical'    // RAG: Historical outcomes
+  | 'rag_pattern'       // RAG: Strategic patterns
+  | 'rag_knowledge';    // RAG: Knowledge base
 
 export interface ContextItem {
   id: string;

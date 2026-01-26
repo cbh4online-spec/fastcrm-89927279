@@ -12692,6 +12692,180 @@ export type Database = {
           },
         ]
       }
+      rag_historical_outcomes: {
+        Row: {
+          company_size: string | null
+          created_at: string | null
+          deal_cycle_days: number | null
+          embedding: string | null
+          embedding_text: string | null
+          entity_snapshot: Json
+          failure_factors: string[] | null
+          final_stage: string | null
+          id: string
+          indexed_at: string | null
+          industry: string | null
+          initial_stage: string | null
+          lessons_learned: string | null
+          outcome: string
+          outcome_date: string | null
+          outcome_reason: string | null
+          outcome_value: number | null
+          source_entity_id: string
+          source_entity_type: string
+          success_factors: string[] | null
+          workspace_id: string
+        }
+        Insert: {
+          company_size?: string | null
+          created_at?: string | null
+          deal_cycle_days?: number | null
+          embedding?: string | null
+          embedding_text?: string | null
+          entity_snapshot?: Json
+          failure_factors?: string[] | null
+          final_stage?: string | null
+          id?: string
+          indexed_at?: string | null
+          industry?: string | null
+          initial_stage?: string | null
+          lessons_learned?: string | null
+          outcome: string
+          outcome_date?: string | null
+          outcome_reason?: string | null
+          outcome_value?: number | null
+          source_entity_id: string
+          source_entity_type: string
+          success_factors?: string[] | null
+          workspace_id: string
+        }
+        Update: {
+          company_size?: string | null
+          created_at?: string | null
+          deal_cycle_days?: number | null
+          embedding?: string | null
+          embedding_text?: string | null
+          entity_snapshot?: Json
+          failure_factors?: string[] | null
+          final_stage?: string | null
+          id?: string
+          indexed_at?: string | null
+          industry?: string | null
+          initial_stage?: string | null
+          lessons_learned?: string | null
+          outcome?: string
+          outcome_date?: string | null
+          outcome_reason?: string | null
+          outcome_value?: number | null
+          source_entity_id?: string
+          source_entity_type?: string
+          success_factors?: string[] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_historical_outcomes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rag_indexed_chunks: {
+        Row: {
+          chunk_content: string
+          chunk_index: number
+          chunk_metadata: Json | null
+          created_at: string | null
+          embedding: string | null
+          id: string
+          quality_score: number | null
+          source_id: string
+          source_table: string
+          workspace_id: string
+        }
+        Insert: {
+          chunk_content: string
+          chunk_index: number
+          chunk_metadata?: Json | null
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          quality_score?: number | null
+          source_id: string
+          source_table: string
+          workspace_id: string
+        }
+        Update: {
+          chunk_content?: string
+          chunk_index?: number
+          chunk_metadata?: Json | null
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          quality_score?: number | null
+          source_id?: string
+          source_table?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_indexed_chunks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rag_retrieval_metrics: {
+        Row: {
+          agent_type: string
+          avg_relevance_score: number | null
+          chunks_retrieved: number | null
+          chunks_used: number | null
+          context_tokens_used: number | null
+          id: string
+          query_date: string | null
+          query_type: string
+          retrieval_time_ms: number | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_type: string
+          avg_relevance_score?: number | null
+          chunks_retrieved?: number | null
+          chunks_used?: number | null
+          context_tokens_used?: number | null
+          id?: string
+          query_date?: string | null
+          query_type: string
+          retrieval_time_ms?: number | null
+          workspace_id: string
+        }
+        Update: {
+          agent_type?: string
+          avg_relevance_score?: number | null
+          chunks_retrieved?: number | null
+          chunks_used?: number | null
+          context_tokens_used?: number | null
+          id?: string
+          query_date?: string | null
+          query_type?: string
+          retrieval_time_ms?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_retrieval_metrics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saas_categories: {
         Row: {
           color: string | null
@@ -16771,6 +16945,28 @@ export type Database = {
         }
         Returns: string
       }
+      match_historical_outcomes: {
+        Args: {
+          filter_outcome?: string
+          filter_workspace_id: string
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+        }
+        Returns: {
+          entity_snapshot: Json
+          failure_factors: string[]
+          id: string
+          lessons_learned: string
+          outcome: string
+          outcome_reason: string
+          outcome_value: number
+          similarity: number
+          source_entity_id: string
+          source_entity_type: string
+          success_factors: string[]
+        }[]
+      }
       match_knowledge_entries: {
         Args: {
           filter_knowledge_base_id?: string
@@ -16793,6 +16989,25 @@ export type Database = {
           status: string
           title: string
           usage_count: number
+        }[]
+      }
+      rag_hybrid_search: {
+        Args: {
+          filter_workspace_id: string
+          keyword_weight?: number
+          match_count?: number
+          query_embedding: string
+          query_text: string
+          semantic_weight?: number
+        }
+        Returns: {
+          chunk_content: string
+          chunk_metadata: Json
+          combined_score: number
+          keyword_score: number
+          semantic_score: number
+          source_id: string
+          source_table: string
         }[]
       }
       release_agent_lock: {

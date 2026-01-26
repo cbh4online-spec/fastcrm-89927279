@@ -135,6 +135,63 @@ export const CONTEXT_FORBIDDEN_PATTERNS = {
 export type ContextForbiddenPattern = keyof typeof CONTEXT_FORBIDDEN_PATTERNS;
 
 // =============================================================================
+// RAG LAYER GUARDRAILS
+// =============================================================================
+
+export interface RAGGuardrails {
+  // Retrieval limits
+  maxRetrievedChunks: number;
+  maxFinalContextChunks: number;
+  relevanceThreshold: number;
+  
+  // Token budgets
+  maxRAGContextTokens: number;
+  maxChunkTokens: number;
+  
+  // Quality controls
+  minChunkQualityScore: number;
+  requireOutcomeForOpportunities: boolean;
+  
+  // Safety
+  neverOverrideLiveData: boolean;
+  alwaysLabelAsHistorical: boolean;
+  logAllRetrievals: boolean;
+}
+
+export const RAG_GUARDRAILS: RAGGuardrails = {
+  // Retrieval limits
+  maxRetrievedChunks: 20,
+  maxFinalContextChunks: 5,
+  relevanceThreshold: 0.6,
+  
+  // Token budgets
+  maxRAGContextTokens: 1500,  // ~20% of typical budget
+  maxChunkTokens: 500,
+  
+  // Quality controls
+  minChunkQualityScore: 0.5,
+  requireOutcomeForOpportunities: true,
+  
+  // Safety
+  neverOverrideLiveData: true,
+  alwaysLabelAsHistorical: true,
+  logAllRetrievals: true,
+};
+
+// RAG forbidden patterns (for validation)
+export const RAG_FORBIDDEN_PATTERNS = {
+  NO_FIXED_CHUNKING: 'Chunking deve ser semântico, não por tamanho fixo',
+  NO_EMBED_EVERYTHING: 'Apenas conteúdo de qualidade é embedido',
+  NO_BLIND_INJECTION: 'RAG context deve ter relevance >= threshold',
+  NO_SINGLE_PASS: 'Retrieval deve ser hierárquico (2 fases)',
+  NO_MAXIMIZE_CONTEXT: 'Priorizar relevância sobre quantidade',
+  NO_OVERRIDE_LIVE: 'RAG nunca sobrepõe dados ao vivo',
+  NO_UNLABELED_RAG: 'RAG context deve ser claramente rotulado',
+} as const;
+
+export type RAGForbiddenPattern = keyof typeof RAG_FORBIDDEN_PATTERNS;
+
+// =============================================================================
 // CACHE LAYER GUARDRAILS
 // =============================================================================
 
