@@ -410,6 +410,14 @@ export function ProposalDetailDialog({
                   price={proposal.price}
                   currency={proposal.currency}
                   showCta={false}
+                  items={proposalItems?.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    description: item.description,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    total_price: item.total_price || (item.quantity * item.unit_price),
+                  }))}
                 />
               </ScrollArea>
             </TabsContent>

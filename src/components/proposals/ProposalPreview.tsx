@@ -10,6 +10,25 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+// Interface for proposal items
+export interface PreviewItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
 
 interface ProposalPreviewProps {
   title: string;
@@ -21,6 +40,7 @@ interface ProposalPreviewProps {
   currency?: string;
   showCta?: boolean;
   onCtaClick?: () => void;
+  items?: PreviewItem[];
 }
 
 // Replace variables in text
@@ -34,9 +54,9 @@ function replaceVariables(
   });
 }
 
-// Format currency
-function formatCurrency(value: number, currency: string = "BRL"): string {
-  return new Intl.NumberFormat("pt-BR", {
+// Format currency - default to EUR for Portugal
+function formatCurrency(value: number, currency: string = "EUR"): string {
+  return new Intl.NumberFormat("pt-PT", {
     style: "currency",
     currency,
   }).format(value);
@@ -52,7 +72,10 @@ export function ProposalPreview({
   currency = "EUR",
   showCta = true,
   onCtaClick,
+  items = [],
 }: ProposalPreviewProps) {
+  // Calculate items total
+  const itemsTotal = items.reduce((sum, item) => sum + item.total_price, 0);
   return (
     <div className="mx-auto bg-background border rounded-lg shadow-lg overflow-hidden max-w-4xl">
         {/* Header */}
@@ -79,6 +102,52 @@ export function ProposalPreview({
             />
           ))}
         </div>
+
+        {/* Items Table Section */}
+        {items.length > 0 && (
+          <Card className="overflow-hidden">
+            <div className="bg-primary/5 px-6 py-4 border-b">
+              <h3 className="text-lg font-semibold">Produtos e Serviços</h3>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50%]">Descrição</TableHead>
+                  <TableHead className="text-center w-[10%]">Qtd.</TableHead>
+                  <TableHead className="text-right w-[20%]">Preço Unit.</TableHead>
+                  <TableHead className="text-right w-[20%]">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">{item.quantity}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.unit_price, currency)}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(item.total_price, currency)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={3} className="text-right font-semibold">
+                    TOTAL
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-primary text-lg">
+                    {formatCurrency(itemsTotal, currency)}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </Card>
+        )}
 
         {/* Footer CTA */}
         {showCta && (

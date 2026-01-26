@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -19,10 +18,13 @@ import {
   Package,
   Save,
   Loader2,
+  Check,
 } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
-import { useProposalItems, useUpdateProposalItems, ProposalItem } from "@/hooks/useProposals";
+import { useProposalItems, useUpdateProposalItems } from "@/hooks/useProposals";
 import type { Product } from "@/types/product";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface EditableItem {
   id?: string;
@@ -115,12 +117,17 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
   };
 
   const handleSave = async () => {
-    await updateItems.mutateAsync({
-      proposalId,
-      items: items.filter((item) => item.name.trim() !== ""),
-    });
-    setHasChanges(false);
-    onSaved?.();
+    try {
+      await updateItems.mutateAsync({
+        proposalId,
+        items: items.filter((item) => item.name.trim() !== ""),
+      });
+      setHasChanges(false);
+      toast.success("Itens guardados com sucesso!");
+      onSaved?.();
+    } catch (error) {
+      toast.error("Erro ao guardar itens");
+    }
   };
 
   const calculateTotal = () => {
@@ -183,76 +190,91 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
             </div>
           ) : (
             items.map((item, index) => (
-              <Card key={item.id || index} className="p-3">
+              <Card key={item.id || index} className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex items-center text-muted-foreground cursor-move pt-2">
                     <GripVertical className="h-4 w-4" />
                   </div>
 
-                  <div className="flex-1 grid grid-cols-12 gap-3">
-                    {/* Name */}
-                    <div className="col-span-5 space-y-1">
-                      <label className="text-xs text-muted-foreground">Nome</label>
-                      <Input
-                        value={item.name}
-                        onChange={(e) => handleUpdateItem(index, "name", e.target.value)}
-                        placeholder="Nome do item"
-                        className="h-8"
-                      />
-                    </div>
+                  <div className="flex-1 space-y-3">
+                    {/* First row: Name, Qty, Price, Total, Delete */}
+                    <div className="grid grid-cols-12 gap-3">
+                      {/* Name */}
+                      <div className="col-span-5 space-y-1">
+                        <label className="text-xs text-muted-foreground">Nome</label>
+                        <Input
+                          value={item.name}
+                          onChange={(e) => handleUpdateItem(index, "name", e.target.value)}
+                          placeholder="Nome do item"
+                          className="h-8"
+                        />
+                      </div>
 
-                    {/* Quantity */}
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-xs text-muted-foreground">Qtd.</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => handleUpdateItem(index, "quantity", parseInt(e.target.value) || 1)}
-                        className="h-8"
-                      />
-                    </div>
+                      {/* Quantity */}
+                      <div className="col-span-2 space-y-1">
+                        <label className="text-xs text-muted-foreground">Qtd.</label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handleUpdateItem(index, "quantity", parseInt(e.target.value) || 1)}
+                          className="h-8"
+                        />
+                      </div>
 
-                    {/* Unit Price */}
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-xs text-muted-foreground">Preço Unit.</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.unit_price}
-                        onChange={(e) => handleUpdateItem(index, "unit_price", parseFloat(e.target.value) || 0)}
-                        className="h-8"
-                      />
-                    </div>
+                      {/* Unit Price */}
+                      <div className="col-span-2 space-y-1">
+                        <label className="text-xs text-muted-foreground">Preço Unit.</label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.unit_price}
+                          onChange={(e) => handleUpdateItem(index, "unit_price", parseFloat(e.target.value) || 0)}
+                          className="h-8"
+                        />
+                      </div>
 
-                    {/* Total */}
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-xs text-muted-foreground">Total</label>
-                      <div className="h-8 flex items-center font-semibold text-sm text-primary">
-                        {formatPrice(item.quantity * item.unit_price)}
+                      {/* Total */}
+                      <div className="col-span-2 space-y-1">
+                        <label className="text-xs text-muted-foreground">Total</label>
+                        <div className="h-8 flex items-center font-semibold text-sm text-primary">
+                          {formatPrice(item.quantity * item.unit_price)}
+                        </div>
+                      </div>
+
+                      {/* Delete */}
+                      <div className="col-span-1 flex items-end justify-end pb-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleRemoveItem(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-
-                    {/* Delete */}
-                    <div className="col-span-1 flex items-end justify-end pb-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleRemoveItem(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    
+                    {/* Second row: Description */}
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Descrição (opcional)</label>
+                      <Input
+                        value={item.description || ""}
+                        onChange={(e) => handleUpdateItem(index, "description", e.target.value)}
+                        placeholder="Descrição adicional do item..."
+                        className="h-8"
+                      />
                     </div>
+                    
+                    {/* Product badge */}
+                    {item.product_id && (
+                      <span className="inline-flex items-center text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                        <Package className="h-3 w-3 mr-1" />
+                        Produto do catálogo
+                      </span>
+                    )}
                   </div>
                 </div>
-
-                {item.product_id && (
-                  <Badge variant="secondary" className="mt-2 text-xs">
-                    <Package className="h-3 w-3 mr-1" />
-                    Produto do catálogo
-                  </Badge>
-                )}
               </Card>
             ))
           )}
@@ -261,25 +283,37 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
 
       {/* Footer with Total and Save */}
       <Separator />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pt-2">
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">Total da Proposta</p>
           <p className="text-2xl font-bold text-primary">{formatPrice(calculateTotal())}</p>
           <p className="text-xs text-muted-foreground">{items.length} item(ns)</p>
         </div>
 
-        <Button
-          onClick={handleSave}
-          disabled={!hasChanges || updateItems.isPending}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          {updateItems.isPending ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
+        <div className="flex items-center gap-3">
+          {hasChanges && (
+            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+              Alterações por guardar
+            </span>
           )}
-          Guardar Itens
-        </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || updateItems.isPending}
+            className={cn(
+              "min-w-[140px]",
+              hasChanges ? "bg-green-600 hover:bg-green-700" : "bg-muted text-muted-foreground"
+            )}
+          >
+            {updateItems.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : hasChanges ? (
+              <Save className="h-4 w-4 mr-2" />
+            ) : (
+              <Check className="h-4 w-4 mr-2" />
+            )}
+            {hasChanges ? "Guardar Itens" : "Guardado"}
+          </Button>
+        </div>
       </div>
     </div>
   );
