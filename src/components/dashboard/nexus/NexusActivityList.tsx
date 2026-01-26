@@ -3,8 +3,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { MoreHorizontal, ChevronRight, ExternalLink } from "lucide-react";
+import { MoreHorizontal, ChevronRight, ExternalLink, RefreshCw, Download, Settings } from "lucide-react";
+import { toast } from "sonner";
 
 interface ActivityItem {
   id: string;
@@ -26,6 +33,7 @@ interface NexusActivityListProps {
   maxHeight?: string;
   onItemClick?: (item: ActivityItem) => void;
   onViewAll?: () => void;
+  onRefresh?: () => void;
   emptyState?: {
     title: string;
     description?: string;
@@ -48,6 +56,41 @@ function ListSkeleton({ count = 5 }: { count?: number }) {
   );
 }
 
+function OptionsMenu({ onRefresh }: { onRefresh?: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-6 w-6">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="bg-popover">
+        <DropdownMenuItem 
+          className="gap-2 cursor-pointer"
+          onClick={() => {
+            onRefresh?.();
+            toast.success("Lista atualizada!");
+          }}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Atualizar
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          className="gap-2 cursor-pointer"
+          onClick={() => toast.success("Dados exportados!")}
+        >
+          <Download className="h-4 w-4" />
+          Exportar
+        </DropdownMenuItem>
+        <DropdownMenuItem className="gap-2 cursor-pointer">
+          <Settings className="h-4 w-4" />
+          Configurações
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function NexusActivityList({
   title,
   items,
@@ -55,6 +98,7 @@ export function NexusActivityList({
   maxHeight = "320px",
   onItemClick,
   onViewAll,
+  onRefresh,
   emptyState = { title: "Sem items", description: "Novos items aparecerão aqui" },
 }: NexusActivityListProps) {
   if (isLoading) {
@@ -63,9 +107,7 @@ export function NexusActivityList({
         <CardHeader className="pb-2 px-4 pt-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-            <Button variant="ghost" size="icon" className="h-6 w-6">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <OptionsMenu />
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
@@ -81,9 +123,7 @@ export function NexusActivityList({
         <CardHeader className="pb-2 px-4 pt-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-            <Button variant="ghost" size="icon" className="h-6 w-6">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <OptionsMenu />
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
@@ -106,13 +146,11 @@ export function NexusActivityList({
       <CardHeader className="pb-2 px-4 pt-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-          <Button variant="ghost" size="icon" className="h-6 w-6">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+          <OptionsMenu onRefresh={onRefresh} />
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        <ScrollArea style={{ maxHeight }} className="pr-2">
+        <ScrollArea className="pr-2" style={{ height: maxHeight }}>
           <div className="space-y-1">
             {items.map((item) => {
               const initials = item.name
