@@ -284,11 +284,13 @@ export function ProposalsList() {
     }
   };
 
-  const formatCurrency = (value: number | null, currency = "EUR") => {
+  const formatCurrency = (value: number | null, currency?: string) => {
     if (!value) return "-";
+    // Default to EUR if no currency specified
+    const currencyCode = currency || "EUR";
     return new Intl.NumberFormat("pt-PT", {
       style: "currency",
-      currency,
+      currency: currencyCode,
     }).format(value);
   };
 
@@ -428,8 +430,12 @@ export function ProposalsList() {
               </TableHeader>
               <TableBody>
                 {paginatedProposals.map((proposal) => (
-                  <TableRow key={proposal.id}>
-                    <TableCell>
+                  <TableRow 
+                    key={proposal.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setDetailId(proposal.id)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedIds.includes(proposal.id)}
                         onCheckedChange={(checked) =>
@@ -437,11 +443,21 @@ export function ProposalsList() {
                         }
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{proposal.title}</TableCell>
+                    <TableCell className="font-medium">
+                      <button 
+                        className="text-left hover:text-primary hover:underline transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetailId(proposal.id);
+                        }}
+                      >
+                        {proposal.title}
+                      </button>
+                    </TableCell>
                     <TableCell>{proposal.opportunity?.title || "-"}</TableCell>
                     <TableCell>{proposal.opportunity?.lead?.name || "-"}</TableCell>
                     <TableCell>
-                      {formatCurrency(proposal.price, proposal.currency)}
+                      {formatCurrency(proposal.price, proposal.currency || "EUR")}
                     </TableCell>
                     <TableCell>
                       <Badge
