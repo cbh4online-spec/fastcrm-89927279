@@ -20,8 +20,8 @@ export interface Task {
 }
 
 export interface CreateTaskInput {
-  related_type: TaskRelatedType;
-  related_id: string;
+  related_type?: TaskRelatedType;
+  related_id?: string;
   title: string;
   due_at?: string;
   assigned_to?: string;
@@ -113,8 +113,8 @@ export function useCreateTask() {
         .from("tasks")
         .insert({
           workspace_id: currentWorkspace.id,
-          related_type: input.related_type,
-          related_id: input.related_id,
+          related_type: input.related_type || null,
+          related_id: input.related_id || null,
           title: input.title,
           due_at: input.due_at || null,
           assigned_to: input.assigned_to || null,
