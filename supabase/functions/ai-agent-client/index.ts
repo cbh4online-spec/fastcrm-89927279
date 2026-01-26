@@ -287,20 +287,85 @@ Deno.serve(async (req) => {
       .select('id')
       .single();
 
-    // Store conclusion in memory
+    // Store conclusion in memory using store_entity_memory function
     if (analysis.confidenceLevel !== 'low') {
-      await supabase
-        .from('ai_agent_memory')
-        .insert({
-          workspace_id: workspaceId,
-          entity_id: entityId,
-          entity_type: entityType,
-          memory_type: 'conclusion',
-          content: analysis.executiveSummary,
-          relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
-          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-          created_by: userId,
-        });
+      try {
+        // Try to use the enhanced store_entity_memory function
+        const { error: storeError } = await supabase.rpc(
+          'store_entity_memory',
+          {
+            p_workspace_id: workspaceId,
+            p_entity_id: entityId,
+            p_entity_type: entityType,
+            p_memory_type: 'conclusion',
+            p_content: analysis.executiveSummary,
+            p_relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+            p_source_execution_id: executionRecord?.id || null,
+            p_expires_in_days: 60, // Longer for client health
+            p_created_by: userId
+          }
+        );
+        
+        if (storeError) {
+          console.log('[Client Agent] store_entity_memory not available, using direct insert');
+          // Fallback to direct insert
+          await supabase
+            .from('ai_agent_memory')
+            .insert({
+              workspace_id: workspaceId,
+              entity_id: entityId,
+              entity_type: entityType,
+              memory_type: 'conclusion',
+              memory_category: 'general',
+              content: analysis.executiveSummary.substring(0, 2000),
+              relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+              source_execution_id: executionRecord?.id,
+              source_type: 'agent_conclusion',
+              expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+              created_by: userId,
+            });
+        }
+        
+        // Store churn risk as pattern memory if high or medium
+        if (analysis.churnRisk && analysis.churnRisk !== 'low') {
+          await supabase
+            .from('ai_agent_memory')
+            .insert({
+              workspace_id: workspaceId,
+              entity_id: entityId,
+              entity_type: entityType,
+              memory_type: 'risk',
+              memory_category: 'relationship',
+              content: `Churn risk: ${analysis.churnRisk}. Health score: ${analysis.healthScore}/100. ${analysis.riskIndicators.join('; ')}`,
+              relevance_score: analysis.churnRisk === 'high' ? 1.0 : 0.8,
+              source_execution_id: executionRecord?.id,
+              source_type: 'agent_conclusion',
+              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              created_by: userId,
+            });
+        }
+        
+        // Store LTV as fact if available
+        if (analysis.lifetimeValue && analysis.lifetimeValue > 0) {
+          await supabase
+            .from('ai_agent_memory')
+            .insert({
+              workspace_id: workspaceId,
+              entity_id: entityId,
+              entity_type: entityType,
+              memory_type: 'fact',
+              memory_category: 'price_sensitivity',
+              content: `Lifetime Value: €${analysis.lifetimeValue.toLocaleString()}. Cliente desde análise inicial.`,
+              relevance_score: 0.9,
+              source_execution_id: executionRecord?.id,
+              source_type: 'agent_conclusion',
+              expires_at: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(), // 6 months for LTV facts
+              created_by: userId,
+            });
+        }
+      } catch (memErr) {
+        console.error('[Client Agent] Error storing memory:', memErr);
+      }
     }
 
     console.log(`[Client Agent] Completed in ${durationMs}ms`);

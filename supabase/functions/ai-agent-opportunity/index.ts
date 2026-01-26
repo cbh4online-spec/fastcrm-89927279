@@ -283,20 +283,85 @@ Deno.serve(async (req) => {
       .select('id')
       .single();
 
-    // Store conclusion in memory
+    // Store conclusion in memory using store_entity_memory function
     if (analysis.confidenceLevel !== 'low') {
-      await supabase
-        .from('ai_agent_memory')
-        .insert({
-          workspace_id: workspaceId,
-          entity_id: entityId,
-          entity_type: 'opportunity',
-          memory_type: 'conclusion',
-          content: analysis.executiveSummary,
-          relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          created_by: userId,
-        });
+      try {
+        // Try to use the enhanced store_entity_memory function
+        const { error: storeError } = await supabase.rpc(
+          'store_entity_memory',
+          {
+            p_workspace_id: workspaceId,
+            p_entity_id: entityId,
+            p_entity_type: 'opportunity',
+            p_memory_type: 'conclusion',
+            p_content: analysis.executiveSummary,
+            p_relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+            p_source_execution_id: executionRecord?.id || null,
+            p_expires_in_days: 30, // Shorter for opportunities
+            p_created_by: userId
+          }
+        );
+        
+        if (storeError) {
+          console.log('[Opportunity Agent] store_entity_memory not available, using direct insert');
+          // Fallback to direct insert
+          await supabase
+            .from('ai_agent_memory')
+            .insert({
+              workspace_id: workspaceId,
+              entity_id: entityId,
+              entity_type: 'opportunity',
+              memory_type: 'conclusion',
+              memory_category: 'general',
+              content: analysis.executiveSummary.substring(0, 2000),
+              relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+              source_execution_id: executionRecord?.id,
+              source_type: 'agent_conclusion',
+              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              created_by: userId,
+            });
+        }
+        
+        // Store pipeline health as pattern memory
+        if (analysis.pipelineHealth === 'critical' || analysis.pipelineHealth === 'attention') {
+          await supabase
+            .from('ai_agent_memory')
+            .insert({
+              workspace_id: workspaceId,
+              entity_id: entityId,
+              entity_type: 'opportunity',
+              memory_type: 'pattern',
+              memory_category: 'timeline',
+              content: `Pipeline health: ${analysis.pipelineHealth}. ${analysis.riskIndicators.join('; ')}`,
+              relevance_score: 0.9,
+              source_execution_id: executionRecord?.id,
+              source_type: 'agent_conclusion',
+              expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days for urgent patterns
+              created_by: userId,
+            });
+        }
+        
+        // Store risk indicators as separate risk memories
+        if (analysis.riskIndicators.length > 0) {
+          await supabase
+            .from('ai_agent_memory')
+            .insert({
+              workspace_id: workspaceId,
+              entity_id: entityId,
+              entity_type: 'opportunity',
+              memory_type: 'risk',
+              memory_category: 'general',
+              content: `Riscos: ${analysis.riskIndicators.join('; ')}`,
+              relevance_score: 0.85,
+              source_execution_id: executionRecord?.id,
+              source_type: 'agent_conclusion',
+              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              created_by: userId,
+            });
+        }
+      } catch (memErr) {
+        console.error('[Opportunity Agent] Error storing memory:', memErr);
+      }
     }
 
     console.log(`[Opportunity Agent] Completed in ${durationMs}ms`);
