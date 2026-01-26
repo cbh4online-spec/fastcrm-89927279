@@ -5,6 +5,7 @@ import { useAgentAnalysis } from "@/hooks/useAgentAnalysis";
 import { AgentInsightCard } from "@/components/ai-agents/AgentInsightCard";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { useAgentAnalytics, generateRecommendationId } from "@/hooks/useAgentAnalytics";
 
 interface OpportunityAIInsightsSectionProps {
   opportunityId: string;
@@ -17,6 +18,8 @@ export function OpportunityAIInsightsSection({
 }: OpportunityAIInsightsSectionProps) {
   const { currentWorkspace } = useWorkspace();
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [recommendationId] = useState(() => generateRecommendationId());
+  const { trackRecommendationGenerated, trackActionExecuted, trackAgentRunFailed } = useAgentAnalytics();
   
   const { 
     analyze, 
@@ -32,15 +35,48 @@ export function OpportunityAIInsightsSection({
       return;
     }
     
+    const startTime = Date.now();
+    
     try {
       await analyze('manual');
       setHasAnalyzed(true);
+      
+      // Track recommendation generated
+      trackRecommendationGenerated({
+        entityType: 'opportunity',
+        entityId: opportunityId,
+        agentType: 'opportunity',
+        recommendationId,
+        recommendationType: 'proposal',
+        confidence: 'medium',
+        latencyMs: Date.now() - startTime,
+      });
     } catch (error) {
       console.error('Error analyzing opportunity:', error);
+      
+      // Track failure
+      trackAgentRunFailed({
+        entityType: 'opportunity',
+        entityId: opportunityId,
+        agentType: 'opportunity',
+        errorType: 'analysis_failed',
+        errorReason: error instanceof Error ? error.message : 'Unknown error',
+        latencyMs: Date.now() - startTime,
+      });
     }
   };
 
   const handleActionClick = (actionType: string) => {
+    // Track action execution
+    trackActionExecuted({
+      entityType: 'opportunity',
+      entityId: opportunityId,
+      agentType: 'opportunity',
+      recommendationId,
+      actionType,
+      executionChannel: 'crm',
+    });
+    
     // Map action types to specific behaviors
     switch (actionType) {
       case 'send_proposal':
@@ -77,6 +113,12 @@ export function OpportunityAIInsightsSection({
         onRefresh={handleAnalyze}
         onActionClick={handleActionClick}
         showFeedback={true}
+        // Analytics context
+        entityType="opportunity"
+        entityId={opportunityId}
+        agentType="opportunity"
+        surface="entity_page"
+        recommendationId={recommendationId}
       />
     );
   }

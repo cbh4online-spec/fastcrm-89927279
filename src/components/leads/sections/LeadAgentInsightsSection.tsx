@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useAgentAnalysis } from "@/hooks/useAgentAnalysis";
 import { AgentInsightCard } from "@/components/ai-agents/AgentInsightCard";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { useAgentAnalytics, generateRecommendationId } from "@/hooks/useAgentAnalytics";
 
 interface LeadAgentInsightsSectionProps {
   leadId: string;
@@ -17,6 +18,8 @@ export function LeadAgentInsightsSection({
 }: LeadAgentInsightsSectionProps) {
   const { currentWorkspace } = useWorkspace();
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [recommendationId] = useState(() => generateRecommendationId());
+  const { trackRecommendationGenerated, trackActionExecuted, trackAgentRunFailed } = useAgentAnalytics();
   
   const { 
     analyze, 
@@ -32,15 +35,48 @@ export function LeadAgentInsightsSection({
       return;
     }
     
+    const startTime = Date.now();
+    
     try {
       await analyze('manual');
       setHasAnalyzed(true);
+      
+      // Track recommendation generated
+      trackRecommendationGenerated({
+        entityType: 'lead',
+        entityId: leadId,
+        agentType: 'lead',
+        recommendationId,
+        recommendationType: 'task', // Default, will be refined by agent output
+        confidence: 'medium',
+        latencyMs: Date.now() - startTime,
+      });
     } catch (error) {
       console.error('Error analyzing lead:', error);
+      
+      // Track failure
+      trackAgentRunFailed({
+        entityType: 'lead',
+        entityId: leadId,
+        agentType: 'lead',
+        errorType: 'analysis_failed',
+        errorReason: error instanceof Error ? error.message : 'Unknown error',
+        latencyMs: Date.now() - startTime,
+      });
     }
   };
 
   const handleActionClick = (actionType: string) => {
+    // Track action execution
+    trackActionExecuted({
+      entityType: 'lead',
+      entityId: leadId,
+      agentType: 'lead',
+      recommendationId,
+      actionType,
+      executionChannel: 'crm',
+    });
+    
     switch (actionType) {
       case 'create_opportunity':
         toast.info('Funcionalidade de criar oportunidade em desenvolvimento');
@@ -79,6 +115,12 @@ export function LeadAgentInsightsSection({
         onRefresh={handleAnalyze}
         onActionClick={handleActionClick}
         showFeedback={true}
+        // Analytics context
+        entityType="lead"
+        entityId={leadId}
+        agentType="lead"
+        surface="entity_page"
+        recommendationId={recommendationId}
       />
     );
   }

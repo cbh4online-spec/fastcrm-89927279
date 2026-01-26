@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import type { AgentOutput, ConfidenceLevel, ReasoningStep } from "@/types/aiAgen
 import { getConfidenceColor, getConfidenceLabel } from "@/types/aiAgents";
 import { AgentReasoningTrace } from "./AgentReasoningTrace";
 import { AgentFeedbackButtons } from "./AgentFeedbackButtons";
+import { useAgentAnalytics, type AgentType, type EntityType, type Surface } from "@/hooks/useAgentAnalytics";
 
 interface AgentInsightCardProps {
   output: AgentOutput;
@@ -34,6 +35,12 @@ interface AgentInsightCardProps {
   onActionClick?: (actionType: string) => void;
   showFeedback?: boolean;
   className?: string;
+  // Analytics context
+  entityType?: EntityType;
+  entityId?: string;
+  agentType?: AgentType;
+  surface?: Surface;
+  recommendationId?: string;
 }
 
 const confidenceIcons: Record<ConfidenceLevel, React.ElementType> = {
@@ -57,10 +64,49 @@ export function AgentInsightCard({
   onActionClick,
   showFeedback = true,
   className,
+  // Analytics props
+  entityType,
+  entityId,
+  agentType,
+  surface = 'entity_page',
+  recommendationId,
 }: AgentInsightCardProps) {
   const [showReasoning, setShowReasoning] = useState(false);
+  const { 
+    trackRecommendationViewed, 
+    trackRecommendationAccepted,
+    trackRecommendationDismissed 
+  } = useAgentAnalytics();
   
   const ConfidenceIcon = confidenceIcons[output.confidenceLevel] || Target;
+
+  // Track view on mount
+  useEffect(() => {
+    if (output && entityType && entityId) {
+      trackRecommendationViewed({
+        entityType,
+        entityId,
+        agentType,
+        surface,
+        recommendationId,
+      });
+    }
+  }, [executionId]); // Only track once per execution
+
+  // Handle action click with tracking
+  const handleActionClick = (actionType: string) => {
+    // Track acceptance
+    trackRecommendationAccepted({
+      entityType,
+      entityId,
+      agentType,
+      recommendationId,
+      acceptMethod: 'manual',
+    });
+    
+    // Call original handler
+    onActionClick?.(actionType);
+  };
 
   return (
     <Card className={cn("relative overflow-hidden", className)}>
@@ -180,7 +226,7 @@ export function AgentInsightCard({
               <Button 
                 size="sm" 
                 className="w-full" 
-                onClick={() => onActionClick(output.recommendedActionType as string)}
+                onClick={() => handleActionClick(output.recommendedActionType as string)}
               >
                 Executar Ação
               </Button>
