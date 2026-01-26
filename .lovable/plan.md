@@ -1,630 +1,772 @@
 
-# Prompt & Response Caching Optimization Layer
+# Retrieval-Augmented Reasoning (RAG) Layer
 
 ## Resumo Executivo
 
-Implementar uma camada multi-nível de caching para os agentes AI do CRM que reduz custos de LLM, melhora latência e mantém a corretude das análises através de invalidação determinística.
+Implementar uma camada de RAG controlada e determinística que permite aos agentes AI do CRM enriquecer as suas análises com conhecimento histórico relevante - comparando entidades atuais com casos similares do passado e justificando recomendações com evidência concreta.
 
 ---
 
 ## Diagnóstico do Estado Atual
 
-### Pontos Fortes Existentes
-- **Context Control Layer** já implementado com gestão de tokens e priorização
-- **ai_agent_executions** regista todas as execuções (pode servir como cache histórico)
-- **ai_agent_memory** armazena conclusões e factos (potencial para CAG)
-- Guardrails definidos em `aiSafetyRules.ts`
+### Infraestrutura Existente
+
+| Componente | Estado | Utilização para RAG |
+|------------|--------|---------------------|
+| `knowledge_entries` | Implementado | Base de conhecimento com embeddings (pgvector) |
+| `knowledge-semantic-search` | Implementado | Busca semântica em FAQs |
+| `ai_agent_memory` | Implementado | Memória por entidade com embeddings |
+| `ai_agent_strategic_memory` | Implementado | Padrões cross-entity |
+| `match_knowledge_entries` | Implementado | Função SQL para similarity search |
+| `retrieve_entity_memories` | Implementado | Retrieval de memórias por entidade |
+| Context Control Layer | Implementado | Gestão de token budgets |
+| Cache Layer | Implementado | Response caching |
 
 ### Lacunas Identificadas
-1. **Sem prompt prefix caching** - System prompts são reconstruídos em cada execução
-2. **Sem response caching** - Análises idênticas são recomputadas
-3. **Sem invalidação automática** - Não há tracking de mudanças de estado
-4. **Sem métricas de cache** - Não há tracking de hit ratio ou cost savings
-5. **Sem versionamento de prompts** - Mudanças em guardrails invalidam todo o cache
+
+1. **Sem retrieval de casos históricos similares** - Não compara entidades atuais com passadas
+2. **Sem outcomes tracking** - Oportunidades ganhas/perdidas não são indexadas para RAG
+3. **Sem chunking semântico** - Embeddings são por documento inteiro
+4. **Sem hierarchical retrieval** - Single-pass sem re-ranking
+5. **Sem hybrid search** - Apenas similarity semântica, sem keyword matching
+6. **Sem RAG guardrails** - Não há controlo de qualidade de retrieval
 
 ---
 
-## Arquitetura de 3 Níveis
+## Arquitetura do RAG Layer
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      CACHE OPTIMIZATION LAYER                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────┐ │
-│  │   NÍVEL 1           │  │   NÍVEL 2           │  │   NÍVEL 3       │ │
-│  │   Prompt Prefix     │  │   Response Cache    │  │   CAG Layer     │ │
-│  │   (In-Memory)       │  │   (Database)        │  │   (Pre-inject)  │ │
-│  └─────────────────────┘  └─────────────────────┘  └─────────────────┘ │
-│           │                        │                       │            │
-│           ▼                        ▼                       ▼            │
-│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────┐ │
-│  │ • System prompts    │  │ • Full LLM outputs  │  │ • Business rules│ │
-│  │ • Guardrails        │  │ • By entity state   │  │ • Scoring logic │ │
-│  │ • Output contracts  │  │ • TTL managed       │  │ • Industry data │ │
-│  │ • Versioned         │  │ • Invalidation      │  │ • Static refs   │ │
-│  └─────────────────────┘  └─────────────────────┘  └─────────────────┘ │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────────┐ │
-│  │                    INVALIDATION ENGINE                              │ │
-│  │  • Entity change detection  • Memory updates  • Rule version change │ │
-│  └─────────────────────────────────────────────────────────────────────┘ │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────────┐ │
-│  │                    METRICS & OBSERVABILITY                          │ │
-│  │  • Hit ratio  • Cost savings  • Latency improvement  • Per-agent    │ │
-│  └─────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         RAG OPTIMIZATION LAYER                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────────────┐   ┌──────────────────────┐   ┌─────────────────┐  │
+│  │     KNOWLEDGE        │   │    HISTORICAL        │   │    STRATEGIC    │  │
+│  │     SOURCES          │   │    OUTCOMES          │   │    PATTERNS     │  │
+│  │  (knowledge_entries) │   │   (opportunities)    │   │ (strategic_mem) │  │
+│  └──────────────────────┘   └──────────────────────┘   └─────────────────┘  │
+│            │                         │                         │             │
+│            └─────────────────────────┼─────────────────────────┘             │
+│                                      ▼                                       │
+│  ┌─────────────────────────────────────────────────────────────────────────┐ │
+│  │                        SEMANTIC CHUNKER                                 │ │
+│  │    • Topic-based chunking  • Metadata extraction  • Quality scoring    │ │
+│  └─────────────────────────────────────────────────────────────────────────┘ │
+│                                      │                                       │
+│                                      ▼                                       │
+│  ┌─────────────────────────────────────────────────────────────────────────┐ │
+│  │                    HIERARCHICAL RETRIEVAL                               │ │
+│  │  ┌─────────────────────┐         ┌─────────────────────┐               │ │
+│  │  │   COARSE RETRIEVAL  │  ───▶   │   FINE RETRIEVAL    │               │ │
+│  │  │   (top-k by type)   │         │   (re-ranking)      │               │ │
+│  │  └─────────────────────┘         └─────────────────────┘               │ │
+│  └─────────────────────────────────────────────────────────────────────────┘ │
+│                                      │                                       │
+│                                      ▼                                       │
+│  ┌─────────────────────────────────────────────────────────────────────────┐ │
+│  │                       HYBRID SEARCH ENGINE                              │ │
+│  │   Semantic (embeddings)  +  Keyword (full-text)  +  Metadata (filters) │ │
+│  │                    Weighted combination scoring                         │ │
+│  └─────────────────────────────────────────────────────────────────────────┘ │
+│                                      │                                       │
+│                                      ▼                                       │
+│  ┌─────────────────────────────────────────────────────────────────────────┐ │
+│  │                     CONTEXT INJECTION LAYER                             │ │
+│  │   • Separação de live data vs retrieved  • Labeled as "historical"     │ │
+│  │   • Token budget compliance  • Relevance threshold enforcement          │ │
+│  └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Nível 1: Prompt Prefix Caching
+## Componente 1: Historical Outcomes Index
 
 ### Objetivo
-Cachear secções estáveis de prompts partilhadas entre execuções.
+Indexar oportunidades ganhas/perdidas para retrieval de casos similares.
 
-### Componentes Cacheáveis
-
-| Componente | Estabilidade | Versão |
-|------------|--------------|--------|
-| Agent role instructions | Alta | v1.0 |
-| Output contracts (JSON schema) | Alta | v1.0 |
-| Guardrails & constraints | Alta | v1.0 |
-| System-level instructions | Alta | v1.0 |
-
-### Regras
-- Prefixos devem ser idênticos para maximizar cache hits
-- Versionados com hash do conteúdo
-- Armazenados em memória da edge function
-- TTL: Session duration (até cold start)
-
-### Ficheiro a Criar
-`supabase/functions/_shared/prompt-cache.ts`
-
-```text
-Responsabilidades:
-- Gerar hash de prompt prefix
-- Armazenar prefixes em Map()
-- Validar versão antes de usar
-- Métricas de hit/miss
-```
-
----
-
-## Nível 2: Response Caching
-
-### Objetivo
-Cachear respostas completas para estados de entidade idênticos.
-
-### Cache Key Composition
-
-```text
-CACHE_KEY = hash(
-  agent_type          // 'lead' | 'opportunity' | etc.
-  entity_id           // UUID
-  entity_state_hash   // hash(entity data fields)
-  memory_version      // max(updated_at) from memories
-  context_hash        // hash(included context items)
-  prompt_version      // version of prompt template
-)
-```
-
-### Regras de Elegibilidade
-
-**Cacheable:**
-- Temperature = 0 (determinístico)
-- Confidence level = 'high' ou 'medium'
-- Prompt structure determinístico
-- Context selection determinístico
-
-**Não Cacheable:**
-- Confidence level = 'low'
-- Trigger type = 'manual' (user expects fresh analysis)
-- Entity state changed
-- Memory updated since last cache
-
-### Tabela de Cache (Nova)
+### Tabela Nova: `rag_historical_outcomes`
 
 ```sql
-CREATE TABLE ai_agent_response_cache (
+CREATE TABLE rag_historical_outcomes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id),
-  agent_type TEXT NOT NULL,
-  entity_id UUID NOT NULL,
-  cache_key TEXT NOT NULL UNIQUE,
-  entity_state_hash TEXT NOT NULL,
-  memory_version TIMESTAMP WITH TIME ZONE,
-  prompt_version TEXT NOT NULL,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  source_entity_id UUID NOT NULL,
+  source_entity_type TEXT NOT NULL, -- 'opportunity', 'lead'
   
-  -- Cached response
-  response JSONB NOT NULL,
-  executive_summary TEXT,
-  confidence_level TEXT,
+  -- Outcome data
+  outcome TEXT NOT NULL, -- 'won', 'lost', 'stalled', 'converted'
+  outcome_reason TEXT,
+  outcome_value NUMERIC,
+  outcome_date TIMESTAMP WITH TIME ZONE,
+  
+  -- Context for matching
+  entity_snapshot JSONB NOT NULL, -- Key fields at outcome time
+  industry TEXT,
+  company_size TEXT,
+  deal_cycle_days INTEGER,
+  initial_stage TEXT,
+  final_stage TEXT,
+  
+  -- Derived insights
+  success_factors TEXT[], -- What contributed to win
+  failure_factors TEXT[], -- What contributed to loss
+  lessons_learned TEXT,
+  
+  -- Embedding for semantic search
+  embedding vector(1536),
+  embedding_text TEXT, -- Text that was embedded
   
   -- Metadata
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  last_used_at TIMESTAMP WITH TIME ZONE,
-  hit_count INTEGER DEFAULT 0,
-  
-  -- Cost tracking
-  tokens_saved INTEGER DEFAULT 0,
-  estimated_cost_saved DECIMAL(10,4) DEFAULT 0,
-  
-  -- Invalidation
-  invalidated_at TIMESTAMP WITH TIME ZONE,
-  invalidation_reason TEXT
+  indexed_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX idx_cache_lookup ON ai_agent_response_cache(cache_key) WHERE invalidated_at IS NULL;
-CREATE INDEX idx_cache_entity ON ai_agent_response_cache(entity_id, agent_type);
-CREATE INDEX idx_cache_expiry ON ai_agent_response_cache(expires_at);
+CREATE INDEX idx_rag_outcomes_workspace ON rag_historical_outcomes(workspace_id);
+CREATE INDEX idx_rag_outcomes_outcome ON rag_historical_outcomes(workspace_id, outcome);
+CREATE INDEX idx_rag_outcomes_embedding ON rag_historical_outcomes 
+  USING hnsw (embedding vector_cosine_ops) 
+  WITH (m = 16, ef_construction = 64);
 ```
-
-### TTL por Tipo de Entidade
-
-| Entity Type | TTL | Razão |
-|-------------|-----|-------|
-| Lead | 4 horas | Mudanças frequentes |
-| Opportunity | 2 horas | Alta volatilidade |
-| Contact | 12 horas | Mais estável |
-| Client | 24 horas | Mais estável |
 
 ---
 
-## Nível 3: Cache-Augmented Generation (CAG)
+## Componente 2: Semantic Chunker
 
 ### Objetivo
-Pré-injetar dados de referência estáveis diretamente no prompt cacheado.
+Dividir conteúdo em chunks por significado, não por tamanho fixo.
 
-### Dados Elegíveis para CAG
+### Estratégia de Chunking
 
-| Tipo | Exemplo | Versão |
-|------|---------|--------|
-| Business rules | Critérios de qualificação | v1.0 |
-| Scoring heuristics | Fórmulas de lead score | v1.0 |
-| Industry templates | Templates por setor | v1.0 |
-| Static references | Nomes de etapas do pipeline | Dinâmico |
+| Source | Chunk Strategy | Metadata |
+|--------|----------------|----------|
+| Knowledge entries | By section/paragraph | entry_type, category, keywords |
+| Historical outcomes | By outcome + factors | outcome, industry, value_range |
+| Strategic memory | By pattern type | pattern_type, entity_types |
+| Agent conclusions | By conclusion type | memory_type, confidence |
 
-### Regras CAG
-- Dados devem ser estáveis e versionados
-- Separação explícita de dados ao vivo
-- Refresh quando versão muda
-- Nunca incluir dados específicos de entidade
-
-### Ficheiro a Criar
-`supabase/functions/_shared/cag-data.ts`
-
----
-
-## Invalidação Automática (Crítico)
-
-### Triggers de Invalidação
-
-| Evento | Ação |
-|--------|------|
-| Entity data update | Invalidar cache desta entidade |
-| Pipeline stage change | Invalidar cache desta entidade |
-| New activity logged | Invalidar cache desta entidade |
-| Memory created/updated | Invalidar cache desta entidade |
-| Memory consolidated | Invalidar cache desta entidade |
-| Prompt version change | Invalidar ALL caches deste agent type |
-| Business rules update | Invalidar ALL caches |
-
-### Implementação via Database Triggers
-
-```sql
--- Trigger para invalidar cache quando entidade muda
-CREATE OR REPLACE FUNCTION invalidate_entity_cache()
-RETURNS TRIGGER AS $$
-BEGIN
-  UPDATE ai_agent_response_cache
-  SET 
-    invalidated_at = now(),
-    invalidation_reason = TG_TABLE_NAME || ' updated'
-  WHERE 
-    entity_id = NEW.id 
-    AND invalidated_at IS NULL;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Aplicar a leads, opportunities, contacts, companies
-CREATE TRIGGER invalidate_lead_cache
-  AFTER UPDATE ON leads
-  FOR EACH ROW
-  EXECUTE FUNCTION invalidate_entity_cache();
-```
-
----
-
-## Métricas & Observabilidade
-
-### Tabela de Métricas (Nova)
-
-```sql
-CREATE TABLE ai_cache_metrics (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id),
-  agent_type TEXT NOT NULL,
-  period_start TIMESTAMP WITH TIME ZONE NOT NULL,
-  period_end TIMESTAMP WITH TIME ZONE NOT NULL,
-  
-  -- Counters
-  cache_hits INTEGER DEFAULT 0,
-  cache_misses INTEGER DEFAULT 0,
-  invalidations INTEGER DEFAULT 0,
-  
-  -- Cost savings
-  tokens_saved INTEGER DEFAULT 0,
-  estimated_cost_saved DECIMAL(10,4) DEFAULT 0,
-  
-  -- Latency
-  avg_cache_hit_latency_ms INTEGER,
-  avg_cache_miss_latency_ms INTEGER,
-  
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-CREATE INDEX idx_metrics_workspace ON ai_cache_metrics(workspace_id, period_start);
-```
-
-### KPIs a Monitorizar
-
-| Métrica | Alvo | Descrição |
-|---------|------|-----------|
-| Cache Hit Ratio | > 40% | % de requests servidos do cache |
-| Cost Savings | Track | Tokens não consumidos |
-| Latency Improvement | > 80% | Tempo cache vs fresh |
-| Staleness Rate | < 5% | Cache usado com dados desatualizados |
-| Invalidation Rate | Monitor | Frequência de invalidações |
-
----
-
-## Ficheiros a Criar/Modificar
-
-| Ficheiro | Tipo | Descrição |
-|----------|------|-----------|
-| `supabase/functions/_shared/cache-manager.ts` | **NOVO** | Core caching logic |
-| `supabase/functions/_shared/cache-key-builder.ts` | **NOVO** | Deterministic key generation |
-| `supabase/functions/_shared/cache-invalidation.ts` | **NOVO** | Invalidation triggers |
-| `supabase/functions/_shared/prompt-cache.ts` | **NOVO** | Prompt prefix caching |
-| `supabase/functions/_shared/cag-data.ts` | **NOVO** | CAG reference data |
-| `src/types/cacheLayer.ts` | **NOVO** | TypeScript types |
-| `src/lib/aiSafetyRules.ts` | MODIFICAR | Add cache guardrails |
-| `supabase/functions/ai-agent-orchestrator/index.ts` | MODIFICAR | Integrate cache layer |
-| `supabase/functions/ai-agent-opportunity/index.ts` | MODIFICAR | Integrate cache layer |
-| `supabase/functions/ai-agent-client/index.ts` | MODIFICAR | Integrate cache layer |
-
----
-
-## Fluxo de Execução com Cache
+### Implementação
 
 ```text
-1. REQUEST RECEIVED
-   └── Agent recebe entityId + agentType
+Ficheiro: supabase/functions/_shared/rag-chunker.ts
 
-2. BUILD CACHE KEY
-   └── Fetch entity current state
-   └── Get memory version (max updated_at)
-   └── Get prompt version
-   └── Generate deterministic hash
-
-3. CHECK CACHE
-   └── Query ai_agent_response_cache by cache_key
-   └── Validate: not expired, not invalidated
-   └── If HIT:
-       ├── Update hit_count and last_used_at
-       ├── Log cache hit metric
-       └── Return cached response (FAST PATH)
-
-4. CACHE MISS → EXECUTE ANALYSIS
-   └── Build context using Context Control Layer
-   └── Call LLM (existing flow)
-   └── Get response
-
-5. CACHE RESPONSE (if eligible)
-   └── Check eligibility:
-       ├── Confidence level >= 'medium'
-       ├── Temperature = 0
-       └── Deterministic context
-   └── Insert into ai_agent_response_cache
-   └── Log cache miss metric
-
-6. RETURN RESPONSE
-   └── Include cache metadata in response
+Responsabilidades:
+- Detetar limites de tópico via similarity entre sentenças
+- Respeitar estrutura documental (headers, listas)
+- Extrair metadata por chunk
+- Calcular quality score por chunk
+- Gerar embedding por chunk
 ```
 
 ---
 
-## Garantias de Segurança
+## Componente 3: Hierarchical Retrieval
 
-### Invariantes
+### Objetivo
+Retrieval em duas fases para melhorar precisão.
 
-| Garantia | Implementação |
-|----------|---------------|
-| Cache never overrides live data | Live data fetched fresh, only LLM response cached |
-| Cached outputs traceable | source_execution_id stored |
-| Staleness detectable | entity_state_hash compared before use |
-| Auditable | Full logging in ai_cache_metrics |
-| Explainable | cache_hit flag in response metadata |
+### Fase 1: Coarse Retrieval
+
+```text
+1. Receber query + entity context
+2. Filtrar por metadata:
+   - workspace_id
+   - entity_type relevante
+   - outcome relevante (para opportunities)
+   - recency (últimos 12 meses)
+3. Buscar top-K candidatos por categoria:
+   - 10 historical outcomes
+   - 5 strategic patterns
+   - 5 knowledge entries
+```
+
+### Fase 2: Fine Retrieval
+
+```text
+1. Re-rank candidatos por:
+   - Semantic similarity to current entity
+   - Recency boost
+   - Outcome relevance (won > lost for similar cases)
+   - Confidence/validation status
+2. Aplicar relevance threshold (0.6 mínimo)
+3. Selecionar top-5 final respeitando token budget
+```
+
+---
+
+## Componente 4: Hybrid Search Engine
+
+### Objetivo
+Combinar busca semântica com keyword matching.
+
+### Pesos de Scoring
+
+```typescript
+interface HybridSearchWeights {
+  semantic: 0.6;       // Embedding similarity
+  keyword: 0.25;       // Full-text match
+  metadata: 0.15;      // Filter match bonus
+}
+```
+
+### Implementação
+
+```text
+Ficheiro: supabase/functions/_shared/rag-hybrid-search.ts
+
+Responsabilidades:
+- Executar vector similarity search
+- Executar full-text search
+- Combinar resultados com weighted scoring
+- Aplicar metadata filters
+- Deduplicate e rank final
+```
+
+---
+
+## Componente 5: Context Injection Layer
+
+### Objetivo
+Injetar contexto RAG de forma controlada e rotulada.
+
+### Formato de Injeção
+
+```text
+═══════════════════════════════════════════════════════════════
+📊 EVIDÊNCIA HISTÓRICA (não confundir com dados atuais)
+═══════════════════════════════════════════════════════════════
+
+## Casos Similares Relevantes:
+
+### 1. Oportunidade GANHA (similaridade: 87%)
+- Indústria: SaaS B2B
+- Valor: €45,000
+- Ciclo: 45 dias
+- Fator de sucesso: Demo técnica personalizada
+- Relevância: Este caso tinha perfil de decisor similar
+
+### 2. Oportunidade PERDIDA (similaridade: 82%)
+- Indústria: SaaS B2B
+- Valor: €38,000
+- Motivo: Preço (competidor mais barato)
+- Lição: Importante demonstrar ROI early
+
+## Padrões Identificados:
+- Leads deste setor convertem 40% melhor com follow-up em 48h
+- Objeção de preço resolve-se com case study de ROI
+
+═══════════════════════════════════════════════════════════════
+```
+
+### Regras de Injeção
+
+1. **Separação clara** - Evidência histórica nunca se mistura com dados ao vivo
+2. **Labeling explícito** - Sempre indicar "HISTÓRICO" ou "PADRÃO"
+3. **Similarity scores** - Sempre mostrar % de similaridade
+4. **Token budget** - RAG context limitado a 20% do budget total
+5. **Threshold mínimo** - Só injetar se relevance >= 0.6
+
+---
+
+## Componente 6: RAG Guardrails
+
+### Tipos de Guardrails
+
+```typescript
+export interface RAGGuardrails {
+  // Retrieval limits
+  maxRetrievedChunks: number;           // 20
+  maxFinalContextChunks: number;        // 5
+  relevanceThreshold: number;           // 0.6
+  
+  // Token budgets
+  maxRAGContextTokens: number;          // 20% of agent budget
+  maxChunkTokens: number;               // 500 tokens per chunk
+  
+  // Quality controls
+  minChunkQualityScore: number;         // 0.5
+  requireOutcomeForOpportunities: true; // Only retrieve closed deals
+  
+  // Safety
+  neverOverrideLiveData: true;
+  alwaysLabelAsHistorical: true;
+  logAllRetrievals: true;
+}
+```
 
 ### Anti-Patterns Prevenidos
 
 | Anti-Pattern | Prevenção |
 |--------------|-----------|
-| Cache everything | Eligibility rules enforced |
-| Cache high-temperature | Temperature check before caching |
-| No invalidation | Trigger-based automatic invalidation |
-| Silent cache usage | response.metadata.fromCache = true |
-| Entity-state unawareness | entity_state_hash in cache key |
+| Fixed chunk sizes | Semantic chunking enforced |
+| Embedding everything | Quality filter before embedding |
+| Blind injection | Relevance threshold + labeling |
+| First-pass only | Two-stage retrieval |
+| Maximize context | Token budget + relevance limits |
 
 ---
 
-## Tipos TypeScript
+## Ficheiros a Criar
 
-```typescript
-// src/types/cacheLayer.ts
-
-interface CacheKey {
-  agentType: AgentType;
-  entityId: string;
-  entityStateHash: string;
-  memoryVersion: string;
-  contextHash: string;
-  promptVersion: string;
-  compositeKey: string; // Final hash
-}
-
-interface CacheEntry {
-  id: string;
-  cacheKey: string;
-  response: AgentOutput;
-  executiveSummary: string;
-  confidenceLevel: 'low' | 'medium' | 'high';
-  createdAt: string;
-  expiresAt: string;
-  hitCount: number;
-  tokensSaved: number;
-}
-
-interface CacheCheckResult {
-  hit: boolean;
-  entry?: CacheEntry;
-  reason?: string; // 'expired' | 'invalidated' | 'not_found' | 'stale_state'
-}
-
-interface CacheEligibility {
-  eligible: boolean;
-  reason?: string;
-  suggestedTTL?: number;
-}
-
-interface CacheMetrics {
-  hits: number;
-  misses: number;
-  hitRatio: number;
-  tokensSaved: number;
-  estimatedCostSaved: number;
-  avgHitLatencyMs: number;
-  avgMissLatencyMs: number;
-}
-
-interface CacheConfig {
-  enabled: boolean;
-  ttlByEntityType: Record<string, number>;
-  maxEntriesPerEntity: number;
-  autoInvalidation: boolean;
-  trackMetrics: boolean;
-}
-```
+| Ficheiro | Descrição |
+|----------|-----------|
+| `supabase/functions/_shared/rag-types.ts` | Type definitions para RAG |
+| `supabase/functions/_shared/rag-chunker.ts` | Semantic chunking logic |
+| `supabase/functions/_shared/rag-retriever.ts` | Hierarchical retrieval |
+| `supabase/functions/_shared/rag-hybrid-search.ts` | Hybrid search engine |
+| `supabase/functions/_shared/rag-context-builder.ts` | Context injection |
+| `supabase/functions/_shared/rag-guardrails.ts` | Guardrails & validation |
+| `supabase/functions/rag-index-outcome/index.ts` | Index opportunity outcomes |
+| `supabase/functions/rag-search/index.ts` | Unified RAG search endpoint |
+| `src/types/ragLayer.ts` | Frontend type definitions |
+| `src/lib/aiSafetyRules.ts` | Add RAG guardrails |
 
 ---
 
-## Regras de Segurança (Adições)
+## Ficheiros a Modificar
 
-```typescript
-// Adicionar a src/lib/aiSafetyRules.ts
-
-export const CACHE_GUARDRAILS = {
-  // Cache eligibility
-  minConfidenceForCache: 'medium' as const,
-  maxTemperatureForCache: 0,
-  
-  // TTL limits (em horas)
-  ttlByEntityType: {
-    lead: 4,
-    opportunity: 2,
-    contact: 12,
-    client: 24,
-  },
-  
-  // Invalidation
-  autoInvalidateOnEntityChange: true,
-  autoInvalidateOnMemoryUpdate: true,
-  autoInvalidateOnPromptVersionChange: true,
-  
-  // Limits
-  maxCacheEntriesPerEntity: 5,
-  maxCacheAgeHours: 48,
-  
-  // Safety
-  alwaysFetchLiveEntityData: true,
-  neverCacheManualTriggers: true,
-  logAllCacheHits: true,
-};
-
-export const CACHE_FORBIDDEN_PATTERNS = {
-  NO_CACHE_LOW_CONFIDENCE: 'Respostas low confidence nunca são cacheadas',
-  NO_CACHE_HIGH_TEMPERATURE: 'Outputs com temperature > 0 nunca são cacheados',
-  NO_CACHE_WITHOUT_STATE_HASH: 'Cache sem entity state hash é proibido',
-  NO_SILENT_CACHE: 'Uso de cache deve ser indicado na resposta',
-  NO_STALE_CACHE: 'Cache com estado desatualizado deve ser invalidado',
-};
-```
+| Ficheiro | Modificação |
+|----------|-------------|
+| `ai-agent-orchestrator/index.ts` | Integrate RAG retrieval |
+| `ai-agent-opportunity/index.ts` | Add historical comparison |
+| `ai-agent-client/index.ts` | Add pattern retrieval |
+| `context-collector.ts` | Add RAG source type |
+| `prompt-assembler.ts` | Add RAG context section |
 
 ---
 
 ## Migração de Base de Dados
 
 ```sql
--- Tabela principal de cache
-CREATE TABLE ai_agent_response_cache (
+-- Tabela principal de outcomes
+CREATE TABLE rag_historical_outcomes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  source_entity_id UUID NOT NULL,
+  source_entity_type TEXT NOT NULL,
+  outcome TEXT NOT NULL CHECK (outcome IN ('won', 'lost', 'stalled', 'converted', 'churned')),
+  outcome_reason TEXT,
+  outcome_value NUMERIC,
+  outcome_date TIMESTAMP WITH TIME ZONE,
+  entity_snapshot JSONB NOT NULL,
+  industry TEXT,
+  company_size TEXT,
+  deal_cycle_days INTEGER,
+  initial_stage TEXT,
+  final_stage TEXT,
+  success_factors TEXT[],
+  failure_factors TEXT[],
+  lessons_learned TEXT,
+  embedding vector(1536),
+  embedding_text TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  indexed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Tabela de chunks indexados
+CREATE TABLE rag_indexed_chunks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  source_table TEXT NOT NULL,
+  source_id UUID NOT NULL,
+  chunk_index INTEGER NOT NULL,
+  chunk_content TEXT NOT NULL,
+  chunk_metadata JSONB,
+  quality_score NUMERIC DEFAULT 1.0,
+  embedding vector(1536),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  UNIQUE(source_table, source_id, chunk_index)
+);
+
+-- Tabela de métricas RAG
+CREATE TABLE rag_retrieval_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   agent_type TEXT NOT NULL,
-  entity_id UUID NOT NULL,
-  entity_type TEXT NOT NULL,
-  cache_key TEXT NOT NULL,
-  entity_state_hash TEXT NOT NULL,
-  memory_version TIMESTAMP WITH TIME ZONE,
-  prompt_version TEXT NOT NULL DEFAULT 'v1.0',
-  context_hash TEXT,
-  
-  -- Cached response
-  response JSONB NOT NULL,
-  executive_summary TEXT,
-  confidence_level TEXT CHECK (confidence_level IN ('low', 'medium', 'high')),
-  
-  -- Timing
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  last_used_at TIMESTAMP WITH TIME ZONE,
-  
-  -- Metrics
-  hit_count INTEGER DEFAULT 0,
-  original_duration_ms INTEGER,
-  tokens_saved INTEGER DEFAULT 0,
-  
-  -- Invalidation
-  invalidated_at TIMESTAMP WITH TIME ZONE,
-  invalidation_reason TEXT,
-  
-  CONSTRAINT unique_cache_key UNIQUE (cache_key)
+  query_type TEXT NOT NULL,
+  chunks_retrieved INTEGER,
+  chunks_used INTEGER,
+  avg_relevance_score NUMERIC,
+  retrieval_time_ms INTEGER,
+  context_tokens_used INTEGER,
+  query_date TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 -- Índices
-CREATE INDEX idx_cache_lookup ON ai_agent_response_cache(cache_key) 
-  WHERE invalidated_at IS NULL AND expires_at > now();
-CREATE INDEX idx_cache_entity ON ai_agent_response_cache(entity_id, agent_type);
-CREATE INDEX idx_cache_workspace ON ai_agent_response_cache(workspace_id);
-CREATE INDEX idx_cache_expiry ON ai_agent_response_cache(expires_at) 
-  WHERE invalidated_at IS NULL;
+CREATE INDEX idx_rag_outcomes_workspace ON rag_historical_outcomes(workspace_id);
+CREATE INDEX idx_rag_outcomes_type ON rag_historical_outcomes(workspace_id, outcome);
+CREATE INDEX idx_rag_outcomes_embedding ON rag_historical_outcomes 
+  USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 
--- Tabela de métricas
-CREATE TABLE ai_cache_metrics (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  agent_type TEXT NOT NULL,
-  period_start TIMESTAMP WITH TIME ZONE NOT NULL,
-  period_end TIMESTAMP WITH TIME ZONE NOT NULL,
-  cache_hits INTEGER DEFAULT 0,
-  cache_misses INTEGER DEFAULT 0,
-  invalidations INTEGER DEFAULT 0,
-  tokens_saved INTEGER DEFAULT 0,
-  avg_hit_latency_ms INTEGER,
-  avg_miss_latency_ms INTEGER,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
+CREATE INDEX idx_rag_chunks_source ON rag_indexed_chunks(source_table, source_id);
+CREATE INDEX idx_rag_chunks_embedding ON rag_indexed_chunks 
+  USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 
-CREATE INDEX idx_metrics_lookup ON ai_cache_metrics(workspace_id, agent_type, period_start);
+CREATE INDEX idx_rag_metrics_lookup ON rag_retrieval_metrics(workspace_id, agent_type, query_date);
 
--- RLS Policies
-ALTER TABLE ai_agent_response_cache ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ai_cache_metrics ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Cache access by workspace members" ON ai_agent_response_cache
-  FOR ALL USING (
-    workspace_id IN (
-      SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Metrics access by workspace members" ON ai_cache_metrics
-  FOR SELECT USING (
-    workspace_id IN (
-      SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()
-    )
-  );
-
--- Função de invalidação
-CREATE OR REPLACE FUNCTION invalidate_entity_cache()
-RETURNS TRIGGER AS $$
+-- Função de similarity search para outcomes
+CREATE OR REPLACE FUNCTION match_historical_outcomes(
+  query_embedding vector(1536),
+  match_threshold float,
+  match_count int,
+  filter_workspace_id uuid,
+  filter_outcome text DEFAULT NULL
+)
+RETURNS TABLE (
+  id uuid,
+  source_entity_id uuid,
+  source_entity_type text,
+  outcome text,
+  outcome_reason text,
+  outcome_value numeric,
+  entity_snapshot jsonb,
+  success_factors text[],
+  failure_factors text[],
+  lessons_learned text,
+  similarity float
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
-  UPDATE ai_agent_response_cache
-  SET 
-    invalidated_at = now(),
-    invalidation_reason = TG_TABLE_NAME || ' updated'
-  WHERE 
-    entity_id = NEW.id 
-    AND invalidated_at IS NULL;
-  
-  -- Increment invalidation counter
-  INSERT INTO ai_cache_metrics (
-    workspace_id, agent_type, period_start, period_end, invalidations
+  RETURN QUERY
+  SELECT
+    ho.id,
+    ho.source_entity_id,
+    ho.source_entity_type,
+    ho.outcome,
+    ho.outcome_reason,
+    ho.outcome_value,
+    ho.entity_snapshot,
+    ho.success_factors,
+    ho.failure_factors,
+    ho.lessons_learned,
+    1 - (ho.embedding <-> query_embedding) as similarity
+  FROM rag_historical_outcomes ho
+  WHERE ho.workspace_id = filter_workspace_id
+    AND ho.embedding IS NOT NULL
+    AND (filter_outcome IS NULL OR ho.outcome = filter_outcome)
+    AND 1 - (ho.embedding <-> query_embedding) > match_threshold
+  ORDER BY ho.embedding <-> query_embedding
+  LIMIT match_count;
+END;
+$$;
+
+-- Função para busca híbrida
+CREATE OR REPLACE FUNCTION rag_hybrid_search(
+  query_text text,
+  query_embedding vector(1536),
+  filter_workspace_id uuid,
+  semantic_weight float DEFAULT 0.6,
+  keyword_weight float DEFAULT 0.25,
+  metadata_weight float DEFAULT 0.15,
+  match_count int DEFAULT 10
+)
+RETURNS TABLE (
+  source_table text,
+  source_id uuid,
+  chunk_content text,
+  chunk_metadata jsonb,
+  semantic_score float,
+  keyword_score float,
+  combined_score float
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH semantic_results AS (
+    SELECT 
+      c.source_table,
+      c.source_id,
+      c.chunk_content,
+      c.chunk_metadata,
+      1 - (c.embedding <-> query_embedding) as semantic_score
+    FROM rag_indexed_chunks c
+    WHERE c.workspace_id = filter_workspace_id
+      AND c.embedding IS NOT NULL
+    ORDER BY c.embedding <-> query_embedding
+    LIMIT match_count * 2
+  ),
+  keyword_results AS (
+    SELECT
+      c.source_table,
+      c.source_id,
+      c.chunk_content,
+      c.chunk_metadata,
+      ts_rank(to_tsvector('portuguese', c.chunk_content), plainto_tsquery('portuguese', query_text)) as keyword_score
+    FROM rag_indexed_chunks c
+    WHERE c.workspace_id = filter_workspace_id
+      AND to_tsvector('portuguese', c.chunk_content) @@ plainto_tsquery('portuguese', query_text)
+    ORDER BY keyword_score DESC
+    LIMIT match_count * 2
   )
   SELECT 
-    workspace_id, agent_type, date_trunc('hour', now()), date_trunc('hour', now()) + interval '1 hour', 1
-  FROM ai_agent_response_cache
-  WHERE entity_id = NEW.id
-  GROUP BY workspace_id, agent_type
-  ON CONFLICT (workspace_id, agent_type, period_start) 
-  DO UPDATE SET invalidations = ai_cache_metrics.invalidations + 1;
-  
-  RETURN NEW;
+    COALESCE(s.source_table, k.source_table) as source_table,
+    COALESCE(s.source_id, k.source_id) as source_id,
+    COALESCE(s.chunk_content, k.chunk_content) as chunk_content,
+    COALESCE(s.chunk_metadata, k.chunk_metadata) as chunk_metadata,
+    COALESCE(s.semantic_score, 0) as semantic_score,
+    COALESCE(k.keyword_score, 0) as keyword_score,
+    (COALESCE(s.semantic_score, 0) * semantic_weight + 
+     COALESCE(k.keyword_score, 0) * keyword_weight) as combined_score
+  FROM semantic_results s
+  FULL OUTER JOIN keyword_results k 
+    ON s.source_table = k.source_table AND s.source_id = k.source_id
+  ORDER BY combined_score DESC
+  LIMIT match_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
--- Triggers de invalidação
-CREATE TRIGGER invalidate_lead_cache
-  AFTER UPDATE ON leads
-  FOR EACH ROW EXECUTE FUNCTION invalidate_entity_cache();
+-- RLS Policies
+ALTER TABLE rag_historical_outcomes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rag_indexed_chunks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rag_retrieval_metrics ENABLE ROW LEVEL SECURITY;
 
-CREATE TRIGGER invalidate_opportunity_cache
-  AFTER UPDATE ON opportunities
-  FOR EACH ROW EXECUTE FUNCTION invalidate_entity_cache();
+CREATE POLICY "Workspace members can access outcomes" ON rag_historical_outcomes
+  FOR ALL USING (
+    workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())
+  );
 
-CREATE TRIGGER invalidate_contact_cache
-  AFTER UPDATE ON contacts
-  FOR EACH ROW EXECUTE FUNCTION invalidate_entity_cache();
+CREATE POLICY "Workspace members can access chunks" ON rag_indexed_chunks
+  FOR ALL USING (
+    workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())
+  );
 
-CREATE TRIGGER invalidate_company_cache
-  AFTER UPDATE ON companies
-  FOR EACH ROW EXECUTE FUNCTION invalidate_entity_cache();
+CREATE POLICY "Workspace members can view metrics" ON rag_retrieval_metrics
+  FOR SELECT USING (
+    workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())
+  );
 
--- Trigger para memórias
-CREATE OR REPLACE FUNCTION invalidate_memory_cache()
+-- Trigger para indexar outcomes quando oportunidade fecha
+CREATE OR REPLACE FUNCTION index_opportunity_outcome()
 RETURNS TRIGGER AS $$
 BEGIN
-  UPDATE ai_agent_response_cache
-  SET 
-    invalidated_at = now(),
-    invalidation_reason = 'memory updated'
-  WHERE 
-    entity_id = NEW.entity_id 
-    AND invalidated_at IS NULL;
+  -- Only process when status changes to won/lost
+  IF NEW.status IN ('won', 'lost') AND (OLD.status IS NULL OR OLD.status NOT IN ('won', 'lost')) THEN
+    INSERT INTO rag_historical_outcomes (
+      workspace_id,
+      source_entity_id,
+      source_entity_type,
+      outcome,
+      outcome_reason,
+      outcome_value,
+      outcome_date,
+      entity_snapshot,
+      initial_stage,
+      final_stage
+    ) VALUES (
+      NEW.workspace_id,
+      NEW.id,
+      'opportunity',
+      NEW.status,
+      NEW.lost_reason,
+      NEW.value,
+      now(),
+      jsonb_build_object(
+        'title', NEW.title,
+        'value', NEW.value,
+        'probability', NEW.probability,
+        'source', NEW.source,
+        'notes', NEW.notes,
+        'ai_insight', NEW.ai_insight
+      ),
+      NULL, -- Would need to track initial stage
+      NEW.status
+    )
+    ON CONFLICT DO NOTHING;
+  END IF;
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER invalidate_cache_on_memory
-  AFTER INSERT OR UPDATE ON ai_agent_memory
-  FOR EACH ROW EXECUTE FUNCTION invalidate_memory_cache();
+CREATE TRIGGER trigger_index_opportunity_outcome
+  AFTER UPDATE ON opportunities
+  FOR EACH ROW
+  EXECUTE FUNCTION index_opportunity_outcome();
+```
 
--- Função de cleanup (para cron job)
-CREATE OR REPLACE FUNCTION cleanup_expired_cache()
-RETURNS INTEGER AS $$
-DECLARE
-  deleted_count INTEGER;
-BEGIN
-  DELETE FROM ai_agent_response_cache
-  WHERE expires_at < now() OR invalidated_at IS NOT NULL;
+---
+
+## Tipos TypeScript
+
+```typescript
+// src/types/ragLayer.ts
+
+export interface RAGQuery {
+  text: string;
+  entityContext: {
+    entityId: string;
+    entityType: string;
+    entityData: Record<string, unknown>;
+  };
+  filters?: {
+    outcome?: 'won' | 'lost' | 'all';
+    industry?: string;
+    dateRange?: { start: string; end: string };
+  };
+  limits?: {
+    maxChunks?: number;
+    relevanceThreshold?: number;
+  };
+}
+
+export interface RAGChunk {
+  id: string;
+  sourceTable: string;
+  sourceId: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  relevanceScore: number;
+  chunkType: 'outcome' | 'pattern' | 'knowledge' | 'memory';
+}
+
+export interface RAGRetrievalResult {
+  success: boolean;
+  chunks: RAGChunk[];
+  historicalOutcomes: HistoricalOutcome[];
+  strategicPatterns: StrategicPattern[];
+  totalRetrieved: number;
+  totalUsed: number;
+  avgRelevance: number;
+  retrievalTimeMs: number;
+}
+
+export interface HistoricalOutcome {
+  id: string;
+  outcome: 'won' | 'lost' | 'stalled';
+  outcomeReason?: string;
+  outcomeValue?: number;
+  similarity: number;
+  successFactors?: string[];
+  failureFactors?: string[];
+  lessonsLearned?: string;
+  entitySnapshot: Record<string, unknown>;
+}
+
+export interface StrategicPattern {
+  id: string;
+  patternType: string;
+  patternDescription: string;
+  occurrenceCount: number;
+  confidenceScore: number;
+  recommendedActions: string[];
+  contraindicatedActions: string[];
+}
+
+export interface RAGContext {
+  historicalEvidence: string;
+  patternsIdentified: string;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  sourcesUsed: number;
+  tokenCount: number;
+}
+
+export interface RAGGuardrails {
+  maxRetrievedChunks: number;
+  maxFinalContextChunks: number;
+  relevanceThreshold: number;
+  maxRAGContextTokens: number;
+  maxChunkTokens: number;
+  minChunkQualityScore: number;
+  requireOutcomeForOpportunities: boolean;
+  neverOverrideLiveData: boolean;
+  alwaysLabelAsHistorical: boolean;
+  logAllRetrievals: boolean;
+}
+
+export interface RAGMetrics {
+  totalQueries: number;
+  avgRetrievalTimeMs: number;
+  avgChunksRetrieved: number;
+  avgRelevanceScore: number;
+  hitRatio: number;
+  tokensSaved: number;
+}
+```
+
+---
+
+## Fluxo de Execução
+
+```text
+1. AGENT RECEIVES REQUEST
+   └── Entity ID + Type + Trigger
+
+2. BUILD RAG QUERY
+   └── Extract entity key fields
+   └── Determine query type (opportunity → outcomes, lead → patterns)
+   └── Set filters (workspace, recency, outcome type)
+
+3. COARSE RETRIEVAL (Phase 1)
+   └── Query rag_historical_outcomes (top-10)
+   └── Query ai_agent_strategic_memory (top-5)
+   └── Query rag_indexed_chunks (top-10)
+   └── Apply metadata filters
+
+4. FINE RETRIEVAL (Phase 2)
+   └── Re-rank by semantic similarity to current entity
+   └── Apply relevance threshold (>= 0.6)
+   └── Apply token budget (max 20% of agent budget)
+   └── Select top-5 final chunks
+
+5. BUILD RAG CONTEXT
+   └── Format historical outcomes as evidence
+   └── Format patterns as insights
+   └── Apply labeling ("HISTÓRICO", "PADRÃO")
+   └── Ensure separation from live data
+
+6. INJECT INTO PROMPT
+   └── Insert after live entity data
+   └── Before agent task/question
+   └── Within token budget
+
+7. RECORD METRICS
+   └── Log retrieval stats
+   └── Track usage for optimization
+```
+
+---
+
+## Guardrails a Adicionar
+
+```typescript
+// Adicionar a src/lib/aiSafetyRules.ts
+
+export const RAG_GUARDRAILS: RAGGuardrails = {
+  // Retrieval limits
+  maxRetrievedChunks: 20,
+  maxFinalContextChunks: 5,
+  relevanceThreshold: 0.6,
   
-  GET DIAGNOSTICS deleted_count = ROW_COUNT;
-  RETURN deleted_count;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+  // Token budgets
+  maxRAGContextTokens: 1500,  // ~20% of typical budget
+  maxChunkTokens: 500,
+  
+  // Quality controls
+  minChunkQualityScore: 0.5,
+  requireOutcomeForOpportunities: true,
+  
+  // Safety
+  neverOverrideLiveData: true,
+  alwaysLabelAsHistorical: true,
+  logAllRetrievals: true,
+};
+
+export const RAG_FORBIDDEN_PATTERNS = {
+  NO_FIXED_CHUNKING: 'Chunking deve ser semântico, não por tamanho fixo',
+  NO_EMBED_EVERYTHING: 'Apenas conteúdo de qualidade é embedido',
+  NO_BLIND_INJECTION: 'RAG context deve ter relevance >= threshold',
+  NO_SINGLE_PASS: 'Retrieval deve ser hierárquico (2 fases)',
+  NO_MAXIMIZE_CONTEXT: 'Priorizar relevância sobre quantidade',
+  NO_OVERRIDE_LIVE: 'RAG nunca sobrepõe dados ao vivo',
+  NO_UNLABELED_RAG: 'RAG context deve ser claramente rotulado',
+};
 ```
 
 ---
@@ -632,26 +774,32 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 ## Ordem de Implementação
 
 1. **Fase 1 - Fundações** (1h)
-   - Criar `src/types/cacheLayer.ts`
-   - Adicionar constantes a `aiSafetyRules.ts`
+   - Criar tipos `src/types/ragLayer.ts`
+   - Adicionar guardrails a `aiSafetyRules.ts`
    - Executar migração de base de dados
 
-2. **Fase 2 - Core Cache** (2h)
-   - Criar `cache-key-builder.ts`
-   - Criar `cache-manager.ts`
-   - Criar `cache-invalidation.ts`
+2. **Fase 2 - Indexação** (1.5h)
+   - Criar `rag-chunker.ts`
+   - Criar `rag-index-outcome/index.ts`
+   - Implementar trigger de outcomes
 
-3. **Fase 3 - Prompt & CAG** (1h)
-   - Criar `prompt-cache.ts`
-   - Criar `cag-data.ts`
+3. **Fase 3 - Retrieval** (2h)
+   - Criar `rag-retriever.ts`
+   - Criar `rag-hybrid-search.ts`
+   - Criar função SQL `match_historical_outcomes`
 
-4. **Fase 4 - Agent Integration** (1.5h)
+4. **Fase 4 - Context Building** (1h)
+   - Criar `rag-context-builder.ts`
+   - Criar `rag-guardrails.ts`
+   - Integrar com `context-collector.ts`
+
+5. **Fase 5 - Agent Integration** (1.5h)
    - Modificar `ai-agent-orchestrator`
    - Modificar `ai-agent-opportunity`
-   - Modificar `ai-agent-client`
+   - Criar `rag-search/index.ts`
 
-5. **Fase 5 - Observability** (30min)
-   - Adicionar logging de métricas
+6. **Fase 6 - Métricas** (30min)
+   - Implementar logging de retrieval
    - Criar queries de análise
 
 ---
@@ -660,8 +808,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 | Métrica | Alvo Inicial | Alvo 30 Dias |
 |---------|--------------|--------------|
-| Cache Hit Ratio | 20% | 45% |
-| Latency Reduction | 50% | 80% |
-| Token Savings | 15% | 35% |
-| Staleness Rate | < 10% | < 3% |
-| Invalidation Accuracy | 95% | 99% |
+| Retrieval Relevance | > 0.65 avg | > 0.75 avg |
+| RAG Usage Rate | 30% of analyses | 60% of analyses |
+| Context Quality | 80% useful | 90% useful |
+| Token Efficiency | < 25% budget | < 20% budget |
+| Agent Confidence Boost | +5% | +15% |
