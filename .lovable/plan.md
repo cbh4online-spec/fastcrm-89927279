@@ -1,176 +1,284 @@
 
-# Context Window Optimization & Control Layer
+# Prompt & Response Caching Optimization Layer
 
 ## Resumo Executivo
 
-Implementar uma camada centralizada e determinística de gestão de contexto para todos os agentes AI do CRM, garantindo que cada agente opera com o contexto certo, no momento certo, sem exceder limites de tokens e sem perda de informação crítica.
+Implementar uma camada multi-nível de caching para os agentes AI do CRM que reduz custos de LLM, melhora latência e mantém a corretude das análises através de invalidação determinística.
 
 ---
 
 ## Diagnóstico do Estado Atual
 
-### Pontos Fortes
-- Já existe um sistema de memória semântica (`ai_agent_memory`)
-- `buildPromptContext()` no `ai-memory-manager` categoriza memórias
-- Safety rules definem limites de memória (2000 chars, 50 entries)
-- Agentes especializados para cada tipo de entidade
+### Pontos Fortes Existentes
+- **Context Control Layer** já implementado com gestão de tokens e priorização
+- **ai_agent_executions** regista todas as execuções (pode servir como cache histórico)
+- **ai_agent_memory** armazena conclusões e factos (potencial para CAG)
+- Guardrails definidos em `aiSafetyRules.ts`
 
-### Problemas Identificados
-1. **Sem estimativa de tokens** - Nenhum agente calcula tokens antes da execução
-2. **Contexto não priorizado** - Todas as fontes têm peso igual
-3. **Sem compressão adaptativa** - Não há sumarização baseada em tamanho
-4. **Injection desorganizado** - Contexto misturado nos prompts atuais
-5. **Sem fallback graceful** - Não há degradação controlada
+### Lacunas Identificadas
+1. **Sem prompt prefix caching** - System prompts são reconstruídos em cada execução
+2. **Sem response caching** - Análises idênticas são recomputadas
+3. **Sem invalidação automática** - Não há tracking de mudanças de estado
+4. **Sem métricas de cache** - Não há tracking de hit ratio ou cost savings
+5. **Sem versionamento de prompts** - Mudanças em guardrails invalidam todo o cache
 
 ---
 
-## Arquitetura da Solução
-
-### Diagrama de Fluxo
+## Arquitetura de 3 Níveis
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                     CONTEXT CONTROL LAYER                          │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐         │
-│  │  TOKEN       │───▶│  CONTEXT     │───▶│  PRIORITY    │         │
-│  │  ESTIMATOR   │    │  COLLECTOR   │    │  SORTER      │         │
-│  └──────────────┘    └──────────────┘    └──────────────┘         │
-│         │                   │                   │                  │
-│         ▼                   ▼                   ▼                  │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐         │
-│  │  BUDGET      │    │  SUMMARIZER  │    │  PROMPT      │         │
-│  │  ENFORCER    │◀──▶│  (Adaptive)  │───▶│  ASSEMBLER   │         │
-│  └──────────────┘    └──────────────┘    └──────────────┘         │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    ┌──────────────────┐
-                    │   STRUCTURED     │
-                    │   PROMPT OUTPUT  │
-                    └──────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      CACHE OPTIMIZATION LAYER                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────┐ │
+│  │   NÍVEL 1           │  │   NÍVEL 2           │  │   NÍVEL 3       │ │
+│  │   Prompt Prefix     │  │   Response Cache    │  │   CAG Layer     │ │
+│  │   (In-Memory)       │  │   (Database)        │  │   (Pre-inject)  │ │
+│  └─────────────────────┘  └─────────────────────┘  └─────────────────┘ │
+│           │                        │                       │            │
+│           ▼                        ▼                       ▼            │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────┐ │
+│  │ • System prompts    │  │ • Full LLM outputs  │  │ • Business rules│ │
+│  │ • Guardrails        │  │ • By entity state   │  │ • Scoring logic │ │
+│  │ • Output contracts  │  │ • TTL managed       │  │ • Industry data │ │
+│  │ • Versioned         │  │ • Invalidation      │  │ • Static refs   │ │
+│  └─────────────────────┘  └─────────────────────┘  └─────────────────┘ │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐ │
+│  │                    INVALIDATION ENGINE                              │ │
+│  │  • Entity change detection  • Memory updates  • Rule version change │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐ │
+│  │                    METRICS & OBSERVABILITY                          │ │
+│  │  • Hit ratio  • Cost savings  • Latency improvement  • Per-agent    │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Componentes a Implementar
+## Nível 1: Prompt Prefix Caching
 
-### 1. Token Estimator & Budget Manager
+### Objetivo
+Cachear secções estáveis de prompts partilhadas entre execuções.
 
-**Ficheiro:** `supabase/functions/_shared/context-manager.ts`
+### Componentes Cacheáveis
+
+| Componente | Estabilidade | Versão |
+|------------|--------------|--------|
+| Agent role instructions | Alta | v1.0 |
+| Output contracts (JSON schema) | Alta | v1.0 |
+| Guardrails & constraints | Alta | v1.0 |
+| System-level instructions | Alta | v1.0 |
+
+### Regras
+- Prefixos devem ser idênticos para maximizar cache hits
+- Versionados com hash do conteúdo
+- Armazenados em memória da edge function
+- TTL: Session duration (até cold start)
+
+### Ficheiro a Criar
+`supabase/functions/_shared/prompt-cache.ts`
 
 ```text
 Responsabilidades:
-- Estimar tokens de qualquer texto (regra: ~4 chars = 1 token)
-- Definir orçamentos por tipo de agente
-- Calcular espaço restante em tempo real
-- Retornar métricas de uso
-
-Orçamentos de Token:
-- Lead Agent: 8.000 tokens (modelo flash)
-- Opportunity Agent: 12.000 tokens (análise profunda)
-- Client Agent: 10.000 tokens
-- Contact Agent: 6.000 tokens
-
-Reservas Obrigatórias:
-- System Prompt: 2.000 tokens
-- Response Buffer: 3.000 tokens
-- Contexto Disponível: Budget - Reservas
+- Gerar hash de prompt prefix
+- Armazenar prefixes em Map()
+- Validar versão antes de usar
+- Métricas de hit/miss
 ```
 
-### 2. Context Collector & Prioritizer
+---
 
-**Ficheiro:** `supabase/functions/_shared/context-collector.ts`
+## Nível 2: Response Caching
+
+### Objetivo
+Cachear respostas completas para estados de entidade idênticos.
+
+### Cache Key Composition
 
 ```text
-Fontes de Contexto (por ordem de prioridade):
-
-TIER 1 - NUNCA COMPRIMIDOS (Prioridade Máxima)
-├── Live Entity State (dados CRM atuais)
-├── Risk Indicators ativos
-└── Constraints/Guardrails do sistema
-
-TIER 2 - COMPRESSÍVEIS (Prioridade Alta)
-├── Memórias validadas (is_validated = true)
-├── Factos com alta relevância (> 0.7)
-└── Conclusões recentes (< 30 dias)
-
-TIER 3 - SUMARIZÁVEIS (Prioridade Média)
-├── Padrões e preferências
-├── Histórico de interações (condensado)
-└── Sinais importantes
-
-TIER 4 - DESCARTÁVEIS (Prioridade Baixa)
-├── Memórias antigas (> 60 dias)
-├── Baixa relevância (< 0.4)
-└── Dados redundantes
+CACHE_KEY = hash(
+  agent_type          // 'lead' | 'opportunity' | etc.
+  entity_id           // UUID
+  entity_state_hash   // hash(entity data fields)
+  memory_version      // max(updated_at) from memories
+  context_hash        // hash(included context items)
+  prompt_version      // version of prompt template
+)
 ```
 
-### 3. Adaptive Summarizer
+### Regras de Elegibilidade
 
-**Ficheiro:** `supabase/functions/_shared/context-summarizer.ts`
+**Cacheable:**
+- Temperature = 0 (determinístico)
+- Confidence level = 'high' ou 'medium'
+- Prompt structure determinístico
+- Context selection determinístico
 
-```text
-Estratégias por Tamanho de Contexto:
+**Não Cacheable:**
+- Confidence level = 'low'
+- Trigger type = 'manual' (user expects fresh analysis)
+- Entity state changed
+- Memory updated since last cache
 
-SMALL (< 4K tokens disponíveis):
-- Usar dados completos
-- Sem sumarização
+### Tabela de Cache (Nova)
 
-MEDIUM (4K-8K tokens):
-- Sumarizar TIER 3 e 4
-- Manter TIER 1 e 2 verbatim
+```sql
+CREATE TABLE ai_agent_response_cache (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id),
+  agent_type TEXT NOT NULL,
+  entity_id UUID NOT NULL,
+  cache_key TEXT NOT NULL UNIQUE,
+  entity_state_hash TEXT NOT NULL,
+  memory_version TIMESTAMP WITH TIME ZONE,
+  prompt_version TEXT NOT NULL,
+  
+  -- Cached response
+  response JSONB NOT NULL,
+  executive_summary TEXT,
+  confidence_level TEXT,
+  
+  -- Metadata
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  last_used_at TIMESTAMP WITH TIME ZONE,
+  hit_count INTEGER DEFAULT 0,
+  
+  -- Cost tracking
+  tokens_saved INTEGER DEFAULT 0,
+  estimated_cost_saved DECIMAL(10,4) DEFAULT 0,
+  
+  -- Invalidation
+  invalidated_at TIMESTAMP WITH TIME ZONE,
+  invalidation_reason TEXT
+);
 
-LARGE (> 8K tokens):
-- Substituir histórico por sumários estruturados
-- Droppar sinais low-confidence
-- Manter apenas decisões críticas
-
-Regras de Sumarização:
-❌ NUNCA sumarizar campos CRM ao vivo
-❌ NUNCA sumarizar factos validados
-✅ Sumarizar por importância, não por tempo
-✅ Formato estruturado (bullet points)
-✅ Estável entre execuções
+CREATE INDEX idx_cache_lookup ON ai_agent_response_cache(cache_key) WHERE invalidated_at IS NULL;
+CREATE INDEX idx_cache_entity ON ai_agent_response_cache(entity_id, agent_type);
+CREATE INDEX idx_cache_expiry ON ai_agent_response_cache(expires_at);
 ```
 
-### 4. Prompt Assembler
+### TTL por Tipo de Entidade
 
-**Ficheiro:** `supabase/functions/_shared/prompt-assembler.ts`
+| Entity Type | TTL | Razão |
+|-------------|-----|-------|
+| Lead | 4 horas | Mudanças frequentes |
+| Opportunity | 2 horas | Alta volatilidade |
+| Contact | 12 horas | Mais estável |
+| Client | 24 horas | Mais estável |
 
-```text
-Formato de Injeção de Contexto:
+---
 
-═══════════════════════════════════════════════════════
-[CONSTRAINTS & GUARDRAILS]                    ← INÍCIO
-Regras obrigatórias do agente
-═══════════════════════════════════════════════════════
+## Nível 3: Cache-Augmented Generation (CAG)
 
-[CURRENT ENTITY DATA]
-Dados CRM ao vivo (TIER 1)
+### Objetivo
+Pré-injetar dados de referência estáveis diretamente no prompt cacheado.
 
-[KNOWN FACTS & VALIDATED MEMORY]
-Memórias confirmadas (TIER 2)
+### Dados Elegíveis para CAG
 
-[HISTORICAL PATTERNS]
-Sumários e padrões (TIER 3)
+| Tipo | Exemplo | Versão |
+|------|---------|--------|
+| Business rules | Critérios de qualificação | v1.0 |
+| Scoring heuristics | Fórmulas de lead score | v1.0 |
+| Industry templates | Templates por setor | v1.0 |
+| Static references | Nomes de etapas do pipeline | Dinâmico |
 
-[CONTEXT METADATA]
-- Token usage: X/Y
-- Data freshness: last updated Z
-- Confidence: high/medium/low
+### Regras CAG
+- Dados devem ser estáveis e versionados
+- Separação explícita de dados ao vivo
+- Refresh quando versão muda
+- Nunca incluir dados específicos de entidade
 
-═══════════════════════════════════════════════════════
-[AGENT TASK & OBJECTIVE]                      ← FIM
-O que o agente deve fazer
-═══════════════════════════════════════════════════════
+### Ficheiro a Criar
+`supabase/functions/_shared/cag-data.ts`
 
-Anti-Pattern: Lost-in-the-Middle
-- Constraints e objetivos nos extremos
-- Dados operacionais no meio
+---
+
+## Invalidação Automática (Crítico)
+
+### Triggers de Invalidação
+
+| Evento | Ação |
+|--------|------|
+| Entity data update | Invalidar cache desta entidade |
+| Pipeline stage change | Invalidar cache desta entidade |
+| New activity logged | Invalidar cache desta entidade |
+| Memory created/updated | Invalidar cache desta entidade |
+| Memory consolidated | Invalidar cache desta entidade |
+| Prompt version change | Invalidar ALL caches deste agent type |
+| Business rules update | Invalidar ALL caches |
+
+### Implementação via Database Triggers
+
+```sql
+-- Trigger para invalidar cache quando entidade muda
+CREATE OR REPLACE FUNCTION invalidate_entity_cache()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE ai_agent_response_cache
+  SET 
+    invalidated_at = now(),
+    invalidation_reason = TG_TABLE_NAME || ' updated'
+  WHERE 
+    entity_id = NEW.id 
+    AND invalidated_at IS NULL;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar a leads, opportunities, contacts, companies
+CREATE TRIGGER invalidate_lead_cache
+  AFTER UPDATE ON leads
+  FOR EACH ROW
+  EXECUTE FUNCTION invalidate_entity_cache();
 ```
+
+---
+
+## Métricas & Observabilidade
+
+### Tabela de Métricas (Nova)
+
+```sql
+CREATE TABLE ai_cache_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id),
+  agent_type TEXT NOT NULL,
+  period_start TIMESTAMP WITH TIME ZONE NOT NULL,
+  period_end TIMESTAMP WITH TIME ZONE NOT NULL,
+  
+  -- Counters
+  cache_hits INTEGER DEFAULT 0,
+  cache_misses INTEGER DEFAULT 0,
+  invalidations INTEGER DEFAULT 0,
+  
+  -- Cost savings
+  tokens_saved INTEGER DEFAULT 0,
+  estimated_cost_saved DECIMAL(10,4) DEFAULT 0,
+  
+  -- Latency
+  avg_cache_hit_latency_ms INTEGER,
+  avg_cache_miss_latency_ms INTEGER,
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE INDEX idx_metrics_workspace ON ai_cache_metrics(workspace_id, period_start);
+```
+
+### KPIs a Monitorizar
+
+| Métrica | Alvo | Descrição |
+|---------|------|-----------|
+| Cache Hit Ratio | > 40% | % de requests servidos do cache |
+| Cost Savings | Track | Tokens não consumidos |
+| Latency Improvement | > 80% | Tempo cache vs fresh |
+| Staleness Rate | < 5% | Cache usado com dados desatualizados |
+| Invalidation Rate | Monitor | Frequência de invalidações |
 
 ---
 
@@ -178,352 +286,382 @@ Anti-Pattern: Lost-in-the-Middle
 
 | Ficheiro | Tipo | Descrição |
 |----------|------|-----------|
-| `supabase/functions/_shared/context-manager.ts` | **NOVO** | Token estimation & budget enforcement |
-| `supabase/functions/_shared/context-collector.ts` | **NOVO** | Data collection & priority sorting |
-| `supabase/functions/_shared/context-summarizer.ts` | **NOVO** | Adaptive compression logic |
-| `supabase/functions/_shared/prompt-assembler.ts` | **NOVO** | Structured prompt building |
-| `supabase/functions/ai-agent-orchestrator/index.ts` | MODIFICAR | Integrar Context Control Layer |
-| `supabase/functions/ai-agent-opportunity/index.ts` | MODIFICAR | Usar nova camada de contexto |
-| `supabase/functions/ai-agent-client/index.ts` | MODIFICAR | Usar nova camada de contexto |
-| `src/lib/agentSafetyRules.ts` | MODIFICAR | Adicionar regras de contexto |
-| `src/types/aiAgents.ts` | MODIFICAR | Adicionar tipos de contexto |
+| `supabase/functions/_shared/cache-manager.ts` | **NOVO** | Core caching logic |
+| `supabase/functions/_shared/cache-key-builder.ts` | **NOVO** | Deterministic key generation |
+| `supabase/functions/_shared/cache-invalidation.ts` | **NOVO** | Invalidation triggers |
+| `supabase/functions/_shared/prompt-cache.ts` | **NOVO** | Prompt prefix caching |
+| `supabase/functions/_shared/cag-data.ts` | **NOVO** | CAG reference data |
+| `src/types/cacheLayer.ts` | **NOVO** | TypeScript types |
+| `src/lib/aiSafetyRules.ts` | MODIFICAR | Add cache guardrails |
+| `supabase/functions/ai-agent-orchestrator/index.ts` | MODIFICAR | Integrate cache layer |
+| `supabase/functions/ai-agent-opportunity/index.ts` | MODIFICAR | Integrate cache layer |
+| `supabase/functions/ai-agent-client/index.ts` | MODIFICAR | Integrate cache layer |
 
 ---
 
-## Fluxo de Execução
+## Fluxo de Execução com Cache
 
 ```text
-1. REQUISIÇÃO DE ANÁLISE
-   └── Agent recebe entityId + agentType + trigger
+1. REQUEST RECEIVED
+   └── Agent recebe entityId + agentType
 
-2. ESTIMATIVA INICIAL
-   └── ContextManager calcula budget disponível
-   └── Determina estratégia: SMALL / MEDIUM / LARGE
+2. BUILD CACHE KEY
+   └── Fetch entity current state
+   └── Get memory version (max updated_at)
+   └── Get prompt version
+   └── Generate deterministic hash
 
-3. COLETA DE CONTEXTO
-   └── ContextCollector busca dados por TIER
-   └── Ordena por prioridade e relevância
-   └── Marca dados para compressão se necessário
+3. CHECK CACHE
+   └── Query ai_agent_response_cache by cache_key
+   └── Validate: not expired, not invalidated
+   └── If HIT:
+       ├── Update hit_count and last_used_at
+       ├── Log cache hit metric
+       └── Return cached response (FAST PATH)
 
-4. COMPRESSÃO ADAPTATIVA (se necessário)
-   └── Summarizer aplica estratégia por TIER
-   └── Mantém TIER 1 intacto
-   └── Sumariza TIER 3/4
+4. CACHE MISS → EXECUTE ANALYSIS
+   └── Build context using Context Control Layer
+   └── Call LLM (existing flow)
+   └── Get response
 
-5. VALIDAÇÃO DE BUDGET
-   └── BudgetEnforcer verifica tokens finais
-   └── Se exceder: remove TIER 4 → TIER 3 → aborta
-   └── Regista warnings se dados foram removidos
+5. CACHE RESPONSE (if eligible)
+   └── Check eligibility:
+       ├── Confidence level >= 'medium'
+       ├── Temperature = 0
+       └── Deterministic context
+   └── Insert into ai_agent_response_cache
+   └── Log cache miss metric
 
-6. MONTAGEM DO PROMPT
-   └── PromptAssembler estrutura output
-   └── Constraints no início, task no fim
-   └── Metadata de contexto incluído
-
-7. EXECUÇÃO DO AGENTE
-   └── Prompt estruturado enviado ao LLM
-   └── Resposta processada
-
-8. LOGGING & MÉTRICAS
-   └── Tokens usados registados
-   └── Warnings de contexto guardados
-   └── Dados descartados documentados
+6. RETURN RESPONSE
+   └── Include cache metadata in response
 ```
+
+---
+
+## Garantias de Segurança
+
+### Invariantes
+
+| Garantia | Implementação |
+|----------|---------------|
+| Cache never overrides live data | Live data fetched fresh, only LLM response cached |
+| Cached outputs traceable | source_execution_id stored |
+| Staleness detectable | entity_state_hash compared before use |
+| Auditable | Full logging in ai_cache_metrics |
+| Explainable | cache_hit flag in response metadata |
+
+### Anti-Patterns Prevenidos
+
+| Anti-Pattern | Prevenção |
+|--------------|-----------|
+| Cache everything | Eligibility rules enforced |
+| Cache high-temperature | Temperature check before caching |
+| No invalidation | Trigger-based automatic invalidation |
+| Silent cache usage | response.metadata.fromCache = true |
+| Entity-state unawareness | entity_state_hash in cache key |
 
 ---
 
 ## Tipos TypeScript
 
 ```typescript
-// src/types/contextManager.ts
+// src/types/cacheLayer.ts
 
-interface TokenBudget {
-  total: number;
-  systemPrompt: number;
-  responseBuffer: number;
-  available: number;
-  used: number;
-  remaining: number;
+interface CacheKey {
+  agentType: AgentType;
+  entityId: string;
+  entityStateHash: string;
+  memoryVersion: string;
+  contextHash: string;
+  promptVersion: string;
+  compositeKey: string; // Final hash
 }
 
-interface ContextTier {
-  tier: 1 | 2 | 3 | 4;
-  priority: 'critical' | 'high' | 'medium' | 'low';
-  compressible: boolean;
-  discardable: boolean;
+interface CacheEntry {
+  id: string;
+  cacheKey: string;
+  response: AgentOutput;
+  executiveSummary: string;
+  confidenceLevel: 'low' | 'medium' | 'high';
+  createdAt: string;
+  expiresAt: string;
+  hitCount: number;
+  tokensSaved: number;
 }
 
-interface ContextItem {
-  source: string;
-  tier: ContextTier;
-  content: string;
-  tokenCount: number;
-  relevanceScore: number;
-  timestamp: string;
-  isLiveData: boolean;
+interface CacheCheckResult {
+  hit: boolean;
+  entry?: CacheEntry;
+  reason?: string; // 'expired' | 'invalidated' | 'not_found' | 'stale_state'
 }
 
-interface ContextStrategy {
-  type: 'SMALL' | 'MEDIUM' | 'LARGE';
-  summarizeTiers: number[];
-  discardTiers: number[];
-  maxContextTokens: number;
+interface CacheEligibility {
+  eligible: boolean;
+  reason?: string;
+  suggestedTTL?: number;
 }
 
-interface AssembledPrompt {
-  systemPrompt: string;
-  userPrompt: string;
-  totalTokens: number;
-  contextMetadata: {
-    strategy: ContextStrategy['type'];
-    tiersIncluded: number[];
-    itemsDiscarded: number;
-    summariesGenerated: number;
-    dataFreshness: string;
-    overallConfidence: 'high' | 'medium' | 'low';
-    warnings: string[];
-  };
+interface CacheMetrics {
+  hits: number;
+  misses: number;
+  hitRatio: number;
+  tokensSaved: number;
+  estimatedCostSaved: number;
+  avgHitLatencyMs: number;
+  avgMissLatencyMs: number;
 }
 
-interface ContextCollectionResult {
-  success: boolean;
-  items: ContextItem[];
-  budget: TokenBudget;
-  strategy: ContextStrategy;
-  warnings: string[];
-  partialAnalysis?: {
-    reason: string;
-    missingData: string[];
-  };
+interface CacheConfig {
+  enabled: boolean;
+  ttlByEntityType: Record<string, number>;
+  maxEntriesPerEntity: number;
+  autoInvalidation: boolean;
+  trackMetrics: boolean;
 }
 ```
 
 ---
 
-## Regras de Segurança (Adições a agentSafetyRules.ts)
+## Regras de Segurança (Adições)
 
 ```typescript
-// Novas constantes
-export const CONTEXT_GUARDRAILS = {
-  // Token budgets por agente
-  tokenBudgets: {
-    lead: 8000,
-    contact: 6000,
-    opportunity: 12000,
-    client: 10000,
+// Adicionar a src/lib/aiSafetyRules.ts
+
+export const CACHE_GUARDRAILS = {
+  // Cache eligibility
+  minConfidenceForCache: 'medium' as const,
+  maxTemperatureForCache: 0,
+  
+  // TTL limits (em horas)
+  ttlByEntityType: {
+    lead: 4,
+    opportunity: 2,
+    contact: 12,
+    client: 24,
   },
   
-  // Reservas obrigatórias
-  systemPromptReserve: 2000,
-  responseBufferReserve: 3000,
+  // Invalidation
+  autoInvalidateOnEntityChange: true,
+  autoInvalidateOnMemoryUpdate: true,
+  autoInvalidateOnPromptVersionChange: true,
   
-  // Limites de compressão
-  maxSummaryLength: 500,
-  minContextForAnalysis: 500,
+  // Limits
+  maxCacheEntriesPerEntity: 5,
+  maxCacheAgeHours: 48,
   
-  // Freshness thresholds
-  staleDataWarningDays: 30,
-  expiredDataDays: 90,
+  // Safety
+  alwaysFetchLiveEntityData: true,
+  neverCacheManualTriggers: true,
+  logAllCacheHits: true,
 };
 
-// Validações
-export const CONTEXT_FORBIDDEN_PATTERNS = {
-  NO_RAW_HISTORY: 'Histórico bruto de conversas nunca é injetado',
-  NO_UNBOUNDED_CONTEXT: 'Contexto deve respeitar budget de tokens',
-  NO_RANDOM_SELECTION: 'Seleção de contexto deve ser determinística',
-  NO_LIVE_DATA_COMPRESSION: 'Dados CRM ao vivo nunca são comprimidos',
-  NO_MEMORY_OVERRIDE: 'Memória não pode sobrepor dados ao vivo',
+export const CACHE_FORBIDDEN_PATTERNS = {
+  NO_CACHE_LOW_CONFIDENCE: 'Respostas low confidence nunca são cacheadas',
+  NO_CACHE_HIGH_TEMPERATURE: 'Outputs com temperature > 0 nunca são cacheados',
+  NO_CACHE_WITHOUT_STATE_HASH: 'Cache sem entity state hash é proibido',
+  NO_SILENT_CACHE: 'Uso de cache deve ser indicado na resposta',
+  NO_STALE_CACHE: 'Cache com estado desatualizado deve ser invalidado',
 };
 ```
 
 ---
 
-## Exemplo de Prompt Estruturado Final
+## Migração de Base de Dados
 
-```text
-════════════════════════════════════════════════════════════════
-[CONSTRAINTS & GUARDRAILS]
+```sql
+-- Tabela principal de cache
+CREATE TABLE ai_agent_response_cache (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  agent_type TEXT NOT NULL,
+  entity_id UUID NOT NULL,
+  entity_type TEXT NOT NULL,
+  cache_key TEXT NOT NULL,
+  entity_state_hash TEXT NOT NULL,
+  memory_version TIMESTAMP WITH TIME ZONE,
+  prompt_version TEXT NOT NULL DEFAULT 'v1.0',
+  context_hash TEXT,
+  
+  -- Cached response
+  response JSONB NOT NULL,
+  executive_summary TEXT,
+  confidence_level TEXT CHECK (confidence_level IN ('low', 'medium', 'high')),
+  
+  -- Timing
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  last_used_at TIMESTAMP WITH TIME ZONE,
+  
+  -- Metrics
+  hit_count INTEGER DEFAULT 0,
+  original_duration_ms INTEGER,
+  tokens_saved INTEGER DEFAULT 0,
+  
+  -- Invalidation
+  invalidated_at TIMESTAMP WITH TIME ZONE,
+  invalidation_reason TEXT,
+  
+  CONSTRAINT unique_cache_key UNIQUE (cache_key)
+);
 
-Tu és um agente de análise de leads para CRM. Regras obrigatórias:
-- Nunca inventes dados que não foram fornecidos
-- Não faças promessas em nome do negócio
-- Todas as recomendações devem ser explicadas
-- Confia nos dados ao vivo sobre memórias antigas
+-- Índices
+CREATE INDEX idx_cache_lookup ON ai_agent_response_cache(cache_key) 
+  WHERE invalidated_at IS NULL AND expires_at > now();
+CREATE INDEX idx_cache_entity ON ai_agent_response_cache(entity_id, agent_type);
+CREATE INDEX idx_cache_workspace ON ai_agent_response_cache(workspace_id);
+CREATE INDEX idx_cache_expiry ON ai_agent_response_cache(expires_at) 
+  WHERE invalidated_at IS NULL;
 
-════════════════════════════════════════════════════════════════
-[CURRENT ENTITY DATA]
+-- Tabela de métricas
+CREATE TABLE ai_cache_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  agent_type TEXT NOT NULL,
+  period_start TIMESTAMP WITH TIME ZONE NOT NULL,
+  period_end TIMESTAMP WITH TIME ZONE NOT NULL,
+  cache_hits INTEGER DEFAULT 0,
+  cache_misses INTEGER DEFAULT 0,
+  invalidations INTEGER DEFAULT 0,
+  tokens_saved INTEGER DEFAULT 0,
+  avg_hit_latency_ms INTEGER,
+  avg_miss_latency_ms INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
 
-Nome: Maria Santos
-Email: maria@empresa.pt
-Telefone: +351 912 345 678
-Estado: qualified
-Origem: instagram
-Temperatura: hot
-Score: 78
-Última interação: há 3 dias
+CREATE INDEX idx_metrics_lookup ON ai_cache_metrics(workspace_id, agent_type, period_start);
 
-════════════════════════════════════════════════════════════════
-[KNOWN FACTS - VALIDATED]
+-- RLS Policies
+ALTER TABLE ai_agent_response_cache ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_cache_metrics ENABLE ROW LEVEL SECURITY;
 
-• Cliente já trabalhou com concorrente X (validado)
-• Decisor é o CEO da empresa (validado)
-• Orçamento aprovado para Q1 2026 (validado)
+CREATE POLICY "Cache access by workspace members" ON ai_agent_response_cache
+  FOR ALL USING (
+    workspace_id IN (
+      SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()
+    )
+  );
 
-════════════════════════════════════════════════════════════════
-[HISTORICAL PATTERNS]
+CREATE POLICY "Metrics access by workspace members" ON ai_cache_metrics
+  FOR SELECT USING (
+    workspace_id IN (
+      SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()
+    )
+  );
 
-Sumário de 5 conclusões anteriores:
-- Lead consistentemente responsivo (média 2h de resposta)
-- Preferência por comunicação via WhatsApp
-- Interesse demonstrado em módulo de automação
-- Objeção prévia sobre preço foi ultrapassada
+-- Função de invalidação
+CREATE OR REPLACE FUNCTION invalidate_entity_cache()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE ai_agent_response_cache
+  SET 
+    invalidated_at = now(),
+    invalidation_reason = TG_TABLE_NAME || ' updated'
+  WHERE 
+    entity_id = NEW.id 
+    AND invalidated_at IS NULL;
+  
+  -- Increment invalidation counter
+  INSERT INTO ai_cache_metrics (
+    workspace_id, agent_type, period_start, period_end, invalidations
+  )
+  SELECT 
+    workspace_id, agent_type, date_trunc('hour', now()), date_trunc('hour', now()) + interval '1 hour', 1
+  FROM ai_agent_response_cache
+  WHERE entity_id = NEW.id
+  GROUP BY workspace_id, agent_type
+  ON CONFLICT (workspace_id, agent_type, period_start) 
+  DO UPDATE SET invalidations = ai_cache_metrics.invalidations + 1;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-════════════════════════════════════════════════════════════════
-[CONTEXT METADATA]
+-- Triggers de invalidação
+CREATE TRIGGER invalidate_lead_cache
+  AFTER UPDATE ON leads
+  FOR EACH ROW EXECUTE FUNCTION invalidate_entity_cache();
 
-Tokens utilizados: 1,847 / 6,000 (31%)
-Frescura dos dados: última atualização há 3 dias
-Confiança geral: alta
-Estratégia: SMALL (contexto completo)
+CREATE TRIGGER invalidate_opportunity_cache
+  AFTER UPDATE ON opportunities
+  FOR EACH ROW EXECUTE FUNCTION invalidate_entity_cache();
 
-════════════════════════════════════════════════════════════════
-[AGENT TASK]
+CREATE TRIGGER invalidate_contact_cache
+  AFTER UPDATE ON contacts
+  FOR EACH ROW EXECUTE FUNCTION invalidate_entity_cache();
 
-Analisa este lead e fornece:
-1. Sumário executivo (2-3 frases)
-2. Avaliação do estado atual
-3. Sinais positivos identificados
-4. Indicadores de risco
-5. Próxima ação recomendada
+CREATE TRIGGER invalidate_company_cache
+  AFTER UPDATE ON companies
+  FOR EACH ROW EXECUTE FUNCTION invalidate_entity_cache();
 
-Usa a ferramenta analyze_lead para estruturar a resposta.
-════════════════════════════════════════════════════════════════
-```
+-- Trigger para memórias
+CREATE OR REPLACE FUNCTION invalidate_memory_cache()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE ai_agent_response_cache
+  SET 
+    invalidated_at = now(),
+    invalidation_reason = 'memory updated'
+  WHERE 
+    entity_id = NEW.entity_id 
+    AND invalidated_at IS NULL;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
----
+CREATE TRIGGER invalidate_cache_on_memory
+  AFTER INSERT OR UPDATE ON ai_agent_memory
+  FOR EACH ROW EXECUTE FUNCTION invalidate_memory_cache();
 
-## Casos de Falha (Failure Handling)
-
-| Cenário | Comportamento |
-|---------|---------------|
-| Budget excedido após compressão | Abortar e retornar análise parcial |
-| Sem dados TIER 1 (entidade) | Retornar erro com dados em falta |
-| Memórias todas expiradas | Continuar com warning, sem TIER 2/3 |
-| Sumarização falha | Usar dados originais até limite |
-| Timeout na coleta | Retornar com dados já coletados |
-
-**Resposta Parcial Estruturada:**
-```json
-{
-  "partialAnalysis": true,
-  "completedSteps": 3,
-  "totalSteps": 5,
-  "analysisPerformed": ["entity_data", "memory_retrieval", "pattern_analysis"],
-  "missingData": ["conversation_history", "recent_activities"],
-  "reason": "Token budget exceeded, TIER 3 data discarded",
-  "recommendation": "Retry with smaller context window or prioritize critical data"
-}
+-- Função de cleanup (para cron job)
+CREATE OR REPLACE FUNCTION cleanup_expired_cache()
+RETURNS INTEGER AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  DELETE FROM ai_agent_response_cache
+  WHERE expires_at < now() OR invalidated_at IS NOT NULL;
+  
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
 ---
 
 ## Ordem de Implementação
 
-1. **Fase 1 - Core Types** (30 min)
-   - Criar `src/types/contextManager.ts`
-   - Adicionar constantes a `agentSafetyRules.ts`
+1. **Fase 1 - Fundações** (1h)
+   - Criar `src/types/cacheLayer.ts`
+   - Adicionar constantes a `aiSafetyRules.ts`
+   - Executar migração de base de dados
 
-2. **Fase 2 - Shared Functions** (2h)
-   - Criar `context-manager.ts` (token estimation)
-   - Criar `context-collector.ts` (data gathering)
-   - Criar `context-summarizer.ts` (compression)
-   - Criar `prompt-assembler.ts` (formatting)
+2. **Fase 2 - Core Cache** (2h)
+   - Criar `cache-key-builder.ts`
+   - Criar `cache-manager.ts`
+   - Criar `cache-invalidation.ts`
 
-3. **Fase 3 - Agent Integration** (1.5h)
-   - Modificar `ai-agent-orchestrator/index.ts`
-   - Modificar `ai-agent-opportunity/index.ts`
-   - Modificar `ai-agent-client/index.ts`
+3. **Fase 3 - Prompt & CAG** (1h)
+   - Criar `prompt-cache.ts`
+   - Criar `cag-data.ts`
 
-4. **Fase 4 - Deploy & Test** (30 min)
-   - Deploy edge functions
-   - Testar com entidades reais
+4. **Fase 4 - Agent Integration** (1.5h)
+   - Modificar `ai-agent-orchestrator`
+   - Modificar `ai-agent-opportunity`
+   - Modificar `ai-agent-client`
+
+5. **Fase 5 - Observability** (30min)
+   - Adicionar logging de métricas
+   - Criar queries de análise
 
 ---
 
 ## Métricas de Sucesso
 
-| Métrica | Alvo |
-|---------|------|
-| Token usage per execution | < 80% do budget |
-| Context selection determinism | 100% reprodutível |
-| TIER 1 data inclusion | 100% sempre |
-| Successful analyses | > 95% |
-| Partial analysis rate | < 5% |
-| Average execution time | < 5 segundos |
-
----
-
-## Secção Técnica Detalhada
-
-### Fórmula de Estimativa de Tokens
-
-```typescript
-function estimateTokens(text: string): number {
-  // Regra aproximada: 1 token ≈ 4 caracteres em PT/EN
-  // Adicionar 10% de margem de segurança
-  return Math.ceil((text.length / 4) * 1.1);
-}
-```
-
-### Algoritmo de Priorização
-
-```typescript
-function calculatePriority(item: ContextItem): number {
-  let score = 0;
-  
-  // Base por tier
-  score += (5 - item.tier) * 25; // TIER 1 = 100, TIER 4 = 25
-  
-  // Boost por relevância
-  score += item.relevanceScore * 30;
-  
-  // Boost por frescura
-  const daysSinceCreation = getDaysSince(item.timestamp);
-  if (daysSinceCreation < 7) score += 20;
-  else if (daysSinceCreation < 30) score += 10;
-  
-  // Boost máximo para dados ao vivo
-  if (item.isLiveData) score = 200;
-  
-  return score;
-}
-```
-
-### Estratégia de Compressão
-
-```typescript
-function selectStrategy(availableTokens: number): ContextStrategy {
-  if (availableTokens < 4000) {
-    return {
-      type: 'LARGE',
-      summarizeTiers: [2, 3],
-      discardTiers: [4],
-      maxContextTokens: availableTokens * 0.9,
-    };
-  } else if (availableTokens < 8000) {
-    return {
-      type: 'MEDIUM',
-      summarizeTiers: [3, 4],
-      discardTiers: [],
-      maxContextTokens: availableTokens * 0.95,
-    };
-  } else {
-    return {
-      type: 'SMALL',
-      summarizeTiers: [],
-      discardTiers: [],
-      maxContextTokens: availableTokens,
-    };
-  }
-}
-```
+| Métrica | Alvo Inicial | Alvo 30 Dias |
+|---------|--------------|--------------|
+| Cache Hit Ratio | 20% | 45% |
+| Latency Reduction | 50% | 80% |
+| Token Savings | 15% | 35% |
+| Staleness Rate | < 10% | < 3% |
+| Invalidation Accuracy | 95% | 99% |
