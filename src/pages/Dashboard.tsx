@@ -5,7 +5,7 @@ import { useOperationalDashboard } from "@/hooks/useOperationalDashboard";
 import { useLeads } from "@/hooks/useLeads";
 import { useOpportunities } from "@/hooks/useOpportunities";
 import { useInvoices } from "@/hooks/useInvoices";
-import { useTasks } from "@/hooks/useTasks";
+import { useTasks, useCreateTask } from "@/hooks/useTasks";
 import { useCompanies } from "@/hooks/useCompanies";
 import {
   NexusKPICard,
@@ -35,16 +35,21 @@ import {
   HelpCircle,
   Users,
   Target,
-  TrendingUp,
   DollarSign,
   Briefcase,
-  FileText,
   Building2,
   Contact,
   CheckSquare,
 } from "lucide-react";
 import { format, subMonths, isWithinInterval, startOfMonth, endOfMonth, formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
+
+// Dialog components for creating entities
+import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
+import { CreateOpportunityDialog } from "@/components/crm/CreateOpportunityDialog";
+import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
+import { CreateCompanyDialog } from "@/components/companies/CreateCompanyDialog";
+import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -54,6 +59,14 @@ export default function Dashboard() {
   const { data: paidInvoices } = useInvoices({ status: "paid" });
   const { data: tasks } = useTasks();
   const { companies } = useCompanies();
+  const createTask = useCreateTask();
+
+  // Dialog states for creating entities
+  const [createLeadOpen, setCreateLeadOpen] = useState(false);
+  const [createOpportunityOpen, setCreateOpportunityOpen] = useState(false);
+  const [createContactOpen, setCreateContactOpen] = useState(false);
+  const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
 
   // Calculate KPI data for cards
   const kpiData = useMemo(() => {
@@ -234,23 +247,23 @@ export default function Dashboard() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => navigate("/dashboard/leads?action=new")}>
+                  <DropdownMenuItem onClick={() => setCreateLeadOpen(true)}>
                     <Target className="h-4 w-4 mr-2" />
                     Novo Lead
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard/opportunities?action=new")}>
+                  <DropdownMenuItem onClick={() => setCreateOpportunityOpen(true)}>
                     <Briefcase className="h-4 w-4 mr-2" />
                     Nova Oportunidade
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard/contacts?action=new")}>
+                  <DropdownMenuItem onClick={() => setCreateContactOpen(true)}>
                     <Contact className="h-4 w-4 mr-2" />
                     Novo Contacto
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard/companies?action=new")}>
+                  <DropdownMenuItem onClick={() => setCreateCompanyOpen(true)}>
                     <Building2 className="h-4 w-4 mr-2" />
                     Nova Empresa
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard/tasks?action=new")}>
+                  <DropdownMenuItem onClick={() => setCreateTaskOpen(true)}>
                     <CheckSquare className="h-4 w-4 mr-2" />
                     Nova Tarefa
                   </DropdownMenuItem>
@@ -375,6 +388,25 @@ export default function Dashboard() {
           </div>
         </div>
       </ScrollArea>
+
+      {/* Create Dialogs */}
+      <CreateLeadDialog open={createLeadOpen} onOpenChange={setCreateLeadOpen} />
+      <CreateOpportunityDialog open={createOpportunityOpen} onOpenChange={setCreateOpportunityOpen} />
+      <CreateContactDialog open={createContactOpen} onOpenChange={setCreateContactOpen} />
+      <CreateCompanyDialog open={createCompanyOpen} onOpenChange={setCreateCompanyOpen} />
+      <CreateTaskDialog 
+        open={createTaskOpen} 
+        onOpenChange={setCreateTaskOpen}
+        entityName="Dashboard"
+        onCreateTask={(task) => {
+          createTask.mutate({
+            title: task.title,
+            due_at: task.due_at,
+            assigned_to: task.assigned_to,
+          });
+          setCreateTaskOpen(false);
+        }}
+      />
     </DashboardLayout>
   );
 }
