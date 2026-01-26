@@ -1,110 +1,128 @@
 
+# Plano: Mostrar Resultado Final em Cada Linha Temporal
 
-# Plano: Adicionar Períodos Trimestrais e Semestrais às Metas
+## Resumo
+Adicionar um resumo agregado do progresso calculado no final de cada período (linha temporal), mostrando o valor atual total versus o objetivo total para todas as metas desse período.
 
-## Objetivo
-Adicionar dois novos períodos de metas: **Trimestral** (3 meses) e **Semestral** (6 meses), permitindo uma gestão mais completa de objetivos a médio prazo.
+## O Que Será Feito
 
----
+### 1. Criar Componente de Resumo de Período
+Adicionar uma secção de resumo visual no topo de cada tab de período que mostre:
+- **Progresso Total**: Soma dos valores calculados automaticamente
+- **Objetivo Total**: Soma dos valores alvo de todas as metas
+- **Barra de Progresso Visual**: Indicador gráfico do progresso agregado
+- **Indicadores por Tipo**: Breakdown por unidade (ex: €1722/€5000 em Faturação, 3/5 Vendas)
 
-## Alterações Necessárias
+### 2. Localização no Interface
+O resumo aparecerá:
+- No início de cada `TabsContent` de período
+- Antes da listagem dos cards de metas individuais
+- Substituindo/melhorando o resumo atual que só mostra "X de Y metas concluídas"
 
-### 1. Base de Dados (Migração)
-
-Atualizar o ENUM `goal_period` para incluir os novos valores:
-
+### 3. Formato de Visualização
 ```text
-ALTER TYPE public.goal_period ADD VALUE 'quarterly';
-ALTER TYPE public.goal_period ADD VALUE 'semiannual';
+┌─────────────────────────────────────────────────────────────┐
+│  📊 Resumo do Período                                       │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                                             │
+│  Progresso Geral: 65%                                       │
+│  [████████████████░░░░░░░░░]                                │
+│                                                             │
+│  💰 Faturação: €1.722 / €5.000                              │
+│  🛒 Vendas: 3 / 5                                           │
+│  📞 Chamadas: 12 / 20                                       │
+│                                                             │
+│  ✅ 2 de 4 metas concluídas                                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Nota**: Em PostgreSQL, não é possível remover valores de ENUMs, apenas adicionar - o que é seguro para dados existentes.
-
 ---
 
-### 2. Hook de Produtividade
+## Detalhes Técnicos
 
-**Ficheiro**: `src/hooks/useProductivityCoach.ts`
+### Ficheiro: `src/components/productivity/GoalsManager.tsx`
 
-Atualizar a linha 8:
-```text
-Antes: export type GoalPeriod = 'daily' | 'weekly' | 'monthly' | 'annual';
-Depois: export type GoalPeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
-```
+#### Alteração 1: Criar Componente PeriodSummary
+Adicionar um novo componente interno que:
+- Recebe a lista de metas filtradas do período
+- Recebe o mapa de progresso automático (`autoProgressMap`)
+- Agrupa as metas por unidade
+- Calcula totais por tipo de métrica
+- Renderiza o resumo visual
 
----
-
-### 3. Componente GoalsManager
-
-**Ficheiro**: `src/components/productivity/GoalsManager.tsx`
-
-#### Importar ícones adicionais
-Adicionar ícones apropriados (ex: `CalendarRange` ou `CalendarDays`).
-
-#### Atualizar PERIOD_CONFIG (linhas 129-134)
-```text
-Antes:
-PERIOD_CONFIG = {
-  daily: { label: 'Diária', icon: Zap },
-  weekly: { label: 'Semanal', icon: TrendingUp },
-  monthly: { label: 'Mensal', icon: Target },
-  annual: { label: 'Anual', icon: Trophy },
+```typescript
+interface PeriodSummaryProps {
+  goals: ProductivityGoal[];
+  autoProgressMap: Record<string, { calculatedValue: number; isAutomatic: boolean; source: string }>;
 }
 
-Depois:
-PERIOD_CONFIG = {
-  daily: { label: 'Diária', icon: Zap },
-  weekly: { label: 'Semanal', icon: TrendingUp },
-  monthly: { label: 'Mensal', icon: Target },
-  quarterly: { label: 'Trimestral', icon: CalendarRange },
-  semiannual: { label: 'Semestral', icon: CalendarDays },
-  annual: { label: 'Anual', icon: Trophy },
+function PeriodSummary({ goals, autoProgressMap }: PeriodSummaryProps) {
+  // Agrupar por unidade e calcular totais
+  const summaryByUnit = useMemo(() => {
+    const grouped: Record<string, { current: number; target: number; count: number }> = {};
+    
+    goals.forEach(goal => {
+      const unit = goal.unit || 'unidades';
+      const autoProgress = autoProgressMap[goal.id];
+      const currentValue = autoProgress?.isAutomatic 
+        ? autoProgress.calculatedValue 
+        : (goal.current_value || 0);
+      
+      if (!grouped[unit]) {
+        grouped[unit] = { current: 0, target: 0, count: 0 };
+      }
+      grouped[unit].current += currentValue;
+      grouped[unit].target += goal.target_value || 0;
+      grouped[unit].count += 1;
+    });
+    
+    return grouped;
+  }, [goals, autoProgressMap]);
+
+  // Renderizar resumo
+  // ...
 }
 ```
 
-#### Atualizar função getPeriodDates (linhas 162-174)
-Adicionar lógica para calcular datas de início/fim para trimestre e semestre:
+#### Alteração 2: Integrar no TabsContent
+Substituir o resumo atual (linhas 1144-1154) pelo novo componente:
 
-```text
-case 'quarterly':
-  // Determina o trimestre atual (Q1: Jan-Mar, Q2: Abr-Jun, etc.)
-  const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-  const quarterEnd = new Date(quarterStart.getFullYear(), quarterStart.getMonth() + 3, 0);
-  return { start: quarterStart, end: quarterEnd };
-
-case 'semiannual':
-  // Determina o semestre atual (S1: Jan-Jun, S2: Jul-Dez)
-  const semesterStart = new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1);
-  const semesterEnd = new Date(semesterStart.getFullYear(), semesterStart.getMonth() + 6, 0);
-  return { start: semesterStart, end: semesterEnd };
+```typescript
+<TabsContent value={period}>
+  {/* Novo Resumo de Período */}
+  <PeriodSummary 
+    goals={filteredGoals} 
+    autoProgressMap={autoProgressMap} 
+  />
+  
+  {/* Grid de Cards existente */}
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {filteredGoals.map((goal) => (
+      <GoalCard key={goal.id} ... />
+    ))}
+  </div>
+</TabsContent>
 ```
 
----
+#### Alteração 3: Formatação de Valores
+Utilizar formatação apropriada para cada tipo de unidade:
+- **Financeiro (euros, faturação)**: `€1.722` com separador de milhares
+- **Contagem (vendas, chamadas)**: `3 / 5` formato simples
+- **Percentagem**: `65%` com símbolo
 
-### 4. Atualizar Tabs de Filtro de Período
-
-Na secção de tabs de período (linhas ~555-570), os novos períodos aparecerão automaticamente porque o código itera sobre `Object.entries(PERIOD_CONFIG)`.
-
----
-
-## Resumo das Mudanças
-
-| Ficheiro | Alteração |
-|----------|-----------|
-| Migração SQL | Adicionar valores ao ENUM `goal_period` |
-| `useProductivityCoach.ts` | Atualizar tipo `GoalPeriod` |
-| `GoalsManager.tsx` | Adicionar configuração visual e lógica de datas |
+### Componentes Visuais
+- Utilizar `Card` existente para o container
+- `Progress` bar para indicador visual
+- `Badge` para indicadores de tipo
+- Ícones correspondentes de `lucide-react` para cada métrica
 
 ---
 
-## Resultado Final
+## Fluxo de Dados
+1. `GoalsManager` carrega metas via `useProductivityCoach`
+2. `useGoalsProgress` calcula progresso automático para cada meta
+3. `PeriodSummary` recebe dados filtrados por período
+4. Componente agrega e formata para exibição
 
-O seletor de período no modal "Criar Nova Meta" e os filtros de período incluirão:
-
-- Diária
-- Semanal
-- Mensal
-- **Trimestral** (novo)
-- **Semestral** (novo)
-- Anual
-
+## Resultado Esperado
+O utilizador verá imediatamente o resumo do progresso real de cada período, com valores como "€1.722 / €5.000 em Faturação" claramente visíveis no topo de cada secção temporal.
