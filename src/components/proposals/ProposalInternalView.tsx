@@ -181,12 +181,11 @@ export function ProposalInternalView({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[8%] text-center">Activo</TableHead>
-                <TableHead className="w-[40%]">Item</TableHead>
-                <TableHead className="w-[10%] text-center">Status</TableHead>
-                <TableHead className="w-[12%] text-center">Qtd.</TableHead>
-                <TableHead className="w-[15%] text-right">Preço</TableHead>
-                <TableHead className="w-[15%] text-right">Subtotal</TableHead>
+                <TableHead className="w-14 text-center">Activo</TableHead>
+                <TableHead>Item</TableHead>
+                <TableHead className="w-20 text-center">Qtd.</TableHead>
+                <TableHead className="w-28 text-right">Preço</TableHead>
+                <TableHead className="w-28 text-right">Subtotal</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -207,18 +206,21 @@ export function ProposalInternalView({
                         className="mx-auto"
                       />
                     </TableCell>
-                    <TableCell>
-                      <p className={cn("font-medium", !isEnabled && "line-through text-muted-foreground")}>
+                    <TableCell className="max-w-0">
+                      <p className={cn(
+                        "font-medium truncate",
+                        !isEnabled && "line-through text-muted-foreground"
+                      )}>
                         {item.name}
                       </p>
                       {item.description && (
-                        <p className={cn("text-sm text-muted-foreground", !isEnabled && "line-through")}>
+                        <p className={cn(
+                          "text-sm text-muted-foreground line-clamp-2",
+                          !isEnabled && "line-through"
+                        )} title={item.description}>
                           {item.description}
                         </p>
                       )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="text-muted-foreground">-</span>
                     </TableCell>
                     <TableCell className="text-center">
                       <Input
@@ -230,10 +232,10 @@ export function ProposalInternalView({
                         disabled={!isEnabled}
                       />
                     </TableCell>
-                    <TableCell className={cn("text-right", !isEnabled && "line-through text-muted-foreground")}>
+                    <TableCell className={cn("text-right whitespace-nowrap", !isEnabled && "line-through text-muted-foreground")}>
                       {formatCurrency(item.unit_price, proposal.currency)}
                     </TableCell>
-                    <TableCell className={cn("text-right font-medium", !isEnabled && "line-through text-muted-foreground")}>
+                    <TableCell className={cn("text-right font-medium whitespace-nowrap", !isEnabled && "line-through text-muted-foreground")}>
                       {formatCurrency(item.total_price, proposal.currency)}
                     </TableCell>
                   </TableRow>
@@ -242,7 +244,7 @@ export function ProposalInternalView({
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={5} className="text-right font-semibold">
+                <TableCell colSpan={4} className="text-right font-semibold">
                   TOTAL {disabledCount > 0 && <span className="text-xs text-muted-foreground font-normal">(itens activos)</span>}
                 </TableCell>
                 <TableCell className="text-right font-bold text-primary text-lg">
