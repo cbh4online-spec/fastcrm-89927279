@@ -43,6 +43,8 @@ import { EntityAutomationSection } from "@/components/automations/EntityAutomati
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 import { EntityOpportunitiesSection } from "@/components/opportunities/EntityOpportunitiesSection";
 import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/components/EntityCreditProposalsSection";
+import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
+import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -202,6 +204,13 @@ export function ENIContactDetailWithSidebar() {
       case 'insights':
         return (
           <div className="space-y-6">
+            {/* AI Agent Queue Status */}
+            <AgentQueueStatus
+              entityId={id!}
+              entityType="contact"
+              compact={false}
+              showAnalyzeButton={true}
+            />
             <AIInsightsSection 
               contact={contact} 
               onGenerateInsights={handleGenerateInsights}
@@ -212,6 +221,12 @@ export function ENIContactDetailWithSidebar() {
               entityId={id!}
               entityName={contact.name}
               linkedinUrl={(contact as any).linkedin_url}
+            />
+            {/* AI Memory Panel */}
+            <EntityMemoryPanel
+              entityId={id!}
+              entityType="contact"
+              entityName={contact.name}
             />
           </div>
         );

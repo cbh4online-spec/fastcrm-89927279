@@ -15,7 +15,9 @@ import {
   Bot,
   Target,
   FileText,
+  Calendar,
 } from "lucide-react";
+import { AgentSchedulesManager } from "@/components/ai-agents/AgentSchedulesManager";
 
 interface AutomationAISettingsProps {
   searchQuery?: string;
@@ -166,6 +168,20 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
             </Button>
           }
         />
+      </SettingsSection>
+
+      {/* AI Agent Schedules */}
+      <SettingsSection
+        title="Agendamentos de Análise IA"
+        description="Configurar análises automáticas periódicas"
+        icon={<Calendar className="h-5 w-5" />}
+        isPremium={!hasAI}
+        isLocked={!hasAI}
+        planRequired="Pro"
+      >
+        <div className="pt-2">
+          <AgentSchedulesManager />
+        </div>
       </SettingsSection>
 
       {/* Automation Logs */}
