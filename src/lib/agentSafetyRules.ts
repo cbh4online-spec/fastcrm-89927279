@@ -367,3 +367,186 @@ export function validateMemoryContent(content: string): {
     sanitized: content,
   };
 }
+
+// =============================================================================
+// MEMORY TYPE VALIDATION
+// =============================================================================
+
+export type MemoryType = 
+  | 'conclusion'
+  | 'user_feedback'
+  | 'important_signal'
+  | 'fact'
+  | 'preference'
+  | 'pattern'
+  | 'objection'
+  | 'risk';
+
+export type MemoryCategory = 
+  | 'contact_preference'
+  | 'decision_criteria'
+  | 'relationship'
+  | 'timeline'
+  | 'price_sensitivity'
+  | 'competitive'
+  | 'product_interest'
+  | 'general';
+
+export const VALID_MEMORY_TYPES: MemoryType[] = [
+  'conclusion',
+  'user_feedback',
+  'important_signal',
+  'fact',
+  'preference',
+  'pattern',
+  'objection',
+  'risk',
+];
+
+export const VALID_MEMORY_CATEGORIES: MemoryCategory[] = [
+  'contact_preference',
+  'decision_criteria',
+  'relationship',
+  'timeline',
+  'price_sensitivity',
+  'competitive',
+  'product_interest',
+  'general',
+];
+
+/**
+ * Validate memory type
+ */
+export function validateMemoryType(memoryType: string): {
+  valid: boolean;
+  normalizedType: MemoryType;
+  warning?: string;
+} {
+  const normalized = memoryType.toLowerCase().trim() as MemoryType;
+  
+  if (VALID_MEMORY_TYPES.includes(normalized)) {
+    return {
+      valid: true,
+      normalizedType: normalized,
+    };
+  }
+  
+  // Default to 'conclusion' if invalid
+  return {
+    valid: false,
+    normalizedType: 'conclusion',
+    warning: `Tipo de memória inválido: ${memoryType}. Usando 'conclusion'.`,
+  };
+}
+
+/**
+ * Validate memory category
+ */
+export function validateMemoryCategory(category: string): {
+  valid: boolean;
+  normalizedCategory: MemoryCategory;
+  warning?: string;
+} {
+  const normalized = category.toLowerCase().trim() as MemoryCategory;
+  
+  if (VALID_MEMORY_CATEGORIES.includes(normalized)) {
+    return {
+      valid: true,
+      normalizedCategory: normalized,
+    };
+  }
+  
+  // Default to 'general' if invalid
+  return {
+    valid: false,
+    normalizedCategory: 'general',
+    warning: `Categoria de memória inválida: ${category}. Usando 'general'.`,
+  };
+}
+
+/**
+ * Get recommended expiration days based on memory type
+ */
+export function getRecommendedExpirationDays(memoryType: MemoryType): number {
+  switch (memoryType) {
+    case 'fact':
+      return 180; // 6 months - facts are durable
+    case 'preference':
+      return 120; // 4 months
+    case 'conclusion':
+      return 90; // 3 months
+    case 'pattern':
+      return 60; // 2 months
+    case 'risk':
+    case 'objection':
+      return 30; // 1 month - need to be re-evaluated
+    case 'user_feedback':
+      return 180; // 6 months - validated by user
+    case 'important_signal':
+      return 45; // 1.5 months
+    default:
+      return 90;
+  }
+}
+
+/**
+ * Validate a complete memory entry before storage
+ */
+export function validateMemoryEntry(entry: {
+  content: string;
+  memoryType: string;
+  memoryCategory?: string;
+  relevanceScore?: number;
+}): {
+  valid: boolean;
+  sanitizedEntry: {
+    content: string;
+    memoryType: MemoryType;
+    memoryCategory: MemoryCategory;
+    relevanceScore: number;
+    expiresInDays: number;
+  };
+  warnings: string[];
+} {
+  const warnings: string[] = [];
+  
+  // Validate content
+  const contentValidation = validateMemoryContent(entry.content);
+  if (contentValidation.warning) {
+    warnings.push(contentValidation.warning);
+  }
+  
+  // Validate type
+  const typeValidation = validateMemoryType(entry.memoryType);
+  if (typeValidation.warning) {
+    warnings.push(typeValidation.warning);
+  }
+  
+  // Validate category
+  const categoryValidation = validateMemoryCategory(entry.memoryCategory || 'general');
+  if (categoryValidation.warning) {
+    warnings.push(categoryValidation.warning);
+  }
+  
+  // Validate relevance score
+  let relevanceScore = entry.relevanceScore ?? 0.5;
+  if (relevanceScore < 0) {
+    relevanceScore = 0;
+    warnings.push('Relevância ajustada para 0 (era negativa).');
+  } else if (relevanceScore > 1) {
+    relevanceScore = 1;
+    warnings.push('Relevância ajustada para 1 (era > 1).');
+  }
+  
+  return {
+    valid: contentValidation.valid && contentValidation.sanitized.length > 0,
+    sanitizedEntry: {
+      content: contentValidation.sanitized,
+      memoryType: typeValidation.normalizedType,
+      memoryCategory: categoryValidation.normalizedCategory,
+      relevanceScore,
+      expiresInDays: getRecommendedExpirationDays(typeValidation.normalizedType),
+    },
+    warnings,
+  };
+}

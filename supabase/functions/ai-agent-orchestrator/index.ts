@@ -233,34 +233,95 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 3: Fetch previous agent conclusions (memory)
+    // Step 3: Fetch previous agent conclusions using semantic retrieval
     let previousConclusions: any[] = [];
+    let memoryContext: { 
+      knownFacts: string[]; 
+      preferences: string[]; 
+      patterns: string[]; 
+      risks: string[]; 
+    } = { knownFacts: [], preferences: [], patterns: [], risks: [] };
+    
     const step3Start = Date.now();
     try {
-      const { data: memoryData } = await supabase
-        .from('ai_agent_memory')
-        .select('content, memory_type, relevance_score, created_at')
-        .eq('entity_id', entityId)
-        .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      // Use the new retrieve_entity_memories function for intelligent retrieval
+      const { data: memoryData, error: memoryError } = await supabase.rpc(
+        'retrieve_entity_memories',
+        {
+          p_workspace_id: workspaceId,
+          p_entity_id: entityId,
+          p_entity_type: entityType,
+          p_max_results: 10,
+          p_min_relevance: 0.3,
+          p_include_strategic: true
+        }
+      );
       
-      previousConclusions = memoryData || [];
+      if (memoryError) {
+        console.log('[Orchestrator] retrieve_entity_memories not available, falling back to basic query');
+        // Fallback to basic query if function doesn't exist
+        const { data: fallbackData } = await supabase
+          .from('ai_agent_memory')
+          .select('id, content, memory_type, memory_category, relevance_score, is_validated, created_at')
+          .eq('entity_id', entityId)
+          .eq('workspace_id', workspaceId)
+          .is('superseded_by', null)
+          .order('relevance_score', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        previousConclusions = fallbackData || [];
+      } else {
+        previousConclusions = memoryData || [];
+        
+        // Update access counts for retrieved memories
+        if (previousConclusions.length > 0) {
+          const memoryIds = previousConclusions.map((m: any) => m.id);
+          for (const memoryId of memoryIds) {
+            await supabase
+              .from('ai_agent_memory')
+              .update({ 
+                last_accessed_at: new Date().toISOString()
+              })
+              .eq('id', memoryId);
+          }
+        }
+      }
+      
+      // Categorize memories for structured prompt injection
+      for (const memory of previousConclusions) {
+        const category = memory.memory_category || 'general';
+        const memoryType = memory.memory_type || 'conclusion';
+        
+        if (memoryType === 'fact' || memory.is_validated) {
+          memoryContext.knownFacts.push(memory.content);
+        } else if (memoryType === 'preference' || category === 'contact_preference') {
+          memoryContext.preferences.push(memory.content);
+        } else if (memoryType === 'pattern' || memoryType === 'objection') {
+          memoryContext.patterns.push(memory.content);
+        } else if (memoryType === 'risk') {
+          memoryContext.risks.push(memory.content);
+        } else {
+          memoryContext.knownFacts.push(memory.content);
+        }
+      }
+      
       if (previousConclusions.length > 0) {
         dataSourcesUsed.push('ai_agent_memory');
       }
       
       reasoningTrace.push({
         step: 3,
-        action: 'Retrieve previous conclusions',
-        input: `entity: ${entityId}`,
-        output: `Found ${previousConclusions.length} memory entries`,
-        confidence: previousConclusions.length > 0 ? 0.8 : 0.5,
+        action: 'Retrieve previous conclusions (semantic)',
+        input: `entity: ${entityId}, using retrieve_entity_memories()`,
+        output: `Found ${previousConclusions.length} memories: ${memoryContext.knownFacts.length} facts, ${memoryContext.preferences.length} preferences, ${memoryContext.patterns.length} patterns, ${memoryContext.risks.length} risks`,
+        confidence: previousConclusions.length > 0 ? 0.85 : 0.5,
         durationMs: Date.now() - step3Start,
-        toolUsed: 'get_previous_conclusions',
+        toolUsed: 'retrieve_entity_memories',
       });
     } catch (e) {
       const err = e as Error;
+      console.error('[Orchestrator] Memory retrieval error:', err);
       reasoningTrace.push({
         step: 3,
         action: 'Retrieve previous conclusions',
@@ -268,7 +329,7 @@ Deno.serve(async (req) => {
         output: `Error: ${err.message}`,
         confidence: 0.0,
         durationMs: Date.now() - step3Start,
-        toolUsed: 'get_previous_conclusions',
+        toolUsed: 'retrieve_entity_memories',
       });
     }
 
@@ -328,20 +389,67 @@ Deno.serve(async (req) => {
       console.error('[Orchestrator] Failed to record execution:', insertError);
     }
 
-    // Store important conclusion in memory
+    // Store important conclusion in memory using store_entity_memory function
     if (analysis.confidenceLevel !== 'low') {
-      await supabase
-        .from('ai_agent_memory')
-        .insert({
-          workspace_id: workspaceId,
-          entity_id: entityId,
-          entity_type: entityType,
-          memory_type: 'conclusion',
-          content: analysis.executiveSummary,
-          relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
-          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
-          created_by: userId,
-        });
+      try {
+        // Try to use the enhanced store_entity_memory function
+        const { error: storeError } = await supabase.rpc(
+          'store_entity_memory',
+          {
+            p_workspace_id: workspaceId,
+            p_entity_id: entityId,
+            p_entity_type: entityType,
+            p_memory_type: 'conclusion',
+            p_content: analysis.executiveSummary,
+            p_relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+            p_source_execution_id: executionRecord?.id || null,
+            p_expires_in_days: 90,
+            p_created_by: userId
+          }
+        );
+        
+        if (storeError) {
+          console.log('[Orchestrator] store_entity_memory not available, using direct insert');
+          // Fallback to direct insert
+          await supabase
+            .from('ai_agent_memory')
+            .insert({
+              workspace_id: workspaceId,
+              entity_id: entityId,
+              entity_type: entityType,
+              memory_type: 'conclusion',
+              memory_category: 'general',
+              content: analysis.executiveSummary.substring(0, 2000),
+              relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+              source_execution_id: executionRecord?.id,
+              source_type: 'agent_conclusion',
+              expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+              created_by: userId,
+            });
+        }
+        
+        // Also store key signals and risks as separate memories
+        if (analysis.riskIndicators.length > 0) {
+          const riskContent = `Riscos identificados: ${analysis.riskIndicators.join('; ')}`;
+          await supabase
+            .from('ai_agent_memory')
+            .insert({
+              workspace_id: workspaceId,
+              entity_id: entityId,
+              entity_type: entityType,
+              memory_type: 'risk',
+              memory_category: 'general',
+              content: riskContent.substring(0, 2000),
+              relevance_score: 0.8,
+              source_execution_id: executionRecord?.id,
+              source_type: 'agent_conclusion',
+              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days for risks
+              created_by: userId,
+            });
+        }
+      } catch (memErr) {
+        console.error('[Orchestrator] Error storing memory:', memErr);
+      }
     }
 
     const response: AgentResponse = {
