@@ -7,6 +7,7 @@ import type { Json } from '@/integrations/supabase/types';
 
 export type GoalPeriod = 'daily' | 'weekly' | 'monthly' | 'annual';
 export type GoalStatus = 'not_started' | 'in_progress' | 'completed' | 'failed';
+export type GoalScope = 'individual' | 'organizational';
 
 export interface ProductivityGoal {
   id: string;
@@ -28,6 +29,7 @@ export interface ProductivityGoal {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  goal_scope: GoalScope;
 }
 
 export interface DailyPriority {
@@ -118,22 +120,37 @@ export function useProductivityCoach() {
     enabled: !!currentWorkspace?.id && !!user?.id,
   });
 
-  // Fetch user's goals
+  // Fetch user's goals (individual + organizational from workspace)
   const goalsQuery = useQuery({
     queryKey: ['productivity-goals', currentWorkspace?.id, user?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id || !user?.id) return [];
 
-      const { data, error } = await supabase
+      // Fetch individual goals for the user
+      const { data: individualGoals, error: individualError } = await supabase
         .from('productivity_goals')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .eq('user_id', user.id)
+        .eq('goal_scope', 'individual')
         .order('period')
         .order('priority');
 
-      if (error) throw error;
-      return data as ProductivityGoal[];
+      if (individualError) throw individualError;
+
+      // Fetch organizational goals for the workspace
+      const { data: orgGoals, error: orgError } = await supabase
+        .from('productivity_goals')
+        .select('*')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('goal_scope', 'organizational')
+        .order('period')
+        .order('priority');
+
+      if (orgError) throw orgError;
+
+      // Combine and return all goals
+      return [...(individualGoals || []), ...(orgGoals || [])] as ProductivityGoal[];
     },
     enabled: !!currentWorkspace?.id && !!user?.id,
   });
@@ -285,14 +302,16 @@ export function useProductivityCoach() {
 
   // Create goal
   const createGoal = useMutation({
-    mutationFn: async (goal: Partial<Omit<ProductivityGoal, 'id' | 'workspace_id' | 'user_id' | 'created_at' | 'updated_at'>> & { period: GoalPeriod; period_start: string; period_end: string; title: string }) => {
+    mutationFn: async (goal: Partial<Omit<ProductivityGoal, 'id' | 'workspace_id' | 'user_id' | 'created_at' | 'updated_at'>> & { period: GoalPeriod; period_start: string; period_end: string; title: string; goal_scope?: GoalScope }) => {
       if (!currentWorkspace?.id || !user?.id) throw new Error('Missing context');
 
+      const scope = goal.goal_scope || 'individual';
+      
       const { data, error } = await supabase
         .from('productivity_goals')
         .insert({
           workspace_id: currentWorkspace.id,
-          user_id: user.id,
+          user_id: scope === 'organizational' ? null : user.id,
           period: goal.period,
           period_start: goal.period_start,
           period_end: goal.period_end,
@@ -302,6 +321,7 @@ export function useProductivityCoach() {
           current_value: goal.current_value || 0,
           unit: goal.unit || null,
           status: goal.status || 'not_started',
+          goal_scope: scope,
         })
         .select()
         .single();
