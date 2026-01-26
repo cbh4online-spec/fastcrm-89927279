@@ -2,8 +2,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, Quote } from "lucide-react";
+import { Check, Quote, Calendar, CreditCard, FileText, User, MapPin } from "lucide-react";
 import type { ContentBlock } from "@/types/proposal";
+import { format, addDays } from "date-fns";
+import { pt } from "date-fns/locale";
 import {
   Accordion,
   AccordionContent,
@@ -41,6 +43,15 @@ interface ProposalPreviewProps {
   showCta?: boolean;
   onCtaClick?: () => void;
   items?: PreviewItem[];
+  // Client info
+  clientName?: string | null;
+  clientNif?: string | null;
+  clientAddress?: string | null;
+  // Conditions
+  paymentConditions?: string | null;
+  validityDays?: number | null;
+  notes?: string | null;
+  createdAt?: string | null;
 }
 
 // Replace variables in text
@@ -73,20 +84,83 @@ export function ProposalPreview({
   showCta = true,
   onCtaClick,
   items = [],
+  clientName,
+  clientNif,
+  clientAddress,
+  paymentConditions,
+  validityDays,
+  notes,
+  createdAt,
 }: ProposalPreviewProps) {
   // Calculate items total
   const itemsTotal = items.reduce((sum, item) => sum + item.total_price, 0);
+  
+  // Calculate expiry date
+  const expiryDate = createdAt && validityDays 
+    ? addDays(new Date(createdAt), validityDays)
+    : null;
   return (
     <div className="mx-auto bg-background border rounded-lg shadow-lg overflow-hidden max-w-4xl">
         {/* Header */}
-        <div className="bg-primary/5 p-6 md:p-10 text-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-            {replaceVariables(title, variables)}
-          </h1>
-          {price && (
-            <Badge variant="secondary" className="text-lg px-4 py-1">
-              {formatCurrency(price, currency)}
-            </Badge>
+        <div className="bg-primary/5 p-6 md:p-10">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+              {replaceVariables(title, variables)}
+            </h1>
+            {price && (
+              <Badge variant="secondary" className="text-lg px-4 py-1">
+                {formatCurrency(price, currency)}
+              </Badge>
+            )}
+          </div>
+          
+          {/* Client Info Card */}
+          {(clientName || clientNif || createdAt) && (
+            <div className="bg-card/50 backdrop-blur-sm rounded-lg p-4 border border-border/50 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {clientName && (
+                  <div className="flex items-start gap-2">
+                    <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Para</p>
+                      <p className="font-medium">{clientName}</p>
+                      {clientNif && <p className="text-sm text-muted-foreground">NIF: {clientNif}</p>}
+                    </div>
+                  </div>
+                )}
+                {clientAddress && (
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Morada</p>
+                      <p className="text-sm">{clientAddress}</p>
+                    </div>
+                  </div>
+                )}
+                {createdAt && (
+                  <div className="flex items-start gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Data</p>
+                      <p className="text-sm">
+                        {format(new Date(createdAt), "dd 'de' MMMM 'de' yyyy", { locale: pt })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {expiryDate && (
+                  <div className="flex items-start gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Válida até</p>
+                      <p className="text-sm font-medium text-primary">
+                        {format(expiryDate, "dd 'de' MMMM 'de' yyyy", { locale: pt })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
@@ -146,6 +220,34 @@ export function ProposalPreview({
                 </TableRow>
               </TableFooter>
             </Table>
+          </Card>
+        )}
+
+        {/* Conditions Section */}
+        {(paymentConditions || notes) && (
+          <Card className="overflow-hidden mx-6 md:mx-10 mb-6">
+            <div className="bg-muted/50 px-6 py-4 border-b">
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Condições
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              {paymentConditions && (
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Pagamento</p>
+                    <p className="font-medium">{paymentConditions}</p>
+                  </div>
+                </div>
+              )}
+              {notes && (
+                <div className="pt-2 border-t">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{notes}</p>
+                </div>
+              )}
+            </div>
           </Card>
         )}
 

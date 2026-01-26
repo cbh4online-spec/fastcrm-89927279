@@ -49,6 +49,15 @@ export interface Proposal {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Client fields
+  contact_id: string | null;
+  company_id: string | null;
+  // Conditions fields
+  payment_conditions: string | null;
+  validity_days: number | null;
+  notes: string | null;
+  billing_address: string | null;
+  billing_nif: string | null;
   opportunity?: {
     id: string;
     title: string;
@@ -59,6 +68,20 @@ export interface Proposal {
       email: string | null;
     } | null;
   };
+  contact?: {
+    id: string;
+    name: string;
+    email: string | null;
+    tax_id: string | null;
+    address: string | null;
+  } | null;
+  company?: {
+    id: string;
+    name: string;
+    email: string | null;
+    tax_id: string | null;
+    address: string | null;
+  } | null;
 }
 
 export interface ProposalVersion {
@@ -108,6 +131,15 @@ export interface UpdateProposalInput {
   currency?: string;
   expires_at?: string;
   status?: ProposalStatus;
+  // Client fields
+  contact_id?: string | null;
+  company_id?: string | null;
+  // Conditions fields
+  payment_conditions?: string;
+  validity_days?: number;
+  notes?: string;
+  billing_address?: string;
+  billing_nif?: string;
 }
 
 export interface CreateProposalTemplateInput {
