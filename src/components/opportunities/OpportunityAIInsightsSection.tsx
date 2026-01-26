@@ -26,7 +26,8 @@ export function OpportunityAIInsightsSection({
     isAnalyzing, 
     lastAnalysis,
     isLoadingLast,
-    canAnalyze 
+    canAnalyze,
+    getCurrentBehavioralMode,
   } = useAgentAnalysis('opportunity', opportunityId, 'opportunity');
 
   const handleAnalyze = async () => {
@@ -104,6 +105,8 @@ export function OpportunityAIInsightsSection({
 
   // If we have a previous analysis, show it
   if (lastAnalysis?.output) {
+    const modeResult = getCurrentBehavioralMode();
+    
     return (
       <AgentInsightCard
         output={lastAnalysis.output}
@@ -119,6 +122,8 @@ export function OpportunityAIInsightsSection({
         agentType="opportunity"
         surface="entity_page"
         recommendationId={recommendationId}
+        // Behavioral mode
+        behavioralMode={modeResult?.selectedMode}
       />
     );
   }

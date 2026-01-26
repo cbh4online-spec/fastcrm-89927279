@@ -17,7 +17,11 @@ import {
   RefreshCw,
   Loader2,
   CheckCircle,
-  XCircle
+  XCircle,
+  Search,
+  Zap,
+  Shield,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgentOutput, ConfidenceLevel, ReasoningStep } from "@/types/aiAgents";
@@ -25,6 +29,8 @@ import { getConfidenceColor, getConfidenceLabel } from "@/types/aiAgents";
 import { AgentReasoningTrace } from "./AgentReasoningTrace";
 import { AgentFeedbackButtons } from "./AgentFeedbackButtons";
 import { useAgentAnalytics, type AgentType, type EntityType, type Surface } from "@/hooks/useAgentAnalytics";
+import type { BehavioralMode } from "@/types/agentBehavioralModes";
+import { getModeDisplayName, getModeColor } from "@/types/agentBehavioralModes";
 
 interface AgentInsightCardProps {
   output: AgentOutput;
@@ -41,6 +47,8 @@ interface AgentInsightCardProps {
   agentType?: AgentType;
   surface?: Surface;
   recommendationId?: string;
+  // Behavioral mode
+  behavioralMode?: BehavioralMode;
 }
 
 const confidenceIcons: Record<ConfidenceLevel, React.ElementType> = {
@@ -54,6 +62,15 @@ const confidenceBgColors: Record<ConfidenceLevel, string> = {
   medium: "bg-amber-500/10 border-amber-500/20",
   low: "bg-red-500/10 border-red-500/20",
 };
+
+const modeIcons: Record<BehavioralMode, React.ElementType> = {
+  exploratory: Search,
+  execution: Zap,
+  risk_control: Shield,
+  educational: GraduationCap,
+  validation: CheckCircle,
+};
+
 
 export function AgentInsightCard({
   output,
@@ -70,6 +87,8 @@ export function AgentInsightCard({
   agentType,
   surface = 'entity_page',
   recommendationId,
+  // Behavioral mode
+  behavioralMode,
 }: AgentInsightCardProps) {
   const [showReasoning, setShowReasoning] = useState(false);
   const { 
@@ -79,6 +98,7 @@ export function AgentInsightCard({
   } = useAgentAnalytics();
   
   const ConfidenceIcon = confidenceIcons[output.confidenceLevel] || Target;
+  const ModeIcon = behavioralMode ? modeIcons[behavioralMode] : null;
 
   // Track view on mount
   useEffect(() => {
@@ -128,11 +148,24 @@ export function AgentInsightCard({
             </div>
             <div>
               <CardTitle className="text-sm font-medium">Análise IA</CardTitle>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <ConfidenceIcon className={cn("h-3 w-3", getConfidenceColor(output.confidenceLevel))} />
-                <span className={cn("text-xs", getConfidenceColor(output.confidenceLevel))}>
-                  {getConfidenceLabel(output.confidenceLevel)}
-                </span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-1.5">
+                  <ConfidenceIcon className={cn("h-3 w-3", getConfidenceColor(output.confidenceLevel))} />
+                  <span className={cn("text-xs", getConfidenceColor(output.confidenceLevel))}>
+                    {getConfidenceLabel(output.confidenceLevel)}
+                  </span>
+                </div>
+                {behavioralMode && ModeIcon && (
+                  <>
+                    <span className="text-muted-foreground/30">•</span>
+                    <div className="flex items-center gap-1">
+                      <ModeIcon className={cn("h-3 w-3", getModeColor(behavioralMode))} />
+                      <span className={cn("text-xs", getModeColor(behavioralMode))}>
+                        {getModeDisplayName(behavioralMode)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

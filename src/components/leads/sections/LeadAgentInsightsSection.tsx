@@ -26,7 +26,8 @@ export function LeadAgentInsightsSection({
     isAnalyzing, 
     lastAnalysis,
     isLoadingLast,
-    canAnalyze 
+    canAnalyze,
+    getCurrentBehavioralMode,
   } = useAgentAnalysis('lead', leadId, 'lead');
 
   const handleAnalyze = async () => {
@@ -106,6 +107,8 @@ export function LeadAgentInsightsSection({
 
   // If we have a previous analysis, show it
   if (lastAnalysis?.output) {
+    const modeResult = getCurrentBehavioralMode();
+    
     return (
       <AgentInsightCard
         output={lastAnalysis.output}
@@ -121,6 +124,8 @@ export function LeadAgentInsightsSection({
         agentType="lead"
         surface="entity_page"
         recommendationId={recommendationId}
+        // Behavioral mode
+        behavioralMode={modeResult?.selectedMode}
       />
     );
   }
