@@ -822,6 +822,209 @@ export type Database = {
           },
         ]
       }
+      ai_analytics_daily_aggregates: {
+        Row: {
+          actions_executed: number | null
+          agent_type: string
+          avg_confidence_score: number | null
+          avg_latency_ms: number | null
+          avg_time_to_action_seconds: number | null
+          cache_hit_rate: number | null
+          created_at: string
+          date: string
+          failures_count: number | null
+          id: string
+          outcomes_negative: number | null
+          outcomes_positive: number | null
+          rag_usage_rate: number | null
+          recommendations_accepted: number | null
+          recommendations_dismissed: number | null
+          recommendations_generated: number | null
+          recommendations_viewed: number | null
+          timeout_count: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actions_executed?: number | null
+          agent_type: string
+          avg_confidence_score?: number | null
+          avg_latency_ms?: number | null
+          avg_time_to_action_seconds?: number | null
+          cache_hit_rate?: number | null
+          created_at?: string
+          date: string
+          failures_count?: number | null
+          id?: string
+          outcomes_negative?: number | null
+          outcomes_positive?: number | null
+          rag_usage_rate?: number | null
+          recommendations_accepted?: number | null
+          recommendations_dismissed?: number | null
+          recommendations_generated?: number | null
+          recommendations_viewed?: number | null
+          timeout_count?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          actions_executed?: number | null
+          agent_type?: string
+          avg_confidence_score?: number | null
+          avg_latency_ms?: number | null
+          avg_time_to_action_seconds?: number | null
+          cache_hit_rate?: number | null
+          created_at?: string
+          date?: string
+          failures_count?: number | null
+          id?: string
+          outcomes_negative?: number | null
+          outcomes_positive?: number | null
+          rag_usage_rate?: number | null
+          recommendations_accepted?: number | null
+          recommendations_dismissed?: number | null
+          recommendations_generated?: number | null
+          recommendations_viewed?: number | null
+          timeout_count?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_analytics_daily_aggregates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_analytics_events: {
+        Row: {
+          action_type: string | null
+          agent_type: string | null
+          automation_id: string | null
+          avg_relevance_score: number | null
+          chunks_used: number | null
+          confidence: Database["public"]["Enums"]["analytics_confidence"] | null
+          created_at: string
+          dismiss_reason: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error_reason: string | null
+          error_type: string | null
+          event_type: Database["public"]["Enums"]["analytics_event_type"]
+          execution_channel: string | null
+          id: string
+          latency_ms: number | null
+          model_version: string | null
+          new_stage: string | null
+          outcome_type: string | null
+          priority: Database["public"]["Enums"]["analytics_priority"] | null
+          prompt_version: string | null
+          properties: Json | null
+          rating: number | null
+          recommendation_id: string | null
+          recommendation_type: string | null
+          rerank_used: boolean | null
+          retrieval_candidates: number | null
+          surface: string | null
+          time_since_action_hours: number | null
+          time_to_action_seconds: number | null
+          timeout: boolean | null
+          used_cache: boolean | null
+          used_rag: boolean | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type?: string | null
+          agent_type?: string | null
+          automation_id?: string | null
+          avg_relevance_score?: number | null
+          chunks_used?: number | null
+          confidence?:
+            | Database["public"]["Enums"]["analytics_confidence"]
+            | null
+          created_at?: string
+          dismiss_reason?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_reason?: string | null
+          error_type?: string | null
+          event_type: Database["public"]["Enums"]["analytics_event_type"]
+          execution_channel?: string | null
+          id?: string
+          latency_ms?: number | null
+          model_version?: string | null
+          new_stage?: string | null
+          outcome_type?: string | null
+          priority?: Database["public"]["Enums"]["analytics_priority"] | null
+          prompt_version?: string | null
+          properties?: Json | null
+          rating?: number | null
+          recommendation_id?: string | null
+          recommendation_type?: string | null
+          rerank_used?: boolean | null
+          retrieval_candidates?: number | null
+          surface?: string | null
+          time_since_action_hours?: number | null
+          time_to_action_seconds?: number | null
+          timeout?: boolean | null
+          used_cache?: boolean | null
+          used_rag?: boolean | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string | null
+          agent_type?: string | null
+          automation_id?: string | null
+          avg_relevance_score?: number | null
+          chunks_used?: number | null
+          confidence?:
+            | Database["public"]["Enums"]["analytics_confidence"]
+            | null
+          created_at?: string
+          dismiss_reason?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_reason?: string | null
+          error_type?: string | null
+          event_type?: Database["public"]["Enums"]["analytics_event_type"]
+          execution_channel?: string | null
+          id?: string
+          latency_ms?: number | null
+          model_version?: string | null
+          new_stage?: string | null
+          outcome_type?: string | null
+          priority?: Database["public"]["Enums"]["analytics_priority"] | null
+          prompt_version?: string | null
+          properties?: Json | null
+          rating?: number | null
+          recommendation_id?: string | null
+          recommendation_type?: string | null
+          rerank_used?: boolean | null
+          retrieval_candidates?: number | null
+          surface?: string | null
+          time_since_action_hours?: number | null
+          time_to_action_seconds?: number | null
+          timeout?: boolean | null
+          used_cache?: boolean | null
+          used_rag?: boolean | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_analytics_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_cache_metrics: {
         Row: {
           agent_type: string
@@ -16799,6 +17002,27 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
+      get_agent_funnel_metrics: {
+        Args: {
+          p_agent_type?: string
+          p_end_date?: string
+          p_start_date?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          acceptance_rate: number
+          accepted: number
+          agent_type: string
+          dismissed: number
+          executed: number
+          execution_rate: number
+          generated: number
+          outcome_rate: number
+          outcomes_positive: number
+          view_rate: number
+          viewed: number
+        }[]
+      }
       get_available_meeting_slots: {
         Args: {
           p_date: string
@@ -17135,6 +17359,18 @@ export type Database = {
         | "status_changed"
         | "time_based"
         | "message_received"
+      analytics_confidence: "low" | "medium" | "high"
+      analytics_event_type:
+        | "recommendation_generated"
+        | "recommendation_viewed"
+        | "recommendation_accepted"
+        | "recommendation_dismissed"
+        | "recommendation_rated"
+        | "action_executed"
+        | "entity_outcome_updated"
+        | "agent_run_failed"
+        | "rag_retrieval_quality"
+      analytics_priority: "low" | "medium" | "high"
       app_role: "super_admin" | "admin" | "user"
       automation_action_type:
         | "create_task"
@@ -17421,6 +17657,19 @@ export const Constants = {
         "time_based",
         "message_received",
       ],
+      analytics_confidence: ["low", "medium", "high"],
+      analytics_event_type: [
+        "recommendation_generated",
+        "recommendation_viewed",
+        "recommendation_accepted",
+        "recommendation_dismissed",
+        "recommendation_rated",
+        "action_executed",
+        "entity_outcome_updated",
+        "agent_run_failed",
+        "rag_retrieval_quality",
+      ],
+      analytics_priority: ["low", "medium", "high"],
       app_role: ["super_admin", "admin", "user"],
       automation_action_type: [
         "create_task",
