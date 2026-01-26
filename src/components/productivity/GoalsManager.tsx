@@ -61,10 +61,7 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useProductivityCoach, GoalPeriod, GoalStatus, GoalScope, ProductivityGoal } from '@/hooks/useProductivityCoach';
-import { useGoalsProgress, isAutoCalculatedUnit, getUnitDataSource } from '@/hooks/useGoalProgressCalculation';
-import { useGoalsHistoricalProgress, HistoricalDataPoint, supportsHistoricalData } from '@/hooks/useGoalHistoricalProgress';
 import { PeriodSummary } from './PeriodSummary';
-import { GoalSparkline } from './GoalSparkline';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -824,28 +821,22 @@ interface GoalCardProps {
   onDelete: () => void;
   canManage: boolean;
   assignedMember?: WorkspaceMember | null;
-  autoProgress?: { calculatedValue: number; isAutomatic: boolean; source: string } | null;
-  historicalData?: HistoricalDataPoint[];
   members: WorkspaceMember[];
 }
 
-function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoProgress, historicalData, members }: GoalCardProps) {
+function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, members }: GoalCardProps) {
   const config = PERIOD_CONFIG[goal.period];
   const statusConfig = STATUS_CONFIG[goal.status];
   const Icon = config.icon;
   const isOrganizational = goal.goal_scope === 'organizational';
-  const isAutomatic = autoProgress?.isAutomatic || false;
 
-  // Use automatic progress if available, otherwise use stored current_value
-  const currentValue = isAutomatic ? autoProgress.calculatedValue : (goal.current_value || 0);
+  // Use only stored current_value (manual progress)
+  const currentValue = goal.current_value || 0;
   const progress = goal.target_value && currentValue
     ? Math.min((currentValue / goal.target_value) * 100, 100)
     : 0;
 
   const handleIncrement = () => {
-    // Only allow manual increment if not automatic
-    if (isAutomatic) return;
-    
     const newValue = (goal.current_value || 0) + 1;
     const updates: Partial<ProductivityGoal> = {
       current_value: newValue,
@@ -914,15 +905,7 @@ function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoPro
         {goal.target_value && (
           <div className="mt-4 space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <span>Progresso</span>
-                {isAutomatic && (
-                  <Badge variant="outline" className="h-4 text-[9px] px-1 bg-blue-50 text-blue-600 border-blue-200">
-                    <Zap className="h-2.5 w-2.5 mr-0.5" />
-                    Auto
-                  </Badge>
-                )}
-              </div>
+              <span className="text-muted-foreground">Progresso</span>
               <span className="font-medium">
                 {currentValue}/{goal.target_value} {goal.unit || ''}
               </span>
@@ -931,27 +914,9 @@ function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoPro
               value={progress} 
               className={cn(
                 "h-2",
-                isOrganizational && "[&>div]:bg-emerald-500",
-                isAutomatic && "[&>div]:bg-blue-500"
+                isOrganizational && "[&>div]:bg-emerald-500"
               )} 
             />
-            {isAutomatic && autoProgress?.source && (
-              <p className="text-[10px] text-muted-foreground">
-                Calculado automaticamente a partir de {autoProgress.source}
-              </p>
-            )}
-            
-            {/* Sparkline de evolução temporal */}
-            {historicalData && historicalData.length >= 2 && (
-              <div className="mt-3 pt-3 border-t border-border/50">
-                <p className="text-[10px] text-muted-foreground mb-2">Evolução no período</p>
-                <GoalSparkline 
-                  data={historicalData} 
-                  targetValue={goal.target_value || 0}
-                  height={50}
-                />
-              </div>
-            )}
           </div>
         )}
 
@@ -969,7 +934,7 @@ function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoPro
             )}
           </div>
           <div className="flex items-center gap-1">
-            {goal.target_value && goal.status !== 'completed' && canManage && !isAutomatic && (
+            {goal.target_value && goal.status !== 'completed' && canManage && (
               <Button variant="outline" size="sm" onClick={handleIncrement}>
                 <Plus className="h-3 w-3 mr-1" />
                 +1
@@ -1006,11 +971,6 @@ export function GoalsManager() {
   const [activeTab, setActiveTab] = useState<GoalPeriod>('daily');
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
   
-  // Fetch automatic progress for all goals
-  const { data: autoProgressMap = {} } = useGoalsProgress(goals);
-  
-  // Fetch historical progress data for sparklines
-  const { data: historicalProgressMap = {} } = useGoalsHistoricalProgress(goals);
 
   // Only workspace owners or super admins can manage (edit/delete) goals
   const isOwner = currentWorkspace?.role === 'owner';
@@ -1160,10 +1120,7 @@ export function GoalsManager() {
               </Card>
             ) : (
               <>
-                <PeriodSummary 
-                  goals={filteredGoals} 
-                  autoProgressMap={autoProgressMap} 
-                />
+                <PeriodSummary goals={filteredGoals} />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredGoals.map((goal) => (
                     <GoalCard
@@ -1173,8 +1130,6 @@ export function GoalsManager() {
                       onDelete={() => deleteGoal.mutate(goal.id)}
                       canManage={canManageGoals}
                       assignedMember={goal.user_id ? memberMap.get(goal.user_id) : null}
-                      autoProgress={autoProgressMap[goal.id] || null}
-                      historicalData={historicalProgressMap[goal.id]}
                       members={members}
                     />
                   ))}

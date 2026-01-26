@@ -81,7 +81,6 @@ const formatValue = (value: number, unit: string): string => {
 
 interface PeriodSummaryProps {
   goals: ProductivityGoal[];
-  autoProgressMap: Record<string, { calculatedValue: number; isAutomatic: boolean; source: string }>;
 }
 
 interface UnitSummary {
@@ -91,8 +90,8 @@ interface UnitSummary {
   completedCount: number;
 }
 
-export function PeriodSummary({ goals, autoProgressMap }: PeriodSummaryProps) {
-  // Agrupar por unidade e calcular totais
+export function PeriodSummary({ goals }: PeriodSummaryProps) {
+  // Agrupar por unidade e calcular totais (usando apenas valores manuais)
   const { summaryByUnit, totalProgress, completedGoals, totalGoals } = useMemo(() => {
     const grouped: Record<string, UnitSummary> = {};
     let totalCurrent = 0;
@@ -101,10 +100,7 @@ export function PeriodSummary({ goals, autoProgressMap }: PeriodSummaryProps) {
     
     goals.forEach(goal => {
       const unit = goal.unit || 'Unidades';
-      const autoProgress = autoProgressMap[goal.id];
-      const currentValue = autoProgress?.isAutomatic 
-        ? autoProgress.calculatedValue 
-        : (goal.current_value || 0);
+      const currentValue = goal.current_value || 0;
       const targetValue = goal.target_value || 0;
       
       if (!grouped[unit]) {
@@ -133,7 +129,7 @@ export function PeriodSummary({ goals, autoProgressMap }: PeriodSummaryProps) {
       completedGoals: completed,
       totalGoals: goals.length,
     };
-  }, [goals, autoProgressMap]);
+  }, [goals]);
 
   // Se não há metas, não renderizar
   if (goals.length === 0) {
