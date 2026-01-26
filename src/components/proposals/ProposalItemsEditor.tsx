@@ -42,10 +42,7 @@ interface ProposalItemsEditorProps {
   onSaved?: () => void;
 }
 
-export const ProposalItemsEditor = React.forwardRef<
-  HTMLDivElement,
-  ProposalItemsEditorProps
->(function ProposalItemsEditor({ proposalId, onSaved }, ref) {
+export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditorProps) {
   const { data: existingItems, isLoading: loadingItems } = useProposalItems(proposalId);
   const { data: products } = useProducts({ status: "active" });
   const updateItems = useUpdateProposalItems();
@@ -153,7 +150,7 @@ export const ProposalItemsEditor = React.forwardRef<
   }
 
   return (
-    <div ref={ref} className="space-y-4">
+    <div className="space-y-4">
       {/* Add Product Quick Select */}
       <Card className="p-4">
         <div className="flex items-center gap-3">
@@ -327,4 +324,4 @@ export const ProposalItemsEditor = React.forwardRef<
       </div>
     </div>
   );
-});
+}
