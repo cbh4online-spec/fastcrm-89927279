@@ -338,6 +338,132 @@ export type Database = {
           },
         ]
       }
+      ai_agent_jobs: {
+        Row: {
+          agent_type: string
+          attempts: number | null
+          completed_at: string | null
+          context: Json | null
+          created_at: string | null
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          error_message: string | null
+          execution_id: string | null
+          id: string
+          max_attempts: number | null
+          priority: number | null
+          scheduled_for: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          trigger_type: Database["public"]["Enums"]["agent_trigger"]
+          workspace_id: string
+        }
+        Insert: {
+          agent_type: string
+          attempts?: number | null
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          error_message?: string | null
+          execution_id?: string | null
+          id?: string
+          max_attempts?: number | null
+          priority?: number | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          trigger_type: Database["public"]["Enums"]["agent_trigger"]
+          workspace_id: string
+        }
+        Update: {
+          agent_type?: string
+          attempts?: number | null
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          error_message?: string | null
+          execution_id?: string | null
+          id?: string
+          max_attempts?: number | null
+          priority?: number | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          trigger_type?: Database["public"]["Enums"]["agent_trigger"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_jobs_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agent_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_locks: {
+        Row: {
+          agent_type: string
+          entity_id: string
+          expires_at: string
+          id: string
+          job_id: string | null
+          locked_at: string | null
+          locked_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_type: string
+          entity_id: string
+          expires_at: string
+          id?: string
+          job_id?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          agent_type?: string
+          entity_id?: string
+          expires_at?: string
+          id?: string
+          job_id?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_locks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agent_locks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_agent_memory: {
         Row: {
           content: string
@@ -378,6 +504,125 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_agent_memory_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_registry: {
+        Row: {
+          agent_type: string
+          cooldown_ms: number | null
+          created_at: string | null
+          description: string | null
+          display_name: string
+          enabled_triggers: Database["public"]["Enums"]["agent_trigger"][]
+          entity_types: string[]
+          id: string
+          is_enabled: boolean | null
+          max_executions_per_hour_entity: number | null
+          max_executions_per_hour_workspace: number | null
+          max_reasoning_iterations: number | null
+          max_tool_calls: number | null
+          priority: number | null
+          timeout_ms: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_type: string
+          cooldown_ms?: number | null
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          enabled_triggers: Database["public"]["Enums"]["agent_trigger"][]
+          entity_types: string[]
+          id?: string
+          is_enabled?: boolean | null
+          max_executions_per_hour_entity?: number | null
+          max_executions_per_hour_workspace?: number | null
+          max_reasoning_iterations?: number | null
+          max_tool_calls?: number | null
+          priority?: number | null
+          timeout_ms?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_type?: string
+          cooldown_ms?: number | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          enabled_triggers?: Database["public"]["Enums"]["agent_trigger"][]
+          entity_types?: string[]
+          id?: string
+          is_enabled?: boolean | null
+          max_executions_per_hour_entity?: number | null
+          max_executions_per_hour_workspace?: number | null
+          max_reasoning_iterations?: number | null
+          max_tool_calls?: number | null
+          priority?: number | null
+          timeout_ms?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_agent_schedules: {
+        Row: {
+          agent_type: string
+          created_at: string | null
+          created_by: string | null
+          cron_expression: string
+          description: string | null
+          entity_filter: Json | null
+          id: string
+          is_enabled: boolean | null
+          last_run_at: string | null
+          max_entities_per_run: number | null
+          name: string
+          next_run_at: string | null
+          priority: number | null
+          timezone: string | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_type: string
+          created_at?: string | null
+          created_by?: string | null
+          cron_expression: string
+          description?: string | null
+          entity_filter?: Json | null
+          id?: string
+          is_enabled?: boolean | null
+          last_run_at?: string | null
+          max_entities_per_run?: number | null
+          name: string
+          next_run_at?: string | null
+          priority?: number | null
+          timezone?: string | null
+          workspace_id: string
+        }
+        Update: {
+          agent_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          cron_expression?: string
+          description?: string | null
+          entity_filter?: Json | null
+          id?: string
+          is_enabled?: boolean | null
+          last_run_at?: string | null
+          max_entities_per_run?: number | null
+          name?: string
+          next_run_at?: string | null
+          priority?: number | null
+          timezone?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_schedules_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -15904,6 +16149,16 @@ export type Database = {
       }
     }
     Functions: {
+      acquire_agent_lock: {
+        Args: {
+          p_agent_type: string
+          p_entity_id: string
+          p_job_id?: string
+          p_ttl_seconds?: number
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       add_module_credits: {
         Args: {
           p_credits: number
@@ -15935,6 +16190,14 @@ export type Database = {
           total_revenue: number
           total_subscriptions: number
         }[]
+      }
+      check_agent_rate_limit: {
+        Args: {
+          p_agent_type: string
+          p_entity_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
       }
       check_custom_field_unique_value: {
         Args: { p_custom_field_id: string; p_entity_id: string; p_value: Json }
@@ -16209,6 +16472,14 @@ export type Database = {
           usage_count: number
         }[]
       }
+      release_agent_lock: {
+        Args: {
+          p_agent_type: string
+          p_entity_id: string
+          p_workspace_id: string
+        }
+        Returns: boolean
+      }
       remove_workspace_member_admin: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: Json
@@ -16256,6 +16527,12 @@ export type Database = {
         | "servicos_profissionais"
         | "generico"
         | "custom"
+      agent_trigger:
+        | "manual"
+        | "entity_created"
+        | "status_changed"
+        | "time_based"
+        | "message_received"
       app_role: "super_admin" | "admin" | "user"
       automation_action_type:
         | "create_task"
@@ -16341,6 +16618,7 @@ export type Database = {
       goal_period: "daily" | "weekly" | "monthly" | "annual"
       goal_status: "not_started" | "in_progress" | "completed" | "failed"
       integration_mode: "embed" | "redirect" | "headless"
+      job_status: "pending" | "running" | "completed" | "failed" | "cancelled"
       opportunity_subscription_status:
         | "draft"
         | "active"
@@ -16534,6 +16812,13 @@ export const Constants = {
         "generico",
         "custom",
       ],
+      agent_trigger: [
+        "manual",
+        "entity_created",
+        "status_changed",
+        "time_based",
+        "message_received",
+      ],
       app_role: ["super_admin", "admin", "user"],
       automation_action_type: [
         "create_task",
@@ -16624,6 +16909,7 @@ export const Constants = {
       goal_period: ["daily", "weekly", "monthly", "annual"],
       goal_status: ["not_started", "in_progress", "completed", "failed"],
       integration_mode: ["embed", "redirect", "headless"],
+      job_status: ["pending", "running", "completed", "failed", "cancelled"],
       opportunity_subscription_status: [
         "draft",
         "active",
