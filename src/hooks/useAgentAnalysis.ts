@@ -14,11 +14,15 @@ import {
   recordAgentExecution,
   validateAgentAction 
 } from "@/lib/agentSafetyRules";
+import { useAgentBehavioralMode } from "./useAgentBehavioralMode";
+import type { BehavioralMode, ModeSelectionContext, ModeSelectionResult } from "@/types/agentBehavioralModes";
 
 interface UseAgentAnalysisOptions {
   onSuccess?: (response: AgentResponse) => void;
   onError?: (error: Error) => void;
   skipRateLimit?: boolean;
+  behavioralContext?: Partial<ModeSelectionContext>;
+  forceMode?: BehavioralMode;
 }
 
 /**
@@ -39,6 +43,9 @@ export function useAgentAnalysis(
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const workspaceId = currentWorkspace?.id;
+  
+  // Get behavioral mode utilities
+  const { selectMode, getOutputModifiers, trackModeSelection } = useAgentBehavioralMode();
 
   // Fetch last analysis for this entity
   const { data: lastAnalysis, isLoading: isLoadingLast } = useQuery({
@@ -90,7 +97,18 @@ export function useAgentAnalysis(
         }
       }
 
-      // Call the orchestrator edge function
+      // Select behavioral mode for this analysis
+      const validEntityType = entityType as 'lead' | 'opportunity' | 'contact' | 'company';
+      const modeResult: ModeSelectionResult = selectMode(
+        validEntityType,
+        entityId,
+        options.behavioralContext as Record<string, unknown>,
+        { forceMode: options.forceMode }
+      );
+      
+      const modeConfig = getOutputModifiers(modeResult.selectedMode);
+
+      // Call the orchestrator edge function with behavioral mode
       const { data, error } = await supabase.functions.invoke('ai-agent-orchestrator', {
         body: {
           agentType,
@@ -98,8 +116,13 @@ export function useAgentAnalysis(
           entityType,
           triggerType,
           workspaceId,
+          behavioralMode: modeResult.selectedMode,
+          behavioralConfig: modeConfig,
         },
       });
+      
+      // Track mode selection for analytics (non-blocking)
+      trackModeSelection(modeResult, entityType, entityId, options.behavioralContext || {});
 
       if (error) throw error;
       
@@ -137,6 +160,18 @@ export function useAgentAnalysis(
     },
   });
 
+  // Helper to select mode for UI display
+  const getCurrentBehavioralMode = () => {
+    if (!entityId) return null;
+    const validEntityType = entityType as 'lead' | 'opportunity' | 'contact' | 'company';
+    return selectMode(
+      validEntityType,
+      entityId,
+      options.behavioralContext as Record<string, unknown>,
+      { forceMode: options.forceMode }
+    );
+  };
+
   return {
     // Trigger analysis
     analyze: analyzeMutation.mutateAsync,
@@ -156,6 +191,11 @@ export function useAgentAnalysis(
     
     // Action validation
     validateAction: validateAgentAction,
+    
+    // Behavioral mode
+    getCurrentBehavioralMode,
+    selectMode,
+    getOutputModifiers,
   };
 }
 
