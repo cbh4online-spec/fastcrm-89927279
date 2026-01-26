@@ -53,27 +53,35 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
 
   // Initialize items from existing data - only once per proposalId
   useEffect(() => {
+    console.log("[ProposalItemsEditor] Init check:", {
+      loadingItems,
+      initializedForProposal,
+      proposalId,
+      existingItemsCount: existingItems?.length,
+      existingItems: existingItems?.map(i => ({ id: i.id, name: i.name })),
+    });
+
     // Skip if still loading or if already initialized for this proposal
     if (loadingItems || initializedForProposal === proposalId) {
+      console.log("[ProposalItemsEditor] Skipping init - loading:", loadingItems, "already initialized:", initializedForProposal === proposalId);
       return;
     }
 
     // If we have data (even empty array), initialize
     if (existingItems !== undefined) {
-      if (existingItems.length > 0) {
-        setItems(existingItems.map((item, idx) => ({
-          id: item.id,
-          product_id: item.product_id,
-          name: item.name,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          position: item.position ?? idx,
-          is_enabled: item.is_enabled ?? true,
-        })));
-      } else {
-        setItems([]);
-      }
+      const mappedItems = existingItems.map((item, idx) => ({
+        id: item.id,
+        product_id: item.product_id,
+        name: item.name,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        position: item.position ?? idx,
+        is_enabled: item.is_enabled ?? true,
+      }));
+      
+      console.log("[ProposalItemsEditor] Initializing with", mappedItems.length, "items:", mappedItems.map(i => i.name));
+      setItems(mappedItems);
       setHasChanges(false);
       setInitializedForProposal(proposalId);
     }
