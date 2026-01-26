@@ -35,13 +35,18 @@ export type WorkflowStepType =
   | 'send_email'
   | 'send_whatsapp'
   | 'send_sms'
+  | 'send_notification'
   | 'update_stage'
   | 'update_entity'
   | 'create_note'
   | 'create_activity'
+  | 'log_activity'
   | 'http_call'
+  | 'webhook'
   | 'delay'
+  | 'wait'
   | 'condition'
+  | 'condition_check'
   | 'parallel_group'
   | 'trigger_automation'
   | 'notify_user'
@@ -514,17 +519,22 @@ export function getStepTypeLabel(type: WorkflowStepType): string {
     send_email: 'Enviar Email',
     send_whatsapp: 'Enviar WhatsApp',
     send_sms: 'Enviar SMS',
+    send_notification: 'Enviar Notificação',
     update_stage: 'Atualizar Fase',
     update_entity: 'Atualizar Entidade',
     create_note: 'Criar Nota',
     create_activity: 'Registar Atividade',
+    log_activity: 'Registar Atividade',
     http_call: 'Chamada HTTP',
+    webhook: 'Webhook',
     delay: 'Aguardar',
+    wait: 'Aguardar',
     condition: 'Condição',
+    condition_check: 'Verificar Condição',
     parallel_group: 'Grupo Paralelo',
     trigger_automation: 'Disparar Automação',
     notify_user: 'Notificar Utilizador',
     custom: 'Personalizado',
   };
-  return labels[type];
+  return labels[type] || type;
 }
