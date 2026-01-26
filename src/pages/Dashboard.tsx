@@ -20,6 +20,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Calendar,
   Search,
   Filter,
@@ -33,6 +39,9 @@ import {
   DollarSign,
   Briefcase,
   FileText,
+  Building2,
+  Contact,
+  CheckSquare,
 } from "lucide-react";
 import { format, subMonths, isWithinInterval, startOfMonth, endOfMonth, formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -217,10 +226,36 @@ export default function Dashboard() {
               <Button variant="ghost" size="icon" className="h-9 w-9">
                 <HelpCircle className="h-5 w-5 text-muted-foreground" />
               </Button>
-              <Button size="sm" className="gap-1.5 bg-primary shadow-lg shadow-primary/25">
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Novo</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" className="gap-1.5 bg-primary shadow-lg shadow-primary/25">
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Novo</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/leads?action=new")}>
+                    <Target className="h-4 w-4 mr-2" />
+                    Novo Lead
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/opportunities?action=new")}>
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    Nova Oportunidade
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/contacts?action=new")}>
+                    <Contact className="h-4 w-4 mr-2" />
+                    Novo Contacto
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/companies?action=new")}>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Nova Empresa
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/tasks?action=new")}>
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Nova Tarefa
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
