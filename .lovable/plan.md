@@ -1,214 +1,155 @@
 
-# Plano: Dois Modos de Visualizacao - Interno vs. Cliente
+# Plano: Toggle de Itens em Propostas (Habilitar/Desabilitar)
 
 ## Objetivo
 
-Criar dois modos distintos de visualizacao da proposta:
+Adicionar a funcionalidade de habilitar/desabilitar itens em propostas sem os remover, similar ao modelo HAPTIC referenciado. Esta funcionalidade sera util tanto para:
 
-1. **Vista Interna (Gestao)** - Para uso interno da equipa comercial
-2. **Vista Cliente (Documento Profissional)** - Para enviar ao cliente
-
----
-
-## Modo 1: Vista Interna (Gestao)
-
-Layout inspirado no modelo HAPTIC enviado, optimizado para gestao e edicao.
-
-### Estrutura da Vista Interna
-
-```text
-+---------------------------------------------------------------------+
-|  CABECALHO                                                          |
-|  [Logo/Nome Empresa]                    [Agendar Chamada] [Menu]    |
-|  #PROP-001 | Titulo da Proposta  ● Status                           |
-+---------------------------------------------------------------------+
-|  INFORMACOES GERAIS                                                 |
-|  +-------------------+  +-------------------+  +-------------------+ |
-|  | Referencia        |  | Validade          |  | Ponto de Contacto | |
-|  | #PROP2025-001     |  | 26 Jan - 26 Fev   |  | Joao Silva        | |
-|  +-------------------+  +-------------------+  | joao@empresa.com  | |
-|  | Endereco          |                        | Enviar Mensagem   | |
-|  | Cliente ABC       |                        +-------------------+ |
-|  | Rua Exemplo, 123  |                        | Comercial         | |
-|  | Lisboa, 1000-001  |                        | Maria Costa       | |
-|  +-------------------+                        | maria@crm.com     | |
-+---------------------------------------------------------------------+
-|  TABELA DE ITENS (Editavel)                                         |
-|  +------------------------------------------------------------------+
-|  | Item              | Status | Qtd.      | Preco | Subtotal | Sel  |
-|  +------------------------------------------------------------------+
-|  | Servico A         |   -    | [10 Qtd]  | 200€  | 2.000€   | [●]  |
-|  | Servico B         |   -    | [5 Qtd]   | 150€  | 750€     | [●]  |
-|  | Produto X         |   -    | [2 Qtd]   | 500€  | 1.000€   | [○]  |
-|  +------------------------------------------------------------------+
-+---------------------------------------------------------------------+
-|  Ver Comentarios (3)            [Solicitar Alteracao] [Aceitar]     |
-|  +----------------------------------------------------------------+ |
-|  | [Campo de comentarios...]                          [Enviar]   | |
-|  +----------------------------------------------------------------+ |
-|  | @ Paulo - 21 Jan 2025 18:00                                    | |
-|  | Lorem ipsum dolor sit amet, consectetur...                     | |
-|  +----------------------------------------------------------------+ |
-+---------------------------------------------------------------------+
-```
-
-### Funcionalidades da Vista Interna
-
-| Funcionalidade | Descricao |
-|----------------|-----------|
-| Toggle de itens | Activar/desactivar itens da proposta |
-| Edicao de quantidades | Dropdown para ajustar quantidades |
-| Comentarios | Sistema de comentarios interno |
-| Historico | Ver versoes anteriores |
-| Quick Actions | Agendar chamada, enviar mensagem |
-| Status visual | Indicador de progresso da proposta |
+1. **Vista Interna** - A equipa pode activar/desactivar itens durante a gestao
+2. **Vista Cliente (Proposta Digital)** - O cliente pode desmarcar itens que nao pretende
 
 ---
 
-## Modo 2: Vista Cliente (Documento Profissional)
+## Estrutura da Funcionalidade
 
-Layout inspirado no modelo Invoice enviado, documento PDF-like profissional.
+### Comportamento Esperado
 
-### Estrutura da Vista Cliente
-
-```text
-+---------------------------------------------------------------------+
-|                                                                     |
-|  +------------------+                                               |
-|  |                  |         Proposta                              |
-|  |  [LOGO EMPRESA]  |         No. PROP-2025-001                     |
-|  |                  |         26/01/2025                            |
-|  +------------------+                                               |
-|                               Proposta Para:                        |
-|  +------------------+        Cliente ABC                            |
-|  | [Barra lateral  |         Rua Exemplo, 123                       |
-|  | com cores da    |         1000-001 Lisboa                        |
-|  | marca]          |         NIF: 123456789                         |
-|  |                 |         Tel: +351 912 345 678                  |
-|  | Morada          |                                                |
-|  | Rua X, 123      |                                                |
-|  | Lisboa          |                                                |
-|  |                 |                                                |
-|  | website.com     |                                                |
-|  | email@emp.com   |                                                |
-|  |                 |                                                |
-|  | +351 912 XXX    |                                                |
-|  +------------------+                                               |
-+---------------------------------------------------------------------+
-|     Item Descricao                      Preco    Qtd.    Total      |
-|  ------------------------------------------------------------------ |
-|  1  Servico A                           200,00€   10    2.000,00€   |
-|     Descricao detalhada do servico...                               |
-|                                                                     |
-|  2  Servico B                           150,00€    5      750,00€   |
-|     Descricao detalhada...                                          |
-|                                                                     |
-|  3  Produto X                           500,00€    2    1.000,00€   |
-|     Especificacoes do produto...                                    |
-|                                                                     |
-|  ------------------------------------------------------------------ |
-|                                         Subtotal :     3.750,00€    |
-|                                         IVA (23%):       862,50€    |
-|                                         --------------------------  |
-|                                         Total :        4.612,50€    |
-+---------------------------------------------------------------------+
-|                                                                     |
-|  Metodos de Pagamento:                       [Assinatura Digital]   |
-|  - Transferencia Bancaria                                           |
-|  - IBAN: PT50 0000 0000 0000 0000 0000 0                            |
-|  - Multibanco                                 Nome do Responsavel   |
-|                                               CEO & Diretor         |
-+---------------------------------------------------------------------+
-|  +--------------------------------------------------------------+  |
-|  | Termos e Condicoes: Esta proposta e valida por 30 dias...   |  |
-|  +--------------------------------------------------------------+  |
-+---------------------------------------------------------------------+
-```
-
-### Campos para a Vista Cliente
-
-| Secao | Campos |
-|-------|--------|
-| Cabecalho Empresa | Logo, Nome, Endereco, Website, Email, Telefone |
-| Cabecalho Documento | Numero proposta, Data, Validade |
-| Dados Cliente | Nome, Endereco, NIF, Telefone, Email |
-| Tabela Itens | Numero, Descricao, Preco, Quantidade, Total |
-| Totais | Subtotal, IVA (opcional), Total Geral |
-| Pagamento | Metodos, IBAN, Referencias |
-| Rodape | Assinatura, Termos, Observacoes |
+| Contexto | Comportamento |
+|----------|---------------|
+| Item Habilitado | Aparece na tabela normalmente, incluido nos totais |
+| Item Desabilitado | Aparece com opacidade reduzida, riscado, excluido dos totais |
+| Toggle Interno | Equipa pode alternar via Switch |
+| Toggle Cliente | Cliente pode alternar via Switch na pagina publica |
 
 ---
 
 ## Alteracoes Tecnicas
 
-### Fase 1: Base de Dados (Novos campos workspace)
+### Fase 1: Base de Dados
 
-Se nao existirem, adicionar campos a tabela `workspaces`:
-- `logo_url` (text) - URL do logotipo
-- `company_iban` (text) - IBAN para pagamentos
-- `signature_name` (text) - Nome para assinatura
-- `signature_title` (text) - Cargo para assinatura
-- `payment_info` (text) - Informacoes de pagamento
+Adicionar campo `is_enabled` a tabela `proposal_items`:
 
-### Fase 2: Novos Componentes
-
-| Componente | Descricao |
-|------------|-----------|
-| `ProposalInternalView.tsx` | Vista interna completa de gestao |
-| `ProposalClientDocument.tsx` | Documento profissional para cliente |
-| `ProposalViewToggle.tsx` | Alternador entre vistas |
-| `ProposalCommentsSection.tsx` | Sistema de comentarios interno |
-| `ProposalItemsTable.tsx` | Tabela de itens com toggles |
-
-### Fase 3: Modificar Dialog Existente
-
-**Ficheiro:** `ProposalDetailDialog.tsx`
-
-Adicionar toggle no cabecalho:
-```typescript
-const [viewMode, setViewMode] = useState<"internal" | "client">("internal");
-
-// No TabsContent de preview:
-{viewMode === "internal" ? (
-  <ProposalInternalView proposal={proposal} items={proposalItems} />
-) : (
-  <ProposalClientDocument proposal={proposal} items={proposalItems} workspace={workspace} />
-)}
+```sql
+ALTER TABLE proposal_items 
+ADD COLUMN is_enabled boolean NOT NULL DEFAULT true;
 ```
 
-### Fase 4: Integrar Dados do Workspace
+### Fase 2: Actualizar Hook useProposalItems
 
-O documento cliente usara dados do workspace actual:
-- `company_name` - Nome da empresa
-- `billing_address`, `billing_city`, `billing_postal_code` - Endereco
-- `phone`, `website` - Contactos
-- `tax_id` - NIF da empresa
-- `logo_url` - Logotipo (novo campo)
+Modificar `useUpdateProposalItems` para incluir o campo `is_enabled`:
 
-### Fase 5: Funcionalidade de Exportacao PDF
+```typescript
+// src/hooks/useProposals.ts
+items: Array<{
+  id?: string;
+  product_id?: string | null;
+  name: string;
+  description?: string | null;
+  quantity: number;
+  unit_price: number;
+  position: number;
+  is_enabled?: boolean; // Novo campo
+}>;
+```
 
-Adicionar botao para exportar a vista cliente como PDF usando a biblioteca `jspdf` ja instalada.
+### Fase 3: Novo Hook para Toggle Individual
+
+Criar hook `useToggleProposalItem` para alternar o estado de um item especifico:
+
+```typescript
+export function useToggleProposalItem() {
+  return useMutation({
+    mutationFn: async ({ itemId, isEnabled }: { itemId: string; isEnabled: boolean }) => {
+      const { error } = await supabase
+        .from("proposal_items")
+        .update({ is_enabled: isEnabled })
+        .eq("id", itemId);
+      if (error) throw error;
+      return { itemId, isEnabled };
+    },
+    // invalidate queries
+  });
+}
+```
+
+### Fase 4: Actualizar ProposalInternalView
+
+Modificar a tabela de itens para incluir Switch funcional:
+
+- Adicionar coluna "Activo" com Switch
+- Itens desabilitados aparecem com opacidade reduzida e texto riscado
+- Recalcular totais apenas com itens habilitados
+
+```text
+| Item           | Status | Qtd. | Preco | Subtotal | Activo |
+|----------------|--------|------|-------|----------|--------|
+| Servico A      | -      | 10   | 200€  | 2.000€   |  [●]   |
+| Servico B      | -      | 5    | 150€  | 750€     |  [●]   |
+| Produto X      | -      | 2    | 500€  | 1.000€   |  [○]   |  <- Desabilitado
+```
+
+### Fase 5: Actualizar ProposalClientDocument
+
+Modificar a tabela de itens para:
+
+- Mostrar apenas itens habilitados por defeito
+- OU mostrar todos com indicacao visual de desabilitado
+
+### Fase 6: Pagina Publica (Cliente)
+
+Modificar `PublicProposalPage.tsx` para:
+
+- Permitir ao cliente alternar itens via Switch
+- Recalcular totais em tempo real
+- Guardar alteracoes quando cliente aceita proposta
 
 ---
 
-## Resumo das Alteracoes
+## Detalhes de Implementacao
+
+### Interface Visual do Toggle
+
+```text
++-----------------------------------------------------------+
+| Item                       | Qtd | Preco | Total | Activo |
++-----------------------------------------------------------+
+| Servico Premium            | 1   | 500€  | 500€  |  [●]   |
++-----------------------------------------------------------+
+| Servico Basico             | 1   | 200€  | 200€  |  [○]   |
+| (linha com opacidade 50%, texto riscado)                   |
++-----------------------------------------------------------+
+|                                  Subtotal:         500€   |
+|                                  (apenas itens activos)   |
++-----------------------------------------------------------+
+```
+
+### Logica de Calculo de Totais
+
+```typescript
+const enabledItems = items.filter(item => item.is_enabled !== false);
+const itemsTotal = enabledItems.reduce((sum, item) => sum + item.total_price, 0);
+```
+
+---
+
+## Ficheiros a Modificar/Criar
 
 | Tipo | Ficheiro | Accao |
 |------|----------|-------|
-| DB | `workspaces` table | Adicionar campos logo_url, iban, etc. (se necessario) |
-| Novo | `ProposalInternalView.tsx` | Vista interna com tabela editavel |
-| Novo | `ProposalClientDocument.tsx` | Documento profissional |
-| Novo | `ProposalViewToggle.tsx` | Alternador de vistas |
-| Novo | `ProposalCommentsSection.tsx` | Comentarios internos |
-| Editar | `ProposalDetailDialog.tsx` | Integrar toggle e duas vistas |
-| Editar | `PublicProposalPage.tsx` | Usar ProposalClientDocument |
+| DB | `proposal_items` | Adicionar coluna `is_enabled` |
+| Editar | `src/hooks/useProposals.ts` | Adicionar hook toggle, actualizar tipos |
+| Editar | `src/components/proposals/ProposalInternalView.tsx` | Adicionar Switch, logica visual |
+| Editar | `src/components/proposals/ProposalClientDocument.tsx` | Filtrar/exibir itens desabilitados |
+| Editar | `src/pages/PublicProposalPage.tsx` | Permitir toggle pelo cliente |
+| Editar | `src/components/proposals/ProposalDetailDialog.tsx` | Passar handlers para toggle |
 
 ---
 
 ## Resultado Esperado
 
-1. **Vista Interna**: Painel funcional para a equipa gerir propostas, editar itens, adicionar comentarios
-2. **Vista Cliente**: Documento profissional com branding da empresa, pronto para enviar ou exportar PDF
-3. **Toggle facil**: Alternar entre vistas com um clique
-4. **Pagina publica**: Clientes veem apenas a vista profissional
-5. **Exportacao PDF**: Gerar documento para envio offline
+1. Campo `is_enabled` na tabela de itens
+2. Vista Interna com Switch funcional por item
+3. Itens desabilitados aparecem com estilo visual diferenciado
+4. Totais recalculados automaticamente (apenas itens activos)
+5. Cliente pode desmarcar itens na proposta digital
+6. Alteracoes persistidas na base de dados
