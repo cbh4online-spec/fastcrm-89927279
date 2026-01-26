@@ -115,17 +115,30 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
             <Label>Período</Label>
             <Select value={period} onValueChange={(v) => setPeriod(v as GoalPeriod)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>
+                  {period && (
+                    <span className="flex items-center gap-2">
+                      {(() => {
+                        const Icon = PERIOD_CONFIG[period].icon;
+                        return <Icon className="h-4 w-4" />;
+                      })()}
+                      {PERIOD_CONFIG[period].label}
+                    </span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PERIOD_CONFIG).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    <div className="flex items-center gap-2">
-                      <config.icon className="h-4 w-4" />
-                      {config.label}
-                    </div>
-                  </SelectItem>
-                ))}
+              <SelectContent className="pointer-events-auto">
+                {Object.entries(PERIOD_CONFIG).map(([key, config]) => {
+                  const Icon = config.icon;
+                  return (
+                    <SelectItem key={key} value={key} className="cursor-pointer">
+                      <span className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        {config.label}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
