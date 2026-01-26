@@ -14,7 +14,7 @@ export default function PublicProposalPage() {
   const [searchParams] = useSearchParams();
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [workspace, setWorkspace] = useState<Record<string, unknown> | null>(null);
-  const [items, setItems] = useState<Array<{ id: string; name: string; description?: string | null; quantity: number; unit_price: number; total_price: number }>>([]);
+  const [items, setItems] = useState<Array<{ id: string; name: string; description?: string | null; quantity: number; unit_price: number; total_price: number; is_enabled: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
@@ -64,6 +64,7 @@ export default function PublicProposalPage() {
           quantity: item.quantity,
           unit_price: item.unit_price,
           total_price: item.total_price || (item.quantity * item.unit_price),
+          is_enabled: (item as { is_enabled?: boolean }).is_enabled !== false,
         })));
       }
     }
@@ -104,11 +105,33 @@ export default function PublicProposalPage() {
     }
   };
 
+  const handleItemToggle = async (itemId: string, enabled: boolean) => {
+    // Update local state
+    setItems(prev => prev.map(item => 
+      item.id === itemId ? { ...item, is_enabled: enabled } : item
+    ));
+    
+    // Persist to database
+    await supabase
+      .from("proposal_items")
+      .update({ is_enabled: enabled })
+      .eq("id", itemId);
+  };
+
   const handleCheckout = async () => {
     if (!proposal) return;
     setCheckoutLoading(true);
 
     try {
+      // First update proposal with current enabled items total
+      const enabledItems = items.filter(item => item.is_enabled !== false);
+      const totalPrice = enabledItems.reduce((sum, item) => sum + item.total_price, 0);
+      
+      await supabase
+        .from("proposals")
+        .update({ price: totalPrice })
+        .eq("id", proposal.id);
+
       const { data, error } = await supabase.functions.invoke("proposal-checkout", {
         body: { proposalId: proposal.id },
       });
@@ -187,6 +210,8 @@ export default function PublicProposalPage() {
         items={items}
         workspace={workspace as Record<string, unknown> & { id: string; name: string }}
         showActions={false}
+        allowItemToggle={true}
+        onItemToggle={handleItemToggle}
       />
       
       {/* Accept CTA Button */}

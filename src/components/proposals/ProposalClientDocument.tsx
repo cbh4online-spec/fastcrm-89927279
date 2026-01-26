@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { 
   Globe, 
   Mail, 
@@ -25,6 +26,7 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface WorkspaceData {
   id: string;
@@ -46,9 +48,11 @@ interface WorkspaceData {
 
 interface ProposalClientDocumentProps {
   proposal: Proposal;
-  items?: PreviewItem[];
+  items?: (PreviewItem & { is_enabled?: boolean })[];
   workspace?: WorkspaceData | null;
   showActions?: boolean;
+  allowItemToggle?: boolean;
+  onItemToggle?: (itemId: string, enabled: boolean) => void;
   onPrint?: () => void;
   onDownload?: () => void;
 }
@@ -65,6 +69,8 @@ export function ProposalClientDocument({
   items = [],
   workspace,
   showActions = true,
+  allowItemToggle = false,
+  onItemToggle,
   onPrint,
   onDownload,
 }: ProposalClientDocumentProps) {
@@ -82,8 +88,10 @@ export function ProposalClientDocument({
   const paymentLabel = proposal.payment_conditions 
     ? PAYMENT_CONDITIONS.find(p => p.value === proposal.payment_conditions)?.label || proposal.payment_conditions
     : null;
-    
-  const itemsTotal = items.reduce((sum, item) => sum + item.total_price, 0);
+  
+  // Calculate totals only for enabled items
+  const enabledItems = items.filter(item => item.is_enabled !== false);
+  const itemsTotal = enabledItems.reduce((sum, item) => sum + item.total_price, 0);
   const vatRate = 0.23; // 23% IVA
   const vatAmount = itemsTotal * vatRate;
   const totalWithVat = itemsTotal + vatAmount;
@@ -210,11 +218,19 @@ export function ProposalClientDocument({
 
         {/* Items Table */}
         <div className="px-8 py-6">
+          {allowItemToggle && (
+            <p className="text-sm text-gray-500 mb-4">
+              💡 Pode desmarcar itens que não pretende incluir na proposta.
+            </p>
+          )}
           <Table>
             <TableHeader>
               <TableRow className="border-gray-200">
+                {allowItemToggle && (
+                  <TableHead className="w-[5%] text-gray-600">Incluir</TableHead>
+                )}
                 <TableHead className="w-[5%] text-gray-600">#</TableHead>
-                <TableHead className="w-[50%] text-gray-600">Item / Descrição</TableHead>
+                <TableHead className={cn(allowItemToggle ? "w-[45%]" : "w-[50%]", "text-gray-600")}>Item / Descrição</TableHead>
                 <TableHead className="w-[15%] text-right text-gray-600">Preço</TableHead>
                 <TableHead className="w-[10%] text-center text-gray-600">Qtd.</TableHead>
                 <TableHead className="w-[20%] text-right text-gray-600">Total</TableHead>
@@ -222,27 +238,50 @@ export function ProposalClientDocument({
             </TableHeader>
             <TableBody>
               {items.length > 0 ? (
-                items.map((item, index) => (
-                  <TableRow key={item.id} className="border-gray-100">
-                    <TableCell className="text-gray-500 font-mono">{index + 1}</TableCell>
-                    <TableCell>
-                      <p className="font-medium text-gray-900">{item.name}</p>
-                      {item.description && (
-                        <p className="text-sm text-gray-500 mt-0.5">{item.description}</p>
+                items.map((item, index) => {
+                  const isEnabled = item.is_enabled !== false;
+                  return (
+                    <TableRow 
+                      key={item.id} 
+                      className={cn(
+                        "border-gray-100 transition-opacity",
+                        !isEnabled && "opacity-50 bg-gray-50"
                       )}
-                    </TableCell>
-                    <TableCell className="text-right text-gray-700">
-                      {formatCurrency(item.unit_price, proposal.currency)}
-                    </TableCell>
-                    <TableCell className="text-center text-gray-700">{item.quantity}</TableCell>
-                    <TableCell className="text-right font-medium text-gray-900">
-                      {formatCurrency(item.total_price, proposal.currency)}
-                    </TableCell>
-                  </TableRow>
-                ))
+                    >
+                      {allowItemToggle && (
+                        <TableCell>
+                          <Switch
+                            checked={isEnabled}
+                            onCheckedChange={(checked) => onItemToggle?.(item.id, checked)}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell className="text-gray-500 font-mono">{index + 1}</TableCell>
+                      <TableCell>
+                        <p className={cn("font-medium text-gray-900", !isEnabled && "line-through text-gray-500")}>
+                          {item.name}
+                        </p>
+                        {item.description && (
+                          <p className={cn("text-sm text-gray-500 mt-0.5", !isEnabled && "line-through")}>
+                            {item.description}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell className={cn("text-right text-gray-700", !isEnabled && "line-through text-gray-400")}>
+                        {formatCurrency(item.unit_price, proposal.currency)}
+                      </TableCell>
+                      <TableCell className={cn("text-center text-gray-700", !isEnabled && "line-through text-gray-400")}>
+                        {item.quantity}
+                      </TableCell>
+                      <TableCell className={cn("text-right font-medium text-gray-900", !isEnabled && "line-through text-gray-400")}>
+                        {formatCurrency(item.total_price, proposal.currency)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={allowItemToggle ? 6 : 5} className="text-center text-gray-500 py-8">
                     {proposal.title}
                     {proposal.price && (
                       <p className="mt-2 font-semibold text-lg">

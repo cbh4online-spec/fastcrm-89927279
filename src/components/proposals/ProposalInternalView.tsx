@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { 
   Calendar, 
@@ -29,10 +29,11 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface ProposalInternalViewProps {
   proposal: Proposal;
-  items?: PreviewItem[];
+  items?: (PreviewItem & { is_enabled?: boolean })[];
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onQuantityChange?: (itemId: string, quantity: number) => void;
 }
@@ -63,8 +64,11 @@ export function ProposalInternalView({
   const paymentLabel = proposal.payment_conditions 
     ? PAYMENT_CONDITIONS.find(p => p.value === proposal.payment_conditions)?.label || proposal.payment_conditions
     : null;
-    
-  const itemsTotal = items.reduce((sum, item) => sum + item.total_price, 0);
+  
+  // Calculate totals only for enabled items
+  const enabledItems = items.filter(item => item.is_enabled !== false);
+  const itemsTotal = enabledItems.reduce((sum, item) => sum + item.total_price, 0);
+  const disabledCount = items.length - enabledItems.length;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -164,60 +168,82 @@ export function ProposalInternalView({
       <Card className="overflow-hidden">
         <div className="bg-muted/50 px-4 py-3 border-b flex items-center justify-between">
           <h3 className="font-semibold">Itens da Proposta</h3>
-          <Badge variant="secondary">{items.length} itens</Badge>
+          <div className="flex items-center gap-2">
+            {disabledCount > 0 && (
+              <Badge variant="secondary" className="text-muted-foreground">
+                {disabledCount} desactivado{disabledCount > 1 ? 's' : ''}
+              </Badge>
+            )}
+            <Badge variant="secondary">{items.length} itens</Badge>
+          </div>
         </div>
         {items.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[5%]"></TableHead>
-                <TableHead className="w-[45%]">Item</TableHead>
+                <TableHead className="w-[8%] text-center">Activo</TableHead>
+                <TableHead className="w-[40%]">Item</TableHead>
                 <TableHead className="w-[10%] text-center">Status</TableHead>
-                <TableHead className="w-[10%] text-center">Qtd.</TableHead>
+                <TableHead className="w-[12%] text-center">Qtd.</TableHead>
                 <TableHead className="w-[15%] text-right">Preço</TableHead>
                 <TableHead className="w-[15%] text-right">Subtotal</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <Checkbox 
-                      checked={true}
-                      onCheckedChange={(checked) => onItemToggle?.(item.id, !!checked)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <p className="font-medium">{item.name}</p>
-                    {item.description && (
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+              {items.map((item) => {
+                const isEnabled = item.is_enabled !== false;
+                return (
+                  <TableRow 
+                    key={item.id} 
+                    className={cn(
+                      "transition-opacity",
+                      !isEnabled && "opacity-50 bg-muted/30"
                     )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span className="text-muted-foreground">-</span>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => onQuantityChange?.(item.id, parseInt(e.target.value) || 1)}
-                      className="w-16 h-8 text-center mx-auto"
-                      min={1}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(item.unit_price, proposal.currency)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(item.total_price, proposal.currency)}
-                  </TableCell>
-                </TableRow>
-              ))}
+                  >
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={isEnabled}
+                        onCheckedChange={(checked) => onItemToggle?.(item.id, checked)}
+                        className="mx-auto"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <p className={cn("font-medium", !isEnabled && "line-through text-muted-foreground")}>
+                        {item.name}
+                      </p>
+                      {item.description && (
+                        <p className={cn("text-sm text-muted-foreground", !isEnabled && "line-through")}>
+                          {item.description}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="text-muted-foreground">-</span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => onQuantityChange?.(item.id, parseInt(e.target.value) || 1)}
+                        className="w-16 h-8 text-center mx-auto"
+                        min={1}
+                        disabled={!isEnabled}
+                      />
+                    </TableCell>
+                    <TableCell className={cn("text-right", !isEnabled && "line-through text-muted-foreground")}>
+                      {formatCurrency(item.unit_price, proposal.currency)}
+                    </TableCell>
+                    <TableCell className={cn("text-right font-medium", !isEnabled && "line-through text-muted-foreground")}>
+                      {formatCurrency(item.total_price, proposal.currency)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={5} className="text-right font-semibold">
-                  TOTAL
+                  TOTAL {disabledCount > 0 && <span className="text-xs text-muted-foreground font-normal">(itens activos)</span>}
                 </TableCell>
                 <TableCell className="text-right font-bold text-primary text-lg">
                   {formatCurrency(itemsTotal, proposal.currency)}
