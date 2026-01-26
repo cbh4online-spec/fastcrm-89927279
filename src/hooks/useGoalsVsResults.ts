@@ -28,21 +28,46 @@ export interface GoalsVsResultsFilters {
 // Unit categories for database queries
 type UnitCategory = 'sales' | 'leads' | 'opportunities' | 'tasks' | 'meetings' | 'revenue';
 
+// Normalize strings by removing accents and converting to lowercase
+function normalizeString(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+// Map using normalized keys (no accents, lowercase)
 const UNIT_CATEGORY_MAP: Record<string, UnitCategory> = {
+  // Sales / Vendas
   'vendas': 'sales',
   'sales': 'sales',
+  'negocios': 'sales',
+  'contratos': 'sales',
+  
+  // Leads
   'leads': 'leads',
+  'contactos': 'leads',
+  'contacts': 'leads',
+  
+  // Opportunities
   'oportunidades': 'opportunities',
   'opportunities': 'opportunities',
+  
+  // Meetings
   'reunioes': 'meetings',
-  'reuniões': 'meetings',
+  'reunions': 'meetings',
   'meetings': 'meetings',
+  
+  // Tasks
   'tarefas': 'tasks',
   'tasks': 'tasks',
-  'facturacao': 'revenue',
+  
+  // Revenue / Faturação
   'faturacao': 'revenue',
-  'faturação': 'revenue',
+  'facturacao': 'revenue',
   'revenue': 'revenue',
+  'euros': 'revenue',
+  'e (euro)': 'revenue',
 };
 
 // Calculate status based on progress and time remaining
@@ -73,8 +98,8 @@ async function fetchSalesCount(
       .eq('workspace_id', workspaceId)
       .eq('status', 'won')
       .eq('owner_id', userId)
-      .gte('updated_at', periodStart)
-      .lte('updated_at', periodEnd);
+      .gte('expected_close_date', periodStart)
+      .lte('expected_close_date', periodEnd);
     return count || 0;
   }
   const { count } = await supabase
@@ -82,8 +107,8 @@ async function fetchSalesCount(
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId)
     .eq('status', 'won')
-    .gte('updated_at', periodStart)
-    .lte('updated_at', periodEnd);
+    .gte('expected_close_date', periodStart)
+    .lte('expected_close_date', periodEnd);
   return count || 0;
 }
 
@@ -100,8 +125,8 @@ async function fetchRevenueSum(
       .eq('workspace_id', workspaceId)
       .eq('status', 'won')
       .eq('owner_id', userId)
-      .gte('updated_at', periodStart)
-      .lte('updated_at', periodEnd);
+      .gte('expected_close_date', periodStart)
+      .lte('expected_close_date', periodEnd);
     return data?.reduce((sum, r) => sum + (r.value || 0), 0) || 0;
   }
   const { data } = await supabase
@@ -109,8 +134,8 @@ async function fetchRevenueSum(
     .select('value')
     .eq('workspace_id', workspaceId)
     .eq('status', 'won')
-    .gte('updated_at', periodStart)
-    .lte('updated_at', periodEnd);
+    .gte('expected_close_date', periodStart)
+    .lte('expected_close_date', periodEnd);
   return data?.reduce((sum, r) => sum + (r.value || 0), 0) || 0;
 }
 
@@ -283,7 +308,8 @@ export function useGoalsVsResults(filters: GoalsVsResultsFilters = {}) {
       const goalsWithProgress: GoalWithRealProgress[] = await Promise.all(
         goals.map(async (goal) => {
           const typedGoal = goal as unknown as ProductivityGoal;
-          const unitCategory = typedGoal.unit ? UNIT_CATEGORY_MAP[typedGoal.unit.toLowerCase()] : null;
+          const normalizedUnit = typedGoal.unit ? normalizeString(typedGoal.unit) : null;
+          const unitCategory = normalizedUnit ? UNIT_CATEGORY_MAP[normalizedUnit] : null;
           
           let realValue = 0;
           const historicalData: { date: string; value: number }[] = [];
