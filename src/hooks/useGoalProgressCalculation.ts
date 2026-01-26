@@ -169,21 +169,38 @@ async function calculateGoalProgress(
     // Use RPC to count or sum based on metric type
     if (metricSource.sumField) {
       // For sum queries, we need to fetch the data and sum client-side
-      const { data, error } = await supabase
-        .from('opportunities')
-        .select('value')
-        .eq('workspace_id', workspaceId)
-        .eq('status', 'won')
-        .gte(metricSource.dateField, goal.period_start)
-        .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+      // Apply user filter for individual goals
+      const isIndividual = goal.goal_scope === 'individual' && goal.user_id && metricSource.userField;
       
-      if (error) {
-        console.error('Error calculating goal progress:', error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let result: { data: any[] | null; error: any };
+      
+      if (isIndividual) {
+        result = await supabase
+          .from('opportunities')
+          .select('value')
+          .eq('workspace_id', workspaceId)
+          .eq('status', 'won')
+          .eq('owner_id', goal.user_id!)
+          .gte(metricSource.dateField, goal.period_start)
+          .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+      } else {
+        result = await supabase
+          .from('opportunities')
+          .select('value')
+          .eq('workspace_id', workspaceId)
+          .eq('status', 'won')
+          .gte(metricSource.dateField, goal.period_start)
+          .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+      }
+      
+      if (result.error) {
+        console.error('Error calculating goal progress:', result.error);
         return null;
       }
       
       // Sum the values
-      const calculatedValue = (data || []).reduce((sum, item) => {
+      const calculatedValue = (result.data || []).reduce((sum, item) => {
         return sum + (Number(item.value) || 0);
       }, 0);
       
