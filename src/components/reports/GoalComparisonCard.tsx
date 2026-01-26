@@ -97,9 +97,9 @@ export function GoalComparisonCard({ goalData }: GoalComparisonCardProps) {
     totalDays
   } = goalData;
   
-  const statusConfig = STATUS_CONFIG[status];
+  const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.on_track;
   const StatusIcon = statusConfig.icon;
-  const trendConfig = TREND_CONFIG[trendDirection];
+  const trendConfig = TREND_CONFIG[trendDirection] || TREND_CONFIG.stable;
   const TrendIcon = trendConfig.icon;
 
   const isDaily = goal.period === 'daily';
