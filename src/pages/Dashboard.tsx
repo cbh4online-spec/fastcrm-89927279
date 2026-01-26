@@ -130,34 +130,40 @@ export default function Dashboard() {
       return { value: count };
     });
 
-    // Opportunities in selected period
-    const oppsInPeriod = opportunities?.filter((o: any) => 
-      o.status === "open" && isWithinInterval(new Date(o.created_at), { start: periodStart, end: periodEnd })
-    ) || [];
-    const oppValue = oppsInPeriod.reduce((sum: number, o: any) => sum + (o.value || 0), 0);
-    const oppsInPreviousPeriod = opportunities?.filter((o: any) =>
-      o.status === "open" && isWithinInterval(new Date(o.created_at), { start: previousPeriodStart, end: previousPeriodEnd })
+    // Open opportunities (pipeline value - not filtered by creation date, just status)
+    const openOpportunities = opportunities?.filter((o: any) => o.status === "open") || [];
+    const openOppValue = openOpportunities.reduce((sum: number, o: any) => sum + (o.value || 0), 0);
+    
+    // For trend: count opportunities created in each period
+    const oppsCreatedInPeriod = opportunities?.filter((o: any) =>
+      isWithinInterval(new Date(o.created_at), { start: periodStart, end: periodEnd })
     ).length || 0;
-    const oppsTrend = oppsInPreviousPeriod > 0
-      ? Math.round(((oppsInPeriod.length - oppsInPreviousPeriod) / oppsInPreviousPeriod) * 100)
+    const oppsCreatedInPreviousPeriod = opportunities?.filter((o: any) =>
+      isWithinInterval(new Date(o.created_at), { start: previousPeriodStart, end: previousPeriodEnd })
+    ).length || 0;
+    const oppsTrend = oppsCreatedInPreviousPeriod > 0
+      ? Math.round(((oppsCreatedInPeriod - oppsCreatedInPreviousPeriod) / oppsCreatedInPreviousPeriod) * 100)
       : 0;
 
     const oppsChartData = Array.from({ length: 6 }, (_, i) => {
       const monthStart = startOfMonth(subMonths(now, 5 - i));
       const monthEnd = endOfMonth(subMonths(now, 5 - i));
-      const count = opportunities?.filter((o: any) =>
-        o.status === "open" && isWithinInterval(new Date(o.created_at), { start: monthStart, end: monthEnd })
-      ).length || 0;
-      return { value: count };
+      const value = opportunities?.filter((o: any) =>
+        isWithinInterval(new Date(o.created_at), { start: monthStart, end: monthEnd })
+      ).reduce((sum: number, o: any) => sum + (o.value || 0), 0) || 0;
+      return { value };
     });
 
-    // Sales in selected period (from paid invoices)
-    const salesInPeriod = paidInvoices?.filter((inv: any) =>
-      inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: periodStart, end: periodEnd })
-    ).reduce((sum: number, inv: any) => sum + (inv.total || 0), 0) || 0;
-    const salesInPreviousPeriod = paidInvoices?.filter((inv: any) =>
-      inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: previousPeriodStart, end: previousPeriodEnd })
-    ).reduce((sum: number, inv: any) => sum + (inv.total || 0), 0) || 0;
+    // Sales in selected period (from WON opportunities based on updated_at - when they were won)
+    const wonOppsInPeriod = opportunities?.filter((o: any) =>
+      o.status === "won" && o.updated_at && isWithinInterval(new Date(o.updated_at), { start: periodStart, end: periodEnd })
+    ) || [];
+    const salesInPeriod = wonOppsInPeriod.reduce((sum: number, o: any) => sum + (o.value || 0), 0);
+    
+    const wonOppsInPreviousPeriod = opportunities?.filter((o: any) =>
+      o.status === "won" && o.updated_at && isWithinInterval(new Date(o.updated_at), { start: previousPeriodStart, end: previousPeriodEnd })
+    ) || [];
+    const salesInPreviousPeriod = wonOppsInPreviousPeriod.reduce((sum: number, o: any) => sum + (o.value || 0), 0);
     const salesTrend = salesInPreviousPeriod > 0
       ? Math.round(((salesInPeriod - salesInPreviousPeriod) / salesInPreviousPeriod) * 100)
       : 0;
@@ -165,9 +171,9 @@ export default function Dashboard() {
     const salesChartData = Array.from({ length: 6 }, (_, i) => {
       const monthStart = startOfMonth(subMonths(now, 5 - i));
       const monthEnd = endOfMonth(subMonths(now, 5 - i));
-      const value = paidInvoices?.filter((inv: any) =>
-        inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: monthStart, end: monthEnd })
-      ).reduce((sum: number, inv: any) => sum + (inv.total || 0), 0) || 0;
+      const value = opportunities?.filter((o: any) =>
+        o.status === "won" && o.updated_at && isWithinInterval(new Date(o.updated_at), { start: monthStart, end: monthEnd })
+      ).reduce((sum: number, o: any) => sum + (o.value || 0), 0) || 0;
       return { value };
     });
 
@@ -181,8 +187,8 @@ export default function Dashboard() {
         chartData: leadsChartData,
       },
       opportunities: {
-        total: oppsInPeriod.length,
-        value: oppValue,
+        total: openOpportunities.length,
+        value: openOppValue,
         trend: oppsTrend,
         chartData: oppsChartData,
       },
