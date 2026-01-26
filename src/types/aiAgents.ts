@@ -275,6 +275,30 @@ export const AGENT_TOOLS: AgentTool[] = [
 ];
 
 // =============================================================================
+// CONTEXT WINDOW TYPES
+// =============================================================================
+
+export type ContextTierLevel = 1 | 2 | 3 | 4;
+export type ContextStrategyType = 'SMALL' | 'MEDIUM' | 'LARGE';
+
+export interface TokenBudget {
+  total: number;
+  systemPrompt: number;
+  responseBuffer: number;
+  available: number;
+  used: number;
+  remaining: number;
+}
+
+export interface ContextMetrics {
+  budget: TokenBudget;
+  strategy: ContextStrategyType;
+  usagePercent: number;
+  isHealthy: boolean;
+  warnings: string[];
+}
+
+// =============================================================================
 // HELPERS
 // =============================================================================
 

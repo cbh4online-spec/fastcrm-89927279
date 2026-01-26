@@ -77,6 +77,63 @@ export interface AiSafetyRulesConfig {
   showSourceReferences: boolean;
 }
 
+// =============================================================================
+// CONTEXT WINDOW GUARDRAILS
+// =============================================================================
+
+export type AgentTokenBudgetType = 'lead' | 'contact' | 'opportunity' | 'client';
+
+export interface ContextGuardrails {
+  tokenBudgets: Record<AgentTokenBudgetType, number>;
+  systemPromptReserve: number;
+  responseBufferReserve: number;
+  maxSummaryLength: number;
+  minContextForAnalysis: number;
+  staleDataWarningDays: number;
+  expiredDataDays: number;
+  maxMemoryEntries: number;
+  maxCharactersPerMemory: number;
+}
+
+export const CONTEXT_GUARDRAILS: ContextGuardrails = {
+  // Token budgets per agent type
+  tokenBudgets: {
+    lead: 8000,
+    contact: 6000,
+    opportunity: 12000,
+    client: 10000,
+  },
+  
+  // Mandatory reserves
+  systemPromptReserve: 2000,
+  responseBufferReserve: 3000,
+  
+  // Compression limits
+  maxSummaryLength: 500,
+  minContextForAnalysis: 500,
+  
+  // Freshness thresholds
+  staleDataWarningDays: 30,
+  expiredDataDays: 90,
+  
+  // Memory limits
+  maxMemoryEntries: 50,
+  maxCharactersPerMemory: 2000,
+};
+
+// Context forbidden patterns (for validation)
+export const CONTEXT_FORBIDDEN_PATTERNS = {
+  NO_RAW_HISTORY: 'Histórico bruto de conversas nunca é injetado',
+  NO_UNBOUNDED_CONTEXT: 'Contexto deve respeitar budget de tokens',
+  NO_RANDOM_SELECTION: 'Seleção de contexto deve ser determinística',
+  NO_LIVE_DATA_COMPRESSION: 'Dados CRM ao vivo nunca são comprimidos',
+  NO_MEMORY_OVERRIDE: 'Memória não pode sobrepor dados ao vivo',
+  NO_NAIVE_TRUNCATION: 'Truncagem cega é proibida',
+  NO_ONE_SIZE_FITS_ALL: 'Contexto deve ser adaptado ao agente',
+} as const;
+
+export type ContextForbiddenPattern = keyof typeof CONTEXT_FORBIDDEN_PATTERNS;
+
 // Default configuration - enforces all safety rules
 export const DEFAULT_AI_SAFETY_RULES: AiSafetyRulesConfig = {
   autoSendMessagesProhibited: true,
