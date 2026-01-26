@@ -144,3 +144,9 @@ verify_jwt = false
 
 [functions.rag-search]
 verify_jwt = false
+
+[functions.trigger-dispatch]
+verify_jwt = true
+
+[functions.trigger-webhook]
+verify_jwt = false
