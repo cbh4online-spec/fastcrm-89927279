@@ -61,13 +61,13 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
         .from('conversations')
         .select(`
           id,
+          channel,
           last_message_at,
           unread_count,
           messages (
             content,
             direction,
-            sent_at,
-            channel
+            sent_at
           )
         `)
         .eq(linkField, entityId)
