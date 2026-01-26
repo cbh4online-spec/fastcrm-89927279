@@ -466,42 +466,89 @@ export type Database = {
       }
       ai_agent_memory: {
         Row: {
+          access_count: number | null
           content: string
           created_at: string | null
           created_by: string | null
+          embedding: string | null
           entity_id: string
           entity_type: string
           expires_at: string | null
           id: string
+          is_validated: boolean | null
+          last_accessed_at: string | null
+          memory_category: string | null
           memory_type: string
           relevance_score: number | null
+          source_execution_id: string | null
+          source_type: string | null
+          superseded_by: string | null
+          validated_at: string | null
+          validated_by: string | null
+          version: number | null
           workspace_id: string
         }
         Insert: {
+          access_count?: number | null
           content: string
           created_at?: string | null
           created_by?: string | null
+          embedding?: string | null
           entity_id: string
           entity_type: string
           expires_at?: string | null
           id?: string
+          is_validated?: boolean | null
+          last_accessed_at?: string | null
+          memory_category?: string | null
           memory_type: string
           relevance_score?: number | null
+          source_execution_id?: string | null
+          source_type?: string | null
+          superseded_by?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          version?: number | null
           workspace_id: string
         }
         Update: {
+          access_count?: number | null
           content?: string
           created_at?: string | null
           created_by?: string | null
+          embedding?: string | null
           entity_id?: string
           entity_type?: string
           expires_at?: string | null
           id?: string
+          is_validated?: boolean | null
+          last_accessed_at?: string | null
+          memory_category?: string | null
           memory_type?: string
           relevance_score?: number | null
+          source_execution_id?: string | null
+          source_type?: string | null
+          superseded_by?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          version?: number | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_agent_memory_source_execution_id_fkey"
+            columns: ["source_execution_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agent_memory_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_memory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_agent_memory_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -630,6 +677,71 @@ export type Database = {
           },
         ]
       }
+      ai_agent_strategic_memory: {
+        Row: {
+          conditions: Json | null
+          confidence_score: number | null
+          contraindicated_actions: string[] | null
+          created_at: string | null
+          embedding: string | null
+          entity_types: string[]
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_occurrence_at: string | null
+          occurrence_count: number | null
+          pattern_description: string
+          pattern_type: string
+          recommended_actions: string[] | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          conditions?: Json | null
+          confidence_score?: number | null
+          contraindicated_actions?: string[] | null
+          created_at?: string | null
+          embedding?: string | null
+          entity_types?: string[]
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_occurrence_at?: string | null
+          occurrence_count?: number | null
+          pattern_description: string
+          pattern_type: string
+          recommended_actions?: string[] | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          conditions?: Json | null
+          confidence_score?: number | null
+          contraindicated_actions?: string[] | null
+          created_at?: string | null
+          embedding?: string | null
+          entity_types?: string[]
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_occurrence_at?: string | null
+          occurrence_count?: number | null
+          pattern_description?: string
+          pattern_type?: string
+          recommended_actions?: string[] | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_strategic_memory_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_field_suggestions: {
         Row: {
           confidence: number
@@ -692,6 +804,58 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_field_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_memory_access_log: {
+        Row: {
+          access_type: string
+          created_at: string | null
+          execution_id: string | null
+          id: string
+          memory_id: string
+          relevance_score_at_retrieval: number | null
+          workspace_id: string
+        }
+        Insert: {
+          access_type: string
+          created_at?: string | null
+          execution_id?: string | null
+          id?: string
+          memory_id: string
+          relevance_score_at_retrieval?: number | null
+          workspace_id: string
+        }
+        Update: {
+          access_type?: string
+          created_at?: string | null
+          execution_id?: string | null
+          id?: string
+          memory_id?: string
+          relevance_score_at_retrieval?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_memory_access_log_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_memory_access_log_memory_id_fkey"
+            columns: ["memory_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_memory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_memory_access_log_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -16256,6 +16420,14 @@ export type Database = {
       }
       cleanup_expired_agent_memory: { Args: never; Returns: number }
       cleanup_expired_sso_tokens: { Args: never; Returns: undefined }
+      consolidate_entity_memories: {
+        Args: {
+          p_entity_id?: string
+          p_entity_type?: string
+          p_workspace_id: string
+        }
+        Returns: number
+      }
       consume_module_credits: {
         Args: {
           p_action_key: string
@@ -16332,6 +16504,14 @@ export type Database = {
           slot_end: string
           slot_start: string
         }[]
+      }
+      get_entity_memory_stats: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_workspace_id: string
+        }
+        Returns: Json
       }
       get_module_trial_status: {
         Args: { p_module_id: string; p_workspace_id: string }
@@ -16448,6 +16628,15 @@ export type Database = {
         }
         Returns: string
       }
+      log_memory_access: {
+        Args: {
+          p_access_type: string
+          p_execution_id: string
+          p_memory_id: string
+          p_relevance_score?: number
+        }
+        Returns: string
+      }
       match_knowledge_entries: {
         Args: {
           filter_knowledge_base_id?: string
@@ -16484,6 +16673,29 @@ export type Database = {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: Json
       }
+      retrieve_entity_memories: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_include_strategic?: boolean
+          p_max_results?: number
+          p_min_relevance?: number
+          p_query_embedding?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          combined_score: number
+          content: string
+          created_at: string
+          id: string
+          is_validated: boolean
+          memory_category: string
+          memory_type: string
+          relevance_score: number
+          semantic_score: number
+          version: number
+        }[]
+      }
       revoke_module_sessions: {
         Args: {
           p_module_id: string
@@ -16504,6 +16716,29 @@ export type Database = {
         }
         Returns: Json
       }
+      store_entity_memory: {
+        Args: {
+          p_content: string
+          p_created_by?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_expires_in_days?: number
+          p_memory_category?: string
+          p_memory_type: string
+          p_relevance_score?: number
+          p_source_execution_id?: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
+      supersede_memory: {
+        Args: {
+          p_created_by?: string
+          p_new_content: string
+          p_old_memory_id: string
+        }
+        Returns: string
+      }
       update_user_status_admin: {
         Args: { p_status: string; p_user_id: string }
         Returns: Json
@@ -16515,6 +16750,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: Json
+      }
+      validate_memory: {
+        Args: {
+          p_is_valid: boolean
+          p_memory_id: string
+          p_validated_by?: string
+        }
+        Returns: boolean
       }
     }
     Enums: {
