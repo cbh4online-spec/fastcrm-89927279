@@ -32,6 +32,7 @@ import {
   Lock,
   CalendarRange,
   CalendarDays,
+  UserPlus,
 } from 'lucide-react';
 import {
   Dialog,
@@ -57,11 +58,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useProductivityCoach, GoalPeriod, GoalStatus, GoalScope, ProductivityGoal } from '@/hooks/useProductivityCoach';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useWorkspaceMembers, WorkspaceMember } from '@/hooks/useWorkspaceMembers';
 
 // Configuração de unidades pré-definidas
 interface UnitOption {
@@ -149,6 +152,7 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
   const { createGoal } = useProductivityCoach();
   const { currentWorkspace } = useWorkspace();
   const { isSuperAdmin } = useUserRole();
+  const { data: members = [] } = useWorkspaceMembers();
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<GoalPeriod>(defaultPeriod || 'daily');
   const [goalScope, setGoalScope] = useState<GoalScope>('organizational'); // Default to organizational for owners/admins
@@ -157,6 +161,7 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
   const [targetValue, setTargetValue] = useState('');
   const [unitSelection, setUnitSelection] = useState('');
   const [customUnit, setCustomUnit] = useState('');
+  const [assignedUserId, setAssignedUserId] = useState<string>('');
 
   // Only workspace owners or super admins can create goals
   const isOwner = currentWorkspace?.role === 'owner';
@@ -200,6 +205,7 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
       unit: finalUnit || null,
       status: 'not_started',
       goal_scope: goalScope,
+      assigned_user_id: goalScope === 'individual' && assignedUserId ? assignedUserId : null,
     });
 
     setOpen(false);
@@ -208,7 +214,8 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
     setTargetValue('');
     setUnitSelection('');
     setCustomUnit('');
-    setGoalScope('individual');
+    setGoalScope('organizational');
+    setAssignedUserId('');
   };
 
   // If user cannot create goals, don't render the modal trigger
@@ -235,7 +242,9 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setGoalScope('individual')}
+                onClick={() => {
+                  setGoalScope('individual');
+                }}
                 className={cn(
                   'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
                   goalScope === 'individual'
@@ -243,13 +252,16 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
                     : 'border-border hover:border-primary/50'
                 )}
               >
-                <User className="h-6 w-6" />
-                <span className="font-medium text-sm">Pessoal</span>
-                <span className="text-xs text-muted-foreground text-center">Só tu vês</span>
+                <UserPlus className="h-6 w-6" />
+                <span className="font-medium text-sm">Individual</span>
+                <span className="text-xs text-muted-foreground text-center">Atribuída a alguém</span>
               </button>
               <button
                 type="button"
-                onClick={() => setGoalScope('organizational')}
+                onClick={() => {
+                  setGoalScope('organizational');
+                  setAssignedUserId('');
+                }}
                 className={cn(
                   'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all relative',
                   goalScope === 'organizational'
@@ -263,6 +275,55 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
               </button>
             </div>
           </div>
+
+          {/* User Assignment (only for individual goals) */}
+          {goalScope === 'individual' && (
+            <div className="space-y-2">
+              <Label>Atribuir a</Label>
+              <Select value={assignedUserId} onValueChange={setAssignedUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um membro...">
+                    {assignedUserId && (() => {
+                      const member = members.find(m => m.user_id === assignedUserId);
+                      if (!member) return null;
+                      return (
+                        <span className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={member.profile?.avatar_url || undefined} />
+                            <AvatarFallback className="text-[10px]">
+                              {(member.profile?.full_name || member.profile?.email || '?').slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          {member.profile?.full_name || member.profile?.email}
+                        </span>
+                      );
+                    })()}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="pointer-events-auto">
+                  {members.map((member) => (
+                    <SelectItem key={member.user_id} value={member.user_id} className="cursor-pointer">
+                      <span className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage src={member.profile?.avatar_url || undefined} />
+                          <AvatarFallback className="text-[10px]">
+                            {(member.profile?.full_name || member.profile?.email || '?').slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{member.profile?.full_name || member.profile?.email}</span>
+                        <Badge variant="outline" className="text-[10px] h-4">
+                          {member.role}
+                        </Badge>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Selecione o membro da equipa que receberá esta meta
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Período</Label>
@@ -394,12 +455,15 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
   );
 }
 
-function GoalCard({ goal, onUpdate, onDelete, canManage }: { 
+interface GoalCardProps {
   goal: ProductivityGoal; 
   onUpdate: (updates: Partial<ProductivityGoal>) => void;
   onDelete: () => void;
   canManage: boolean;
-}) {
+  assignedMember?: WorkspaceMember | null;
+}
+
+function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember }: GoalCardProps) {
   const config = PERIOD_CONFIG[goal.period];
   const statusConfig = STATUS_CONFIG[goal.status];
   const Icon = config.icon;
@@ -441,17 +505,27 @@ function GoalCard({ goal, onUpdate, onDelete, canManage }: {
               <Icon className="h-4 w-4" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="font-medium">{goal.title}</h4>
                 {isOrganizational ? (
                   <Badge variant="outline" className="h-5 text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
                     <Building2 className="h-3 w-3 mr-1" />
                     Equipa
                   </Badge>
+                ) : assignedMember ? (
+                  <Badge variant="outline" className="h-5 text-[10px] bg-primary/10 text-primary border-primary/30 flex items-center gap-1">
+                    <Avatar className="h-3.5 w-3.5">
+                      <AvatarImage src={assignedMember.profile?.avatar_url || undefined} />
+                      <AvatarFallback className="text-[8px]">
+                        {(assignedMember.profile?.full_name || assignedMember.profile?.email || '?').slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {assignedMember.profile?.full_name?.split(' ')[0] || assignedMember.profile?.email?.split('@')[0]}
+                  </Badge>
                 ) : (
                   <Badge variant="outline" className="h-5 text-[10px] bg-primary/10 text-primary border-primary/30">
                     <User className="h-3 w-3 mr-1" />
-                    Pessoal
+                    Individual
                   </Badge>
                 )}
               </div>
@@ -527,12 +601,16 @@ export function GoalsManager() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { isSuperAdmin } = useUserRole();
+  const { data: members = [] } = useWorkspaceMembers();
   const [activeTab, setActiveTab] = useState<GoalPeriod>('daily');
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
 
   // Only workspace owners or super admins can manage (edit/delete) goals
   const isOwner = currentWorkspace?.role === 'owner';
   const canManageGoals = isOwner || isSuperAdmin;
+
+  // Create a map of user_id to member for quick lookup
+  const memberMap = new Map(members.map(m => [m.user_id, m]));
 
   // Filter by period first
   const periodFilteredGoals = goals.filter((g) => g.period === activeTab);
@@ -694,6 +772,7 @@ export function GoalsManager() {
                       onUpdate={(updates) => updateGoal.mutate({ id: goal.id, ...updates })}
                       onDelete={() => deleteGoal.mutate(goal.id)}
                       canManage={canManageGoals}
+                      assignedMember={goal.user_id ? memberMap.get(goal.user_id) : null}
                     />
                   ))}
                 </div>
