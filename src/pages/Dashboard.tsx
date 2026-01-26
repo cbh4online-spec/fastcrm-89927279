@@ -28,7 +28,6 @@ import {
 import {
   Calendar,
   Search,
-  Filter,
   Download,
   Plus,
   Bell,
@@ -40,8 +39,9 @@ import {
   Building2,
   Contact,
   CheckSquare,
+  ChevronDown,
 } from "lucide-react";
-import { format, subMonths, isWithinInterval, startOfMonth, endOfMonth, formatDistanceToNow } from "date-fns";
+import { format, subMonths, subDays, isWithinInterval, startOfMonth, endOfMonth, formatDistanceToNow, startOfWeek, endOfWeek, startOfYear } from "date-fns";
 import { pt } from "date-fns/locale";
 
 // Dialog components for creating entities
@@ -67,23 +67,61 @@ export default function Dashboard() {
   const [createContactOpen, setCreateContactOpen] = useState(false);
   const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  
+  // Period filter state
+  type PeriodFilter = "7d" | "30d" | "this_month" | "last_month" | "this_year" | "all";
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("this_month");
+  
+  const periodLabels: Record<PeriodFilter, string> = {
+    "7d": "Últimos 7 dias",
+    "30d": "Últimos 30 dias", 
+    "this_month": "Este mês",
+    "last_month": "Mês passado",
+    "this_year": "Este ano",
+    "all": "Todo o período",
+  };
+  
+  // Get date range based on selected period
+  const getDateRange = (period: PeriodFilter) => {
+    const now = new Date();
+    switch (period) {
+      case "7d":
+        return { start: subDays(now, 7), end: now };
+      case "30d":
+        return { start: subDays(now, 30), end: now };
+      case "this_month":
+        return { start: startOfMonth(now), end: endOfMonth(now) };
+      case "last_month":
+        const lastMonthStart = startOfMonth(subMonths(now, 1));
+        return { start: lastMonthStart, end: endOfMonth(lastMonthStart) };
+      case "this_year":
+        return { start: startOfYear(now), end: now };
+      case "all":
+        return { start: new Date(0), end: now };
+      default:
+        return { start: startOfMonth(now), end: now };
+    }
+  };
 
-  // Calculate KPI data for cards
+  // Calculate KPI data for cards based on selected period
   const kpiData = useMemo(() => {
     const now = new Date();
-    const thisMonth = startOfMonth(now);
-    const lastMonth = startOfMonth(subMonths(now, 1));
-    const lastMonthEnd = endOfMonth(subMonths(now, 1));
+    const { start: periodStart, end: periodEnd } = getDateRange(periodFilter);
+    
+    // Get previous period for comparison
+    const periodDuration = periodEnd.getTime() - periodStart.getTime();
+    const previousPeriodEnd = new Date(periodStart.getTime() - 1);
+    const previousPeriodStart = new Date(previousPeriodEnd.getTime() - periodDuration);
 
-    // Leads
-    const leadsThisMonth = leads?.filter((l: any) =>
-      new Date(l.created_at) >= thisMonth
+    // Leads in selected period
+    const leadsInPeriod = leads?.filter((l: any) =>
+      isWithinInterval(new Date(l.created_at), { start: periodStart, end: periodEnd })
     ).length || 0;
-    const leadsLastMonth = leads?.filter((l: any) =>
-      isWithinInterval(new Date(l.created_at), { start: lastMonth, end: lastMonthEnd })
+    const leadsInPreviousPeriod = leads?.filter((l: any) =>
+      isWithinInterval(new Date(l.created_at), { start: previousPeriodStart, end: previousPeriodEnd })
     ).length || 0;
-    const leadsTrend = leadsLastMonth > 0
-      ? Math.round(((leadsThisMonth - leadsLastMonth) / leadsLastMonth) * 100)
+    const leadsTrend = leadsInPreviousPeriod > 0
+      ? Math.round(((leadsInPeriod - leadsInPreviousPeriod) / leadsInPreviousPeriod) * 100)
       : 0;
 
     const leadsChartData = Array.from({ length: 6 }, (_, i) => {
@@ -95,17 +133,16 @@ export default function Dashboard() {
       return { value: count };
     });
 
-    // Opportunities
-    const openOpps = opportunities?.filter((o: any) => o.status === "open") || [];
-    const oppValue = openOpps.reduce((sum: number, o: any) => sum + (o.value || 0), 0);
-    const oppsThisMonth = openOpps.filter((o: any) =>
-      new Date(o.created_at) >= thisMonth
-    ).length;
-    const oppsLastMonth = opportunities?.filter((o: any) =>
-      o.status === "open" && isWithinInterval(new Date(o.created_at), { start: lastMonth, end: lastMonthEnd })
+    // Opportunities in selected period
+    const oppsInPeriod = opportunities?.filter((o: any) => 
+      o.status === "open" && isWithinInterval(new Date(o.created_at), { start: periodStart, end: periodEnd })
+    ) || [];
+    const oppValue = oppsInPeriod.reduce((sum: number, o: any) => sum + (o.value || 0), 0);
+    const oppsInPreviousPeriod = opportunities?.filter((o: any) =>
+      o.status === "open" && isWithinInterval(new Date(o.created_at), { start: previousPeriodStart, end: previousPeriodEnd })
     ).length || 0;
-    const oppsTrend = oppsLastMonth > 0
-      ? Math.round(((oppsThisMonth - oppsLastMonth) / oppsLastMonth) * 100)
+    const oppsTrend = oppsInPreviousPeriod > 0
+      ? Math.round(((oppsInPeriod.length - oppsInPreviousPeriod) / oppsInPreviousPeriod) * 100)
       : 0;
 
     const oppsChartData = Array.from({ length: 6 }, (_, i) => {
@@ -117,15 +154,15 @@ export default function Dashboard() {
       return { value: count };
     });
 
-    // Sales (from paid invoices)
-    const salesThisMonth = paidInvoices?.filter((inv: any) =>
-      inv.paid_at && new Date(inv.paid_at) >= thisMonth
+    // Sales in selected period (from paid invoices)
+    const salesInPeriod = paidInvoices?.filter((inv: any) =>
+      inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: periodStart, end: periodEnd })
     ).reduce((sum: number, inv: any) => sum + (inv.total || 0), 0) || 0;
-    const salesLastMonth = paidInvoices?.filter((inv: any) =>
-      inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: lastMonth, end: lastMonthEnd })
+    const salesInPreviousPeriod = paidInvoices?.filter((inv: any) =>
+      inv.paid_at && isWithinInterval(new Date(inv.paid_at), { start: previousPeriodStart, end: previousPeriodEnd })
     ).reduce((sum: number, inv: any) => sum + (inv.total || 0), 0) || 0;
-    const salesTrend = salesLastMonth > 0
-      ? Math.round(((salesThisMonth - salesLastMonth) / salesLastMonth) * 100)
+    const salesTrend = salesInPreviousPeriod > 0
+      ? Math.round(((salesInPeriod - salesInPreviousPeriod) / salesInPreviousPeriod) * 100)
       : 0;
 
     const salesChartData = Array.from({ length: 6 }, (_, i) => {
@@ -137,29 +174,29 @@ export default function Dashboard() {
       return { value };
     });
 
-    // Contacts / Companies
+    // Contacts / Companies (total, not filtered by period)
     const companiesTotal = companies?.length || 0;
 
     return {
       leads: {
-        total: leads?.length || 0,
+        total: leadsInPeriod,
         trend: leadsTrend,
         chartData: leadsChartData,
       },
       opportunities: {
-        total: openOpps.length,
+        total: oppsInPeriod.length,
         value: oppValue,
         trend: oppsTrend,
         chartData: oppsChartData,
       },
       sales: {
-        total: salesThisMonth,
+        total: salesInPeriod,
         trend: salesTrend,
         chartData: salesChartData,
       },
       companies: companiesTotal,
     };
-  }, [leads, opportunities, paidInvoices, companies]);
+  }, [leads, opportunities, paidInvoices, companies, periodFilter]);
 
   // Prepare recent leads for activity list
   const recentLeadsItems = useMemo(() => {
@@ -289,10 +326,35 @@ export default function Dashboard() {
                   className="pl-9 w-full sm:w-48 h-9 bg-muted/50 border-transparent focus:border-border"
                 />
               </div>
-              <Button variant="outline" size="sm" className="gap-1.5 h-9">
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">Filtrar</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 h-9">
+                    <Calendar className="h-4 w-4" />
+                    <span className="hidden sm:inline">{periodLabels[periodFilter]}</span>
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setPeriodFilter("7d")}>
+                    Últimos 7 dias
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPeriodFilter("30d")}>
+                    Últimos 30 dias
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPeriodFilter("this_month")}>
+                    Este mês
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPeriodFilter("last_month")}>
+                    Mês passado
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPeriodFilter("this_year")}>
+                    Este ano
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPeriodFilter("all")}>
+                    Todo o período
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="outline" size="sm" className="gap-1.5 h-9">
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Exportar</span>
