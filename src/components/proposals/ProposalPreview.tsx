@@ -2,8 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, Quote, ChevronDown, ChevronUp, Smartphone, Monitor } from "lucide-react";
-import { useState } from "react";
+import { Check, Quote } from "lucide-react";
 import type { ContentBlock } from "@/types/proposal";
 import {
   Accordion,
@@ -50,38 +49,12 @@ export function ProposalPreview({
   ctaText = "Aceitar Proposta",
   ctaColor = "#3b82f6",
   price,
-  currency = "BRL",
+  currency = "EUR",
   showCta = true,
   onCtaClick,
 }: ProposalPreviewProps) {
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant={device === "desktop" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setDevice("desktop")}
-        >
-          <Monitor className="h-4 w-4 mr-2" />
-          Desktop
-        </Button>
-        <Button
-          variant={device === "mobile" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setDevice("mobile")}
-        >
-          <Smartphone className="h-4 w-4 mr-2" />
-          Mobile
-        </Button>
-      </div>
-
-      <div
-        className={`mx-auto bg-background border rounded-lg shadow-lg overflow-hidden transition-all ${
-          device === "mobile" ? "max-w-[375px]" : "max-w-4xl"
-        }`}
-      >
+    <div className="mx-auto bg-background border rounded-lg shadow-lg overflow-hidden max-w-4xl">
         {/* Header */}
         <div className="bg-primary/5 p-6 md:p-10 text-center">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
@@ -123,7 +96,6 @@ export function ProposalPreview({
             </p>
           </div>
         )}
-      </div>
     </div>
   );
 }
