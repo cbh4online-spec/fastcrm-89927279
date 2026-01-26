@@ -1,128 +1,161 @@
 
-# Plano: Mostrar Resultado Final em Cada Linha Temporal
+# Plano: Simplificar Coach de Produtividade
 
-## Resumo
-Adicionar um resumo agregado do progresso calculado no final de cada período (linha temporal), mostrando o valor atual total versus o objetivo total para todas as metas desse período.
+## Resumo da Mudança
+Separar claramente as responsabilidades entre os dois módulos:
 
-## O Que Será Feito
+**Coach de Produtividade** (simplificar):
+- Definição e acompanhamento de metas pessoais/equipa
+- Insights e conselhos da IA para atingir as metas
+- Prioridades diárias com sugestões inteligentes
+- Progresso manual ou indicativo simples
 
-### 1. Criar Componente de Resumo de Período
-Adicionar uma secção de resumo visual no topo de cada tab de período que mostre:
-- **Progresso Total**: Soma dos valores calculados automaticamente
-- **Objetivo Total**: Soma dos valores alvo de todas as metas
-- **Barra de Progresso Visual**: Indicador gráfico do progresso agregado
-- **Indicadores por Tipo**: Breakdown por unidade (ex: €1722/€5000 em Faturação, 3/5 Vendas)
+**Relatórios** (onde ficam os KPIs detalhados):
+- KPIs de gestão (individual, equipa, empresa)
+- Gráficos de evolução temporal
+- Análise de performance histórica
+- Métricas de vendas, faturação, conversão
 
-### 2. Localização no Interface
-O resumo aparecerá:
-- No início de cada `TabsContent` de período
-- Antes da listagem dos cards de metas individuais
-- Substituindo/melhorando o resumo atual que só mostra "X de Y metas concluídas"
+---
 
-### 3. Formato de Visualização
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  📊 Resumo do Período                                       │
-│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
-│                                                             │
-│  Progresso Geral: 65%                                       │
-│  [████████████████░░░░░░░░░]                                │
-│                                                             │
-│  💰 Faturação: €1.722 / €5.000                              │
-│  🛒 Vendas: 3 / 5                                           │
-│  📞 Chamadas: 12 / 20                                       │
-│                                                             │
-│  ✅ 2 de 4 metas concluídas                                 │
-└─────────────────────────────────────────────────────────────┘
-```
+## O Que Será Removido do Coach
+
+### 1. Remover Cálculos Automáticos Complexos
+**Ficheiros a eliminar:**
+- `src/hooks/useGoalProgressCalculation.ts` - Hook que faz queries à BD para calcular progresso
+- `src/hooks/useGoalHistoricalProgress.ts` - Hook que busca dados históricos para sparklines
+- `src/components/productivity/GoalSparkline.tsx` - Componente de gráfico sparkline
+
+### 2. Simplificar PeriodSummary
+**Ficheiro:** `src/components/productivity/PeriodSummary.tsx`
+- Manter apenas contagem simples de metas concluídas vs total
+- Remover agregação automática de valores calculados
+- Usar apenas o `current_value` manual das metas
+
+### 3. Simplificar GoalsManager
+**Ficheiro:** `src/components/productivity/GoalsManager.tsx`
+- Remover imports dos hooks de cálculo automático
+- Remover lógica de `autoProgressMap`
+- Manter progresso baseado em `current_value` (entrada manual)
+- Adicionar botão para actualizar progresso manualmente
+
+---
+
+## O Que Será Mantido/Melhorado
+
+### No Coach de Produtividade
+
+1. **Definição de Metas**
+   - Períodos: diário, semanal, mensal, trimestral, semestral, anual
+   - Unidades: leads, oportunidades, propostas, vendas, etc.
+   - Metas individuais e organizacionais
+
+2. **Progresso Manual**
+   - Campo para actualizar valor actual da meta
+   - Indicador visual de progresso (barra)
+   - Status: não iniciada, em progresso, concluída, falhada
+
+3. **Coach IA (DailyCoachPanel)**
+   - Prioridades diárias sugeridas pela IA
+   - Análise de metas com insights
+   - Motivação e conselhos personalizados
+
+4. **Resumo de Período (simplificado)**
+   - X de Y metas concluídas
+   - Progresso geral em percentagem
+   - Sem breakdown por unidade automatizado
+
+---
+
+## Nova Funcionalidade para Relatórios (futuro)
+
+Para não perder a funcionalidade de ver "Metas vs Resultados Reais", sugerimos criar posteriormente um novo relatório:
+
+**Página:** `/dashboard/reports/goals` ou `/dashboard/reports/kpis`
+- Comparar metas definidas com dados reais da BD
+- Gráficos de evolução temporal (sparklines)
+- KPIs por período e por membro
+- Análise de performance individual vs equipa
 
 ---
 
 ## Detalhes Técnicos
 
-### Ficheiro: `src/components/productivity/GoalsManager.tsx`
+### Passo 1: Eliminar Ficheiros
+```text
+src/hooks/useGoalProgressCalculation.ts (eliminar)
+src/hooks/useGoalHistoricalProgress.ts (eliminar)
+src/components/productivity/GoalSparkline.tsx (eliminar)
+```
 
-#### Alteração 1: Criar Componente PeriodSummary
-Adicionar um novo componente interno que:
-- Recebe a lista de metas filtradas do período
-- Recebe o mapa de progresso automático (`autoProgressMap`)
-- Agrupa as metas por unidade
-- Calcula totais por tipo de métrica
-- Renderiza o resumo visual
+### Passo 2: Simplificar PeriodSummary.tsx
+O componente passará a usar apenas dados manuais:
 
+```typescript
+// Antes (com cálculo automático)
+const currentValue = autoProgress?.isAutomatic 
+  ? autoProgress.calculatedValue 
+  : (goal.current_value || 0);
+
+// Depois (apenas manual)
+const currentValue = goal.current_value || 0;
+```
+
+Interface simplificada:
 ```typescript
 interface PeriodSummaryProps {
   goals: ProductivityGoal[];
-  autoProgressMap: Record<string, { calculatedValue: number; isAutomatic: boolean; source: string }>;
-}
-
-function PeriodSummary({ goals, autoProgressMap }: PeriodSummaryProps) {
-  // Agrupar por unidade e calcular totais
-  const summaryByUnit = useMemo(() => {
-    const grouped: Record<string, { current: number; target: number; count: number }> = {};
-    
-    goals.forEach(goal => {
-      const unit = goal.unit || 'unidades';
-      const autoProgress = autoProgressMap[goal.id];
-      const currentValue = autoProgress?.isAutomatic 
-        ? autoProgress.calculatedValue 
-        : (goal.current_value || 0);
-      
-      if (!grouped[unit]) {
-        grouped[unit] = { current: 0, target: 0, count: 0 };
-      }
-      grouped[unit].current += currentValue;
-      grouped[unit].target += goal.target_value || 0;
-      grouped[unit].count += 1;
-    });
-    
-    return grouped;
-  }, [goals, autoProgressMap]);
-
-  // Renderizar resumo
-  // ...
+  // Remover autoProgressMap
 }
 ```
 
-#### Alteração 2: Integrar no TabsContent
-Substituir o resumo atual (linhas 1144-1154) pelo novo componente:
+### Passo 3: Simplificar GoalsManager.tsx
+Remover:
+- Import de `useGoalsProgress`, `isAutoCalculatedUnit`, `getUnitDataSource`
+- Import de `useGoalsHistoricalProgress`, `supportsHistoricalData`
+- Import de `GoalSparkline`
+- Toda a lógica de `autoProgressMap` e `historicalDataMap`
+- Renderização do `GoalSparkline` nos cards
 
-```typescript
-<TabsContent value={period}>
-  {/* Novo Resumo de Período */}
-  <PeriodSummary 
-    goals={filteredGoals} 
-    autoProgressMap={autoProgressMap} 
-  />
-  
-  {/* Grid de Cards existente */}
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    {filteredGoals.map((goal) => (
-      <GoalCard key={goal.id} ... />
-    ))}
-  </div>
-</TabsContent>
+Adicionar:
+- Botão/input para actualizar `current_value` manualmente em cada GoalCard
+- Modal de edição de progresso mais acessível
+
+### Passo 4: Actualizar GoalCard
+O card de meta ficará mais simples:
+
+```text
+┌─────────────────────────────────────────┐
+│ 🎯 Fechar 5 Vendas                      │
+│ Meta Semanal | Individual               │
+│                                         │
+│ Progresso: 3 / 5 vendas                 │
+│ [████████████░░░░░░░░] 60%              │
+│                                         │
+│ [Actualizar Progresso]  [Editar] [🗑️]  │
+└─────────────────────────────────────────┘
 ```
-
-#### Alteração 3: Formatação de Valores
-Utilizar formatação apropriada para cada tipo de unidade:
-- **Financeiro (euros, faturação)**: `€1.722` com separador de milhares
-- **Contagem (vendas, chamadas)**: `3 / 5` formato simples
-- **Percentagem**: `65%` com símbolo
-
-### Componentes Visuais
-- Utilizar `Card` existente para o container
-- `Progress` bar para indicador visual
-- `Badge` para indicadores de tipo
-- Ícones correspondentes de `lucide-react` para cada métrica
 
 ---
 
-## Fluxo de Dados
-1. `GoalsManager` carrega metas via `useProductivityCoach`
-2. `useGoalsProgress` calcula progresso automático para cada meta
-3. `PeriodSummary` recebe dados filtrados por período
-4. Componente agrega e formata para exibição
+## Impacto
 
-## Resultado Esperado
-O utilizador verá imediatamente o resumo do progresso real de cada período, com valores como "€1.722 / €5.000 em Faturação" claramente visíveis no topo de cada secção temporal.
+### Vantagens
+- Coach focado no essencial: metas + coaching IA
+- Separação clara de responsabilidades
+- Menos queries à BD no módulo de produtividade
+- Relatórios serão a "fonte de verdade" para métricas
+
+### Considerações
+- O utilizador terá de actualizar progresso manualmente (ou criar um relatório futuro que compare automaticamente)
+- A funcionalidade de ver "resultados reais vs metas" poderá ser adicionada ao módulo de Relatórios
+
+---
+
+## Sequência de Implementação
+
+1. Eliminar ficheiros de cálculo automático
+2. Actualizar `PeriodSummary.tsx` para usar apenas dados manuais
+3. Simplificar `GoalsManager.tsx` removendo lógica automática
+4. Melhorar UX de actualização manual de progresso nos GoalCards
+5. Testar fluxo completo
