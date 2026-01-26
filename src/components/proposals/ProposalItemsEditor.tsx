@@ -51,9 +51,16 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
   const [hasChanges, setHasChanges] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize items from existing data - only on first load
+  // Reset when proposalId changes (different proposal selected)
   useEffect(() => {
-    if (!isInitialized && existingItems !== undefined && !loadingItems) {
+    setIsInitialized(false);
+    setItems([]);
+    setHasChanges(false);
+  }, [proposalId]);
+
+  // Initialize items from existing data - only on first load for this proposalId
+  useEffect(() => {
+    if (!isInitialized && !loadingItems && existingItems !== undefined) {
       if (existingItems.length > 0) {
         setItems(existingItems.map((item, idx) => ({
           id: item.id,
@@ -129,7 +136,7 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
         items: items.filter((item) => item.name.trim() !== ""),
       });
       setHasChanges(false);
-      setIsInitialized(false); // Allow re-sync with server data after save
+      // Keep local state - it's already correct after save
       toast.success("Itens guardados com sucesso!");
       onSaved?.();
     } catch (error) {
