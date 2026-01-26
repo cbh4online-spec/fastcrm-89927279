@@ -2,6 +2,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { withCache } from '../_shared/cache-manager.ts';
 import type { CacheConfidenceLevel } from '../_shared/cache-types.ts';
+import { getRAGContext, formatRAGForPrompt, type RAGAgentContext } from '../_shared/rag-agent-helper.ts';
 
 /**
  * AI Agent Orchestrator
@@ -13,6 +14,7 @@ import type { CacheConfidenceLevel } from '../_shared/cache-types.ts';
  * - Record executions in audit trail
  * - Format outputs according to contract
  * - Leverage response caching for cost optimization
+ * - RAG integration for historical context enrichment
  */
 
 interface AgentRequest {
@@ -44,6 +46,10 @@ interface AgentOutput {
   confidenceLevel: 'low' | 'medium' | 'high';
   score?: number;
   temperature?: 'cold' | 'warm' | 'hot';
+  historicalContext?: {
+    sourcesUsed: number;
+    confidenceLevel: string;
+  };
 }
 
 interface AgentResponse {
@@ -336,8 +342,52 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 4: Generate analysis with cache layer
+    // Step 4: RAG - Retrieve historical context
     const step4Start = Date.now();
+    let ragContext: RAGAgentContext | null = null;
+    
+    try {
+      ragContext = await getRAGContext(
+        supabase,
+        workspaceId,
+        entityId,
+        entityType,
+        entityData,
+        {
+          outcomeFilter: agentType === 'opportunity' ? 'all' : undefined,
+        }
+      );
+      
+      if (ragContext.hasContext) {
+        dataSourcesUsed.push('rag_historical');
+      }
+      
+      reasoningTrace.push({
+        step: 4,
+        action: 'RAG - Retrieve historical context',
+        input: `entity: ${entityId}, type: ${entityType}`,
+        output: ragContext.hasContext 
+          ? `${ragContext.sourcesUsed} sources, confidence: ${ragContext.confidenceLevel}, ${ragContext.outcomes.won} won / ${ragContext.outcomes.lost} lost outcomes`
+          : 'No relevant historical context found',
+        confidence: ragContext.confidenceLevel === 'high' ? 0.9 : ragContext.confidenceLevel === 'medium' ? 0.7 : 0.4,
+        durationMs: ragContext.retrievalTimeMs,
+        toolUsed: 'rag_retrieval',
+      });
+    } catch (ragError) {
+      console.error('[Orchestrator] RAG retrieval error:', ragError);
+      reasoningTrace.push({
+        step: 4,
+        action: 'RAG - Retrieve historical context',
+        input: `entity: ${entityId}`,
+        output: `Error: ${ragError instanceof Error ? ragError.message : 'Unknown error'}`,
+        confidence: 0,
+        durationMs: Date.now() - step4Start,
+        toolUsed: 'rag_retrieval',
+      });
+    }
+
+    // Step 5: Generate analysis with cache layer
+    const step5Start = Date.now();
     
     // Use cache layer for analysis
     const cacheResult = await withCache(
@@ -358,13 +408,14 @@ Deno.serve(async (req) => {
           entityData,
           conversationData,
           previousConclusions,
-          context
+          context,
+          ragContext
         );
         
         return {
           response: analysis,
           confidenceLevel: analysis.confidenceLevel as CacheConfidenceLevel,
-          durationMs: Date.now() - step4Start,
+          durationMs: Date.now() - step5Start,
           tokensUsed: 0, // Rule-based analysis uses 0 tokens
         };
       }
@@ -373,14 +424,14 @@ Deno.serve(async (req) => {
     const analysis = cacheResult.response!;
     
     reasoningTrace.push({
-      step: 4,
+      step: 5,
       action: cacheResult.fromCache ? 'Retrieved from cache' : 'Generate analysis',
       input: `Agent type: ${agentType}, data sources: ${dataSourcesUsed.join(', ')}`,
       output: cacheResult.fromCache 
         ? `Cache HIT (${cacheResult.lookupTimeMs}ms)` 
         : `Generated ${analysis.keySignals.length} signals, ${analysis.riskIndicators.length} risks`,
       confidence: analysis.confidenceLevel === 'high' ? 0.9 : analysis.confidenceLevel === 'medium' ? 0.7 : 0.5,
-      durationMs: cacheResult.fromCache ? cacheResult.lookupTimeMs : Date.now() - step4Start,
+      durationMs: cacheResult.fromCache ? cacheResult.lookupTimeMs : Date.now() - step5Start,
       toolUsed: cacheResult.fromCache ? 'cache_lookup' : 'calculate_score',
     });
 
@@ -554,7 +605,8 @@ function generateAgentAnalysis(
   entityData: any,
   conversationData: any[],
   previousConclusions: any[],
-  context?: Record<string, unknown>
+  context?: Record<string, unknown>,
+  ragContext?: RAGAgentContext | null
 ): AgentOutput {
   // This is the fallback rule-based analysis
   // For specialized analysis, the client should call the specialized agent directly

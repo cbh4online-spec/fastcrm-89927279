@@ -2,6 +2,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { withCache } from '../_shared/cache-manager.ts';
 import type { CacheConfidenceLevel } from '../_shared/cache-types.ts';
+import { getRAGContext, formatRAGForPrompt, type RAGAgentContext } from '../_shared/rag-agent-helper.ts';
 
 /**
  * AI Agent: Client Specialist
@@ -13,6 +14,7 @@ import type { CacheConfidenceLevel } from '../_shared/cache-types.ts';
  * - Monitor satisfaction
  * - Suggest retention actions
  * - Response caching for cost optimization
+ * - RAG integration for historical pattern analysis
  */
 
 interface ClientAgentRequest {
@@ -45,6 +47,11 @@ interface AgentOutput {
   healthScore?: number;
   lifetimeValue?: number;
   churnRisk?: 'low' | 'medium' | 'high';
+  historicalContext?: {
+    similarClientsFound: number;
+    retentionPatterns: string[];
+    churnPatterns: string[];
+  };
 }
 
 Deno.serve(async (req) => {
@@ -232,8 +239,53 @@ Deno.serve(async (req) => {
       toolUsed: 'get_entity_data',
     });
 
-    // Step 5: Generate analysis with cache layer
+    // Step 5: RAG - Retrieve historical retention patterns
     const step5Start = Date.now();
+    let ragContext: RAGAgentContext | null = null;
+    
+    try {
+      ragContext = await getRAGContext(
+        supabase,
+        workspaceId,
+        entityId,
+        entityType,
+        entity,
+        {
+          queryText: `Cliente ${entity.name || ''} análise de retenção e churn LTV ${lifetimeValue}`,
+          outcomeFilter: 'all', // Both won and lost for retention analysis
+        }
+      );
+      
+      if (ragContext.hasContext) {
+        dataSourcesUsed.push('rag_historical');
+      }
+      
+      reasoningTrace.push({
+        step: 5,
+        action: 'RAG - Retrieve historical retention patterns',
+        input: `entity: ${entityId}, query: retention analysis`,
+        output: ragContext.hasContext 
+          ? `${ragContext.sourcesUsed} sources, confidence: ${ragContext.confidenceLevel}, ${ragContext.outcomes.won} retained / ${ragContext.outcomes.lost} churned`
+          : 'No relevant historical patterns found',
+        confidence: ragContext.confidenceLevel === 'high' ? 0.9 : ragContext.confidenceLevel === 'medium' ? 0.7 : 0.4,
+        durationMs: ragContext.retrievalTimeMs,
+        toolUsed: 'rag_retrieval',
+      });
+    } catch (ragError) {
+      console.error('[Client Agent] RAG retrieval error:', ragError);
+      reasoningTrace.push({
+        step: 5,
+        action: 'RAG - Retrieve historical retention patterns',
+        input: `entity: ${entityId}`,
+        output: `Error: ${ragError instanceof Error ? ragError.message : 'Unknown error'}`,
+        confidence: 0,
+        durationMs: Date.now() - step5Start,
+        toolUsed: 'rag_retrieval',
+      });
+    }
+
+    // Step 6: Generate analysis with cache layer
+    const step6Start = Date.now();
     
     // Use cache layer for analysis
     const cacheResult = await withCache(
@@ -258,13 +310,14 @@ Deno.serve(async (req) => {
             daysSinceActivity,
             openOppCount,
             pipelineValue,
-          }
+          },
+          ragContext
         );
         
         return {
           response: analysis,
           confidenceLevel: analysis.confidenceLevel as CacheConfidenceLevel,
-          durationMs: Date.now() - step5Start,
+          durationMs: Date.now() - step6Start,
           tokensUsed: 0,
         };
       }
@@ -273,14 +326,14 @@ Deno.serve(async (req) => {
     const analysis = cacheResult.response;
 
     reasoningTrace.push({
-      step: 5,
+      step: 6,
       action: cacheResult.fromCache ? 'Retrieved from cache' : 'Generate health & retention analysis',
       input: `All data sources: ${dataSourcesUsed.join(', ')}`,
       output: cacheResult.fromCache 
         ? `Cache HIT (${cacheResult.lookupTimeMs}ms)`
         : `Health: ${analysis.healthScore}/100, Churn risk: ${analysis.churnRisk}, ${analysis.keySignals.length} signals`,
       confidence: analysis.confidenceLevel === 'high' ? 0.9 : analysis.confidenceLevel === 'medium' ? 0.7 : 0.5,
-      durationMs: cacheResult.fromCache ? cacheResult.lookupTimeMs : Date.now() - step5Start,
+      durationMs: cacheResult.fromCache ? cacheResult.lookupTimeMs : Date.now() - step6Start,
       toolUsed: cacheResult.fromCache ? 'cache_lookup' : 'calculate_score',
     });
 
@@ -451,7 +504,8 @@ interface ClientMetrics {
 function generateClientAnalysis(
   entity: any,
   entityType: string,
-  metrics: ClientMetrics
+  metrics: ClientMetrics,
+  ragContext?: RAGAgentContext | null
 ): AgentOutput {
   const keySignals: string[] = [];
   const riskIndicators: string[] = [];
