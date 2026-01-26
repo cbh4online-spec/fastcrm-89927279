@@ -24,15 +24,12 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
       let proposalsCount = 0;
       let contactsCount = 0;
 
-      // Count tasks - using type assertion to avoid deep instantiation
-      const taskColumn = entityType === 'lead' ? 'related_lead_id' 
-        : entityType === 'contact' ? 'related_contact_id' 
-        : 'related_company_id';
-      
-      const tasksResult = await (supabase
+      // Count tasks - tasks table uses related_type and related_id columns
+      const tasksResult = await supabase
         .from('tasks')
-        .select('id') as any)
-        .eq(taskColumn, entityId);
+        .select('id')
+        .eq('related_type', entityType)
+        .eq('related_id', entityId);
       tasksCount = tasksResult.data?.length || 0;
 
       // Count opportunities
