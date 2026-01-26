@@ -17,14 +17,20 @@ import {
 import { InactivityAlertsBanner } from "@/components/productivity/InactivityAlertsBanner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Calendar,
   Download,
@@ -37,9 +43,12 @@ import {
   Contact,
   CheckSquare,
   ChevronDown,
+  CalendarRange,
 } from "lucide-react";
 import { format, subMonths, subDays, isWithinInterval, startOfMonth, endOfMonth, formatDistanceToNow, startOfWeek, endOfWeek, startOfYear } from "date-fns";
 import { pt } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Dialog components for creating entities
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
@@ -66,8 +75,13 @@ export default function Dashboard() {
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   
   // Period filter state
-  type PeriodFilter = "7d" | "30d" | "this_month" | "last_month" | "this_year" | "all";
+  type PeriodFilter = "7d" | "30d" | "this_month" | "last_month" | "this_year" | "all" | "custom";
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("this_month");
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   const periodLabels: Record<PeriodFilter, string> = {
     "7d": "Últimos 7 dias",
@@ -76,6 +90,9 @@ export default function Dashboard() {
     "last_month": "Mês passado",
     "this_year": "Este ano",
     "all": "Todo o período",
+    "custom": customDateRange.from && customDateRange.to 
+      ? `${format(customDateRange.from, "d MMM", { locale: pt })} - ${format(customDateRange.to, "d MMM", { locale: pt })}`
+      : "Personalizado",
   };
   
   // Get date range based on selected period
@@ -95,13 +112,48 @@ export default function Dashboard() {
         return { start: startOfYear(now), end: now };
       case "all":
         return { start: new Date(0), end: now };
+      case "custom":
+        return { 
+          start: customDateRange.from || startOfMonth(now), 
+          end: customDateRange.to || now 
+        };
       default:
         return { start: startOfMonth(now), end: now };
     }
   };
 
+  // Export dashboard data
+  const handleExport = () => {
+    const exportData = {
+      periodo: periodLabels[periodFilter],
+      dataExportacao: format(new Date(), "dd/MM/yyyy HH:mm", { locale: pt }),
+      kpis: {
+        totalLeads: kpiData.leads.total,
+        tendenciaLeads: `${kpiData.leads.trend}%`,
+        totalOportunidades: kpiData.opportunities.total,
+        valorPipeline: kpiData.opportunities.value,
+        tendenciaOportunidades: `${kpiData.opportunities.trend}%`,
+        vendasPeriodo: kpiData.sales.total,
+        tendenciaVendas: `${kpiData.sales.trend}%`,
+        totalEmpresas: kpiData.companies,
+      },
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dashboard-export-${format(new Date(), "yyyy-MM-dd")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success("Dashboard exportado com sucesso!");
+  };
+
   // Get current period dates
-  const { start: periodStart, end: periodEnd } = useMemo(() => getDateRange(periodFilter), [periodFilter]);
+  const { start: periodStart, end: periodEnd } = useMemo(() => getDateRange(periodFilter), [periodFilter, customDateRange]);
 
   // Calculate KPI data for cards based on selected period
   const kpiData = useMemo(() => {
@@ -326,7 +378,7 @@ export default function Dashboard() {
                     <ChevronDown className="h-3 w-3 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-48 bg-popover">
                   <DropdownMenuItem onClick={() => setPeriodFilter("7d")}>
                     Últimos 7 dias
                   </DropdownMenuItem>
@@ -345,9 +397,64 @@ export default function Dashboard() {
                   <DropdownMenuItem onClick={() => setPeriodFilter("all")}>
                     Todo o período
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setDatePickerOpen(true)}>
+                    <CalendarRange className="h-4 w-4 mr-2" />
+                    Período personalizado
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="outline" size="sm" className="gap-1.5 h-9">
+
+              {/* Custom Date Range Popover */}
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <span className="hidden" />
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-popover" align="end">
+                  <div className="p-3 space-y-3">
+                    <p className="text-sm font-medium">Selecione o período</p>
+                    <CalendarComponent
+                      mode="range"
+                      selected={customDateRange}
+                      onSelect={(range) => {
+                        setCustomDateRange({ from: range?.from, to: range?.to });
+                      }}
+                      numberOfMonths={2}
+                      locale={pt}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setDatePickerOpen(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          if (customDateRange.from && customDateRange.to) {
+                            setPeriodFilter("custom");
+                            setDatePickerOpen(false);
+                          } else {
+                            toast.error("Selecione as duas datas");
+                          }
+                        }}
+                      >
+                        Aplicar
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1.5 h-9"
+                onClick={handleExport}
+              >
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Exportar</span>
               </Button>
