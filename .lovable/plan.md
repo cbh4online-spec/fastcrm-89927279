@@ -1,212 +1,529 @@
 
-# Integração de Componentes AI - Entity Pages & Settings
+# Context Window Optimization & Control Layer
 
-## Resumo
+## Resumo Executivo
 
-Integrar os componentes do Memory System e Agent Lifecycle nas páginas de entidade (Contact, Lead, Opportunity) e na secção de Settings > Automação & IA.
-
----
-
-## Componentes a Integrar
-
-| Componente | Destino | Estado Atual |
-|------------|---------|--------------|
-| `AgentQueueStatus` | Contact, Lead, Opportunity | Criado, não integrado |
-| `EntityMemoryPanel` | Contact, Lead, Opportunity | Criado, não integrado |
-| `AgentSchedulesManager` | Settings > Automation | Criado, não integrado |
+Implementar uma camada centralizada e determinística de gestão de contexto para todos os agentes AI do CRM, garantindo que cada agente opera com o contexto certo, no momento certo, sem exceder limites de tokens e sem perda de informação crítica.
 
 ---
 
-## Alterações por Ficheiro
+## Diagnóstico do Estado Atual
 
-### 1. Contact Detail Page
+### Pontos Fortes
+- Já existe um sistema de memória semântica (`ai_agent_memory`)
+- `buildPromptContext()` no `ai-memory-manager` categoriza memórias
+- Safety rules definem limites de memória (2000 chars, 50 entries)
+- Agentes especializados para cada tipo de entidade
 
-**Ficheiro:** `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
-
-**Alterações:**
-- Importar `AgentQueueStatus` e `EntityMemoryPanel`
-- Adicionar secção "IA & Memória" no menu lateral (nova `MenuSection`)
-- Integrar ambos os componentes na secção de insights ou criar nova secção
-
-**Localização na UI:**
-- Na secção `insights` existente, adicionar:
-  - `AgentQueueStatus` (estado da análise IA)
-  - `EntityMemoryPanel` (memórias guardadas)
-
----
-
-### 2. Lead Detail Page
-
-**Ficheiro:** `src/components/crm/LeadDetailWithSidebar.tsx`
-
-**Alterações:**
-- Importar `AgentQueueStatus` e `EntityMemoryPanel`
-- Adicionar na secção `insights`:
-  - `AgentQueueStatus` com `compact={true}` no header ou lateral
-  - `EntityMemoryPanel` na área principal
-
-**Localização na UI:**
-- Secção `insights` já tem `LeadAgentInsightsSection`
-- Adicionar `EntityMemoryPanel` abaixo dos insights
-- Adicionar `AgentQueueStatus` no topo da secção insights
+### Problemas Identificados
+1. **Sem estimativa de tokens** - Nenhum agente calcula tokens antes da execução
+2. **Contexto não priorizado** - Todas as fontes têm peso igual
+3. **Sem compressão adaptativa** - Não há sumarização baseada em tamanho
+4. **Injection desorganizado** - Contexto misturado nos prompts atuais
+5. **Sem fallback graceful** - Não há degradação controlada
 
 ---
 
-### 3. Opportunity Detail Page
+## Arquitetura da Solução
 
-**Ficheiro:** `src/components/opportunities/OpportunityDetailPage.tsx`
-
-**Alterações:**
-- Importar `AgentQueueStatus` e `EntityMemoryPanel`
-- Adicionar na tab `insights`:
-  - `AgentQueueStatus` compact no header da tab
-  - `EntityMemoryPanel` abaixo do `OpportunityAIInsightsSection`
-
----
-
-### 4. Settings - Automation & AI
-
-**Ficheiro:** `src/components/settings/sections/AutomationAISettings.tsx`
-
-**Alterações:**
-- Importar `AgentSchedulesManager`
-- Adicionar nova secção "Agendamentos de Análise IA"
-- Integrar o componente `AgentSchedulesManager` dentro desta secção
-
-**Posição na UI:**
-- Depois da secção "Sugestões de IA"
-- Antes da secção "Logs de Automação"
-
----
-
-### 5. Configuração do Cron Job
-
-**Acção:** Executar SQL para configurar o cron job
-
-```sql
-SELECT cron.schedule(
-  'ai-agent-scheduler-hourly',
-  '0 * * * *',  -- A cada hora
-  $$
-  SELECT net.http_post(
-    url := 'https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/ai-agent-scheduler',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1bW5ma2NjeXZseW95amNoaXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMjM2ODksImV4cCI6MjA4Mzg5OTY4OX0.l5wSvF6cyPUfA2oSIgwr0mvC9gxzMj3fWbhqbrdXOd8"}'::jsonb,
-    body := '{}'::jsonb
-  ) AS request_id;
-  $$
-);
-```
-
----
-
-## Visão Geral das Alterações
+### Diagrama de Fluxo
 
 ```text
-+------------------------------------------+
-|           CONTACT DETAIL PAGE            |
-|------------------------------------------|
-|  Secção: Insights                        |
-|  +------------------------------------+  |
-|  | [AgentQueueStatus compact]         |  |
-|  +------------------------------------+  |
-|  | AIInsightsSection                  |  |
-|  | EntitySocialMediaAnalysisSection   |  |
-|  | [EntityMemoryPanel]                |  |
-|  +------------------------------------+  |
-+------------------------------------------+
-
-+------------------------------------------+
-|            LEAD DETAIL PAGE              |
-|------------------------------------------|
-|  Secção: Insights                        |
-|  +------------------------------------+  |
-|  | [AgentQueueStatus compact]         |  |
-|  +------------------------------------+  |
-|  | LeadAgentInsightsSection           |  |
-|  | InsightsSidebar                    |  |
-|  | EntitySocialMediaAnalysisSection   |  |
-|  | [EntityMemoryPanel]                |  |
-|  +------------------------------------+  |
-+------------------------------------------+
-
-+------------------------------------------+
-|        OPPORTUNITY DETAIL PAGE           |
-|------------------------------------------|
-|  Tab: Insights IA                        |
-|  +------------------------------------+  |
-|  | [AgentQueueStatus compact]         |  |
-|  +------------------------------------+  |
-|  | OpportunityAIInsightsSection       |  |
-|  | [EntityMemoryPanel]                |  |
-|  +------------------------------------+  |
-+------------------------------------------+
-
-+------------------------------------------+
-|         SETTINGS - AUTOMATION & AI       |
-|------------------------------------------|
-|  ... outras secções ...                  |
-|  +------------------------------------+  |
-|  | Sugestões de IA                    |  |
-|  +------------------------------------+  |
-|  | [AgentSchedulesManager] <- NOVO    |  |
-|  +------------------------------------+  |
-|  | Logs de Automação                  |  |
-|  +------------------------------------+  |
-+------------------------------------------+
+┌─────────────────────────────────────────────────────────────────────┐
+│                     CONTEXT CONTROL LAYER                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐         │
+│  │  TOKEN       │───▶│  CONTEXT     │───▶│  PRIORITY    │         │
+│  │  ESTIMATOR   │    │  COLLECTOR   │    │  SORTER      │         │
+│  └──────────────┘    └──────────────┘    └──────────────┘         │
+│         │                   │                   │                  │
+│         ▼                   ▼                   ▼                  │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐         │
+│  │  BUDGET      │    │  SUMMARIZER  │    │  PROMPT      │         │
+│  │  ENFORCER    │◀──▶│  (Adaptive)  │───▶│  ASSEMBLER   │         │
+│  └──────────────┘    └──────────────┘    └──────────────┘         │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                    ┌──────────────────┐
+                    │   STRUCTURED     │
+                    │   PROMPT OUTPUT  │
+                    └──────────────────┘
 ```
 
 ---
 
-## Ficheiros a Modificar
+## Componentes a Implementar
 
-| Ficheiro | Tipo de Alteração |
-|----------|-------------------|
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Adicionar imports + componentes na secção insights |
-| `src/components/crm/LeadDetailWithSidebar.tsx` | Adicionar imports + componentes na secção insights |
-| `src/components/opportunities/OpportunityDetailPage.tsx` | Adicionar imports + componentes na tab insights |
-| `src/components/settings/sections/AutomationAISettings.tsx` | Adicionar AgentSchedulesManager |
+### 1. Token Estimator & Budget Manager
+
+**Ficheiro:** `supabase/functions/_shared/context-manager.ts`
+
+```text
+Responsabilidades:
+- Estimar tokens de qualquer texto (regra: ~4 chars = 1 token)
+- Definir orçamentos por tipo de agente
+- Calcular espaço restante em tempo real
+- Retornar métricas de uso
+
+Orçamentos de Token:
+- Lead Agent: 8.000 tokens (modelo flash)
+- Opportunity Agent: 12.000 tokens (análise profunda)
+- Client Agent: 10.000 tokens
+- Contact Agent: 6.000 tokens
+
+Reservas Obrigatórias:
+- System Prompt: 2.000 tokens
+- Response Buffer: 3.000 tokens
+- Contexto Disponível: Budget - Reservas
+```
+
+### 2. Context Collector & Prioritizer
+
+**Ficheiro:** `supabase/functions/_shared/context-collector.ts`
+
+```text
+Fontes de Contexto (por ordem de prioridade):
+
+TIER 1 - NUNCA COMPRIMIDOS (Prioridade Máxima)
+├── Live Entity State (dados CRM atuais)
+├── Risk Indicators ativos
+└── Constraints/Guardrails do sistema
+
+TIER 2 - COMPRESSÍVEIS (Prioridade Alta)
+├── Memórias validadas (is_validated = true)
+├── Factos com alta relevância (> 0.7)
+└── Conclusões recentes (< 30 dias)
+
+TIER 3 - SUMARIZÁVEIS (Prioridade Média)
+├── Padrões e preferências
+├── Histórico de interações (condensado)
+└── Sinais importantes
+
+TIER 4 - DESCARTÁVEIS (Prioridade Baixa)
+├── Memórias antigas (> 60 dias)
+├── Baixa relevância (< 0.4)
+└── Dados redundantes
+```
+
+### 3. Adaptive Summarizer
+
+**Ficheiro:** `supabase/functions/_shared/context-summarizer.ts`
+
+```text
+Estratégias por Tamanho de Contexto:
+
+SMALL (< 4K tokens disponíveis):
+- Usar dados completos
+- Sem sumarização
+
+MEDIUM (4K-8K tokens):
+- Sumarizar TIER 3 e 4
+- Manter TIER 1 e 2 verbatim
+
+LARGE (> 8K tokens):
+- Substituir histórico por sumários estruturados
+- Droppar sinais low-confidence
+- Manter apenas decisões críticas
+
+Regras de Sumarização:
+❌ NUNCA sumarizar campos CRM ao vivo
+❌ NUNCA sumarizar factos validados
+✅ Sumarizar por importância, não por tempo
+✅ Formato estruturado (bullet points)
+✅ Estável entre execuções
+```
+
+### 4. Prompt Assembler
+
+**Ficheiro:** `supabase/functions/_shared/prompt-assembler.ts`
+
+```text
+Formato de Injeção de Contexto:
+
+═══════════════════════════════════════════════════════
+[CONSTRAINTS & GUARDRAILS]                    ← INÍCIO
+Regras obrigatórias do agente
+═══════════════════════════════════════════════════════
+
+[CURRENT ENTITY DATA]
+Dados CRM ao vivo (TIER 1)
+
+[KNOWN FACTS & VALIDATED MEMORY]
+Memórias confirmadas (TIER 2)
+
+[HISTORICAL PATTERNS]
+Sumários e padrões (TIER 3)
+
+[CONTEXT METADATA]
+- Token usage: X/Y
+- Data freshness: last updated Z
+- Confidence: high/medium/low
+
+═══════════════════════════════════════════════════════
+[AGENT TASK & OBJECTIVE]                      ← FIM
+O que o agente deve fazer
+═══════════════════════════════════════════════════════
+
+Anti-Pattern: Lost-in-the-Middle
+- Constraints e objetivos nos extremos
+- Dados operacionais no meio
+```
+
+---
+
+## Ficheiros a Criar/Modificar
+
+| Ficheiro | Tipo | Descrição |
+|----------|------|-----------|
+| `supabase/functions/_shared/context-manager.ts` | **NOVO** | Token estimation & budget enforcement |
+| `supabase/functions/_shared/context-collector.ts` | **NOVO** | Data collection & priority sorting |
+| `supabase/functions/_shared/context-summarizer.ts` | **NOVO** | Adaptive compression logic |
+| `supabase/functions/_shared/prompt-assembler.ts` | **NOVO** | Structured prompt building |
+| `supabase/functions/ai-agent-orchestrator/index.ts` | MODIFICAR | Integrar Context Control Layer |
+| `supabase/functions/ai-agent-opportunity/index.ts` | MODIFICAR | Usar nova camada de contexto |
+| `supabase/functions/ai-agent-client/index.ts` | MODIFICAR | Usar nova camada de contexto |
+| `src/lib/agentSafetyRules.ts` | MODIFICAR | Adicionar regras de contexto |
+| `src/types/aiAgents.ts` | MODIFICAR | Adicionar tipos de contexto |
+
+---
+
+## Fluxo de Execução
+
+```text
+1. REQUISIÇÃO DE ANÁLISE
+   └── Agent recebe entityId + agentType + trigger
+
+2. ESTIMATIVA INICIAL
+   └── ContextManager calcula budget disponível
+   └── Determina estratégia: SMALL / MEDIUM / LARGE
+
+3. COLETA DE CONTEXTO
+   └── ContextCollector busca dados por TIER
+   └── Ordena por prioridade e relevância
+   └── Marca dados para compressão se necessário
+
+4. COMPRESSÃO ADAPTATIVA (se necessário)
+   └── Summarizer aplica estratégia por TIER
+   └── Mantém TIER 1 intacto
+   └── Sumariza TIER 3/4
+
+5. VALIDAÇÃO DE BUDGET
+   └── BudgetEnforcer verifica tokens finais
+   └── Se exceder: remove TIER 4 → TIER 3 → aborta
+   └── Regista warnings se dados foram removidos
+
+6. MONTAGEM DO PROMPT
+   └── PromptAssembler estrutura output
+   └── Constraints no início, task no fim
+   └── Metadata de contexto incluído
+
+7. EXECUÇÃO DO AGENTE
+   └── Prompt estruturado enviado ao LLM
+   └── Resposta processada
+
+8. LOGGING & MÉTRICAS
+   └── Tokens usados registados
+   └── Warnings de contexto guardados
+   └── Dados descartados documentados
+```
+
+---
+
+## Tipos TypeScript
+
+```typescript
+// src/types/contextManager.ts
+
+interface TokenBudget {
+  total: number;
+  systemPrompt: number;
+  responseBuffer: number;
+  available: number;
+  used: number;
+  remaining: number;
+}
+
+interface ContextTier {
+  tier: 1 | 2 | 3 | 4;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  compressible: boolean;
+  discardable: boolean;
+}
+
+interface ContextItem {
+  source: string;
+  tier: ContextTier;
+  content: string;
+  tokenCount: number;
+  relevanceScore: number;
+  timestamp: string;
+  isLiveData: boolean;
+}
+
+interface ContextStrategy {
+  type: 'SMALL' | 'MEDIUM' | 'LARGE';
+  summarizeTiers: number[];
+  discardTiers: number[];
+  maxContextTokens: number;
+}
+
+interface AssembledPrompt {
+  systemPrompt: string;
+  userPrompt: string;
+  totalTokens: number;
+  contextMetadata: {
+    strategy: ContextStrategy['type'];
+    tiersIncluded: number[];
+    itemsDiscarded: number;
+    summariesGenerated: number;
+    dataFreshness: string;
+    overallConfidence: 'high' | 'medium' | 'low';
+    warnings: string[];
+  };
+}
+
+interface ContextCollectionResult {
+  success: boolean;
+  items: ContextItem[];
+  budget: TokenBudget;
+  strategy: ContextStrategy;
+  warnings: string[];
+  partialAnalysis?: {
+    reason: string;
+    missingData: string[];
+  };
+}
+```
+
+---
+
+## Regras de Segurança (Adições a agentSafetyRules.ts)
+
+```typescript
+// Novas constantes
+export const CONTEXT_GUARDRAILS = {
+  // Token budgets por agente
+  tokenBudgets: {
+    lead: 8000,
+    contact: 6000,
+    opportunity: 12000,
+    client: 10000,
+  },
+  
+  // Reservas obrigatórias
+  systemPromptReserve: 2000,
+  responseBufferReserve: 3000,
+  
+  // Limites de compressão
+  maxSummaryLength: 500,
+  minContextForAnalysis: 500,
+  
+  // Freshness thresholds
+  staleDataWarningDays: 30,
+  expiredDataDays: 90,
+};
+
+// Validações
+export const CONTEXT_FORBIDDEN_PATTERNS = {
+  NO_RAW_HISTORY: 'Histórico bruto de conversas nunca é injetado',
+  NO_UNBOUNDED_CONTEXT: 'Contexto deve respeitar budget de tokens',
+  NO_RANDOM_SELECTION: 'Seleção de contexto deve ser determinística',
+  NO_LIVE_DATA_COMPRESSION: 'Dados CRM ao vivo nunca são comprimidos',
+  NO_MEMORY_OVERRIDE: 'Memória não pode sobrepor dados ao vivo',
+};
+```
+
+---
+
+## Exemplo de Prompt Estruturado Final
+
+```text
+════════════════════════════════════════════════════════════════
+[CONSTRAINTS & GUARDRAILS]
+
+Tu és um agente de análise de leads para CRM. Regras obrigatórias:
+- Nunca inventes dados que não foram fornecidos
+- Não faças promessas em nome do negócio
+- Todas as recomendações devem ser explicadas
+- Confia nos dados ao vivo sobre memórias antigas
+
+════════════════════════════════════════════════════════════════
+[CURRENT ENTITY DATA]
+
+Nome: Maria Santos
+Email: maria@empresa.pt
+Telefone: +351 912 345 678
+Estado: qualified
+Origem: instagram
+Temperatura: hot
+Score: 78
+Última interação: há 3 dias
+
+════════════════════════════════════════════════════════════════
+[KNOWN FACTS - VALIDATED]
+
+• Cliente já trabalhou com concorrente X (validado)
+• Decisor é o CEO da empresa (validado)
+• Orçamento aprovado para Q1 2026 (validado)
+
+════════════════════════════════════════════════════════════════
+[HISTORICAL PATTERNS]
+
+Sumário de 5 conclusões anteriores:
+- Lead consistentemente responsivo (média 2h de resposta)
+- Preferência por comunicação via WhatsApp
+- Interesse demonstrado em módulo de automação
+- Objeção prévia sobre preço foi ultrapassada
+
+════════════════════════════════════════════════════════════════
+[CONTEXT METADATA]
+
+Tokens utilizados: 1,847 / 6,000 (31%)
+Frescura dos dados: última atualização há 3 dias
+Confiança geral: alta
+Estratégia: SMALL (contexto completo)
+
+════════════════════════════════════════════════════════════════
+[AGENT TASK]
+
+Analisa este lead e fornece:
+1. Sumário executivo (2-3 frases)
+2. Avaliação do estado atual
+3. Sinais positivos identificados
+4. Indicadores de risco
+5. Próxima ação recomendada
+
+Usa a ferramenta analyze_lead para estruturar a resposta.
+════════════════════════════════════════════════════════════════
+```
+
+---
+
+## Casos de Falha (Failure Handling)
+
+| Cenário | Comportamento |
+|---------|---------------|
+| Budget excedido após compressão | Abortar e retornar análise parcial |
+| Sem dados TIER 1 (entidade) | Retornar erro com dados em falta |
+| Memórias todas expiradas | Continuar com warning, sem TIER 2/3 |
+| Sumarização falha | Usar dados originais até limite |
+| Timeout na coleta | Retornar com dados já coletados |
+
+**Resposta Parcial Estruturada:**
+```json
+{
+  "partialAnalysis": true,
+  "completedSteps": 3,
+  "totalSteps": 5,
+  "analysisPerformed": ["entity_data", "memory_retrieval", "pattern_analysis"],
+  "missingData": ["conversation_history", "recent_activities"],
+  "reason": "Token budget exceeded, TIER 3 data discarded",
+  "recommendation": "Retry with smaller context window or prioritize critical data"
+}
+```
 
 ---
 
 ## Ordem de Implementação
 
-1. **Settings > Automation & AI** - Adicionar `AgentSchedulesManager`
-2. **Contact Detail** - Integrar `AgentQueueStatus` e `EntityMemoryPanel`
-3. **Lead Detail** - Integrar `AgentQueueStatus` e `EntityMemoryPanel`
-4. **Opportunity Detail** - Integrar `AgentQueueStatus` e `EntityMemoryPanel`
-5. **Cron Job** - Configurar agendamento automático
+1. **Fase 1 - Core Types** (30 min)
+   - Criar `src/types/contextManager.ts`
+   - Adicionar constantes a `agentSafetyRules.ts`
+
+2. **Fase 2 - Shared Functions** (2h)
+   - Criar `context-manager.ts` (token estimation)
+   - Criar `context-collector.ts` (data gathering)
+   - Criar `context-summarizer.ts` (compression)
+   - Criar `prompt-assembler.ts` (formatting)
+
+3. **Fase 3 - Agent Integration** (1.5h)
+   - Modificar `ai-agent-orchestrator/index.ts`
+   - Modificar `ai-agent-opportunity/index.ts`
+   - Modificar `ai-agent-client/index.ts`
+
+4. **Fase 4 - Deploy & Test** (30 min)
+   - Deploy edge functions
+   - Testar com entidades reais
 
 ---
 
-## Secção Técnica
+## Métricas de Sucesso
 
-### Imports a adicionar
+| Métrica | Alvo |
+|---------|------|
+| Token usage per execution | < 80% do budget |
+| Context selection determinism | 100% reprodutível |
+| TIER 1 data inclusion | 100% sempre |
+| Successful analyses | > 95% |
+| Partial analysis rate | < 5% |
+| Average execution time | < 5 segundos |
+
+---
+
+## Secção Técnica Detalhada
+
+### Fórmula de Estimativa de Tokens
 
 ```typescript
-// Nas páginas de entidade:
-import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
-import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
-
-// Em AutomationAISettings:
-import { AgentSchedulesManager } from "@/components/ai-agents/AgentSchedulesManager";
+function estimateTokens(text: string): number {
+  // Regra aproximada: 1 token ≈ 4 caracteres em PT/EN
+  // Adicionar 10% de margem de segurança
+  return Math.ceil((text.length / 4) * 1.1);
+}
 ```
 
-### Props do AgentQueueStatus
+### Algoritmo de Priorização
+
 ```typescript
-<AgentQueueStatus
-  entityId={id!}
-  entityType="contact" // ou "lead" ou "opportunity"
-  compact={true}
-  showAnalyzeButton={true}
-/>
+function calculatePriority(item: ContextItem): number {
+  let score = 0;
+  
+  // Base por tier
+  score += (5 - item.tier) * 25; // TIER 1 = 100, TIER 4 = 25
+  
+  // Boost por relevância
+  score += item.relevanceScore * 30;
+  
+  // Boost por frescura
+  const daysSinceCreation = getDaysSince(item.timestamp);
+  if (daysSinceCreation < 7) score += 20;
+  else if (daysSinceCreation < 30) score += 10;
+  
+  // Boost máximo para dados ao vivo
+  if (item.isLiveData) score = 200;
+  
+  return score;
+}
 ```
 
-### Props do EntityMemoryPanel
+### Estratégia de Compressão
+
 ```typescript
-<EntityMemoryPanel
-  entityId={id!}
-  entityType="contact" // ou "lead" ou "opportunity"
-  entityName={contact.name}
-  compact={false}
-/>
+function selectStrategy(availableTokens: number): ContextStrategy {
+  if (availableTokens < 4000) {
+    return {
+      type: 'LARGE',
+      summarizeTiers: [2, 3],
+      discardTiers: [4],
+      maxContextTokens: availableTokens * 0.9,
+    };
+  } else if (availableTokens < 8000) {
+    return {
+      type: 'MEDIUM',
+      summarizeTiers: [3, 4],
+      discardTiers: [],
+      maxContextTokens: availableTokens * 0.95,
+    };
+  } else {
+    return {
+      type: 'SMALL',
+      summarizeTiers: [],
+      discardTiers: [],
+      maxContextTokens: availableTokens,
+    };
+  }
+}
 ```
