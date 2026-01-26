@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Eye,
   Send,
@@ -24,6 +26,9 @@ import {
   User,
   Calendar,
   Euro,
+  Pencil,
+  Save,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -34,8 +39,9 @@ import {
   useProposalVersions,
   useProposalActivity,
   usePublishProposal,
+  useUpdateProposal,
 } from "@/hooks/useProposals";
-import type { ProposalStatus } from "@/types/proposal";
+import type { ProposalStatus, ContentBlock } from "@/types/proposal";
 import { cn } from "@/lib/utils";
 
 interface ProposalDetailDialogProps {
@@ -57,13 +63,61 @@ export function ProposalDetailDialog({
   onOpenChange,
   proposalId,
 }: ProposalDetailDialogProps) {
-  const [tab, setTab] = useState<"preview" | "versions" | "activity">("preview");
+  const [tab, setTab] = useState<"preview" | "edit" | "versions" | "activity">("preview");
   const [deviceView, setDeviceView] = useState<"desktop" | "mobile">("desktop");
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Edit form state
+  const [editTitle, setEditTitle] = useState("");
+  const [editPrice, setEditPrice] = useState<number | null>(null);
+  const [editCtaText, setEditCtaText] = useState("");
+  const [editCtaColor, setEditCtaColor] = useState("");
 
   const { data: proposal, isLoading } = useProposal(proposalId);
   const { data: versions } = useProposalVersions(proposalId);
   const { data: activity } = useProposalActivity(proposalId);
   const publishProposal = usePublishProposal();
+  const updateProposal = useUpdateProposal();
+  
+  // Initialize edit form when proposal loads or when switching to edit mode
+  const initializeEditForm = () => {
+    if (proposal) {
+      setEditTitle(proposal.title);
+      setEditPrice(proposal.price);
+      setEditCtaText(proposal.cta_text);
+      setEditCtaColor(proposal.cta_color);
+    }
+  };
+  
+  const handleStartEditing = () => {
+    initializeEditForm();
+    setTab("edit");
+    setIsEditing(true);
+  };
+  
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setTab("preview");
+  };
+  
+  const handleSaveEdit = async () => {
+    if (!proposal) return;
+    
+    try {
+      await updateProposal.mutateAsync({
+        id: proposal.id,
+        title: editTitle,
+        price: editPrice ?? undefined,
+        cta_text: editCtaText,
+        cta_color: editCtaColor,
+        createVersion: true,
+      });
+      setIsEditing(false);
+      setTab("preview");
+    } catch (error) {
+      // Error already handled in hook
+    }
+  };
 
   const getPublicUrl = (slug: string) => {
     return `${window.location.origin}/p/${slug}`;
@@ -133,7 +187,46 @@ export function ProposalDetailDialog({
               
               {/* Action Buttons */}
               <div className="flex items-center gap-2 flex-shrink-0">
-                {proposal.status === "draft" && (
+                {/* Edit Button - always visible for draft/published */}
+                {(proposal.status === "draft" || proposal.status === "published") && !isEditing && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleStartEditing}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                )}
+                
+                {/* Save/Cancel when editing */}
+                {isEditing && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleCancelEdit}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancelar
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={handleSaveEdit}
+                      disabled={updateProposal.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {updateProposal.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Guardar
+                    </Button>
+                  </>
+                )}
+                
+                {proposal.status === "draft" && !isEditing && (
                   <Button 
                     onClick={handlePublish} 
                     disabled={publishProposal.isPending}
@@ -147,7 +240,7 @@ export function ProposalDetailDialog({
                     Publicar
                   </Button>
                 )}
-                {proposal.status === "published" && (
+                {proposal.status === "published" && !isEditing && (
                   <>
                     <Button variant="outline" size="sm" onClick={handleCopyLink}>
                       <Copy className="h-4 w-4 mr-2" />
@@ -224,7 +317,7 @@ export function ProposalDetailDialog({
           <Tabs
             value={tab}
             onValueChange={(v) =>
-              setTab(v as "preview" | "versions" | "activity")
+              setTab(v as "preview" | "edit" | "versions" | "activity")
             }
             className="flex-1 flex flex-col min-h-0"
           >
@@ -237,6 +330,15 @@ export function ProposalDetailDialog({
                   <Eye className="h-4 w-4 mr-2" />
                   Visualização
                 </TabsTrigger>
+                {isEditing && (
+                  <TabsTrigger 
+                    value="edit"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar
+                  </TabsTrigger>
+                )}
                 <TabsTrigger 
                   value="versions"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
@@ -296,6 +398,98 @@ export function ProposalDetailDialog({
                   currency={proposal.currency}
                   showCta={false}
                 />
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Edit Tab Content */}
+            <TabsContent value="edit" className="flex-1 min-h-0 mt-0 p-6">
+              <ScrollArea className="h-full">
+                <div className="max-w-2xl mx-auto space-y-6">
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Informações da Proposta</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-title">Título da Proposta</Label>
+                        <Input
+                          id="edit-title"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          placeholder="Ex: Proposta de Serviços de Marketing"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-price">Valor (€)</Label>
+                        <Input
+                          id="edit-price"
+                          type="number"
+                          value={editPrice ?? ""}
+                          onChange={(e) => setEditPrice(e.target.value ? parseFloat(e.target.value) : null)}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Call to Action</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-cta-text">Texto do Botão</Label>
+                        <Input
+                          id="edit-cta-text"
+                          value={editCtaText}
+                          onChange={(e) => setEditCtaText(e.target.value)}
+                          placeholder="Ex: Aceitar Proposta"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-cta-color">Cor do Botão</Label>
+                        <div className="flex gap-3 items-center">
+                          <Input
+                            id="edit-cta-color"
+                            type="color"
+                            value={editCtaColor || "#3b82f6"}
+                            onChange={(e) => setEditCtaColor(e.target.value)}
+                            className="w-16 h-10 p-1 cursor-pointer"
+                          />
+                          <Input
+                            value={editCtaColor || "#3b82f6"}
+                            onChange={(e) => setEditCtaColor(e.target.value)}
+                            placeholder="#3b82f6"
+                            className="flex-1"
+                          />
+                          <div 
+                            className="h-10 px-4 rounded-md flex items-center justify-center text-white font-medium text-sm"
+                            style={{ backgroundColor: editCtaColor || "#3b82f6" }}
+                          >
+                            {editCtaText || "Preview"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button variant="outline" onClick={handleCancelEdit}>
+                      <X className="h-4 w-4 mr-2" />
+                      Cancelar
+                    </Button>
+                    <Button 
+                      onClick={handleSaveEdit}
+                      disabled={updateProposal.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {updateProposal.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Guardar Alterações
+                    </Button>
+                  </div>
+                </div>
               </ScrollArea>
             </TabsContent>
 
