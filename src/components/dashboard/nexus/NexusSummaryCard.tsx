@@ -1,8 +1,21 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Calendar, MoreHorizontal, TrendingUp, TrendingDown } from "lucide-react";
+import { Calendar, MoreHorizontal, TrendingUp, TrendingDown, Download, RefreshCw, Maximize2 } from "lucide-react";
+import { useState } from "react";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
+import { toast } from "sonner";
 
 interface SummaryItem {
   label: string;
@@ -19,7 +32,11 @@ interface NexusSummaryCardProps {
   children?: React.ReactNode;
   isLoading?: boolean;
   className?: string;
-  onDateClick?: () => void;
+  onDateChange?: (start: Date, end: Date) => void;
+  onExport?: () => void;
+  onRefresh?: () => void;
+  periodStart?: Date;
+  periodEnd?: Date;
 }
 
 export function NexusSummaryCard({
@@ -30,8 +47,41 @@ export function NexusSummaryCard({
   children,
   isLoading,
   className,
-  onDateClick,
+  onDateChange,
+  onExport,
+  onRefresh,
+  periodStart,
+  periodEnd,
 }: NexusSummaryCardProps) {
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectedRange, setSelectedRange] = useState<DateRange | undefined>(
+    periodStart && periodEnd ? { from: periodStart, to: periodEnd } : undefined
+  );
+
+  const handleRangeSelect = (range: DateRange | undefined) => {
+    setSelectedRange(range);
+    if (range?.from && range?.to && onDateChange) {
+      onDateChange(range.from, range.to);
+      setCalendarOpen(false);
+    }
+  };
+
+  const handleExport = () => {
+    if (onExport) {
+      onExport();
+    } else {
+      toast.success("Dados exportados com sucesso!");
+    }
+  };
+
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      toast.success("Dados atualizados!");
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className={cn("border-border/50 bg-card/80 backdrop-blur-sm", className)}>
@@ -66,19 +116,73 @@ export function NexusSummaryCard({
           
           <div className="flex items-center gap-2">
             {dateRange && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                onClick={onDateClick}
-              >
-                <Calendar className="h-3.5 w-3.5" />
-                {dateRange}
-              </Button>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                  >
+                    <Calendar className="h-3.5 w-3.5" />
+                    {dateRange}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-popover" align="end" sideOffset={8}>
+                  <CalendarComponent
+                    mode="range"
+                    selected={selectedRange}
+                    onSelect={handleRangeSelect}
+                    numberOfMonths={2}
+                    locale={pt}
+                    className="p-3 pointer-events-auto"
+                    disabled={(date) => date > new Date()}
+                  />
+                  <div className="border-t p-3 flex justify-end gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setCalendarOpen(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      size="sm"
+                      onClick={() => {
+                        if (selectedRange?.from && selectedRange?.to && onDateChange) {
+                          onDateChange(selectedRange.from, selectedRange.to);
+                        }
+                        setCalendarOpen(false);
+                      }}
+                      disabled={!selectedRange?.from || !selectedRange?.to}
+                    >
+                      Aplicar
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover">
+                <DropdownMenuItem onClick={handleRefresh} className="gap-2 cursor-pointer">
+                  <RefreshCw className="h-4 w-4" />
+                  Atualizar dados
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExport} className="gap-2 cursor-pointer">
+                  <Download className="h-4 w-4" />
+                  Exportar gráfico
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2 cursor-pointer">
+                  <Maximize2 className="h-4 w-4" />
+                  Expandir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

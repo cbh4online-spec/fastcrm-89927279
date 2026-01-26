@@ -17,12 +17,14 @@ interface NexusOpportunityChartProps {
   isLoading?: boolean;
   periodStart?: Date;
   periodEnd?: Date;
+  onDateChange?: (start: Date, end: Date) => void;
 }
 
 export function NexusOpportunityChart({ 
   isLoading = false, 
   periodStart,
   periodEnd,
+  onDateChange,
 }: NexusOpportunityChartProps) {
   const { data: opportunities, isLoading: opportunitiesLoading } = useOpportunities();
 
@@ -174,6 +176,9 @@ export function NexusOpportunityChart({
       dateRange={dateRange}
       items={summaryItems}
       isLoading={loading}
+      onDateChange={onDateChange}
+      periodStart={periodStart}
+      periodEnd={periodEnd}
     >
       <div className="h-64 mt-2">
         <ResponsiveContainer width="100%" height="100%">
