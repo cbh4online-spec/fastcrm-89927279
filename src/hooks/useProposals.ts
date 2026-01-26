@@ -517,7 +517,7 @@ export function useUpdateProposalItems() {
 
       if (deleteError) throw deleteError;
 
-      // Insert new items
+      // Insert new items (total_price is a generated column, don't include it)
       if (items.length > 0) {
         const insertData = items.map((item, idx) => ({
           proposal_id: proposalId,
@@ -527,7 +527,6 @@ export function useUpdateProposalItems() {
           description: item.description,
           quantity: item.quantity,
           unit_price: item.unit_price,
-          total_price: item.quantity * item.unit_price,
           position: item.position ?? idx,
         }));
 
