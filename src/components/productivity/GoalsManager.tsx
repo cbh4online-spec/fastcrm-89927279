@@ -456,6 +456,365 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
   );
 }
 
+interface EditGoalModalProps {
+  goal: ProductivityGoal;
+  onUpdate: (updates: Partial<ProductivityGoal>) => void;
+  members: WorkspaceMember[];
+}
+
+function EditGoalModal({ goal, onUpdate, members }: EditGoalModalProps) {
+  const [open, setOpen] = useState(false);
+  const [period, setPeriod] = useState<GoalPeriod>(goal.period);
+  const [goalScope, setGoalScope] = useState<GoalScope>(goal.goal_scope);
+  const [title, setTitle] = useState(goal.title);
+  const [description, setDescription] = useState(goal.description || '');
+  const [targetValue, setTargetValue] = useState(goal.target_value?.toString() || '');
+  const [currentValue, setCurrentValue] = useState(goal.current_value?.toString() || '0');
+  const [status, setStatus] = useState<GoalStatus>(goal.status);
+  const [assignedUserId, setAssignedUserId] = useState<string>(goal.user_id || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Find the unit in our categories or set as custom
+  const existingUnitOption = findUnitOption(
+    UNIT_CATEGORIES.flatMap(c => c.options).find(o => o.label === goal.unit)?.value || ''
+  );
+  const [unitSelection, setUnitSelection] = useState(existingUnitOption?.value || (goal.unit ? 'custom' : ''));
+  const [customUnit, setCustomUnit] = useState(existingUnitOption ? '' : (goal.unit || ''));
+
+  const selectedUnitOption = findUnitOption(unitSelection);
+  const isCustomUnit = unitSelection === 'custom';
+  const finalUnit = isCustomUnit ? customUnit : (selectedUnitOption?.label || goal.unit || '');
+
+  const getPeriodDates = (p: GoalPeriod) => {
+    const now = new Date();
+    switch (p) {
+      case 'daily':
+        return { start: now, end: now };
+      case 'weekly':
+        return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+      case 'monthly':
+        return { start: startOfMonth(now), end: endOfMonth(now) };
+      case 'quarterly':
+        return { start: startOfQuarter(now), end: endOfQuarter(now) };
+      case 'semiannual': {
+        const semesterStart = new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1);
+        const semesterEnd = new Date(semesterStart.getFullYear(), semesterStart.getMonth() + 6, 0);
+        return { start: semesterStart, end: semesterEnd };
+      }
+      case 'annual':
+        return { start: startOfYear(now), end: endOfYear(now) };
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const dates = period !== goal.period ? getPeriodDates(period) : null;
+      
+      const updates: Partial<ProductivityGoal> = {
+        title,
+        description: description || null,
+        target_value: targetValue ? parseFloat(targetValue) : null,
+        current_value: currentValue ? parseFloat(currentValue) : 0,
+        unit: finalUnit || null,
+        status,
+        period,
+        goal_scope: goalScope,
+        ...(dates && {
+          period_start: format(dates.start, 'yyyy-MM-dd'),
+          period_end: format(dates.end, 'yyyy-MM-dd'),
+        }),
+      };
+
+      // Handle user assignment for individual goals
+      if (goalScope === 'individual' && assignedUserId) {
+        updates.user_id = assignedUserId;
+      } else if (goalScope === 'organizational') {
+        updates.user_id = null;
+      }
+
+      // Auto-set completed_at if status changes to completed
+      if (status === 'completed' && goal.status !== 'completed') {
+        updates.completed_at = new Date().toISOString();
+      } else if (status !== 'completed' && goal.status === 'completed') {
+        updates.completed_at = null;
+      }
+
+      onUpdate(updates);
+      setOpen(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Edit2 className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar Meta</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {/* Goal Scope Selector */}
+          <div className="space-y-2">
+            <Label>Tipo de Meta</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setGoalScope('individual')}
+                className={cn(
+                  'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+                  goalScope === 'individual'
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border hover:border-primary/50'
+                )}
+              >
+                <UserPlus className="h-6 w-6" />
+                <span className="font-medium text-sm">Individual</span>
+                <span className="text-xs text-muted-foreground text-center">Atribuída a alguém</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGoalScope('organizational');
+                  setAssignedUserId('');
+                }}
+                className={cn(
+                  'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+                  goalScope === 'organizational'
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
+                    : 'border-border hover:border-emerald-500/50'
+                )}
+              >
+                <Building2 className="h-6 w-6" />
+                <span className="font-medium text-sm">Organização</span>
+                <span className="text-xs text-muted-foreground text-center">Toda a equipa</span>
+              </button>
+            </div>
+          </div>
+
+          {/* User Assignment (only for individual goals) */}
+          {goalScope === 'individual' && (
+            <div className="space-y-2">
+              <Label>Atribuir a</Label>
+              <Select value={assignedUserId} onValueChange={setAssignedUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um membro...">
+                    {assignedUserId && (() => {
+                      const member = members.find(m => m.user_id === assignedUserId);
+                      if (!member) return null;
+                      return (
+                        <span className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={member.profile?.avatar_url || undefined} />
+                            <AvatarFallback className="text-[10px]">
+                              {(member.profile?.full_name || member.profile?.email || '?').slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          {member.profile?.full_name || member.profile?.email}
+                        </span>
+                      );
+                    })()}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="pointer-events-auto">
+                  {members.map((member) => (
+                    <SelectItem key={member.user_id} value={member.user_id} className="cursor-pointer">
+                      <span className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage src={member.profile?.avatar_url || undefined} />
+                          <AvatarFallback className="text-[10px]">
+                            {(member.profile?.full_name || member.profile?.email || '?').slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{member.profile?.full_name || member.profile?.email}</span>
+                        <Badge variant="outline" className="text-[10px] h-4">
+                          {member.role}
+                        </Badge>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Período</Label>
+            <Select value={period} onValueChange={(v) => setPeriod(v as GoalPeriod)}>
+              <SelectTrigger>
+                <SelectValue>
+                  {period && (
+                    <span className="flex items-center gap-2">
+                      {(() => {
+                        const Icon = PERIOD_CONFIG[period].icon;
+                        return <Icon className="h-4 w-4" />;
+                      })()}
+                      {PERIOD_CONFIG[period].label}
+                    </span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="pointer-events-auto">
+                {Object.entries(PERIOD_CONFIG).map(([key, config]) => {
+                  const Icon = config.icon;
+                  return (
+                    <SelectItem key={key} value={key} className="cursor-pointer">
+                      <span className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        {config.label}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Título</Label>
+            <Input
+              placeholder="Ex: Fechar 5 vendas"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Descrição (opcional)</Label>
+            <Textarea
+              placeholder="Detalhes da meta..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Valor Alvo</Label>
+              <Input
+                type="number"
+                placeholder="5"
+                value={targetValue}
+                onChange={(e) => setTargetValue(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor Atual</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={currentValue}
+                onChange={(e) => setCurrentValue(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Unidade</Label>
+            <Select value={unitSelection} onValueChange={setUnitSelection}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione...">
+                  {selectedUnitOption && (
+                    <span className="flex items-center gap-2">
+                      {(() => {
+                        const Icon = selectedUnitOption.icon;
+                        return <Icon className={cn("h-4 w-4", selectedUnitOption.color)} />;
+                      })()}
+                      {selectedUnitOption.label}
+                    </span>
+                  )}
+                  {isCustomUnit && customUnit && (
+                    <span className="flex items-center gap-2">
+                      <Edit2 className="h-4 w-4 text-muted-foreground" />
+                      {customUnit}
+                    </span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="pointer-events-auto max-h-80">
+                {UNIT_CATEGORIES.map((category) => (
+                  <SelectGroup key={category.label}>
+                    <SelectLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5">
+                      {category.label}
+                    </SelectLabel>
+                    {category.options.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <SelectItem 
+                          key={option.value} 
+                          value={option.value}
+                          className="cursor-pointer"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Icon className={cn("h-4 w-4", option.color)} />
+                            {option.label}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isCustomUnit && (
+            <div className="space-y-2">
+              <Label>Unidade Personalizada</Label>
+              <Input
+                placeholder="Digite a unidade personalizada..."
+                value={customUnit}
+                onChange={(e) => setCustomUnit(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Estado</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as GoalStatus)}>
+              <SelectTrigger>
+                <SelectValue>
+                  {status && (
+                    <span className="flex items-center gap-2">
+                      <span className={cn('w-2 h-2 rounded-full', STATUS_CONFIG[status].color)} />
+                      {STATUS_CONFIG[status].label}
+                    </span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="pointer-events-auto">
+                {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                  <SelectItem key={key} value={key} className="cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      <span className={cn('w-2 h-2 rounded-full', config.color)} />
+                      {config.label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} disabled={!title || isSubmitting}>
+              {isSubmitting ? 'A guardar...' : 'Guardar Alterações'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 interface GoalCardProps {
   goal: ProductivityGoal; 
   onUpdate: (updates: Partial<ProductivityGoal>) => void;
@@ -463,9 +822,10 @@ interface GoalCardProps {
   canManage: boolean;
   assignedMember?: WorkspaceMember | null;
   autoProgress?: { calculatedValue: number; isAutomatic: boolean; source: string } | null;
+  members: WorkspaceMember[];
 }
 
-function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoProgress }: GoalCardProps) {
+function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoProgress, members }: GoalCardProps) {
   const config = PERIOD_CONFIG[goal.period];
   const statusConfig = STATUS_CONFIG[goal.status];
   const Icon = config.icon;
@@ -600,14 +960,17 @@ function GoalCard({ goal, onUpdate, onDelete, canManage, assignedMember, autoPro
               </Button>
             )}
             {canManage && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive"
-                onClick={onDelete}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <>
+                <EditGoalModal goal={goal} onUpdate={onUpdate} members={members} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive"
+                  onClick={onDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -799,6 +1162,7 @@ export function GoalsManager() {
                       canManage={canManageGoals}
                       assignedMember={goal.user_id ? memberMap.get(goal.user_id) : null}
                       autoProgress={autoProgressMap[goal.id] || null}
+                      members={members}
                     />
                   ))}
                 </div>
