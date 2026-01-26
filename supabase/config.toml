@@ -150,3 +150,6 @@ verify_jwt = true
 
 [functions.trigger-webhook]
 verify_jwt = false
+
+[functions.parallel-dispatch]
+verify_jwt = false
