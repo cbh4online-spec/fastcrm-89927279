@@ -49,18 +49,17 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
 
   const [items, setItems] = useState<EditableItem[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [initializedForProposal, setInitializedForProposal] = useState<string | null>(null);
 
-  // Reset when proposalId changes (different proposal selected)
+  // Initialize items from existing data - only once per proposalId
   useEffect(() => {
-    setIsInitialized(false);
-    setItems([]);
-    setHasChanges(false);
-  }, [proposalId]);
+    // Skip if still loading or if already initialized for this proposal
+    if (loadingItems || initializedForProposal === proposalId) {
+      return;
+    }
 
-  // Initialize items from existing data - only on first load for this proposalId
-  useEffect(() => {
-    if (!isInitialized && !loadingItems && existingItems !== undefined) {
+    // If we have data (even empty array), initialize
+    if (existingItems !== undefined) {
       if (existingItems.length > 0) {
         setItems(existingItems.map((item, idx) => ({
           id: item.id,
@@ -72,10 +71,13 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
           position: item.position ?? idx,
           is_enabled: item.is_enabled ?? true,
         })));
+      } else {
+        setItems([]);
       }
-      setIsInitialized(true);
+      setHasChanges(false);
+      setInitializedForProposal(proposalId);
     }
-  }, [existingItems, loadingItems, isInitialized]);
+  }, [existingItems, loadingItems, proposalId, initializedForProposal]);
 
   const formatPrice = (price: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
