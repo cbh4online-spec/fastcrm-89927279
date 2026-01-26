@@ -34,6 +34,8 @@ interface NexusActivityListProps {
   onItemClick?: (item: ActivityItem) => void;
   onViewAll?: () => void;
   onRefresh?: () => void;
+  onExport?: () => void;
+  onSettings?: () => void;
   emptyState?: {
     title: string;
     description?: string;
@@ -56,7 +58,15 @@ function ListSkeleton({ count = 5 }: { count?: number }) {
   );
 }
 
-function OptionsMenu({ onRefresh }: { onRefresh?: () => void }) {
+function OptionsMenu({ 
+  onRefresh, 
+  onExport,
+  onSettings 
+}: { 
+  onRefresh?: () => void;
+  onExport?: () => void;
+  onSettings?: () => void;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -68,8 +78,12 @@ function OptionsMenu({ onRefresh }: { onRefresh?: () => void }) {
         <DropdownMenuItem 
           className="gap-2 cursor-pointer"
           onClick={() => {
-            onRefresh?.();
-            toast.success("Lista atualizada!");
+            if (onRefresh) {
+              onRefresh();
+              toast.success("Lista atualizada!");
+            } else {
+              toast.info("Atualização não disponível");
+            }
           }}
         >
           <RefreshCw className="h-4 w-4" />
@@ -77,12 +91,27 @@ function OptionsMenu({ onRefresh }: { onRefresh?: () => void }) {
         </DropdownMenuItem>
         <DropdownMenuItem 
           className="gap-2 cursor-pointer"
-          onClick={() => toast.success("Dados exportados!")}
+          onClick={() => {
+            if (onExport) {
+              onExport();
+            } else {
+              toast.info("Exportação não disponível");
+            }
+          }}
         >
           <Download className="h-4 w-4" />
           Exportar
         </DropdownMenuItem>
-        <DropdownMenuItem className="gap-2 cursor-pointer">
+        <DropdownMenuItem 
+          className="gap-2 cursor-pointer"
+          onClick={() => {
+            if (onSettings) {
+              onSettings();
+            } else {
+              toast.info("Configurações não disponíveis");
+            }
+          }}
+        >
           <Settings className="h-4 w-4" />
           Configurações
         </DropdownMenuItem>
@@ -99,6 +128,8 @@ export function NexusActivityList({
   onItemClick,
   onViewAll,
   onRefresh,
+  onExport,
+  onSettings,
   emptyState = { title: "Sem items", description: "Novos items aparecerão aqui" },
 }: NexusActivityListProps) {
   if (isLoading) {
@@ -107,7 +138,7 @@ export function NexusActivityList({
         <CardHeader className="pb-2 px-4 pt-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-            <OptionsMenu />
+            <OptionsMenu onRefresh={onRefresh} onExport={onExport} onSettings={onSettings} />
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
@@ -123,7 +154,7 @@ export function NexusActivityList({
         <CardHeader className="pb-2 px-4 pt-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-            <OptionsMenu />
+            <OptionsMenu onRefresh={onRefresh} onExport={onExport} onSettings={onSettings} />
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
@@ -146,7 +177,7 @@ export function NexusActivityList({
       <CardHeader className="pb-2 px-4 pt-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-          <OptionsMenu onRefresh={onRefresh} />
+          <OptionsMenu onRefresh={onRefresh} onExport={onExport} onSettings={onSettings} />
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4">

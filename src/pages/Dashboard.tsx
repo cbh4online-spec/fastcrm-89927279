@@ -60,10 +60,10 @@ import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 export default function Dashboard() {
   const navigate = useNavigate();
   const { kpis, isLoading } = useOperationalDashboard();
-  const { data: leads } = useLeads();
-  const { data: opportunities } = useOpportunities();
+  const { data: leads, refetch: refetchLeads } = useLeads();
+  const { data: opportunities, refetch: refetchOpportunities } = useOpportunities();
   const { data: paidInvoices } = useInvoices({ status: "paid" });
-  const { data: tasks } = useTasks();
+  const { data: tasks, refetch: refetchTasks } = useTasks();
   const { companies } = useCompanies();
   const createTask = useCreateTask();
 
@@ -536,6 +536,22 @@ export default function Dashboard() {
                 isLoading={isLoading}
                 onItemClick={(item) => navigate(`/dashboard/leads?selected=${item.id}`)}
                 onViewAll={() => navigate("/dashboard/leads")}
+                onRefresh={() => refetchLeads()}
+                onExport={() => {
+                  const data = leads?.slice(0, 10).map(l => ({
+                    nome: l.name,
+                    email: l.email,
+                    status: l.status,
+                  }));
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `leads-recentes-${format(new Date(), "yyyy-MM-dd")}.json`;
+                  a.click();
+                  toast.success("Leads exportados com sucesso!");
+                }}
+                onSettings={() => navigate("/dashboard/leads")}
                 emptyState={{
                   title: "Sem leads recentes",
                   description: "Novos leads aparecerão aqui",
@@ -548,6 +564,22 @@ export default function Dashboard() {
                 isLoading={isLoading}
                 onItemClick={(item) => navigate(`/dashboard/tasks?selected=${item.id}`)}
                 onViewAll={() => navigate("/dashboard/tasks")}
+                onRefresh={() => refetchTasks()}
+                onExport={() => {
+                  const data = tasks?.slice(0, 10).map(t => ({
+                    titulo: t.title,
+                    status: t.status,
+                    prazo: t.due_at,
+                  }));
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `tarefas-${format(new Date(), "yyyy-MM-dd")}.json`;
+                  a.click();
+                  toast.success("Tarefas exportadas com sucesso!");
+                }}
+                onSettings={() => navigate("/dashboard/tasks")}
                 emptyState={{
                   title: "Sem tarefas pendentes",
                   description: "Suas tarefas aparecerão aqui",
