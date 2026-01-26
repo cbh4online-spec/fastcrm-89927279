@@ -5,7 +5,6 @@
  * Supports sequential and parallel step execution with retry logic.
  * 
  * Note: This module uses dynamic table access for workflow tables.
- * TypeScript errors will resolve after Supabase types are regenerated.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +21,8 @@ import type {
 } from '@/types/workflows';
 import { generateIdempotencyKey } from '@/types/workflows';
 
-// @ts-nocheck - Workflow tables not yet in generated types
+// Type alias for JSON-compatible data
+type JsonValue = string | number | boolean | null | { [key: string]: JsonValue } | JsonValue[];
 
 // =============================================================================
 // STEP EXECUTORS REGISTRY
@@ -53,24 +53,27 @@ async function checkIdempotency(
   workspaceId: string,
   idempotencyKey: string
 ): Promise<IdempotencyCheckResult> {
-  // Direct query to check if key exists
-  const { data, error } = await (supabase
-    .from('workflow_idempotency_keys' as 'product_usage_stats')
-    .select('executed_at, result_status, result_data')
-    .eq('workspace_id', workspaceId)
-    .eq('idempotency_key', idempotencyKey)
-    .maybeSingle() as unknown as Promise<{ data: { executed_at: string; result_status: string; result_data: DbJson } | null; error: unknown }>);
+  try {
+    const { data, error } = await supabase
+      .from('workflow_idempotency_keys')
+      .select('executed_at, result_status, result_data')
+      .eq('workspace_id', workspaceId)
+      .eq('idempotency_key', idempotencyKey)
+      .maybeSingle();
 
-  if (error || !data) {
+    if (error || !data) {
+      return { alreadyExecuted: false };
+    }
+
+    return {
+      alreadyExecuted: true,
+      executedAt: data.executed_at as string,
+      resultStatus: data.result_status as string,
+      resultData: data.result_data as Record<string, unknown>,
+    };
+  } catch {
     return { alreadyExecuted: false };
   }
-
-  return {
-    alreadyExecuted: true,
-    executedAt: data.executed_at,
-    resultStatus: data.result_status,
-    resultData: data.result_data as Record<string, unknown>,
-  };
 }
 
 async function recordIdempotencyKey(
@@ -82,17 +85,21 @@ async function recordIdempotencyKey(
   resultStatus: string,
   resultData: Record<string, unknown>
 ): Promise<void> {
-  await (supabase
-    .from('workflow_idempotency_keys' as 'product_usage_stats')
-    .insert({
-      workspace_id: workspaceId,
-      idempotency_key: idempotencyKey,
-      execution_id: executionId,
-      step_id: stepId,
-      action_type: actionType,
-      result_status: resultStatus,
-      result_data: resultData as DbJson,
-    } as never) as Promise<unknown>);
+  try {
+    await supabase
+      .from('workflow_idempotency_keys')
+      .insert({
+        workspace_id: workspaceId,
+        idempotency_key: idempotencyKey,
+        execution_id: executionId,
+        step_id: stepId,
+        action_type: actionType,
+        result_status: resultStatus,
+        result_data: resultData as JsonValue,
+      });
+  } catch (err) {
+    console.error('[WorkflowEngine] Failed to record idempotency key:', err);
+  }
 }
 
 // =============================================================================
@@ -104,19 +111,23 @@ async function saveCheckpoint(
   stepIndex: number,
   context: Record<string, unknown>
 ): Promise<void> {
-  await (supabase
-    .from('workflow_executions' as 'product_usage_stats')
-    .update({
-      current_step_index: stepIndex,
-      context: context as DbJson,
-      last_checkpoint_at: new Date().toISOString(),
-      checkpoint_data: {
-        step_index: stepIndex,
-        timestamp: new Date().toISOString(),
-      } as DbJson,
-      updated_at: new Date().toISOString(),
-    } as never)
-    .eq('id', executionId) as Promise<unknown>);
+  try {
+    await supabase
+      .from('workflow_executions')
+      .update({
+        current_step_index: stepIndex,
+        context: context as JsonValue,
+        last_checkpoint_at: new Date().toISOString(),
+        checkpoint_data: {
+          step_index: stepIndex,
+          timestamp: new Date().toISOString(),
+        } as JsonValue,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', executionId);
+  } catch (err) {
+    console.error('[WorkflowEngine] Failed to save checkpoint:', err);
+  }
 }
 
 // =============================================================================
@@ -369,13 +380,17 @@ export async function executeWorkflow(
   });
   
   // Update execution status to running
-  await (supabase
-    .from('workflow_executions' as 'product_usage_stats')
-    .update({
-      status: 'running',
-      started_at: new Date().toISOString(),
-    } as never)
-    .eq('id', execution.id) as Promise<unknown>);
+  try {
+    await supabase
+      .from('workflow_executions')
+      .update({
+        status: 'running',
+        started_at: new Date().toISOString(),
+      })
+      .eq('id', execution.id);
+  } catch (err) {
+    console.error('[WorkflowEngine] Failed to update execution status:', err);
+  }
   
   try {
     // Group steps by parallel groups
@@ -420,18 +435,18 @@ export async function executeWorkflow(
         );
         
         // Check if step already exists
-        const { data: existingStep } = await (supabase
-          .from('workflow_steps' as 'product_usage_stats')
+        const { data: existingStep } = await supabase
+          .from('workflow_steps')
           .select('*')
           .eq('execution_id', execution.id)
           .eq('step_index', stepIndex)
-          .maybeSingle() as unknown as Promise<{ data: WorkflowStepExecution | null }>);
+          .maybeSingle();
         
         if (existingStep) {
-          stepExecutions.push(existingStep);
+          stepExecutions.push(existingStep as unknown as WorkflowStepExecution);
         } else {
-          const { data: newStep } = await (supabase
-            .from('workflow_steps' as 'product_usage_stats')
+          const { data: newStep } = await supabase
+            .from('workflow_steps')
             .insert({
               execution_id: execution.id,
               workspace_id: execution.workspace_id,
@@ -439,17 +454,17 @@ export async function executeWorkflow(
               step_code: stepConfig.code,
               step_type: stepConfig.type,
               idempotency_key: idempotencyKey,
-              input_data: stepConfig.input as DbJson,
+              input_data: stepConfig.input as JsonValue,
               max_retries: stepConfig.max_retries || maxRetries,
               timeout_ms: stepConfig.timeout_ms || 30000,
               is_parallel: stepConfig.is_parallel || false,
               parallel_group: stepConfig.parallel_group,
-            } as never)
+            })
             .select()
-            .single() as unknown as Promise<{ data: WorkflowStepExecution }>);
+            .single();
           
           if (newStep) {
-            stepExecutions.push(newStep);
+            stepExecutions.push(newStep as unknown as WorkflowStepExecution);
           }
         }
       }
@@ -503,15 +518,19 @@ export async function executeWorkflow(
         stepsExecuted++;
         
         if (result.success) {
-          await (supabase
-            .from('workflow_steps' as 'product_usage_stats')
-            .update({
-              status: 'completed',
-              output_data: result.output as DbJson,
-              completed_at: new Date().toISOString(),
-              duration_ms: Date.now() - startTime,
-            } as never)
-            .eq('id', step.id) as Promise<unknown>);
+          try {
+            await supabase
+              .from('workflow_steps')
+              .update({
+                status: 'completed',
+                output_data: result.output as JsonValue,
+                completed_at: new Date().toISOString(),
+                duration_ms: Date.now() - startTime,
+              })
+              .eq('id', step.id);
+          } catch (err) {
+            console.error('[WorkflowEngine] Failed to update step status:', err);
+          }
           
           if (result.contextUpdates) {
             accumulatedContext = {
@@ -522,16 +541,20 @@ export async function executeWorkflow(
         } else {
           stepsFailed++;
           
-          await (supabase
-            .from('workflow_steps' as 'product_usage_stats')
-            .update({
-              status: 'failed',
-              error_message: result.error?.message,
-              error_details: result.error as DbJson,
-              completed_at: new Date().toISOString(),
-              duration_ms: Date.now() - startTime,
-            } as never)
-            .eq('id', step.id) as Promise<unknown>);
+          try {
+            await supabase
+              .from('workflow_steps')
+              .update({
+                status: 'failed',
+                error_message: result.error?.message,
+                error_details: result.error as JsonValue,
+                completed_at: new Date().toISOString(),
+                duration_ms: Date.now() - startTime,
+              })
+              .eq('id', step.id);
+          } catch (err) {
+            console.error('[WorkflowEngine] Failed to update step status:', err);
+          }
           
           const stepConfig = group.find(c => c.code === stepCode);
           if (stepConfig?.on_error === 'fail' || !result.error?.retryable) {
@@ -556,15 +579,19 @@ export async function executeWorkflow(
     const durationMs = Date.now() - startTime;
     const finalStatus: WorkflowStatus = stepsFailed > 0 ? 'partial' : 'completed';
     
-    await (supabase
-      .from('workflow_executions' as 'product_usage_stats')
-      .update({
-        status: finalStatus,
-        output_data: accumulatedContext as DbJson,
-        completed_at: new Date().toISOString(),
-        total_duration_ms: durationMs,
-      } as never)
-      .eq('id', execution.id) as Promise<unknown>);
+    try {
+      await supabase
+        .from('workflow_executions')
+        .update({
+          status: finalStatus,
+          output_data: accumulatedContext as JsonValue,
+          completed_at: new Date().toISOString(),
+          total_duration_ms: durationMs,
+        })
+        .eq('id', execution.id);
+    } catch (err) {
+      console.error('[WorkflowEngine] Failed to update execution status:', err);
+    }
     
     emitEvent({
       type: 'workflow_completed',
@@ -586,16 +613,20 @@ export async function executeWorkflow(
     const error = err instanceof Error ? err : new Error(String(err));
     const durationMs = Date.now() - startTime;
     
-    await (supabase
-      .from('workflow_executions' as 'product_usage_stats')
-      .update({
-        status: 'failed',
-        error_message: error.message,
-        error_details: { stack: error.stack } as DbJson,
-        completed_at: new Date().toISOString(),
-        total_duration_ms: durationMs,
-      } as never)
-      .eq('id', execution.id) as Promise<unknown>);
+    try {
+      await supabase
+        .from('workflow_executions')
+        .update({
+          status: 'failed',
+          error_message: error.message,
+          error_details: { stack: error.stack } as JsonValue,
+          completed_at: new Date().toISOString(),
+          total_duration_ms: durationMs,
+        })
+        .eq('id', execution.id);
+    } catch (updateErr) {
+      console.error('[WorkflowEngine] Failed to update execution status:', updateErr);
+    }
     
     emitEvent({
       type: 'workflow_failed',
@@ -635,37 +666,42 @@ export async function createWorkflowExecution(
     priority?: number;
   }
 ): Promise<WorkflowExecution | null> {
-  const { data: execution } = await (supabase
-    .from('workflow_executions' as 'product_usage_stats')
-    .insert({
-      workspace_id: workspaceId,
-      workflow_code: workflowCode,
-      workflow_version: 1,
-      trigger_type: options.triggerType,
-      trigger_source: options.triggerSource || 'user',
-      recommendation_id: options.recommendationId,
-      entity_type: options.entityType,
-      entity_id: options.entityId,
-      initiated_by: options.initiatedBy,
-      input_data: (options.inputData || {}) as DbJson,
-      scheduled_for: options.scheduledFor,
-    } as never)
-    .select()
-    .single() as unknown as Promise<{ data: WorkflowExecution }>);
-  
-  if (!execution) {
+  try {
+    const { data: execution } = await supabase
+      .from('workflow_executions')
+      .insert({
+        workspace_id: workspaceId,
+        workflow_code: workflowCode,
+        workflow_version: 1,
+        trigger_type: options.triggerType,
+        trigger_source: options.triggerSource || 'user',
+        recommendation_id: options.recommendationId,
+        entity_type: options.entityType,
+        entity_id: options.entityId,
+        initiated_by: options.initiatedBy,
+        input_data: (options.inputData || {}) as JsonValue,
+        scheduled_for: options.scheduledFor,
+      })
+      .select()
+      .single();
+    
+    if (!execution) {
+      return null;
+    }
+    
+    // Add to queue
+    await supabase
+      .from('workflow_queue')
+      .insert({
+        workspace_id: workspaceId,
+        execution_id: execution.id,
+        priority: options.priority || 0,
+        scheduled_for: options.scheduledFor || new Date().toISOString(),
+      });
+    
+    return execution as unknown as WorkflowExecution;
+  } catch (err) {
+    console.error('[WorkflowEngine] Failed to create workflow execution:', err);
     return null;
   }
-  
-  // Add to queue
-  await (supabase
-    .from('workflow_queue' as 'product_usage_stats')
-    .insert({
-      workspace_id: workspaceId,
-      execution_id: execution.id,
-      priority: options.priority || 0,
-      scheduled_for: options.scheduledFor || new Date().toISOString(),
-    } as never) as Promise<unknown>);
-  
-  return execution;
 }
