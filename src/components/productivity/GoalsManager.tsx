@@ -13,6 +13,21 @@ import {
   Circle,
   Users,
   User,
+  ShoppingCart,
+  Briefcase,
+  FileSignature,
+  Calendar,
+  Phone,
+  Mail,
+  Euro,
+  Receipt,
+  Wallet,
+  CheckSquare,
+  FileText,
+  Presentation,
+  Percent,
+  Hash,
+  LucideIcon,
 } from 'lucide-react';
 import {
   Dialog,
@@ -28,7 +43,9 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -38,6 +55,72 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { useProductivityCoach, GoalPeriod, GoalStatus, ProductivityGoal } from '@/hooks/useProductivityCoach';
+
+// Configuração de unidades pré-definidas
+interface UnitOption {
+  value: string;
+  label: string;
+  icon: LucideIcon;
+  color: string;
+}
+
+interface UnitCategory {
+  label: string;
+  options: UnitOption[];
+}
+
+const UNIT_CATEGORIES: UnitCategory[] = [
+  {
+    label: 'Vendas',
+    options: [
+      { value: 'vendas', label: 'Vendas', icon: ShoppingCart, color: 'text-green-500' },
+      { value: 'negocios', label: 'Negócios', icon: Briefcase, color: 'text-green-600' },
+      { value: 'contratos', label: 'Contratos', icon: FileSignature, color: 'text-green-700' },
+    ],
+  },
+  {
+    label: 'Relacionamento',
+    options: [
+      { value: 'reunioes', label: 'Reuniões', icon: Calendar, color: 'text-blue-500' },
+      { value: 'chamadas', label: 'Chamadas', icon: Phone, color: 'text-blue-600' },
+      { value: 'emails', label: 'Emails', icon: Mail, color: 'text-blue-700' },
+      { value: 'contactos', label: 'Contactos', icon: Users, color: 'text-blue-800' },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    options: [
+      { value: 'euros', label: '€ (Euro)', icon: Euro, color: 'text-yellow-500' },
+      { value: 'faturacao', label: 'Faturação', icon: Receipt, color: 'text-yellow-600' },
+      { value: 'comissoes', label: 'Comissões', icon: Wallet, color: 'text-yellow-700' },
+    ],
+  },
+  {
+    label: 'Tarefas',
+    options: [
+      { value: 'tarefas', label: 'Tarefas', icon: CheckSquare, color: 'text-purple-500' },
+      { value: 'propostas', label: 'Propostas', icon: FileText, color: 'text-purple-600' },
+      { value: 'apresentacoes', label: 'Apresentações', icon: Presentation, color: 'text-purple-700' },
+    ],
+  },
+  {
+    label: 'Especial',
+    options: [
+      { value: 'percentagem', label: '% (Percentagem)', icon: Percent, color: 'text-orange-500' },
+      { value: 'unidades', label: 'Unidades', icon: Hash, color: 'text-orange-600' },
+      { value: 'custom', label: 'Personalizada', icon: Edit2, color: 'text-muted-foreground' },
+    ],
+  },
+];
+
+// Função auxiliar para encontrar a opção de unidade pelo valor
+const findUnitOption = (value: string): UnitOption | undefined => {
+  for (const category of UNIT_CATEGORIES) {
+    const option = category.options.find((opt) => opt.value === value);
+    if (option) return option;
+  }
+  return undefined;
+};
 
 const PERIOD_CONFIG: Record<GoalPeriod, { label: string; icon: React.ElementType }> = {
   daily: { label: 'Diária', icon: Zap },
@@ -60,8 +143,13 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [targetValue, setTargetValue] = useState('');
-  const [unit, setUnit] = useState('');
+  const [unitSelection, setUnitSelection] = useState('');
+  const [customUnit, setCustomUnit] = useState('');
   const [isTeamGoal, setIsTeamGoal] = useState(false);
+
+  const selectedUnitOption = findUnitOption(unitSelection);
+  const isCustomUnit = unitSelection === 'custom';
+  const finalUnit = isCustomUnit ? customUnit : (selectedUnitOption?.label || '');
 
   const getPeriodDates = (p: GoalPeriod) => {
     const now = new Date();
@@ -87,7 +175,7 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
       title,
       description: description || null,
       target_value: targetValue ? parseFloat(targetValue) : null,
-      unit: unit || null,
+      unit: finalUnit || null,
       status: 'not_started',
     });
 
@@ -95,7 +183,8 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
     setTitle('');
     setDescription('');
     setTargetValue('');
-    setUnit('');
+    setUnitSelection('');
+    setCustomUnit('');
   };
 
   return (
@@ -174,13 +263,58 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
             </div>
             <div className="space-y-2">
               <Label>Unidade</Label>
-              <Input
-                placeholder="vendas, reuniões, €..."
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-              />
+              <Select value={unitSelection} onValueChange={setUnitSelection}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione...">
+                    {selectedUnitOption && (
+                      <span className="flex items-center gap-2">
+                        {(() => {
+                          const Icon = selectedUnitOption.icon;
+                          return <Icon className={cn("h-4 w-4", selectedUnitOption.color)} />;
+                        })()}
+                        {selectedUnitOption.label}
+                      </span>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="pointer-events-auto max-h-80">
+                  {UNIT_CATEGORIES.map((category) => (
+                    <SelectGroup key={category.label}>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5">
+                        {category.label}
+                      </SelectLabel>
+                      {category.options.map((option) => {
+                        const Icon = option.icon;
+                        return (
+                          <SelectItem 
+                            key={option.value} 
+                            value={option.value}
+                            className="cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Icon className={cn("h-4 w-4", option.color)} />
+                              {option.label}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+
+          {isCustomUnit && (
+            <div className="space-y-2">
+              <Label>Unidade Personalizada</Label>
+              <Input
+                placeholder="Digite a unidade personalizada..."
+                value={customUnit}
+                onChange={(e) => setCustomUnit(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => setOpen(false)}>
