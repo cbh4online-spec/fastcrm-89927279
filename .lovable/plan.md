@@ -1,180 +1,110 @@
 
-# Plano: Metas Individuais e Organizacionais
+
+# Plano: Adicionar Períodos Trimestrais e Semestrais às Metas
 
 ## Objetivo
-Adicionar a distinção entre **metas individuais** (pessoais de cada utilizador) e **metas da organização** (partilhadas por todo o workspace), permitindo uma gestão mais completa da produtividade.
+Adicionar dois novos períodos de metas: **Trimestral** (3 meses) e **Semestral** (6 meses), permitindo uma gestão mais completa de objetivos a médio prazo.
 
 ---
 
-## Diferenças Entre os Tipos
-
-| Característica | Individual | Organizacional |
-|----------------|------------|----------------|
-| **Visibilidade** | Só o utilizador vê | Toda a equipa vê |
-| **Responsável** | Um utilizador | Workspace inteiro |
-| **Progresso** | Atualizado pelo próprio | Qualquer membro pode atualizar |
-| **Criação** | Qualquer utilizador | Apenas Owner/Admin |
-| **Exemplo** | "Fazer 10 chamadas hoje" | "Equipa fechar €50.000 este mês" |
-
----
-
-## Alterações na Base de Dados
-
-Adicionar um campo `goal_scope` à tabela existente:
-
-```text
-ALTER TABLE productivity_goals 
-ADD COLUMN goal_scope TEXT DEFAULT 'individual' CHECK (goal_scope IN ('individual', 'organizational'));
-
--- Índice para filtragem eficiente
-CREATE INDEX idx_productivity_goals_scope ON productivity_goals(workspace_id, goal_scope);
-```
-
-O campo `user_id` será:
-- Preenchido para metas individuais (quem criou)
-- NULL para metas organizacionais (pertencem ao workspace)
-
----
-
-## Alterações na Interface
-
-### 1. Modal de Criação - Novo Seletor Visual
-
-Adicionar um seletor de tipo no topo do formulário:
-
-```text
-┌────────────────────────────────────────────┐
-│         Criar Nova Meta                    │
-├────────────────────────────────────────────┤
-│                                            │
-│  ┌─────────────┐  ┌─────────────────────┐  │
-│  │ 👤 Pessoal  │  │ 🏢 Organizacional │  │
-│  │             │  │    (Equipa)        │  │
-│  │  (Selecionado)│  │                    │  │
-│  └─────────────┘  └─────────────────────┘  │
-│                                            │
-│  Período: [Diária ▼]                       │
-│  Título: [________________]                │
-│  ...                                       │
-└────────────────────────────────────────────┘
-```
-
-### 2. Lista de Metas - Tabs ou Filtro
-
-Nova organização com tabs superiores:
-
-```text
-┌───────────────────────────────────────────┐
-│ Metas                      [+ Nova Meta]  │
-├───────────────────────────────────────────┤
-│  ┌────────────┐ ┌────────────────────────┐│
-│  │ 📋 Todas   │ │ 👤 Minhas │ 🏢 Equipa ││
-│  └────────────┘ └────────────────────────┘│
-│                                           │
-│  [Diária] [Semanal] [Mensal] [Anual]      │
-│                                           │
-│  ┌─────────────────────────────────────┐  │
-│  │ 🏢 Faturação Mensal      Mensal     │  │
-│  │    €45.000 / €50.000               │  │
-│  │    [████████████░░] 90%             │  │
-│  │    👥 Partilhada com equipa         │  │
-│  └─────────────────────────────────────┘  │
-│                                           │
-│  ┌─────────────────────────────────────┐  │
-│  │ 👤 Fechar 5 vendas       Semanal    │  │
-│  │    3 / 5 vendas                     │  │
-│  │    [██████████░░░░░] 60%            │  │
-│  └─────────────────────────────────────┘  │
-└───────────────────────────────────────────┘
-```
-
-### 3. Cards de Meta - Indicador Visual
-
-Cada card mostrará:
-- Ícone de tipo (👤 ou 🏢)
-- Para organizacionais: número de membros a contribuir
-- Badge distintivo com cor diferente
-
----
-
-## Lógica de Negócio
-
-### Permissões
-- **Criar organizacional**: Apenas Owner ou Admin do workspace
-- **Editar organizacional**: Qualquer membro autenticado
-- **Eliminar organizacional**: Apenas quem criou ou Owner/Admin
-
-### Filtragem
-- **Minhas**: `user_id = current_user AND goal_scope = 'individual'`
-- **Equipa**: `goal_scope = 'organizational'`
-- **Todas**: Ambas combinadas
-
----
-
-## Ficheiros a Modificar
+## Alterações Necessárias
 
 ### 1. Base de Dados (Migração)
-- Adicionar coluna `goal_scope` com valor default 'individual'
-- Criar índice para performance
 
-### 2. src/hooks/useProductivityCoach.ts
-- Atualizar interface `ProductivityGoal` com `goal_scope`
-- Adicionar query para metas organizacionais
-- Atualizar `createGoal` para incluir `goal_scope`
-
-### 3. src/components/productivity/GoalsManager.tsx
-- Adicionar filtro de scope (tabs superiores)
-- Implementar seletor visual no modal
-- Atualizar `GoalCard` com indicador de tipo
-- Verificar permissões para metas organizacionais
-
-### 4. src/integrations/supabase/types.ts
-- Será atualizado automaticamente após migração
-
----
-
-## Melhorias Visuais
-
-### Cores por Tipo
-- **Individual**: Azul primário (cor atual)
-- **Organizacional**: Verde ou dourado (destaque)
-
-### Animações
-- Transição suave entre tabs
-- Efeito hover diferenciado para cada tipo
-
-### Empty States
-- Mensagens específicas para cada tipo:
-  - "Não tens metas pessoais para este período"
-  - "A equipa ainda não definiu metas organizacionais"
-
----
-
-## Fluxo de Criação
+Atualizar o ENUM `goal_period` para incluir os novos valores:
 
 ```text
-1. Utilizador clica "Nova Meta"
-   │
-2. Modal abre com seletor de tipo
-   │
-   ├─ Seleciona "Pessoal"
-   │  └─ Formulário normal (já existe)
-   │
-   └─ Seleciona "Organizacional"
-      │
-      ├─ Se Owner/Admin: Formulário disponível
-      │  └─ Campo adicional: "Visível para todos os membros"
-      │
-      └─ Se Agent/Viewer: Mensagem informativa
-         "Apenas administradores podem criar metas da organização"
+ALTER TYPE public.goal_period ADD VALUE 'quarterly';
+ALTER TYPE public.goal_period ADD VALUE 'semiannual';
+```
+
+**Nota**: Em PostgreSQL, não é possível remover valores de ENUMs, apenas adicionar - o que é seguro para dados existentes.
+
+---
+
+### 2. Hook de Produtividade
+
+**Ficheiro**: `src/hooks/useProductivityCoach.ts`
+
+Atualizar a linha 8:
+```text
+Antes: export type GoalPeriod = 'daily' | 'weekly' | 'monthly' | 'annual';
+Depois: export type GoalPeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
 ```
 
 ---
 
-## Benefícios
+### 3. Componente GoalsManager
 
-- **Alinhamento**: Equipa sabe os objetivos gerais
-- **Transparência**: Todos veem o progresso da organização
-- **Motivação**: Contribuição individual visível no todo
-- **Flexibilidade**: Mantém metas pessoais privadas
-- **Hierarquia**: Controlo sobre quem cria objetivos globais
+**Ficheiro**: `src/components/productivity/GoalsManager.tsx`
+
+#### Importar ícones adicionais
+Adicionar ícones apropriados (ex: `CalendarRange` ou `CalendarDays`).
+
+#### Atualizar PERIOD_CONFIG (linhas 129-134)
+```text
+Antes:
+PERIOD_CONFIG = {
+  daily: { label: 'Diária', icon: Zap },
+  weekly: { label: 'Semanal', icon: TrendingUp },
+  monthly: { label: 'Mensal', icon: Target },
+  annual: { label: 'Anual', icon: Trophy },
+}
+
+Depois:
+PERIOD_CONFIG = {
+  daily: { label: 'Diária', icon: Zap },
+  weekly: { label: 'Semanal', icon: TrendingUp },
+  monthly: { label: 'Mensal', icon: Target },
+  quarterly: { label: 'Trimestral', icon: CalendarRange },
+  semiannual: { label: 'Semestral', icon: CalendarDays },
+  annual: { label: 'Anual', icon: Trophy },
+}
+```
+
+#### Atualizar função getPeriodDates (linhas 162-174)
+Adicionar lógica para calcular datas de início/fim para trimestre e semestre:
+
+```text
+case 'quarterly':
+  // Determina o trimestre atual (Q1: Jan-Mar, Q2: Abr-Jun, etc.)
+  const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+  const quarterEnd = new Date(quarterStart.getFullYear(), quarterStart.getMonth() + 3, 0);
+  return { start: quarterStart, end: quarterEnd };
+
+case 'semiannual':
+  // Determina o semestre atual (S1: Jan-Jun, S2: Jul-Dez)
+  const semesterStart = new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1);
+  const semesterEnd = new Date(semesterStart.getFullYear(), semesterStart.getMonth() + 6, 0);
+  return { start: semesterStart, end: semesterEnd };
+```
+
+---
+
+### 4. Atualizar Tabs de Filtro de Período
+
+Na secção de tabs de período (linhas ~555-570), os novos períodos aparecerão automaticamente porque o código itera sobre `Object.entries(PERIOD_CONFIG)`.
+
+---
+
+## Resumo das Mudanças
+
+| Ficheiro | Alteração |
+|----------|-----------|
+| Migração SQL | Adicionar valores ao ENUM `goal_period` |
+| `useProductivityCoach.ts` | Atualizar tipo `GoalPeriod` |
+| `GoalsManager.tsx` | Adicionar configuração visual e lógica de datas |
+
+---
+
+## Resultado Final
+
+O seletor de período no modal "Criar Nova Meta" e os filtros de período incluirão:
+
+- Diária
+- Semanal
+- Mensal
+- **Trimestral** (novo)
+- **Semestral** (novo)
+- Anual
+
