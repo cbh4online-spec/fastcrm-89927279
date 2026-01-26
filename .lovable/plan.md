@@ -1,169 +1,214 @@
 
-# Plano: Adicionar Cliente e Condições às Propostas
+# Plano: Dois Modos de Visualizacao - Interno vs. Cliente
 
-## Contexto do Problema
+## Objetivo
 
-Atualmente, a criação/edição de propostas tem as seguintes limitações:
-1. **Cliente só via Oportunidade** - O cliente (contacto/empresa) só é obtido indiretamente através da oportunidade associada
-2. **Sem seleção direta de cliente** - Não há forma de associar um contacto ou empresa diretamente à proposta
-3. **Sem condições de proposta** - Não existem campos para:
-   - Condições de pagamento (pronto pagamento, 30 dias, etc.)
-   - Validade da proposta
-   - Observações/termos legais
+Criar dois modos distintos de visualizacao da proposta:
 
-## Solução Proposta
+1. **Vista Interna (Gestao)** - Para uso interno da equipa comercial
+2. **Vista Cliente (Documento Profissional)** - Para enviar ao cliente
 
-### Fase 1: Alterações na Base de Dados
+---
 
-Adicionar novos campos à tabela `proposals`:
+## Modo 1: Vista Interna (Gestao)
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `contact_id` | uuid (FK) | Referência ao contacto |
-| `company_id` | uuid (FK) | Referência à empresa |
-| `payment_conditions` | text | Ex: "30 dias", "Pronto Pagamento" |
-| `validity_days` | integer | Dias de validade (default 30) |
-| `notes` | text | Observações/termos adicionais |
-| `billing_address` | text | Morada de faturação |
-| `billing_nif` | text | NIF para faturação |
+Layout inspirado no modelo HAPTIC enviado, optimizado para gestao e edicao.
 
-### Fase 2: Secção de Cliente no Editor de Proposta
-
-Criar uma nova aba/secção "Cliente" no `ProposalDetailDialog` com:
-
-1. **Seletor de Tipo de Cliente**
-   - Opção: "Pessoa Singular" (Contacto)
-   - Opção: "Empresa"
-
-2. **Pesquisa/Seleção de Cliente**
-   - Dropdown com pesquisa para selecionar contacto ou empresa existente
-   - Botão "Criar Novo" para adicionar cliente rapidamente
-
-3. **Dados de Faturação**
-   - Nome/Empresa (pré-preenchido)
-   - NIF
-   - Morada de faturação
-
-### Fase 3: Secção de Condições no Editor
-
-Adicionar na aba "Detalhes" ou nova aba "Condições":
-
-1. **Condições de Pagamento**
-   - Select com opções: Pronto Pagamento, 15 dias, 30 dias, 45 dias, 60 dias, 90 dias
-   - Input para condições personalizadas
-
-2. **Validade da Proposta**
-   - Input numérico (dias)
-   - Data de expiração calculada automaticamente
-
-3. **Observações/Termos**
-   - Textarea para notas adicionais
-   - Opção de usar template de termos do workspace
-
-### Fase 4: Atualização do Preview
-
-Modificar `ProposalPreview.tsx` para mostrar:
+### Estrutura da Vista Interna
 
 ```text
-+-----------------------------------------------+
-|  PROPOSTA COMERCIAL                           |
-|  Para: [Nome do Cliente]                      |
-|  NIF: [123456789]                             |
-|  Data: 26/01/2026 | Válida até: 25/02/2026    |
-+-----------------------------------------------+
-|                                               |
-|  [Conteúdo da proposta]                       |
-|  [Tabela de itens/produtos]                   |
-|                                               |
-+-----------------------------------------------+
-|  CONDIÇÕES                                    |
-|  Pagamento: 30 dias                           |
-|  [Observações adicionais]                     |
-+-----------------------------------------------+
++---------------------------------------------------------------------+
+|  CABECALHO                                                          |
+|  [Logo/Nome Empresa]                    [Agendar Chamada] [Menu]    |
+|  #PROP-001 | Titulo da Proposta  ● Status                           |
++---------------------------------------------------------------------+
+|  INFORMACOES GERAIS                                                 |
+|  +-------------------+  +-------------------+  +-------------------+ |
+|  | Referencia        |  | Validade          |  | Ponto de Contacto | |
+|  | #PROP2025-001     |  | 26 Jan - 26 Fev   |  | Joao Silva        | |
+|  +-------------------+  +-------------------+  | joao@empresa.com  | |
+|  | Endereco          |                        | Enviar Mensagem   | |
+|  | Cliente ABC       |                        +-------------------+ |
+|  | Rua Exemplo, 123  |                        | Comercial         | |
+|  | Lisboa, 1000-001  |                        | Maria Costa       | |
+|  +-------------------+                        | maria@crm.com     | |
++---------------------------------------------------------------------+
+|  TABELA DE ITENS (Editavel)                                         |
+|  +------------------------------------------------------------------+
+|  | Item              | Status | Qtd.      | Preco | Subtotal | Sel  |
+|  +------------------------------------------------------------------+
+|  | Servico A         |   -    | [10 Qtd]  | 200€  | 2.000€   | [●]  |
+|  | Servico B         |   -    | [5 Qtd]   | 150€  | 750€     | [●]  |
+|  | Produto X         |   -    | [2 Qtd]   | 500€  | 1.000€   | [○]  |
+|  +------------------------------------------------------------------+
++---------------------------------------------------------------------+
+|  Ver Comentarios (3)            [Solicitar Alteracao] [Aceitar]     |
+|  +----------------------------------------------------------------+ |
+|  | [Campo de comentarios...]                          [Enviar]   | |
+|  +----------------------------------------------------------------+ |
+|  | @ Paulo - 21 Jan 2025 18:00                                    | |
+|  | Lorem ipsum dolor sit amet, consectetur...                     | |
+|  +----------------------------------------------------------------+ |
++---------------------------------------------------------------------+
 ```
 
-### Fase 5: Integração no Diálogo de Criação
+### Funcionalidades da Vista Interna
 
-Atualizar `CreateProposalDialog.tsx`:
-- Adicionar seletor de cliente (independente da oportunidade)
-- Quando oportunidade é selecionada, pré-preencher cliente se existir
-- Permitir criar proposta sem oportunidade (cliente direto)
+| Funcionalidade | Descricao |
+|----------------|-----------|
+| Toggle de itens | Activar/desactivar itens da proposta |
+| Edicao de quantidades | Dropdown para ajustar quantidades |
+| Comentarios | Sistema de comentarios interno |
+| Historico | Ver versoes anteriores |
+| Quick Actions | Agendar chamada, enviar mensagem |
+| Status visual | Indicador de progresso da proposta |
 
 ---
 
-## Detalhes Técnicos
+## Modo 2: Vista Cliente (Documento Profissional)
 
-### Migração SQL
+Layout inspirado no modelo Invoice enviado, documento PDF-like profissional.
 
-```sql
-ALTER TABLE proposals 
-  ADD COLUMN contact_id uuid REFERENCES contacts(id) ON DELETE SET NULL,
-  ADD COLUMN company_id uuid REFERENCES companies(id) ON DELETE SET NULL,
-  ADD COLUMN payment_conditions text,
-  ADD COLUMN validity_days integer DEFAULT 30,
-  ADD COLUMN notes text,
-  ADD COLUMN billing_address text,
-  ADD COLUMN billing_nif text;
+### Estrutura da Vista Cliente
 
-CREATE INDEX idx_proposals_contact ON proposals(contact_id);
-CREATE INDEX idx_proposals_company ON proposals(company_id);
+```text
++---------------------------------------------------------------------+
+|                                                                     |
+|  +------------------+                                               |
+|  |                  |         Proposta                              |
+|  |  [LOGO EMPRESA]  |         No. PROP-2025-001                     |
+|  |                  |         26/01/2025                            |
+|  +------------------+                                               |
+|                               Proposta Para:                        |
+|  +------------------+        Cliente ABC                            |
+|  | [Barra lateral  |         Rua Exemplo, 123                       |
+|  | com cores da    |         1000-001 Lisboa                        |
+|  | marca]          |         NIF: 123456789                         |
+|  |                 |         Tel: +351 912 345 678                  |
+|  | Morada          |                                                |
+|  | Rua X, 123      |                                                |
+|  | Lisboa          |                                                |
+|  |                 |                                                |
+|  | website.com     |                                                |
+|  | email@emp.com   |                                                |
+|  |                 |                                                |
+|  | +351 912 XXX    |                                                |
+|  +------------------+                                               |
++---------------------------------------------------------------------+
+|     Item Descricao                      Preco    Qtd.    Total      |
+|  ------------------------------------------------------------------ |
+|  1  Servico A                           200,00€   10    2.000,00€   |
+|     Descricao detalhada do servico...                               |
+|                                                                     |
+|  2  Servico B                           150,00€    5      750,00€   |
+|     Descricao detalhada...                                          |
+|                                                                     |
+|  3  Produto X                           500,00€    2    1.000,00€   |
+|     Especificacoes do produto...                                    |
+|                                                                     |
+|  ------------------------------------------------------------------ |
+|                                         Subtotal :     3.750,00€    |
+|                                         IVA (23%):       862,50€    |
+|                                         --------------------------  |
+|                                         Total :        4.612,50€    |
++---------------------------------------------------------------------+
+|                                                                     |
+|  Metodos de Pagamento:                       [Assinatura Digital]   |
+|  - Transferencia Bancaria                                           |
+|  - IBAN: PT50 0000 0000 0000 0000 0000 0                            |
+|  - Multibanco                                 Nome do Responsavel   |
+|                                               CEO & Diretor         |
++---------------------------------------------------------------------+
+|  +--------------------------------------------------------------+  |
+|  | Termos e Condicoes: Esta proposta e valida por 30 dias...   |  |
+|  +--------------------------------------------------------------+  |
++---------------------------------------------------------------------+
 ```
 
-### Novos Componentes
+### Campos para a Vista Cliente
 
-| Componente | Ficheiro | Descrição |
-|------------|----------|-----------|
-| ProposalClientSection | `src/components/proposals/ProposalClientSection.tsx` | Seletor de cliente |
-| ProposalConditionsSection | `src/components/proposals/ProposalConditionsSection.tsx` | Condições de pagamento |
-| ClientSearchSelect | `src/components/proposals/ClientSearchSelect.tsx` | Dropdown de pesquisa |
+| Secao | Campos |
+|-------|--------|
+| Cabecalho Empresa | Logo, Nome, Endereco, Website, Email, Telefone |
+| Cabecalho Documento | Numero proposta, Data, Validade |
+| Dados Cliente | Nome, Endereco, NIF, Telefone, Email |
+| Tabela Itens | Numero, Descricao, Preco, Quantidade, Total |
+| Totais | Subtotal, IVA (opcional), Total Geral |
+| Pagamento | Metodos, IBAN, Referencias |
+| Rodape | Assinatura, Termos, Observacoes |
 
-### Atualizações em Hooks
+---
 
-**`useProposals.ts`**:
-- Atualizar `CreateProposalInput` com novos campos
-- Atualizar `UpdateProposalInput` com novos campos
-- Modificar queries para incluir dados do cliente (join com contacts/companies)
+## Alteracoes Tecnicas
 
-### Constantes para Condições
+### Fase 1: Base de Dados (Novos campos workspace)
 
+Se nao existirem, adicionar campos a tabela `workspaces`:
+- `logo_url` (text) - URL do logotipo
+- `company_iban` (text) - IBAN para pagamentos
+- `signature_name` (text) - Nome para assinatura
+- `signature_title` (text) - Cargo para assinatura
+- `payment_info` (text) - Informacoes de pagamento
+
+### Fase 2: Novos Componentes
+
+| Componente | Descricao |
+|------------|-----------|
+| `ProposalInternalView.tsx` | Vista interna completa de gestao |
+| `ProposalClientDocument.tsx` | Documento profissional para cliente |
+| `ProposalViewToggle.tsx` | Alternador entre vistas |
+| `ProposalCommentsSection.tsx` | Sistema de comentarios interno |
+| `ProposalItemsTable.tsx` | Tabela de itens com toggles |
+
+### Fase 3: Modificar Dialog Existente
+
+**Ficheiro:** `ProposalDetailDialog.tsx`
+
+Adicionar toggle no cabecalho:
 ```typescript
-// src/components/proposals/proposalConstants.ts
-export const PAYMENT_CONDITIONS = [
-  { value: 'pronto_pagamento', label: 'Pronto Pagamento' },
-  { value: '15_dias', label: '15 dias' },
-  { value: '30_dias', label: '30 dias' },
-  { value: '45_dias', label: '45 dias' },
-  { value: '60_dias', label: '60 dias' },
-  { value: '90_dias', label: '90 dias' },
-];
+const [viewMode, setViewMode] = useState<"internal" | "client">("internal");
 
-export const VALIDITY_DAYS_OPTIONS = [7, 15, 30, 45, 60, 90];
+// No TabsContent de preview:
+{viewMode === "internal" ? (
+  <ProposalInternalView proposal={proposal} items={proposalItems} />
+) : (
+  <ProposalClientDocument proposal={proposal} items={proposalItems} workspace={workspace} />
+)}
 ```
+
+### Fase 4: Integrar Dados do Workspace
+
+O documento cliente usara dados do workspace actual:
+- `company_name` - Nome da empresa
+- `billing_address`, `billing_city`, `billing_postal_code` - Endereco
+- `phone`, `website` - Contactos
+- `tax_id` - NIF da empresa
+- `logo_url` - Logotipo (novo campo)
+
+### Fase 5: Funcionalidade de Exportacao PDF
+
+Adicionar botao para exportar a vista cliente como PDF usando a biblioteca `jspdf` ja instalada.
 
 ---
 
-## Resumo das Alterações
+## Resumo das Alteracoes
 
-| Tipo | Ficheiro | Ação |
-|------|----------|------|
-| DB | `proposals` table | Adicionar colunas client/conditions |
-| Novo | `ProposalClientSection.tsx` | Criar componente |
-| Novo | `ProposalConditionsSection.tsx` | Criar componente |
-| Novo | `ClientSearchSelect.tsx` | Criar componente |
-| Novo | `proposalConstants.ts` | Criar constantes |
-| Editar | `ProposalDetailDialog.tsx` | Adicionar tabs Cliente/Condições |
-| Editar | `CreateProposalDialog.tsx` | Adicionar seleção cliente |
-| Editar | `ProposalPreview.tsx` | Mostrar cliente e condições |
-| Editar | `useProposals.ts` | Atualizar types e queries |
-| Editar | `src/types/proposal.ts` | Atualizar interfaces |
+| Tipo | Ficheiro | Accao |
+|------|----------|-------|
+| DB | `workspaces` table | Adicionar campos logo_url, iban, etc. (se necessario) |
+| Novo | `ProposalInternalView.tsx` | Vista interna com tabela editavel |
+| Novo | `ProposalClientDocument.tsx` | Documento profissional |
+| Novo | `ProposalViewToggle.tsx` | Alternador de vistas |
+| Novo | `ProposalCommentsSection.tsx` | Comentarios internos |
+| Editar | `ProposalDetailDialog.tsx` | Integrar toggle e duas vistas |
+| Editar | `PublicProposalPage.tsx` | Usar ProposalClientDocument |
 
 ---
 
 ## Resultado Esperado
 
-Após implementação:
-1. Utilizador pode associar contacto ou empresa diretamente à proposta
-2. Condições de pagamento e validade são configuráveis
-3. Preview mostra cliente e condições de forma profissional
-4. Propostas podem ser criadas sem oportunidade (cliente direto)
-5. NIF e morada de faturação são guardados para emissão de documentos
+1. **Vista Interna**: Painel funcional para a equipa gerir propostas, editar itens, adicionar comentarios
+2. **Vista Cliente**: Documento profissional com branding da empresa, pronto para enviar ou exportar PDF
+3. **Toggle facil**: Alternar entre vistas com um clique
+4. **Pagina publica**: Clientes veem apenas a vista profissional
+5. **Exportacao PDF**: Gerar documento para envio offline
