@@ -48,6 +48,7 @@ import {
   usePublishProposal,
   useUpdateProposal,
   useProposalItems,
+  useToggleProposalItem,
 } from "@/hooks/useProposals";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +110,12 @@ export function ProposalDetailDialog({
   const { data: proposalItems } = useProposalItems(proposalId);
   const publishProposal = usePublishProposal();
   const updateProposal = useUpdateProposal();
+  const toggleItem = useToggleProposalItem();
+  
+  // Handle item toggle
+  const handleItemToggle = (itemId: string, isEnabled: boolean) => {
+    toggleItem.mutate({ itemId, isEnabled, proposalId });
+  };
   
   // Initialize edit form when proposal loads or when switching to edit mode
   const initializeEditForm = () => {
@@ -488,7 +495,9 @@ export function ProposalDetailDialog({
                       quantity: item.quantity,
                       unit_price: item.unit_price,
                       total_price: item.total_price || (item.quantity * item.unit_price),
+                      is_enabled: item.is_enabled,
                     }))}
+                    onItemToggle={handleItemToggle}
                   />
                 ) : (
                   <ProposalClientDocument
@@ -500,6 +509,7 @@ export function ProposalDetailDialog({
                       quantity: item.quantity,
                       unit_price: item.unit_price,
                       total_price: item.total_price || (item.quantity * item.unit_price),
+                      is_enabled: item.is_enabled,
                     }))}
                     workspace={workspaceData as Record<string, unknown> & { id: string; name: string }}
                   />

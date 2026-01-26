@@ -11656,6 +11656,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_enabled: boolean
           name: string
           operational_cost_snapshot: number | null
           position: number
@@ -11675,6 +11676,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_enabled?: boolean
           name: string
           operational_cost_snapshot?: number | null
           position?: number
@@ -11694,6 +11696,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_enabled?: boolean
           name?: string
           operational_cost_snapshot?: number | null
           position?: number

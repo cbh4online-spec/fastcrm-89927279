@@ -466,6 +466,7 @@ export interface ProposalItem {
   unit_price: number;
   total_price: number | null;
   position: number;
+  is_enabled: boolean;
   cost_snapshot: number | null;
   operational_cost_snapshot: number | null;
   commission_pct_snapshot: number | null;
@@ -520,6 +521,7 @@ export function useUpdateProposalItems() {
         quantity: number;
         unit_price: number;
         position: number;
+        is_enabled?: boolean;
       }>;
     }) => {
       if (!currentWorkspace?.id) throw new Error("No workspace selected");
@@ -543,6 +545,7 @@ export function useUpdateProposalItems() {
           quantity: item.quantity,
           unit_price: item.unit_price,
           position: item.position ?? idx,
+          is_enabled: item.is_enabled ?? true,
         }));
 
         const { error: insertError } = await supabase
@@ -552,8 +555,10 @@ export function useUpdateProposalItems() {
         if (insertError) throw insertError;
       }
 
-      // Update proposal price based on items total
-      const totalPrice = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+      // Update proposal price based on enabled items total only
+      const totalPrice = items
+        .filter(item => item.is_enabled !== false)
+        .reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
       
       const { error: updateError } = await supabase
         .from("proposals")
@@ -572,6 +577,57 @@ export function useUpdateProposalItems() {
     },
     onError: (error) => {
       toast.error(`Erro ao atualizar itens: ${error.message}`);
+    },
+  });
+}
+
+// Toggle individual proposal item
+export function useToggleProposalItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      itemId, 
+      isEnabled,
+      proposalId,
+    }: { 
+      itemId: string; 
+      isEnabled: boolean;
+      proposalId: string;
+    }) => {
+      const { error } = await supabase
+        .from("proposal_items")
+        .update({ is_enabled: isEnabled })
+        .eq("id", itemId);
+
+      if (error) throw error;
+
+      // Recalculate proposal price based on enabled items
+      const { data: items } = await supabase
+        .from("proposal_items")
+        .select("quantity, unit_price, is_enabled")
+        .eq("proposal_id", proposalId);
+
+      if (items) {
+        const totalPrice = items
+          .filter(item => item.is_enabled !== false)
+          .reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+
+        await supabase
+          .from("proposals")
+          .update({ price: totalPrice })
+          .eq("id", proposalId);
+      }
+
+      return { itemId, isEnabled, proposalId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", data.proposalId] });
+      queryClient.invalidateQueries({ queryKey: ["proposal", data.proposalId] });
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+    },
+    onError: (error) => {
+      toast.error(`Erro ao atualizar item: ${error.message}`);
     },
   });
 }
