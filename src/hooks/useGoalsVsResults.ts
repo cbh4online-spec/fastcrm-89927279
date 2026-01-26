@@ -35,10 +35,13 @@ const UNIT_CATEGORY_MAP: Record<string, UnitCategory> = {
   'oportunidades': 'opportunities',
   'opportunities': 'opportunities',
   'reunioes': 'meetings',
+  'reuniões': 'meetings',
   'meetings': 'meetings',
   'tarefas': 'tasks',
   'tasks': 'tasks',
   'facturacao': 'revenue',
+  'faturacao': 'revenue',
+  'faturação': 'revenue',
   'revenue': 'revenue',
 };
 
