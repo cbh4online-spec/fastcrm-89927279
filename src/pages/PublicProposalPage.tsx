@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ProposalPreview } from "@/components/proposals/ProposalPreview";
+import { ProposalClientDocument } from "@/components/proposals/ProposalClientDocument";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import type { Proposal } from "@/types/proposal";
@@ -12,6 +13,8 @@ export default function PublicProposalPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [workspace, setWorkspace] = useState<Record<string, unknown> | null>(null);
+  const [items, setItems] = useState<Array<{ id: string; name: string; description?: string | null; quantity: number; unit_price: number; total_price: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
@@ -27,7 +30,7 @@ export default function PublicProposalPage() {
   const loadProposal = async () => {
     const { data, error } = await supabase
       .from("proposals")
-      .select(`*, opportunity:opportunities(id, title, value, lead:leads(id, name, email))`)
+      .select(`*, opportunity:opportunities(id, title, value, lead:leads(id, name, email)), contact:contacts(id, name, email, tax_id, address), company:companies(id, name, email, tax_id, address)`)
       .eq("slug", slug)
       .eq("status", "published")
       .single();
@@ -36,6 +39,33 @@ export default function PublicProposalPage() {
       console.error("Error loading proposal:", error);
     } else {
       setProposal(data as unknown as Proposal);
+      
+      // Load workspace data
+      if (data?.workspace_id) {
+        const { data: wsData } = await supabase
+          .from("workspaces")
+          .select("*, logo_url, company_iban, signature_name, signature_title, payment_info")
+          .eq("id", data.workspace_id)
+          .single();
+        if (wsData) setWorkspace(wsData);
+      }
+      
+      // Load proposal items
+      const { data: itemsData } = await supabase
+        .from("proposal_items")
+        .select("*")
+        .eq("proposal_id", data.id)
+        .order("order", { ascending: true });
+      if (itemsData) {
+        setItems(itemsData.map(item => ({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price || (item.quantity * item.unit_price),
+        })));
+      }
     }
     setLoading(false);
   };
@@ -151,18 +181,32 @@ export default function PublicProposalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <ProposalPreview
-        title={proposal.title}
-        blocks={proposal.content_blocks}
-        variables={proposal.variables}
-        ctaText={proposal.cta_text}
-        ctaColor={proposal.cta_color}
-        price={proposal.price}
-        currency={proposal.currency}
-        showCta={true}
-        onCtaClick={handleCheckout}
+    <div className="min-h-screen bg-muted/30 py-8 px-4">
+      <ProposalClientDocument
+        proposal={proposal}
+        items={items}
+        workspace={workspace as Record<string, unknown> & { id: string; name: string }}
+        showActions={false}
       />
+      
+      {/* Accept CTA Button */}
+      <div className="max-w-4xl mx-auto mt-6 text-center">
+        <Button
+          size="lg"
+          className="px-8 py-6 text-lg"
+          style={{ backgroundColor: proposal.cta_color || "#3b82f6" }}
+          onClick={handleCheckout}
+          disabled={checkoutLoading}
+        >
+          {checkoutLoading ? (
+            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+          ) : null}
+          {proposal.cta_text || "Aceitar Proposta"}
+        </Button>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Pagamento seguro via Stripe
+        </p>
+      </div>
       
       {checkoutLoading && (
         <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
