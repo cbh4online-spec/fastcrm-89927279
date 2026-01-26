@@ -15892,6 +15892,411 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_definitions: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          max_retries: number | null
+          name: string
+          retry_delay_ms: number | null
+          steps: Json
+          timeout_ms: number | null
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string | null
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          max_retries?: number | null
+          name: string
+          retry_delay_ms?: number | null
+          steps?: Json
+          timeout_ms?: number | null
+          trigger_config?: Json | null
+          trigger_type: string
+          updated_at?: string | null
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          max_retries?: number | null
+          name?: string
+          retry_delay_ms?: number | null
+          steps?: Json
+          timeout_ms?: number | null
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string | null
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_definitions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_executions: {
+        Row: {
+          checkpoint_data: Json | null
+          completed_at: string | null
+          context: Json | null
+          created_at: string | null
+          current_step_index: number | null
+          definition_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error_details: Json | null
+          error_message: string | null
+          id: string
+          initiated_by: string | null
+          input_data: Json | null
+          last_checkpoint_at: string | null
+          max_retries: number | null
+          output_data: Json | null
+          recommendation_id: string | null
+          retry_count: number | null
+          scheduled_for: string | null
+          started_at: string | null
+          status: string
+          timeout_at: string | null
+          total_duration_ms: number | null
+          trigger_source: string | null
+          trigger_type: string
+          updated_at: string | null
+          workflow_code: string
+          workflow_version: number
+          workspace_id: string
+        }
+        Insert: {
+          checkpoint_data?: Json | null
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          current_step_index?: number | null
+          definition_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          initiated_by?: string | null
+          input_data?: Json | null
+          last_checkpoint_at?: string | null
+          max_retries?: number | null
+          output_data?: Json | null
+          recommendation_id?: string | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string
+          timeout_at?: string | null
+          total_duration_ms?: number | null
+          trigger_source?: string | null
+          trigger_type: string
+          updated_at?: string | null
+          workflow_code: string
+          workflow_version?: number
+          workspace_id: string
+        }
+        Update: {
+          checkpoint_data?: Json | null
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          current_step_index?: number | null
+          definition_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          initiated_by?: string | null
+          input_data?: Json | null
+          last_checkpoint_at?: string | null
+          max_retries?: number | null
+          output_data?: Json | null
+          recommendation_id?: string | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string
+          timeout_at?: string | null
+          total_duration_ms?: number | null
+          trigger_source?: string | null
+          trigger_type?: string
+          updated_at?: string | null
+          workflow_code?: string
+          workflow_version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_executions_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_executions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_idempotency_keys: {
+        Row: {
+          action_target: string | null
+          action_type: string
+          executed_at: string
+          execution_id: string | null
+          expires_at: string | null
+          id: string
+          idempotency_key: string
+          result_data: Json | null
+          result_status: string | null
+          step_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_target?: string | null
+          action_type: string
+          executed_at?: string
+          execution_id?: string | null
+          expires_at?: string | null
+          id?: string
+          idempotency_key: string
+          result_data?: Json | null
+          result_status?: string | null
+          step_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_target?: string | null
+          action_type?: string
+          executed_at?: string
+          execution_id?: string | null
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string
+          result_data?: Json | null
+          result_status?: string | null
+          step_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_idempotency_keys_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_idempotency_keys_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_idempotency_keys_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_queue: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          execution_id: string
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          lock_expires_at: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number | null
+          next_attempt_at: string | null
+          priority: number | null
+          scheduled_for: string | null
+          status: string | null
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          execution_id: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          lock_expires_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number | null
+          next_attempt_at?: string | null
+          priority?: number | null
+          scheduled_for?: string | null
+          status?: string | null
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          execution_id?: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          lock_expires_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number | null
+          next_attempt_at?: string | null
+          priority?: number | null
+          scheduled_for?: string | null
+          status?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_queue_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_queue_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_steps: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          depends_on: string[] | null
+          duration_ms: number | null
+          error_details: Json | null
+          error_message: string | null
+          execution_id: string
+          id: string
+          idempotency_key: string
+          input_data: Json | null
+          is_parallel: boolean | null
+          max_retries: number | null
+          output_data: Json | null
+          parallel_group: string | null
+          retry_count: number | null
+          started_at: string | null
+          status: string
+          step_code: string
+          step_index: number
+          step_type: string
+          timeout_ms: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          depends_on?: string[] | null
+          duration_ms?: number | null
+          error_details?: Json | null
+          error_message?: string | null
+          execution_id: string
+          id?: string
+          idempotency_key: string
+          input_data?: Json | null
+          is_parallel?: boolean | null
+          max_retries?: number | null
+          output_data?: Json | null
+          parallel_group?: string | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          step_code: string
+          step_index: number
+          step_type: string
+          timeout_ms?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          depends_on?: string[] | null
+          duration_ms?: number | null
+          error_details?: Json | null
+          error_message?: string | null
+          execution_id?: string
+          id?: string
+          idempotency_key?: string
+          input_data?: Json | null
+          is_parallel?: boolean | null
+          max_retries?: number | null
+          output_data?: Json | null
+          parallel_group?: string | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          step_code?: string
+          step_index?: number
+          step_type?: string
+          timeout_ms?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_steps_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_steps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_bundles: {
         Row: {
           bundle_id: string
@@ -16924,9 +17329,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_workflow_idempotency: {
+        Args: { p_idempotency_key: string; p_workspace_id: string }
+        Returns: {
+          already_executed: boolean
+          executed_at: string
+          result_data: Json
+          result_status: string
+        }[]
+      }
       check_workspace_quota: {
         Args: { p_resource_type: string; p_workspace_id: string }
         Returns: Json
+      }
+      checkpoint_workflow_execution: {
+        Args: { p_context: Json; p_execution_id: string; p_step_index: number }
+        Returns: undefined
       }
       cleanup_expired_agent_memory: { Args: never; Returns: number }
       cleanup_expired_cache: { Args: never; Returns: number }
@@ -17000,6 +17418,14 @@ export type Database = {
       }
       generate_invoice_number: {
         Args: { p_workspace_id: string }
+        Returns: string
+      }
+      generate_workflow_idempotency_key: {
+        Args: {
+          p_entity_id: string
+          p_execution_id: string
+          p_step_code: string
+        }
         Returns: string
       }
       get_agent_funnel_metrics: {
