@@ -100,10 +100,12 @@ export default function Dashboard() {
     }
   };
 
+  // Get current period dates
+  const { start: periodStart, end: periodEnd } = useMemo(() => getDateRange(periodFilter), [periodFilter]);
+
   // Calculate KPI data for cards based on selected period
   const kpiData = useMemo(() => {
     const now = new Date();
-    const { start: periodStart, end: periodEnd } = getDateRange(periodFilter);
     
     // Get previous period for comparison
     const periodDuration = periodEnd.getTime() - periodStart.getTime();
@@ -402,7 +404,7 @@ export default function Dashboard() {
             {/* Left Column - Charts */}
             <div className="col-span-12 lg:col-span-8 space-y-4 lg:space-y-6">
               {/* Opportunity Summary Chart */}
-              <NexusOpportunityChart isLoading={isLoading} days={14} />
+              <NexusOpportunityChart isLoading={isLoading} periodStart={periodStart} periodEnd={periodEnd} />
 
               {/* Bottom Row - Two Charts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
