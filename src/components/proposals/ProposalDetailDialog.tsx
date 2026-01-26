@@ -29,17 +29,20 @@ import {
   Pencil,
   Save,
   X,
+  Package,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { ProposalPreview } from "./ProposalPreview";
+import { ProposalItemsEditor } from "./ProposalItemsEditor";
 import {
   useProposal,
   useProposalVersions,
   useProposalActivity,
   usePublishProposal,
   useUpdateProposal,
+  useProposalItems,
 } from "@/hooks/useProposals";
 import type { ProposalStatus, ContentBlock } from "@/types/proposal";
 import { cn } from "@/lib/utils";
@@ -63,7 +66,7 @@ export function ProposalDetailDialog({
   onOpenChange,
   proposalId,
 }: ProposalDetailDialogProps) {
-  const [tab, setTab] = useState<"preview" | "edit" | "versions" | "activity">("preview");
+  const [tab, setTab] = useState<"preview" | "edit" | "items" | "versions" | "activity">("preview");
   const [deviceView, setDeviceView] = useState<"desktop" | "mobile">("desktop");
   const [isEditing, setIsEditing] = useState(false);
   
@@ -76,6 +79,7 @@ export function ProposalDetailDialog({
   const { data: proposal, isLoading } = useProposal(proposalId);
   const { data: versions } = useProposalVersions(proposalId);
   const { data: activity } = useProposalActivity(proposalId);
+  const { data: proposalItems } = useProposalItems(proposalId);
   const publishProposal = usePublishProposal();
   const updateProposal = useUpdateProposal();
   
@@ -317,7 +321,7 @@ export function ProposalDetailDialog({
           <Tabs
             value={tab}
             onValueChange={(v) =>
-              setTab(v as "preview" | "edit" | "versions" | "activity")
+              setTab(v as "preview" | "edit" | "items" | "versions" | "activity")
             }
             className="flex-1 flex flex-col min-h-0"
           >
@@ -331,13 +335,22 @@ export function ProposalDetailDialog({
                   Visualização
                 </TabsTrigger>
                 {isEditing && (
-                  <TabsTrigger 
-                    value="edit"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar
-                  </TabsTrigger>
+                  <>
+                    <TabsTrigger 
+                      value="edit"
+                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Detalhes
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="items"
+                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
+                    >
+                      <Package className="h-4 w-4 mr-2" />
+                      Itens ({proposalItems?.length || 0})
+                    </TabsTrigger>
+                  </>
                 )}
                 <TabsTrigger 
                   value="versions"
@@ -491,6 +504,16 @@ export function ProposalDetailDialog({
                   </div>
                 </div>
               </ScrollArea>
+            </TabsContent>
+
+            {/* Items Tab Content */}
+            <TabsContent value="items" className="flex-1 min-h-0 mt-0 p-6">
+              <ProposalItemsEditor 
+                proposalId={proposalId} 
+                onSaved={() => {
+                  // Optionally switch back to preview after save
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="versions" className="flex-1 min-h-0 mt-0 p-6">
