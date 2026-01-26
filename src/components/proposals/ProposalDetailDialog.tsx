@@ -498,8 +498,12 @@ export function ProposalDetailDialog({
                   }))}
                   clientName={proposal.company?.name || proposal.contact?.name}
                   clientNif={proposal.billing_nif || proposal.company?.tax_id || proposal.contact?.tax_id}
-                  clientAddress={proposal.billing_address || proposal.company?.address}
-                  paymentConditions={proposal.payment_conditions}
+                  clientAddress={proposal.billing_address || proposal.company?.address || proposal.contact?.address}
+                  paymentConditions={
+                    proposal.payment_conditions 
+                      ? PAYMENT_CONDITIONS.find(p => p.value === proposal.payment_conditions)?.label || proposal.payment_conditions
+                      : null
+                  }
                   validityDays={proposal.validity_days}
                   notes={proposal.notes}
                   createdAt={proposal.created_at}

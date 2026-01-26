@@ -162,7 +162,7 @@ export function useProposals(opportunityId?: string) {
             value,
             lead:leads(id, name, email)
           ),
-          contact:contacts(id, name, email, tax_id),
+          contact:contacts(id, name, email, tax_id, address),
           company:companies(id, name, email, tax_id, address)
         `)
         .eq("workspace_id", currentWorkspace.id)
@@ -199,7 +199,7 @@ export function useProposal(id: string | undefined) {
             value,
             lead:leads(id, name, email)
           ),
-          contact:contacts(id, name, email, tax_id),
+          contact:contacts(id, name, email, tax_id, address),
           company:companies(id, name, email, tax_id, address)
         `)
         .eq("id", id)
