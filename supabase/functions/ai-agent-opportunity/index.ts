@@ -1,5 +1,7 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { withCache } from '../_shared/cache-manager.ts';
+import type { CacheConfidenceLevel } from '../_shared/cache-types.ts';
 
 /**
  * AI Agent: Opportunity Specialist
@@ -10,6 +12,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  * - Calculate weighted value
  * - Detect funnel stagnation
  * - Suggest closing tactics
+ * - Response caching for repeated analysis
  */
 
 interface OpportunityAgentRequest {
@@ -226,156 +229,193 @@ Deno.serve(async (req) => {
       toolUsed: 'calculate_score',
     });
 
-    // Step 5: Generate analysis
+    // Step 5: Generate analysis with cache layer
     const step5Start = Date.now();
-    const analysis = generateOpportunityAnalysis(
-      opportunity,
+    
+    // Use cache layer for analysis
+    const cacheResult = await withCache(
+      supabase,
       {
-        activityCount,
-        daysSinceActivity,
-        daysInFunnel,
-        daysUntilClose,
-        progressPercent,
-        totalStages,
+        workspaceId,
+        agentType: 'opportunity',
+        entityId,
+        entityType: 'opportunity',
+        entityData: opportunity,
+        triggerType,
+      },
+      async () => {
+        const analysis = generateOpportunityAnalysis(
+          opportunity,
+          {
+            activityCount,
+            daysSinceActivity,
+            daysInFunnel,
+            daysUntilClose,
+            progressPercent,
+            totalStages,
+          }
+        );
+        
+        return {
+          response: analysis,
+          confidenceLevel: analysis.confidenceLevel as CacheConfidenceLevel,
+          durationMs: Date.now() - step5Start,
+          tokensUsed: 0,
+        };
       }
     );
+    
+    const analysis = cacheResult.response;
 
     reasoningTrace.push({
       step: 5,
-      action: 'Generate risk/probability analysis',
+      action: cacheResult.fromCache ? 'Retrieved from cache' : 'Generate risk/probability analysis',
       input: `All data sources: ${dataSourcesUsed.join(', ')}`,
-      output: `Confidence: ${analysis.confidenceLevel}, ${analysis.keySignals.length} signals, ${analysis.riskIndicators.length} risks`,
+      output: cacheResult.fromCache 
+        ? `Cache HIT (${cacheResult.lookupTimeMs}ms)`
+        : `Confidence: ${analysis.confidenceLevel}, ${analysis.keySignals.length} signals, ${analysis.riskIndicators.length} risks`,
       confidence: analysis.confidenceLevel === 'high' ? 0.9 : analysis.confidenceLevel === 'medium' ? 0.7 : 0.5,
-      durationMs: Date.now() - step5Start,
-      toolUsed: 'calculate_score',
+      durationMs: cacheResult.fromCache ? cacheResult.lookupTimeMs : Date.now() - step5Start,
+      toolUsed: cacheResult.fromCache ? 'cache_lookup' : 'calculate_score',
     });
 
     const durationMs = Date.now() - startTime;
 
-    // Record execution in audit trail
-    const { data: executionRecord } = await supabase
-      .from('ai_agent_executions')
-      .insert({
-        workspace_id: workspaceId,
-        agent_type: 'opportunity',
-        entity_id: entityId,
-        entity_type: 'opportunity',
-        trigger_type: triggerType,
-        input_summary: {
-          title: opportunity.title,
-          value: opportunity.value,
-          stage: opportunity.stage?.name,
-          daysInFunnel,
-          activityCount,
-        },
-        reasoning_trace: reasoningTrace,
-        output: analysis,
-        executive_summary: analysis.executiveSummary,
-        status_assessment: analysis.statusAssessment,
-        key_signals: analysis.keySignals,
-        risk_indicators: analysis.riskIndicators,
-        recommended_action: analysis.recommendedAction,
-        recommended_action_type: analysis.recommendedActionType,
-        confidence_level: analysis.confidenceLevel,
-        duration_ms: durationMs,
-        tokens_used: 0,
-      })
-      .select('id')
-      .single();
+    // Only record execution and store memory if NOT from cache
+    let executionId = 'cached';
+    
+    if (!cacheResult.fromCache) {
+      // Record execution in audit trail
+      const { data: executionRecord } = await supabase
+        .from('ai_agent_executions')
+        .insert({
+          workspace_id: workspaceId,
+          agent_type: 'opportunity',
+          entity_id: entityId,
+          entity_type: 'opportunity',
+          trigger_type: triggerType,
+          input_summary: {
+            title: opportunity.title,
+            value: opportunity.value,
+            stage: opportunity.stage?.name,
+            daysInFunnel,
+            activityCount,
+          },
+          reasoning_trace: reasoningTrace,
+          output: analysis,
+          executive_summary: analysis.executiveSummary,
+          status_assessment: analysis.statusAssessment,
+          key_signals: analysis.keySignals,
+          risk_indicators: analysis.riskIndicators,
+          recommended_action: analysis.recommendedAction,
+          recommended_action_type: analysis.recommendedActionType,
+          confidence_level: analysis.confidenceLevel,
+          duration_ms: durationMs,
+          tokens_used: 0,
+        })
+        .select('id')
+        .single();
+      
+      executionId = executionRecord?.id || 'unknown';
 
-    // Store conclusion in memory using store_entity_memory function
-    if (analysis.confidenceLevel !== 'low') {
-      try {
-        // Try to use the enhanced store_entity_memory function
-        const { error: storeError } = await supabase.rpc(
-          'store_entity_memory',
-          {
-            p_workspace_id: workspaceId,
-            p_entity_id: entityId,
-            p_entity_type: 'opportunity',
-            p_memory_type: 'conclusion',
-            p_content: analysis.executiveSummary,
-            p_relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
-            p_source_execution_id: executionRecord?.id || null,
-            p_expires_in_days: 30, // Shorter for opportunities
-            p_created_by: userId
+      // Store conclusion in memory
+      if (analysis.confidenceLevel !== 'low') {
+        try {
+          const { error: storeError } = await supabase.rpc(
+            'store_entity_memory',
+            {
+              p_workspace_id: workspaceId,
+              p_entity_id: entityId,
+              p_entity_type: 'opportunity',
+              p_memory_type: 'conclusion',
+              p_content: analysis.executiveSummary,
+              p_relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+              p_source_execution_id: executionRecord?.id || null,
+              p_expires_in_days: 30,
+              p_created_by: userId
+            }
+          );
+          
+          if (storeError) {
+            console.log('[Opportunity Agent] store_entity_memory not available, using direct insert');
+            await supabase
+              .from('ai_agent_memory')
+              .insert({
+                workspace_id: workspaceId,
+                entity_id: entityId,
+                entity_type: 'opportunity',
+                memory_type: 'conclusion',
+                memory_category: 'general',
+                content: analysis.executiveSummary.substring(0, 2000),
+                relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+                source_execution_id: executionRecord?.id,
+                source_type: 'agent_conclusion',
+                expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                created_by: userId,
+              });
           }
-        );
-        
-        if (storeError) {
-          console.log('[Opportunity Agent] store_entity_memory not available, using direct insert');
-          // Fallback to direct insert
-          await supabase
-            .from('ai_agent_memory')
-            .insert({
-              workspace_id: workspaceId,
-              entity_id: entityId,
-              entity_type: 'opportunity',
-              memory_type: 'conclusion',
-              memory_category: 'general',
-              content: analysis.executiveSummary.substring(0, 2000),
-              relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
-              source_execution_id: executionRecord?.id,
-              source_type: 'agent_conclusion',
-              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              created_by: userId,
-            });
+          
+          if (analysis.pipelineHealth === 'critical' || analysis.pipelineHealth === 'attention') {
+            await supabase
+              .from('ai_agent_memory')
+              .insert({
+                workspace_id: workspaceId,
+                entity_id: entityId,
+                entity_type: 'opportunity',
+                memory_type: 'pattern',
+                memory_category: 'timeline',
+                content: `Pipeline health: ${analysis.pipelineHealth}. ${analysis.riskIndicators.join('; ')}`,
+                relevance_score: 0.9,
+                source_execution_id: executionRecord?.id,
+                source_type: 'agent_conclusion',
+                expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                created_by: userId,
+              });
+          }
+          
+          if (analysis.riskIndicators.length > 0) {
+            await supabase
+              .from('ai_agent_memory')
+              .insert({
+                workspace_id: workspaceId,
+                entity_id: entityId,
+                entity_type: 'opportunity',
+                memory_type: 'risk',
+                memory_category: 'general',
+                content: `Riscos: ${analysis.riskIndicators.join('; ')}`,
+                relevance_score: 0.85,
+                source_execution_id: executionRecord?.id,
+                source_type: 'agent_conclusion',
+                expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                created_by: userId,
+              });
+          }
+        } catch (memErr) {
+          console.error('[Opportunity Agent] Error storing memory:', memErr);
         }
-        
-        // Store pipeline health as pattern memory
-        if (analysis.pipelineHealth === 'critical' || analysis.pipelineHealth === 'attention') {
-          await supabase
-            .from('ai_agent_memory')
-            .insert({
-              workspace_id: workspaceId,
-              entity_id: entityId,
-              entity_type: 'opportunity',
-              memory_type: 'pattern',
-              memory_category: 'timeline',
-              content: `Pipeline health: ${analysis.pipelineHealth}. ${analysis.riskIndicators.join('; ')}`,
-              relevance_score: 0.9,
-              source_execution_id: executionRecord?.id,
-              source_type: 'agent_conclusion',
-              expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days for urgent patterns
-              created_by: userId,
-            });
-        }
-        
-        // Store risk indicators as separate risk memories
-        if (analysis.riskIndicators.length > 0) {
-          await supabase
-            .from('ai_agent_memory')
-            .insert({
-              workspace_id: workspaceId,
-              entity_id: entityId,
-              entity_type: 'opportunity',
-              memory_type: 'risk',
-              memory_category: 'general',
-              content: `Riscos: ${analysis.riskIndicators.join('; ')}`,
-              relevance_score: 0.85,
-              source_execution_id: executionRecord?.id,
-              source_type: 'agent_conclusion',
-              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              created_by: userId,
-            });
-        }
-      } catch (memErr) {
-        console.error('[Opportunity Agent] Error storing memory:', memErr);
       }
     }
 
-    console.log(`[Opportunity Agent] Completed in ${durationMs}ms`);
+    const responseWithCache = {
+      success: true,
+      executionId,
+      output: analysis,
+      reasoningTrace,
+      dataSourcesUsed,
+      durationMs,
+      tokensUsed: 0,
+      cache: {
+        fromCache: cacheResult.fromCache,
+        cacheKey: cacheResult.cacheKey,
+        lookupTimeMs: cacheResult.lookupTimeMs,
+        tokensSaved: cacheResult.tokensSaved,
+      },
+    };
+
+    console.log(`[Opportunity Agent] Completed in ${durationMs}ms, fromCache: ${cacheResult.fromCache}`);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        executionId: executionRecord?.id || 'unknown',
-        output: analysis,
-        reasoningTrace,
-        dataSourcesUsed,
-        durationMs,
-        tokensUsed: 0,
-      }),
+      JSON.stringify(responseWithCache),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

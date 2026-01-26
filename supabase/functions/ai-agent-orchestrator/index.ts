@@ -1,5 +1,7 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { withCache } from '../_shared/cache-manager.ts';
+import type { CacheConfidenceLevel } from '../_shared/cache-types.ts';
 
 /**
  * AI Agent Orchestrator
@@ -10,6 +12,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  * - Apply rate limiting and validation
  * - Record executions in audit trail
  * - Format outputs according to contract
+ * - Leverage response caching for cost optimization
  */
 
 interface AgentRequest {
@@ -333,139 +336,182 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 4: Generate analysis based on agent type
+    // Step 4: Generate analysis with cache layer
     const step4Start = Date.now();
-    const analysis = generateAgentAnalysis(
-      agentType,
-      entityData,
-      conversationData,
-      previousConclusions,
-      context
+    
+    // Use cache layer for analysis
+    const cacheResult = await withCache(
+      supabase,
+      {
+        workspaceId,
+        agentType,
+        entityId,
+        entityType,
+        entityData,
+        memories: previousConclusions,
+        triggerType,
+      },
+      async () => {
+        // This function is called on cache miss
+        const analysis = generateAgentAnalysis(
+          agentType,
+          entityData,
+          conversationData,
+          previousConclusions,
+          context
+        );
+        
+        return {
+          response: analysis,
+          confidenceLevel: analysis.confidenceLevel as CacheConfidenceLevel,
+          durationMs: Date.now() - step4Start,
+          tokensUsed: 0, // Rule-based analysis uses 0 tokens
+        };
+      }
     );
+    
+    const analysis = cacheResult.response!;
     
     reasoningTrace.push({
       step: 4,
-      action: 'Generate analysis',
+      action: cacheResult.fromCache ? 'Retrieved from cache' : 'Generate analysis',
       input: `Agent type: ${agentType}, data sources: ${dataSourcesUsed.join(', ')}`,
-      output: `Generated ${analysis.keySignals.length} signals, ${analysis.riskIndicators.length} risks`,
+      output: cacheResult.fromCache 
+        ? `Cache HIT (${cacheResult.lookupTimeMs}ms)` 
+        : `Generated ${analysis.keySignals.length} signals, ${analysis.riskIndicators.length} risks`,
       confidence: analysis.confidenceLevel === 'high' ? 0.9 : analysis.confidenceLevel === 'medium' ? 0.7 : 0.5,
-      durationMs: Date.now() - step4Start,
-      toolUsed: 'calculate_score',
+      durationMs: cacheResult.fromCache ? cacheResult.lookupTimeMs : Date.now() - step4Start,
+      toolUsed: cacheResult.fromCache ? 'cache_lookup' : 'calculate_score',
     });
 
     const durationMs = Date.now() - startTime;
 
-    // Record execution in audit trail
-    const { data: executionRecord, error: insertError } = await supabase
-      .from('ai_agent_executions')
-      .insert({
-        workspace_id: workspaceId,
-        agent_type: agentType,
-        entity_id: entityId,
-        entity_type: entityType,
-        trigger_type: triggerType,
-        input_summary: {
-          entityName: entityData.name || entityData.title || entityId,
-          conversationCount: conversationData.length,
-          previousConclusionsCount: previousConclusions.length,
-          context: context || {},
-        },
-        reasoning_trace: reasoningTrace,
-        output: analysis,
-        executive_summary: analysis.executiveSummary,
-        status_assessment: analysis.statusAssessment,
-        key_signals: analysis.keySignals,
-        risk_indicators: analysis.riskIndicators,
-        recommended_action: analysis.recommendedAction,
-        recommended_action_type: analysis.recommendedActionType,
-        confidence_level: analysis.confidenceLevel,
-        duration_ms: durationMs,
-        tokens_used: 0, // Would be calculated from AI model response
-      })
-      .select('id')
-      .single();
+    // Only record execution and store memory if NOT from cache
+    let executionId = 'cached';
+    
+    if (!cacheResult.fromCache) {
+      // Record execution in audit trail
+      const { data: executionRecord, error: insertError } = await supabase
+        .from('ai_agent_executions')
+        .insert({
+          workspace_id: workspaceId,
+          agent_type: agentType,
+          entity_id: entityId,
+          entity_type: entityType,
+          trigger_type: triggerType,
+          input_summary: {
+            entityName: entityData.name || entityData.title || entityId,
+            conversationCount: conversationData.length,
+            previousConclusionsCount: previousConclusions.length,
+            context: context || {},
+          },
+          reasoning_trace: reasoningTrace,
+          output: analysis,
+          executive_summary: analysis.executiveSummary,
+          status_assessment: analysis.statusAssessment,
+          key_signals: analysis.keySignals,
+          risk_indicators: analysis.riskIndicators,
+          recommended_action: analysis.recommendedAction,
+          recommended_action_type: analysis.recommendedActionType,
+          confidence_level: analysis.confidenceLevel,
+          duration_ms: durationMs,
+          tokens_used: 0,
+        })
+        .select('id')
+        .single();
 
-    if (insertError) {
-      console.error('[Orchestrator] Failed to record execution:', insertError);
-    }
+      if (insertError) {
+        console.error('[Orchestrator] Failed to record execution:', insertError);
+      }
+      
+      executionId = executionRecord?.id || 'unknown';
 
-    // Store important conclusion in memory using store_entity_memory function
-    if (analysis.confidenceLevel !== 'low') {
-      try {
-        // Try to use the enhanced store_entity_memory function
-        const { error: storeError } = await supabase.rpc(
-          'store_entity_memory',
-          {
-            p_workspace_id: workspaceId,
-            p_entity_id: entityId,
-            p_entity_type: entityType,
-            p_memory_type: 'conclusion',
-            p_content: analysis.executiveSummary,
-            p_relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
-            p_source_execution_id: executionRecord?.id || null,
-            p_expires_in_days: 90,
-            p_created_by: userId
+      // Store important conclusion in memory using store_entity_memory function
+      if (analysis.confidenceLevel !== 'low') {
+        try {
+          const { error: storeError } = await supabase.rpc(
+            'store_entity_memory',
+            {
+              p_workspace_id: workspaceId,
+              p_entity_id: entityId,
+              p_entity_type: entityType,
+              p_memory_type: 'conclusion',
+              p_content: analysis.executiveSummary,
+              p_relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+              p_source_execution_id: executionRecord?.id || null,
+              p_expires_in_days: 90,
+              p_created_by: userId
+            }
+          );
+          
+          if (storeError) {
+            console.log('[Orchestrator] store_entity_memory not available, using direct insert');
+            await supabase
+              .from('ai_agent_memory')
+              .insert({
+                workspace_id: workspaceId,
+                entity_id: entityId,
+                entity_type: entityType,
+                memory_type: 'conclusion',
+                memory_category: 'general',
+                content: analysis.executiveSummary.substring(0, 2000),
+                relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+                source_execution_id: executionRecord?.id,
+                source_type: 'agent_conclusion',
+                expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+                created_by: userId,
+              });
           }
-        );
-        
-        if (storeError) {
-          console.log('[Orchestrator] store_entity_memory not available, using direct insert');
-          // Fallback to direct insert
-          await supabase
-            .from('ai_agent_memory')
-            .insert({
-              workspace_id: workspaceId,
-              entity_id: entityId,
-              entity_type: entityType,
-              memory_type: 'conclusion',
-              memory_category: 'general',
-              content: analysis.executiveSummary.substring(0, 2000),
-              relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
-              source_execution_id: executionRecord?.id,
-              source_type: 'agent_conclusion',
-              expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-              created_by: userId,
-            });
+          
+          if (analysis.riskIndicators.length > 0) {
+            const riskContent = `Riscos identificados: ${analysis.riskIndicators.join('; ')}`;
+            await supabase
+              .from('ai_agent_memory')
+              .insert({
+                workspace_id: workspaceId,
+                entity_id: entityId,
+                entity_type: entityType,
+                memory_type: 'risk',
+                memory_category: 'general',
+                content: riskContent.substring(0, 2000),
+                relevance_score: 0.8,
+                source_execution_id: executionRecord?.id,
+                source_type: 'agent_conclusion',
+                expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                created_by: userId,
+              });
+          }
+        } catch (memErr) {
+          console.error('[Orchestrator] Error storing memory:', memErr);
         }
-        
-        // Also store key signals and risks as separate memories
-        if (analysis.riskIndicators.length > 0) {
-          const riskContent = `Riscos identificados: ${analysis.riskIndicators.join('; ')}`;
-          await supabase
-            .from('ai_agent_memory')
-            .insert({
-              workspace_id: workspaceId,
-              entity_id: entityId,
-              entity_type: entityType,
-              memory_type: 'risk',
-              memory_category: 'general',
-              content: riskContent.substring(0, 2000),
-              relevance_score: 0.8,
-              source_execution_id: executionRecord?.id,
-              source_type: 'agent_conclusion',
-              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days for risks
-              created_by: userId,
-            });
-        }
-      } catch (memErr) {
-        console.error('[Orchestrator] Error storing memory:', memErr);
       }
     }
 
     const response: AgentResponse = {
       success: true,
-      executionId: executionRecord?.id || 'unknown',
+      executionId,
       output: analysis,
       reasoningTrace,
       dataSourcesUsed,
       durationMs,
-      tokensUsed: 0,
+      tokensUsed: cacheResult.fromCache ? 0 : 0,
     };
 
-    console.log(`[Orchestrator] Completed in ${durationMs}ms, confidence: ${analysis.confidenceLevel}`);
+    // Add cache metadata to response
+    const responseWithCache = {
+      ...response,
+      cache: {
+        fromCache: cacheResult.fromCache,
+        cacheKey: cacheResult.cacheKey,
+        lookupTimeMs: cacheResult.lookupTimeMs,
+        tokensSaved: cacheResult.tokensSaved,
+      },
+    };
+
+    console.log(`[Orchestrator] Completed in ${durationMs}ms, confidence: ${analysis.confidenceLevel}, fromCache: ${cacheResult.fromCache}`);
 
     return new Response(
-      JSON.stringify(response),
+      JSON.stringify(responseWithCache),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
