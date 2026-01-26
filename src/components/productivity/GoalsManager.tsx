@@ -61,6 +61,7 @@ import { cn } from '@/lib/utils';
 import { useProductivityCoach, GoalPeriod, GoalStatus, GoalScope, ProductivityGoal } from '@/hooks/useProductivityCoach';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 // Configuração de unidades pré-definidas
 interface UnitOption {
@@ -147,17 +148,19 @@ const STATUS_CONFIG: Record<GoalStatus, { label: string; color: string }> = {
 function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
   const { createGoal } = useProductivityCoach();
   const { currentWorkspace } = useWorkspace();
+  const { isSuperAdmin } = useUserRole();
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<GoalPeriod>(defaultPeriod || 'daily');
-  const [goalScope, setGoalScope] = useState<GoalScope>('individual');
+  const [goalScope, setGoalScope] = useState<GoalScope>('organizational'); // Default to organizational for owners/admins
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [targetValue, setTargetValue] = useState('');
   const [unitSelection, setUnitSelection] = useState('');
   const [customUnit, setCustomUnit] = useState('');
 
-  // Check if user can create organizational goals (owner or admin)
-  const canCreateOrgGoals = currentWorkspace?.role === 'owner' || currentWorkspace?.role === 'admin';
+  // Only workspace owners or super admins can create goals
+  const isOwner = currentWorkspace?.role === 'owner';
+  const canCreateGoals = isOwner || isSuperAdmin;
 
   const selectedUnitOption = findUnitOption(unitSelection);
   const isCustomUnit = unitSelection === 'custom';
@@ -208,6 +211,11 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
     setGoalScope('individual');
   };
 
+  // If user cannot create goals, don't render the modal trigger
+  if (!canCreateGoals) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -241,29 +249,19 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
               </button>
               <button
                 type="button"
-                onClick={() => canCreateOrgGoals && setGoalScope('organizational')}
-                disabled={!canCreateOrgGoals}
+                onClick={() => setGoalScope('organizational')}
                 className={cn(
                   'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all relative',
                   goalScope === 'organizational'
                     ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
-                    : 'border-border hover:border-emerald-500/50',
-                  !canCreateOrgGoals && 'opacity-50 cursor-not-allowed'
+                    : 'border-border hover:border-emerald-500/50'
                 )}
               >
-                {!canCreateOrgGoals && (
-                  <Lock className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
-                )}
                 <Building2 className="h-6 w-6" />
                 <span className="font-medium text-sm">Organização</span>
                 <span className="text-xs text-muted-foreground text-center">Toda a equipa</span>
               </button>
             </div>
-            {!canCreateOrgGoals && (
-              <p className="text-xs text-muted-foreground">
-                Apenas administradores podem criar metas organizacionais
-              </p>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -396,10 +394,11 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
   );
 }
 
-function GoalCard({ goal, onUpdate, onDelete }: { 
+function GoalCard({ goal, onUpdate, onDelete, canManage }: { 
   goal: ProductivityGoal; 
   onUpdate: (updates: Partial<ProductivityGoal>) => void;
   onDelete: () => void;
+  canManage: boolean;
 }) {
   const config = PERIOD_CONFIG[goal.period];
   const statusConfig = STATUS_CONFIG[goal.status];
@@ -498,20 +497,22 @@ function GoalCard({ goal, onUpdate, onDelete }: {
             )}
           </div>
           <div className="flex items-center gap-1">
-            {goal.target_value && goal.status !== 'completed' && (
+            {goal.target_value && goal.status !== 'completed' && canManage && (
               <Button variant="outline" size="sm" onClick={handleIncrement}>
                 <Plus className="h-3 w-3 mr-1" />
                 +1
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive"
-              onClick={onDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {canManage && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive"
+                onClick={onDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
@@ -524,8 +525,14 @@ type ScopeFilter = 'all' | 'mine' | 'team';
 export function GoalsManager() {
   const { goals, goalsLoading, updateGoal, deleteGoal } = useProductivityCoach();
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const { isSuperAdmin } = useUserRole();
   const [activeTab, setActiveTab] = useState<GoalPeriod>('daily');
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
+
+  // Only workspace owners or super admins can manage (edit/delete) goals
+  const isOwner = currentWorkspace?.role === 'owner';
+  const canManageGoals = isOwner || isSuperAdmin;
 
   // Filter by period first
   const periodFilteredGoals = goals.filter((g) => g.period === activeTab);
@@ -686,6 +693,7 @@ export function GoalsManager() {
                       goal={goal}
                       onUpdate={(updates) => updateGoal.mutate({ id: goal.id, ...updates })}
                       onDelete={() => deleteGoal.mutate(goal.id)}
+                      canManage={canManageGoals}
                     />
                   ))}
                 </div>
