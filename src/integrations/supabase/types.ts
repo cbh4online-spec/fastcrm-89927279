@@ -615,6 +615,86 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_agent_response_cache: {
+        Row: {
+          agent_type: string
+          cache_key: string
+          confidence_level: string | null
+          context_hash: string | null
+          created_at: string | null
+          entity_id: string
+          entity_state_hash: string
+          entity_type: string
+          executive_summary: string | null
+          expires_at: string
+          hit_count: number | null
+          id: string
+          invalidated_at: string | null
+          invalidation_reason: string | null
+          last_used_at: string | null
+          memory_version: string | null
+          original_duration_ms: number | null
+          prompt_version: string
+          response: Json
+          tokens_saved: number | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_type: string
+          cache_key: string
+          confidence_level?: string | null
+          context_hash?: string | null
+          created_at?: string | null
+          entity_id: string
+          entity_state_hash: string
+          entity_type: string
+          executive_summary?: string | null
+          expires_at: string
+          hit_count?: number | null
+          id?: string
+          invalidated_at?: string | null
+          invalidation_reason?: string | null
+          last_used_at?: string | null
+          memory_version?: string | null
+          original_duration_ms?: number | null
+          prompt_version?: string
+          response: Json
+          tokens_saved?: number | null
+          workspace_id: string
+        }
+        Update: {
+          agent_type?: string
+          cache_key?: string
+          confidence_level?: string | null
+          context_hash?: string | null
+          created_at?: string | null
+          entity_id?: string
+          entity_state_hash?: string
+          entity_type?: string
+          executive_summary?: string | null
+          expires_at?: string
+          hit_count?: number | null
+          id?: string
+          invalidated_at?: string | null
+          invalidation_reason?: string | null
+          last_used_at?: string | null
+          memory_version?: string | null
+          original_duration_ms?: number | null
+          prompt_version?: string
+          response?: Json
+          tokens_saved?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_response_cache_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_agent_schedules: {
         Row: {
           agent_type: string
@@ -735,6 +815,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_agent_strategic_memory_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_cache_metrics: {
+        Row: {
+          agent_type: string
+          avg_hit_latency_ms: number | null
+          avg_miss_latency_ms: number | null
+          cache_hits: number | null
+          cache_misses: number | null
+          created_at: string | null
+          id: string
+          invalidations: number | null
+          period_end: string
+          period_start: string
+          tokens_saved: number | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_type: string
+          avg_hit_latency_ms?: number | null
+          avg_miss_latency_ms?: number | null
+          cache_hits?: number | null
+          cache_misses?: number | null
+          created_at?: string | null
+          id?: string
+          invalidations?: number | null
+          period_end: string
+          period_start: string
+          tokens_saved?: number | null
+          workspace_id: string
+        }
+        Update: {
+          agent_type?: string
+          avg_hit_latency_ms?: number | null
+          avg_miss_latency_ms?: number | null
+          cache_hits?: number | null
+          cache_misses?: number | null
+          created_at?: string | null
+          id?: string
+          invalidations?: number | null
+          period_end?: string
+          period_start?: string
+          tokens_saved?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_cache_metrics_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -16419,6 +16552,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_agent_memory: { Args: never; Returns: number }
+      cleanup_expired_cache: { Args: never; Returns: number }
       cleanup_expired_sso_tokens: { Args: never; Returns: undefined }
       consolidate_entity_memories: {
         Args: {
@@ -16750,6 +16884,16 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: Json
+      }
+      upsert_cache_metrics: {
+        Args: {
+          p_agent_type: string
+          p_cache_hit: boolean
+          p_latency_ms?: number
+          p_tokens_saved?: number
+          p_workspace_id: string
+        }
+        Returns: undefined
       }
       validate_memory: {
         Args: {

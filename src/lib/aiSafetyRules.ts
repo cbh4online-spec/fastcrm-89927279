@@ -134,6 +134,76 @@ export const CONTEXT_FORBIDDEN_PATTERNS = {
 
 export type ContextForbiddenPattern = keyof typeof CONTEXT_FORBIDDEN_PATTERNS;
 
+// =============================================================================
+// CACHE LAYER GUARDRAILS
+// =============================================================================
+
+export type CacheConfidenceLevel = 'low' | 'medium' | 'high';
+
+export interface CacheGuardrails {
+  // Cache eligibility
+  minConfidenceForCache: CacheConfidenceLevel;
+  maxTemperatureForCache: number;
+  
+  // TTL limits (in hours)
+  ttlByEntityType: Record<string, number>;
+  
+  // Invalidation
+  autoInvalidateOnEntityChange: boolean;
+  autoInvalidateOnMemoryUpdate: boolean;
+  autoInvalidateOnPromptVersionChange: boolean;
+  
+  // Limits
+  maxCacheEntriesPerEntity: number;
+  maxCacheAgeHours: number;
+  
+  // Safety
+  alwaysFetchLiveEntityData: boolean;
+  neverCacheManualTriggers: boolean;
+  logAllCacheHits: boolean;
+}
+
+export const CACHE_GUARDRAILS: CacheGuardrails = {
+  // Cache eligibility
+  minConfidenceForCache: 'medium',
+  maxTemperatureForCache: 0,
+  
+  // TTL limits (in hours)
+  ttlByEntityType: {
+    lead: 4,
+    opportunity: 2,
+    contact: 12,
+    client: 24,
+    company: 24,
+  },
+  
+  // Invalidation
+  autoInvalidateOnEntityChange: true,
+  autoInvalidateOnMemoryUpdate: true,
+  autoInvalidateOnPromptVersionChange: true,
+  
+  // Limits
+  maxCacheEntriesPerEntity: 5,
+  maxCacheAgeHours: 48,
+  
+  // Safety
+  alwaysFetchLiveEntityData: true,
+  neverCacheManualTriggers: true,
+  logAllCacheHits: true,
+};
+
+// Cache forbidden patterns (for validation)
+export const CACHE_FORBIDDEN_PATTERNS = {
+  NO_CACHE_LOW_CONFIDENCE: 'Respostas low confidence nunca são cacheadas',
+  NO_CACHE_HIGH_TEMPERATURE: 'Outputs com temperature > 0 nunca são cacheados',
+  NO_CACHE_WITHOUT_STATE_HASH: 'Cache sem entity state hash é proibido',
+  NO_SILENT_CACHE: 'Uso de cache deve ser indicado na resposta',
+  NO_STALE_CACHE: 'Cache com estado desatualizado deve ser invalidado',
+  NO_CACHE_MANUAL_TRIGGERS: 'Triggers manuais nunca são servidos do cache',
+} as const;
+
+export type CacheForbiddenPattern = keyof typeof CACHE_FORBIDDEN_PATTERNS;
+
 // Default configuration - enforces all safety rules
 export const DEFAULT_AI_SAFETY_RULES: AiSafetyRulesConfig = {
   autoSendMessagesProhibited: true,
