@@ -612,12 +612,12 @@ export function GoalsManager() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as GoalPeriod)}>
-        <TabsList className="grid grid-cols-4 w-full max-w-md">
+        <TabsList className="h-auto flex-wrap sm:flex-nowrap w-full max-w-2xl gap-1 p-1">
           {Object.entries(PERIOD_CONFIG).map(([key, config]) => {
             const Icon = config.icon;
             const count = goals.filter((g) => g.period === key).length;
             return (
-              <TabsTrigger key={key} value={key} className="gap-1">
+              <TabsTrigger key={key} value={key} className="gap-1.5 flex-1 min-w-[100px] data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{config.label}</span>
                 {count > 0 && (
