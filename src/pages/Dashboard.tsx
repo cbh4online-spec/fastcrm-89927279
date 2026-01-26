@@ -511,7 +511,15 @@ export default function Dashboard() {
             {/* Left Column - Charts */}
             <div className="col-span-12 lg:col-span-8 space-y-4 lg:space-y-6">
               {/* Opportunity Summary Chart */}
-              <NexusOpportunityChart isLoading={isLoading} periodStart={periodStart} periodEnd={periodEnd} />
+              <NexusOpportunityChart 
+                isLoading={isLoading} 
+                periodStart={periodStart} 
+                periodEnd={periodEnd} 
+                onDateChange={(start, end) => {
+                  setCustomDateRange({ from: start, to: end });
+                  setPeriodFilter("custom");
+                }}
+              />
 
               {/* Bottom Row - Two Charts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
