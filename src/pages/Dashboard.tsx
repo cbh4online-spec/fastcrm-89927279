@@ -27,11 +27,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Calendar,
-  Search,
   Download,
   Plus,
-  Bell,
-  HelpCircle,
   Users,
   Target,
   DollarSign,
@@ -270,12 +267,6 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <HelpCircle className="h-5 w-5 text-muted-foreground" />
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" className="gap-1.5 bg-primary shadow-lg shadow-primary/25">
