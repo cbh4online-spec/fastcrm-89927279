@@ -51,15 +51,28 @@ export function GoalsVsResultsReport() {
 
   // Fetch workspace members for filter
   const { data: members } = useQuery({
-    queryKey: ['workspace-members', currentWorkspace?.id],
+    queryKey: ['workspace-members-simple', currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace) return [];
       const { data, error } = await supabase
         .from('workspace_members')
-        .select('user_id, role, profiles:user_id(full_name, email)')
+        .select('user_id, role')
         .eq('workspace_id', currentWorkspace.id);
       if (error) throw error;
-      return data || [];
+      
+      // Fetch profiles separately
+      if (!data || data.length === 0) return [];
+      
+      const userIds = data.map(m => m.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+      
+      return data.map(member => ({
+        ...member,
+        profile: profiles?.find(p => p.id === member.user_id) || null
+      }));
     },
     enabled: !!currentWorkspace,
   });
@@ -149,10 +162,10 @@ export function GoalsVsResultsReport() {
                 <SelectContent>
                   <SelectItem value="all">Todos os Membros</SelectItem>
                   {members?.map(member => {
-                    const profile = member.profiles as { full_name?: string; email?: string } | null;
+                    const profile = member.profile as { full_name?: string; email?: string } | null;
                     return (
                       <SelectItem key={member.user_id} value={member.user_id}>
-                        {profile?.full_name || profile?.email || member.user_id}
+                        {profile?.full_name || profile?.email || member.user_id.slice(0, 8)}
                       </SelectItem>
                     );
                   })}
