@@ -2,6 +2,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { withCache } from '../_shared/cache-manager.ts';
 import type { CacheConfidenceLevel } from '../_shared/cache-types.ts';
+import { getRAGContext, formatRAGForPrompt, type RAGAgentContext } from '../_shared/rag-agent-helper.ts';
 
 /**
  * AI Agent: Opportunity Specialist
@@ -43,6 +44,13 @@ interface AgentOutput {
   score?: number;
   probability?: number;
   pipelineHealth?: 'excellent' | 'good' | 'attention' | 'critical';
+  /** RAG-based historical context */
+  historicalContext?: {
+    similarWon: number;
+    similarLost: number;
+    topSimilarity: number;
+    patterns: string[];
+  };
 }
 
 Deno.serve(async (req) => {
@@ -229,8 +237,52 @@ Deno.serve(async (req) => {
       toolUsed: 'calculate_score',
     });
 
-    // Step 5: Generate analysis with cache layer
+    // Step 5: RAG - Retrieve historical outcomes for comparison
     const step5Start = Date.now();
+    let ragContext: RAGAgentContext | null = null;
+    
+    try {
+      ragContext = await getRAGContext(
+        supabase,
+        workspaceId,
+        entityId,
+        'opportunity',
+        opportunity,
+        {
+          outcomeFilter: 'all', // Get both won and lost for comparison
+        }
+      );
+      
+      if (ragContext.hasContext) {
+        dataSourcesUsed.push('rag_historical_outcomes');
+      }
+      
+      reasoningTrace.push({
+        step: 5,
+        action: 'Retrieve historical comparison (RAG)',
+        input: `opportunity value: €${opportunity.value || 0}`,
+        output: ragContext.hasContext 
+          ? `${ragContext.outcomes.won} won, ${ragContext.outcomes.lost} lost similar cases (top similarity: ${Math.round(ragContext.outcomes.topSimilarity * 100)}%)`
+          : 'No similar historical cases found',
+        confidence: ragContext.hasContext ? 0.85 : 0.5,
+        durationMs: ragContext.retrievalTimeMs,
+        toolUsed: 'rag_search',
+      });
+    } catch (ragError) {
+      console.error('[Opportunity Agent] RAG error:', ragError);
+      reasoningTrace.push({
+        step: 5,
+        action: 'Retrieve historical comparison (RAG)',
+        input: `opportunity: ${entityId}`,
+        output: `Error: ${ragError instanceof Error ? ragError.message : 'Unknown'}`,
+        confidence: 0,
+        durationMs: Date.now() - step5Start,
+        toolUsed: 'rag_search',
+      });
+    }
+
+    // Step 6: Generate analysis with cache layer
+    const step6Start = Date.now();
     
     // Use cache layer for analysis
     const cacheResult = await withCache(
@@ -253,13 +305,14 @@ Deno.serve(async (req) => {
             daysUntilClose,
             progressPercent,
             totalStages,
-          }
+          },
+          ragContext
         );
         
         return {
           response: analysis,
           confidenceLevel: analysis.confidenceLevel as CacheConfidenceLevel,
-          durationMs: Date.now() - step5Start,
+          durationMs: Date.now() - step6Start,
           tokensUsed: 0,
         };
       }
@@ -268,14 +321,14 @@ Deno.serve(async (req) => {
     const analysis = cacheResult.response;
 
     reasoningTrace.push({
-      step: 5,
+      step: 6,
       action: cacheResult.fromCache ? 'Retrieved from cache' : 'Generate risk/probability analysis',
       input: `All data sources: ${dataSourcesUsed.join(', ')}`,
       output: cacheResult.fromCache 
         ? `Cache HIT (${cacheResult.lookupTimeMs}ms)`
         : `Confidence: ${analysis.confidenceLevel}, ${analysis.keySignals.length} signals, ${analysis.riskIndicators.length} risks`,
       confidence: analysis.confidenceLevel === 'high' ? 0.9 : analysis.confidenceLevel === 'medium' ? 0.7 : 0.5,
-      durationMs: cacheResult.fromCache ? cacheResult.lookupTimeMs : Date.now() - step5Start,
+      durationMs: cacheResult.fromCache ? cacheResult.lookupTimeMs : Date.now() - step6Start,
       toolUsed: cacheResult.fromCache ? 'cache_lookup' : 'calculate_score',
     });
 
@@ -445,7 +498,8 @@ interface OpportunityMetrics {
 
 function generateOpportunityAnalysis(
   opportunity: any,
-  metrics: OpportunityMetrics
+  metrics: OpportunityMetrics,
+  ragContext?: RAGAgentContext | null
 ): AgentOutput {
   const keySignals: string[] = [];
   const riskIndicators: string[] = [];
@@ -486,12 +540,39 @@ function generateOpportunityAnalysis(
     riskIndicators.push('Sem contacto associado');
   }
 
+  // RAG-based signals - add insights from historical data
+  let historicalContext: AgentOutput['historicalContext'] | undefined;
+  
+  if (ragContext?.hasContext) {
+    historicalContext = {
+      similarWon: ragContext.outcomes.won,
+      similarLost: ragContext.outcomes.lost,
+      topSimilarity: ragContext.outcomes.topSimilarity,
+      patterns: [],
+    };
+    
+    // Add historical signal if we have good matches
+    if (ragContext.outcomes.topSimilarity > 0.7) {
+      if (ragContext.outcomes.won > ragContext.outcomes.lost) {
+        keySignals.push(`Histórico favorável: ${ragContext.outcomes.won} casos similares ganhos`);
+      } else if (ragContext.outcomes.lost > ragContext.outcomes.won) {
+        riskIndicators.push(`Histórico desfavorável: ${ragContext.outcomes.lost} casos similares perdidos`);
+      }
+    }
+  }
+
   // Determine confidence
   let confidence: 'low' | 'medium' | 'high' = 'medium';
   if (keySignals.length >= 4 && riskIndicators.length <= 1) {
     confidence = 'high';
   } else if (riskIndicators.length >= 3 || probability < 20) {
     confidence = 'low';
+  }
+  
+  // Boost confidence if we have good RAG context
+  if (ragContext?.hasContext && ragContext.outcomes.topSimilarity > 0.75) {
+    if (confidence === 'low') confidence = 'medium';
+    else if (confidence === 'medium') confidence = 'high';
   }
 
   // Determine pipeline health
@@ -544,6 +625,18 @@ function generateOpportunityAnalysis(
   } else if (riskIndicators.length > 0) {
     summaryParts.push(`Atenção: ${riskIndicators[0]}.`);
   }
+  
+  // Add RAG insight to summary if available
+  if (historicalContext && ragContext && ragContext.outcomes.topSimilarity > 0.7) {
+    const wonRate = historicalContext.similarWon + historicalContext.similarLost > 0
+      ? Math.round((historicalContext.similarWon / (historicalContext.similarWon + historicalContext.similarLost)) * 100)
+      : 0;
+    if (wonRate > 60) {
+      summaryParts.push(`Baseado em ${historicalContext.similarWon + historicalContext.similarLost} casos similares: ${wonRate}% taxa de sucesso.`);
+    } else if (wonRate < 40 && historicalContext.similarLost > 0) {
+      summaryParts.push(`Atenção: casos similares têm apenas ${wonRate}% taxa de sucesso.`);
+    }
+  }
 
   return {
     executiveSummary: summaryParts.join(' '),
@@ -556,5 +649,6 @@ function generateOpportunityAnalysis(
     score: probability,
     probability,
     pipelineHealth,
+    historicalContext,
   };
 }
