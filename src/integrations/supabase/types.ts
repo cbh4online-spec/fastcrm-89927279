@@ -15563,6 +15563,7 @@ export type Database = {
           cae_codes: string[] | null
           cae_description: string | null
           capital_social: string | null
+          company_iban: string | null
           company_name: string | null
           company_status: string | null
           county: string | null
@@ -15575,13 +15576,17 @@ export type Database = {
           instagram_url: string | null
           legal_nature: string | null
           linkedin_url: string | null
+          logo_url: string | null
           managed_by_workspace_id: string | null
           name: string
           owner_id: string | null
           parish: string | null
+          payment_info: string | null
           phone: string | null
           racius_url: string | null
           region: string | null
+          signature_name: string | null
+          signature_title: string | null
           slug: string
           status: string | null
           tax_id: string | null
@@ -15598,6 +15603,7 @@ export type Database = {
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
+          company_iban?: string | null
           company_name?: string | null
           company_status?: string | null
           county?: string | null
@@ -15610,13 +15616,17 @@ export type Database = {
           instagram_url?: string | null
           legal_nature?: string | null
           linkedin_url?: string | null
+          logo_url?: string | null
           managed_by_workspace_id?: string | null
           name: string
           owner_id?: string | null
           parish?: string | null
+          payment_info?: string | null
           phone?: string | null
           racius_url?: string | null
           region?: string | null
+          signature_name?: string | null
+          signature_title?: string | null
           slug: string
           status?: string | null
           tax_id?: string | null
@@ -15633,6 +15643,7 @@ export type Database = {
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
+          company_iban?: string | null
           company_name?: string | null
           company_status?: string | null
           county?: string | null
@@ -15645,13 +15656,17 @@ export type Database = {
           instagram_url?: string | null
           legal_nature?: string | null
           linkedin_url?: string | null
+          logo_url?: string | null
           managed_by_workspace_id?: string | null
           name?: string
           owner_id?: string | null
           parish?: string | null
+          payment_info?: string | null
           phone?: string | null
           racius_url?: string | null
           region?: string | null
+          signature_name?: string | null
+          signature_title?: string | null
           slug?: string
           status?: string | null
           tax_id?: string | null

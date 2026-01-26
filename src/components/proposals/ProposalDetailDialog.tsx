@@ -19,8 +19,6 @@ import {
   Activity,
   Loader2,
   FileText,
-  Monitor,
-  Smartphone,
   Building2,
   User,
   Calendar,
@@ -39,6 +37,9 @@ import { ProposalPreview } from "./ProposalPreview";
 import { ProposalItemsEditor } from "./ProposalItemsEditor";
 import { ProposalClientSection } from "./ProposalClientSection";
 import { ProposalConditionsSection } from "./ProposalConditionsSection";
+import { ProposalViewToggle } from "./ProposalViewToggle";
+import { ProposalInternalView } from "./ProposalInternalView";
+import { ProposalClientDocument } from "./ProposalClientDocument";
 import { PAYMENT_CONDITIONS, type ClientType } from "./proposalConstants";
 import {
   useProposal,
@@ -48,6 +49,8 @@ import {
   useUpdateProposal,
   useProposalItems,
 } from "@/hooks/useProposals";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
 import type { ProposalStatus, ContentBlock } from "@/types/proposal";
 import { cn } from "@/lib/utils";
 
@@ -71,8 +74,10 @@ export function ProposalDetailDialog({
   proposalId,
 }: ProposalDetailDialogProps) {
   const [tab, setTab] = useState<"preview" | "edit" | "items" | "client" | "conditions" | "versions" | "activity">("preview");
-  const [deviceView, setDeviceView] = useState<"desktop" | "mobile">("desktop");
+  const [viewMode, setViewMode] = useState<"internal" | "client">("internal");
   const [isEditing, setIsEditing] = useState(false);
+  const [workspaceData, setWorkspaceData] = useState<Record<string, unknown> | null>(null);
+  const { currentWorkspace } = useWorkspace();
   
   // Edit form state
   const [editTitle, setEditTitle] = useState("");
@@ -142,6 +147,22 @@ export function ProposalDetailDialog({
       initializeEditForm();
     }
   }, [proposal]);
+  
+  // Fetch workspace data for client document
+  useEffect(() => {
+    const fetchWorkspaceData = async () => {
+      if (!currentWorkspace?.id) return;
+      const { data } = await supabase
+        .from("workspaces")
+        .select("*, logo_url, company_iban, signature_name, signature_title, payment_info")
+        .eq("id", currentWorkspace.id)
+        .single();
+      if (data) {
+        setWorkspaceData(data);
+      }
+    };
+    fetchWorkspaceData();
+  }, [currentWorkspace?.id]);
   
   const handleStartEditing = () => {
     initializeEditForm();
@@ -446,68 +467,43 @@ export function ProposalDetailDialog({
                 </TabsTrigger>
               </TabsList>
 
-              {/* Device Toggle */}
+              {/* View Mode Toggle */}
               {tab === "preview" && (
-                <div className="flex items-center gap-1 bg-muted rounded-full p-1">
-                  <Button
-                    variant={deviceView === "desktop" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setDeviceView("desktop")}
-                    className={cn(
-                      "rounded-full h-7 px-3 text-xs",
-                      deviceView === "desktop" && "bg-primary text-primary-foreground"
-                    )}
-                  >
-                    <Monitor className="h-3.5 w-3.5 mr-1.5" />
-                    Desktop
-                  </Button>
-                  <Button
-                    variant={deviceView === "mobile" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setDeviceView("mobile")}
-                    className={cn(
-                      "rounded-full h-7 px-3 text-xs",
-                      deviceView === "mobile" && "bg-primary text-primary-foreground"
-                    )}
-                  >
-                    <Smartphone className="h-3.5 w-3.5 mr-1.5" />
-                    Mobile
-                  </Button>
-                </div>
+                <ProposalViewToggle 
+                  viewMode={viewMode} 
+                  onChange={setViewMode} 
+                />
               )}
             </div>
 
             <TabsContent value="preview" className="flex-1 min-h-0 mt-0 p-6 bg-muted/20">
               <ScrollArea className="h-full">
-                <ProposalPreview
-                  title={proposal.title}
-                  blocks={proposal.content_blocks}
-                  variables={proposal.variables}
-                  ctaText={proposal.cta_text}
-                  ctaColor={proposal.cta_color}
-                  price={proposal.price}
-                  currency={proposal.currency}
-                  showCta={false}
-                  items={proposalItems?.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    description: item.description,
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    total_price: item.total_price || (item.quantity * item.unit_price),
-                  }))}
-                  clientName={proposal.company?.name || proposal.contact?.name}
-                  clientNif={proposal.billing_nif || proposal.company?.tax_id || proposal.contact?.tax_id}
-                  clientAddress={proposal.billing_address || proposal.company?.address || proposal.contact?.address}
-                  paymentConditions={
-                    proposal.payment_conditions 
-                      ? PAYMENT_CONDITIONS.find(p => p.value === proposal.payment_conditions)?.label || proposal.payment_conditions
-                      : null
-                  }
-                  validityDays={proposal.validity_days}
-                  notes={proposal.notes}
-                  createdAt={proposal.created_at}
-                />
+                {viewMode === "internal" ? (
+                  <ProposalInternalView
+                    proposal={proposal}
+                    items={proposalItems?.map(item => ({
+                      id: item.id,
+                      name: item.name,
+                      description: item.description,
+                      quantity: item.quantity,
+                      unit_price: item.unit_price,
+                      total_price: item.total_price || (item.quantity * item.unit_price),
+                    }))}
+                  />
+                ) : (
+                  <ProposalClientDocument
+                    proposal={proposal}
+                    items={proposalItems?.map(item => ({
+                      id: item.id,
+                      name: item.name,
+                      description: item.description,
+                      quantity: item.quantity,
+                      unit_price: item.unit_price,
+                      total_price: item.total_price || (item.quantity * item.unit_price),
+                    }))}
+                    workspace={workspaceData as Record<string, unknown> & { id: string; name: string }}
+                  />
+                )}
               </ScrollArea>
             </TabsContent>
 
