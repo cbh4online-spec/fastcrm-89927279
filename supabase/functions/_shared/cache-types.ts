@@ -6,27 +6,29 @@
  */
 
 // =============================================================================
-// AGENT TYPES (from aiAgents)
+// AGENT TYPES
 // =============================================================================
 
 export type AgentType = 'lead' | 'contact' | 'opportunity' | 'client';
 
+// Generic agent output - each agent may extend this
+// The cache layer stores the raw JSON, so it's flexible
 export interface AgentOutput {
   executiveSummary: string;
   statusAssessment: string;
   keySignals: string[];
   riskIndicators: string[];
-  recommendations: Array<{
-    action: string;
-    priority: 'high' | 'medium' | 'low';
-    reasoning: string;
-  }>;
+  recommendedAction: string;
+  recommendedActionType: string;
   confidenceLevel: 'low' | 'medium' | 'high';
-  dataQuality: {
-    completeness: number;
-    freshness: number;
-    reliability: number;
-  };
+  score?: number;
+  temperature?: 'cold' | 'warm' | 'hot';
+  probability?: number;
+  pipelineHealth?: 'excellent' | 'good' | 'attention' | 'critical';
+  healthScore?: number;
+  lifetimeValue?: number;
+  churnRisk?: 'low' | 'medium' | 'high';
+  [key: string]: unknown; // Allow additional fields
 }
 
 // =============================================================================
@@ -140,7 +142,8 @@ export interface CacheStoreParams {
   entityId: string;
   entityType: string;
   cacheKey: CacheKey;
-  response: AgentOutput;
+  // deno-lint-ignore no-explicit-any
+  response: any; // Generic to support different agent output shapes
   confidenceLevel: CacheConfidenceLevel;
   durationMs: number;
   tokensUsed: number;

@@ -5,7 +5,6 @@
  * Handles cache lookup, storage, and metrics tracking.
  */
 
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import type {
   CacheKey,
   CacheEntry,
@@ -19,9 +18,14 @@ import type {
   CacheMissReason,
   CacheConfig,
   AgentOutput,
+  AgentType,
 } from './cache-types.ts';
 import { DEFAULT_CACHE_CONFIG } from './cache-types.ts';
 import { buildEntityCacheKey, PROMPT_VERSION } from './cache-key-builder.ts';
+
+// Use a generic type for Supabase client to avoid version conflicts
+// deno-lint-ignore no-explicit-any
+type SupabaseClientAny = any;
 
 // =============================================================================
 // CACHE ELIGIBILITY
@@ -78,7 +82,7 @@ export function checkCacheEligibility(
  * Look up a cached response
  */
 export async function lookupCache(
-  supabase: SupabaseClient,
+  supabase: SupabaseClientAny,
   params: CacheLookupParams
 ): Promise<CacheCheckResult> {
   const startTime = Date.now();
@@ -147,7 +151,7 @@ export async function lookupCache(
  * Store a response in the cache
  */
 export async function storeInCache(
-  supabase: SupabaseClient,
+  supabase: SupabaseClientAny,
   params: CacheStoreParams,
   config: CacheConfig = DEFAULT_CACHE_CONFIG
 ): Promise<{ success: boolean; error?: string }> {
@@ -208,7 +212,7 @@ export async function storeInCache(
  * Invalidate cache entries for an entity
  */
 export async function invalidateCache(
-  supabase: SupabaseClient,
+  supabase: SupabaseClientAny,
   params: {
     entityId?: string;
     agentType?: string;
@@ -263,7 +267,7 @@ export async function invalidateCache(
  * Record cache metrics
  */
 export async function recordCacheMetrics(
-  supabase: SupabaseClient,
+  supabase: SupabaseClientAny,
   workspaceId: string,
   agentType: string,
   cacheHit: boolean,
@@ -290,9 +294,11 @@ export async function recordCacheMetrics(
 
 /**
  * Main cache layer interface for agents
+ * Uses any types for flexibility with different agent response shapes
  */
+// deno-lint-ignore no-explicit-any
 export async function withCache(
-  supabase: SupabaseClient,
+  supabase: SupabaseClientAny,
   params: {
     workspaceId: string;
     agentType: string;
@@ -304,13 +310,15 @@ export async function withCache(
     triggerType: string;
     config?: Partial<CacheConfig>;
   },
+  // deno-lint-ignore no-explicit-any
   executeFn: () => Promise<{
-    response: AgentOutput;
+    response: any;
     confidenceLevel: CacheConfidenceLevel;
     durationMs: number;
     tokensUsed: number;
   }>
-): Promise<CacheLayerResult> {
+  // deno-lint-ignore no-explicit-any
+): Promise<{ fromCache: boolean; cacheKey: string; response: any; lookupTimeMs: number; reason?: CacheMissReason; tokensSaved?: number; originalDurationMs?: number }> {
   const config = { ...DEFAULT_CACHE_CONFIG, ...params.config };
   
   // Build cache key
@@ -348,7 +356,7 @@ export async function withCache(
   // Try cache lookup
   const lookupResult = await lookupCache(supabase, {
     workspaceId: params.workspaceId,
-    agentType: params.agentType as any,
+    agentType: params.agentType as AgentType,
     entityId: params.entityId,
     cacheKey: cacheKey.compositeKey,
   });
@@ -398,7 +406,7 @@ export async function withCache(
   if (storeEligibility.eligible) {
     await storeInCache(supabase, {
       workspaceId: params.workspaceId,
-      agentType: params.agentType as any,
+      agentType: params.agentType as AgentType,
       entityId: params.entityId,
       entityType: params.entityType,
       cacheKey,

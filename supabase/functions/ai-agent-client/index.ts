@@ -1,5 +1,7 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { withCache } from '../_shared/cache-manager.ts';
+import type { CacheConfidenceLevel } from '../_shared/cache-types.ts';
 
 /**
  * AI Agent: Client Specialist
@@ -10,6 +12,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  * - Identify upsell opportunities
  * - Monitor satisfaction
  * - Suggest retention actions
+ * - Response caching for cost optimization
  */
 
 interface ClientAgentRequest {
@@ -229,157 +232,194 @@ Deno.serve(async (req) => {
       toolUsed: 'get_entity_data',
     });
 
-    // Step 5: Generate analysis
+    // Step 5: Generate analysis with cache layer
     const step5Start = Date.now();
-    const analysis = generateClientAnalysis(
-      entity,
-      entityType,
+    
+    // Use cache layer for analysis
+    const cacheResult = await withCache(
+      supabase,
       {
-        wonCount,
-        lifetimeValue,
-        daysSincePurchase,
-        activityCount,
-        daysSinceActivity,
-        openOppCount,
-        pipelineValue,
+        workspaceId,
+        agentType: 'client',
+        entityId,
+        entityType,
+        entityData: entity,
+        triggerType,
+      },
+      async () => {
+        const analysis = generateClientAnalysis(
+          entity,
+          entityType,
+          {
+            wonCount,
+            lifetimeValue,
+            daysSincePurchase,
+            activityCount,
+            daysSinceActivity,
+            openOppCount,
+            pipelineValue,
+          }
+        );
+        
+        return {
+          response: analysis,
+          confidenceLevel: analysis.confidenceLevel as CacheConfidenceLevel,
+          durationMs: Date.now() - step5Start,
+          tokensUsed: 0,
+        };
       }
     );
+    
+    const analysis = cacheResult.response;
 
     reasoningTrace.push({
       step: 5,
-      action: 'Generate health & retention analysis',
+      action: cacheResult.fromCache ? 'Retrieved from cache' : 'Generate health & retention analysis',
       input: `All data sources: ${dataSourcesUsed.join(', ')}`,
-      output: `Health: ${analysis.healthScore}/100, Churn risk: ${analysis.churnRisk}, ${analysis.keySignals.length} signals`,
+      output: cacheResult.fromCache 
+        ? `Cache HIT (${cacheResult.lookupTimeMs}ms)`
+        : `Health: ${analysis.healthScore}/100, Churn risk: ${analysis.churnRisk}, ${analysis.keySignals.length} signals`,
       confidence: analysis.confidenceLevel === 'high' ? 0.9 : analysis.confidenceLevel === 'medium' ? 0.7 : 0.5,
-      durationMs: Date.now() - step5Start,
-      toolUsed: 'calculate_score',
+      durationMs: cacheResult.fromCache ? cacheResult.lookupTimeMs : Date.now() - step5Start,
+      toolUsed: cacheResult.fromCache ? 'cache_lookup' : 'calculate_score',
     });
 
     const durationMs = Date.now() - startTime;
 
-    // Record execution
-    const { data: executionRecord } = await supabase
-      .from('ai_agent_executions')
-      .insert({
-        workspace_id: workspaceId,
-        agent_type: 'client',
-        entity_id: entityId,
-        entity_type: entityType,
-        trigger_type: triggerType,
-        input_summary: {
-          name: entity.name,
-          wonCount,
-          lifetimeValue,
-          activityCount,
-        },
-        reasoning_trace: reasoningTrace,
-        output: analysis,
-        executive_summary: analysis.executiveSummary,
-        status_assessment: analysis.statusAssessment,
-        key_signals: analysis.keySignals,
-        risk_indicators: analysis.riskIndicators,
-        recommended_action: analysis.recommendedAction,
-        recommended_action_type: analysis.recommendedActionType,
-        confidence_level: analysis.confidenceLevel,
-        duration_ms: durationMs,
-        tokens_used: 0,
-      })
-      .select('id')
-      .single();
+    // Only record execution and store memory if NOT from cache
+    let executionId = 'cached';
+    
+    if (!cacheResult.fromCache) {
+      // Record execution
+      const { data: executionRecord } = await supabase
+        .from('ai_agent_executions')
+        .insert({
+          workspace_id: workspaceId,
+          agent_type: 'client',
+          entity_id: entityId,
+          entity_type: entityType,
+          trigger_type: triggerType,
+          input_summary: {
+            name: entity.name,
+            wonCount,
+            lifetimeValue,
+            activityCount,
+          },
+          reasoning_trace: reasoningTrace,
+          output: analysis,
+          executive_summary: analysis.executiveSummary,
+          status_assessment: analysis.statusAssessment,
+          key_signals: analysis.keySignals,
+          risk_indicators: analysis.riskIndicators,
+          recommended_action: analysis.recommendedAction,
+          recommended_action_type: analysis.recommendedActionType,
+          confidence_level: analysis.confidenceLevel,
+          duration_ms: durationMs,
+          tokens_used: 0,
+        })
+        .select('id')
+        .single();
+      
+      executionId = executionRecord?.id || 'unknown';
 
-    // Store conclusion in memory using store_entity_memory function
-    if (analysis.confidenceLevel !== 'low') {
-      try {
-        // Try to use the enhanced store_entity_memory function
-        const { error: storeError } = await supabase.rpc(
-          'store_entity_memory',
-          {
-            p_workspace_id: workspaceId,
-            p_entity_id: entityId,
-            p_entity_type: entityType,
-            p_memory_type: 'conclusion',
-            p_content: analysis.executiveSummary,
-            p_relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
-            p_source_execution_id: executionRecord?.id || null,
-            p_expires_in_days: 60, // Longer for client health
-            p_created_by: userId
+      // Store conclusion in memory
+      if (analysis.confidenceLevel !== 'low') {
+        try {
+          const { error: storeError } = await supabase.rpc(
+            'store_entity_memory',
+            {
+              p_workspace_id: workspaceId,
+              p_entity_id: entityId,
+              p_entity_type: entityType,
+              p_memory_type: 'conclusion',
+              p_content: analysis.executiveSummary,
+              p_relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+              p_source_execution_id: executionRecord?.id || null,
+              p_expires_in_days: 60,
+              p_created_by: userId
+            }
+          );
+          
+          if (storeError) {
+            console.log('[Client Agent] store_entity_memory not available, using direct insert');
+            await supabase
+              .from('ai_agent_memory')
+              .insert({
+                workspace_id: workspaceId,
+                entity_id: entityId,
+                entity_type: entityType,
+                memory_type: 'conclusion',
+                memory_category: 'general',
+                content: analysis.executiveSummary.substring(0, 2000),
+                relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
+                source_execution_id: executionRecord?.id,
+                source_type: 'agent_conclusion',
+                expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+                created_by: userId,
+              });
           }
-        );
-        
-        if (storeError) {
-          console.log('[Client Agent] store_entity_memory not available, using direct insert');
-          // Fallback to direct insert
-          await supabase
-            .from('ai_agent_memory')
-            .insert({
-              workspace_id: workspaceId,
-              entity_id: entityId,
-              entity_type: entityType,
-              memory_type: 'conclusion',
-              memory_category: 'general',
-              content: analysis.executiveSummary.substring(0, 2000),
-              relevance_score: analysis.confidenceLevel === 'high' ? 1.0 : 0.7,
-              source_execution_id: executionRecord?.id,
-              source_type: 'agent_conclusion',
-              expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-              created_by: userId,
-            });
+          
+          if (analysis.churnRisk && analysis.churnRisk !== 'low') {
+            await supabase
+              .from('ai_agent_memory')
+              .insert({
+                workspace_id: workspaceId,
+                entity_id: entityId,
+                entity_type: entityType,
+                memory_type: 'risk',
+                memory_category: 'relationship',
+                content: `Churn risk: ${analysis.churnRisk}. Health score: ${analysis.healthScore}/100. ${analysis.riskIndicators.join('; ')}`,
+                relevance_score: analysis.churnRisk === 'high' ? 1.0 : 0.8,
+                source_execution_id: executionRecord?.id,
+                source_type: 'agent_conclusion',
+                expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                created_by: userId,
+              });
+          }
+          
+          if (analysis.lifetimeValue && analysis.lifetimeValue > 0) {
+            await supabase
+              .from('ai_agent_memory')
+              .insert({
+                workspace_id: workspaceId,
+                entity_id: entityId,
+                entity_type: entityType,
+                memory_type: 'fact',
+                memory_category: 'price_sensitivity',
+                content: `Lifetime Value: €${analysis.lifetimeValue.toLocaleString()}. Cliente desde análise inicial.`,
+                relevance_score: 0.9,
+                source_execution_id: executionRecord?.id,
+                source_type: 'agent_conclusion',
+                expires_at: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
+                created_by: userId,
+              });
+          }
+        } catch (memErr) {
+          console.error('[Client Agent] Error storing memory:', memErr);
         }
-        
-        // Store churn risk as pattern memory if high or medium
-        if (analysis.churnRisk && analysis.churnRisk !== 'low') {
-          await supabase
-            .from('ai_agent_memory')
-            .insert({
-              workspace_id: workspaceId,
-              entity_id: entityId,
-              entity_type: entityType,
-              memory_type: 'risk',
-              memory_category: 'relationship',
-              content: `Churn risk: ${analysis.churnRisk}. Health score: ${analysis.healthScore}/100. ${analysis.riskIndicators.join('; ')}`,
-              relevance_score: analysis.churnRisk === 'high' ? 1.0 : 0.8,
-              source_execution_id: executionRecord?.id,
-              source_type: 'agent_conclusion',
-              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              created_by: userId,
-            });
-        }
-        
-        // Store LTV as fact if available
-        if (analysis.lifetimeValue && analysis.lifetimeValue > 0) {
-          await supabase
-            .from('ai_agent_memory')
-            .insert({
-              workspace_id: workspaceId,
-              entity_id: entityId,
-              entity_type: entityType,
-              memory_type: 'fact',
-              memory_category: 'price_sensitivity',
-              content: `Lifetime Value: €${analysis.lifetimeValue.toLocaleString()}. Cliente desde análise inicial.`,
-              relevance_score: 0.9,
-              source_execution_id: executionRecord?.id,
-              source_type: 'agent_conclusion',
-              expires_at: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(), // 6 months for LTV facts
-              created_by: userId,
-            });
-        }
-      } catch (memErr) {
-        console.error('[Client Agent] Error storing memory:', memErr);
       }
     }
 
-    console.log(`[Client Agent] Completed in ${durationMs}ms`);
+    const responseWithCache = {
+      success: true,
+      executionId,
+      output: analysis,
+      reasoningTrace,
+      dataSourcesUsed,
+      durationMs,
+      tokensUsed: 0,
+      cache: {
+        fromCache: cacheResult.fromCache,
+        cacheKey: cacheResult.cacheKey,
+        lookupTimeMs: cacheResult.lookupTimeMs,
+        tokensSaved: cacheResult.tokensSaved,
+      },
+    };
+
+    console.log(`[Client Agent] Completed in ${durationMs}ms, fromCache: ${cacheResult.fromCache}`);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        executionId: executionRecord?.id || 'unknown',
-        output: analysis,
-        reasoningTrace,
-        dataSourcesUsed,
-        durationMs,
-        tokensUsed: 0,
-      }),
+      JSON.stringify(responseWithCache),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
