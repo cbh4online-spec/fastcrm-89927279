@@ -209,6 +209,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Visão Geral", href: "/dashboard/reports", icon: PieChart, tooltip: "KPIs executivos" },
       { name: "KPIs", href: "/dashboard/reports/kpis", icon: TrendingUp, tooltip: "Métricas detalhadas" },
+      { name: "Metas vs Resultados", href: "/dashboard/reports/goals", icon: Target, tooltip: "Comparar metas com dados reais", highlight: true },
       { name: "Previsões", href: "/dashboard/reports/forecasts", icon: TrendingUp, tooltip: "Receita prevista" },
       { name: "Consumo", href: "/dashboard/reports/consumption", icon: BarChart3, tooltip: "Sessões e capacidade" },
     ],

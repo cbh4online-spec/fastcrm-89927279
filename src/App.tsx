@@ -54,6 +54,7 @@ import ReportsRetention from "./pages/ReportsRetention";
 import ReportsKPIs from "./pages/ReportsKPIs";
 import ReportsGrowth from "./pages/ReportsGrowth";
 import ReportsSales from "./pages/ReportsSales";
+import ReportsGoals from "./pages/ReportsGoals";
 import Marketplace from "./pages/Marketplace";
 import MarketplaceAdmin from "./pages/admin/MarketplaceAdmin";
 import GoogleLocalProspecting from "./pages/GoogleLocalProspecting";
@@ -182,6 +183,7 @@ const App = () => (
                       <Route path="/dashboard/reports/kpis" element={<ReportsKPIs />} />
                       <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
                       <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
+                      <Route path="/dashboard/reports/goals" element={<ReportsGoals />} />
                       <Route path="/dashboard/marketplace" element={<Marketplace />} />
                       <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
                       <Route path="/dashboard/scheduling" element={<SchedulingPage />} />
