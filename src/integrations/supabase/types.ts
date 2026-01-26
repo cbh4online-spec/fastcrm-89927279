@@ -15680,6 +15680,83 @@ export type Database = {
           },
         ]
       }
+      trigger_job_runs: {
+        Row: {
+          attempts: number | null
+          completed_at: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          error_data: Json | null
+          id: string
+          idempotency_key: string | null
+          input_data: Json | null
+          job_type: string
+          max_attempts: number | null
+          output_data: Json | null
+          priority: number | null
+          recommendation_id: string | null
+          scheduled_for: string | null
+          started_at: string | null
+          status: string
+          trigger_run_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_data?: Json | null
+          id?: string
+          idempotency_key?: string | null
+          input_data?: Json | null
+          job_type: string
+          max_attempts?: number | null
+          output_data?: Json | null
+          priority?: number | null
+          recommendation_id?: string | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string
+          trigger_run_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_data?: Json | null
+          id?: string
+          idempotency_key?: string | null
+          input_data?: Json | null
+          job_type?: string
+          max_attempts?: number | null
+          output_data?: Json | null
+          priority?: number | null
+          recommendation_id?: string | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string
+          trigger_run_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trigger_job_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_alerts: {
         Row: {
           alert_type: string
