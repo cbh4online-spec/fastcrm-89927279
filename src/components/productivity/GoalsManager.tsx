@@ -62,6 +62,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useProductivityCoach, GoalPeriod, GoalStatus, GoalScope, ProductivityGoal } from '@/hooks/useProductivityCoach';
 import { useGoalsProgress, isAutoCalculatedUnit, getUnitDataSource } from '@/hooks/useGoalProgressCalculation';
+import { PeriodSummary } from './PeriodSummary';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -1141,17 +1142,10 @@ export function GoalsManager() {
               </Card>
             ) : (
               <>
-                <div className="flex items-center gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">
-                      {completedCount} de {filteredGoals.length} metas concluídas
-                    </p>
-                    <Progress
-                      value={filteredGoals.length > 0 ? (completedCount / filteredGoals.length) * 100 : 0}
-                      className="h-2 mt-2"
-                    />
-                  </div>
-                </div>
+                <PeriodSummary 
+                  goals={filteredGoals} 
+                  autoProgressMap={autoProgressMap} 
+                />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredGoals.map((goal) => (
                     <GoalCard
