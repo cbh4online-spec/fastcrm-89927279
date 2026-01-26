@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, HelpCircle, Plus } from "lucide-react";
+import { ArrowLeft, Bell, HelpCircle, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,7 @@ import { OpportunityStagesStepper } from "./detail/OpportunityStagesStepper";
 import { OpportunityDetailsGrid } from "./detail/OpportunityDetailsGrid";
 import { OpportunityContactsSidebar } from "./detail/OpportunityContactsSidebar";
 import { OpportunityActivityTimeline } from "./detail/OpportunityActivityTimeline";
+import { OpportunityAIInsightsSection } from "./OpportunityAIInsightsSection";
 import { toast } from "sonner";
 
 interface OpportunityDetailPageProps {
@@ -161,6 +162,10 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="w-full md:w-auto">
                 <TabsTrigger value="overview" className="flex-1 md:flex-none">Visão Geral</TabsTrigger>
+                <TabsTrigger value="insights" className="flex-1 md:flex-none gap-1">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Insights IA
+                </TabsTrigger>
                 <TabsTrigger value="tasks" className="flex-1 md:flex-none">Tarefas</TabsTrigger>
                 <TabsTrigger value="notes" className="flex-1 md:flex-none">Notas</TabsTrigger>
               </TabsList>
@@ -181,6 +186,15 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 <OpportunityActivityTimeline
                   activities={formattedActivities}
                   opportunityId={opportunity.id}
+                />
+              </TabsContent>
+
+              <TabsContent value="insights" className="mt-4 md:mt-6">
+                <OpportunityAIInsightsSection 
+                  opportunityId={opportunity.id}
+                  onActionClick={(actionType) => {
+                    toast.info(`Ação: ${actionType}`);
+                  }}
                 />
               </TabsContent>
 

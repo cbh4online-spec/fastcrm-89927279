@@ -52,6 +52,7 @@ import { EntityContext } from "@/hooks/useEntityProductSuggestions";
 import { CustomFieldsSection } from "@/components/leads/sections/CustomFieldsSection";
 import { InstagramDataSection } from "@/components/leads/sections/InstagramDataSection";
 import { AIAnalysisSection } from "@/components/leads/sections/AIAnalysisSection";
+import { LeadAgentInsightsSection } from "@/components/leads/sections/LeadAgentInsightsSection";
 import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/components/EntityCreditProposalsSection";
 
 const statusColors: Record<string, string> = {
@@ -183,6 +184,13 @@ export function LeadDetailWithSidebar() {
       case 'insights':
         return (
           <div className="space-y-6">
+            {/* AI Agent Analysis - New Architecture */}
+            <LeadAgentInsightsSection 
+              leadId={id!}
+              onActionClick={(actionType) => {
+                toast.info(`Ação: ${actionType}`);
+              }}
+            />
             <InsightsSidebar entityType="lead" entityId={id || ''} />
             <EntitySocialMediaAnalysisSection
               entityType="lead"

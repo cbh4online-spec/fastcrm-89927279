@@ -13,7 +13,13 @@
 - Hooks: `useAgentAnalysis`, `useAgentHistory`, `useAgentFeedback`
 - Componentes: `AgentInsightCard`, `AgentReasoningTrace`, `AgentFeedbackButtons`
 
----
+### Fase 3 ✅ - Agentes Especializados
+- `ai-agent-opportunity/index.ts` - Probabilidade & Risco
+- `ai-agent-client/index.ts` - Saúde & Retenção
+
+### Fase 4 ✅ - Integração UI
+- `OpportunityAIInsightsSection` - Tab "Insights IA" na página de oportunidade
+- `LeadAgentInsightsSection` - Secção de insights na página de lead
 
 ## Fase 3: Agentes Especializados (Opportunity + Client)
 

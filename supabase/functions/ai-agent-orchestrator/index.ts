@@ -387,6 +387,13 @@ function getTableName(entityType: string): string {
   return mapping[entityType] || entityType;
 }
 
+// Check if we should delegate to a specialized agent
+function shouldDelegateToSpecializedAgent(agentType: string): boolean {
+  // For opportunity and client, we have specialized agents
+  // The orchestrator can still handle them, but specialized agents provide deeper analysis
+  return agentType === 'opportunity' || agentType === 'client';
+}
+
 // Generate analysis based on agent type and data
 function generateAgentAnalysis(
   agentType: string,
@@ -395,8 +402,8 @@ function generateAgentAnalysis(
   previousConclusions: any[],
   context?: Record<string, unknown>
 ): AgentOutput {
-  // This is a simplified rule-based analysis
-  // In a full implementation, this would call an AI model
+  // This is the fallback rule-based analysis
+  // For specialized analysis, the client should call the specialized agent directly
   
   switch (agentType) {
     case 'lead':
@@ -404,8 +411,10 @@ function generateAgentAnalysis(
     case 'contact':
       return generateContactAnalysis(entityData, conversationData, previousConclusions);
     case 'opportunity':
+      // Note: For deep analysis, call ai-agent-opportunity directly
       return generateOpportunityAnalysis(entityData, previousConclusions);
     case 'client':
+      // Note: For deep analysis, call ai-agent-client directly
       return generateClientAnalysis(entityData, previousConclusions);
     default:
       return getDefaultAnalysis();
