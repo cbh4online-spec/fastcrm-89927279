@@ -15,6 +15,8 @@ import { OpportunityDetailsGrid } from "./detail/OpportunityDetailsGrid";
 import { OpportunityContactsSidebar } from "./detail/OpportunityContactsSidebar";
 import { OpportunityActivityTimeline } from "./detail/OpportunityActivityTimeline";
 import { OpportunityAIInsightsSection } from "./OpportunityAIInsightsSection";
+import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
+import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { toast } from "sonner";
 
 interface OpportunityDetailPageProps {
@@ -190,12 +192,27 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
               </TabsContent>
 
               <TabsContent value="insights" className="mt-4 md:mt-6">
-                <OpportunityAIInsightsSection 
-                  opportunityId={opportunity.id}
-                  onActionClick={(actionType) => {
-                    toast.info(`Ação: ${actionType}`);
-                  }}
-                />
+                <div className="space-y-6">
+                  {/* AI Agent Queue Status */}
+                  <AgentQueueStatus
+                    entityId={opportunity.id}
+                    entityType="opportunity"
+                    compact={false}
+                    showAnalyzeButton={true}
+                  />
+                  <OpportunityAIInsightsSection 
+                    opportunityId={opportunity.id}
+                    onActionClick={(actionType) => {
+                      toast.info(`Ação: ${actionType}`);
+                    }}
+                  />
+                  {/* AI Memory Panel */}
+                  <EntityMemoryPanel
+                    entityId={opportunity.id}
+                    entityType="opportunity"
+                    entityName={opportunity.title}
+                  />
+                </div>
               </TabsContent>
 
               <TabsContent value="tasks" className="mt-4 md:mt-6">

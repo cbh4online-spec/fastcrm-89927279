@@ -54,6 +54,8 @@ import { InstagramDataSection } from "@/components/leads/sections/InstagramDataS
 import { AIAnalysisSection } from "@/components/leads/sections/AIAnalysisSection";
 import { LeadAgentInsightsSection } from "@/components/leads/sections/LeadAgentInsightsSection";
 import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/components/EntityCreditProposalsSection";
+import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
+import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -184,6 +186,13 @@ export function LeadDetailWithSidebar() {
       case 'insights':
         return (
           <div className="space-y-6">
+            {/* AI Agent Queue Status */}
+            <AgentQueueStatus
+              entityId={id!}
+              entityType="lead"
+              compact={false}
+              showAnalyzeButton={true}
+            />
             {/* AI Agent Analysis - New Architecture */}
             <LeadAgentInsightsSection 
               leadId={id!}
@@ -197,6 +206,12 @@ export function LeadDetailWithSidebar() {
               entityId={id!}
               entityName={lead.name}
               linkedinUrl={lead.linkedin_url}
+            />
+            {/* AI Memory Panel */}
+            <EntityMemoryPanel
+              entityId={id!}
+              entityType="lead"
+              entityName={lead.name}
             />
           </div>
         );
