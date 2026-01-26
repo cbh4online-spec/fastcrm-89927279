@@ -1,138 +1,102 @@
 
-# Plano: Corrigir Calculos no Relatorio Metas vs Resultados
 
-## Problemas Identificados
+# Plano: Sistema de Avaliacao Inteligente de Metas
 
-Apos analise detalhada, identifiquei **3 problemas** que impedem os calculos de funcionar:
-
-### Problema 1: Mapeamento de Unidades Incorreto
-
-**Onde ocorre:** `src/hooks/useGoalsVsResults.ts` (linhas 31-46)
-
-**O que acontece:**
-- As metas sao guardadas com o `label` da unidade (ex: "Faturacao")
-- O mapeamento no hook usa as chaves em minusculas sem acentos (ex: "faturacao")
-- Quando se faz `"Faturacao".toLowerCase()` resulta em `"faturacao"` (com acento til)
-- O `UNIT_CATEGORY_MAP` tem `"faturacao"` (sem acento) entao o match falha
-
-**Dados do problema:**
-```text
-Metas na BD:
-- unit: "Faturacao" (com F maiusculo e til)
-
-Mapeamento atual:
-- 'faturacao': 'revenue'  // sem acento - NAO FUNCIONA
-- 'faturacao': 'revenue'  // com acento - funciona mas nao existe no map
-```
-
-### Problema 2: Campo de Data Errado para Vendas/Faturacao
-
-**Onde ocorre:** `src/hooks/useGoalsVsResults.ts` (funcoes `fetchSalesCount` e `fetchRevenueSum`)
-
-**O que acontece:**
-- As queries filtram por `updated_at`
-- Mas o campo correto para vendas e `expected_close_date` (data de fecho)
-- Isso causa resultados incorretos pois `updated_at` pode ser alterado a qualquer momento
-
-**Dados do problema:**
-```text
-Oportunidade ganhas:
-- FASTCRM Basic: expected_close_date = 2026-01-31, updated_at = 2026-01-23
-- FASTCRM Pro: expected_close_date = 2026-01-22, updated_at = 2026-01-23
-- Gestao Redes: expected_close_date = 2026-01-21, updated_at = 2026-01-23
-- Dev Software: expected_close_date = 2026-01-20, updated_at = 2026-01-20
-```
-
-Se a meta diaria for para 2026-01-26, filtrar por `updated_at` retorna 0 vendas.
-Mas se filtrar por `expected_close_date` e a meta for mensal (Janeiro), retorna 4 vendas.
-
-### Problema 3: Normalizacao de Acentos
-
-A funcao `toLowerCase()` nao remove acentos, apenas converte para minusculas.
-Precisamos normalizar as strings para garantir match independente de acentos.
+## Objetivo
+Implementar uma avaliacao mais completa para metas diarias e semanais, mostrando tanto o valor real do periodo atual como medias historicas para contexto.
 
 ---
 
-## Solucao Proposta
+## Estrutura de Dados Proposta
 
-### Passo 1: Expandir e Normalizar o Mapeamento de Unidades
-
-Atualizar `UNIT_CATEGORY_MAP` para incluir todas as variacoes possiveis:
+### Novos Campos no GoalWithRealProgress
 
 ```typescript
-// Funcao auxiliar para normalizar strings (remover acentos)
-function normalizeString(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+interface GoalWithRealProgress {
+  // Campos existentes...
+  goal: ProductivityGoal;
+  realValue: number;           // Valor do periodo atual
+  targetValue: number;
+  realProgress: number;
+  
+  // NOVOS CAMPOS
+  averageValue7d: number;      // Media dos ultimos 7 dias (para diarias)
+  averageValue30d: number;     // Media dos ultimos 30 dias (para diarias)
+  averageWeekly4w: number;     // Media das ultimas 4 semanas (para semanais)
+  projectedValue: number;      // Valor projetado para fim do periodo
+  projectedProgress: number;   // Progresso projetado
+  trendDirection: 'up' | 'down' | 'stable';  // Tendencia
 }
-
-const UNIT_CATEGORY_MAP: Record<string, UnitCategory> = {
-  // Vendas
-  'vendas': 'sales',
-  'sales': 'sales',
-  'negocios': 'sales',
-  'contratos': 'sales',
-  
-  // Leads
-  'leads': 'leads',
-  
-  // Oportunidades
-  'oportunidades': 'opportunities',
-  'opportunities': 'opportunities',
-  
-  // Reunioes
-  'reunioes': 'meetings',
-  'reunions': 'meetings',
-  'meetings': 'meetings',
-  
-  // Tarefas
-  'tarefas': 'tasks',
-  'tasks': 'tasks',
-  
-  // Faturacao/Revenue
-  'faturacao': 'revenue',
-  'faturacao': 'revenue',  // variante
-  'revenue': 'revenue',
-  'euros': 'revenue',
-  '€ (euro)': 'revenue',
-  
-  // Contactos
-  'contactos': 'leads',
-  'contacts': 'leads',
-};
 ```
 
-E usar a funcao `normalizeString` ao procurar no mapa:
-```typescript
-const unitCategory = typedGoal.unit 
-  ? UNIT_CATEGORY_MAP[normalizeString(typedGoal.unit)] 
-  : null;
+---
+
+## Logica de Calculo por Tipo de Meta
+
+### Metas Diarias
+
+| Metrica | Calculo |
+|---------|---------|
+| Valor Real | Dados de HOJE (00:00 - 23:59) |
+| Media 7 dias | Soma ultimos 7 dias / 7 |
+| Media 30 dias | Soma ultimos 30 dias / 30 |
+| Tendencia | Compara media 7d vs media 30d |
+
+**Interpretacao do Status**:
+- Se valor hoje >= target: **Concluida**
+- Se media 7d >= target * 0.8: **No Prazo** (mesmo que hoje seja baixo)
+- Se media 7d < target * 0.5: **Em Risco**
+
+### Metas Semanais
+
+| Metrica | Calculo |
+|---------|---------|
+| Valor Real | Dados de Segunda a Domingo atual |
+| Media 4 semanas | Soma ultimas 4 semanas / 4 |
+| Projecao | (Valor ate agora / dias passados) * 7 |
+| Tendencia | Compara esta semana vs media 4 semanas |
+
+**Exemplo Segunda-feira**:
+- Meta: 2500€/semana
+- Hoje (seg): 400€
+- Projecao: 400€ * 7 dias = 2800€ (se mantiver ritmo)
+- Status: A Caminho
+
+---
+
+## Alteracoes no UI
+
+### Card de Meta com Contexto
+
+```text
++--------------------------------------------------+
+| Meta: 500€ Faturacao Diaria            [Diaria]  |
++--------------------------------------------------+
+| HOJE                           CONTEXTO          |
+| ┌────────────┐                 ┌───────────────┐ |
+| │    0€      │                 │ Media 7d: 232€│ |
+| │   (0%)     │                 │ Media 30d:189€│ |
+| └────────────┘                 │ Tend: ↗ +23%  │ |
+|                                └───────────────┘ |
+| [==========----------] 46% media vs target       |
+| Status: Normal (hoje baixo, media no prazo)      |
++--------------------------------------------------+
 ```
 
-### Passo 2: Corrigir Campo de Data para Vendas
-
-Alterar as funcoes `fetchSalesCount` e `fetchRevenueSum` para usar `expected_close_date`:
-
-```typescript
-// ANTES (incorreto):
-.gte('updated_at', periodStart)
-.lte('updated_at', periodEnd)
-
-// DEPOIS (correto):
-.gte('expected_close_date', periodStart)
-.lte('expected_close_date', periodEnd)
-```
-
-### Passo 3: Adicionar Logs para Debug
-
-Adicionar console.log temporario para verificar se os mapeamentos estao a funcionar:
-
-```typescript
-console.log('Goal unit:', typedGoal.unit);
-console.log('Normalized:', normalizeString(typedGoal.unit || ''));
-console.log('Category found:', unitCategory);
+```text
++--------------------------------------------------+
+| Meta: 2500€ Faturacao Semanal         [Semanal]  |
++--------------------------------------------------+
+| ESTA SEMANA (3/7 dias)         PROJECAO          |
+| ┌────────────┐                 ┌───────────────┐ |
+| │  1200€     │                 │ Fim semana:   │ |
+| │  (48%)     │                 │    2800€      │ |
+| └────────────┘                 │ Media 4sem:   │ |
+|                                │    2100€      │ |
+|                                └───────────────┘ |
+| [===========---------] 48% real | 112% projetado |
+| Status: Acima do Normal ✓                        |
++--------------------------------------------------+
 ```
 
 ---
@@ -141,35 +105,94 @@ console.log('Category found:', unitCategory);
 
 | Ficheiro | Alteracao |
 |----------|-----------|
-| `src/hooks/useGoalsVsResults.ts` | Corrigir mapeamento + campos de data + normalizacao |
+| `src/hooks/useGoalsVsResults.ts` | Adicionar calculos de medias e projecoes |
+| `src/components/reports/GoalComparisonCard.tsx` | Mostrar novas metricas de contexto |
 
 ---
 
-## Resultado Esperado
+## Implementacao Tecnica
 
-Apos as correcoes:
+### Passo 1: Novas Funcoes de Calculo
 
-**Meta: Faturacao Diaria (26 Jan) - Target: 500 EUR**
-- Valor real: 0 EUR (nenhuma oportunidade fechou a 26 Jan)
-- Status: Atrasada
+```typescript
+// Calcular media diaria dos ultimos N dias
+async function calculateDailyAverage(
+  category: UnitCategory,
+  workspaceId: string,
+  days: number,
+  userId: string | null
+): Promise<number> {
+  const today = new Date();
+  const startDate = subDays(today, days);
+  
+  const totalValue = await fetchUnitValue(
+    category, workspaceId,
+    format(startDate, 'yyyy-MM-dd'),
+    format(today, 'yyyy-MM-dd'),
+    userId
+  );
+  
+  return totalValue / days;
+}
 
-**Meta: Faturacao Mensal (Jan 2026) - Target: 10.000 EUR**
-- Valor real: 1.722 EUR (4 oportunidades ganhas em Janeiro)
-- Progresso: 17.22%
-- Status: Atrasada (estamos a 26 Jan e so temos 17% de 10k)
+// Calcular media semanal das ultimas N semanas
+async function calculateWeeklyAverage(
+  category: UnitCategory,
+  workspaceId: string,
+  weeks: number,
+  userId: string | null
+): Promise<number> {
+  const today = new Date();
+  const startDate = subWeeks(today, weeks);
+  
+  const totalValue = await fetchUnitValue(
+    category, workspaceId,
+    format(startOfWeek(startDate), 'yyyy-MM-dd'),
+    format(endOfWeek(subWeeks(today, 1)), 'yyyy-MM-dd'), // Exclui semana atual
+    userId
+  );
+  
+  return totalValue / weeks;
+}
 
-**Meta: Faturacao Trimestral (Q1 2026) - Target: 30.000 EUR**
-- Valor real: 1.722 EUR
-- Progresso: 5.74%
-- Status: Em progresso (ainda ha tempo)
+// Calcular projecao para metas semanais
+function calculateProjection(
+  currentValue: number,
+  daysElapsed: number,
+  totalDays: number
+): number {
+  if (daysElapsed === 0) return currentValue;
+  const dailyRate = currentValue / daysElapsed;
+  return dailyRate * totalDays;
+}
+```
+
+### Passo 2: Atualizar Interface GoalWithRealProgress
+
+Adicionar os novos campos ao tipo e popular durante o processamento.
+
+### Passo 3: Atualizar GoalComparisonCard
+
+Mostrar as novas metricas de forma clara e visualmente distinta.
+
+---
+
+## Beneficios da Abordagem
+
+1. **Transparencia**: Usuario ve exatamente o que aconteceu hoje/esta semana
+2. **Contexto**: Medias mostram se o resultado e normal ou anormal
+3. **Projecao**: Para metas em curso, preve se vai cumprir no fim
+4. **Tendencias**: Mostra se esta a melhorar ou piorar ao longo do tempo
+5. **Motivacao**: Um dia mau nao assusta tanto quando a media e boa
 
 ---
 
 ## Sequencia de Implementacao
 
-1. Criar funcao `normalizeString` para remover acentos
-2. Expandir `UNIT_CATEGORY_MAP` com todas as variacoes de unidades
-3. Usar `normalizeString` no lookup do mapa
-4. Alterar `fetchSalesCount` para usar `expected_close_date`
-5. Alterar `fetchRevenueSum` para usar `expected_close_date`
-6. Testar com as metas existentes
+1. Adicionar novas funcoes de calculo ao hook
+2. Expandir interface GoalWithRealProgress
+3. Calcular medias e projecoes para cada meta
+4. Atualizar logica de status para considerar contexto
+5. Redesenhar GoalComparisonCard com novas metricas
+6. Testar com metas diarias e semanais existentes
+
