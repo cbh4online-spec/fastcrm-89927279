@@ -226,6 +226,15 @@ async function calculateGoalProgress(
         return null;
       }
       
+      console.log('Goal progress calculation:', {
+        goalId: goal.id,
+        goalTitle: goal.title,
+        period: goal.period,
+        dateRange,
+        dataCount: result.data?.length || 0,
+        rawData: result.data
+      });
+      
       // Sum the values
       const calculatedValue = (result.data || []).reduce((sum, item) => {
         return sum + (Number(item.value) || 0);
