@@ -121,24 +121,46 @@ export function useProductivityCoach() {
   });
 
   // Fetch user's goals (individual + organizational from workspace)
+  // For owners/admins: fetch ALL individual goals in workspace
+  // For regular users: fetch only their own individual goals
   const goalsQuery = useQuery({
     queryKey: ['productivity-goals', currentWorkspace?.id, user?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id || !user?.id) return [];
 
-      // Fetch individual goals for the user
-      const { data: individualGoals, error: individualError } = await supabase
-        .from('productivity_goals')
-        .select('*')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('user_id', user.id)
-        .eq('goal_scope', 'individual')
-        .order('period')
-        .order('priority');
+      // Check if user is owner or admin of the workspace
+      const isOwnerOrAdmin = currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin';
 
-      if (individualError) throw individualError;
+      let individualGoalsData: any[] = [];
 
-      // Fetch organizational goals for the workspace
+      if (isOwnerOrAdmin) {
+        // Owner/Admin: fetch ALL individual goals in the workspace
+        const { data, error } = await supabase
+          .from('productivity_goals')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id)
+          .eq('goal_scope', 'individual')
+          .order('period')
+          .order('priority');
+
+        if (error) throw error;
+        individualGoalsData = data || [];
+      } else {
+        // Regular user: fetch only their own individual goals
+        const { data, error } = await supabase
+          .from('productivity_goals')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id)
+          .eq('user_id', user.id)
+          .eq('goal_scope', 'individual')
+          .order('period')
+          .order('priority');
+
+        if (error) throw error;
+        individualGoalsData = data || [];
+      }
+
+      // Fetch organizational goals for the workspace (everyone can see these)
       const { data: orgGoals, error: orgError } = await supabase
         .from('productivity_goals')
         .select('*')
@@ -150,7 +172,7 @@ export function useProductivityCoach() {
       if (orgError) throw orgError;
 
       // Combine and return all goals
-      return [...(individualGoals || []), ...(orgGoals || [])] as ProductivityGoal[];
+      return [...individualGoalsData, ...(orgGoals || [])] as ProductivityGoal[];
     },
     enabled: !!currentWorkspace?.id && !!user?.id,
   });
@@ -302,16 +324,23 @@ export function useProductivityCoach() {
 
   // Create goal
   const createGoal = useMutation({
-    mutationFn: async (goal: Partial<Omit<ProductivityGoal, 'id' | 'workspace_id' | 'user_id' | 'created_at' | 'updated_at'>> & { period: GoalPeriod; period_start: string; period_end: string; title: string; goal_scope?: GoalScope }) => {
+    mutationFn: async (goal: Partial<Omit<ProductivityGoal, 'id' | 'workspace_id' | 'created_at' | 'updated_at'>> & { period: GoalPeriod; period_start: string; period_end: string; title: string; goal_scope?: GoalScope; assigned_user_id?: string | null }) => {
       if (!currentWorkspace?.id || !user?.id) throw new Error('Missing context');
 
       const scope = goal.goal_scope || 'individual';
+      
+      // For organizational goals, user_id is null
+      // For individual goals, use assigned_user_id if provided (admin assigning to someone), otherwise use current user
+      let targetUserId: string | null = null;
+      if (scope === 'individual') {
+        targetUserId = goal.assigned_user_id || user.id;
+      }
       
       const { data, error } = await supabase
         .from('productivity_goals')
         .insert({
           workspace_id: currentWorkspace.id,
-          user_id: scope === 'organizational' ? null : user.id,
+          user_id: targetUserId,
           period: goal.period,
           period_start: goal.period_start,
           period_end: goal.period_end,
