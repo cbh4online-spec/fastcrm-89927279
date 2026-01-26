@@ -28,6 +28,8 @@ import {
   Percent,
   Hash,
   LucideIcon,
+  Building2,
+  Lock,
 } from 'lucide-react';
 import {
   Dialog,
@@ -54,7 +56,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { useProductivityCoach, GoalPeriod, GoalStatus, ProductivityGoal } from '@/hooks/useProductivityCoach';
+import { useProductivityCoach, GoalPeriod, GoalStatus, GoalScope, ProductivityGoal } from '@/hooks/useProductivityCoach';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Configuração de unidades pré-definidas
 interface UnitOption {
@@ -138,14 +142,18 @@ const STATUS_CONFIG: Record<GoalStatus, { label: string; color: string }> = {
 
 function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
   const { createGoal } = useProductivityCoach();
+  const { currentWorkspace } = useWorkspace();
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<GoalPeriod>(defaultPeriod || 'daily');
+  const [goalScope, setGoalScope] = useState<GoalScope>('individual');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [targetValue, setTargetValue] = useState('');
   const [unitSelection, setUnitSelection] = useState('');
   const [customUnit, setCustomUnit] = useState('');
-  const [isTeamGoal, setIsTeamGoal] = useState(false);
+
+  // Check if user can create organizational goals (owner or admin)
+  const canCreateOrgGoals = currentWorkspace?.role === 'owner' || currentWorkspace?.role === 'admin';
 
   const selectedUnitOption = findUnitOption(unitSelection);
   const isCustomUnit = unitSelection === 'custom';
@@ -177,6 +185,7 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
       target_value: targetValue ? parseFloat(targetValue) : null,
       unit: finalUnit || null,
       status: 'not_started',
+      goal_scope: goalScope,
     });
 
     setOpen(false);
@@ -185,6 +194,7 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
     setTargetValue('');
     setUnitSelection('');
     setCustomUnit('');
+    setGoalScope('individual');
   };
 
   return (
@@ -195,11 +205,56 @@ function CreateGoalModal({ defaultPeriod }: { defaultPeriod?: GoalPeriod }) {
           Nova Meta
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Criar Nova Meta</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {/* Goal Scope Selector */}
+          <div className="space-y-2">
+            <Label>Tipo de Meta</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setGoalScope('individual')}
+                className={cn(
+                  'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+                  goalScope === 'individual'
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border hover:border-primary/50'
+                )}
+              >
+                <User className="h-6 w-6" />
+                <span className="font-medium text-sm">Pessoal</span>
+                <span className="text-xs text-muted-foreground text-center">Só tu vês</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => canCreateOrgGoals && setGoalScope('organizational')}
+                disabled={!canCreateOrgGoals}
+                className={cn(
+                  'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all relative',
+                  goalScope === 'organizational'
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
+                    : 'border-border hover:border-emerald-500/50',
+                  !canCreateOrgGoals && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                {!canCreateOrgGoals && (
+                  <Lock className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
+                )}
+                <Building2 className="h-6 w-6" />
+                <span className="font-medium text-sm">Organização</span>
+                <span className="text-xs text-muted-foreground text-center">Toda a equipa</span>
+              </button>
+            </div>
+            {!canCreateOrgGoals && (
+              <p className="text-xs text-muted-foreground">
+                Apenas administradores podem criar metas organizacionais
+              </p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label>Período</Label>
             <Select value={period} onValueChange={(v) => setPeriod(v as GoalPeriod)}>
@@ -338,6 +393,7 @@ function GoalCard({ goal, onUpdate, onDelete }: {
   const config = PERIOD_CONFIG[goal.period];
   const statusConfig = STATUS_CONFIG[goal.status];
   const Icon = config.icon;
+  const isOrganizational = goal.goal_scope === 'organizational';
 
   const progress = goal.target_value && goal.current_value
     ? Math.min((goal.current_value / goal.target_value) * 100, 100)
@@ -358,19 +414,37 @@ function GoalCard({ goal, onUpdate, onDelete }: {
   return (
     <Card className={cn(
       'transition-all',
-      goal.status === 'completed' && 'border-green-500/50 bg-green-50 dark:bg-green-950/20'
+      goal.status === 'completed' && 'border-green-500/50 bg-green-50 dark:bg-green-950/20',
+      isOrganizational && goal.status !== 'completed' && 'border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/10'
     )}>
       <CardContent className="pt-4">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <div className={cn(
               'p-2 rounded-lg',
-              goal.status === 'completed' ? 'bg-green-500 text-white' : 'bg-primary/10'
+              goal.status === 'completed' 
+                ? 'bg-green-500 text-white' 
+                : isOrganizational 
+                  ? 'bg-emerald-500/20 text-emerald-600' 
+                  : 'bg-primary/10'
             )}>
               <Icon className="h-4 w-4" />
             </div>
             <div>
-              <h4 className="font-medium">{goal.title}</h4>
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium">{goal.title}</h4>
+                {isOrganizational ? (
+                  <Badge variant="outline" className="h-5 text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                    <Building2 className="h-3 w-3 mr-1" />
+                    Equipa
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="h-5 text-[10px] bg-primary/10 text-primary border-primary/30">
+                    <User className="h-3 w-3 mr-1" />
+                    Pessoal
+                  </Badge>
+                )}
+              </div>
               {goal.description && (
                 <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>
               )}
@@ -389,14 +463,28 @@ function GoalCard({ goal, onUpdate, onDelete }: {
                 {goal.current_value || 0}/{goal.target_value} {goal.unit || ''}
               </span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress 
+              value={progress} 
+              className={cn(
+                "h-2",
+                isOrganizational && "[&>div]:bg-emerald-500"
+              )} 
+            />
           </div>
         )}
 
         <div className="flex items-center justify-between mt-4 pt-3 border-t">
-          <div className="flex items-center gap-1">
-            <span className={cn('w-2 h-2 rounded-full', statusConfig.color)} />
-            <span className="text-xs text-muted-foreground">{statusConfig.label}</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <span className={cn('w-2 h-2 rounded-full', statusConfig.color)} />
+              <span className="text-xs text-muted-foreground">{statusConfig.label}</span>
+            </div>
+            {isOrganizational && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                Partilhada
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1">
             {goal.target_value && goal.status !== 'completed' && (
@@ -420,12 +508,30 @@ function GoalCard({ goal, onUpdate, onDelete }: {
   );
 }
 
+type ScopeFilter = 'all' | 'mine' | 'team';
+
 export function GoalsManager() {
   const { goals, goalsLoading, updateGoal, deleteGoal } = useProductivityCoach();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<GoalPeriod>('daily');
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
 
-  const filteredGoals = goals.filter((g) => g.period === activeTab);
+  // Filter by period first
+  const periodFilteredGoals = goals.filter((g) => g.period === activeTab);
+  
+  // Then filter by scope
+  const filteredGoals = periodFilteredGoals.filter((g) => {
+    if (scopeFilter === 'all') return true;
+    if (scopeFilter === 'mine') return g.goal_scope === 'individual' && g.user_id === user?.id;
+    if (scopeFilter === 'team') return g.goal_scope === 'organizational';
+    return true;
+  });
+  
   const completedCount = filteredGoals.filter((g) => g.status === 'completed').length;
+  
+  // Count for scope tabs
+  const myGoalsCount = periodFilteredGoals.filter((g) => g.goal_scope === 'individual' && g.user_id === user?.id).length;
+  const teamGoalsCount = periodFilteredGoals.filter((g) => g.goal_scope === 'organizational').length;
 
   return (
     <div className="space-y-6">
@@ -437,6 +543,61 @@ export function GoalsManager() {
           </p>
         </div>
         <CreateGoalModal defaultPeriod={activeTab} />
+      </div>
+
+      {/* Scope Filter Tabs */}
+      <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-lg w-fit">
+        <button
+          onClick={() => setScopeFilter('all')}
+          className={cn(
+            'px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5',
+            scopeFilter === 'all' 
+              ? 'bg-background shadow-sm text-foreground' 
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <Target className="h-4 w-4" />
+          Todas
+          {periodFilteredGoals.length > 0 && (
+            <Badge variant="secondary" className="h-5 px-1.5 ml-1">
+              {periodFilteredGoals.length}
+            </Badge>
+          )}
+        </button>
+        <button
+          onClick={() => setScopeFilter('mine')}
+          className={cn(
+            'px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5',
+            scopeFilter === 'mine' 
+              ? 'bg-background shadow-sm text-foreground' 
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <User className="h-4 w-4" />
+          Minhas
+          {myGoalsCount > 0 && (
+            <Badge variant="secondary" className="h-5 px-1.5 ml-1">
+              {myGoalsCount}
+            </Badge>
+          )}
+        </button>
+        <button
+          onClick={() => setScopeFilter('team')}
+          className={cn(
+            'px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5',
+            scopeFilter === 'team' 
+              ? 'bg-emerald-500/10 shadow-sm text-emerald-600 border border-emerald-500/30' 
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <Building2 className="h-4 w-4" />
+          Equipa
+          {teamGoalsCount > 0 && (
+            <Badge className="h-5 px-1.5 ml-1 bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/20">
+              {teamGoalsCount}
+            </Badge>
+          )}
+        </button>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as GoalPeriod)}>
@@ -469,10 +630,28 @@ export function GoalsManager() {
             ) : filteredGoals.length === 0 ? (
               <Card>
                 <CardContent className="text-center py-12">
-                  <Target className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground">
-                    Sem metas {PERIOD_CONFIG[period as GoalPeriod].label.toLowerCase()}s definidas
-                  </p>
+                  {scopeFilter === 'team' ? (
+                    <>
+                      <Building2 className="h-12 w-12 mx-auto mb-3 text-emerald-500 opacity-50" />
+                      <p className="text-muted-foreground">
+                        A equipa ainda não definiu metas organizacionais para este período
+                      </p>
+                    </>
+                  ) : scopeFilter === 'mine' ? (
+                    <>
+                      <User className="h-12 w-12 mx-auto mb-3 text-primary opacity-50" />
+                      <p className="text-muted-foreground">
+                        Não tens metas pessoais {PERIOD_CONFIG[period as GoalPeriod].label.toLowerCase()}s
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                      <p className="text-muted-foreground">
+                        Sem metas {PERIOD_CONFIG[period as GoalPeriod].label.toLowerCase()}s definidas
+                      </p>
+                    </>
+                  )}
                   <CreateGoalModal defaultPeriod={period as GoalPeriod} />
                 </CardContent>
               </Card>

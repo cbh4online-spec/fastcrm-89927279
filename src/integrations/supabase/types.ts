@@ -11889,6 +11889,7 @@ export type Database = {
           created_at: string
           current_value: number | null
           description: string | null
+          goal_scope: string | null
           id: string
           metric_type: string | null
           parent_goal_id: string | null
@@ -11910,6 +11911,7 @@ export type Database = {
           created_at?: string
           current_value?: number | null
           description?: string | null
+          goal_scope?: string | null
           id?: string
           metric_type?: string | null
           parent_goal_id?: string | null
@@ -11931,6 +11933,7 @@ export type Database = {
           created_at?: string
           current_value?: number | null
           description?: string | null
+          goal_scope?: string | null
           id?: string
           metric_type?: string | null
           parent_goal_id?: string | null
