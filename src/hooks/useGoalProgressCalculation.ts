@@ -81,6 +81,13 @@ const UNIT_METRIC_MAP: Record<string, MetricSource> = {
     statusFilter: { field: 'status', value: 'won' },
     userField: 'owner_id',
   },
+  'faturação': {
+    table: 'opportunities',
+    sumField: 'value',
+    dateField: 'updated_at',
+    statusFilter: { field: 'status', value: 'won' },
+    userField: 'owner_id',
+  },
   'comissoes': {
     table: 'opportunities',
     sumField: 'value',
