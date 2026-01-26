@@ -2,6 +2,30 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { ProductivityGoal } from './useProductivityCoach';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
+
+/**
+ * Get dynamic date range for rolling periods (daily/weekly)
+ * For daily: always use today
+ * For weekly: always use current week (Monday-Sunday)
+ */
+function getDynamicDateRange(goal: ProductivityGoal): { start: string; end: string } {
+  const now = new Date();
+  
+  if (goal.period === 'daily') {
+    const today = format(startOfDay(now), 'yyyy-MM-dd');
+    return { start: today, end: today };
+  }
+  
+  if (goal.period === 'weekly') {
+    const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    return { start: weekStart, end: weekEnd };
+  }
+  
+  // For other periods, use the stored dates
+  return { start: goal.period_start, end: goal.period_end };
+}
 
 /**
  * Unit to metric mapping
@@ -144,11 +168,14 @@ async function calculateGoalProgress(
   metricSource: MetricSource
 ): Promise<{ calculatedValue: number; isAutomatic: boolean; source: string } | null> {
   try {
+    // Get dynamic date range for rolling periods (daily/weekly)
+    const dateRange = getDynamicDateRange(goal);
+    
     // Build filter conditions
     const filters: string[] = [
       `workspace_id.eq.${workspaceId}`,
-      `${metricSource.dateField}.gte.${goal.period_start}`,
-      `${metricSource.dateField}.lte.${goal.period_end}T23:59:59`,
+      `${metricSource.dateField}.gte.${dateRange.start}`,
+      `${metricSource.dateField}.lte.${dateRange.end}T23:59:59`,
     ];
     
     // Add status filter
@@ -182,16 +209,16 @@ async function calculateGoalProgress(
           .eq('workspace_id', workspaceId)
           .eq('status', 'won')
           .eq('owner_id', goal.user_id!)
-          .gte(metricSource.dateField, goal.period_start)
-          .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+          .gte(metricSource.dateField, dateRange.start)
+          .lte(metricSource.dateField, dateRange.end + 'T23:59:59');
       } else {
         result = await supabase
           .from('opportunities')
           .select('value')
           .eq('workspace_id', workspaceId)
           .eq('status', 'won')
-          .gte(metricSource.dateField, goal.period_start)
-          .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+          .gte(metricSource.dateField, dateRange.start)
+          .lte(metricSource.dateField, dateRange.end + 'T23:59:59');
       }
       
       if (result.error) {
@@ -220,8 +247,8 @@ async function calculateGoalProgress(
             .from('opportunities')
             .select('id', { count: 'exact', head: true })
             .eq('workspace_id', workspaceId)
-            .gte(metricSource.dateField, goal.period_start)
-            .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+            .gte(metricSource.dateField, dateRange.start)
+            .lte(metricSource.dateField, dateRange.end + 'T23:59:59');
           if (error) throw error;
           count = c || 0;
           break;
@@ -231,8 +258,8 @@ async function calculateGoalProgress(
             .from('leads')
             .select('id', { count: 'exact', head: true })
             .eq('workspace_id', workspaceId)
-            .gte(metricSource.dateField, goal.period_start)
-            .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+            .gte(metricSource.dateField, dateRange.start)
+            .lte(metricSource.dateField, dateRange.end + 'T23:59:59');
           if (error) throw error;
           count = c || 0;
           break;
@@ -242,8 +269,8 @@ async function calculateGoalProgress(
             .from('contacts')
             .select('id', { count: 'exact', head: true })
             .eq('workspace_id', workspaceId)
-            .gte(metricSource.dateField, goal.period_start)
-            .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+            .gte(metricSource.dateField, dateRange.start)
+            .lte(metricSource.dateField, dateRange.end + 'T23:59:59');
           if (error) throw error;
           count = c || 0;
           break;
@@ -254,8 +281,8 @@ async function calculateGoalProgress(
             .select('id', { count: 'exact', head: true })
             .eq('workspace_id', workspaceId)
             .eq('status', 'done')
-            .gte(metricSource.dateField, goal.period_start)
-            .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+            .gte(metricSource.dateField, dateRange.start)
+            .lte(metricSource.dateField, dateRange.end + 'T23:59:59');
           if (error) throw error;
           count = c || 0;
           break;
@@ -265,8 +292,8 @@ async function calculateGoalProgress(
             .from('calendar_events')
             .select('id', { count: 'exact', head: true })
             .eq('workspace_id', workspaceId)
-            .gte(metricSource.dateField, goal.period_start)
-            .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+            .gte(metricSource.dateField, dateRange.start)
+            .lte(metricSource.dateField, dateRange.end + 'T23:59:59');
           if (error) throw error;
           count = c || 0;
           break;
@@ -276,8 +303,8 @@ async function calculateGoalProgress(
             .from('proposals')
             .select('id', { count: 'exact', head: true })
             .eq('workspace_id', workspaceId)
-            .gte(metricSource.dateField, goal.period_start)
-            .lte(metricSource.dateField, goal.period_end + 'T23:59:59');
+            .gte(metricSource.dateField, dateRange.start)
+            .lte(metricSource.dateField, dateRange.end + 'T23:59:59');
           if (error) throw error;
           count = c || 0;
           break;
