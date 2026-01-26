@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -34,6 +34,7 @@ interface EditableItem {
   quantity: number;
   unit_price: number;
   position: number;
+  is_enabled?: boolean;
 }
 
 interface ProposalItemsEditorProps {
@@ -41,28 +42,36 @@ interface ProposalItemsEditorProps {
   onSaved?: () => void;
 }
 
-export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditorProps) {
+export const ProposalItemsEditor = React.forwardRef<
+  HTMLDivElement,
+  ProposalItemsEditorProps
+>(function ProposalItemsEditor({ proposalId, onSaved }, ref) {
   const { data: existingItems, isLoading: loadingItems } = useProposalItems(proposalId);
   const { data: products } = useProducts({ status: "active" });
   const updateItems = useUpdateProposalItems();
 
   const [items, setItems] = useState<EditableItem[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize items from existing data
+  // Initialize items from existing data - only on first load
   useEffect(() => {
-    if (existingItems && existingItems.length > 0) {
-      setItems(existingItems.map((item, idx) => ({
-        id: item.id,
-        product_id: item.product_id,
-        name: item.name,
-        description: item.description,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        position: item.position ?? idx,
-      })));
+    if (!isInitialized && existingItems !== undefined && !loadingItems) {
+      if (existingItems.length > 0) {
+        setItems(existingItems.map((item, idx) => ({
+          id: item.id,
+          product_id: item.product_id,
+          name: item.name,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          position: item.position ?? idx,
+          is_enabled: item.is_enabled ?? true,
+        })));
+      }
+      setIsInitialized(true);
     }
-  }, [existingItems]);
+  }, [existingItems, loadingItems, isInitialized]);
 
   const formatPrice = (price: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
@@ -123,6 +132,7 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
         items: items.filter((item) => item.name.trim() !== ""),
       });
       setHasChanges(false);
+      setIsInitialized(false); // Allow re-sync with server data after save
       toast.success("Itens guardados com sucesso!");
       onSaved?.();
     } catch (error) {
@@ -143,7 +153,7 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
   }
 
   return (
-    <div className="space-y-4">
+    <div ref={ref} className="space-y-4">
       {/* Add Product Quick Select */}
       <Card className="p-4">
         <div className="flex items-center gap-3">
@@ -317,4 +327,4 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
       </div>
     </div>
   );
-}
+});
