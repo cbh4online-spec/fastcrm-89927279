@@ -213,6 +213,178 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_agent_executions: {
+        Row: {
+          agent_type: string
+          confidence_level: string | null
+          created_at: string | null
+          duration_ms: number | null
+          entity_id: string
+          entity_type: string
+          error_message: string | null
+          executive_summary: string
+          id: string
+          input_summary: Json
+          key_signals: string[] | null
+          output: Json
+          reasoning_trace: Json
+          recommended_action: string | null
+          recommended_action_type: string | null
+          risk_indicators: string[] | null
+          status_assessment: string | null
+          tokens_used: number | null
+          trigger_type: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_type: string
+          confidence_level?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          entity_id: string
+          entity_type: string
+          error_message?: string | null
+          executive_summary: string
+          id?: string
+          input_summary?: Json
+          key_signals?: string[] | null
+          output?: Json
+          reasoning_trace?: Json
+          recommended_action?: string | null
+          recommended_action_type?: string | null
+          risk_indicators?: string[] | null
+          status_assessment?: string | null
+          tokens_used?: number | null
+          trigger_type: string
+          workspace_id: string
+        }
+        Update: {
+          agent_type?: string
+          confidence_level?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          entity_id?: string
+          entity_type?: string
+          error_message?: string | null
+          executive_summary?: string
+          id?: string
+          input_summary?: Json
+          key_signals?: string[] | null
+          output?: Json
+          reasoning_trace?: Json
+          recommended_action?: string | null
+          recommended_action_type?: string | null
+          risk_indicators?: string[] | null
+          status_assessment?: string | null
+          tokens_used?: number | null
+          trigger_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_executions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_feedback: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          execution_id: string | null
+          feedback_notes: string | null
+          feedback_type: string
+          id: string
+          outcome: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          execution_id?: string | null
+          feedback_notes?: string | null
+          feedback_type: string
+          id?: string
+          outcome?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          execution_id?: string | null
+          feedback_notes?: string | null
+          feedback_type?: string
+          id?: string
+          outcome?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_feedback_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agent_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_memory: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          expires_at: string | null
+          id: string
+          memory_type: string
+          relevance_score: number | null
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          expires_at?: string | null
+          id?: string
+          memory_type: string
+          relevance_score?: number | null
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          expires_at?: string | null
+          id?: string
+          memory_type?: string
+          relevance_score?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_memory_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_field_suggestions: {
         Row: {
           confidence: number
@@ -15819,6 +15991,7 @@ export type Database = {
         Args: { p_resource_type: string; p_workspace_id: string }
         Returns: Json
       }
+      cleanup_expired_agent_memory: { Args: never; Returns: number }
       cleanup_expired_sso_tokens: { Args: never; Returns: undefined }
       consume_module_credits: {
         Args: {
