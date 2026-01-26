@@ -16,8 +16,10 @@ import {
   Target,
   FileText,
   Calendar,
+  Database,
 } from "lucide-react";
 import { AgentSchedulesManager } from "@/components/ai-agents/AgentSchedulesManager";
+import { CacheMetricsDashboard } from "@/components/ai-agents/CacheMetricsDashboard";
 
 interface AutomationAISettingsProps {
   searchQuery?: string;
@@ -181,6 +183,20 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
       >
         <div className="pt-2">
           <AgentSchedulesManager />
+        </div>
+      </SettingsSection>
+
+      {/* AI Cache Metrics */}
+      <SettingsSection
+        title="Cache de IA"
+        description="Monitorizar performance e economia do sistema de cache"
+        icon={<Database className="h-5 w-5" />}
+        isPremium={!hasAI}
+        isLocked={!hasAI}
+        planRequired="Pro"
+      >
+        <div className="pt-2">
+          <CacheMetricsDashboard />
         </div>
       </SettingsSection>
 
