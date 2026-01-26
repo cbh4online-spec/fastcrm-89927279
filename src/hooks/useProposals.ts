@@ -437,3 +437,127 @@ export function useProposalActivity(proposalId: string | undefined) {
     enabled: !!proposalId,
   });
 }
+
+// ============ Proposal Items ============
+
+export interface ProposalItem {
+  id: string;
+  proposal_id: string;
+  workspace_id: string;
+  product_id: string | null;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unit_price: number;
+  total_price: number | null;
+  position: number;
+  cost_snapshot: number | null;
+  operational_cost_snapshot: number | null;
+  commission_pct_snapshot: number | null;
+  created_at: string;
+  updated_at: string;
+  product?: {
+    id: string;
+    name: string;
+    base_price: number | null;
+    direct_cost: number | null;
+    operational_cost: number | null;
+  } | null;
+}
+
+export function useProposalItems(proposalId: string | undefined) {
+  return useQuery({
+    queryKey: ["proposal-items", proposalId],
+    queryFn: async () => {
+      if (!proposalId) return [];
+
+      const { data, error } = await supabase
+        .from("proposal_items")
+        .select(`
+          *,
+          product:products(id, name, base_price, direct_cost, operational_cost)
+        `)
+        .eq("proposal_id", proposalId)
+        .order("position", { ascending: true });
+
+      if (error) throw error;
+      return data as unknown as ProposalItem[];
+    },
+    enabled: !!proposalId,
+  });
+}
+
+export function useUpdateProposalItems() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async ({ 
+      proposalId, 
+      items 
+    }: { 
+      proposalId: string; 
+      items: Array<{
+        id?: string;
+        product_id?: string | null;
+        name: string;
+        description?: string | null;
+        quantity: number;
+        unit_price: number;
+        position: number;
+      }>;
+    }) => {
+      if (!currentWorkspace?.id) throw new Error("No workspace selected");
+
+      // Delete existing items
+      const { error: deleteError } = await supabase
+        .from("proposal_items")
+        .delete()
+        .eq("proposal_id", proposalId);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new items
+      if (items.length > 0) {
+        const insertData = items.map((item, idx) => ({
+          proposal_id: proposalId,
+          workspace_id: currentWorkspace.id,
+          product_id: item.product_id,
+          name: item.name,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.quantity * item.unit_price,
+          position: item.position ?? idx,
+        }));
+
+        const { error: insertError } = await supabase
+          .from("proposal_items")
+          .insert(insertData as never[]);
+
+        if (insertError) throw insertError;
+      }
+
+      // Update proposal price based on items total
+      const totalPrice = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+      
+      const { error: updateError } = await supabase
+        .from("proposals")
+        .update({ price: totalPrice })
+        .eq("id", proposalId);
+
+      if (updateError) throw updateError;
+
+      return { proposalId, itemsCount: items.length, totalPrice };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", data.proposalId] });
+      queryClient.invalidateQueries({ queryKey: ["proposal", data.proposalId] });
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      toast.success("Itens da proposta atualizados!");
+    },
+    onError: (error) => {
+      toast.error(`Erro ao atualizar itens: ${error.message}`);
+    },
+  });
+}
