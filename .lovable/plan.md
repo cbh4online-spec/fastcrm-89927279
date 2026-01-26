@@ -1,187 +1,169 @@
 
+# Plano: Adicionar Cliente e Condições às Propostas
 
-# Plano de Correção: Editor de Itens da Proposta
+## Contexto do Problema
 
-## Diagnóstico do Problema
+Atualmente, a criação/edição de propostas tem as seguintes limitações:
+1. **Cliente só via Oportunidade** - O cliente (contacto/empresa) só é obtido indiretamente através da oportunidade associada
+2. **Sem seleção direta de cliente** - Não há forma de associar um contacto ou empresa diretamente à proposta
+3. **Sem condições de proposta** - Não existem campos para:
+   - Condições de pagamento (pronto pagamento, 30 dias, etc.)
+   - Validade da proposta
+   - Observações/termos legais
 
-Após análise detalhada do código e da base de dados, identifiquei os seguintes problemas:
+## Solução Proposta
 
-### 1. Preview Nao Atualiza com os Itens
-O componente `ProposalPreview` **nao mostra os itens da proposta** - ele apenas renderiza os `content_blocks` (blocos de conteudo como texto, imagens, FAQs). Os itens guardados na tabela `proposal_items` nao sao exibidos em lado nenhum do preview.
+### Fase 1: Alterações na Base de Dados
 
-### 2. Estrutura do Componente Badge
-Ha um warning no console relacionado com o componente `Badge` a receber uma ref - isto e um problema menor mas deve ser corrigido.
+Adicionar novos campos à tabela `proposals`:
 
-### 3. Fluxo de Dados Incompleto
-Quando os itens sao guardados:
-- Os dados sao inseridos corretamente na tabela `proposal_items`
-- O preco total e atualizado na proposta
-- MAS o preview nao mostra os itens porque nao ha uma seccao dedicada para isso
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `contact_id` | uuid (FK) | Referência ao contacto |
+| `company_id` | uuid (FK) | Referência à empresa |
+| `payment_conditions` | text | Ex: "30 dias", "Pronto Pagamento" |
+| `validity_days` | integer | Dias de validade (default 30) |
+| `notes` | text | Observações/termos adicionais |
+| `billing_address` | text | Morada de faturação |
+| `billing_nif` | text | NIF para faturação |
 
----
+### Fase 2: Secção de Cliente no Editor de Proposta
 
-## Solucao Proposta
+Criar uma nova aba/secção "Cliente" no `ProposalDetailDialog` com:
 
-### Fase 1: Adicionar Secao de Itens ao Preview
+1. **Seletor de Tipo de Cliente**
+   - Opção: "Pessoa Singular" (Contacto)
+   - Opção: "Empresa"
 
-Modificar o `ProposalPreview.tsx` para incluir uma tabela de itens da proposta:
+2. **Pesquisa/Seleção de Cliente**
+   - Dropdown com pesquisa para selecionar contacto ou empresa existente
+   - Botão "Criar Novo" para adicionar cliente rapidamente
+
+3. **Dados de Faturação**
+   - Nome/Empresa (pré-preenchido)
+   - NIF
+   - Morada de faturação
+
+### Fase 3: Secção de Condições no Editor
+
+Adicionar na aba "Detalhes" ou nova aba "Condições":
+
+1. **Condições de Pagamento**
+   - Select com opções: Pronto Pagamento, 15 dias, 30 dias, 45 dias, 60 dias, 90 dias
+   - Input para condições personalizadas
+
+2. **Validade da Proposta**
+   - Input numérico (dias)
+   - Data de expiração calculada automaticamente
+
+3. **Observações/Termos**
+   - Textarea para notas adicionais
+   - Opção de usar template de termos do workspace
+
+### Fase 4: Atualização do Preview
+
+Modificar `ProposalPreview.tsx` para mostrar:
 
 ```text
-+--------------------------------------------------+
-|  TITULO DA PROPOSTA                              |
-|  [Badge com preco total]                         |
-+--------------------------------------------------+
-|  [Content Blocks - texto, imagens, etc.]         |
-+--------------------------------------------------+
-|  TABELA DE PRODUTOS/SERVICOS  <-- NOVA SECAO    |
-|  +------------+------+--------+--------+        |
-|  | Nome       | Qtd  | Preco  | Total  |        |
-|  +------------+------+--------+--------+        |
-|  | Item 1     | 1    | 450 EUR| 450 EUR|        |
-|  | Item 2     | 2    | 100 EUR| 200 EUR|        |
-|  +------------+------+--------+--------+        |
-|  |                   TOTAL    | 650 EUR|        |
-|  +----------------------------+--------+        |
-+--------------------------------------------------+
-|  [CTA Button]                                    |
-+--------------------------------------------------+
++-----------------------------------------------+
+|  PROPOSTA COMERCIAL                           |
+|  Para: [Nome do Cliente]                      |
+|  NIF: [123456789]                             |
+|  Data: 26/01/2026 | Válida até: 25/02/2026    |
++-----------------------------------------------+
+|                                               |
+|  [Conteúdo da proposta]                       |
+|  [Tabela de itens/produtos]                   |
+|                                               |
++-----------------------------------------------+
+|  CONDIÇÕES                                    |
+|  Pagamento: 30 dias                           |
+|  [Observações adicionais]                     |
++-----------------------------------------------+
 ```
 
-**Ficheiro:** `src/components/proposals/ProposalPreview.tsx`
-- Adicionar prop `items` (opcional) para receber os itens da proposta
-- Criar seccao de tabela de itens antes do CTA
-- Formatar precos em EUR com locale pt-PT
+### Fase 5: Integração no Diálogo de Criação
 
-### Fase 2: Passar os Itens ao Preview
-
-**Ficheiro:** `src/components/proposals/ProposalDetailDialog.tsx`
-- Os itens ja sao carregados via `useProposalItems`
-- Passar os `proposalItems` como prop ao `ProposalPreview`
-
-### Fase 3: Melhorias de Layout no Editor de Itens
-
-**Ficheiro:** `src/components/proposals/ProposalItemsEditor.tsx`
-
-Melhorias propostas:
-1. **Adicionar campo de descricao** - permitir editar a descricao de cada item
-2. **Melhor feedback visual ao guardar** - mostrar estado mais claro
-3. **Auto-save opcional** - guardar automaticamente apos alteracoes (com debounce)
-4. **Indicador de alteracoes pendentes** - mostrar claramente quando ha dados por guardar
-5. **Corrigir o Badge** - remover ref implicita que causa o warning
-
-### Fase 4: Correcoes de UX
-
-1. **Corrigir currency padrao** no `ProposalPreview` - alterar de "BRL" para "EUR" no `formatCurrency`
-2. **Invalidar queries corretamente** apos guardar itens para atualizar o preview
-3. **Adicionar confirmacao visual** mais explicita apos gravacao bem-sucedida
+Atualizar `CreateProposalDialog.tsx`:
+- Adicionar seletor de cliente (independente da oportunidade)
+- Quando oportunidade é selecionada, pré-preencher cliente se existir
+- Permitir criar proposta sem oportunidade (cliente direto)
 
 ---
 
-## Detalhes Tecnicos
+## Detalhes Técnicos
 
-### Alteracoes no ProposalPreview.tsx
+### Migração SQL
 
-```typescript
-// Adicionar nova interface para itens
-interface PreviewItem {
-  id: string;
-  name: string;
-  description?: string | null;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-}
+```sql
+ALTER TABLE proposals 
+  ADD COLUMN contact_id uuid REFERENCES contacts(id) ON DELETE SET NULL,
+  ADD COLUMN company_id uuid REFERENCES companies(id) ON DELETE SET NULL,
+  ADD COLUMN payment_conditions text,
+  ADD COLUMN validity_days integer DEFAULT 30,
+  ADD COLUMN notes text,
+  ADD COLUMN billing_address text,
+  ADD COLUMN billing_nif text;
 
-interface ProposalPreviewProps {
-  // ... props existentes
-  items?: PreviewItem[]; // NOVO
-}
-
-// Adicionar seccao de itens no render:
-{items && items.length > 0 && (
-  <Card className="p-6">
-    <h3 className="text-lg font-semibold mb-4">Produtos e Servicos</h3>
-    <table className="w-full">
-      <thead>
-        <tr className="border-b">
-          <th>Descricao</th>
-          <th>Qtd.</th>
-          <th>Preco Unit.</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map(item => (...))}
-      </tbody>
-      <tfoot>
-        <tr className="font-bold">
-          <td colSpan={3}>TOTAL</td>
-          <td>{formatCurrency(totalSum)}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </Card>
-)}
+CREATE INDEX idx_proposals_contact ON proposals(contact_id);
+CREATE INDEX idx_proposals_company ON proposals(company_id);
 ```
 
-### Alteracoes no ProposalDetailDialog.tsx
+### Novos Componentes
+
+| Componente | Ficheiro | Descrição |
+|------------|----------|-----------|
+| ProposalClientSection | `src/components/proposals/ProposalClientSection.tsx` | Seletor de cliente |
+| ProposalConditionsSection | `src/components/proposals/ProposalConditionsSection.tsx` | Condições de pagamento |
+| ClientSearchSelect | `src/components/proposals/ClientSearchSelect.tsx` | Dropdown de pesquisa |
+
+### Atualizações em Hooks
+
+**`useProposals.ts`**:
+- Atualizar `CreateProposalInput` com novos campos
+- Atualizar `UpdateProposalInput` com novos campos
+- Modificar queries para incluir dados do cliente (join com contacts/companies)
+
+### Constantes para Condições
 
 ```typescript
-// No TabsContent de preview:
-<ProposalPreview
-  {...outrasProps}
-  items={proposalItems?.map(item => ({
-    id: item.id,
-    name: item.name,
-    description: item.description,
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    total_price: item.total_price || (item.quantity * item.unit_price),
-  }))}
-/>
-```
+// src/components/proposals/proposalConstants.ts
+export const PAYMENT_CONDITIONS = [
+  { value: 'pronto_pagamento', label: 'Pronto Pagamento' },
+  { value: '15_dias', label: '15 dias' },
+  { value: '30_dias', label: '30 dias' },
+  { value: '45_dias', label: '45 dias' },
+  { value: '60_dias', label: '60 dias' },
+  { value: '90_dias', label: '90 dias' },
+];
 
-### Alteracoes no ProposalItemsEditor.tsx
-
-```typescript
-// Corrigir Badge - usar span em vez de deixar componente receber ref implicita
-{item.product_id && (
-  <span className="inline-flex items-center mt-2 text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
-    <Package className="h-3 w-3 mr-1" />
-    Produto do catalogo
-  </span>
-)}
-
-// Adicionar campo de descricao opcional
-<div className="col-span-12 space-y-1">
-  <label className="text-xs text-muted-foreground">Descricao (opcional)</label>
-  <Input
-    value={item.description || ""}
-    onChange={(e) => handleUpdateItem(index, "description", e.target.value)}
-    placeholder="Descricao adicional..."
-    className="h-8"
-  />
-</div>
+export const VALIDITY_DAYS_OPTIONS = [7, 15, 30, 45, 60, 90];
 ```
 
 ---
 
-## Resumo das Alteracoes
+## Resumo das Alterações
 
-| Ficheiro | Alteracao |
-|----------|-----------|
-| `ProposalPreview.tsx` | Adicionar seccao de tabela de itens, corrigir currency padrao |
-| `ProposalDetailDialog.tsx` | Passar items ao preview |
-| `ProposalItemsEditor.tsx` | Melhorar layout, adicionar campo descricao, corrigir Badge warning |
+| Tipo | Ficheiro | Ação |
+|------|----------|------|
+| DB | `proposals` table | Adicionar colunas client/conditions |
+| Novo | `ProposalClientSection.tsx` | Criar componente |
+| Novo | `ProposalConditionsSection.tsx` | Criar componente |
+| Novo | `ClientSearchSelect.tsx` | Criar componente |
+| Novo | `proposalConstants.ts` | Criar constantes |
+| Editar | `ProposalDetailDialog.tsx` | Adicionar tabs Cliente/Condições |
+| Editar | `CreateProposalDialog.tsx` | Adicionar seleção cliente |
+| Editar | `ProposalPreview.tsx` | Mostrar cliente e condições |
+| Editar | `useProposals.ts` | Atualizar types e queries |
+| Editar | `src/types/proposal.ts` | Atualizar interfaces |
 
 ---
 
 ## Resultado Esperado
 
-Apos implementacao:
-1. Os itens adicionados/editados serao vissiveis no preview imediatamente apos guardar
-2. O preview mostrara uma tabela profissional com todos os produtos/servicos
-3. Os precos estarao em EUR com formatacao pt-PT
-4. O warning do Badge sera eliminado
-5. A experiencia de edicao sera mais intuitiva com feedback claro
-
+Após implementação:
+1. Utilizador pode associar contacto ou empresa diretamente à proposta
+2. Condições de pagamento e validade são configuráveis
+3. Preview mostra cliente e condições de forma profissional
+4. Propostas podem ser criadas sem oportunidade (cliente direto)
+5. NIF e morada de faturação são guardados para emissão de documentos
