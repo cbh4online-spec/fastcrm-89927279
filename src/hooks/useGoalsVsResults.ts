@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { differenceInDays, format, subDays, endOfDay } from "date-fns";
+import { differenceInDays, format, subDays, subWeeks, endOfDay, startOfWeek, endOfWeek, startOfDay } from "date-fns";
 import type { GoalPeriod, GoalScope, ProductivityGoal } from "./useProductivityCoach";
 
 export type GoalRealStatus = 'completed' | 'ahead' | 'on_track' | 'at_risk' | 'behind';
+export type TrendDirection = 'up' | 'down' | 'stable';
 
 export interface GoalWithRealProgress {
   goal: ProductivityGoal;
@@ -17,6 +18,15 @@ export interface GoalWithRealProgress {
   variance: number;
   status: GoalRealStatus;
   historicalData: { date: string; value: number }[];
+  // New intelligent evaluation fields
+  averageValue7d: number;      // Average of last 7 days (for daily goals)
+  averageValue30d: number;     // Average of last 30 days (for daily goals)
+  averageWeekly4w: number;     // Average of last 4 weeks (for weekly goals)
+  projectedValue: number;      // Projected value at period end
+  projectedProgress: number;   // Projected progress at period end
+  trendDirection: TrendDirection; // Trend direction
+  daysElapsed: number;         // Days elapsed in current period
+  totalDays: number;           // Total days in period
 }
 
 export interface GoalsVsResultsFilters {
@@ -70,18 +80,45 @@ const UNIT_CATEGORY_MAP: Record<string, UnitCategory> = {
   'e (euro)': 'revenue',
 };
 
-// Calculate status based on progress and time remaining
-function calculateStatus(realProgress: number, daysRemaining: number, totalDays: number): GoalRealStatus {
+// Calculate status based on progress, time remaining, and context
+function calculateStatus(
+  realProgress: number, 
+  daysRemaining: number, 
+  totalDays: number,
+  averageProgress?: number // Optional: average-based progress for context
+): GoalRealStatus {
   if (realProgress >= 100) return 'completed';
   
   const expectedProgress = totalDays > 0 
     ? ((totalDays - Math.max(0, daysRemaining)) / totalDays) * 100 
     : 100;
   
+  // For daily/weekly goals, consider average performance too
+  if (averageProgress !== undefined && averageProgress >= 80) {
+    // If average is good, be more lenient on current period
+    if (realProgress >= expectedProgress * 0.5) return 'on_track';
+  }
+  
   if (realProgress >= expectedProgress * 1.1) return 'ahead';
   if (realProgress >= expectedProgress * 0.8) return 'on_track';
   if (realProgress >= expectedProgress * 0.5) return 'at_risk';
   return 'behind';
+}
+
+// Calculate trend direction by comparing short-term vs long-term averages
+function calculateTrend(shortTermAvg: number, longTermAvg: number): TrendDirection {
+  if (longTermAvg === 0) return 'stable';
+  const changePercent = ((shortTermAvg - longTermAvg) / longTermAvg) * 100;
+  if (changePercent > 10) return 'up';
+  if (changePercent < -10) return 'down';
+  return 'stable';
+}
+
+// Calculate projection for goals in progress
+function calculateProjection(currentValue: number, daysElapsed: number, totalDays: number): number {
+  if (daysElapsed === 0) return currentValue;
+  const dailyRate = currentValue / daysElapsed;
+  return dailyRate * totalDays;
 }
 
 // Fetch count/sum for a specific unit type - separated queries to avoid type recursion
@@ -312,12 +349,19 @@ export function useGoalsVsResults(filters: GoalsVsResultsFilters = {}) {
           const unitCategory = normalizedUnit ? UNIT_CATEGORY_MAP[normalizedUnit] : null;
           
           let realValue = 0;
+          let averageValue7d = 0;
+          let averageValue30d = 0;
+          let averageWeekly4w = 0;
           const historicalData: { date: string; value: number }[] = [];
+          
+          const today = new Date();
+          const todayStart = format(startOfDay(today), "yyyy-MM-dd'T'HH:mm:ss");
+          const todayEnd = format(endOfDay(today), "yyyy-MM-dd'T'HH:mm:ss");
           
           if (unitCategory) {
             const userId = typedGoal.goal_scope === 'individual' ? typedGoal.user_id : null;
             
-            // Calculate real value
+            // Calculate real value for the period
             realValue = await fetchUnitValue(
               unitCategory,
               currentWorkspace.id,
@@ -326,10 +370,29 @@ export function useGoalsVsResults(filters: GoalsVsResultsFilters = {}) {
               userId
             );
 
+            // Calculate averages based on goal period type
+            if (typedGoal.period === 'daily') {
+              // For daily goals: calculate 7-day and 30-day averages
+              const last7DaysStart = format(subDays(today, 7), "yyyy-MM-dd'T'HH:mm:ss");
+              const last30DaysStart = format(subDays(today, 30), "yyyy-MM-dd'T'HH:mm:ss");
+              
+              const total7d = await fetchUnitValue(unitCategory, currentWorkspace.id, last7DaysStart, todayEnd, userId);
+              const total30d = await fetchUnitValue(unitCategory, currentWorkspace.id, last30DaysStart, todayEnd, userId);
+              
+              averageValue7d = total7d / 7;
+              averageValue30d = total30d / 30;
+            } else if (typedGoal.period === 'weekly') {
+              // For weekly goals: calculate 4-week average (excluding current week)
+              const lastWeekEnd = format(endOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }), "yyyy-MM-dd'T'HH:mm:ss");
+              const fourWeeksAgoStart = format(startOfWeek(subWeeks(today, 4), { weekStartsOn: 1 }), "yyyy-MM-dd'T'HH:mm:ss");
+              
+              const total4w = await fetchUnitValue(unitCategory, currentWorkspace.id, fourWeeksAgoStart, lastWeekEnd, userId);
+              averageWeekly4w = total4w / 4;
+            }
+
             // Generate historical data (last 7 days or period length)
             const periodStart = new Date(typedGoal.period_start);
             const periodEnd = new Date(typedGoal.period_end);
-            const today = new Date();
             const daysInPeriod = Math.min(
               differenceInDays(periodEnd, periodStart) + 1,
               7
@@ -360,11 +423,29 @@ export function useGoalsVsResults(filters: GoalsVsResultsFilters = {}) {
           const manualProgress = targetValue > 0 ? (manualValue / targetValue) * 100 : 0;
           const variance = realValue - manualValue;
 
-          const todayDate = new Date();
           const periodEndDate = new Date(typedGoal.period_end);
           const periodStartDate = new Date(typedGoal.period_start);
-          const daysRemaining = Math.max(0, differenceInDays(periodEndDate, todayDate));
+          const daysRemaining = Math.max(0, differenceInDays(periodEndDate, today));
           const totalDays = differenceInDays(periodEndDate, periodStartDate) + 1;
+          const daysElapsed = Math.max(0, totalDays - daysRemaining);
+
+          // Calculate projection
+          const projectedValue = calculateProjection(realValue, daysElapsed, totalDays);
+          const projectedProgress = targetValue > 0 ? Math.min((projectedValue / targetValue) * 100, 200) : 0;
+
+          // Calculate trend direction
+          let trendDirection: TrendDirection = 'stable';
+          if (typedGoal.period === 'daily') {
+            trendDirection = calculateTrend(averageValue7d, averageValue30d);
+          } else if (typedGoal.period === 'weekly') {
+            // Compare current week progress with 4-week average
+            trendDirection = calculateTrend(realValue, averageWeekly4w);
+          }
+
+          // For daily/weekly goals, use average-based status calculation
+          const averageProgress = typedGoal.period === 'daily' 
+            ? (targetValue > 0 ? (averageValue7d / targetValue) * 100 : 0)
+            : undefined;
 
           return {
             goal: typedGoal,
@@ -374,8 +455,16 @@ export function useGoalsVsResults(filters: GoalsVsResultsFilters = {}) {
             realProgress: Math.min(realProgress, 100),
             manualProgress: Math.min(manualProgress, 100),
             variance,
-            status: calculateStatus(realProgress, daysRemaining, totalDays),
+            status: calculateStatus(realProgress, daysRemaining, totalDays, averageProgress),
             historicalData,
+            averageValue7d,
+            averageValue30d,
+            averageWeekly4w,
+            projectedValue,
+            projectedProgress,
+            trendDirection,
+            daysElapsed,
+            totalDays,
           };
         })
       );
