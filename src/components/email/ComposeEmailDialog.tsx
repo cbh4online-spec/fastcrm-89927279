@@ -57,6 +57,8 @@ import { InboxTemplatePanel } from "@/components/inbox/InboxTemplatePanel";
 import { VariableContext } from "@/lib/templateVariables";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface ComposeEmailDialogProps {
   open: boolean;
@@ -71,6 +73,8 @@ export interface ComposeEmailDialogProps {
   defaultBody?: string;
   templateContext?: VariableContext;
   onSent?: () => void;
+  /** If true, will create a contact if email not found in database */
+  autoCreateContact?: boolean;
 }
 
 // Simple HTML preview sanitization
@@ -106,6 +110,7 @@ export function ComposeEmailDialog({
   defaultBody = "",
   templateContext,
   onSent,
+  autoCreateContact = false,
 }: ComposeEmailDialogProps) {
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
@@ -113,11 +118,14 @@ export function ComposeEmailDialog({
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
   const [showNoConnectionAlert, setShowNoConnectionAlert] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isCreatingContact, setIsCreatingContact] = useState(false);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: connection, isLoading: connectionLoading } = useActiveEmailConnection();
   const sendEmail = useSendEmail();
   const translateEmail = useTranslateEmail();
@@ -135,8 +143,72 @@ export function ComposeEmailDialog({
   const senderDisplayName = connection?.display_name || connection?.email_address?.split("@")[0] || "Remetente";
   const senderEmail = connection?.email_address || "";
 
+  // Find or create contact by email if autoCreateContact is enabled
+  const findOrCreateContact = async (): Promise<{ id: string; entityType: 'contact' | 'lead' | 'company' }> => {
+    if (!currentWorkspace || !workspaceClient || !user) {
+      throw new Error("Workspace não disponível");
+    }
+
+    // If we already have an entityId, just return it
+    if (recipient.entityId && recipient.entityId !== "new") {
+      return { id: recipient.entityId, entityType: recipient.entityType };
+    }
+
+    // Check if contact exists with this email
+    const { data: existingContact } = await workspaceClient
+      .from("contacts")
+      .select("id")
+      .eq("workspace_id", currentWorkspace.id)
+      .eq("email", recipient.email)
+      .maybeSingle();
+
+    if (existingContact) {
+      return { id: existingContact.id, entityType: "contact" };
+    }
+
+    // Check if lead exists with this email
+    const { data: existingLead } = await workspaceClient
+      .from("leads")
+      .select("id")
+      .eq("workspace_id", currentWorkspace.id)
+      .eq("email", recipient.email)
+      .maybeSingle();
+
+    if (existingLead) {
+      return { id: existingLead.id, entityType: "lead" };
+    }
+
+    // Create new contact if autoCreateContact is enabled
+    if (autoCreateContact) {
+      setIsCreatingContact(true);
+      const { data: newContact, error } = await workspaceClient
+        .from("contacts")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          created_by: user.id,
+          name: recipient.name || recipient.email.split("@")[0],
+          email: recipient.email,
+          tags: ["criado-via-email"],
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+      
+      // Invalidate contacts cache
+      queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace.id] });
+      toast.success(`Contacto "${recipient.name}" criado automaticamente`);
+      setIsCreatingContact(false);
+      
+      return { id: newContact.id, entityType: "contact" };
+    }
+
+    // If no entity found and autoCreateContact is false, throw error
+    throw new Error("Nenhum contacto encontrado com este email");
+  };
+
   // Find or create conversation for this email
-  const findOrCreateConversation = async (): Promise<string> => {
+  const findOrCreateConversation = async (entityId: string, entityType: 'contact' | 'lead' | 'company'): Promise<string> => {
     if (!currentWorkspace || !workspaceClient) {
       throw new Error("Workspace não disponível");
     }
@@ -147,7 +219,7 @@ export function ComposeEmailDialog({
       .select("id")
       .eq("workspace_id", currentWorkspace.id)
       .eq("channel", "email")
-      .or(`channel_metadata->email.eq.${recipient.email},channel_metadata->>email.eq.${recipient.email}`)
+      .or(`channel_metadata->>email.eq.${recipient.email},channel_metadata->>from_email.eq.${recipient.email}`)
       .order("last_message_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -156,19 +228,23 @@ export function ComposeEmailDialog({
       return existingConversation.id;
     }
 
-    // Create new conversation
+    // Build entity reference
+    const entityRef: Record<string, string> = {};
+    entityRef[`${entityType}_id`] = entityId;
+
+    // Create new conversation (without subject field since it doesn't exist)
     const { data: newConversation, error } = await workspaceClient
       .from("conversations")
       .insert({
         workspace_id: currentWorkspace.id,
         channel: "email",
-        subject: subject || `Conversa com ${recipient.name}`,
         status: "open",
         channel_metadata: {
           email: recipient.email,
           name: recipient.name,
+          subject: subject || `Conversa com ${recipient.name}`,
         },
-        [`${recipient.entityType}_id`]: recipient.entityId,
+        ...entityRef,
       })
       .select("id")
       .single();
@@ -194,8 +270,11 @@ export function ComposeEmailDialog({
     }
 
     try {
+      // First, find or create contact if needed
+      const { id: entityId, entityType } = await findOrCreateContact();
+      
       // Get or create conversation
-      const convId = await findOrCreateConversation();
+      const convId = await findOrCreateConversation(entityId, entityType);
       setConversationId(convId);
 
       // Send email
