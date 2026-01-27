@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useConversations, useDeleteConversations, useUpdateConversationPriority, ConversationChannel, ConversationStatus, Conversation } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -91,6 +92,8 @@ interface ConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   defaultChannel?: ConversationChannel | null;
+  defaultStatus?: "open" | "closed" | "archived";
+  selectedCategory?: string;
 }
 
 // Enhanced priority calculation considering multiple factors
@@ -224,9 +227,15 @@ const smartFilterConfig: Record<SmartFilter, { label: string; icon: React.Elemen
   urgent: { label: "Urgentes", icon: Flame },
 };
 
-export function ConversationList({ selectedId, onSelect, defaultChannel }: ConversationListProps) {
+export function ConversationList({ 
+  selectedId, 
+  onSelect, 
+  defaultChannel,
+  defaultStatus = "open",
+  selectedCategory = "all",
+}: ConversationListProps) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ConversationStatus | "all">("open");
+  const [statusFilter, setStatusFilter] = useState<ConversationStatus | "all">(defaultStatus || "open");
   const [channelFilter, setChannelFilter] = useState<ConversationChannel | "all">(defaultChannel || "all");
   const [smartFilter, setSmartFilter] = useState<SmartFilter>("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -528,225 +537,133 @@ export function ConversationList({ selectedId, onSelect, defaultChannel }: Conve
           ) : (
           <div className="divide-y divide-border">
               {processedConversations.map((conv) => {
-                const ChannelIcon = channelIcons[conv.channel];
-                // Priority: contact name > lead name > external_thread_id
-                const displayName = conv.contact?.name || conv.lead?.name || conv.external_thread_id || "Desconhecido";
-                // Get company name from contact's company or linked company
-                const companyName = conv.company?.name || conv.contact?.company || null;
-                const priorityInfo = priorityConfig[conv.priority];
-                const PriorityIcon = priorityInfo.icon;
-                const effectiveIntent = conv.user_intent || conv.ai_intent;
-                const hasAIClassification = conv.ai_priority || conv.ai_intent;
-                const isSelected = selectedIds.has(conv.id);
+              const ChannelIcon = channelIcons[conv.channel];
+              // Priority: contact name > lead name > external_thread_id
+              const displayName = conv.contact?.name || conv.lead?.name || conv.external_thread_id || "Desconhecido";
+              // Get company name from contact's company or linked company
+              const companyName = conv.company?.name || conv.contact?.company || null;
+              const priorityInfo = priorityConfig[conv.priority];
+              const PriorityIcon = priorityInfo.icon;
+              const effectiveIntent = conv.user_intent || conv.ai_intent;
+              const hasAIClassification = conv.ai_priority || conv.ai_intent;
+              const isSelected = selectedIds.has(conv.id);
+              const avatarUrl = (conv.lead as any)?.avatar_url || (conv.contact as any)?.avatar_url;
+              
+              // Get initials for avatar
+              const getInitials = (name: string) => {
+                return name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase();
+              };
 
-                return (
-                  <div
-                    key={conv.id}
-                    className={cn(
-                      "w-full p-3 text-left hover:bg-accent/50 transition-colors relative flex items-start gap-2",
-                      selectedId === conv.id && "bg-accent",
-                      conv.priority === "high" && "border-l-2 border-l-destructive",
-                      isSelected && "bg-primary/5"
-                    )}
-                  >
-                    {/* Selection Checkbox */}
-                    {selectionMode && (
-                      <div className="flex-shrink-0 pt-1">
-                        <Checkbox
-                          checked={isSelected}
-                          onClick={(e) => toggleSelect(conv.id, e)}
-                        />
-                      </div>
-                    )}
-                    
-                    <button
-                      onClick={() => !selectionMode && onSelect(conv.id)}
-                      className="flex-1 text-left"
-                    >
-                      <div className="flex items-start gap-3">
-                        {/* Channel Icon */}
-                        <div
-                          className={cn(
-                            "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0",
-                            channelColors[conv.channel]
+              return (
+                <div
+                  key={conv.id}
+                  className={cn(
+                    "w-full p-3 text-left hover:bg-accent/50 transition-colors relative cursor-pointer",
+                    selectedId === conv.id && "bg-accent",
+                    conv.priority === "high" && "border-l-2 border-l-destructive",
+                    isSelected && "bg-primary/5"
+                  )}
+                  onClick={() => !selectionMode && onSelect(conv.id)}
+                >
+                  {/* Selection Checkbox */}
+                  {selectionMode && (
+                    <div className="absolute top-3 left-3">
+                      <Checkbox
+                        checked={isSelected}
+                        onClick={(e) => toggleSelect(conv.id, e)}
+                      />
+                    </div>
+                  )}
+                  
+                  <div className={cn("flex items-start gap-3", selectionMode && "pl-7")}>
+                    {/* Avatar with Photo */}
+                    <Avatar className="h-10 w-10 flex-shrink-0">
+                      <AvatarImage src={avatarUrl} />
+                      <AvatarFallback className={cn(
+                        "text-xs font-medium",
+                        channelColors[conv.channel]
+                      )}>
+                        {getInitials(displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-foreground truncate text-sm">
+                          {displayName}
+                        </span>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {conv.last_message_at && (
+                            <span className="text-[11px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(conv.last_message_at), {
+                                addSuffix: false,
+                                locale: pt,
+                              })}
+                            </span>
                           )}
-                        >
-                          <ChannelIcon className="w-4 h-4" />
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="font-medium text-foreground truncate text-sm">
-                                {displayName}
-                              </span>
-                              {companyName && (
-                                <span className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-                                  <Building2 className="w-3 h-3 flex-shrink-0" />
-                                  <span className="truncate">{companyName}</span>
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              {conv.unread_count > 0 && (
-                                <Badge className="bg-primary text-primary-foreground text-xs px-1.5 py-0 h-5">
-                                  {conv.unread_count}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Last message preview */}
-                          {conv.last_message_preview && (
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">
-                              {conv.last_message_preview}
-                            </p>
+                          {conv.unread_count > 0 && (
+                            <Badge className="bg-green-500 hover:bg-green-500 text-white text-[10px] px-1.5 py-0 h-5 min-w-[20px] flex items-center justify-center rounded-full">
+                              {conv.unread_count}
+                            </Badge>
                           )}
-                          
-                          {/* Priority badge with edit capability */}
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button className={cn(
-                                  "flex items-center gap-1 text-xs px-1.5 py-0.5 rounded hover:ring-1 hover:ring-primary/30 transition-all",
-                                  priorityInfo.color,
-                                  priorityInfo.bgColor || "bg-muted/50"
-                                )}>
-                                  {PriorityIcon && <PriorityIcon className="w-3 h-3" />}
-                                  <span>{priorityInfo.label}</span>
-                                  {conv.isManual && <Pencil className="w-2.5 h-2.5 ml-0.5" />}
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-56 p-2" align="start">
-                                <div className="space-y-2">
-                                  <p className="text-xs font-medium text-muted-foreground mb-2">Alterar prioridade</p>
-                                  {(["high", "medium", "low"] as const).map((p) => {
-                                    const pConfig = priorityConfig[p];
-                                    const PIcon = pConfig.icon;
-                                    return (
-                                      <button
-                                        key={p}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          updatePriority.mutate(
-                                            { conversationId: conv.id, priority: p },
-                                            {
-                                              onSuccess: () => toast.success(`Prioridade alterada para ${pConfig.label}`),
-                                              onError: () => toast.error("Erro ao alterar prioridade"),
-                                            }
-                                          );
-                                        }}
-                                        className={cn(
-                                          "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors",
-                                          conv.priority === p && "bg-accent"
-                                        )}
-                                      >
-                                        {PIcon && <PIcon className={cn("w-4 h-4", pConfig.color)} />}
-                                        {!PIcon && <ArrowDown className={cn("w-4 h-4", pConfig.color)} />}
-                                        <span>{pConfig.label}</span>
-                                        {conv.priority === p && <span className="ml-auto text-primary">✓</span>}
-                                      </button>
-                                    );
-                                  })}
-                                  {conv.user_priority && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updatePriority.mutate(
-                                          { conversationId: conv.id, priority: null },
-                                          {
-                                            onSuccess: () => toast.success("Prioridade automática restaurada"),
-                                            onError: () => toast.error("Erro ao restaurar prioridade"),
-                                          }
-                                        );
-                                      }}
-                                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-accent transition-colors border-t mt-2 pt-2"
-                                    >
-                                      Restaurar prioridade automática
-                                    </button>
-                                  )}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                            
-                            {/* Reason shown inline for high/medium priority */}
-                            {conv.priority !== "low" && (
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
-                                {conv.reason}
-                              </span>
-                            )}
-                            
-                            {/* Intent badge */}
-                            {effectiveIntent && intentConfig[effectiveIntent] && (
-                              <span className={cn(
-                                "text-xs px-1.5 py-0.5 rounded",
-                                intentConfig[effectiveIntent].color
-                              )}>
-                                {intentConfig[effectiveIntent].label}
-                              </span>
-                            )}
-
-                            {/* Lead/Client status indicator */}
-                            {conv.lead?.status && (conv.lead.status === "client" || conv.lead.status === "qualified") && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className={cn(
-                                    "text-xs px-1.5 py-0.5 rounded flex items-center gap-1",
-                                    conv.lead.status === "client" 
-                                      ? "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30" 
-                                      : "text-blue-600 bg-blue-100 dark:bg-blue-900/30"
-                                  )}>
-                                    {conv.lead.status === "client" ? <Briefcase className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                                    {conv.lead.status === "client" ? "Cliente" : "Qualificado"}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Status do lead: {conv.lead.status}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Opportunity indicator */}
-                            {conv.opportunities && conv.opportunities.length > 0 && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-900/30">
-                                    <DollarSign className="w-3 h-3" />
-                                    {conv.opportunities.length}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">{conv.opportunities.length} oportunidade(s) aberta(s)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center justify-between gap-2 mt-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground truncate capitalize">
-                                {conv.channel}
-                              </span>
-                              {/* Temperature indicator */}
-                              <TemperatureIndicator score={conv.temperature} />
-                            </div>
-                            {conv.last_message_at && (
-                              <span className="text-xs text-muted-foreground flex-shrink-0">
-                                {formatDistanceToNow(new Date(conv.last_message_at), {
-                                  addSuffix: true,
-                                  locale: pt,
-                                })}
-                              </span>
-                            )}
-                          </div>
                         </div>
                       </div>
-                    </button>
+                      
+                      {/* Last message preview */}
+                      {conv.last_message_preview && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5 leading-relaxed">
+                          {conv.last_message_preview}
+                        </p>
+                      )}
+                      
+                      {/* Tags and metadata row */}
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        {/* Channel badge */}
+                        <span className={cn(
+                          "text-[10px] px-1.5 py-0.5 rounded capitalize flex items-center gap-1",
+                          channelColors[conv.channel]
+                        )}>
+                          <ChannelIcon className="w-3 h-3" />
+                          {conv.channel}
+                        </span>
+                        
+                        {/* Priority badge */}
+                        {conv.priority !== "low" && PriorityIcon && (
+                          <span className={cn(
+                            "text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1",
+                            priorityInfo.color,
+                            priorityInfo.bgColor || "bg-muted/50"
+                          )}>
+                            <PriorityIcon className="w-3 h-3" />
+                            {priorityInfo.label}
+                          </span>
+                        )}
+                        
+                        {/* Intent badge */}
+                        {effectiveIntent && intentConfig[effectiveIntent] && (
+                          <span className={cn(
+                            "text-[10px] px-1.5 py-0.5 rounded",
+                            intentConfig[effectiveIntent].color
+                          )}>
+                            {intentConfig[effectiveIntent].label}
+                          </span>
+                        )}
+
+                        {/* Temperature indicator */}
+                        <TemperatureIndicator score={conv.temperature} />
+                      </div>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
+          </div>
           )}
         </ScrollArea>
       </div>
