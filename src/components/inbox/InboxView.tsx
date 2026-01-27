@@ -7,6 +7,7 @@ import { InboxMetricsBar } from "./InboxMetricsBar";
 import { InboxFollowupPanel } from "./InboxFollowupPanel";
 import { SmartAlertsPopover } from "./SmartAlertsPopover";
 import { InboxSidebar, InboxCategory, ChannelFilter } from "./InboxSidebar";
+import { ComposeButton } from "./ComposeButton";
 import { ConversationChannel } from "@/hooks/useConversations";
 import { Button } from "@/components/ui/button";
 import { Bell, PanelLeftClose, PanelLeft } from "lucide-react";
@@ -51,6 +52,9 @@ export function InboxView() {
           <InboxMetricsBar />
         </div>
         <div className="flex items-center gap-2 px-4">
+          {/* Compose Button - Most Visible */}
+          <ComposeButton />
+          
           {/* Toggle Sidebar */}
           <Button
             variant="ghost"
