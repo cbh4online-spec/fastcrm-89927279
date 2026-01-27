@@ -119,10 +119,10 @@ export function useSendMessage() {
         }
       }
 
-      // Get conversation to check channel
+      // Get conversation to check channel and email details
       const { data: conversation, error: convError } = await workspaceClient
         .from("conversations")
-        .select("channel")
+        .select("channel, channel_metadata, lead:leads(email)")
         .eq("id", conversationId)
         .single();
 
@@ -150,6 +150,80 @@ export function useSendMessage() {
           delivered_at: new Date().toISOString(),
           read_at: null,
           created_at: new Date().toISOString(),
+        } as Message;
+      }
+
+      // For Email, use the email-send edge function with SMTP
+      if (conversation.channel === "email") {
+        // Get active email connection
+        const { data: emailConnection, error: connError } = await workspaceClient
+          .from("email_connections")
+          .select("id")
+          .eq("workspace_id", currentWorkspace.id)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (connError) throw connError;
+        if (!emailConnection) throw new Error("Nenhuma conexão de email ativa configurada");
+
+        // Get recipient email from lead or channel_metadata
+        const channelMeta = conversation.channel_metadata as Record<string, unknown> | null;
+        const recipientEmail = (conversation.lead as any)?.email || (channelMeta?.from_email as string);
+        
+        if (!recipientEmail) {
+          throw new Error("Não foi possível determinar o email de destino");
+        }
+
+        // Get subject from channel_metadata
+        const subject = (channelMeta?.subject as string) || "Re: Conversa";
+
+        // Get last inbound message for threading
+        const { data: lastInbound } = await workspaceClient
+          .from("messages")
+          .select("email_message_id, email_references")
+          .eq("conversation_id", conversationId)
+          .eq("direction", "inbound")
+          .order("sent_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const inReplyTo = lastInbound?.email_message_id || undefined;
+        const references = lastInbound?.email_references as string[] | undefined;
+
+        // Send email via edge function
+        const { data, error } = await mainClient.functions.invoke("email-send", {
+          body: {
+            connectionId: emailConnection.id,
+            workspaceId: currentWorkspace.id,
+            conversationId,
+            to: recipientEmail,
+            subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
+            body: content,
+            isHtml: false,
+            inReplyTo,
+            references,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        // Message is saved by the edge function
+        return {
+          id: data.messageId || crypto.randomUUID(),
+          conversation_id: conversationId,
+          workspace_id: currentWorkspace.id,
+          direction: "outbound" as MessageDirection,
+          content,
+          attachments: [],
+          sender_id: user.id,
+          sent_at: new Date().toISOString(),
+          delivered_at: new Date().toISOString(),
+          read_at: null,
+          created_at: new Date().toISOString(),
+          email_subject: subject,
+          email_message_id: null,
+          email_in_reply_to: inReplyTo || null,
         } as Message;
       }
 
