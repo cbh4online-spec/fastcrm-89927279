@@ -94,6 +94,7 @@ interface ConversationListProps {
   defaultChannel?: ConversationChannel | null;
   defaultStatus?: "open" | "closed" | "archived";
   selectedCategory?: string;
+  externalChannelFilter?: ConversationChannel | "all";
 }
 
 // Enhanced priority calculation considering multiple factors
@@ -233,6 +234,7 @@ export function ConversationList({
   defaultChannel,
   defaultStatus = "open",
   selectedCategory = "all",
+  externalChannelFilter,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ConversationStatus | "all">(defaultStatus || "open");
@@ -242,6 +244,13 @@ export function ConversationList({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
+
+  // Sync with external channel filter from sidebar
+  useEffect(() => {
+    if (externalChannelFilter !== undefined) {
+      setChannelFilter(externalChannelFilter);
+    }
+  }, [externalChannelFilter]);
 
   const { data: conversations, isLoading } = useConversations({
     status: statusFilter === "all" ? undefined : statusFilter,
