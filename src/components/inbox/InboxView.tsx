@@ -107,6 +107,7 @@ export function InboxView() {
             defaultChannel={channelParam || (selectedChannel !== "all" ? selectedChannel : null)}
             defaultStatus={getStatusFromCategory(selectedCategory)}
             selectedCategory={selectedCategory}
+            externalChannelFilter={selectedChannel}
           />
         </div>
 
