@@ -91,43 +91,85 @@ interface UnitSummary {
 }
 
 export function PeriodSummary({ goals }: PeriodSummaryProps) {
-  // Agrupar por unidade e calcular totais (usando apenas valores manuais)
+  // Agrupar por unidade e calcular totais
+  // IMPORTANTE: Se existirem metas organizacionais, usar APENAS essas para o resumo
+  // pois as metas organizacionais já representam o total (metas individuais são subconjuntos)
   const { summaryByUnit, totalProgress, completedGoals, totalGoals } = useMemo(() => {
     const grouped: Record<string, UnitSummary> = {};
     let totalCurrent = 0;
     let totalTarget = 0;
     let completed = 0;
     
-    goals.forEach(goal => {
-      const unit = goal.unit || 'Unidades';
-      const currentValue = goal.current_value || 0;
-      const targetValue = goal.target_value || 0;
+    // Separar metas por tipo
+    const orgGoals = goals.filter(g => g.goal_scope === 'organizational');
+    const individualGoals = goals.filter(g => g.goal_scope !== 'organizational');
+    
+    // Para cada unidade, verificar se existe meta organizacional
+    // Se existir, usar apenas a organizacional; caso contrário, somar as individuais
+    const unitTypes = [...new Set(goals.map(g => g.unit || 'Unidades'))];
+    
+    unitTypes.forEach(unit => {
+      const orgGoalsForUnit = orgGoals.filter(g => (g.unit || 'Unidades') === unit);
+      const indGoalsForUnit = individualGoals.filter(g => (g.unit || 'Unidades') === unit);
       
       if (!grouped[unit]) {
         grouped[unit] = { current: 0, target: 0, count: 0, completedCount: 0 };
       }
       
-      grouped[unit].current += currentValue;
-      grouped[unit].target += targetValue;
-      grouped[unit].count += 1;
-      
-      // Verificar se a meta está concluída (progresso >= 100%)
-      if (targetValue > 0 && currentValue >= targetValue) {
-        grouped[unit].completedCount += 1;
-        completed += 1;
+      if (orgGoalsForUnit.length > 0) {
+        // Usar apenas metas organizacionais para esta unidade
+        orgGoalsForUnit.forEach(goal => {
+          const currentValue = goal.current_value || 0;
+          const targetValue = goal.target_value || 0;
+          
+          grouped[unit].current += currentValue;
+          grouped[unit].target += targetValue;
+          grouped[unit].count += 1;
+          
+          if (targetValue > 0 && currentValue >= targetValue) {
+            grouped[unit].completedCount += 1;
+            completed += 1;
+          }
+          
+          totalCurrent += currentValue;
+          totalTarget += targetValue;
+        });
+      } else {
+        // Não há meta organizacional - somar metas individuais
+        indGoalsForUnit.forEach(goal => {
+          const currentValue = goal.current_value || 0;
+          const targetValue = goal.target_value || 0;
+          
+          grouped[unit].current += currentValue;
+          grouped[unit].target += targetValue;
+          grouped[unit].count += 1;
+          
+          if (targetValue > 0 && currentValue >= targetValue) {
+            grouped[unit].completedCount += 1;
+            completed += 1;
+          }
+          
+          totalCurrent += currentValue;
+          totalTarget += targetValue;
+        });
       }
-      
-      totalCurrent += currentValue;
-      totalTarget += targetValue;
     });
     
     const progress = totalTarget > 0 ? Math.min(100, Math.round((totalCurrent / totalTarget) * 100)) : 0;
     
+    // Contagem de metas: todas as metas para o contador
+    const allGoalsCount = goals.length;
+    const allCompleted = goals.filter(g => {
+      const current = g.current_value || 0;
+      const target = g.target_value || 0;
+      return target > 0 && current >= target;
+    }).length;
+    
     return {
       summaryByUnit: grouped,
       totalProgress: progress,
-      completedGoals: completed,
-      totalGoals: goals.length,
+      completedGoals: allCompleted,
+      totalGoals: allGoalsCount,
     };
   }, [goals]);
 
