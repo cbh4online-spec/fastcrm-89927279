@@ -6,9 +6,10 @@ import { InboxCRMPanel } from "./InboxCRMPanel";
 import { InboxMetricsBar } from "./InboxMetricsBar";
 import { InboxFollowupPanel } from "./InboxFollowupPanel";
 import { SmartAlertsPopover } from "./SmartAlertsPopover";
+import { InboxSidebar, InboxCategory, ChannelFilter } from "./InboxSidebar";
 import { ConversationChannel } from "@/hooks/useConversations";
 import { Button } from "@/components/ui/button";
-import { Bell } from "lucide-react";
+import { Bell, PanelLeftClose, PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendingFollowups } from "@/hooks/useFollowups";
 import { useSmartAlerts } from "@/hooks/useSmartAlerts";
@@ -19,6 +20,9 @@ export function InboxView() {
   const [searchParams] = useSearchParams();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [showFollowups, setShowFollowups] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<InboxCategory>("all");
+  const [selectedChannel, setSelectedChannel] = useState<ChannelFilter>("all");
   
   // Get channel filter from URL params
   const channelParam = searchParams.get("channel") as ConversationChannel | null;
@@ -30,14 +34,37 @@ export function InboxView() {
   const { data: smartAlerts } = useSmartAlerts(5);
   const followupCount = pendingFollowups?.length || 0;
 
+  // Convert category to status/filter props for ConversationList
+  const getStatusFromCategory = (cat: InboxCategory) => {
+    switch (cat) {
+      case "closed": return "closed";
+      case "archives": return "archived";
+      default: return "open";
+    }
+  };
+
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col rounded-lg border border-border overflow-hidden">
+    <div className="h-[calc(100vh-8rem)] flex flex-col rounded-lg border border-border overflow-hidden bg-background">
       {/* Metrics Bar with Follow-up Toggle and Smart Alerts */}
-      <div className="flex items-center border-b border-border">
+      <div className="flex items-center border-b border-border bg-card">
         <div className="flex-1">
           <InboxMetricsBar />
         </div>
         <div className="flex items-center gap-2 px-4">
+          {/* Toggle Sidebar */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSidebar(!showSidebar)}
+            className="gap-2"
+          >
+            {showSidebar ? (
+              <PanelLeftClose className="w-4 h-4" />
+            ) : (
+              <PanelLeft className="w-4 h-4" />
+            )}
+          </Button>
+          
           {/* Smart Alerts Popover */}
           <SmartAlertsPopover />
           
@@ -51,7 +78,7 @@ export function InboxView() {
             <Bell className={cn("w-4 h-4", followupCount > 0 && "text-amber-500")} />
             <span className="hidden sm:inline">Follow-ups</span>
             {followupCount > 0 && (
-              <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
+              <Badge className="bg-green-500 text-white text-xs px-1.5 py-0 h-5">
                 {followupCount}
               </Badge>
             )}
@@ -60,22 +87,36 @@ export function InboxView() {
       </div>
       
       <div className="flex-1 flex overflow-hidden">
+        {/* Categories Sidebar */}
+        {showSidebar && (
+          <div className="w-52 flex-shrink-0 border-r border-border bg-card hidden lg:block">
+            <InboxSidebar
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              selectedChannel={selectedChannel}
+              onChannelChange={setSelectedChannel}
+            />
+          </div>
+        )}
+
         {/* Conversation List */}
-        <div className="w-80 flex-shrink-0 border-r border-border">
+        <div className="w-72 flex-shrink-0 border-r border-border">
           <ConversationList
             selectedId={selectedConversationId}
             onSelect={setSelectedConversationId}
-            defaultChannel={channelParam}
+            defaultChannel={channelParam || (selectedChannel !== "all" ? selectedChannel : null)}
+            defaultStatus={getStatusFromCategory(selectedCategory)}
+            selectedCategory={selectedCategory}
           />
         </div>
 
         {/* Conversation Detail */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <ConversationDetail conversationId={selectedConversationId} />
         </div>
 
         {/* CRM Context Panel or Follow-up Panel */}
-        <div className="w-80 flex-shrink-0 border-l border-border hidden xl:block">
+        <div className="w-72 flex-shrink-0 border-l border-border hidden xl:block">
           {showFollowups ? (
             <InboxFollowupPanel onSelectConversation={setSelectedConversationId} />
           ) : (
