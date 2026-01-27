@@ -50,6 +50,7 @@ import {
 } from '@/types/communicationTemplate';
 import { TemplateFormDialog } from './TemplateFormDialog';
 import { TemplatePreviewDialog } from './TemplatePreviewDialog';
+import { SendEmailFromTemplateDialog } from './SendEmailFromTemplateDialog';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
@@ -73,6 +74,7 @@ export function TemplatesListPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CommunicationTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<CommunicationTemplate | null>(null);
+  const [sendEmailTemplate, setSendEmailTemplate] = useState<CommunicationTemplate | null>(null);
   const [showAIDialog, setShowAIDialog] = useState(false);
   
   // New UI state
@@ -415,6 +417,12 @@ export function TemplatesListPage() {
                               <Eye className="h-4 w-4 mr-2" />
                               Pré-visualizar
                             </DropdownMenuItem>
+                            {template.channel === 'email' && (
+                              <DropdownMenuItem onClick={() => setSendEmailTemplate(template)}>
+                                <Mail className="h-4 w-4 mr-2" />
+                                Enviar Email
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => {
                               setEditingTemplate(template);
                               setShowCreateDialog(true);
@@ -541,6 +549,13 @@ export function TemplatesListPage() {
           template={previewTemplate}
         />
       )}
+
+      {/* Send Email Dialog */}
+      <SendEmailFromTemplateDialog
+        open={!!sendEmailTemplate}
+        onOpenChange={(open) => !open && setSendEmailTemplate(null)}
+        template={sendEmailTemplate}
+      />
     </div>
   );
 }

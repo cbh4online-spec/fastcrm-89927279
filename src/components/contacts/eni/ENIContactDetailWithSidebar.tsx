@@ -45,7 +45,7 @@ import { EntityOpportunitiesSection } from "@/components/opportunities/EntityOpp
 import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/components/EntityCreditProposalsSection";
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
-import { ComposeEmailDialog } from "@/components/email";
+import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -274,13 +274,24 @@ export function ENIContactDetailWithSidebar() {
         return <DocumentsSection contactId={id!} />;
       case 'messages':
         return (
-          <ContactMessagesSection
-            entityType="contact"
-            entityId={id!}
-            entityName={contact.name}
-            entityEmail={contact.email}
-            entityPhone={contact.phone}
-          />
+          <div className="space-y-6">
+            {/* Email History */}
+            <EmailHistorySection
+              entityType="contact"
+              entityId={id!}
+              entityEmail={contact.email || undefined}
+              maxHeight="500px"
+            />
+            
+            {/* Message Composer */}
+            <ContactMessagesSection
+              entityType="contact"
+              entityId={id!}
+              entityName={contact.name}
+              entityEmail={contact.email}
+              entityPhone={contact.phone}
+            />
+          </div>
         );
       case 'tasks':
         return (
