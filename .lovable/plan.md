@@ -1,143 +1,169 @@
 
-# Plano: Instalar Meta Pixel em Todas as Paginas
+# Plano: Envio de Emails para Contactos
 
-## Objetivo
-Adicionar o Meta Pixel Code (ID: `909068581793930`) que o utilizador forneceu a todas as paginas publicas do FastCRM.
+## Analise da Situacao Atual
 
----
+### Infraestrutura Existente
+O projeto ja possui uma infraestrutura robusta de email:
 
-## Situacao Atual
+1. **Edge Function `email-send`** - Funcional, envia emails via SMTP com suporte a:
+   - HTML e texto simples
+   - Threading (In-Reply-To, References)
+   - Encriptacao de credenciais
+   - Multipart MIME
 
-O projeto ja tem infraestrutura de tracking:
-- Funcao `initializeMetaPixel()` definida em `GTMProvider.tsx`
-- Campo `metaPixelId` nas configuracoes SEO
-- Sistema de consentimento GDPR
+2. **Hook `useSendEmail`** em `useEmailConnection.ts` - Permite enviar emails atraves da edge function
 
-**Problema identificado**: A funcao `initializeMetaPixel` nunca e chamada!
+3. **Componente `EmailRichComposer`** - Composer completo com:
+   - Formatacao (bold, italic, links)
+   - Templates
+   - Traducao com AI
+   - Preview HTML
+
+4. **`ContactMessagesSection`** - Centro de mensagens que atualmente:
+   - Abre `mailto:` links (nao envia diretamente)
+   - Suporta templates e AI
+   - Nao usa o sistema de email SMTP
+
+### Problema Identificado
+O `ContactMessagesSection` usa `window.open(mailto:...)` em vez do sistema de email integrado. Os emails nao sao enviados atraves da conta configurada nem registados no sistema.
 
 ---
 
 ## Estrategia de Implementacao
 
-Existem duas opcoes:
+### Abordagem 1: Dialog de Email Rico (Recomendado)
+Criar um dialog reutilizavel que integra o `EmailRichComposer` existente.
 
-### Opcao A: Configuravel via Settings (Recomendado)
-- Utiliza o ID configurado nas SEO Settings
-- Respeita o consentimento GDPR
-- Mais flexivel para mudar o ID no futuro
+### Abordagem 2: Envio Direto
+Modificar o `ContactMessagesSection` para usar `useSendEmail` diretamente.
 
-### Opcao B: Hardcoded Global
-- Adiciona o pixel fixo em `index.html`
-- Nao respeita GDPR
-- Mais simples mas menos flexivel
-
-**Recomendacao**: Opcao A (configuravel + GDPR compliant)
+**Recomendacao**: Abordagem 1 - Mais consistente com a UX do Inbox e permite todas as funcionalidades (templates, traducao, preview).
 
 ---
 
 ## Implementacao Tecnica
 
-### Passo 1: Criar componente MetaPixelLoader
+### Passo 1: Criar Componente `ComposeEmailDialog`
 
-Novo componente que:
-1. Le o Pixel ID das settings (growth_settings)
-2. Verifica consentimento de marketing
-3. Carrega o script do Meta Pixel
+Novo dialog reutilizavel que encapsula o `EmailRichComposer`:
 
+```text
+src/components/email/
+  ComposeEmailDialog.tsx    <- NOVO
+  index.ts                  <- NOVO (exports)
+```
+
+**Funcionalidades**:
+- Recebe `to`, `entityName`, `entityId`, `entityType`
+- Cria uma conversa temporaria ou usa existente
+- Usa `useSendEmail` para envio real via SMTP
+- Suporta templates da jornada do cliente
+- Regista mensagem na tabela `messages`
+
+### Passo 2: Integrar em `ContactMessagesSection`
+
+Modificar o botao "Enviar via Email" para:
+1. Abrir o `ComposeEmailDialog` em vez de `mailto:`
+2. Manter a composicao inline para draft
+3. Ao clicar "Enviar", abrir o dialog para confirmacao final
+
+### Passo 3: Adicionar Botao de Email Rapido no Header do Contacto
+
+Na `ENIContactDetailWithSidebar`:
+1. Adicionar botao "Enviar Email" junto aos outros botoes de acao
+2. Abre o `ComposeEmailDialog` diretamente
+
+### Passo 4: Criar Pagina no Modulo Comunicacao
+
+Adicionar nova tab "Compor Email" em `TemplatesListPage` ou criar pagina separada:
+
+```text
+src/components/communication/
+  ComposeEmailPage.tsx      <- NOVO (ou integrar em TemplatesListPage)
+```
+
+**Funcionalidades**:
+- Seletor de destinatario (contactos, empresas, leads)
+- Integracao com templates
+- Historico de emails enviados
+
+---
+
+## Ficheiros a Modificar/Criar
+
+| Ficheiro | Acao | Descricao |
+|----------|------|-----------|
+| `src/components/email/ComposeEmailDialog.tsx` | CRIAR | Dialog reutilizavel de composicao de email |
+| `src/components/email/index.ts` | CRIAR | Exports do modulo email |
+| `src/components/messages/ContactMessagesSection.tsx` | MODIFICAR | Integrar envio real via SMTP |
+| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | MODIFICAR | Adicionar botao de email rapido no header |
+| `src/components/communication/TemplatesListPage.tsx` | MODIFICAR | Adicionar acao "Testar Template" que abre composer |
+
+---
+
+## Fluxo do Utilizador
+
+### Cenario 1: Email a partir do Contacto (Sidebar Mensagens)
+```text
+Contacto Detail -> Tab Mensagens -> Seleciona Email -> Compoe -> Clica Enviar
+    -> Abre ComposeEmailDialog com preview
+    -> Confirma -> Envia via SMTP -> Registado em Messages
+```
+
+### Cenario 2: Email Rapido (Header do Contacto)
+```text
+Contacto Detail -> Header -> Clica "Enviar Email"
+    -> Abre ComposeEmailDialog
+    -> Compoe mensagem -> Envia
+```
+
+### Cenario 3: Via Templates (Modulo Comunicacao)
+```text
+Templates -> Seleciona template -> "Enviar Agora"
+    -> Abre dialog para selecionar destinatario
+    -> Aplica template -> Preview -> Envia
+```
+
+---
+
+## Detalhes Tecnicos
+
+### ComposeEmailDialog Props
 ```typescript
-// src/modules/growth-seo/components/tracking/MetaPixelLoader.tsx
-export function MetaPixelLoader() {
-  const { consent } = useConsent();
-  const { currentWorkspace } = useWorkspace();
-  const [pixelId, setPixelId] = useState<string | null>(null);
-
-  // Load pixel ID from settings
-  useEffect(() => {
-    // Fetch from growth_settings table
-  }, [currentWorkspace?.id]);
-
-  // Initialize pixel when consent + ID available
-  useEffect(() => {
-    if (pixelId && consent.marketing) {
-      initializeMetaPixel(pixelId, true);
-    }
-  }, [pixelId, consent.marketing]);
-
-  return null;
+interface ComposeEmailDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  recipient: {
+    email: string;
+    name: string;
+    entityType: 'contact' | 'company' | 'lead';
+    entityId: string;
+  };
+  defaultSubject?: string;
+  defaultBody?: string;
+  templateContext?: VariableContext;
+  onSent?: () => void;
 }
 ```
 
-### Passo 2: Corrigir funcao initializeMetaPixel
+### Integracao com Conversas
+Para emails enviados fora do Inbox, sera necessario:
+1. Verificar se existe conversa com o email do destinatario
+2. Se existir, associar a mensagem
+3. Se nao existir, criar nova conversa com `channel: 'email'`
 
-A funcao atual tem um problema - nao inicializa `fbq` antes do script carregar:
-
-```typescript
-export function initializeMetaPixel(pixelId: string, hasConsent: boolean) {
-  if (!pixelId || !hasConsent) return;
-  
-  // Inicializar fbq ANTES do script carregar (como no codigo original)
-  (function(f: Window, b, e, v, n?: any, t?: any, s?: any) {
-    if (f.fbq) return;
-    n = f.fbq = function() {
-      n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-    };
-    if (!f._fbq) f._fbq = n;
-    n.push = n;
-    n.loaded = true;
-    n.version = '2.0';
-    n.queue = [];
-    t = b.createElement(e);
-    t.async = true;
-    t.src = v;
-    s = b.getElementsByTagName(e)[0];
-    s.parentNode?.insertBefore(t, s);
-  })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
-  
-  window.fbq?.('init', pixelId);
-  window.fbq?.('track', 'PageView');
-}
-```
-
-### Passo 3: Integrar no App.tsx
-
-Adicionar o loader dentro do GTMProvider:
-
-```tsx
-<GTMProvider>
-  <MetaPixelLoader />  {/* NOVO */}
-  <AuthProvider>
-    ...
-  </AuthProvider>
-</GTMProvider>
-```
-
-### Passo 4: Adicionar fallback noscript
-
-Adicionar a imagem 1x1 de fallback para browsers sem JavaScript.
+### Gestao de Estado
+- `useActiveEmailConnection()` - Obter conexao ativa
+- `useSendEmail()` - Enviar email
+- Criar/atualizar conversa no callback de sucesso
 
 ---
 
-## Ficheiros a Modificar
+## Prerequisitos
+- Conta de email conectada no workspace (Email Connections)
+- Pelo menos um contacto com email valido
 
-| Ficheiro | Alteracao |
-|----------|-----------|
-| `src/modules/growth-seo/components/tracking/GTMProvider.tsx` | Corrigir `initializeMetaPixel` com o codigo original do Meta |
-| `src/modules/growth-seo/components/tracking/MetaPixelLoader.tsx` | **NOVO** - Componente que carrega o pixel |
-| `src/modules/growth-seo/index.ts` | Exportar `MetaPixelLoader` |
-| `src/App.tsx` | Adicionar `MetaPixelLoader` |
-
----
-
-## Configuracao Imediata
-
-Apos implementacao, vai ao **Dashboard SEO > Settings** e insere o Pixel ID:
-- **Meta Pixel ID**: `909068581793930`
-
----
-
-## Beneficios
-
-1. **GDPR Compliant** - So carrega apos consentimento de marketing
-2. **Configuravel** - Pode mudar o ID sem editar codigo
-3. **Trackea PageViews** - Automaticamente em todas as navegacoes
-4. **Eventos customizados** - Ja integrado com `useTracking` hook
+## Limitacoes
+- Attachments nao suportados (edge function atual nao suporta)
+- CC/BCC nao suportados (pode ser adicionado posteriormente)
