@@ -104,6 +104,7 @@ import {
   KeywordIdeasToolPage,
   GTMProvider,
   GDPRBanner,
+  MetaPixelLoader,
 } from "./modules/growth-seo";
 
 const queryClient = new QueryClient();
@@ -116,6 +117,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <GTMProvider>
+            <MetaPixelLoader />
             <AuthProvider>
               <WorkspaceProvider>
                 <ActivityProfileProvider>

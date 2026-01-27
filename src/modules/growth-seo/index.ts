@@ -24,6 +24,7 @@ export { GDPRBanner } from './components/consent/GDPRBanner';
 
 // Components - Tracking
 export { GTMProvider } from './components/tracking/GTMProvider';
+export { MetaPixelLoader, MetaPixelNoScript } from './components/tracking/MetaPixelLoader';
 
 // Components - SEO
 export { SEOHead, generateBreadcrumbs } from './components/seo/SEOHead';
