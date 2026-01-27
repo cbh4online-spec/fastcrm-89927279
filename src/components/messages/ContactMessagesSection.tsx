@@ -54,6 +54,7 @@ import { useTemplates, Template, TemplateGoal } from "@/hooks/useTemplates";
 import { useCopilot, ReplySuggestion } from "@/hooks/useCopilot";
 import { TemplateFormDialog } from "@/components/communication/TemplateFormDialog";
 import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
+import { ComposeEmailDialog } from "@/components/email";
 
 interface ContactMessagesSectionProps {
   entityType: 'contact' | 'company' | 'lead';
@@ -144,6 +145,9 @@ export function ContactMessagesSection({
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiContext, setAiContext] = useState('');
+  
+  // Email dialog state
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   
   const currentChannelConfig = channelConfig[selectedChannel];
   const ChannelIcon = currentChannelConfig.icon;
@@ -271,7 +275,8 @@ export function ContactMessagesSection({
     switch (selectedChannel) {
       case 'email':
         if (entityEmail) {
-          window.open(`mailto:${entityEmail}?subject=${encodedSubject}&body=${encodedContent}`, '_blank');
+          // Open the email dialog instead of mailto:
+          setShowEmailDialog(true);
         } else {
           toast.error("Email não disponível");
         }
@@ -853,6 +858,28 @@ export function ContactMessagesSection({
           setTemplateToEdit(null);
         }}
       />
+
+      {/* Compose Email Dialog */}
+      {entityEmail && (
+        <ComposeEmailDialog
+          open={showEmailDialog}
+          onOpenChange={setShowEmailDialog}
+          recipient={{
+            email: entityEmail,
+            name: entityName,
+            entityType,
+            entityId,
+          }}
+          defaultSubject={draft.subject}
+          defaultBody={draft.content}
+          templateContext={{
+            contact: { name: entityName, email: entityEmail, phone: entityPhone || undefined },
+          }}
+          onSent={() => {
+            setDraft({ channel: 'email', subject: '', content: '', isAIDraft: false });
+          }}
+        />
+      )}
     </div>
   );
 }
