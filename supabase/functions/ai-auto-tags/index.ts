@@ -108,6 +108,30 @@ serve(async (req) => {
   }
 
   try {
+    // Validate JWT manually
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ code: 401, message: "Missing or invalid authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getUser(token);
+    if (claimsError || !claimsData?.user) {
+      return new Response(
+        JSON.stringify({ code: 401, message: "Invalid JWT" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { messages, context, conversationId } = (await req.json()) as TagRequest;
 
     if (!messages || !context) {
@@ -200,26 +224,14 @@ Analise esta conversa e atribua as tags mais relevantes.`;
 
     // Update conversation with AI tags if conversationId provided
     if (conversationId) {
-      const authHeader = req.headers.get("Authorization");
-      if (authHeader) {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL");
-        const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
-        
-        if (supabaseUrl && supabaseKey) {
-          const supabase = createClient(supabaseUrl, supabaseKey, {
-            global: { headers: { Authorization: authHeader } },
-          });
-
-          await supabase
-            .from("conversations")
-            .update({
-              ai_tags: validTags,
-              tags_auto_assigned: true,
-              tags_assigned_at: new Date().toISOString(),
-            })
-            .eq("id", conversationId);
-        }
-      }
+      await supabase
+        .from("conversations")
+        .update({
+          ai_tags: validTags,
+          tags_auto_assigned: true,
+          tags_assigned_at: new Date().toISOString(),
+        })
+        .eq("id", conversationId);
     }
 
     return new Response(
