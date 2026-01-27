@@ -10,7 +10,14 @@ interface GTMProviderProps {
 declare global {
   interface Window {
     dataLayer: Record<string, unknown>[];
-    fbq?: (...args: unknown[]) => void;
+    fbq: ((...args: unknown[]) => void) & {
+      callMethod?: (...args: unknown[]) => void;
+      queue: unknown[];
+      push: (...args: unknown[]) => void;
+      loaded: boolean;
+      version: string;
+    };
+    _fbq?: typeof window.fbq;
   }
 }
 
@@ -99,17 +106,37 @@ export function initializeGA4(measurementId: string, hasConsent: boolean) {
 export function initializeMetaPixel(pixelId: string, hasConsent: boolean) {
   if (!pixelId || !hasConsent) return;
   
+  // Check if already initialized
+  if (window.fbq) return;
+  
+  // Initialize fbq BEFORE script loads (official Meta Pixel implementation)
+  const n = function(...args: unknown[]) {
+    if (n.callMethod) {
+      n.callMethod.apply(n, args);
+    } else {
+      n.queue.push(args);
+    }
+  } as typeof window.fbq;
+  
+  n.push = n;
+  n.loaded = true;
+  n.version = '2.0';
+  n.queue = [];
+  
+  window.fbq = n;
+  if (!window._fbq) window._fbq = n;
+  
+  // Load the Facebook SDK script
   const script = document.createElement('script');
   script.async = true;
   script.src = 'https://connect.facebook.net/en_US/fbevents.js';
-  document.head.appendChild(script);
   
-  script.onload = () => {
-    if (window.fbq) {
-      window.fbq('init', pixelId);
-      window.fbq('track', 'PageView');
-    }
-  };
+  const firstScript = document.getElementsByTagName('script')[0];
+  firstScript.parentNode?.insertBefore(script, firstScript);
+  
+  // Initialize pixel and track PageView
+  window.fbq('init', pixelId);
+  window.fbq('track', 'PageView');
 }
 
 export function initializeClarity(projectId: string, hasConsent: boolean) {
