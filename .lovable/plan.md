@@ -1,414 +1,387 @@
 
-# Plano: Redesign do Inbox Email Inspirado na Referencia
+# Plano: Integracao GoHighLevel (GHL) - V0 Token por Location + Webhooks
 
-## Analise da Imagem de Referencia
+## Resumo Executivo
 
-A imagem mostra um design de inbox moderno com:
-
-**Layout de 4 Colunas:**
-1. **Sidebar de Navegacao** (icones) - navegacao principal da app
-2. **Painel de Categorias** (~200px) - filtros organizados em grupos (Channels, Drafts, Mentions, Conversations com subcategorias, Contacts)
-3. **Lista de Conversas** (~300px) - lista com avatares, nomes, preview, timestamps, badges de nao lidos
-4. **Detalhe da Conversa** (flex-1) - thread de mensagens com bubbles alinhadas
-5. **Painel CRM** (~280px) - info do contato (Status, Appeals, Last Contact, Subscribed, Notifications, User Settings)
-
-**Elementos de Design Notaveis:**
-- Avatares circulares com imagens reais (nao apenas icones)
-- Badges de contagem em verde
-- Sidebar de categorias com colapsaveis (> New, All, Assigned, etc.)
-- Mensagens com timestamps "Message Sent" / "Message Received"
-- Acoes no header: "Move to Closed", "Not assigned", bookmark
-- Painel direito com status ativo/inativo e acoes rapidas
-- Botoes de proposta/documento no final de mensagens
-- Input de mensagem com icones de anexo, emoji, audio
+Implementar a integracao GHL V0 seguindo o modelo mais simples e rapido para colocar clientes a operar:
+- **1 Workspace FastCRM = 1 Location GHL**
+- Armazenamento seguro de credenciais GHL por workspace
+- 2 Endpoints de webhook para receber contactos e mensagens
+- Mapeamento e idempotencia para evitar duplicados
 
 ---
 
-## Componentes a Modificar
+## Arquitetura da Solucao
 
-### 1. InboxView.tsx - Layout Principal
-**Atual:** Layout de 3 colunas (Lista 320px | Detalhe flex-1 | CRM 320px)
-**Novo:** Adicionar painel de categorias antes da lista de conversas
-
+```text
++------------------+       Webhooks         +----------------------+
+|   GoHighLevel    |----------------------->|     FastCRM          |
+|   (Location)     |  POST /ghl-webhook/*   |   Edge Functions     |
++------------------+                        +----------------------+
+                                                     |
+                                                     v
+                                            +----------------------+
+                                            |     Supabase         |
+                                            |  - workspace_ghl_config  |
+                                            |  - leads             |
+                                            |  - contacts          |
+                                            |  - conversations     |
+                                            |  - messages          |
+                                            +----------------------+
 ```
-[Nav Icons] [Categories 200px] [Conv List 300px] [Detail flex-1] [CRM 280px]
-```
-
-### 2. InboxSidebar.tsx (NOVO)
-Criar sidebar de categorias com:
-- Channels (agrupado)
-- Drafts
-- Mentions
-- Files & Media
-- Conversations (colapsavel com subcategorias):
-  - New (com badge)
-  - All
-  - Assigned
-  - Favourites
-  - Negotiations (com subcategorias)
-  - Closed
-  - Archives
-- Contacts (lista rapida de contactos frequentes)
-
-### 3. ConversationList.tsx - Redesign Visual
-- Avatares maiores com fotos de perfil (se disponiveis)
-- Layout mais limpo com menos badges inline
-- Timestamps alinhados a direita
-- Badges de nao lidos em verde (nao azul)
-- Preview da ultima mensagem truncada
-
-### 4. ConversationDetail.tsx - Redesign
-- Header com acoes: "Move to Closed" dropdown, "Not assigned" badge, bookmark
-- Bubbles de mensagem redesenhadas:
-  - Mensagens enviadas (Company) alinhadas a direita com check de lido
-  - Mensagens recebidas alinhadas a esquerda
-  - Timestamps abaixo de cada mensagem
-  - Anexos/propostas como botoes clicaveis
-- Input de mensagem redesenhado com icones de:
-  - Anexo (+)
-  - Emoji
-  - Audio
-  - Enviar (seta)
-
-### 5. InboxCRMPanel.tsx - Redesign
-- Header com avatar grande do contato + nome + URL
-- Botoes de acao (telefone, email, calendar) + Unsubscribe
-- Status com badge colorido (Active/Inactive)
-- Metricas: Appeals, Last Contact, Subscribed
-- Notificacoes: Deals Pending, New Message, New user registered
-- User Settings: Notifications toggle, Report, Block
 
 ---
 
-## Implementacao Tecnica
+## Base de Dados
 
-### Passo 1: Criar InboxSidebar.tsx
+### Nova Tabela: `workspace_ghl_config`
+
+Armazena as credenciais GHL por workspace (seguindo o padrao de `workspace_stripe_config`):
+
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid | PK |
+| workspace_id | uuid | FK para workspaces (unique) |
+| ghl_location_id | text | ID da location no GHL |
+| ghl_api_key_encrypted | text | Token API encriptado |
+| ghl_webhook_secret | text | Secret para validar webhooks (opcional) |
+| is_active | boolean | Se a integracao esta ativa |
+| last_sync_at | timestamp | Ultima sincronizacao bem sucedida |
+| sync_contacts | boolean | Sincronizar contactos |
+| sync_messages | boolean | Sincronizar mensagens |
+| created_at | timestamp | Data de criacao |
+| updated_at | timestamp | Data de atualizacao |
+
+### Nova Tabela: `ghl_sync_log`
+
+Para idempotencia e audit trail:
+
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid | PK |
+| workspace_id | uuid | FK para workspaces |
+| ghl_entity_type | text | 'contact' ou 'message' |
+| ghl_entity_id | text | ID original do GHL |
+| fastcrm_entity_type | text | 'lead', 'contact', ou 'message' |
+| fastcrm_entity_id | uuid | ID no FastCRM |
+| event_type | text | 'created', 'updated' |
+| payload | jsonb | Dados originais (para debug) |
+| processed_at | timestamp | Data de processamento |
+
+**Constraints de Idempotencia:**
+- `UNIQUE (workspace_id, ghl_entity_type, ghl_entity_id)`
+
+### Alteracoes em Tabelas Existentes
+
+**leads:**
+- Adicionar `ghl_contact_id` (text, nullable) - ID do contacto no GHL
+- Adicionar `ghl_synced_at` (timestamp, nullable) - Ultima sync
+
+**contacts:**
+- Adicionar `ghl_contact_id` (text, nullable) - ID do contacto no GHL
+- Adicionar `ghl_synced_at` (timestamp, nullable) - Ultima sync
+
+**conversations:**
+- Ja tem `external_thread_id` que pode ser usado para `ghl_{conversation_id}`
+
+**messages:**
+- Adicionar `ghl_message_id` (text, nullable) - ID da mensagem no GHL
+
+---
+
+## Edge Functions (Webhooks)
+
+### 1. `ghl-webhook-contact` - Receber Contactos
+
+**URL:** `POST /functions/v1/ghl-webhook-contact`
+
+**Headers esperados:**
+- `X-GHL-Location-Id`: ID da location
+- `Content-Type`: application/json
+
+**Payload esperado:**
+```json
+{
+  "event_type": "contact_upsert",
+  "location_id": "xxx",
+  "contact": {
+    "id": "ghl_contact_id",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "phone": "+351912345678",
+    "tags": ["tag1", "tag2"],
+    "custom_fields": {},
+    "updated_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+**Logica:**
+1. Extrair `location_id` do header ou body
+2. Encontrar `workspace_id` via `workspace_ghl_config`
+3. Verificar idempotencia via `ghl_sync_log`
+4. Upsert em `leads` ou `contacts` baseado em email/phone
+5. Registar em `ghl_sync_log`
+6. Retornar 200 OK
+
+### 2. `ghl-webhook-message` - Receber Mensagens
+
+**URL:** `POST /functions/v1/ghl-webhook-message`
+
+**Headers esperados:**
+- `X-GHL-Location-Id`: ID da location
+- `Content-Type`: application/json
+
+**Payload esperado:**
+```json
+{
+  "event_type": "message_upsert",
+  "location_id": "xxx",
+  "conversation_id": "ghl_conv_id",
+  "message": {
+    "id": "ghl_message_id",
+    "contact_id": "ghl_contact_id",
+    "direction": "inbound",
+    "channel": "sms",
+    "body": "Mensagem de texto",
+    "status": "delivered",
+    "sent_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+**Logica:**
+1. Encontrar workspace via `location_id`
+2. Verificar idempotencia (ja processamos esta mensagem?)
+3. Encontrar ou criar conversation via `external_thread_id`
+4. Encontrar lead/contact via `ghl_contact_id`
+5. Criar mensagem em `messages`
+6. Atualizar `last_message_at` na conversation
+7. Registar em `ghl_sync_log`
+8. Retornar 200 OK
+
+---
+
+## Frontend
+
+### Hook: `useWorkspaceGHLConfig`
+
+Seguindo o padrao de `useWorkspaceStripeConfig`:
 
 ```typescript
-interface InboxSidebarProps {
-  onCategoryChange: (category: string) => void;
-  selectedCategory: string;
+interface WorkspaceGHLConfig {
+  id: string;
+  workspace_id: string;
+  ghl_location_id: string | null;
+  ghl_api_key_encrypted: string | null;
+  is_active: boolean;
+  sync_contacts: boolean;
+  sync_messages: boolean;
+  last_sync_at: string | null;
 }
 
-// Estrutura de categorias
-const categories = [
-  { id: "channels", label: "Channels", icon: Hash },
-  { id: "drafts", label: "Drafts", icon: FileEdit },
-  { id: "mentions", label: "Mentions", icon: AtSign },
-  { id: "files", label: "Files & Media", icon: Paperclip },
-  {
-    id: "conversations",
-    label: "Conversations",
-    icon: MessageSquare,
-    children: [
-      { id: "new", label: "New", count: 5 },
-      { id: "all", label: "All", count: 30 },
-      { id: "assigned", label: "Assigned", count: 11 },
-      { id: "favourites", label: "Favourites", count: 9 },
-      { id: "negotiations", label: "Negotiations", count: 20 },
-      { id: "closed", label: "Closed", count: 145 },
-      { id: "archives", label: "Archives", count: 32 },
-    ],
-  },
-];
+function useWorkspaceGHLConfig() {
+  // Query e mutations para CRUD da config
+  return { config, saveConfig, testConnection, isConfigured };
+}
 ```
 
-### Passo 2: Modificar InboxView.tsx
+### Componente: `WorkspaceGHLSettings`
 
-```tsx
-<div className="h-full flex">
-  {/* Categories Sidebar */}
-  <div className="w-52 flex-shrink-0 border-r border-border">
-    <InboxSidebar 
-      selectedCategory={selectedCategory}
-      onCategoryChange={setSelectedCategory}
-    />
-  </div>
+Nova seccao em Definicoes > Integracoes:
 
-  {/* Conversation List */}
-  <div className="w-72 flex-shrink-0 border-r border-border">
-    <ConversationList ... />
-  </div>
+**Campos:**
+- Location ID (input texto)
+- API Key (input password com toggle)
+- Toggle: Sincronizar Contactos
+- Toggle: Sincronizar Mensagens
+- Toggle: Ativar Integracao
+- Botao: Testar Conexao
+- Botao: Guardar
 
-  {/* Conversation Detail */}
-  <div className="flex-1">
-    <ConversationDetail ... />
-  </div>
-
-  {/* CRM Panel */}
-  <div className="w-72 flex-shrink-0 border-l border-border">
-    <InboxCRMPanel ... />
-  </div>
-</div>
+**Info Box com URLs dos Webhooks:**
 ```
+POST https://{supabase_url}/functions/v1/ghl-webhook-contact
+POST https://{supabase_url}/functions/v1/ghl-webhook-message
 
-### Passo 3: Redesign ConversationList Item
-
-```tsx
-<div className="flex items-center gap-3 p-3">
-  {/* Avatar com foto */}
-  <Avatar className="h-10 w-10">
-    <AvatarImage src={conv.lead?.avatar_url || conv.contact?.avatar_url} />
-    <AvatarFallback className="bg-primary/10 text-primary">
-      {getInitials(displayName)}
-    </AvatarFallback>
-  </Avatar>
-
-  {/* Info */}
-  <div className="flex-1 min-w-0">
-    <div className="flex items-center justify-between">
-      <span className="font-medium truncate">{displayName}</span>
-      <span className="text-xs text-muted-foreground">{timeAgo}</span>
-    </div>
-    <p className="text-sm text-muted-foreground truncate">{preview}</p>
-  </div>
-
-  {/* Badge */}
-  {unreadCount > 0 && (
-    <Badge className="bg-green-500 text-white h-5 w-5 rounded-full p-0">
-      {unreadCount}
-    </Badge>
-  )}
-</div>
-```
-
-### Passo 4: Redesign ConversationDetail Header
-
-```tsx
-<div className="flex items-center justify-between p-4 border-b">
-  <div className="flex items-center gap-2">
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Checkbox className="mr-2 h-4 w-4" />
-          Move to Closed
-        </Button>
-      </DropdownMenuTrigger>
-      ...
-    </DropdownMenu>
-  </div>
-
-  <div className="flex items-center gap-2">
-    <Badge variant="secondary" className="text-red-500">
-      <AlertTriangle className="w-3 h-3 mr-1" />
-      Not assigned
-    </Badge>
-    <Button variant="ghost" size="icon">
-      <Bookmark />
-    </Button>
-  </div>
-</div>
-```
-
-### Passo 5: Redesign Message Bubbles
-
-```tsx
-{/* Mensagem recebida */}
-<div className="flex gap-3 mb-4">
-  <Avatar className="h-8 w-8">...</Avatar>
-  <div className="flex-1">
-    <div className="flex items-center gap-2 mb-1">
-      <span className="font-medium text-sm">{senderName}</span>
-      <span className="text-xs text-muted-foreground">{time}</span>
-    </div>
-    <div className="bg-muted rounded-lg rounded-tl-none p-3 max-w-[80%]">
-      <p className="text-sm">{message.content}</p>
-    </div>
-    <span className="text-xs text-muted-foreground mt-1">
-      Message Received {timestamp}
-    </span>
-  </div>
-</div>
-
-{/* Mensagem enviada */}
-<div className="flex justify-end mb-4">
-  <div className="max-w-[80%]">
-    <div className="flex items-center justify-end gap-2 mb-1">
-      <span className="font-medium text-sm">Company</span>
-      <Check className="w-3 h-3 text-green-500" />
-    </div>
-    <div className="bg-card border rounded-lg rounded-tr-none p-3">
-      <p className="text-sm">{message.content}</p>
-      {/* Attachments */}
-      <div className="flex gap-2 mt-2">
-        <Button variant="outline" size="sm">
-          <FileText className="w-3 h-3 mr-1" /> Proposal
-        </Button>
-        <Button variant="outline" size="sm">
-          <FileText className="w-3 h-3 mr-1" /> Updated Doc
-        </Button>
-      </div>
-    </div>
-    <span className="text-xs text-muted-foreground mt-1">
-      Message Sent {timestamp}
-    </span>
-  </div>
-</div>
-```
-
-### Passo 6: Redesign Message Input
-
-```tsx
-<div className="border-t p-4">
-  <div className="flex items-center gap-2 bg-muted rounded-full px-4 py-2">
-    <Button variant="ghost" size="icon" className="h-8 w-8">
-      <Plus className="w-4 h-4" />
-    </Button>
-    <Input 
-      placeholder="Type your message..." 
-      className="border-0 bg-transparent flex-1 focus-visible:ring-0"
-    />
-    <Button variant="ghost" size="icon" className="h-8 w-8">
-      <Smile className="w-4 h-4" />
-    </Button>
-    <Button variant="ghost" size="icon" className="h-8 w-8">
-      <Mic className="w-4 h-4" />
-    </Button>
-    <Button variant="ghost" size="icon" className="h-8 w-8">
-      <Paperclip className="w-4 h-4" />
-    </Button>
-    <Button size="icon" className="h-8 w-8 rounded-full bg-primary">
-      <Send className="w-4 h-4" />
-    </Button>
-  </div>
-</div>
-```
-
-### Passo 7: Redesign InboxCRMPanel
-
-```tsx
-<div className="p-4 space-y-4">
-  {/* Header com avatar */}
-  <div className="text-center">
-    <Avatar className="h-16 w-16 mx-auto mb-2">
-      <AvatarImage src={contact?.avatar_url} />
-      <AvatarFallback>{getInitials(name)}</AvatarFallback>
-    </Avatar>
-    <h3 className="font-semibold">{name}</h3>
-    <a href={website} className="text-xs text-primary flex items-center justify-center gap-1">
-      <Globe className="w-3 h-3" />
-      {website}
-    </a>
-  </div>
-
-  {/* Quick Actions */}
-  <div className="flex items-center justify-center gap-2">
-    <Button variant="outline" size="icon" className="rounded-full">
-      <Phone className="w-4 h-4" />
-    </Button>
-    <Button variant="outline" size="icon" className="rounded-full">
-      <Mail className="w-4 h-4" />
-    </Button>
-    <Button variant="outline" size="icon" className="rounded-full">
-      <Calendar className="w-4 h-4" />
-    </Button>
-    <Button variant="secondary" size="sm" className="bg-green-500 text-white hover:bg-green-600">
-      Unsubscribe
-    </Button>
-  </div>
-
-  <Separator />
-
-  {/* Stats Grid */}
-  <div className="grid grid-cols-2 gap-3 text-sm">
-    <div className="flex items-center justify-between">
-      <span className="text-muted-foreground">Status:</span>
-      <Badge className="bg-green-500">Active</Badge>
-    </div>
-    <div className="flex items-center justify-between">
-      <span className="text-muted-foreground">Appeals:</span>
-      <span className="font-medium">2</span>
-    </div>
-    ...
-  </div>
-
-  <Separator />
-
-  {/* Notifications */}
-  <div>
-    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-      <Bell className="w-4 h-4" /> Notifications
-    </h4>
-    <div className="space-y-2">
-      <NotificationItem icon={DollarSign} text="5 Deals Pending" time="Just now" />
-      <NotificationItem icon={Mail} text="New Message" time="12 hours ago" />
-      ...
-    </div>
-  </div>
-
-  <Separator />
-
-  {/* User Settings */}
-  <div>
-    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-      <Settings className="w-4 h-4" /> User Settings
-    </h4>
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-2">
-          <Bell className="w-4 h-4" /> Notifications
-        </span>
-        <Switch checked={true} />
-      </div>
-      <Button variant="ghost" size="sm" className="w-full justify-start">
-        <Flag className="w-4 h-4 mr-2" /> Report
-      </Button>
-      <Button variant="ghost" size="sm" className="w-full justify-start text-destructive">
-        <Ban className="w-4 h-4 mr-2" /> Block
-      </Button>
-    </div>
-  </div>
-</div>
+Headers obrigatorios:
+- X-GHL-Location-Id: {your_location_id}
+- Content-Type: application/json
 ```
 
 ---
 
-## Ficheiros a Modificar/Criar
+## Fluxo de Configuracao (Utilizador)
+
+1. Utilizador vai a **Definicoes > Integracoes > GoHighLevel**
+2. Insere o `Location ID` do GHL
+3. Insere a `API Key` (token) do GHL
+4. Ativa as sincronizacoes desejadas (Contactos, Mensagens)
+5. Clica "Guardar"
+6. Copia as URLs dos webhooks e cola no GHL
+7. No GHL, configura os webhooks para disparar nos eventos de contacto/mensagem
+
+---
+
+## Consideracoes de Seguranca
+
+1. **API Key encriptada** - Armazenada de forma segura, nunca exposta no frontend
+2. **RLS policies** - Apenas membros do workspace podem ler/escrever config
+3. **Rate limiting** - Implementar throttling nos webhooks
+4. **Validacao de origem** - Verificar `X-GHL-Location-Id` corresponde ao config
+
+---
+
+## Ficheiros a Criar/Modificar
 
 | Ficheiro | Acao | Descricao |
 |----------|------|-----------|
-| `src/components/inbox/InboxSidebar.tsx` | CRIAR | Nova sidebar de categorias colapsaveis |
-| `src/components/inbox/InboxView.tsx` | MODIFICAR | Adicionar sidebar e ajustar layout |
-| `src/components/inbox/ConversationList.tsx` | MODIFICAR | Redesign visual com avatares e badges verdes |
-| `src/components/inbox/ConversationDetail.tsx` | MODIFICAR | Novo header, bubbles redesenhadas, input circular |
-| `src/components/inbox/InboxCRMPanel.tsx` | MODIFICAR | Layout centrado com avatar, stats grid, notificacoes |
-| `src/components/inbox/MessageBubble.tsx` | CRIAR | Componente generico para mensagens (email/chat) |
-| `src/components/inbox/MessageInput.tsx` | CRIAR | Input redesenhado com icones |
+| **Migracao SQL** | CRIAR | Tabelas `workspace_ghl_config` e `ghl_sync_log` + colunas extras |
+| `supabase/functions/ghl-webhook-contact/index.ts` | CRIAR | Webhook para contactos |
+| `supabase/functions/ghl-webhook-message/index.ts` | CRIAR | Webhook para mensagens |
+| `supabase/config.toml` | MODIFICAR | Adicionar funcoes com `verify_jwt = false` |
+| `src/hooks/useWorkspaceGHLConfig.ts` | CRIAR | Hook para gerir config GHL |
+| `src/components/settings/sections/WorkspaceGHLSettings.tsx` | CRIAR | UI de configuracao |
+| `src/components/settings/sections/IntegrationsSettings.tsx` | MODIFICAR | Adicionar seccao GHL |
 
 ---
 
-## Consideracoes de Responsividade
+## Detalhes Tecnicos
 
-Em ecras menores (< 1280px):
-- Esconder InboxSidebar (categorias)
-- Esconder InboxCRMPanel
-- Mostrar apenas Lista + Detalhe
+### SQL Migration
 
-Em ecras medios (1280-1536px):
-- Mostrar Sidebar colapsada (so icones)
-- Lista + Detalhe + CRM
+```sql
+-- Tabela de configuracao GHL por workspace
+CREATE TABLE public.workspace_ghl_config (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid REFERENCES public.workspaces(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  ghl_location_id text,
+  ghl_api_key_encrypted text,
+  ghl_webhook_secret text,
+  is_active boolean DEFAULT false,
+  sync_contacts boolean DEFAULT true,
+  sync_messages boolean DEFAULT true,
+  last_sync_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
+);
 
-Em ecras grandes (> 1536px):
-- Layout completo com todas as colunas
+-- Indice para lookup rapido por location
+CREATE INDEX idx_workspace_ghl_config_location 
+ON public.workspace_ghl_config(ghl_location_id);
+
+-- RLS
+ALTER TABLE public.workspace_ghl_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Membros podem ver config GHL do workspace"
+ON public.workspace_ghl_config FOR SELECT
+USING (workspace_id IN (SELECT get_user_workspace_ids()));
+
+CREATE POLICY "Owners/Admins podem editar config GHL"
+ON public.workspace_ghl_config FOR ALL
+USING (workspace_id IN (SELECT get_user_workspace_ids()));
+
+-- Tabela de log de sync para idempotencia
+CREATE TABLE public.ghl_sync_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid REFERENCES public.workspaces(id) ON DELETE CASCADE NOT NULL,
+  ghl_entity_type text NOT NULL,
+  ghl_entity_id text NOT NULL,
+  fastcrm_entity_type text NOT NULL,
+  fastcrm_entity_id uuid NOT NULL,
+  event_type text NOT NULL,
+  payload jsonb,
+  processed_at timestamp with time zone DEFAULT now(),
+  UNIQUE (workspace_id, ghl_entity_type, ghl_entity_id)
+);
+
+CREATE INDEX idx_ghl_sync_log_lookup 
+ON public.ghl_sync_log(workspace_id, ghl_entity_type, ghl_entity_id);
+
+ALTER TABLE public.ghl_sync_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role only" ON public.ghl_sync_log
+FOR ALL USING (false);
+
+-- Colunas extras nas tabelas existentes
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS ghl_contact_id text;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS ghl_synced_at timestamp with time zone;
+CREATE INDEX IF NOT EXISTS idx_leads_ghl_contact ON public.leads(workspace_id, ghl_contact_id);
+
+ALTER TABLE public.contacts ADD COLUMN IF NOT EXISTS ghl_contact_id text;
+ALTER TABLE public.contacts ADD COLUMN IF NOT EXISTS ghl_synced_at timestamp with time zone;
+CREATE INDEX IF NOT EXISTS idx_contacts_ghl_contact ON public.contacts(workspace_id, ghl_contact_id);
+
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS ghl_message_id text;
+CREATE INDEX IF NOT EXISTS idx_messages_ghl ON public.messages(workspace_id, ghl_message_id);
+```
+
+### Estrutura do Webhook Contact
+
+```typescript
+// supabase/functions/ghl-webhook-contact/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+serve(async (req) => {
+  // CORS + OPTIONS handling
+  
+  const body = await req.json();
+  const locationId = req.headers.get("X-GHL-Location-Id") || body.location_id;
+  
+  // 1. Find workspace by location_id
+  const { data: config } = await supabase
+    .from("workspace_ghl_config")
+    .select("workspace_id, sync_contacts")
+    .eq("ghl_location_id", locationId)
+    .eq("is_active", true)
+    .single();
+  
+  if (!config || !config.sync_contacts) {
+    return new Response("Not configured", { status: 200 });
+  }
+  
+  // 2. Check idempotency
+  const { data: existing } = await supabase
+    .from("ghl_sync_log")
+    .select("id")
+    .eq("workspace_id", config.workspace_id)
+    .eq("ghl_entity_type", "contact")
+    .eq("ghl_entity_id", body.contact.id)
+    .maybeSingle();
+  
+  if (existing) {
+    // Already processed - update instead
+    // ...
+  }
+  
+  // 3. Upsert lead/contact
+  // 4. Log sync
+  // 5. Return 200
+});
+```
 
 ---
 
-## Paleta de Cores Atualizada
+## Proximos Passos (V1 - OAuth)
 
-- **Badges de nao lidos:** Verde (#22c55e) em vez de azul
-- **Mensagens enviadas:** Fundo branco com border
-- **Mensagens recebidas:** Fundo cinza suave (muted)
-- **Status Active:** Verde (#22c55e)
-- **Botao Enviar:** Verde primario em circulo
+Quando estavel e a vender:
+1. Registar app no GHL Marketplace
+2. Implementar fluxo OAuth
+3. Trocar token storage por refresh tokens
+4. Manter compatibilidade com V0
 
 ---
 
-## Proximos Passos
+## Estimativa de Tempo
 
-1. Implementar InboxSidebar com categorias colapsaveis
-2. Atualizar layout do InboxView para 5 colunas
-3. Redesign do ConversationList item
-4. Redesign do ConversationDetail (header + bubbles + input)
-5. Redesign do InboxCRMPanel
-6. Testes de responsividade
-7. Aplicar mesma linguagem visual as outras redes (WhatsApp, Instagram, etc.)
+| Componente | Estimativa |
+|------------|------------|
+| Database migration | 15 min |
+| Webhook contact | 45 min |
+| Webhook message | 45 min |
+| Hook useWorkspaceGHLConfig | 30 min |
+| UI WorkspaceGHLSettings | 45 min |
+| Integracao em Settings | 15 min |
+| **Total** | ~3h |
