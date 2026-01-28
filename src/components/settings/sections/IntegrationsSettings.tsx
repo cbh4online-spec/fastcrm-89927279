@@ -14,7 +14,9 @@ import {
   Settings,
 } from "lucide-react";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
+import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
 import { useWorkspaceStripeConfig } from "@/hooks/useWorkspaceStripeConfig";
+import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 
 const integrations = [
   {
@@ -39,7 +41,8 @@ interface IntegrationsSettingsProps {
 }
 
 export function IntegrationsSettings({ searchQuery = "", matchedSections }: IntegrationsSettingsProps) {
-  const { isConfigured } = useWorkspaceStripeConfig();
+  const { isConfigured: isStripeConfigured } = useWorkspaceStripeConfig();
+  const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const hasSearch = searchQuery.trim().length > 0;
 
   const shouldShow = (sectionId: string) => {
@@ -49,6 +52,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
 
   const visibleSections = [
     { id: "integrations-stripe", show: shouldShow("integrations-stripe") },
+    { id: "integrations-ghl", show: shouldShow("integrations-ghl") },
     { id: "integrations-api", show: shouldShow("integrations-api") },
     { id: "integrations-external", show: shouldShow("integrations-external") },
     { id: "integrations-variables", show: shouldShow("integrations-variables") },
@@ -68,11 +72,21 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
     <div className="space-y-6">
       {shouldShow("integrations-stripe") && (
         <SettingsSection
-          title="Stripe"
-          description="Configure a integração Stripe para este workspace"
+          title="Pagamentos (Stripe)"
+          description="Configure a integração Stripe para processar pagamentos"
           icon={<CreditCard className="h-5 w-5" />}
         >
           <WorkspaceStripeSettings />
+        </SettingsSection>
+      )}
+
+      {shouldShow("integrations-ghl") && (
+        <SettingsSection
+          title="GoHighLevel"
+          description="Sincronize contactos e mensagens do GoHighLevel"
+          icon={<Zap className="h-5 w-5 text-orange-500" />}
+        >
+          <WorkspaceGHLSettings />
         </SettingsSection>
       )}
 
@@ -105,7 +119,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
 
       {shouldShow("integrations-external") && (
         <SettingsSection
-          title="Integrações Externas"
+          title="Outras Integrações"
           description="Conectar com outras ferramentas"
           icon={<Plug className="h-5 w-5" />}
         >
@@ -122,7 +136,27 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
                 </p>
               </div>
             </div>
-            {isConfigured ? (
+            {isStripeConfigured ? (
+              <Badge className="bg-emerald-500 text-white">Conectado</Badge>
+            ) : (
+              <Badge variant="secondary">Não configurado</Badge>
+            )}
+          </div>
+
+          {/* GHL summary card */}
+          <div className="flex items-center justify-between p-4 border border-border rounded-lg mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-500/10">
+                <Zap className="h-5 w-5 text-orange-500" />
+              </div>
+              <div>
+                <p className="font-medium">GoHighLevel</p>
+                <p className="text-sm text-muted-foreground">
+                  Sincronizar contactos e mensagens
+                </p>
+              </div>
+            </div>
+            {isGHLConfigured ? (
               <Badge className="bg-emerald-500 text-white">Conectado</Badge>
             ) : (
               <Badge variant="secondary">Não configurado</Badge>
