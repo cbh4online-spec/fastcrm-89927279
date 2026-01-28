@@ -110,7 +110,17 @@ serve(async (req) => {
                        body.location?.id;
 
     // Extract message ID - support workflow format, webhook format, and nested format
-    const ghlMessageId = body.message_id || body.messageId || body.message?.id;
+    // For workflows that don't send a message ID, generate one based on contact + timestamp
+    let ghlMessageId = body.message_id || body.messageId || body.message?.id;
+    
+    // If no message ID but there's message content, generate a unique ID
+    const messageBody = body.message_body || body.body || body.message?.body;
+    if (!ghlMessageId && messageBody) {
+      const timestamp = Date.now();
+      const contactIdForKey = body.contact_id || body.contactId || body.contact?.id || "unknown";
+      ghlMessageId = `ghl_wf_${contactIdForKey}_${timestamp}`;
+      console.log("[GHL-MESSAGE] Generated message ID for workflow", { ghlMessageId });
+    }
     
     // Extract contact ID - support multiple formats
     const ghlContactId = body.contact_id || body.contactId || body.contact?.id || body.message?.contact_id || body.message?.contactId;
@@ -134,10 +144,11 @@ serve(async (req) => {
       );
     }
 
-    if (!ghlMessageId) {
-      console.error("[GHL-MESSAGE] Missing message ID in payload");
+    // Check if we have either a message ID or message content from workflow
+    if (!ghlMessageId && !messageBody) {
+      console.error("[GHL-MESSAGE] Missing message ID and content in payload");
       return new Response(
-        JSON.stringify({ error: "Missing message ID" }),
+        JSON.stringify({ error: "Missing message ID or content" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
