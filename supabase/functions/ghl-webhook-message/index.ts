@@ -356,7 +356,7 @@ serve(async (req) => {
       console.log("[GHL-MESSAGE] Created new conversation", { conversationId });
     }
 
-    // 6. Create the message
+    // 6. Create the message (using only valid columns)
     const { data: newMessage, error: msgError } = await supabase
       .from("messages")
       .insert({
@@ -364,17 +364,10 @@ serve(async (req) => {
         workspace_id: workspaceId,
         content: messageContent,
         direction: messageDirection,
-        topic: channel,
-        extension: "ghl",
         sent_at: messageSentAt,
         ghl_message_id: ghlMessageId,
-        attachments: formattedAttachments.length > 0 ? formattedAttachments : null,
-        payload: {
-          ghl_contact_id: ghlContactId,
-          ghl_conversation_id: ghlConversationId,
-          ghl_status: messageStatus,
-          source: "ghl_webhook"
-        }
+        external_message_id: ghlMessageId,
+        attachments: formattedAttachments.length > 0 ? formattedAttachments : null
       })
       .select("id")
       .single();
