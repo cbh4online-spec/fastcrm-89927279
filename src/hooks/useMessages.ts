@@ -122,11 +122,49 @@ export function useSendMessage() {
       // Get conversation to check channel and email details
       const { data: conversation, error: convError } = await workspaceClient
         .from("conversations")
-        .select("channel, channel_metadata, lead:leads(email)")
+        .select("channel, channel_metadata, lead:leads(email, ghl_contact_id)")
         .eq("id", conversationId)
         .single();
 
       if (convError) throw convError;
+
+      // Check if this is a GHL-linked conversation (SMS/WhatsApp from GHL)
+      const channelMeta = conversation.channel_metadata as Record<string, unknown> | null;
+      const leadData = conversation.lead as unknown;
+      const lead = (Array.isArray(leadData) ? leadData[0] : leadData) as { email: string | null; ghl_contact_id: string | null } | null;
+      const isGHLConversation = Boolean(
+        channelMeta?.source === "ghl" || 
+        channelMeta?.ghl_contact_id || 
+        lead?.ghl_contact_id
+      );
+
+      // For GHL-linked SMS/WhatsApp conversations, use the GHL send function
+      if (isGHLConversation && ["sms", "whatsapp"].includes(conversation.channel)) {
+        const { data, error } = await mainClient.functions.invoke("ghl-send-message", {
+          body: { conversationId, message: content, channel: conversation.channel },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        // Message is saved by the edge function
+        return {
+          id: data.messageId || crypto.randomUUID(),
+          conversation_id: conversationId,
+          workspace_id: currentWorkspace.id,
+          direction: "outbound" as MessageDirection,
+          content,
+          attachments: [],
+          sender_id: user.id,
+          sent_at: new Date().toISOString(),
+          delivered_at: new Date().toISOString(),
+          read_at: null,
+          created_at: new Date().toISOString(),
+          email_subject: null,
+          email_message_id: null,
+          email_in_reply_to: null,
+        } as Message;
+      }
 
       // For Instagram, use the edge function to send via Instagram API
       if (conversation.channel === "instagram") {
