@@ -138,8 +138,8 @@ export function useSendMessage() {
         lead?.ghl_contact_id
       );
 
-      // For GHL-linked SMS/WhatsApp conversations, use the GHL send function
-      if (isGHLConversation && ["sms", "whatsapp"].includes(conversation.channel)) {
+      // For GHL-linked conversations (SMS, WhatsApp, Instagram, Messenger, Facebook), use the GHL send function
+      if (isGHLConversation && ["sms", "whatsapp", "instagram", "messenger", "facebook"].includes(conversation.channel)) {
         const { data, error } = await mainClient.functions.invoke("ghl-send-message", {
           body: { conversationId, message: content, channel: conversation.channel },
         });
