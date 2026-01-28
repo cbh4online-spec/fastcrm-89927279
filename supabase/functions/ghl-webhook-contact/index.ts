@@ -6,21 +6,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-ghl-location-id",
 };
 
-// Supports both GHL native format (fields at root) and nested contact format
+// Supports multiple GHL payload formats (workflow triggers, webhooks, etc.)
 interface GHLWebhookPayload {
-  // GHL native format - fields at root level
+  // GHL workflow format - uses snake_case at root
+  contact_id?: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  tags?: string | string[];
+  date_created?: string;
+  contact_type?: string;
+  location?: {
+    id?: string;
+    name?: string;
+  };
+  
+  // GHL webhook format - uses camelCase at root
   type?: string;
   locationId?: string;
   location_id?: string;
   id?: string;
   firstName?: string;
-  first_name?: string;
   lastName?: string;
-  last_name?: string;
   name?: string;
-  email?: string;
-  phone?: string;
-  tags?: string[];
   customFields?: Array<{ id: string; value: unknown }>;
   custom_fields?: Record<string, unknown>;
   dateAdded?: string;
@@ -29,7 +39,7 @@ interface GHLWebhookPayload {
   // Alternative nested format for compatibility
   event_type?: string;
   contact?: {
-    id: string;
+    id?: string;
     firstName?: string;
     first_name?: string;
     lastName?: string;
@@ -63,14 +73,15 @@ serve(async (req) => {
     // Log full payload for debugging
     console.log("[GHL-CONTACT] Full payload received", JSON.stringify(body));
     
-    // Get location ID from: query param > header > body (root or nested)
+    // Get location ID from: query param > header > body > location object
     const locationId = queryLocationId ||
                        req.headers.get("X-GHL-Location-Id") || 
                        body.location_id || 
-                       body.locationId;
+                       body.locationId ||
+                       body.location?.id;
 
-    // Extract contact ID - support both root level (GHL native) and nested format
-    const ghlContactId = body.id || body.contact?.id;
+    // Extract contact ID - support workflow format (contact_id), webhook format (id), and nested format
+    const ghlContactId = body.contact_id || body.id || body.contact?.id;
 
     console.log("[GHL-CONTACT] Received webhook", { 
       locationId, 
@@ -139,15 +150,24 @@ serve(async (req) => {
       .eq("ghl_entity_id", ghlContactId)
       .maybeSingle();
 
-    // Normalize contact fields - support both root level (GHL native) and nested format
-    const firstName = body.firstName || body.first_name || body.contact?.firstName || body.contact?.first_name || "";
-    const lastName = body.lastName || body.last_name || body.contact?.lastName || body.contact?.last_name || "";
-    const fullName = body.name || `${firstName} ${lastName}`.trim() || "GHL Contact";
+    // Normalize contact fields - support workflow format, webhook format, and nested format
+    const firstName = body.first_name || body.firstName || body.contact?.first_name || body.contact?.firstName || "";
+    const lastName = body.last_name || body.lastName || body.contact?.last_name || body.contact?.lastName || "";
+    const fullName = body.full_name || body.name || `${firstName} ${lastName}`.trim() || "GHL Contact";
     const email = body.email?.trim() || body.contact?.email?.trim() || null;
     const phone = body.phone?.trim() || body.contact?.phone?.trim() || null;
-    const tags = body.tags || body.contact?.tags || [];
     
-    console.log("[GHL-CONTACT] Normalized contact data", { ghlContactId, fullName, email, phone });
+    // Tags can be string (comma-separated) or array
+    let tags: string[] = [];
+    if (typeof body.tags === "string" && body.tags) {
+      tags = body.tags.split(",").map(t => t.trim()).filter(Boolean);
+    } else if (Array.isArray(body.tags)) {
+      tags = body.tags;
+    } else if (Array.isArray(body.contact?.tags)) {
+      tags = body.contact.tags;
+    }
+    
+    console.log("[GHL-CONTACT] Normalized contact data", { ghlContactId, fullName, email, phone, tags });
 
     let entityId: string;
     let entityType: "lead" | "contact";
