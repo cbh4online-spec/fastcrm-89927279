@@ -109,13 +109,38 @@ serve(async (req) => {
                        body.locationId ||
                        body.location?.id;
 
+    // Extract message content FIRST - this determines if it's a message webhook
+    const messageBody = body.message_body || body.body || body.message?.body;
+    
+    // Log what type of payload we received
+    const hasMessage = Boolean(messageBody);
+    const payloadType = hasMessage ? "message" : "contact_only";
+    
+    console.log("[GHL-MESSAGE] Payload analysis", { 
+      payloadType,
+      hasMessageBody: hasMessage,
+      hasMessageObject: Boolean(body.message),
+      locationId 
+    });
+    
+    // If this is a contact-only trigger (no message), respond gracefully
+    if (!hasMessage) {
+      console.log("[GHL-MESSAGE] Contact trigger received (no message content) - skipping");
+      return new Response(
+        JSON.stringify({ 
+          message: "Contact trigger received - no message to sync",
+          hint: "Configure your GHL workflow/webhook to trigger on 'InboundMessage' event for message sync"
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Extract message ID - support workflow format, webhook format, and nested format
     // For workflows that don't send a message ID, generate one based on contact + timestamp
     let ghlMessageId = body.message_id || body.messageId || body.message?.id;
     
-    // If no message ID but there's message content, generate a unique ID
-    const messageBody = body.message_body || body.body || body.message?.body;
-    if (!ghlMessageId && messageBody) {
+    // Generate unique ID for workflow-based messages without an ID
+    if (!ghlMessageId) {
       const timestamp = Date.now();
       const contactIdForKey = body.contact_id || body.contactId || body.contact?.id || "unknown";
       ghlMessageId = `ghl_wf_${contactIdForKey}_${timestamp}`;
@@ -128,27 +153,18 @@ serve(async (req) => {
     // Extract conversation ID
     const ghlConversationId = body.conversation_id || body.conversationId;
 
-    console.log("[GHL-MESSAGE] Received webhook", { 
+    console.log("[GHL-MESSAGE] Processing message", { 
       locationId, 
       messageId: ghlMessageId,
       contactId: ghlContactId,
       conversationId: ghlConversationId,
-      eventType: body.type || body.event_type 
+      messagePreview: messageBody?.substring(0, 50)
     });
 
     if (!locationId) {
       console.error("[GHL-MESSAGE] Missing location_id");
       return new Response(
         JSON.stringify({ error: "Missing location_id" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check if we have either a message ID or message content from workflow
-    if (!ghlMessageId && !messageBody) {
-      console.error("[GHL-MESSAGE] Missing message ID and content in payload");
-      return new Response(
-        JSON.stringify({ error: "Missing message ID or content" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
