@@ -153,3 +153,9 @@ verify_jwt = false
 
 [functions.parallel-dispatch]
 verify_jwt = false
+
+[functions.ghl-webhook-contact]
+verify_jwt = false
+
+[functions.ghl-webhook-message]
+verify_jwt = false

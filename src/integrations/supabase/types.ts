@@ -3607,6 +3607,8 @@ export type Database = {
           estimated_value: number | null
           facebook_url: string | null
           fiscal_regime: string | null
+          ghl_contact_id: string | null
+          ghl_synced_at: string | null
           has_whatsapp: boolean | null
           id: string
           instagram_url: string | null
@@ -3677,6 +3679,8 @@ export type Database = {
           estimated_value?: number | null
           facebook_url?: string | null
           fiscal_regime?: string | null
+          ghl_contact_id?: string | null
+          ghl_synced_at?: string | null
           has_whatsapp?: boolean | null
           id?: string
           instagram_url?: string | null
@@ -3747,6 +3751,8 @@ export type Database = {
           estimated_value?: number | null
           facebook_url?: string | null
           fiscal_regime?: string | null
+          ghl_contact_id?: string | null
+          ghl_synced_at?: string | null
           has_whatsapp?: boolean | null
           id?: string
           instagram_url?: string | null
@@ -5682,6 +5688,50 @@ export type Database = {
           visitor_id?: string
         }
         Relationships: []
+      }
+      ghl_sync_log: {
+        Row: {
+          event_type: string
+          fastcrm_entity_id: string
+          fastcrm_entity_type: string
+          ghl_entity_id: string
+          ghl_entity_type: string
+          id: string
+          payload: Json | null
+          processed_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          event_type: string
+          fastcrm_entity_id: string
+          fastcrm_entity_type: string
+          ghl_entity_id: string
+          ghl_entity_type: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          event_type?: string
+          fastcrm_entity_id?: string
+          fastcrm_entity_type?: string
+          ghl_entity_id?: string
+          ghl_entity_type?: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ghl_sync_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       growth_settings: {
         Row: {
@@ -7890,6 +7940,8 @@ export type Database = {
           facebook_url: string | null
           fax: string | null
           founding_date: string | null
+          ghl_contact_id: string | null
+          ghl_synced_at: string | null
           google_place_id: string | null
           id: string
           inferred_profession: string | null
@@ -7969,6 +8021,8 @@ export type Database = {
           facebook_url?: string | null
           fax?: string | null
           founding_date?: string | null
+          ghl_contact_id?: string | null
+          ghl_synced_at?: string | null
           google_place_id?: string | null
           id?: string
           inferred_profession?: string | null
@@ -8048,6 +8102,8 @@ export type Database = {
           facebook_url?: string | null
           fax?: string | null
           founding_date?: string | null
+          ghl_contact_id?: string | null
+          ghl_synced_at?: string | null
           google_place_id?: string | null
           id?: string
           inferred_profession?: string | null
@@ -9858,6 +9914,7 @@ export type Database = {
           email_references: string[] | null
           email_subject: string | null
           external_message_id: string | null
+          ghl_message_id: string | null
           id: string
           read_at: string | null
           sender_id: string | null
@@ -9876,6 +9933,7 @@ export type Database = {
           email_references?: string[] | null
           email_subject?: string | null
           external_message_id?: string | null
+          ghl_message_id?: string | null
           id?: string
           read_at?: string | null
           sender_id?: string | null
@@ -9894,6 +9952,7 @@ export type Database = {
           email_references?: string[] | null
           email_subject?: string | null
           external_message_id?: string | null
+          ghl_message_id?: string | null
           id?: string
           read_at?: string | null
           sender_id?: string | null
@@ -16473,6 +16532,56 @@ export type Database = {
             foreignKeyName: "workspace_credit_balances_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_ghl_config: {
+        Row: {
+          created_at: string | null
+          ghl_api_key_encrypted: string | null
+          ghl_location_id: string | null
+          ghl_webhook_secret: string | null
+          id: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          sync_contacts: boolean | null
+          sync_messages: boolean | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          ghl_api_key_encrypted?: string | null
+          ghl_location_id?: string | null
+          ghl_webhook_secret?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          sync_contacts?: boolean | null
+          sync_messages?: boolean | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          ghl_api_key_encrypted?: string | null
+          ghl_location_id?: string | null
+          ghl_webhook_secret?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          sync_contacts?: boolean | null
+          sync_messages?: boolean | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_ghl_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
