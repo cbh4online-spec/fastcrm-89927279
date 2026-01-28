@@ -40,11 +40,16 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Parse URL to get query params
+    const url = new URL(req.url);
+    const queryLocationId = url.searchParams.get("location_id");
+
     // Parse body
     const body: GHLContactPayload = await req.json();
     
-    // Get location ID from header or body
-    const locationId = req.headers.get("X-GHL-Location-Id") || 
+    // Get location ID from: query param > header > body
+    const locationId = queryLocationId ||
+                       req.headers.get("X-GHL-Location-Id") || 
                        body.location_id || 
                        body.locationId;
 
