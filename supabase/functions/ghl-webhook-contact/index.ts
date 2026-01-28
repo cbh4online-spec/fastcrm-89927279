@@ -70,13 +70,15 @@ serve(async (req) => {
       );
     }
 
-    // 1. Find workspace by location_id
-    const { data: config, error: configError } = await supabase
+    // 1. Find workspace by location_id (get first match if multiple exist)
+    const { data: configs, error: configError } = await supabase
       .from("workspace_ghl_config")
       .select("workspace_id, sync_contacts")
       .eq("ghl_location_id", locationId)
       .eq("is_active", true)
-      .maybeSingle();
+      .limit(1);
+    
+    const config = configs?.[0] || null;
 
     if (configError) {
       console.error("[GHL-CONTACT] Config lookup error", configError);
