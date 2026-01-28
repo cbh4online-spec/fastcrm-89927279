@@ -7930,7 +7930,7 @@ export type Database = {
           conversion_probability: number | null
           county: string | null
           created_at: string
-          created_by: string
+          created_by: string | null
           email: string | null
           estimated_value: number | null
           external_email: string | null
@@ -8011,7 +8011,7 @@ export type Database = {
           conversion_probability?: number | null
           county?: string | null
           created_at?: string
-          created_by: string
+          created_by?: string | null
           email?: string | null
           estimated_value?: number | null
           external_email?: string | null
@@ -8092,7 +8092,7 @@ export type Database = {
           conversion_probability?: number | null
           county?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           email?: string | null
           estimated_value?: number | null
           external_email?: string | null
