@@ -106,19 +106,9 @@ serve(async (req) => {
       );
     }
 
-    // 4. Decrypt API key
-    const { data: decryptResult, error: decryptError } = await supabase
-      .rpc("decrypt_secret", { encrypted_value: config.ghl_api_key_encrypted });
-
-    if (decryptError || !decryptResult) {
-      console.error("[GHL-SEND] Failed to decrypt API key", decryptError);
-      return new Response(
-        JSON.stringify({ error: "Failed to access GHL credentials" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const ghlApiKey = decryptResult;
+    // 4. Use API key directly (stored as plain text in this implementation)
+    // Note: For production, consider implementing proper encryption with Supabase Vault
+    const ghlApiKey = config.ghl_api_key_encrypted;
 
     // 5. Determine message type based on channel
     const messageChannel = channel || conversation.channel || "sms";
