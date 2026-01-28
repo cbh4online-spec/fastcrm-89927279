@@ -269,8 +269,15 @@ serve(async (req) => {
     const messageContent = body.message_body || body.body || body.message?.body || "";
     const rawDirection = body.message_direction || body.direction || body.message?.direction || "inbound";
     const messageDirection = normalizeDirection(rawDirection);
-    const rawChannel = body.channel || body.message_type || body.messageType || body.message?.channel || body.message?.type || "sms";
-    const channel = mapGHLChannel(rawChannel);
+    
+    // Channel detection: GHL uses numeric type codes OR string channels
+    // Also check contact.attributionSource.medium for the actual source platform
+    const messageTypeCode = body.message?.type;
+    const attributionMedium = (body.contact as any)?.attributionSource?.medium || 
+                              (body.contact as any)?.lastAttributionSource?.medium;
+    const rawChannel = body.channel || body.message_type || body.messageType || body.message?.channel || "sms";
+    const channel = resolveGHLChannel(messageTypeCode, rawChannel, attributionMedium);
+    
     const messageSentAt = body.date_added || body.dateAdded || body.message?.sent_at || body.message?.dateAdded || new Date().toISOString();
     const messageStatus = body.message_status || body.status || body.message?.status || "pending";
     
@@ -447,33 +454,91 @@ serve(async (req) => {
   }
 });
 
-// Helper to normalize channel names
-function mapGHLChannel(channel: string): string {
+// GHL message type numeric codes
+// Reference: https://highlevel.stoplight.io/docs/integrations/reference/conversations.v1.yaml
+const GHL_TYPE_CODES: Record<number, string> = {
+  1: "sms",           // TYPE_SMS
+  2: "email",         // TYPE_EMAIL
+  3: "sms",           // TYPE_CUSTOM_SMS
+  4: "email",         // TYPE_CUSTOM_EMAIL
+  5: "messenger",     // TYPE_FB_MESSENGER
+  6: "messenger",     // TYPE_GMB
+  7: "chat",          // TYPE_LIVE_CHAT
+  8: "chat",          // TYPE_WEBCHAT
+  9: "whatsapp",      // TYPE_WHATSAPP
+  10: "call",         // TYPE_CALL
+  11: "messenger",    // TYPE_FB (Facebook page message)
+  12: "google",       // TYPE_GMB (Google My Business)
+  13: "review",       // TYPE_REVIEW
+  14: "sms",          // TYPE_TWILIO_SMS
+  15: "whatsapp",     // TYPE_TWILIO_WHATSAPP
+  16: "whatsapp",     // TYPE_WHATSAPP_API
+  17: "instagram",    // TYPE_INSTAGRAM (IG Comment/Story)
+  18: "instagram",    // TYPE_INSTAGRAM_DM
+  19: "messenger",    // TYPE_FACEBOOK_MESSENGER
+  20: "call",         // TYPE_VOICEMAIL
+};
+
+// Resolve channel from multiple GHL payload sources
+function resolveGHLChannel(
+  typeCode: number | string | undefined,
+  rawChannel: string,
+  attributionMedium?: string
+): string {
+  // 1. First try numeric type code (most reliable for message type)
+  if (typeof typeCode === "number" && GHL_TYPE_CODES[typeCode]) {
+    console.log("[GHL-MESSAGE] Channel resolved from type code", { typeCode, channel: GHL_TYPE_CODES[typeCode] });
+    return GHL_TYPE_CODES[typeCode];
+  }
+  
+  // 2. Check attribution medium (indicates source platform)
+  if (attributionMedium) {
+    const medium = attributionMedium.toLowerCase();
+    if (medium === "instagram" || medium.includes("ig")) {
+      console.log("[GHL-MESSAGE] Channel resolved from attribution", { attributionMedium, channel: "instagram" });
+      return "instagram";
+    }
+    if (medium === "facebook" || medium.includes("fb")) {
+      console.log("[GHL-MESSAGE] Channel resolved from attribution", { attributionMedium, channel: "messenger" });
+      return "messenger";
+    }
+  }
+  
+  // 3. Fall back to string channel mapping
+  return mapGHLChannel(rawChannel);
+}
+
+// Helper to normalize channel names from string values
+function mapGHLChannel(channel: string | number): string {
+  // Handle numeric codes passed as string
+  if (typeof channel === "number" || !isNaN(Number(channel))) {
+    const code = Number(channel);
+    if (GHL_TYPE_CODES[code]) {
+      return GHL_TYPE_CODES[code];
+    }
+  }
+  
+  const channelStr = String(channel).toLowerCase();
   const channelMap: Record<string, string> = {
     "sms": "sms",
-    "SMS": "sms",
     "email": "email",
-    "Email": "email",
     "whatsapp": "whatsapp",
-    "WhatsApp": "whatsapp",
     "facebook": "messenger",
-    "Facebook": "messenger",
+    "fb": "messenger",
     "messenger": "messenger",
-    "Messenger": "messenger",
     "instagram": "instagram",
-    "Instagram": "instagram",
+    "ig": "instagram",
     "live_chat": "chat",
-    "LiveChat": "chat",
+    "livechat": "chat",
     "chat": "chat",
     "webchat": "chat",
     "gmb": "google",
-    "GMB": "google",
     "google": "google",
     "call": "call",
     "voicemail": "call"
   };
   
-  return channelMap[channel] || "sms";
+  return channelMap[channelStr] || "sms";
 }
 
 // Helper to normalize direction
