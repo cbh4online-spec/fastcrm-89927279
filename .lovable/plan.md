@@ -1,109 +1,77 @@
 
-# Plano: Corrigir Estrutura do Payload GHL
+# Corrigir Sincronização de Mensagens GHL
 
 ## Problema Identificado
 
-A Edge Function actual espera os dados do contacto dentro de um objecto `contact`:
-```typescript
-// Código actual espera:
-body.contact.id
-body.contact.firstName
-body.contact.email
+A mensagem "Teste 3" foi recebida com sucesso às 23:17:27, mas falhou ao guardar na base de dados porque a Edge Function tenta inserir colunas que não existem na tabela `messages`:
+
+```
+Could not find the 'extension' column of 'messages' in the schema cache
 ```
 
-Mas o GoHighLevel envia os campos directamente no nível raiz do payload:
-```json
-{
-  "type": "ContactCreate",
-  "locationId": "GydyXmDssRSxHw7bQ7Cw",
-  "id": "abc123",
-  "firstName": "Lurdes",
-  "lastName": "Miguela",
-  "email": "lurdes@example.com",
-  "phone": "+351912345678",
-  "tags": ["tag1", "tag2"]
-}
-```
+**Colunas que a função tenta usar (não existem):**
+- `topic`
+- `extension`
+- `payload`
+
+**Colunas disponíveis na tabela:**
+- `content`, `direction`, `sent_at`, `ghl_message_id`, `attachments`, `conversation_id`, `workspace_id`, `external_message_id`
 
 ---
 
 ## Solução
 
-Actualizar a Edge Function para suportar **ambos os formatos**:
-1. Formato GHL nativo (campos no nível raiz)
-2. Formato com objecto `contact` (para compatibilidade futura)
+Actualizar a Edge Function `ghl-webhook-message` para usar apenas as colunas que existem na tabela.
 
 ---
 
 ## Alterações Técnicas
 
-### Ficheiro: `supabase/functions/ghl-webhook-contact/index.ts`
+### Ficheiro: `supabase/functions/ghl-webhook-message/index.ts`
 
-1. **Actualizar interface do payload** para reflectir o formato real do GHL:
-
-```typescript
-interface GHLWebhookPayload {
-  // Campos no nível raiz (formato GHL nativo)
-  type?: string;
-  locationId?: string;
-  id?: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  tags?: string[];
-  customFields?: Array<{ id: string; value: unknown }>;
-  dateAdded?: string;
-  dateUpdated?: string;
-  
-  // Formato alternativo com objecto contact
-  contact?: {
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    phone?: string;
-    tags?: string[];
-  };
-}
-```
-
-2. **Normalizar extracção de dados** para suportar ambos os formatos:
+Remover os campos inválidos do INSERT e mover metadados GHL para o campo `attachments` como JSON (aproveitando a estrutura existente):
 
 ```typescript
-// Extrair contactId do formato correcto
-const ghlContactId = body.id || body.contact?.id;
+// ANTES (inválido):
+.insert({
+  conversation_id: conversationId,
+  workspace_id: workspaceId,
+  content: messageContent,
+  direction: messageDirection,
+  topic: channel,           // ❌ Não existe
+  extension: "ghl",         // ❌ Não existe
+  sent_at: messageSentAt,
+  ghl_message_id: ghlMessageId,
+  attachments: formattedAttachments,
+  payload: { ... }          // ❌ Não existe
+})
 
-// Extrair campos do contacto
-const firstName = body.firstName || body.contact?.firstName || "";
-const lastName = body.lastName || body.contact?.lastName || "";
-const fullName = body.name || `${firstName} ${lastName}`.trim() || "GHL Contact";
-const email = body.email?.trim() || body.contact?.email?.trim() || null;
-const phone = body.phone?.trim() || body.contact?.phone?.trim() || null;
-const tags = body.tags || body.contact?.tags || [];
-```
-
-3. **Melhorar logging** para debug:
-
-```typescript
-console.log("[GHL-CONTACT] Full payload received", JSON.stringify(body));
+// DEPOIS (corrigido):
+.insert({
+  conversation_id: conversationId,
+  workspace_id: workspaceId,
+  content: messageContent,
+  direction: messageDirection,
+  sent_at: messageSentAt,
+  ghl_message_id: ghlMessageId,
+  external_message_id: ghlMessageId,
+  attachments: formattedAttachments.length > 0 ? formattedAttachments : null
+})
 ```
 
 ---
 
 ## Resultado Esperado
 
-Após implementação:
-- A Edge Function processará correctamente os webhooks do GHL
-- Os contactos criados no GoHighLevel aparecerão como leads no FastCRM
-- Suporte para ambos os formatos de payload para máxima compatibilidade
+Após a correcção:
+1. As mensagens do GHL serão guardadas correctamente na base de dados
+2. A conversa já criada será actualizada com as novas mensagens
+3. O histórico de mensagens aparecerá no detalhe do lead
 
 ---
 
 ## Passos de Validação
 
-1. Fazer deploy da Edge Function actualizada
-2. Criar um contacto de teste no GoHighLevel
-3. Verificar nos logs que o contacto foi processado
-4. Confirmar que o lead aparece no workspace PHARLISS
+1. Deploy da Edge Function corrigida
+2. Enviar nova mensagem de teste no GHL
+3. Verificar que a mensagem aparece no FastCRM
