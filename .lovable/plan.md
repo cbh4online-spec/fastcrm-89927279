@@ -1,52 +1,109 @@
 
-# Plano: Remover Configuração GHL Duplicada do METODOPARE
+# Plano: Corrigir Estrutura do Payload GHL
 
-## Problema
-O mesmo `location_id` (`GydyXmDssRSxHw7bQ7Cw`) está configurado em dois workspaces. O webhook processa o primeiro match, que é METODOPARE.
+## Problema Identificado
 
-## Solução
-Eliminar a configuração GHL do workspace METODOPARE, mantendo apenas a do PHARLISS.
+A Edge Function actual espera os dados do contacto dentro de um objecto `contact`:
+```typescript
+// Código actual espera:
+body.contact.id
+body.contact.firstName
+body.contact.email
+```
+
+Mas o GoHighLevel envia os campos directamente no nível raiz do payload:
+```json
+{
+  "type": "ContactCreate",
+  "locationId": "GydyXmDssRSxHw7bQ7Cw",
+  "id": "abc123",
+  "firstName": "Lurdes",
+  "lastName": "Miguela",
+  "email": "lurdes@example.com",
+  "phone": "+351912345678",
+  "tags": ["tag1", "tag2"]
+}
+```
 
 ---
 
-## Acção Necessária
+## Solução
 
-Executar um DELETE directo na base de dados para remover a configuração duplicada:
+Actualizar a Edge Function para suportar **ambos os formatos**:
+1. Formato GHL nativo (campos no nível raiz)
+2. Formato com objecto `contact` (para compatibilidade futura)
 
-```sql
-DELETE FROM workspace_ghl_config 
-WHERE id = '2015d7a1-dcc1-4d3c-a3df-3c5003fb6265';
+---
+
+## Alterações Técnicas
+
+### Ficheiro: `supabase/functions/ghl-webhook-contact/index.ts`
+
+1. **Actualizar interface do payload** para reflectir o formato real do GHL:
+
+```typescript
+interface GHLWebhookPayload {
+  // Campos no nível raiz (formato GHL nativo)
+  type?: string;
+  locationId?: string;
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  tags?: string[];
+  customFields?: Array<{ id: string; value: unknown }>;
+  dateAdded?: string;
+  dateUpdated?: string;
+  
+  // Formato alternativo com objecto contact
+  contact?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    tags?: string[];
+  };
+}
 ```
 
-**Identificação do registo a eliminar:**
-- **Config ID**: `2015d7a1-dcc1-4d3c-a3df-3c5003fb6265`
-- **Workspace**: METODOPARE (`d9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f`)
-- **Location ID**: `GydyXmDssRSxHw7bQ7Cw`
+2. **Normalizar extracção de dados** para suportar ambos os formatos:
 
-**Registo que permanece:**
-- **Config ID**: `21deb868-e34c-4b2f-8297-27c9d777b819`
-- **Workspace**: PHARLISS (`0662fc16-6286-4156-a908-08c7dfec0fb7`)
-- **Location ID**: `GydyXmDssRSxHw7bQ7Cw`
+```typescript
+// Extrair contactId do formato correcto
+const ghlContactId = body.id || body.contact?.id;
+
+// Extrair campos do contacto
+const firstName = body.firstName || body.contact?.firstName || "";
+const lastName = body.lastName || body.contact?.lastName || "";
+const fullName = body.name || `${firstName} ${lastName}`.trim() || "GHL Contact";
+const email = body.email?.trim() || body.contact?.email?.trim() || null;
+const phone = body.phone?.trim() || body.contact?.phone?.trim() || null;
+const tags = body.tags || body.contact?.tags || [];
+```
+
+3. **Melhorar logging** para debug:
+
+```typescript
+console.log("[GHL-CONTACT] Full payload received", JSON.stringify(body));
+```
 
 ---
 
 ## Resultado Esperado
 
-Após a eliminação:
-1. O webhook GHL processará contactos apenas para PHARLISS
-2. METODOPARE não terá integração GHL configurada
-3. Os contactos criados no GoHighLevel aparecerão como leads em PHARLISS
+Após implementação:
+- A Edge Function processará correctamente os webhooks do GHL
+- Os contactos criados no GoHighLevel aparecerão como leads no FastCRM
+- Suporte para ambos os formatos de payload para máxima compatibilidade
 
 ---
 
-## Execução
+## Passos de Validação
 
-Esta é uma operação de dados (DELETE), não uma alteração de schema. Será executada usando a ferramenta de inserção/actualização de dados.
-
----
-
-## Validação Pós-Execução
-
-1. Verificar que apenas existe uma configuração GHL
-2. Testar o webhook enviando um contacto de teste
-3. Confirmar que o lead aparece em PHARLISS
+1. Fazer deploy da Edge Function actualizada
+2. Criar um contacto de teste no GoHighLevel
+3. Verificar nos logs que o contacto foi processado
+4. Confirmar que o lead aparece no workspace PHARLISS
