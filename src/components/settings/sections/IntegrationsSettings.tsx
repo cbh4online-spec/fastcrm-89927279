@@ -17,6 +17,7 @@ import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
 import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
 import { useWorkspaceStripeConfig } from "@/hooks/useWorkspaceStripeConfig";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const integrations = [
   {
@@ -41,6 +42,7 @@ interface IntegrationsSettingsProps {
 }
 
 export function IntegrationsSettings({ searchQuery = "", matchedSections }: IntegrationsSettingsProps) {
+  const { isSuperAdmin } = useUserRole();
   const { isConfigured: isStripeConfigured } = useWorkspaceStripeConfig();
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const hasSearch = searchQuery.trim().length > 0;
@@ -80,7 +82,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
         </SettingsSection>
       )}
 
-      {shouldShow("integrations-ghl") && (
+      {isSuperAdmin && shouldShow("integrations-ghl") && (
         <SettingsSection
           title="GoHighLevel"
           description="Sincronize contactos e mensagens do GoHighLevel"
@@ -143,25 +145,27 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
             )}
           </div>
 
-          {/* GHL summary card */}
-          <div className="flex items-center justify-between p-4 border border-border rounded-lg mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-500/10">
-                <Zap className="h-5 w-5 text-orange-500" />
+          {/* GHL summary card - Super Admin only */}
+          {isSuperAdmin && (
+            <div className="flex items-center justify-between p-4 border border-border rounded-lg mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500/10">
+                  <Zap className="h-5 w-5 text-orange-500" />
+                </div>
+                <div>
+                  <p className="font-medium">GoHighLevel</p>
+                  <p className="text-sm text-muted-foreground">
+                    Sincronizar contactos e mensagens
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium">GoHighLevel</p>
-                <p className="text-sm text-muted-foreground">
-                  Sincronizar contactos e mensagens
-                </p>
-              </div>
+              {isGHLConfigured ? (
+                <Badge className="bg-emerald-500 text-white">Conectado</Badge>
+              ) : (
+                <Badge variant="secondary">Não configurado</Badge>
+              )}
             </div>
-            {isGHLConfigured ? (
-              <Badge className="bg-emerald-500 text-white">Conectado</Badge>
-            ) : (
-              <Badge variant="secondary">Não configurado</Badge>
-            )}
-          </div>
+          )}
           
           <div className="grid gap-4">
             {integrations.map((integration) => (
