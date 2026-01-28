@@ -6,26 +6,39 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-ghl-location-id",
 };
 
-interface GHLContact {
-  id: string;
-  first_name?: string;
+// Supports both GHL native format (fields at root) and nested contact format
+interface GHLWebhookPayload {
+  // GHL native format - fields at root level
+  type?: string;
+  locationId?: string;
+  location_id?: string;
+  id?: string;
   firstName?: string;
-  last_name?: string;
+  first_name?: string;
   lastName?: string;
+  last_name?: string;
+  name?: string;
   email?: string;
   phone?: string;
   tags?: string[];
+  customFields?: Array<{ id: string; value: unknown }>;
   custom_fields?: Record<string, unknown>;
-  customFields?: Record<string, unknown>;
-  updated_at?: string;
+  dateAdded?: string;
   dateUpdated?: string;
-}
-
-interface GHLContactPayload {
+  
+  // Alternative nested format for compatibility
   event_type?: string;
-  location_id?: string;
-  locationId?: string;
-  contact: GHLContact;
+  contact?: {
+    id: string;
+    firstName?: string;
+    first_name?: string;
+    lastName?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+    tags?: string[];
+    customFields?: Record<string, unknown>;
+  };
 }
 
 serve(async (req) => {
@@ -45,18 +58,24 @@ serve(async (req) => {
     const queryLocationId = url.searchParams.get("location_id");
 
     // Parse body
-    const body: GHLContactPayload = await req.json();
+    const body: GHLWebhookPayload = await req.json();
     
-    // Get location ID from: query param > header > body
+    // Log full payload for debugging
+    console.log("[GHL-CONTACT] Full payload received", JSON.stringify(body));
+    
+    // Get location ID from: query param > header > body (root or nested)
     const locationId = queryLocationId ||
                        req.headers.get("X-GHL-Location-Id") || 
                        body.location_id || 
                        body.locationId;
 
+    // Extract contact ID - support both root level (GHL native) and nested format
+    const ghlContactId = body.id || body.contact?.id;
+
     console.log("[GHL-CONTACT] Received webhook", { 
       locationId, 
-      contactId: body.contact?.id,
-      eventType: body.event_type 
+      contactId: ghlContactId,
+      eventType: body.type || body.event_type 
     });
 
     if (!locationId) {
@@ -67,8 +86,8 @@ serve(async (req) => {
       );
     }
 
-    if (!body.contact?.id) {
-      console.error("[GHL-CONTACT] Missing contact data");
+    if (!ghlContactId) {
+      console.error("[GHL-CONTACT] Missing contact ID in payload");
       return new Response(
         JSON.stringify({ error: "Missing contact data" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -110,8 +129,6 @@ serve(async (req) => {
     }
 
     const workspaceId = config.workspace_id;
-    const contact = body.contact;
-    const ghlContactId = contact.id;
 
     // 2. Check idempotency - have we already processed this contact?
     const { data: existingSync } = await supabase
@@ -122,14 +139,15 @@ serve(async (req) => {
       .eq("ghl_entity_id", ghlContactId)
       .maybeSingle();
 
-    // Normalize contact fields (GHL sends both camelCase and snake_case)
-    const firstName = contact.first_name || contact.firstName || "";
-    const lastName = contact.last_name || contact.lastName || "";
-    const fullName = `${firstName} ${lastName}`.trim() || "GHL Contact";
-    const email = contact.email?.trim() || null;
-    const phone = contact.phone?.trim() || null;
-    const tags = contact.tags || [];
-    const customFields = contact.custom_fields || contact.customFields || {};
+    // Normalize contact fields - support both root level (GHL native) and nested format
+    const firstName = body.firstName || body.first_name || body.contact?.firstName || body.contact?.first_name || "";
+    const lastName = body.lastName || body.last_name || body.contact?.lastName || body.contact?.last_name || "";
+    const fullName = body.name || `${firstName} ${lastName}`.trim() || "GHL Contact";
+    const email = body.email?.trim() || body.contact?.email?.trim() || null;
+    const phone = body.phone?.trim() || body.contact?.phone?.trim() || null;
+    const tags = body.tags || body.contact?.tags || [];
+    
+    console.log("[GHL-CONTACT] Normalized contact data", { ghlContactId, fullName, email, phone });
 
     let entityId: string;
     let entityType: "lead" | "contact";
