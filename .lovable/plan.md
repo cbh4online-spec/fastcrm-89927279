@@ -1,77 +1,65 @@
 
-# Corrigir Sincronização de Mensagens GHL
+# Plano: Responder a Mensagens Instagram via GHL
 
-## Problema Identificado
-
-A mensagem "Teste 3" foi recebida com sucesso às 23:17:27, mas falhou ao guardar na base de dados porque a Edge Function tenta inserir colunas que não existem na tabela `messages`:
-
-```
-Could not find the 'extension' column of 'messages' in the schema cache
-```
-
-**Colunas que a função tenta usar (não existem):**
-- `topic`
-- `extension`
-- `payload`
-
-**Colunas disponíveis na tabela:**
-- `content`, `direction`, `sent_at`, `ghl_message_id`, `attachments`, `conversation_id`, `workspace_id`, `external_message_id`
-
----
+## Resumo do Problema
+As mensagens recebidas do Instagram via GoHighLevel chegam correctamente ao FastCRM, mas quando tentas responder, o sistema está a tentar usar a edge function `instagram-send-message` (integração directa Meta) em vez de enviar via GHL.
 
 ## Solução
+Actualizar a lógica de routing no hook `useSendMessage` para que **conversas Instagram que vêm do GHL** usem a edge function `ghl-send-message` (que já suporta o tipo `"IG"`).
 
-Actualizar a Edge Function `ghl-webhook-message` para usar apenas as colunas que existem na tabela.
+## Mudança Necessária
 
----
+**Ficheiro:** `src/hooks/useMessages.ts`
 
-## Alterações Técnicas
+**Alteração:** Expandir a condição que detecta conversas GHL para incluir o canal `instagram`:
 
-### Ficheiro: `supabase/functions/ghl-webhook-message/index.ts`
+```text
+ANTES (linha 142):
+  if (isGHLConversation && ["sms", "whatsapp"].includes(conversation.channel))
 
-Remover os campos inválidos do INSERT e mover metadados GHL para o campo `attachments` como JSON (aproveitando a estrutura existente):
-
-```typescript
-// ANTES (inválido):
-.insert({
-  conversation_id: conversationId,
-  workspace_id: workspaceId,
-  content: messageContent,
-  direction: messageDirection,
-  topic: channel,           // ❌ Não existe
-  extension: "ghl",         // ❌ Não existe
-  sent_at: messageSentAt,
-  ghl_message_id: ghlMessageId,
-  attachments: formattedAttachments,
-  payload: { ... }          // ❌ Não existe
-})
-
-// DEPOIS (corrigido):
-.insert({
-  conversation_id: conversationId,
-  workspace_id: workspaceId,
-  content: messageContent,
-  direction: messageDirection,
-  sent_at: messageSentAt,
-  ghl_message_id: ghlMessageId,
-  external_message_id: ghlMessageId,
-  attachments: formattedAttachments.length > 0 ? formattedAttachments : null
-})
+DEPOIS:
+  if (isGHLConversation && ["sms", "whatsapp", "instagram", "messenger", "facebook"].includes(conversation.channel))
 ```
 
----
-
-## Resultado Esperado
-
-Após a correcção:
-1. As mensagens do GHL serão guardadas correctamente na base de dados
-2. A conversa já criada será actualizada com as novas mensagens
-3. O histórico de mensagens aparecerá no detalhe do lead
+Esta mudança simples garante que:
+- Mensagens Instagram recebidas via GHL sejam respondidas via GHL
+- O mapeamento `instagram` -> `IG` na edge function `ghl-send-message` envia correctamente para o GHL
+- O GHL encaminha a resposta para o Instagram/Meta
 
 ---
 
-## Passos de Validação
+## Detalhes Técnicos
 
-1. Deploy da Edge Function corrigida
-2. Enviar nova mensagem de teste no GHL
-3. Verificar que a mensagem aparece no FastCRM
+### Fluxo Actual (com bug)
+```text
+Instagram DM → Meta → GHL → ghl-webhook-message → FastCRM (channel=instagram)
+                                                         ↓
+Utilizador responde → useSendMessage → instagram-send-message ❌ (erro: não há conexão directa Meta)
+```
+
+### Fluxo Corrigido
+```text
+Instagram DM → Meta → GHL → ghl-webhook-message → FastCRM (channel=instagram, source=ghl)
+                                                         ↓
+Utilizador responde → useSendMessage → ghl-send-message (type=IG) → GHL → Meta ✅
+```
+
+### Código Existente que Já Suporta Isto
+
+**ghl-send-message (linhas 300-314):**
+```typescript
+function mapChannelToGHLType(channel: string): string {
+  const typeMap: Record<string, string> = {
+    "instagram": "IG",     // ✅ Já mapeado
+    "messenger": "FB",     // ✅ Facebook Messenger
+    "facebook": "FB",      // ✅ Facebook
+    // ...outros canais
+  };
+  return typeMap[channel.toLowerCase()] || "SMS";
+}
+```
+
+### Impacto
+- **Sem risco:** A edge function `ghl-send-message` já está preparada
+- **Sem alterações na base de dados**
+- **Compatível:** Conversas Instagram directas (sem GHL) continuam a usar `instagram-send-message`
