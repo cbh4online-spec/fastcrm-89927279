@@ -111,6 +111,25 @@ Deno.serve(async (req) => {
 
     console.log(`[GHL Sync] Starting contact sync for workspace ${workspace_id}, location ${locationId}`);
 
+    // ========== LOAD ALL EXISTING GHL CONTACT IDS UPFRONT ==========
+    // This is more reliable than querying per-page with .in() which can have issues with large arrays
+    const { data: existingLeadsData, error: existingError } = await supabase
+      .from("leads")
+      .select("ghl_contact_id")
+      .eq("workspace_id", workspace_id)
+      .not("ghl_contact_id", "is", null);
+
+    if (existingError) {
+      console.error(`[GHL Sync] Error loading existing leads:`, existingError.message);
+    }
+
+    const existingGhlIds = new Set<string>(
+      (existingLeadsData || [])
+        .map(l => l.ghl_contact_id)
+        .filter((id): id is string => id !== null)
+    );
+    console.log(`[GHL Sync] Loaded ${existingGhlIds.size} existing GHL contacts from DB`);
+
     // If streaming is requested, use SSE
     if (stream) {
       const encoder = new TextEncoder();
@@ -205,30 +224,7 @@ Deno.serve(async (req) => {
                 break;
               }
 
-              // Get existing leads - FIXED: Only check leads that have ghl_contact_id
-              const ghlIds = contacts.map(c => c.id);
-              const { data: existingByGhlId, error: queryError } = await supabase
-                .from("leads")
-                .select("id, ghl_contact_id")
-                .eq("workspace_id", workspace_id)
-                .not("ghl_contact_id", "is", null)
-                .in("ghl_contact_id", ghlIds);
-
-              if (queryError) {
-                console.error(`[GHL Sync] Query error:`, queryError.message);
-              }
-
-              const existingGhlIds = new Set((existingByGhlId || []).map(l => l.ghl_contact_id));
-              
-              // DIAGNOSTIC: Log query results
-              console.log(`[GHL Sync] Page ${pageCount}: ${ghlIds.length} GHL IDs sent, ${existingByGhlId?.length || 0} found in DB`);
-              
-              if (pageCount === 1 && contacts.length > 0) {
-                console.log(`[GHL Sync] Sample GHL contact ID: "${contacts[0].id}"`);
-                console.log(`[GHL Sync] Sample existing IDs in Set: ${Array.from(existingGhlIds).slice(0,3).map(id => `"${id}"`).join(', ') || 'NONE'}`);
-              }
-
-              // Prepare batch inserts
+              // Prepare batch inserts - using local Set for deduplication (100% reliable)
               const leadsToInsert: Array<{
                 workspace_id: string;
                 name: string;
@@ -239,11 +235,14 @@ Deno.serve(async (req) => {
                 source: string;
                 tags: string[];
                 ghl_synced_at: string;
+                ai_next_action_type: null;
+                ai_temperature: string;
               }> = [];
 
               for (const contact of contacts) {
                 result.total_processed++;
 
+                // Local deduplication check - simple and reliable
                 if (existingGhlIds.has(contact.id)) {
                   result.skipped++;
                   continue;
@@ -264,13 +263,18 @@ Deno.serve(async (req) => {
                   source: "ghl",
                   tags: contact.tags || [],
                   ghl_synced_at: new Date().toISOString(),
+                  // Explicitly set to avoid check constraint violations
+                  ai_next_action_type: null,
+                  ai_temperature: 'cold',
                 });
+
+                // Add to Set to prevent duplicates in future pages
+                existingGhlIds.add(contact.id);
               }
 
-              // DIAGNOSTIC: Log insert decision
-              console.log(`[GHL Sync] Page ${pageCount}: ${leadsToInsert.length} to insert, ${result.skipped} skipped total so far`);
+              console.log(`[GHL Sync] Page ${pageCount}: ${contacts.length} contacts, ${leadsToInsert.length} to insert, ${result.skipped} skipped total`);
 
-              // Batch insert new leads (using direct insert since we already checked for existing)
+              // Batch insert new leads
               if (leadsToInsert.length > 0) {
                 console.log(`[GHL Sync] Page ${pageCount}: Inserting ${leadsToInsert.length} new leads`);
                 
@@ -285,7 +289,7 @@ Deno.serve(async (req) => {
                     console.log(`[GHL Sync] Some contacts already exist, skipping duplicates`);
                     result.skipped += leadsToInsert.length;
                   } else {
-                    console.error(`[GHL Sync] Batch insert error:`, insertError);
+                    console.error(`[GHL Sync] Batch insert error:`, insertError.message, insertError.code);
                     result.errors.push(`Batch error: ${insertError.message}`);
                   }
                 } else {
@@ -447,16 +451,7 @@ Deno.serve(async (req) => {
         break;
       }
 
-      const ghlIds = contacts.map(c => c.id);
-
-      const { data: existingByGhlId } = await supabase
-        .from("leads")
-        .select("id, ghl_contact_id, email, phone")
-        .eq("workspace_id", workspace_id)
-        .in("ghl_contact_id", ghlIds);
-
-      const existingGhlIds = new Set((existingByGhlId || []).map(l => l.ghl_contact_id));
-
+      // Prepare batch inserts - using local Set for deduplication
       const leadsToInsert: Array<{
         workspace_id: string;
         name: string;
@@ -467,11 +462,14 @@ Deno.serve(async (req) => {
         source: string;
         tags: string[];
         ghl_synced_at: string;
+        ai_next_action_type: null;
+        ai_temperature: string;
       }> = [];
 
       for (const contact of contacts) {
         result.total_processed++;
 
+        // Local deduplication check - simple and reliable
         if (existingGhlIds.has(contact.id)) {
           result.skipped++;
           continue;
@@ -492,8 +490,16 @@ Deno.serve(async (req) => {
           source: "ghl",
           tags: contact.tags || [],
           ghl_synced_at: new Date().toISOString(),
+          // Explicitly set to avoid check constraint violations
+          ai_next_action_type: null,
+          ai_temperature: 'cold',
         });
+
+        // Add to Set to prevent duplicates in future pages
+        existingGhlIds.add(contact.id);
       }
+
+      console.log(`[GHL Sync] Page ${pageCount}: ${leadsToInsert.length} to insert, ${result.skipped} skipped total`);
 
       if (leadsToInsert.length > 0) {
         console.log(`[GHL Sync] Page ${pageCount}: Inserting ${leadsToInsert.length} new leads`);
@@ -509,7 +515,7 @@ Deno.serve(async (req) => {
             console.log(`[GHL Sync] Some contacts already exist, skipping duplicates`);
             result.skipped += leadsToInsert.length;
           } else {
-            console.error(`[GHL Sync] Batch insert error:`, insertError);
+            console.error(`[GHL Sync] Batch insert error:`, insertError.message, insertError.code);
             result.errors.push(`Batch insert failed: ${insertError.message}`);
           }
         } else {
