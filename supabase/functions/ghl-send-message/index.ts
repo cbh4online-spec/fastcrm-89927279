@@ -368,6 +368,18 @@ serve(async (req) => {
         response: responseText 
       });
       
+      // Detect Instagram-specific error - user hasn't initiated contact
+      if (responseText.includes("no Instagram id") || responseText.includes("skipping")) {
+        return new Response(
+          JSON.stringify({ 
+            error: "O contacto não tem uma conta Instagram vinculada no GHL. O Instagram só permite respostas a mensagens recebidas.",
+            ghlStatus: sendResponse.status,
+            details: responseData
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       // Try to provide a helpful error message
       const errorMessage = (responseData?.message as string) || 
                           (responseData?.error as string) || 
@@ -476,10 +488,11 @@ function mapChannelToGHLType(channel: string): string {
     "messenger": "FB",
     "facebook": "FB",
     "instagram": "IG",
+    "ig": "IG",
     "chat": "Live_Chat",
     "call": "Call",
     "google": "GMB",
   };
   
-  return typeMap[channel.toLowerCase()] || "SMS";
+  return typeMap[channel.toLowerCase()] || channel.toUpperCase();
 }

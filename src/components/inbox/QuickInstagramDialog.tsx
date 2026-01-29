@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Instagram, Send, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Instagram, Send, Loader2, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -161,6 +161,17 @@ export function QuickInstagramDialog({
                 <span className="text-sm text-green-700 dark:text-green-400">
                   Integração GHL activa
                 </span>
+              </div>
+
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <div className="flex items-start gap-2">
+                  <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    Nota: O Instagram só permite enviar mensagens a utilizadores que já 
+                    iniciaram uma conversa consigo. Se o contacto nunca interagiu via 
+                    Instagram, a mensagem poderá falhar.
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-2">
