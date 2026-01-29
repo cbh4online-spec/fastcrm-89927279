@@ -17,7 +17,8 @@ import { ProfessionalProfileSection } from "./sections/ProfessionalProfileSectio
 import { CommercialProfileSection } from "./sections/CommercialProfileSection";
 import { FinancialSection } from "./sections/FinancialSection";
 import { CommercialHistorySection } from "./sections/CommercialHistorySection";
-import { NotesSection } from "./sections/NotesSection";
+import { NotesSection as ContactNotesSection } from "./sections/NotesSection";
+import { NotesSection } from "@/components/leads/sections/NotesSection";
 import { AIInsightsSection } from "./sections/AIInsightsSection";
 import { DocumentsSection } from "./sections/DocumentsSection";
 import { InvoiceHistorySection } from "./sections/InvoiceHistorySection";
@@ -233,7 +234,13 @@ export function ENIContactDetailWithSidebar() {
           </div>
         );
       case 'notes':
-        return <NotesSection contact={contact} onFieldChange={handleFieldChange} />;
+        return (
+          <NotesSection 
+            entityType="contact" 
+            entityId={id!} 
+            entityName={contact.name} 
+          />
+        );
       case 'details':
         return (
           <div className="space-y-6">
