@@ -1639,6 +1639,167 @@ export type Database = {
           },
         ]
       }
+      autopilot_config: {
+        Row: {
+          accept_files: boolean
+          accept_images: boolean
+          accept_voice: boolean
+          auto_reactivate: boolean
+          channel: string | null
+          config_scope: string
+          cooldown_after_limit: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          image_analysis_enabled: boolean | null
+          is_active: boolean
+          max_consecutive_bot_messages: number | null
+          max_messages_per_conversation: number
+          max_messages_per_hour: number | null
+          out_of_hours_message: string | null
+          persona_id: string | null
+          reactivation_hours: number | null
+          reactivation_message: string | null
+          require_human_after_escalation: boolean | null
+          respect_working_hours: boolean | null
+          response_delay_max: number
+          response_delay_min: number
+          sleep_on_human_reply: boolean
+          timezone: string | null
+          typing_indicator: boolean
+          updated_at: string
+          voice_transcription_enabled: boolean | null
+          working_days: number[] | null
+          working_hours_end: string | null
+          working_hours_start: string | null
+          workspace_id: string
+        }
+        Insert: {
+          accept_files?: boolean
+          accept_images?: boolean
+          accept_voice?: boolean
+          auto_reactivate?: boolean
+          channel?: string | null
+          config_scope?: string
+          cooldown_after_limit?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_analysis_enabled?: boolean | null
+          is_active?: boolean
+          max_consecutive_bot_messages?: number | null
+          max_messages_per_conversation?: number
+          max_messages_per_hour?: number | null
+          out_of_hours_message?: string | null
+          persona_id?: string | null
+          reactivation_hours?: number | null
+          reactivation_message?: string | null
+          require_human_after_escalation?: boolean | null
+          respect_working_hours?: boolean | null
+          response_delay_max?: number
+          response_delay_min?: number
+          sleep_on_human_reply?: boolean
+          timezone?: string | null
+          typing_indicator?: boolean
+          updated_at?: string
+          voice_transcription_enabled?: boolean | null
+          working_days?: number[] | null
+          working_hours_end?: string | null
+          working_hours_start?: string | null
+          workspace_id: string
+        }
+        Update: {
+          accept_files?: boolean
+          accept_images?: boolean
+          accept_voice?: boolean
+          auto_reactivate?: boolean
+          channel?: string | null
+          config_scope?: string
+          cooldown_after_limit?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_analysis_enabled?: boolean | null
+          is_active?: boolean
+          max_consecutive_bot_messages?: number | null
+          max_messages_per_conversation?: number
+          max_messages_per_hour?: number | null
+          out_of_hours_message?: string | null
+          persona_id?: string | null
+          reactivation_hours?: number | null
+          reactivation_message?: string | null
+          require_human_after_escalation?: boolean | null
+          respect_working_hours?: boolean | null
+          response_delay_max?: number
+          response_delay_min?: number
+          sleep_on_human_reply?: boolean
+          timezone?: string | null
+          typing_indicator?: boolean
+          updated_at?: string
+          voice_transcription_enabled?: boolean | null
+          working_days?: number[] | null
+          working_hours_end?: string | null
+          working_hours_start?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autopilot_config_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "autopilot_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      autopilot_events: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          triggered_by: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          triggered_by?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          triggered_by?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autopilot_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       availability_calendar_assignments: {
         Row: {
           availability_id: string
@@ -3830,6 +3991,71 @@ export type Database = {
           },
           {
             foreignKeyName: "contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_autopilot_state: {
+        Row: {
+          bot_message_count: number | null
+          consecutive_bot_messages: number | null
+          conversation_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_bot_message_at: string | null
+          last_human_message_at: string | null
+          paused_by: string | null
+          paused_reason: string | null
+          scheduled_reactivation: string | null
+          sleeping_since: string | null
+          state: string
+          total_message_count: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          bot_message_count?: number | null
+          consecutive_bot_messages?: number | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_bot_message_at?: string | null
+          last_human_message_at?: string | null
+          paused_by?: string | null
+          paused_reason?: string | null
+          scheduled_reactivation?: string | null
+          sleeping_since?: string | null
+          state?: string
+          total_message_count?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          bot_message_count?: number | null
+          consecutive_bot_messages?: number | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_bot_message_at?: string | null
+          last_human_message_at?: string | null
+          paused_by?: string | null
+          paused_reason?: string | null
+          scheduled_reactivation?: string | null
+          sleeping_since?: string | null
+          state?: string
+          total_message_count?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_autopilot_state_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -19051,6 +19277,53 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_autopilot_config: {
+        Args: {
+          p_channel?: string
+          p_persona_id?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          accept_files: boolean
+          accept_images: boolean
+          accept_voice: boolean
+          auto_reactivate: boolean
+          channel: string | null
+          config_scope: string
+          cooldown_after_limit: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          image_analysis_enabled: boolean | null
+          is_active: boolean
+          max_consecutive_bot_messages: number | null
+          max_messages_per_conversation: number
+          max_messages_per_hour: number | null
+          out_of_hours_message: string | null
+          persona_id: string | null
+          reactivation_hours: number | null
+          reactivation_message: string | null
+          require_human_after_escalation: boolean | null
+          respect_working_hours: boolean | null
+          response_delay_max: number
+          response_delay_min: number
+          sleep_on_human_reply: boolean
+          timezone: string | null
+          typing_indicator: boolean
+          updated_at: string
+          voice_transcription_enabled: boolean | null
+          working_days: number[] | null
+          working_hours_end: string | null
+          working_hours_start: string | null
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "autopilot_config"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_available_meeting_slots: {
         Args: {
           p_date: string
@@ -19325,6 +19598,10 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: number
+      }
+      should_bot_respond: {
+        Args: { p_conversation_id: string; p_workspace_id: string }
+        Returns: Json
       }
       sj_match_profile_to_contact: {
         Args: { p_profile_id: string }
