@@ -1,172 +1,186 @@
 
-# Plano: Corrigir Respostas AI com Conteúdo Inventado
+# Plano: Adicionar Gestão de Objetivos ao Motor Conversacional
 
-## Diagnóstico
+## Contexto
 
-Após análise detalhada dos logs e dados, identifiquei **3 problemas críticos**:
+O Motor Conversacional tem uma estrutura de 4 camadas de governança:
+1. **Factual Layer** - Knowledge Base (existente)
+2. **Behavior Layer** - Regras de Conversa (existente)
+3. **Decision Layer** - AI Personas (existente)
+4. **Journey Layer** - Objetivos e Fluxos (a implementar)
 
-### Problema 1: Auto-Pilot sem Persona Configurada
-A configuração do Auto-Pilot da PHARLISS não tem nenhuma persona associada:
-```text
-autopilot_config:
-  workspace: PHARLISS
-  persona_id: NULL  ← PROBLEMA!
-```
+A tabela `conversation_objectives` já existe na base de dados mas não há interface para gerir os objetivos.
 
-Sem persona, a IA:
-- Não tem instruções específicas do negócio
-- Não tem limitações definidas
-- Não sabe que base de conhecimento usar
-- Inventa respostas genéricas
+## O que são Objetivos?
 
-### Problema 2: Base de Conhecimento Não Está a Ser Usada
-```text
-[AI-INBOX-REPLY] Found 0 entries via text fallback
-```
+Objetivos definem **o que a IA deve recolher** durante uma conversa:
+- Nome do lead
+- Email
+- Interesse específico
+- Orçamento
+- Fase de decisão
 
-A PHARLISS tem uma base de conhecimento ("Site") com 12+ entradas validadas sobre tricologia, vendas, etc., mas:
-- As personas da PHARLISS têm `knowledge_base_ids: []` (vazio!)
-- Sem persona no autopilot → não há filtro de knowledge base
-- A IA cai no modo "criativo" e inventa conteúdo
-
-### Problema 3: Contaminação por Histórico de Mensagens
-A IA está a usar as suas próprias respostas anteriores (que mencionam "Método PARE") como contexto, propagando informação inventada:
-```text
-Mensagem 1: "Preciso de saber mais sobre cursos"
-Resposta AI (inventada): "Método PARE tem soluções..."
-Mensagem 2: (qualquer coisa)
-Resposta AI: Continua a falar de "Método PARE"
-```
-
-## Impacto
-
-| Problema | Consequência |
-|----------|--------------|
-| Sem persona | IA sem orientação específica do negócio |
-| Knowledge vazio | IA inventa respostas não baseadas em factos |
-| Histórico contaminado | Erro propaga-se em todas as mensagens seguintes |
+Cada objetivo mapeia diretamente para um campo do CRM e pode ser configurado para:
+- Saltar se já estiver preenchido (`skip_if_filled`)
+- Bloquear próximas perguntas até ser respondido (`blocks_next_questions`)
 
 ## Solução
 
-### Alteração 1: Validar Configuração do Auto-Pilot
-**Ficheiro:** `supabase/functions/ghl-webhook-message/index.ts`
+Adicionar uma nova tab "Objetivos" ao Motor Conversacional com:
 
-Antes de gerar resposta, verificar se existe persona configurada. Se não existir, usar um prompt de fallback seguro que:
-- Identifique o workspace pelo nome
-- Use as bases de conhecimento do workspace (não da persona)
-- Não invente informação
+### 1. Nova Tab no Motor Conversacional
+Adicionar ao `ConversationalEngineModule.tsx` uma 4ª tab com ícone `Target`
 
-```text
-Lógica:
-1. Se autopilot.persona_id != null → usar persona
-2. Se autopilot.persona_id == null → buscar knowledge bases do workspace diretamente
-3. Se knowledge bases vazias → responder "Vou encaminhar para um colega"
-```
+### 2. Componente ConversationObjectivesTab
+Lista de objetivos com:
+- Drag-and-drop para reordenar (sort_position)
+- Toggle ativo/inativo
+- Indicador de obrigatório
+- Botão criar/editar
 
-### Alteração 2: Forçar Knowledge Base pelo Workspace
-**Ficheiro:** `supabase/functions/ai-inbox-reply/index.ts`
+### 3. Formulário de Objetivo
+Campos:
+- Nome do objetivo (ex: "Capturar Nome")
+- Código único (ex: "lead_name")
+- Descrição
+- Entidade CRM (lead, contact, opportunity)
+- Campo CRM a atualizar
+- Prompt template (como perguntar)
+- Configurações (skip_if_filled, blocks_next_questions, is_required)
+- Regras de validação (JSON)
 
-Quando não há persona, buscar TODAS as knowledge bases ativas do workspace:
+### 4. Hook useConversationObjectives
+CRUD para a tabela `conversation_objectives`
 
-```text
-Linha ~170-180: Ajustar lógica
+## Ficheiros a Criar
 
-Atual:
-  if (persona?.knowledge_base_ids?.length > 0) {
-    knowledgeBaseIds = persona.knowledge_base_ids;
-  }
-
-Corrigir para garantir fallback:
-  // Já está implementado, mas não funciona porque persona é null
-  // Adicionar log para debug
-```
-
-### Alteração 3: Prompt de Fallback Restritivo
-Quando não há knowledge base encontrada, usar prompt muito restritivo:
-
-```text
-INSTRUÇÕES DE FALLBACK:
-- Sou assistente de [NOME_WORKSPACE]
-- NÃO tenho informação específica sobre produtos/serviços
-- Posso confirmar receção da mensagem e encaminhar
-- NUNCA inventar nomes de produtos, cursos ou serviços
-- SEMPRE sugerir contacto humano para detalhes
-```
-
-### Alteração 4: Adicionar Logging de Debug
-Adicionar logs para verificar:
-- Workspace ID usado na query
-- Knowledge bases encontradas
-- Entradas retornadas
-- Persona aplicada (se existir)
+| Ficheiro | Descrição |
+|----------|-----------|
+| `src/hooks/useConversationObjectives.ts` | Hook para CRUD de objetivos |
+| `src/components/conversational-engine/ConversationObjectivesTab.tsx` | Tab principal com lista |
+| `src/components/conversational-engine/ConversationObjectiveForm.tsx` | Modal de criação/edição |
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `supabase/functions/ai-inbox-reply/index.ts` | Adicionar fallback restritivo quando knowledge = 0 |
-| `supabase/functions/ghl-webhook-message/index.ts` | Passar nome do workspace para contexto |
+| `src/components/conversational-engine/ConversationalEngineModule.tsx` | Adicionar 4ª tab |
+| `src/components/conversational-engine/index.ts` | Exportar novos componentes |
 
 ## Secção Técnica
 
-### Alterações no ai-inbox-reply/index.ts
+### Estrutura da Tabela (já existe)
 
-```typescript
-// Linha ~320-330: Adicionar fallback no buildSystemPrompt
-const buildSystemPrompt = (...) => {
-  // ... código existente ...
-  
-  // NOVO: Se não há knowledge E não há persona, usar modo ultra-restritivo
-  if ((!knowledgeEntries || knowledgeEntries.length === 0) && !persona) {
-    return `Sou assistente virtual.
-    
-REGRAS ABSOLUTAS:
-- NÃO conheço os produtos ou serviços específicos
-- NÃO posso dar detalhes sobre cursos, preços ou ofertas
-- POSSO confirmar receção da mensagem
-- POSSO sugerir aguardar contacto de um colega
-- NUNCA inventar nomes de produtos, métodos ou serviços
-
-Responde de forma breve e educada, explicando que vais encaminhar para um colega.`;
-  }
-  
-  // ... resto do código ...
-};
+```text
+conversation_objectives:
+  - id: uuid
+  - workspace_id: uuid (FK)
+  - persona_id: uuid (FK, opcional)
+  - objective_code: string (único por workspace)
+  - objective_name: string
+  - objective_description: text
+  - crm_entity: string ('lead' | 'contact' | 'opportunity')
+  - crm_field_to_update: string
+  - crm_field_type: string
+  - prompt_template: text (como perguntar)
+  - skip_if_filled: boolean
+  - blocks_next_questions: boolean
+  - is_required: boolean
+  - is_active: boolean
+  - sort_position: number
+  - validation_rules: json
+  - trigger_condition: json
+  - on_complete_action: string
+  - on_complete_message: text
 ```
 
-### Alterações no ghl-webhook-message/index.ts
+### Hook useConversationObjectives
 
 ```typescript
-// Linha ~754: Passar workspaceName para ai-inbox-reply
-body: JSON.stringify({
-  action: "suggest_reply",
-  messages: messages.map((m: any) => ({...})),
-  leadData,
-  channel,
-  workspaceId,
-  workspaceName, // NOVO: para contextualização
-  personaId: autopilotConfig.persona_id,
-  useKnowledgeBase: true,
-  // ...
-})
+// Estrutura base
+export function useConversationObjectives(personaId?: string) {
+  // Queries
+  - objectives: lista ordenada por sort_position
+  - activeObjectivesCount: count de objetivos ativos
+  
+  // Mutations
+  - createObjective(data)
+  - updateObjective(id, data)
+  - deleteObjective(id)
+  - toggleActive(id, isActive)
+  - reorderObjectives(ids[]) // atualiza sort_position em lote
+}
 ```
 
-## Teste de Verificação
+### Campos CRM Disponíveis
 
-1. Deploy das alterações
-2. Testar com nova conversa (não a contaminada)
-3. Enviar mensagem "Olá, quero saber sobre cursos"
-4. Verificar logs:
-   - `[AI-INBOX-REPLY] No persona, using fallback mode`
-   - `[AI-INBOX-REPLY] Knowledge entries: X`
-5. Verificar resposta:
-   - ✅ Se knowledge > 0: Usa informação da base
-   - ✅ Se knowledge = 0: Resposta genérica sem inventar
+Para facilitar a configuração, pré-definir campos comuns:
 
-## Recomendação Adicional
+```typescript
+const CRM_FIELDS = {
+  lead: [
+    { value: 'name', label: 'Nome' },
+    { value: 'email', label: 'Email' },
+    { value: 'phone', label: 'Telefone' },
+    { value: 'company_name', label: 'Empresa' },
+    { value: 'status', label: 'Estado' },
+    { value: 'source', label: 'Origem' },
+    { value: 'tags', label: 'Tags' },
+    { value: 'notes', label: 'Notas' },
+    // campos personalizados via custom_fields
+  ],
+  contact: [...],
+  opportunity: [...]
+}
+```
 
-Após a correção, deve:
-1. **Configurar a persona do Auto-Pilot da PHARLISS** - associar uma das personas existentes (IA de Vendas, IA Clínica, etc.)
-2. **Associar a knowledge base "Site" às personas** - editar as personas e adicionar o ID da base "Site"
-3. **Limpar o histórico contaminado** - a conversa atual tem respostas erradas que continuarão a influenciar
+### UI da Tab Objetivos
 
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ Objetivos de Conversa                         [+ Novo Objetivo] │
+│ Define o que a IA deve recolher durante conversas              │
+├─────────────────────────────────────────────────────────────────┤
+│ ⁞ 1. Capturar Nome       lead.name       [Obrigatório] [Ativo] │
+│ ⁞ 2. Capturar Email      lead.email      [Obrigatório] [Ativo] │
+│ ⁞ 3. Interesse           lead.tags       [Opcional]    [Ativo] │
+│ ⁞ 4. Orçamento           opp.value       [Opcional]    [Inativo] │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Formulário de Objetivo
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ Novo Objetivo                                              [X] │
+├─────────────────────────────────────────────────────────────────┤
+│ Nome: [Capturar Nome do Lead                               ]   │
+│ Código: [lead_name                                         ]   │
+│ Descrição: [Pergunta o nome ao utilizador                  ]   │
+├─────────────────────────────────────────────────────────────────┤
+│ Mapeamento CRM:                                                 │
+│ Entidade: [Lead ▼]  Campo: [name ▼]                            │
+├─────────────────────────────────────────────────────────────────┤
+│ Como Perguntar (Prompt):                                        │
+│ [Para dar seguimento, pode dizer-me o seu nome?            ]   │
+├─────────────────────────────────────────────────────────────────┤
+│ Comportamento:                                                  │
+│ ☑ Obrigatório                                                   │
+│ ☑ Saltar se já preenchido                                      │
+│ ☐ Bloquear próximas perguntas                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                    [Cancelar]  [Guardar]        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Dependências
+
+Nenhuma nova dependência necessária. Usa componentes UI existentes (Radix, shadcn/ui).
+
+## Resultado Esperado
+
+Após implementação:
+1. Nova tab "Objetivos" no Motor Conversacional
+2. Lista drag-and-drop de objetivos ordenáveis
+3. Modal de criação/edição com mapeamento CRM
+4. Integração com edge functions existentes (`ai-inbox-reply`, `flow-engine`)
