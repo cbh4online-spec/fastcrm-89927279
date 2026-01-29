@@ -16580,6 +16580,234 @@ export type Database = {
         }
         Relationships: []
       }
+      widget_configurations: {
+        Row: {
+          allowed_domains: string[] | null
+          auto_open_delay_ms: number | null
+          avatar_url: string | null
+          bubble_icon: string | null
+          company_name: string | null
+          created_at: string
+          created_by: string | null
+          custom_css: string | null
+          default_flow_id: string | null
+          default_persona_id: string | null
+          id: string
+          is_active: boolean | null
+          knowledge_base_ids: string[] | null
+          name: string
+          placeholder_text: string | null
+          position: string | null
+          primary_color: string | null
+          require_email_before_chat: boolean | null
+          secondary_color: string | null
+          show_branding: boolean | null
+          text_color: string | null
+          updated_at: string
+          welcome_message: string | null
+          workspace_id: string
+        }
+        Insert: {
+          allowed_domains?: string[] | null
+          auto_open_delay_ms?: number | null
+          avatar_url?: string | null
+          bubble_icon?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_css?: string | null
+          default_flow_id?: string | null
+          default_persona_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          knowledge_base_ids?: string[] | null
+          name?: string
+          placeholder_text?: string | null
+          position?: string | null
+          primary_color?: string | null
+          require_email_before_chat?: boolean | null
+          secondary_color?: string | null
+          show_branding?: boolean | null
+          text_color?: string | null
+          updated_at?: string
+          welcome_message?: string | null
+          workspace_id: string
+        }
+        Update: {
+          allowed_domains?: string[] | null
+          auto_open_delay_ms?: number | null
+          avatar_url?: string | null
+          bubble_icon?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_css?: string | null
+          default_flow_id?: string | null
+          default_persona_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          knowledge_base_ids?: string[] | null
+          name?: string
+          placeholder_text?: string | null
+          position?: string | null
+          primary_color?: string | null
+          require_email_before_chat?: boolean | null
+          secondary_color?: string | null
+          show_branding?: boolean | null
+          text_color?: string | null
+          updated_at?: string
+          welcome_message?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_configurations_default_flow_id_fkey"
+            columns: ["default_flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversational_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_configurations_default_persona_id_fkey"
+            columns: ["default_persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_configurations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          lead_id: string | null
+          session_id: string | null
+          status: string | null
+          transferred_to_inbox_at: string | null
+          updated_at: string
+          visitor_email: string | null
+          visitor_id: string
+          visitor_metadata: Json | null
+          visitor_name: string | null
+          widget_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          lead_id?: string | null
+          session_id?: string | null
+          status?: string | null
+          transferred_to_inbox_at?: string | null
+          updated_at?: string
+          visitor_email?: string | null
+          visitor_id: string
+          visitor_metadata?: Json | null
+          visitor_name?: string | null
+          widget_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          lead_id?: string | null
+          session_id?: string | null
+          status?: string | null
+          transferred_to_inbox_at?: string | null
+          updated_at?: string
+          visitor_email?: string | null
+          visitor_id?: string
+          visitor_metadata?: Json | null
+          visitor_name?: string | null
+          widget_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_conversations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_conversations_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "widget_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_messages: {
+        Row: {
+          collected_variable: string | null
+          content: string
+          conversation_id: string
+          created_at: string
+          flow_step_id: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          collected_variable?: string | null
+          content: string
+          conversation_id: string
+          created_at?: string
+          flow_step_id?: string | null
+          id?: string
+          role: string
+        }
+        Update: {
+          collected_variable?: string | null
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          flow_step_id?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "widget_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_messages_flow_step_id_fkey"
+            columns: ["flow_step_id"]
+            isOneToOne: false
+            referencedRelation: "flow_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_definitions: {
         Row: {
           code: string
