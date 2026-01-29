@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Message } from "@/hooks/useMessages";
 import { Template } from "@/hooks/useTemplates";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export interface ReplySuggestion {
   text: string;
@@ -47,9 +48,18 @@ export interface OpportunityData {
 
 export type ModifyAction = "shorten" | "direct" | "rewrite" | "formal" | "friendly" | "commercial";
 
+export interface AIResponseMeta {
+  knowledgeUsed: boolean;
+  knowledgeEntriesCount: number;
+  personaUsed: string | null;
+}
+
 export function useInboxAI() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastResponseMeta, setLastResponseMeta] = useState<AIResponseMeta | null>(null);
+  const workspaceContext = useWorkspace();
+  const currentWorkspace = workspaceContext?.currentWorkspace;
 
   const callInboxAI = useCallback(async <T>(
     action: "suggest_reply" | "modify_reply" | "use_template",
@@ -61,14 +71,22 @@ export function useInboxAI() {
       template?: { id?: string; name?: string; content?: string; subject?: string; tone?: string; goal?: string };
       currentReply?: string;
       modifyAction?: ModifyAction;
+      personaId?: string;
+      useKnowledgeBase?: boolean;
     }
   ): Promise<T | null> => {
     setIsLoading(true);
     setError(null);
+    setLastResponseMeta(null);
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("ai-inbox-reply", {
-        body: { action, ...payload },
+        body: { 
+          action, 
+          ...payload,
+          workspaceId: currentWorkspace?.id,
+          useKnowledgeBase: payload.useKnowledgeBase ?? true
+        },
       });
 
       if (fnError) {
@@ -87,6 +105,15 @@ export function useInboxAI() {
         return null;
       }
 
+      // Store metadata about knowledge base usage
+      if (data?.knowledgeUsed !== undefined) {
+        setLastResponseMeta({
+          knowledgeUsed: data.knowledgeUsed,
+          knowledgeEntriesCount: data.knowledgeEntriesCount || 0,
+          personaUsed: data.personaUsed || null
+        });
+      }
+
       return data?.result as T;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao chamar AI";
@@ -96,14 +123,15 @@ export function useInboxAI() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentWorkspace?.id]);
 
   const suggestReplies = useCallback(
     (
       messages: Message[],
       leadData?: LeadData,
       opportunityData?: OpportunityData,
-      channel?: string
+      channel?: string,
+      options?: { personaId?: string; useKnowledgeBase?: boolean }
     ) => {
       const formattedMessages = messages.map(m => ({
         role: m.direction === "inbound" ? "user" : "assistant",
@@ -116,6 +144,8 @@ export function useInboxAI() {
         leadData,
         opportunityData,
         channel,
+        personaId: options?.personaId,
+        useKnowledgeBase: options?.useKnowledgeBase
       });
     },
     [callInboxAI]
@@ -126,7 +156,8 @@ export function useInboxAI() {
       currentReply: string,
       modifyAction: ModifyAction,
       messages?: Message[],
-      channel?: string
+      channel?: string,
+      options?: { personaId?: string; useKnowledgeBase?: boolean }
     ) => {
       const formattedMessages = messages?.map(m => ({
         role: m.direction === "inbound" ? "user" : "assistant",
@@ -139,6 +170,8 @@ export function useInboxAI() {
         modifyAction,
         messages: formattedMessages,
         channel,
+        personaId: options?.personaId,
+        useKnowledgeBase: options?.useKnowledgeBase
       });
     },
     [callInboxAI]
@@ -150,7 +183,8 @@ export function useInboxAI() {
       messages: Message[],
       leadData?: LeadData,
       opportunityData?: OpportunityData,
-      channel?: string
+      channel?: string,
+      options?: { personaId?: string; useKnowledgeBase?: boolean }
     ) => {
       const formattedMessages = messages.map(m => ({
         role: m.direction === "inbound" ? "user" : "assistant",
@@ -171,6 +205,8 @@ export function useInboxAI() {
         leadData,
         opportunityData,
         channel,
+        personaId: options?.personaId,
+        useKnowledgeBase: options?.useKnowledgeBase
       });
     },
     [callInboxAI]
@@ -179,6 +215,7 @@ export function useInboxAI() {
   return {
     isLoading,
     error,
+    lastResponseMeta,
     suggestReplies,
     modifyReply,
     personalizeTemplate,
