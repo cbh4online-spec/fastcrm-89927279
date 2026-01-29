@@ -47,6 +47,7 @@ import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/co
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
+import { EntityTimelineSection } from "@/components/timeline";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -268,6 +269,14 @@ export function ENIContactDetailWithSidebar() {
         );
       case 'history':
         return <CommercialHistorySection contact={contact} onFieldChange={handleFieldChange} />;
+      case 'timeline':
+        return (
+          <EntityTimelineSection
+            entityType="contact"
+            entityId={id!}
+            entityName={contact.name}
+          />
+        );
       case 'payments':
         return (
           <div className="space-y-6">
