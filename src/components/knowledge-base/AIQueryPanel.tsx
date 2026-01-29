@@ -76,16 +76,16 @@ export function AIQueryPanel({
   const activePersonas = personas.filter(p => p.isActive);
 
   return (
-    <Card className="flex flex-col h-[500px]">
-      <CardHeader className="flex-shrink-0">
-        <CardTitle className="flex items-center justify-between">
+    <Card className="flex flex-col h-[400px] sm:h-[500px]">
+      <CardHeader className="flex-shrink-0 pb-2 sm:pb-4">
+        <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
             Testar IA
           </span>
           {activePersonas.length > 0 && (
             <select
-              className="text-sm border rounded px-2 py-1"
+              className="text-sm border rounded px-2 py-1 w-full sm:w-auto"
               value={selectedPersonaId || ''}
               onChange={(e) => setSelectedPersonaId(e.target.value || undefined)}
             >
