@@ -43,7 +43,8 @@ import { CompanyContacts } from "./CompanyContacts";
 import { IdentificationSection } from "./sections/IdentificationSection";
 import { FinancialSection } from "./sections/FinancialSection";
 import { AddressSection } from "./sections/AddressSection";
-import { NotesSection } from "./sections/NotesSection";
+import { NotesSection as CompanyNotesSection } from "./sections/NotesSection";
+import { NotesSection } from "@/components/leads/sections/NotesSection";
 import { TagsSection } from "./sections/TagsSection";
 import { SocialMediaSection } from "./sections/SocialMediaSection";
 import { CompleteSocialAnalysisSection } from "./sections/CompleteSocialAnalysisSection";
@@ -235,7 +236,13 @@ export function CompanyDetailWithSidebar() {
           />
         );
       case 'notes':
-        return <NotesSection company={company} onFieldChange={handleFieldChange} />;
+        return (
+          <NotesSection 
+            entityType="company" 
+            entityId={id!} 
+            entityName={company.name} 
+          />
+        );
       case 'details':
         return (
           <div className="space-y-6">
