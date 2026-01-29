@@ -49,6 +49,8 @@ import { AIActionSuggestions } from "./AIActionSuggestions";
 import { OpportunityTriggerBanner } from "./OpportunityTriggerBanner";
 import { ConversationAutoTags } from "./ConversationAutoTags";
 import { AiSafetyRulesBanner } from "./AiSafetyRulesBanner";
+import { ConversationAutopilotToggle } from "./ConversationAutopilotToggle";
+import { AutopilotStatusBanner } from "./AutopilotStatusBanner";
 import { useInboxActionSuggestions } from "@/hooks/useInboxActionSuggestions";
 import { EmailMessageBubble } from "./EmailMessageBubble";
 import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
@@ -323,6 +325,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Per-Conversation Autopilot Toggle */}
+          <ConversationAutopilotToggle conversationId={conversationId} compact />
+
           {/* AI Toggle */}
           <Button
             variant={showAIAssistant ? "secondary" : "ghost"}
@@ -412,6 +417,11 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       {/* AI Safety Rules Banner (compact) */}
       <div className="px-3 py-2 border-b border-border">
         <AiSafetyRulesBanner conversationId={conversationId} compact />
+      </div>
+
+      {/* Autopilot Status with Logs */}
+      <div className="px-3 py-2 border-b border-border">
+        <AutopilotStatusBanner conversationId={conversationId} />
       </div>
 
       {/* Follow-up Banner */}
