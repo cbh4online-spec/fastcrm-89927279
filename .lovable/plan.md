@@ -1,47 +1,48 @@
 
 
-# Plano: Forçar Redeploy Limpo da Edge Function
+# Plano: Forçar Redeploy Efectivo com Alteração de Importação
 
-## Diagnóstico Definitivo
+## Problema Identificado
 
-A função Edge `ghl-sync-contacts` **não foi actualizada correctamente**. A prova é que:
+**Os deploys não estão a ser aplicados.** A prova definitiva:
 
-1. O código no ficheiro tem o log: `console.log("[GHL Sync] Loaded ${existingGhlIds.size} existing GHL contacts from DB")`
-2. Os logs da execução **NÃO mostram** este log
-3. Isto confirma que o deploy anterior falhou silenciosamente
+| Evidência | Detalhe |
+|-----------|---------|
+| Código tem logs de diagnóstico | Linhas 132-140: `[GHL Sync] ========== DIAGNOSTIC START ==========` |
+| Logs de execução NÃO mostram | Nenhum log `DIAGNOSTIC` aparece nas execuções |
+| Base de dados | 109 leads totais, 106 com `ghl_contact_id` |
+| Sync ignora | 10,000 contactos ignorados (todos) |
 
-A base de dados mostra:
-- **106 leads** com `ghl_contact_id` (de 109 total)
-- A sincronização processa 10,000 contactos mas ignora TODOS
+## Causa Provável
 
-## Causa do Problema
+O Supabase Edge Functions usa cache agressivo. Quando a importação `https://esm.sh/@supabase/supabase-js@2` não muda, o runtime pode reutilizar uma versão antiga da função.
 
-O Set `existingGhlIds` está provavelmente a conter todos os IDs dos contactos do GHL por alguma razão:
-1. Talvez a query esteja a retornar dados errados
-2. Ou a comparação não está a funcionar correctamente
+## Solução: Forçar Cache Bust
 
-## Solução: Adicionar Logs de Debug Extensivos
-
-Vou adicionar logs muito detalhados para identificar exactamente o que está a acontecer:
+### Alteração 1: Mudar versão do import para forçar rebuild
 
 ```typescript
-// 1. Log do tamanho do Set após carregar
-console.log(`[GHL Sync] Loaded ${existingGhlIds.size} existing GHL contacts from DB`);
+// DE:
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// 2. Log de sample IDs (primeiros 5)
-const sampleIds = Array.from(existingGhlIds).slice(0, 5);
-console.log(`[GHL Sync] Sample existing IDs: ${sampleIds.join(', ')}`);
-
-// 3. Para a primeira página, log de cada contacto
-if (pageCount === 1) {
-  console.log(`[GHL Sync] First page contacts sample:`);
-  for (let i = 0; i < Math.min(3, contacts.length); i++) {
-    const c = contacts[i];
-    const exists = existingGhlIds.has(c.id);
-    console.log(`[GHL Sync]   - ID "${c.id}" exists in Set: ${exists}`);
-  }
-}
+// PARA (versão específica força rebuild):
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 ```
+
+### Alteração 2: Adicionar log ÚNICO no início
+
+```typescript
+// Logo após Deno.serve começar:
+console.log(`[GHL Sync v2.1] Function started at ${new Date().toISOString()}`);
+```
+
+Este log único (`v2.1`) confirmará se a nova versão está a correr.
+
+### Alteração 3: Simplificar lógica de skip (remover ambiguidade)
+
+Em vez de apenas verificar `existingGhlIds.has(contact.id)`, vamos:
+1. Contar quantos deveriam ser importados
+2. Log explícito de por que cada contacto é skipado ou inserido
 
 ---
 
@@ -49,19 +50,30 @@ if (pageCount === 1) {
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `supabase/functions/ghl-sync-contacts/index.ts` | Adicionar logs de debug extensivos para diagnóstico |
+| `supabase/functions/ghl-sync-contacts/index.ts` | 1. Mudar import para versão específica<br>2. Adicionar log de versão<br>3. Melhorar logs de decisão |
+
+---
+
+## Verificação de Sucesso
+
+Após deploy, os logs devem mostrar:
+
+```
+[GHL Sync v2.1] Function started at 2026-01-29T...
+[GHL Sync] ========== DIAGNOSTIC START ==========
+[GHL Sync] existingLeadsData count: 106
+[GHL Sync] existingGhlIds Set size: 106
+[GHL Sync] Sample DB ghl_contact_ids: 4005GnTglTCkuK4xQTAY, ...
+[GHL Sync] ========== DIAGNOSTIC END ==========
+```
+
+Se o Set size for 106 (correto) e mesmo assim ignorar tudo, então saberemos que o problema é a comparação de IDs (possível diferença de case ou formato).
 
 ---
 
 ## Resultado Esperado
 
-Após deploy, os logs mostrarão:
-1. Quantos IDs existem no Set (deveria ser ~106)
-2. Exemplos de IDs no Set vs IDs dos contactos do GHL
-3. Se a comparação `.has()` está a funcionar correctamente
-
-Isto permitirá identificar se o problema é:
-- A query a carregar dados errados
-- A comparação a falhar
-- Ou outro problema ainda não identificado
+1. **Deploy efectivo confirmado** pelo log `v2.1`
+2. **Diagnóstico real** do tamanho do Set e IDs
+3. **Identificação precisa** do motivo dos skips
 
