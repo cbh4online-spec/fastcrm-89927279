@@ -1,84 +1,100 @@
 
-# Plano: Corrigir Autenticação Server-to-Server no Auto-Pilot
+# Plano: Corrigir Auto-Pilot - Estrutura de Dados e Fallback de Embeddings
 
 ## Diagnóstico
 
-O Auto-Pilot está a funcionar corretamente até ao momento de gerar a resposta AI:
+O sistema falha em dois pontos:
 
-```
-✅ [GHL-MESSAGE] Created new message
-✅ [AUTOPILOT] Autopilot is active (configId: "776d7188...")
-✅ [AUTOPILOT] Scheduling response { delaySeconds: 11 }
-✅ [AUTOPILOT] Generating AI response
-❌ [AUTOPILOT] AI response generation failed { status: 401, error: '{"error":"Unauthorized"}' }
+### Problema 1: Extração Incorreta da Resposta AI
+O webhook `ghl-webhook-message` procura `aiResult.suggestions` mas a resposta vem com estrutura `aiResult.result.suggestions`.
+
+```text
+Resposta do ai-inbox-reply:
+{
+  "action": "suggest_reply",
+  "result": {                    ← As sugestões estão aqui
+    "reasoning": "...",
+    "suggestions": [{ "text": "..." }]
+  },
+  "knowledgeUsed": false
+}
+
+Código atual (linha 787):
+aiResult.suggestions?.[0]?.text     ← Retorna undefined
+
+Código correto:
+aiResult.result?.suggestions?.[0]?.text  ← Retorna a resposta
 ```
 
-**Causa**: O `ghl-webhook-message` chama o `ai-inbox-reply` com a **service role key**:
-```typescript
-Authorization: `Bearer ${supabaseServiceKey}`
+### Problema 2: Embeddings Falham (Impacto Menor)
+O Lovable Gateway não suporta `text-embedding-ada-002`:
 ```
-
-Mas o `ai-inbox-reply` tenta validar este token como um **JWT de utilizador** usando `supabase.auth.getClaims(token)`, que falha porque a service role key tem uma estrutura diferente.
+Embedding API error: invalid model: text-embedding-ada-002
+```
+Isto causa `Found 0 relevant entries` - o conhecimento não é usado, mas a geração continua.
 
 ## Solução
 
-Modificar o `ai-inbox-reply` para aceitar **ambos** os tipos de autenticação:
-1. **JWT de utilizador** - Para chamadas do frontend (InboxAI)
-2. **Service Role Key** - Para chamadas server-to-server (Auto-Pilot, webhooks)
-
-## Alterações Técnicas
-
-### 1. Atualizar `ai-inbox-reply/index.ts`
-
-Adicionar lógica de dual-authentication no início do handler:
+### Alteração 1: Corrigir Extração no Webhook (Crítico)
+Ficheiro: `supabase/functions/ghl-webhook-message/index.ts`
 
 ```text
-Linha ~443-466: Substituir validação atual por:
+Linha 787: Corrigir acesso à estrutura
 
-1. Extrair token do header Authorization
-2. Tentar validar como JWT de utilizador (getClaims)
-3. Se falhar, verificar se é service role key (comparar com env var)
-4. Se for service role key:
-   - Usar cliente com service role para operações
-   - Obter workspaceId do body da request
-5. Se nenhum funcionar, retornar 401
+Antes:
+const suggestion = aiResult.suggestions?.[0]?.text || aiResult.flowResponse;
+
+Depois:
+const suggestion = aiResult.result?.suggestions?.[0]?.text || aiResult.flowResponse;
 ```
 
-### 2. Manter Segurança
+### Alteração 2: Fallback para Embeddings (Melhoria)
+Ficheiro: `supabase/functions/ai-inbox-reply/index.ts`
 
-- A service role key só é válida se corresponder exatamente à `SUPABASE_SERVICE_ROLE_KEY`
-- Operações continuam a respeitar RLS quando aplicável
-- Logging diferencia chamadas de user vs server
-
-## Fluxo Após Correção
+Quando embeddings falham, usar fallback de pesquisa por texto:
 
 ```text
-[Mensagem Inbound]
-       ↓
-[ghl-webhook-message]
-       ↓
-[triggerAutopilotResponse]
-       ↓ (com service key)
-[ai-inbox-reply] ← Aceita service key
-       ↓
-[Gera resposta AI]
-       ↓
-[ghl-send-message]
-       ↓
-[Resposta enviada ao contacto]
+Linha 194-210: Adicionar fallback
+
+1. Tentar embeddings via Lovable Gateway
+2. Se falhar (modelo não suportado), usar fallback:
+   - Pesquisa por texto simples (ILIKE)
+   - Ou usar match de keywords
+3. Log indicando qual método foi usado
 ```
 
 ## Ficheiros a Modificar
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `supabase/functions/ai-inbox-reply/index.ts` | Adicionar dual-auth (JWT + service key) |
+| Ficheiro | Alteração | Prioridade |
+|----------|-----------|------------|
+| `supabase/functions/ghl-webhook-message/index.ts` | Corrigir `aiResult.result?.suggestions` | **Crítica** |
+| `supabase/functions/ai-inbox-reply/index.ts` | Adicionar fallback de pesquisa textual | Melhoria |
+
+## Fluxo Após Correção
+
+```text
+[Mensagem "Teste" recebida]
+       ↓
+[ghl-webhook-message]
+       ↓
+[triggerAutopilotResponse]
+       ↓
+[ai-inbox-reply] → Gera resposta (mesmo sem knowledge base)
+       ↓
+[Retorna: { result: { suggestions: [{text: "Olá! ..."}] }}]
+       ↓
+[Webhook extrai: aiResult.result.suggestions[0].text] ✅
+       ↓
+[ghl-send-message]
+       ↓
+[Resposta enviada ao contacto via Instagram]
+```
 
 ## Teste de Verificação
 
-Após deploy:
-1. Enviar mensagem de teste via Instagram/WhatsApp
-2. Verificar logs do `ai-inbox-reply` - deve passar autenticação
-3. Verificar logs do `ghl-webhook-message` - resposta gerada
-4. Confirmar resposta enviada ao contacto no GHL
-
+1. Deploy das alterações
+2. Enviar mensagem de teste via Instagram
+3. Verificar logs:
+   - `[AUTOPILOT] AI generated response { preview: "..." }` ✅
+   - `[AUTOPILOT] Message sent successfully` ✅
+4. Confirmar resposta no GHL/Instagram
