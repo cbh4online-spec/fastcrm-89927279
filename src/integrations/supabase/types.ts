@@ -1225,6 +1225,7 @@ export type Database = {
           tone_of_voice: string
           updated_at: string
           use_emojis: boolean | null
+          vibe_profile_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -1252,6 +1253,7 @@ export type Database = {
           tone_of_voice?: string
           updated_at?: string
           use_emojis?: boolean | null
+          vibe_profile_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -1279,9 +1281,17 @@ export type Database = {
           tone_of_voice?: string
           updated_at?: string
           use_emojis?: boolean | null
+          vibe_profile_id?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_personas_vibe_profile_id_fkey"
+            columns: ["vibe_profile_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_personas_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -17766,6 +17776,152 @@ export type Database = {
         }
         Relationships: []
       }
+      vibe_phrases: {
+        Row: {
+          context: string | null
+          created_at: string
+          id: string
+          is_blocked: boolean | null
+          is_required: boolean | null
+          original_phrase: string
+          phrase_type: string
+          preferred_phrase: string
+          vibe_profile_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          id?: string
+          is_blocked?: boolean | null
+          is_required?: boolean | null
+          original_phrase: string
+          phrase_type: string
+          preferred_phrase: string
+          vibe_profile_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          id?: string
+          is_blocked?: boolean | null
+          is_required?: boolean | null
+          original_phrase?: string
+          phrase_type?: string
+          preferred_phrase?: string
+          vibe_profile_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibe_phrases_vibe_profile_id_fkey"
+            columns: ["vibe_profile_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibe_phrases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vibe_profiles: {
+        Row: {
+          acknowledge_emotions: boolean
+          avoid_sales_language: boolean
+          code: string
+          commercial_approach: string
+          created_at: string
+          description: string | null
+          focus_on_value: boolean
+          formality: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          language_code: string
+          max_sentences_per_response: number | null
+          name: string
+          personality: string
+          personalize_responses: boolean
+          preferred_structure: string
+          response_length: string
+          tone: string
+          updated_at: string
+          use_contractions: boolean
+          use_emojis: boolean
+          use_exclamations: boolean
+          use_first_person: boolean
+          workspace_id: string
+        }
+        Insert: {
+          acknowledge_emotions?: boolean
+          avoid_sales_language?: boolean
+          code: string
+          commercial_approach?: string
+          created_at?: string
+          description?: string | null
+          focus_on_value?: boolean
+          formality?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          language_code?: string
+          max_sentences_per_response?: number | null
+          name: string
+          personality?: string
+          personalize_responses?: boolean
+          preferred_structure?: string
+          response_length?: string
+          tone?: string
+          updated_at?: string
+          use_contractions?: boolean
+          use_emojis?: boolean
+          use_exclamations?: boolean
+          use_first_person?: boolean
+          workspace_id: string
+        }
+        Update: {
+          acknowledge_emotions?: boolean
+          avoid_sales_language?: boolean
+          code?: string
+          commercial_approach?: string
+          created_at?: string
+          description?: string | null
+          focus_on_value?: boolean
+          formality?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          language_code?: string
+          max_sentences_per_response?: number | null
+          name?: string
+          personality?: string
+          personalize_responses?: boolean
+          preferred_structure?: string
+          response_length?: string
+          tone?: string
+          updated_at?: string
+          use_contractions?: boolean
+          use_emojis?: boolean
+          use_exclamations?: boolean
+          use_first_person?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibe_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_configurations: {
         Row: {
           allowed_domains: string[] | null
@@ -19803,6 +19959,10 @@ export type Database = {
       }
       get_user_calendar_ids: { Args: never; Returns: string[] }
       get_user_workspace_ids: { Args: never; Returns: string[] }
+      get_vibe_instructions: {
+        Args: { p_vibe_profile_id: string }
+        Returns: string
+      }
       get_workspace_stripe_config: {
         Args: { p_workspace_id: string }
         Returns: {
