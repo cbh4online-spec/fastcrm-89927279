@@ -108,8 +108,26 @@ export function useAutopilotConfig(channel?: string) {
 
   const toggleActive = useMutation({
     mutationFn: async (isActive: boolean) => {
-      if (!config?.id) throw new Error("Configuração não encontrada");
+      if (!currentWorkspace?.id || !user?.id) throw new Error("Workspace ou utilizador não selecionado");
 
+      // If no config exists, create one with default values
+      if (!config?.id) {
+        const { data, error } = await supabase
+          .from("autopilot_config")
+          .insert({
+            ...defaultConfig,
+            is_active: isActive,
+            workspace_id: currentWorkspace.id,
+            created_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+
+      // Update existing config
       const { error } = await supabase
         .from("autopilot_config")
         .update({ is_active: isActive })
