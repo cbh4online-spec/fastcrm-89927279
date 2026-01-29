@@ -205,13 +205,18 @@ Deno.serve(async (req) => {
                 break;
               }
 
-              // Get existing leads
+              // Get existing leads - FIXED: Only check leads that have ghl_contact_id
               const ghlIds = contacts.map(c => c.id);
-              const { data: existingByGhlId } = await supabase
+              const { data: existingByGhlId, error: queryError } = await supabase
                 .from("leads")
                 .select("id, ghl_contact_id")
                 .eq("workspace_id", workspace_id)
+                .not("ghl_contact_id", "is", null)
                 .in("ghl_contact_id", ghlIds);
+
+              if (queryError) {
+                console.error(`[GHL Sync] Query error:`, queryError.message);
+              }
 
               const existingGhlIds = new Set((existingByGhlId || []).map(l => l.ghl_contact_id));
               
