@@ -452,12 +452,10 @@ export function KnowledgeBaseModule() {
                         const source = sources.find(s => s.id === sourceId);
                         if (source) {
                           toast.info('A reprocessar fonte...');
-                          // Reset status to pending
                           await supabase
                             .from('knowledge_sources')
                             .update({ processing_status: 'processing' })
                             .eq('id', sourceId);
-                          // Trigger reprocessing
                           await supabase.functions.invoke('knowledge-process', {
                             body: {
                               sourceId,
@@ -466,9 +464,20 @@ export function KnowledgeBaseModule() {
                               knowledgeBaseType: 'general'
                             }
                           });
-                          // Refresh will happen via polling
                           await loadKBDetails(selectedKB);
                         }
+                      }}
+                      onDelete={async (sourceId) => {
+                        const { error } = await supabase
+                          .from('knowledge_sources')
+                          .delete()
+                          .eq('id', sourceId);
+                        if (error) {
+                          toast.error('Erro ao eliminar fonte');
+                          return;
+                        }
+                        toast.success('Fonte eliminada');
+                        await loadKBDetails(selectedKB);
                       }}
                     />
                   </TabsContent>

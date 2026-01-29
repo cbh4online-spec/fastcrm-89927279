@@ -3,6 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   Link, 
   FileText, 
@@ -12,7 +18,9 @@ import {
   Clock,
   Loader2,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  MoreVertical,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -22,6 +30,7 @@ interface KnowledgeSourcesPanelProps {
   sources: KnowledgeSource[];
   isLoading: boolean;
   onReprocess?: (sourceId: string) => Promise<void>;
+  onDelete?: (sourceId: string) => Promise<void>;
 }
 
 const STATUS_CONFIG: Record<ProcessingStatus, { label: string; icon: typeof CheckCircle2; color: string; bgColor: string }> = {
@@ -40,7 +49,8 @@ const SOURCE_TYPE_ICONS: Record<string, typeof Link> = {
 export function KnowledgeSourcesPanel({
   sources,
   isLoading,
-  onReprocess
+  onReprocess,
+  onDelete
 }: KnowledgeSourcesPanelProps) {
   if (isLoading) {
     return (
@@ -147,17 +157,30 @@ export function KnowledgeSourcesPanel({
                       </div>
                       
                       {/* Actions */}
-                      {source.processingStatus === 'failed' && onReprocess && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => onReprocess(source.id)}
-                          title="Reprocessar"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {source.processingStatus === 'failed' && onReprocess && (
+                            <DropdownMenuItem onClick={() => onReprocess(source.id)}>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Reprocessar
+                            </DropdownMenuItem>
+                          )}
+                          {onDelete && (
+                            <DropdownMenuItem 
+                              onClick={() => onDelete(source.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 );
