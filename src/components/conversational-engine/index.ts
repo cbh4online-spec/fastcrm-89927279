@@ -8,3 +8,5 @@ export { VibeProfileForm } from "./VibeProfileForm";
 export { ConversationRulesTab } from "./ConversationRulesTab";
 export { ConversationRuleForm } from "./ConversationRuleForm";
 export { AutopilotConfigTab } from "./AutopilotConfigTab";
+export { ConversationObjectivesTab } from "./ConversationObjectivesTab";
+export { ConversationObjectiveForm } from "./ConversationObjectiveForm";

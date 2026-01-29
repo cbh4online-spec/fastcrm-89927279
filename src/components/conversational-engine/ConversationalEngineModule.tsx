@@ -14,14 +14,17 @@ import {
   Sparkles,
   Settings,
   MessageSquare,
-  Zap
+  Zap,
+  Target
 } from "lucide-react";
 import { VibeProfilesTab } from "./VibeProfilesTab";
 import { ConversationRulesTab } from "./ConversationRulesTab";
 import { AutopilotConfigTab } from "./AutopilotConfigTab";
+import { ConversationObjectivesTab } from "./ConversationObjectivesTab";
 import { useVibeProfiles } from "@/hooks/useVibeProfiles";
 import { useConversationRules } from "@/hooks/useConversationRules";
 import { useAutopilotConfig } from "@/hooks/useAutopilotConfig";
+import { useConversationObjectives } from "@/hooks/useConversationObjectives";
 
 export function ConversationalEngineModule() {
   const [activeTab, setActiveTab] = useState("vibe");
@@ -29,6 +32,7 @@ export function ConversationalEngineModule() {
   const { profiles, defaultProfile } = useVibeProfiles();
   const { activeRulesCount } = useConversationRules();
   const { isActive: autopilotActive } = useAutopilotConfig();
+  const { activeObjectivesCount } = useConversationObjectives();
 
   return (
     <div className="p-6 space-y-6">
@@ -59,6 +63,10 @@ export function ConversationalEngineModule() {
             <Bot className="h-3 w-3" />
             {autopilotActive ? "Autopilot Ativo" : "Autopilot Inativo"}
           </Badge>
+          <Badge variant="outline" className="gap-1">
+            <Target className="h-3 w-3" />
+            {activeObjectivesCount} Objetivos
+          </Badge>
         </div>
       </div>
 
@@ -81,7 +89,7 @@ export function ConversationalEngineModule() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="vibe" className="gap-2">
             <Palette className="h-4 w-4" />
             <span className="hidden sm:inline">Perfis de Vibe</span>
@@ -91,6 +99,11 @@ export function ConversationalEngineModule() {
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Regras de Conversa</span>
             <span className="sm:hidden">Regras</span>
+          </TabsTrigger>
+          <TabsTrigger value="objectives" className="gap-2">
+            <Target className="h-4 w-4" />
+            <span className="hidden sm:inline">Objetivos</span>
+            <span className="sm:hidden">Obj.</span>
           </TabsTrigger>
           <TabsTrigger value="autopilot" className="gap-2">
             <Bot className="h-4 w-4" />
@@ -105,6 +118,10 @@ export function ConversationalEngineModule() {
 
         <TabsContent value="rules" className="mt-6">
           <ConversationRulesTab />
+        </TabsContent>
+
+        <TabsContent value="objectives" className="mt-6">
+          <ConversationObjectivesTab />
         </TabsContent>
 
         <TabsContent value="autopilot" className="mt-6">
