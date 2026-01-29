@@ -57,6 +57,7 @@ import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/co
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { OpportunitiesSection } from "@/components/leads/sections/OpportunitiesSection";
+import { ProposalsSection } from "@/components/leads/sections/ProposalsSection";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -272,6 +273,13 @@ export function LeadDetailWithSidebar() {
       case 'opportunities':
         return (
           <OpportunitiesSection
+            leadId={id!}
+            leadName={lead.name}
+          />
+        );
+      case 'proposals':
+        return (
+          <ProposalsSection
             leadId={id!}
             leadName={lead.name}
           />
