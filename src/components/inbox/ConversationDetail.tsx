@@ -505,7 +505,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
         {/* AI Assistant Panel */}
         {showAIAssistant && messages && messages.length > 0 && (
-          <div className="w-80 border-l border-border bg-muted/20 hidden lg:block overflow-y-auto">
+          <div className="w-80 border-l border-border bg-muted/20 hidden lg:block overflow-y-auto min-h-0">
             <div className="p-3 space-y-4">
               {/* AI Action Suggestions */}
               <AIActionSuggestions
