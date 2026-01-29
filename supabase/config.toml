@@ -28,7 +28,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.ai-inbox-reply]
-verify_jwt = true
+verify_jwt = false
 
 [functions.company-enrich]
 verify_jwt = false
