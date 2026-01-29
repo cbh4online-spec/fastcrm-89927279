@@ -783,11 +783,11 @@ async function triggerAutopilotResponse(
 
   const aiResult = await aiResponse.json();
   
-  // Get the first suggestion
-  const suggestion = aiResult.suggestions?.[0]?.text || aiResult.flowResponse;
+  // Get the first suggestion - note: result is nested under aiResult.result
+  const suggestion = aiResult.result?.suggestions?.[0]?.text || aiResult.suggestions?.[0]?.text || aiResult.flowResponse;
 
   if (!suggestion) {
-    console.log("[AUTOPILOT] No response generated");
+    console.log("[AUTOPILOT] No response generated", { aiResult: JSON.stringify(aiResult).substring(0, 200) });
     return;
   }
 
