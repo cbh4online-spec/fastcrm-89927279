@@ -805,7 +805,19 @@ async function triggerAutopilotResponse(
     channel
   );
 
-  // 12. Log audit trail
+  // 12. Log autopilot event for UI activity feed
+  await supabase.from("autopilot_events").insert({
+    workspace_id: workspaceId,
+    conversation_id: conversationId,
+    event_type: "response_sent",
+    event_data: { 
+      message_preview: suggestion.substring(0, 100),
+      persona_id: autopilotConfig.persona_id,
+      channel
+    }
+  });
+
+  // 13. Log audit trail
   await supabase.from("ai_response_audits").insert({
     workspace_id: workspaceId,
     conversation_id: conversationId,
