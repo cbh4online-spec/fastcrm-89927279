@@ -44,6 +44,14 @@ interface TemplateData {
   goal?: string;
 }
 
+interface KnowledgeEntry {
+  id: string;
+  title: string;
+  question?: string;
+  content: string;
+  similarity: number;
+}
+
 interface InboxReplyRequest {
   action: ReplyAction;
   messages?: Message[];
@@ -53,6 +61,9 @@ interface InboxReplyRequest {
   template?: TemplateData;
   currentReply?: string;
   modifyAction?: "shorten" | "direct" | "rewrite" | "formal" | "friendly" | "commercial";
+  workspaceId?: string;
+  personaId?: string;
+  useKnowledgeBase?: boolean;
 }
 
 // Channel-specific guidelines
@@ -101,24 +112,175 @@ const channelGuidelines: Record<string, string> = {
 const safetyRules = `
 CRITICAL SAFETY RULES:
 1. NEVER invent or fabricate personal data (names, emails, phones, addresses, dates)
-2. Only use information explicitly provided in the lead/opportunity data
+2. Only use information explicitly provided in the lead/opportunity data OR the knowledge base
 3. If information is missing, use placeholders like [nome], [data], [valor]
 4. NEVER pretend to have access to information you don't have
 5. Always be honest about what you know vs what you're assuming
 6. Do not make promises or commitments on behalf of the business
-7. Do not provide pricing unless explicitly given
+7. Do not provide pricing unless explicitly given in the knowledge base
 8. Maintain professional boundaries at all times
+9. PRIORITIZE information from the knowledge base when answering questions about products, services, or procedures
 `;
 
-const buildSystemPrompt = (action: ReplyAction, channel?: string, template?: TemplateData): string => {
+// Fetch relevant knowledge entries using semantic search
+async function fetchKnowledgeContext(
+  query: string,
+  workspaceId: string,
+  personaId?: string
+): Promise<{ entries: KnowledgeEntry[]; persona: any | null }> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  let entries: KnowledgeEntry[] = [];
+  let persona = null;
+
+  // Fetch persona configuration
+  if (personaId) {
+    const { data: personaData } = await supabaseAdmin
+      .from('ai_personas')
+      .select('*')
+      .eq('id', personaId)
+      .single();
+    
+    if (personaData) {
+      persona = personaData;
+    }
+  }
+
+  // Get knowledge base IDs from persona or use all active ones
+  let knowledgeBaseIds: string[] = [];
+  
+  if (persona?.knowledge_base_ids?.length > 0) {
+    knowledgeBaseIds = persona.knowledge_base_ids;
+  } else {
+    // Fetch all active knowledge bases for workspace
+    const { data: kbs } = await supabaseAdmin
+      .from('knowledge_bases')
+      .select('id')
+      .eq('workspace_id', workspaceId)
+      .eq('is_active', true);
+    
+    knowledgeBaseIds = (kbs || []).map(kb => kb.id);
+  }
+
+  if (knowledgeBaseIds.length === 0) {
+    console.log("[AI-INBOX-REPLY] No knowledge bases found for workspace");
+    return { entries: [], persona };
+  }
+
+  // Generate embedding for semantic search
+  if (!LOVABLE_API_KEY) {
+    console.warn("[AI-INBOX-REPLY] LOVABLE_API_KEY not available for embeddings");
+    return { entries: [], persona };
+  }
+
+  try {
+    const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "text-embedding-ada-002",
+        input: query
+      }),
+    });
+
+    if (!embeddingResponse.ok) {
+      console.error("[AI-INBOX-REPLY] Embedding API error:", await embeddingResponse.text());
+      return { entries: [], persona };
+    }
+
+    const embeddingData = await embeddingResponse.json();
+    const queryEmbedding = embeddingData.data[0].embedding;
+
+    // Search for semantically similar entries
+    const { data: results, error } = await supabaseAdmin.rpc("match_knowledge_entries", {
+      query_embedding: queryEmbedding,
+      match_threshold: 0.65,
+      match_count: 5,
+      filter_workspace_id: workspaceId,
+      filter_knowledge_base_id: knowledgeBaseIds.length === 1 ? knowledgeBaseIds[0] : null,
+      filter_status: 'validated'
+    });
+
+    if (error) {
+      console.error("[AI-INBOX-REPLY] Knowledge search error:", error);
+      return { entries: [], persona };
+    }
+
+    entries = (results || []).map((r: any) => ({
+      id: r.id,
+      title: r.title,
+      question: r.question,
+      content: r.content,
+      similarity: r.similarity
+    }));
+
+    console.log(`[AI-INBOX-REPLY] Found ${entries.length} relevant knowledge entries`);
+
+    // Log found entries (don't block on usage update)
+    console.log(`[AI-INBOX-REPLY] Using ${entries.length} knowledge entries for context`);
+
+  } catch (error) {
+    console.error("[AI-INBOX-REPLY] Error fetching knowledge:", error);
+  }
+
+  return { entries, persona };
+}
+
+const buildSystemPrompt = (
+  action: ReplyAction, 
+  channel?: string, 
+  template?: TemplateData,
+  knowledgeEntries?: KnowledgeEntry[],
+  persona?: any
+): string => {
   const channelGuide = channel ? channelGuidelines[channel] || channelGuidelines.webchat : channelGuidelines.webchat;
+  
+  // Persona-specific instructions
+  let personaInstructions = "";
+  if (persona) {
+    personaInstructions = `
+## AI Persona Configuration:
+- Name: ${persona.name}
+- Tone: ${persona.tone_of_voice || 'empático'}
+- Technical Depth: ${persona.technical_depth || 'medium'}
+- Language Style: ${persona.language_style || 'conversational'}
+${persona.system_prompt ? `\nCustom Instructions:\n${persona.system_prompt}` : ""}
+${persona.limitations?.length ? `\nLimitations:\n${persona.limitations.map((l: string) => `- ${l}`).join('\n')}` : ""}
+`;
+  }
+
+  // Knowledge base context
+  let knowledgeContext = "";
+  if (knowledgeEntries && knowledgeEntries.length > 0) {
+    knowledgeContext = `
+## Knowledge Base Reference:
+Use the following validated information when relevant to the conversation. This is your PRIMARY source of truth for product/service information.
+
+${knowledgeEntries.map((entry, i) => `
+### Reference ${i + 1} (Relevance: ${Math.round(entry.similarity * 100)}%)
+**Topic:** ${entry.title}
+${entry.question ? `**Question:** ${entry.question}` : ""}
+**Answer:** ${entry.content}
+`).join('\n')}
+
+IMPORTANT: When answering questions about products, services, pricing, or procedures, ALWAYS use the information from the Knowledge Base above. Only use this information - do not invent or assume details.
+`;
+  }
   
   const basePrompt = `You are an AI assistant helping compose professional reply messages for a CRM inbox.
 Your role is to SUGGEST replies that will be reviewed by a human before sending.
 
 ${safetyRules}
-
+${personaInstructions}
 ${channelGuide}
+${knowledgeContext}
 `;
 
   if (action === "suggest_reply") {
@@ -127,7 +289,8 @@ ${channelGuide}
 Your task: Generate 2-3 reply suggestions based on the conversation context.
 Each suggestion should:
 - Be contextually relevant to the conversation
-- Use only information provided in the lead/opportunity data
+- Use information from the Knowledge Base when answering product/service questions
+- Use lead/opportunity data for personalization
 - Match the channel's communication style
 - Be actionable and move the conversation forward
 
@@ -141,7 +304,7 @@ Your task: Modify the provided reply according to the requested action.
 Apply the modification while:
 - Keeping the core message intent
 - Respecting the channel guidelines
-- Not adding information that wasn't in the original
+- Using Knowledge Base information if applicable
 
 You MUST use the modify_reply tool.`;
   }
@@ -295,7 +458,10 @@ serve(async (req) => {
       channel, 
       template,
       currentReply,
-      modifyAction 
+      modifyAction,
+      workspaceId,
+      personaId,
+      useKnowledgeBase = true
     }: InboxReplyRequest = await req.json();
 
     if (!action) {
@@ -308,6 +474,24 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Fetch knowledge base context if enabled and workspaceId provided
+    let knowledgeEntries: KnowledgeEntry[] = [];
+    let persona: any = null;
+    
+    if (useKnowledgeBase && workspaceId && messages?.length) {
+      // Extract the last customer message as the query
+      const customerMessages = messages.filter(m => m.direction === "inbound");
+      const lastCustomerMessage = customerMessages[customerMessages.length - 1]?.content || "";
+      
+      if (lastCustomerMessage) {
+        console.log(`[AI-INBOX-REPLY] Searching knowledge base for: "${lastCustomerMessage.slice(0, 100)}..."`);
+        const kbResult = await fetchKnowledgeContext(lastCustomerMessage, workspaceId, personaId);
+        knowledgeEntries = kbResult.entries;
+        persona = kbResult.persona;
+        console.log(`[AI-INBOX-REPLY] Found ${knowledgeEntries.length} relevant entries`);
+      }
     }
 
     // Build user content with all context
@@ -371,7 +555,7 @@ serve(async (req) => {
       userContent += "Personalize this template using the conversation context and lead data provided above.\n";
     }
 
-    const systemPrompt = buildSystemPrompt(action, channel, template);
+    const systemPrompt = buildSystemPrompt(action, channel, template, knowledgeEntries, persona);
     const actionTools = tools[action];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -425,7 +609,13 @@ serve(async (req) => {
     const result = JSON.parse(toolCall.function.arguments);
 
     return new Response(
-      JSON.stringify({ action, result }),
+      JSON.stringify({ 
+        action, 
+        result,
+        knowledgeUsed: knowledgeEntries.length > 0,
+        knowledgeEntriesCount: knowledgeEntries.length,
+        personaUsed: persona?.name || null
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
