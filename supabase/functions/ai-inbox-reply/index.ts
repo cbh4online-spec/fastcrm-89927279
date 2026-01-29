@@ -439,7 +439,7 @@ serve(async (req) => {
   }
 
   try {
-    // Validate JWT manually
+    // Validate authorization - supports both user JWT and service role key
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -448,21 +448,41 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
-    if (claimsError || !claimsData?.claims) {
-      console.error("[AI-INBOX-REPLY] JWT validation failed:", claimsError);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    let supabase;
+    let isServerCall = false;
+    let userId: string | null = null;
+
+    // Check if this is a server-to-server call using service role key
+    if (token === serviceRoleKey) {
+      console.log("[AI-INBOX-REPLY] Authenticated via service role key (server-to-server)");
+      isServerCall = true;
+      supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        serviceRoleKey
       );
+    } else {
+      // Try to validate as user JWT
+      supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+      
+      if (claimsError || !claimsData?.claims) {
+        console.error("[AI-INBOX-REPLY] JWT validation failed:", claimsError);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      userId = claimsData.claims.sub as string;
+      console.log("[AI-INBOX-REPLY] Authenticated via user JWT:", userId);
     }
     const { 
       action, 
