@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -65,17 +66,25 @@ const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
   created: <Plus className="w-4 h-4" />,
   updated: <FileEdit className="w-4 h-4" />,
   status_change: <ArrowRight className="w-4 h-4" />,
+  status_changed: <ArrowRight className="w-4 h-4" />,
   stage_change: <ArrowRight className="w-4 h-4" />,
+  stage_changed: <ArrowRight className="w-4 h-4" />,
   note_added: <MessageSquare className="w-4 h-4" />,
   task_created: <CheckCircle2 className="w-4 h-4" />,
   task_completed: <CheckCircle2 className="w-4 h-4" />,
   email_sent: <Mail className="w-4 h-4" />,
   email_received: <MailOpen className="w-4 h-4" />,
+  message_sent: <Send className="w-4 h-4" />,
+  message_received: <MessageSquare className="w-4 h-4" />,
   call_made: <Phone className="w-4 h-4" />,
   call_received: <PhoneIncoming className="w-4 h-4" />,
+  lead_created: <UserPlus className="w-4 h-4" />,
+  lead_updated: <FileEdit className="w-4 h-4" />,
+  lead_contacted: <Phone className="w-4 h-4" />,
   meeting_scheduled: <Calendar className="w-4 h-4" />,
   meeting_completed: <CalendarCheck className="w-4 h-4" />,
   opportunity_created: <Target className="w-4 h-4" />,
+  opportunity_updated: <FileEdit className="w-4 h-4" />,
   opportunity_won: <Trophy className="w-4 h-4" />,
   opportunity_lost: <XCircle className="w-4 h-4" />,
   invoice_sent: <FileText className="w-4 h-4" />,
@@ -83,9 +92,13 @@ const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
   document_uploaded: <Upload className="w-4 h-4" />,
   proposal_sent: <Send className="w-4 h-4" />,
   proposal_viewed: <Eye className="w-4 h-4" />,
+  proposal_accepted: <CheckCircle2 className="w-4 h-4" />,
   tag_added: <Tag className="w-4 h-4" />,
   tag_removed: <Tag className="w-4 h-4" />,
   assigned: <UserCheck className="w-4 h-4" />,
+  followup_scheduled: <Calendar className="w-4 h-4" />,
+  followup_completed: <CheckCircle2 className="w-4 h-4" />,
+  automation_triggered: <RefreshCw className="w-4 h-4" />,
   custom: <MessageSquare className="w-4 h-4" />,
 };
 
@@ -93,17 +106,25 @@ const ACTIVITY_COLORS: Record<string, string> = {
   created: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
   updated: "bg-blue-500/20 text-blue-600 border-blue-500/30",
   status_change: "bg-amber-500/20 text-amber-600 border-amber-500/30",
+  status_changed: "bg-amber-500/20 text-amber-600 border-amber-500/30",
   stage_change: "bg-purple-500/20 text-purple-600 border-purple-500/30",
+  stage_changed: "bg-purple-500/20 text-purple-600 border-purple-500/30",
   note_added: "bg-slate-500/20 text-slate-600 border-slate-500/30",
   task_created: "bg-indigo-500/20 text-indigo-600 border-indigo-500/30",
   task_completed: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
   email_sent: "bg-blue-500/20 text-blue-600 border-blue-500/30",
   email_received: "bg-cyan-500/20 text-cyan-600 border-cyan-500/30",
+  message_sent: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+  message_received: "bg-green-500/20 text-green-600 border-green-500/30",
   call_made: "bg-green-500/20 text-green-600 border-green-500/30",
   call_received: "bg-green-500/20 text-green-600 border-green-500/30",
+  lead_created: "bg-cyan-500/20 text-cyan-600 border-cyan-500/30",
+  lead_updated: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+  lead_contacted: "bg-indigo-500/20 text-indigo-600 border-indigo-500/30",
   meeting_scheduled: "bg-violet-500/20 text-violet-600 border-violet-500/30",
   meeting_completed: "bg-violet-500/20 text-violet-600 border-violet-500/30",
   opportunity_created: "bg-orange-500/20 text-orange-600 border-orange-500/30",
+  opportunity_updated: "bg-blue-500/20 text-blue-600 border-blue-500/30",
   opportunity_won: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
   opportunity_lost: "bg-red-500/20 text-red-600 border-red-500/30",
   invoice_sent: "bg-amber-500/20 text-amber-600 border-amber-500/30",
@@ -111,9 +132,13 @@ const ACTIVITY_COLORS: Record<string, string> = {
   document_uploaded: "bg-slate-500/20 text-slate-600 border-slate-500/30",
   proposal_sent: "bg-blue-500/20 text-blue-600 border-blue-500/30",
   proposal_viewed: "bg-cyan-500/20 text-cyan-600 border-cyan-500/30",
+  proposal_accepted: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
   tag_added: "bg-pink-500/20 text-pink-600 border-pink-500/30",
   tag_removed: "bg-slate-500/20 text-slate-600 border-slate-500/30",
   assigned: "bg-indigo-500/20 text-indigo-600 border-indigo-500/30",
+  followup_scheduled: "bg-amber-500/20 text-amber-600 border-amber-500/30",
+  followup_completed: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
+  automation_triggered: "bg-yellow-500/20 text-yellow-600 border-yellow-500/30",
   custom: "bg-slate-500/20 text-slate-600 border-slate-500/30",
 };
 
@@ -144,8 +169,9 @@ export function EntityTimelineSection({
   maxHeight = "500px",
 }: EntityTimelineSectionProps) {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
 
-  // Fetch activities
+  // Fetch activities from entity_activities
   const { data: activities = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["entity-activities", entityType, entityId],
     queryFn: async () => {
@@ -162,6 +188,45 @@ export function EntityTimelineSection({
 
       if (error) throw error;
       return (data || []) as unknown as EntityActivity[];
+    },
+    enabled: !!currentWorkspace?.id && !!entityId,
+  });
+
+  // Also fetch from crm_activities using lead_id, contact_id, or company_id
+  const { data: crmActivities = [] } = useQuery({
+    queryKey: ["crm-activities-timeline", entityType, entityId],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+
+      // Build query based on entity type - use the specific foreign key fields
+      let query = workspaceClient
+        .from("crm_activities")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id);
+
+      // Filter by the appropriate foreign key based on entity type
+      if (entityType === "lead") {
+        query = query.eq("lead_id", entityId);
+      } else if (entityType === "opportunity") {
+        query = query.eq("opportunity_id", entityId);
+      } else if (entityType === "contact" || entityType === "company") {
+        // For contacts/companies, we need to check entity_type + entity_id
+        query = query.eq("entity_type", entityType).eq("entity_id", entityId);
+      }
+
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      return (data || []) as Array<{
+        id: string;
+        activity_type: string;
+        title: string;
+        description: string | null;
+        metadata: Record<string, unknown> | null;
+        created_at: string;
+      }>;
     },
     enabled: !!currentWorkspace?.id && !!entityId,
   });
@@ -216,57 +281,89 @@ export function EntityTimelineSection({
       metadata?: Record<string, unknown>;
     }> = [];
 
-    // Add stored activities
+    // Track IDs to prevent duplicates
+    const addedIds = new Set<string>();
+
+    // Add stored activities from entity_activities
     activities.forEach((activity) => {
-      timeline.push({
-        id: activity.id,
-        type: activity.activity_type,
-        title: activity.title,
-        description: activity.description,
-        date: new Date(activity.created_at),
-        metadata: activity.metadata || undefined,
-      });
+      if (!addedIds.has(activity.id)) {
+        addedIds.add(activity.id);
+        timeline.push({
+          id: activity.id,
+          type: activity.activity_type,
+          title: activity.title,
+          description: activity.description,
+          date: new Date(activity.created_at),
+          metadata: activity.metadata || undefined,
+        });
+      }
+    });
+
+    // Add CRM activities (messages, status changes, etc.)
+    crmActivities.forEach((activity) => {
+      if (!addedIds.has(activity.id)) {
+        addedIds.add(activity.id);
+        timeline.push({
+          id: activity.id,
+          type: activity.activity_type,
+          title: activity.title,
+          description: activity.description,
+          date: new Date(activity.created_at),
+          metadata: activity.metadata || undefined,
+        });
+      }
     });
 
     // Add tasks
     tasks.forEach((task) => {
-      // Task creation
-      timeline.push({
-        id: `task-created-${task.id}`,
-        type: "task_created",
-        title: "Tarefa criada",
-        description: task.title,
-        date: new Date(task.created_at),
-      });
+      const taskCreatedId = `task-created-${task.id}`;
+      if (!addedIds.has(taskCreatedId)) {
+        addedIds.add(taskCreatedId);
+        timeline.push({
+          id: taskCreatedId,
+          type: "task_created",
+          title: "Tarefa criada",
+          description: task.title,
+          date: new Date(task.created_at),
+        });
+      }
 
       // Task completion - use updated_at as completion time
       if (task.status === "done") {
-        timeline.push({
-          id: `task-completed-${task.id}`,
-          type: "task_completed",
-          title: "Tarefa concluída",
-          description: task.title,
-          date: new Date(task.updated_at),
-        });
+        const taskCompletedId = `task-completed-${task.id}`;
+        if (!addedIds.has(taskCompletedId)) {
+          addedIds.add(taskCompletedId);
+          timeline.push({
+            id: taskCompletedId,
+            type: "task_completed",
+            title: "Tarefa concluída",
+            description: task.title,
+            date: new Date(task.updated_at),
+          });
+        }
       }
     });
 
     // Add notes
     notes.forEach((note) => {
-      timeline.push({
-        id: `note-${note.id}`,
-        type: "note_added",
-        title: note.note_type === "voice" ? "Nota de voz adicionada" : "Nota adicionada",
-        description: note.content?.slice(0, 100) || null,
-        date: new Date(note.created_at),
-      });
+      const noteId = `note-${note.id}`;
+      if (!addedIds.has(noteId)) {
+        addedIds.add(noteId);
+        timeline.push({
+          id: noteId,
+          type: "note_added",
+          title: note.note_type === "voice" ? "Nota de voz adicionada" : "Nota adicionada",
+          description: note.content?.slice(0, 100) || null,
+          date: new Date(note.created_at),
+        });
+      }
     });
 
     // Sort by date descending
     timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return timeline;
-  }, [activities, tasks, notes]);
+  }, [activities, crmActivities, tasks, notes]);
 
   // Group by date
   const groupedTimeline = useMemo(() => {
