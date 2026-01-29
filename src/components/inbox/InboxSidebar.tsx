@@ -66,7 +66,6 @@ const channels: ChannelItem[] = [
   { id: "email", label: "Email", icon: Mail, color: "text-blue-500" },
   { id: "whatsapp", label: "WhatsApp", icon: Phone, color: "text-green-500" },
   { id: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
-  { id: "facebook", label: "Facebook", icon: Facebook, color: "text-indigo-500" },
   { id: "messenger", label: "Messenger", icon: Facebook, color: "text-blue-600" },
   { id: "webchat", label: "Website", icon: Globe, color: "text-cyan-500" },
 ];
