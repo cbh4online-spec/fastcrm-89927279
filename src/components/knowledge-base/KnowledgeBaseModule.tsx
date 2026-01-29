@@ -377,9 +377,9 @@ export function KnowledgeBaseModule() {
 
       {/* Tab Content */}
       {activeTab === "bases" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Knowledge Bases */}
-          <div className="lg:col-span-1">
+        <div className="flex flex-col gap-6">
+          {/* Knowledge Bases - always visible on mobile, collapsible after selection */}
+          <div className={`${selectedKB ? 'hidden md:block' : ''}`}>
             <KnowledgeBaseList 
               knowledgeBases={knowledgeBases.filter(kb => 
                 kb.name.toLowerCase().includes(searchValue.toLowerCase())
@@ -395,23 +395,33 @@ export function KnowledgeBaseModule() {
           </div>
 
           {/* KB Details Panel */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="space-y-4">
             {selectedKB ? (
               <>
+                {/* Back button for mobile */}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="md:hidden mb-2"
+                  onClick={() => setSelectedKB(null)}
+                >
+                  ← Voltar às Bases
+                </Button>
+
                 {/* Sub-tabs for KB details */}
                 <Tabs value={kbDetailTab} onValueChange={(v) => setKbDetailTab(v as any)}>
-                  <TabsList className="grid grid-cols-3 w-full max-w-md">
-                    <TabsTrigger value="entries" className="flex items-center gap-1">
-                      <ListChecks className="h-4 w-4" />
-                      Entradas ({entries.length})
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="entries" className="flex items-center gap-1 text-xs sm:text-sm px-2">
+                      <ListChecks className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden xs:inline">Entradas</span> ({entries.length})
                     </TabsTrigger>
-                    <TabsTrigger value="sources" className="flex items-center gap-1">
-                      <LinkIcon className="h-4 w-4" />
-                      Fontes ({sources.length})
+                    <TabsTrigger value="sources" className="flex items-center gap-1 text-xs sm:text-sm px-2">
+                      <LinkIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden xs:inline">Fontes</span> ({sources.length})
                     </TabsTrigger>
-                    <TabsTrigger value="add" className="flex items-center gap-1">
-                      <Plus className="h-4 w-4" />
-                      Adicionar
+                    <TabsTrigger value="add" className="flex items-center gap-1 text-xs sm:text-sm px-2">
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden xs:inline">Adicionar</span>
                     </TabsTrigger>
                   </TabsList>
 
