@@ -3890,6 +3890,143 @@ export type Database = {
           },
         ]
       }
+      conversation_rule_executions: {
+        Row: {
+          action_taken: string | null
+          condition_matched: Json | null
+          conversation_id: string
+          created_at: string
+          id: string
+          message_id: string | null
+          override_reason: string | null
+          rule_id: string
+          trigger_text: string | null
+          was_successful: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          condition_matched?: Json | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          override_reason?: string | null
+          rule_id: string
+          trigger_text?: string | null
+          was_successful?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          condition_matched?: Json | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          override_reason?: string | null
+          rule_id?: string
+          trigger_text?: string | null
+          was_successful?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_rule_executions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_rule_executions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_rules: {
+        Row: {
+          action_config: Json
+          action_message: string | null
+          action_type: string
+          condition_description: string | null
+          condition_type: string
+          condition_value: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          rule_type: Database["public"]["Enums"]["conversation_rule_type"]
+          scope: Database["public"]["Enums"]["conversation_rule_scope"]
+          scope_entity_id: string | null
+          tags: string[] | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_config?: Json
+          action_message?: string | null
+          action_type?: string
+          condition_description?: string | null
+          condition_type?: string
+          condition_value?: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: number
+          rule_type: Database["public"]["Enums"]["conversation_rule_type"]
+          scope?: Database["public"]["Enums"]["conversation_rule_scope"]
+          scope_entity_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_config?: Json
+          action_message?: string | null
+          action_type?: string
+          condition_description?: string | null
+          condition_type?: string
+          condition_value?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          rule_type?: Database["public"]["Enums"]["conversation_rule_type"]
+          scope?: Database["public"]["Enums"]["conversation_rule_scope"]
+          scope_entity_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_sessions: {
         Row: {
           abandonment_reason: string | null
@@ -18436,6 +18573,43 @@ export type Database = {
           viewed: number
         }[]
       }
+      get_applicable_rules: {
+        Args: {
+          p_channel?: string
+          p_flow_id?: string
+          p_persona_id?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          action_config: Json
+          action_message: string | null
+          action_type: string
+          condition_description: string | null
+          condition_type: string
+          condition_value: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          rule_type: Database["public"]["Enums"]["conversation_rule_type"]
+          scope: Database["public"]["Enums"]["conversation_rule_scope"]
+          scope_entity_id: string | null
+          tags: string[] | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "conversation_rules"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_available_meeting_slots: {
         Args: {
           p_date: string
@@ -18863,6 +19037,8 @@ export type Database = {
         | "is_empty"
         | "is_not_empty"
       contact_entity_type: "consumidor_final" | "eni" | "empresa"
+      conversation_rule_scope: "workspace" | "ai_persona" | "flow" | "channel"
+      conversation_rule_type: "DO" | "DONT" | "STOP" | "REDIRECT"
       crm_entity_type: "contacts" | "opportunities"
       crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
@@ -19192,6 +19368,8 @@ export const Constants = {
         "is_not_empty",
       ],
       contact_entity_type: ["consumidor_final", "eni", "empresa"],
+      conversation_rule_scope: ["workspace", "ai_persona", "flow", "channel"],
+      conversation_rule_type: ["DO", "DONT", "STOP", "REDIRECT"],
       crm_entity_type: ["contacts", "opportunities"],
       crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
