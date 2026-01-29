@@ -1,6 +1,6 @@
 /**
  * Conversation Objective Form
- * Modal for creating/editing objectives
+ * Modal for creating/editing objectives with AI assistance
  */
 
 import { useEffect, useState } from "react";
@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -25,8 +27,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Target, Loader2 } from "lucide-react";
+import { Target, Loader2, Sparkles, Wand2, User, Mail, Phone, Building2, DollarSign, Tag } from "lucide-react";
 import { useConversationObjectives, CRM_FIELDS, type CrmEntity } from "@/hooks/useConversationObjectives";
+import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type ConversationObjective = Database["public"]["Tables"]["conversation_objectives"]["Row"];
@@ -63,6 +66,118 @@ const initialFormData: FormData = {
   blocks_next_questions: false,
 };
 
+// AI suggestion templates for common objectives
+const AI_SUGGESTIONS = [
+  {
+    id: "name",
+    icon: User,
+    label: "Nome",
+    description: "Recolher nome do lead",
+    config: {
+      objective_name: "Capturar Nome",
+      objective_code: "lead_name",
+      objective_description: "Pergunta o nome ao utilizador de forma natural",
+      crm_entity: "lead" as CrmEntity,
+      crm_field_to_update: "name",
+      crm_field_type: "text",
+      prompt_template: "Para lhe poder ajudar melhor, como se chama?",
+      is_required: true,
+      skip_if_filled: true,
+      blocks_next_questions: false,
+    },
+  },
+  {
+    id: "email",
+    icon: Mail,
+    label: "Email",
+    description: "Recolher email para contacto",
+    config: {
+      objective_name: "Capturar Email",
+      objective_code: "lead_email",
+      objective_description: "Solicita email para envio de informações",
+      crm_entity: "lead" as CrmEntity,
+      crm_field_to_update: "email",
+      crm_field_type: "email",
+      prompt_template: "Pode partilhar o seu email para lhe enviarmos mais informações?",
+      is_required: true,
+      skip_if_filled: true,
+      blocks_next_questions: false,
+    },
+  },
+  {
+    id: "phone",
+    icon: Phone,
+    label: "Telefone",
+    description: "Recolher contacto telefónico",
+    config: {
+      objective_name: "Capturar Telefone",
+      objective_code: "lead_phone",
+      objective_description: "Solicita número de telefone para contacto direto",
+      crm_entity: "lead" as CrmEntity,
+      crm_field_to_update: "phone",
+      crm_field_type: "phone",
+      prompt_template: "Se preferir, posso ligar-lhe. Qual é o seu número de telefone?",
+      is_required: false,
+      skip_if_filled: true,
+      blocks_next_questions: false,
+    },
+  },
+  {
+    id: "company",
+    icon: Building2,
+    label: "Empresa",
+    description: "Recolher nome da empresa",
+    config: {
+      objective_name: "Capturar Empresa",
+      objective_code: "lead_company",
+      objective_description: "Identifica a empresa do lead para contexto B2B",
+      crm_entity: "lead" as CrmEntity,
+      crm_field_to_update: "company_name",
+      crm_field_type: "text",
+      prompt_template: "Em que empresa trabalha atualmente?",
+      is_required: false,
+      skip_if_filled: true,
+      blocks_next_questions: false,
+    },
+  },
+  {
+    id: "budget",
+    icon: DollarSign,
+    label: "Orçamento",
+    description: "Identificar orçamento disponível",
+    config: {
+      objective_name: "Identificar Orçamento",
+      objective_code: "opp_budget",
+      objective_description: "Descobre o orçamento disponível para qualificação",
+      crm_entity: "opportunity" as CrmEntity,
+      crm_field_to_update: "value",
+      crm_field_type: "number",
+      prompt_template: "Para lhe apresentar as opções mais adequadas, tem algum orçamento em mente?",
+      is_required: false,
+      skip_if_filled: false,
+      blocks_next_questions: false,
+    },
+  },
+  {
+    id: "interest",
+    icon: Tag,
+    label: "Interesse",
+    description: "Identificar área de interesse",
+    config: {
+      objective_name: "Identificar Interesse",
+      objective_code: "lead_interest",
+      objective_description: "Descobre o que o lead procura ou precisa",
+      crm_entity: "lead" as CrmEntity,
+      crm_field_to_update: "tags",
+      crm_field_type: "text",
+      prompt_template: "O que o trouxe aqui hoje? Em que posso ajudá-lo?",
+      is_required: false,
+      skip_if_filled: false,
+      blocks_next_questions: false,
+    },
+  },
+];
+
 export function ConversationObjectiveForm({
   open,
   onOpenChange,
@@ -71,6 +186,9 @@ export function ConversationObjectiveForm({
   const { createObjective, updateObjective, isCreating, isUpdating } =
     useConversationObjectives();
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showAiHelper, setShowAiHelper] = useState(true);
 
   const isEditing = !!objective;
   const isSubmitting = isCreating || isUpdating;
@@ -89,9 +207,12 @@ export function ConversationObjectiveForm({
         skip_if_filled: objective.skip_if_filled ?? true,
         blocks_next_questions: objective.blocks_next_questions || false,
       });
+      setShowAiHelper(false);
     } else {
       setFormData(initialFormData);
+      setShowAiHelper(true);
     }
+    setAiPrompt("");
   }, [objective, open]);
 
   const handleChange = (
@@ -120,6 +241,92 @@ export function ConversationObjectiveForm({
       const entity = value as CrmEntity;
       const firstField = CRM_FIELDS[entity]?.[0]?.value || "name";
       setFormData((prev) => ({ ...prev, crm_field_to_update: firstField }));
+    }
+  };
+
+  const applySuggestion = (suggestion: typeof AI_SUGGESTIONS[0]) => {
+    setFormData(suggestion.config);
+    setShowAiHelper(false);
+    toast.success(`Template "${suggestion.label}" aplicado`);
+  };
+
+  const generateFromPrompt = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error("Descreva o objetivo que pretende criar");
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const systemPrompt = `És um especialista em CRM e conversational AI. Gera configurações para objetivos de conversa.
+
+Campos CRM disponíveis:
+- lead: name, email, phone, company_name, status, source, tags, notes
+- contact: name, email, phone, company, position, notes  
+- opportunity: title, value, stage, probability, expected_close_date, notes
+
+Responde APENAS com JSON válido no formato:
+{
+  "objective_name": "Nome curto do objetivo",
+  "objective_code": "codigo_snake_case",
+  "objective_description": "Descrição breve do que faz",
+  "crm_entity": "lead" | "contact" | "opportunity",
+  "crm_field_to_update": "campo_do_crm",
+  "crm_field_type": "text" | "email" | "phone" | "number",
+  "prompt_template": "Pergunta natural e amigável para obter a informação",
+  "is_required": true | false,
+  "skip_if_filled": true | false,
+  "blocks_next_questions": true | false
+}`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Cria um objetivo para: ${aiPrompt}` },
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Erro na API");
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || "";
+
+      // Extract JSON from response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("Resposta inválida da IA");
+
+      const generated = JSON.parse(jsonMatch[0]);
+
+      // Validate and apply
+      setFormData({
+        objective_name: generated.objective_name || "",
+        objective_code: generated.objective_code || "",
+        objective_description: generated.objective_description || "",
+        crm_entity: (["lead", "contact", "opportunity"].includes(generated.crm_entity) 
+          ? generated.crm_entity 
+          : "lead") as CrmEntity,
+        crm_field_to_update: generated.crm_field_to_update || "name",
+        crm_field_type: generated.crm_field_type || "text",
+        prompt_template: generated.prompt_template || "",
+        is_required: Boolean(generated.is_required),
+        skip_if_filled: generated.skip_if_filled !== false,
+        blocks_next_questions: Boolean(generated.blocks_next_questions),
+      });
+
+      setShowAiHelper(false);
+      toast.success("Objetivo gerado com sucesso!");
+    } catch (error) {
+      console.error("AI generation error:", error);
+      toast.error("Erro ao gerar objetivo. Tente novamente.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -168,7 +375,7 @@ export function ConversationObjectiveForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
@@ -180,6 +387,97 @@ export function ConversationObjectiveForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* AI Helper Section - Only for new objectives */}
+          {!isEditing && showAiHelper && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="pt-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-sm">Assistente IA</span>
+                  <Badge variant="secondary" className="text-xs">Beta</Badge>
+                </div>
+
+                {/* Quick Suggestions */}
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Objetivos comuns:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {AI_SUGGESTIONS.map((suggestion) => (
+                      <Button
+                        key={suggestion.id}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 h-8"
+                        onClick={() => applySuggestion(suggestion)}
+                      >
+                        <suggestion.icon className="h-3.5 w-3.5" />
+                        {suggestion.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* AI Prompt Input */}
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Ou descreva o que pretende:</p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ex: Perguntar qual o melhor horário para contacto..."
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          generateFromPrompt();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={generateFromPrompt}
+                      disabled={isGenerating || !aiPrompt.trim()}
+                      className="gap-1.5 shrink-0"
+                    >
+                      {isGenerating ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4" />
+                      )}
+                      Gerar
+                    </Button>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground"
+                  onClick={() => setShowAiHelper(false)}
+                >
+                  Preencher manualmente
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Show helper toggle when hidden */}
+          {!isEditing && !showAiHelper && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 w-full"
+              onClick={() => setShowAiHelper(true)}
+            >
+              <Sparkles className="h-4 w-4" />
+              Usar Assistente IA
+            </Button>
+          )}
+
           {/* Basic Info */}
           <div className="space-y-4">
             <div className="space-y-2">
