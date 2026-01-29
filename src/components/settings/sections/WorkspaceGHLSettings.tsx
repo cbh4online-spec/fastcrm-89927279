@@ -6,8 +6,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users } from "lucide-react";
 import { useWorkspaceGHLConfig, SaveGHLConfigInput } from "@/hooks/useWorkspaceGHLConfig";
+import { useGHLContactSync } from "@/hooks/useGHLContactSync";
 import { toast } from "sonner";
 
 export function WorkspaceGHLSettings() {
@@ -21,6 +23,8 @@ export function WorkspaceGHLSettings() {
     testConnection,
     isTesting,
   } = useWorkspaceGHLConfig();
+
+  const { syncContacts: triggerSync, isSyncing, lastResult } = useGHLContactSync();
 
   const [locationId, setLocationId] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -227,6 +231,80 @@ export function WorkspaceGHLSettings() {
           </Button>
         </div>
       </div>
+
+      {/* Sync Contacts Section */}
+      {isConfigured && (
+        <Card className="border-orange-200 dark:border-orange-900/30 bg-orange-50/50 dark:bg-orange-950/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Users className="h-4 w-4 text-orange-500" />
+              Sincronizar Contactos do GHL
+            </CardTitle>
+            <CardDescription>
+              Importar todos os contactos existentes na location como leads
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isSyncing && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  A sincronizar contactos...
+                </div>
+                <Progress value={undefined} className="h-2" />
+              </div>
+            )}
+
+            {lastResult && !isSyncing && (
+              <div className="rounded-lg bg-muted p-3 space-y-1">
+                <p className="text-sm font-medium">Última sincronização:</p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="text-center p-2 bg-green-100 dark:bg-green-900/30 rounded">
+                    <span className="block text-lg font-bold text-green-600">{lastResult.created}</span>
+                    Criados
+                  </div>
+                  <div className="text-center p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
+                    <span className="block text-lg font-bold text-blue-600">{lastResult.updated}</span>
+                    Actualizados
+                  </div>
+                  <div className="text-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                    <span className="block text-lg font-bold text-muted-foreground">{lastResult.skipped}</span>
+                    Ignorados
+                  </div>
+                </div>
+                {lastResult.errors.length > 0 && (
+                  <p className="text-xs text-destructive mt-2">
+                    {lastResult.errors.length} erro(s) durante a sincronização
+                  </p>
+                )}
+              </div>
+            )}
+
+            <Button
+              onClick={triggerSync}
+              disabled={isSyncing}
+              className="w-full bg-orange-500 hover:bg-orange-600"
+            >
+              {isSyncing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  A Sincronizar...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Sincronizar Contactos Agora
+                </>
+              )}
+            </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Isto irá importar todos os contactos do GHL como leads.
+              Contactos existentes serão actualizados com o ID do GHL.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Webhook URLs */}
       <Card>

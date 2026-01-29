@@ -159,3 +159,6 @@ verify_jwt = false
 
 [functions.ghl-webhook-message]
 verify_jwt = false
+
+[functions.ghl-sync-contacts]
+verify_jwt = false
