@@ -1,82 +1,84 @@
-# Plano: Motor Conversacional da IA
 
-## ✅ CONCLUÍDO
+# Plano: Corrigir Autenticação Server-to-Server no Auto-Pilot
 
-### 1. RLS Policies para Knowledge Base
-- [x] Adicionadas 12 políticas Super Admin (SELECT, INSERT, UPDATE, DELETE) para:
-  - `knowledge_bases`
-  - `knowledge_sources`
-  - `knowledge_entries`
-- [x] Corrigidas políticas existentes com `WITH CHECK` clauses
+## Diagnóstico
 
-### 2. UI do Motor Conversacional
+O Auto-Pilot está a funcionar corretamente até ao momento de gerar a resposta AI:
 
-#### Componentes Criados
-- [x] `ConversationalEngineModule` - Módulo principal com tabs
-- [x] `VibeProfilesTab` - Gestão de perfis de vibe/estilo
-- [x] `VibeProfileForm` - Formulário para criar/editar vibes
-- [x] `ConversationRulesTab` - Gestão de regras DO/DONT/STOP/REDIRECT
-- [x] `ConversationRuleForm` - Formulário para criar/editar regras
-- [x] `AutopilotConfigTab` - Configuração do Auto-Pilot
+```
+✅ [GHL-MESSAGE] Created new message
+✅ [AUTOPILOT] Autopilot is active (configId: "776d7188...")
+✅ [AUTOPILOT] Scheduling response { delaySeconds: 11 }
+✅ [AUTOPILOT] Generating AI response
+❌ [AUTOPILOT] AI response generation failed { status: 401, error: '{"error":"Unauthorized"}' }
+```
 
-#### Hooks Criados
-- [x] `useVibeProfiles` - CRUD de perfis de vibe
-- [x] `useConversationRules` - CRUD de regras de conversa
-- [x] `useAutopilotConfig` - Gestão de configuração do autopilot
+**Causa**: O `ghl-webhook-message` chama o `ai-inbox-reply` com a **service role key**:
+```typescript
+Authorization: `Bearer ${supabaseServiceKey}`
+```
 
-#### Tipos Criados
-- [x] `src/types/conversational-engine.ts` - Tipos e constantes
+Mas o `ai-inbox-reply` tenta validar este token como um **JWT de utilizador** usando `supabase.auth.getClaims(token)`, que falha porque a service role key tem uma estrutura diferente.
 
-#### Rota Adicionada
-- [x] `/dashboard/conversational-engine` - Nova página
+## Solução
 
-#### Sidebar
-- [x] Link "Motor Conversacional" adicionado à secção Utilitários
+Modificar o `ai-inbox-reply` para aceitar **ambos** os tipos de autenticação:
+1. **JWT de utilizador** - Para chamadas do frontend (InboxAI)
+2. **Service Role Key** - Para chamadas server-to-server (Auto-Pilot, webhooks)
 
----
+## Alterações Técnicas
 
-## Funcionalidades Implementadas
+### 1. Atualizar `ai-inbox-reply/index.ts`
 
-### Perfis de Vibe
-- Gestão de tom (calmo, energético, etc.)
-- Configuração de formalidade (informal, neutro, formal)
-- Controlo de emojis, exclamações, contrações
-- Limite de frases por resposta
-- Abordagem comercial (não comercial, soft sell, valor)
-- Definir perfil padrão
+Adicionar lógica de dual-authentication no início do handler:
 
-### Regras de Conversa
-- **DO**: Ações que a IA DEVE executar
-- **DONT**: Ações PROIBIDAS (com mensagem de recusa)
-- **STOP**: Condições que terminam a conversa
-- **REDIRECT**: Redireciona para outro fluxo/persona
-- Condições por palavra-chave, regex, intenção, sentimento
-- Prioridade configurável
-- Âmbito (workspace, persona, canal, fluxo)
+```text
+Linha ~443-466: Substituir validação atual por:
 
-### Auto-Pilot
-- Toggle master de ativação
-- Delays de resposta simulando humano (8-12s)
-- Indicador "A escrever..."
-- Limites de mensagens por conversa
-- Pausar quando humano intervém
-- Reativação automática
-- Horário de funcionamento
-- Fuso horário
-- Capacidades (imagens, áudio, ficheiros)
+1. Extrair token do header Authorization
+2. Tentar validar como JWT de utilizador (getClaims)
+3. Se falhar, verificar se é service role key (comparar com env var)
+4. Se for service role key:
+   - Usar cliente com service role para operações
+   - Obter workspaceId do body da request
+5. Se nenhum funcionar, retornar 401
+```
 
----
+### 2. Manter Segurança
 
-## Próximos Passos (Futuro)
+- A service role key só é válida se corresponder exatamente à `SUPABASE_SERVICE_ROLE_KEY`
+- Operações continuam a respeitar RLS quando aplicável
+- Logging diferencia chamadas de user vs server
 
-1. **Integração com Edge Functions**
-   - Conectar `ai-inbox-reply` para usar estas configurações
+## Fluxo Após Correção
 
-2. **Dashboard de Métricas**
-   - Visualizar compliance, latência, conversões
+```text
+[Mensagem Inbound]
+       ↓
+[ghl-webhook-message]
+       ↓
+[triggerAutopilotResponse]
+       ↓ (com service key)
+[ai-inbox-reply] ← Aceita service key
+       ↓
+[Gera resposta AI]
+       ↓
+[ghl-send-message]
+       ↓
+[Resposta enviada ao contacto]
+```
 
-3. **Replay Conversacional**
-   - Interface para reproduzir conversas no CRM
+## Ficheiros a Modificar
 
-4. **A/B Testing de Personas**
-   - Comparar performance entre perfis
+| Ficheiro | Alteração |
+|----------|-----------|
+| `supabase/functions/ai-inbox-reply/index.ts` | Adicionar dual-auth (JWT + service key) |
+
+## Teste de Verificação
+
+Após deploy:
+1. Enviar mensagem de teste via Instagram/WhatsApp
+2. Verificar logs do `ai-inbox-reply` - deve passar autenticação
+3. Verificar logs do `ghl-webhook-message` - resposta gerada
+4. Confirmar resposta enviada ao contacto no GHL
+
