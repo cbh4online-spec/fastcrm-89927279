@@ -1301,6 +1301,106 @@ export type Database = {
           },
         ]
       }
+      ai_response_audits: {
+        Row: {
+          ai_response: string
+          appropriate_length: boolean | null
+          context_used: Json | null
+          conversation_id: string
+          corrected_response: string | null
+          correction_reason: string | null
+          created_at: string
+          followed_rules: boolean | null
+          followed_vibe: boolean | null
+          id: string
+          latency_ms: number | null
+          message_id: string | null
+          persona_id: string | null
+          response_tokens: number | null
+          review_issues: string[] | null
+          review_notes: string | null
+          review_rating: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          user_message: string
+          vibe_profile_id: string | null
+          within_knowledge: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_response: string
+          appropriate_length?: boolean | null
+          context_used?: Json | null
+          conversation_id: string
+          corrected_response?: string | null
+          correction_reason?: string | null
+          created_at?: string
+          followed_rules?: boolean | null
+          followed_vibe?: boolean | null
+          id?: string
+          latency_ms?: number | null
+          message_id?: string | null
+          persona_id?: string | null
+          response_tokens?: number | null
+          review_issues?: string[] | null
+          review_notes?: string | null
+          review_rating?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          user_message: string
+          vibe_profile_id?: string | null
+          within_knowledge?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          ai_response?: string
+          appropriate_length?: boolean | null
+          context_used?: Json | null
+          conversation_id?: string
+          corrected_response?: string | null
+          correction_reason?: string | null
+          created_at?: string
+          followed_rules?: boolean | null
+          followed_vibe?: boolean | null
+          id?: string
+          latency_ms?: number | null
+          message_id?: string | null
+          persona_id?: string | null
+          response_tokens?: number | null
+          review_issues?: string[] | null
+          review_notes?: string | null
+          review_rating?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          user_message?: string
+          vibe_profile_id?: string | null
+          within_knowledge?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_response_audits_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_response_audits_vibe_profile_id_fkey"
+            columns: ["vibe_profile_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_response_audits_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_actions: {
         Row: {
           action_type: Database["public"]["Enums"]["automation_action_type"]
@@ -4563,6 +4663,81 @@ export type Database = {
           },
         ]
       }
+      conversation_replays: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          final_score: number | null
+          final_stage: string | null
+          highlights: Json | null
+          human_agents: string[] | null
+          id: string
+          initial_stage: string | null
+          lead_id: string | null
+          outcome: string | null
+          persona_id: string | null
+          replay_events: Json
+          stages_visited: string[] | null
+          started_at: string
+          workspace_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          final_score?: number | null
+          final_stage?: string | null
+          highlights?: Json | null
+          human_agents?: string[] | null
+          id?: string
+          initial_stage?: string | null
+          lead_id?: string | null
+          outcome?: string | null
+          persona_id?: string | null
+          replay_events?: Json
+          stages_visited?: string[] | null
+          started_at: string
+          workspace_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          final_score?: number | null
+          final_stage?: string | null
+          highlights?: Json | null
+          human_agents?: string[] | null
+          id?: string
+          initial_stage?: string | null
+          lead_id?: string | null
+          outcome?: string | null
+          persona_id?: string | null
+          replay_events?: Json
+          stages_visited?: string[] | null
+          started_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_replays_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_replays_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_rule_executions: {
         Row: {
           action_taken: string | null
@@ -4693,6 +4868,86 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "conversation_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_scores: {
+        Row: {
+          avg_response_time_seconds: number | null
+          bot_message_count: number | null
+          conversation_id: string
+          conversion_score: number | null
+          created_at: string
+          efficiency_score: number | null
+          engagement_score: number | null
+          had_escalation: boolean | null
+          had_negative_sentiment: boolean | null
+          id: string
+          objectives_completed: number | null
+          objectives_total: number | null
+          overall_score: number | null
+          qualification_score: number | null
+          reached_goal: boolean | null
+          scored_at: string
+          scoring_method: string | null
+          scoring_model: string | null
+          sentiment_score: number | null
+          user_message_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          avg_response_time_seconds?: number | null
+          bot_message_count?: number | null
+          conversation_id: string
+          conversion_score?: number | null
+          created_at?: string
+          efficiency_score?: number | null
+          engagement_score?: number | null
+          had_escalation?: boolean | null
+          had_negative_sentiment?: boolean | null
+          id?: string
+          objectives_completed?: number | null
+          objectives_total?: number | null
+          overall_score?: number | null
+          qualification_score?: number | null
+          reached_goal?: boolean | null
+          scored_at?: string
+          scoring_method?: string | null
+          scoring_model?: string | null
+          sentiment_score?: number | null
+          user_message_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          avg_response_time_seconds?: number | null
+          bot_message_count?: number | null
+          conversation_id?: string
+          conversion_score?: number | null
+          created_at?: string
+          efficiency_score?: number | null
+          engagement_score?: number | null
+          had_escalation?: boolean | null
+          had_negative_sentiment?: boolean | null
+          id?: string
+          objectives_completed?: number | null
+          objectives_total?: number | null
+          overall_score?: number | null
+          qualification_score?: number | null
+          reached_goal?: boolean | null
+          scored_at?: string
+          scoring_method?: string | null
+          scoring_model?: string | null
+          sentiment_score?: number | null
+          user_message_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_scores_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -5007,6 +5262,95 @@ export type Database = {
           },
           {
             foreignKeyName: "conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copy_recommendations: {
+        Row: {
+          avg_score_with_original: number | null
+          based_on_conversations: number | null
+          confidence: number | null
+          context: string | null
+          created_at: string
+          example_conversation_ids: string[] | null
+          explanation: string
+          id: string
+          improvement_type: string
+          is_in_test: boolean | null
+          original_copy: string
+          projected_score_improvement: number | null
+          recommended_copy: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string | null
+          source_type: string
+          status: string
+          test_results: Json | null
+          test_started_at: string | null
+          test_variant: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          avg_score_with_original?: number | null
+          based_on_conversations?: number | null
+          confidence?: number | null
+          context?: string | null
+          created_at?: string
+          example_conversation_ids?: string[] | null
+          explanation: string
+          id?: string
+          improvement_type: string
+          is_in_test?: boolean | null
+          original_copy: string
+          projected_score_improvement?: number | null
+          recommended_copy: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string | null
+          source_type: string
+          status?: string
+          test_results?: Json | null
+          test_started_at?: string | null
+          test_variant?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          avg_score_with_original?: number | null
+          based_on_conversations?: number | null
+          confidence?: number | null
+          context?: string | null
+          created_at?: string
+          example_conversation_ids?: string[] | null
+          explanation?: string
+          id?: string
+          improvement_type?: string
+          is_in_test?: boolean | null
+          original_copy?: string
+          projected_score_improvement?: number | null
+          recommended_copy?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          test_results?: Json | null
+          test_started_at?: string | null
+          test_variant?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copy_recommendations_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -12509,6 +12853,93 @@ export type Database = {
         }
         Relationships: []
       }
+      persona_benchmarks: {
+        Row: {
+          avg_conversion_score: number | null
+          avg_engagement_score: number | null
+          avg_messages_to_goal: number | null
+          avg_overall_score: number | null
+          avg_qualification_score: number | null
+          avg_sentiment_score: number | null
+          avg_time_to_goal_minutes: number | null
+          created_at: string
+          escalation_rate: number | null
+          goal_completion_rate: number | null
+          id: string
+          negative_sentiment_rate: number | null
+          percentile: number | null
+          period_end: string
+          period_start: string
+          persona_id: string
+          rank_in_workspace: number | null
+          rule_violation_rate: number | null
+          total_conversations: number | null
+          total_messages: number | null
+          workspace_id: string
+        }
+        Insert: {
+          avg_conversion_score?: number | null
+          avg_engagement_score?: number | null
+          avg_messages_to_goal?: number | null
+          avg_overall_score?: number | null
+          avg_qualification_score?: number | null
+          avg_sentiment_score?: number | null
+          avg_time_to_goal_minutes?: number | null
+          created_at?: string
+          escalation_rate?: number | null
+          goal_completion_rate?: number | null
+          id?: string
+          negative_sentiment_rate?: number | null
+          percentile?: number | null
+          period_end: string
+          period_start: string
+          persona_id: string
+          rank_in_workspace?: number | null
+          rule_violation_rate?: number | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          workspace_id: string
+        }
+        Update: {
+          avg_conversion_score?: number | null
+          avg_engagement_score?: number | null
+          avg_messages_to_goal?: number | null
+          avg_overall_score?: number | null
+          avg_qualification_score?: number | null
+          avg_sentiment_score?: number | null
+          avg_time_to_goal_minutes?: number | null
+          created_at?: string
+          escalation_rate?: number | null
+          goal_completion_rate?: number | null
+          id?: string
+          negative_sentiment_rate?: number | null
+          percentile?: number | null
+          period_end?: string
+          period_start?: string
+          persona_id?: string
+          rank_in_workspace?: number | null
+          rule_violation_rate?: number | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_benchmarks_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persona_benchmarks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       persona_escalation_rules: {
         Row: {
           assign_to_team: string | null
@@ -19571,6 +20002,14 @@ export type Database = {
           p_trigger_type?: string
         }
         Returns: Json
+      }
+      build_conversation_replay: {
+        Args: { p_conversation_id: string }
+        Returns: Json
+      }
+      calculate_conversation_score: {
+        Args: { p_conversation_id: string }
+        Returns: number
       }
       calculate_module_margin: {
         Args: {
