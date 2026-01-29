@@ -49,6 +49,7 @@ export function KnowledgeBaseModule() {
     isLoading,
     createKnowledgeBase,
     addSource,
+    uploadDocument,
     createEntry,
     validateEntry,
     updateEntry,
@@ -209,6 +210,15 @@ export function KnowledgeBaseModule() {
       content: data.content,
       entryType: data.question ? 'faq' : 'article'
     });
+    setIsProcessing(false);
+  };
+  const handleAddDocument = async (file: File) => {
+    if (!selectedKB) {
+      toast.error('Seleciona uma base de conhecimento primeiro');
+      return;
+    }
+    setIsProcessing(true);
+    await uploadDocument(selectedKB, file);
     setIsProcessing(false);
   };
 
@@ -431,6 +441,18 @@ export function KnowledgeBaseModule() {
                         await handleAddManual(data);
                         const updated = await fetchEntries(selectedKB);
                         setEntries(updated);
+                      }}
+                      onAddDocument={async (file) => {
+                        await handleAddDocument(file);
+                        // Refresh after processing (documents take longer)
+                        setTimeout(async () => {
+                          const [entriesData, sourcesData] = await Promise.all([
+                            fetchEntries(selectedKB),
+                            fetchSources(selectedKB)
+                          ]);
+                          setEntries(entriesData);
+                          setSources(sourcesData as KnowledgeSource[]);
+                        }, 5000);
                       }}
                       isProcessing={isProcessing}
                     />

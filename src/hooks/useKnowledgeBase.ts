@@ -125,7 +125,7 @@ export function useKnowledgeBase() {
   };
 
   // Add source to knowledge base
-  const addSource = async (knowledgeBaseId: string, sourceType: string, data: { url?: string; content?: string }) => {
+  const addSource = async (knowledgeBaseId: string, sourceType: string, data: { url?: string; content?: string; filePath?: string; fileName?: string; mimeType?: string }) => {
     if (!currentWorkspace?.id || !user?.id) return null;
 
     try {
@@ -136,6 +136,7 @@ export function useKnowledgeBase() {
           workspace_id: currentWorkspace.id,
           source_type: sourceType,
           source_url: data.url,
+          source_file_path: data.filePath,
           original_content: data.content,
           processing_status: 'pending',
           created_by: user.id
@@ -145,8 +146,12 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      // Trigger processing
-      processSource(source.id, sourceType, data);
+      // Trigger appropriate processing based on source type
+      if (sourceType === 'document' && data.filePath && data.fileName && data.mimeType) {
+        processDocument(source.id, data.filePath, data.fileName, data.mimeType, knowledgeBaseId);
+      } else {
+        processSource(source.id, sourceType, data);
+      }
 
       toast.success('Fonte adicionada. A processar...');
       return source;
@@ -154,6 +159,77 @@ export function useKnowledgeBase() {
       console.error('Error adding source:', error);
       toast.error('Erro ao adicionar fonte');
       return null;
+    }
+  };
+
+  // Upload and process document
+  const uploadDocument = async (knowledgeBaseId: string, file: File) => {
+    if (!currentWorkspace?.id || !user?.id) return null;
+
+    try {
+      // Create unique file path
+      const timestamp = Date.now();
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${currentWorkspace.id}/${knowledgeBaseId}/${timestamp}_${sanitizedName}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('knowledge-documents')
+        .upload(filePath, file, {
+          contentType: file.type,
+          cacheControl: '3600'
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Create source record and trigger processing
+      const result = await addSource(knowledgeBaseId, 'document', {
+        filePath,
+        fileName: file.name,
+        mimeType: file.type
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error('Erro ao carregar documento');
+      return null;
+    }
+  };
+
+  // Process document with edge function
+  const processDocument = async (sourceId: string, filePath: string, fileName: string, mimeType: string, knowledgeBaseId: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('knowledge-document-process', {
+        body: {
+          sourceId,
+          filePath,
+          fileName,
+          mimeType,
+          knowledgeBaseId,
+          workspaceId: currentWorkspace?.id
+        }
+      });
+
+      if (error) {
+        console.error('Document processing error:', error);
+        await supabase
+          .from('knowledge_sources')
+          .update({
+            processing_status: 'failed',
+            processing_error: error.message || 'Processing failed'
+          })
+          .eq('id', sourceId);
+      }
+    } catch (error) {
+      console.error('Error processing document:', error);
+      await supabase
+        .from('knowledge_sources')
+        .update({
+          processing_status: 'failed',
+          processing_error: error instanceof Error ? error.message : 'Unknown error'
+        })
+        .eq('id', sourceId);
     }
   };
 
@@ -688,6 +764,7 @@ export function useKnowledgeBase() {
     // Actions
     createKnowledgeBase,
     addSource,
+    uploadDocument,
     createEntry,
     validateEntry,
     updateEntry,
