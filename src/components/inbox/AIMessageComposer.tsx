@@ -179,7 +179,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     };
 
     return (
-      <div className="p-3 border-t border-border bg-card space-y-2">
+      <div className="p-3 border-t border-border bg-card space-y-2 max-h-[50vh] flex flex-col">
         {/* AI Actions Bar */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs text-muted-foreground mr-1">AI:</span>
@@ -286,7 +286,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
 
         {/* AI Suggestions Panel */}
         {showAIPanel && (
-          <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+          <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3 flex-shrink overflow-y-auto max-h-48">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
