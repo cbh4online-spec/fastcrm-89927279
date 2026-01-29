@@ -80,7 +80,6 @@ const MENU_SECTIONS: {
     items: [
       { id: 'details', label: 'Informações', icon: Settings2, showFor: ['lead', 'contact', 'company'] },
       { id: 'custom-fields', label: 'Campos Personalizados', icon: Layers, showFor: ['lead', 'contact', 'company'] },
-      { id: 'history', label: 'Histórico', icon: History, showFor: ['lead', 'contact', 'company'] },
     ],
   },
 ];

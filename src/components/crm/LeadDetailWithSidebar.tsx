@@ -290,7 +290,7 @@ export function LeadDetailWithSidebar() {
             leadName={lead.name}
           />
         );
-      case 'history':
+      case 'timeline':
         return (
           <EntityTimelineSection
             entityType="lead"
