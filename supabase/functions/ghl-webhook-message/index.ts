@@ -213,6 +213,19 @@ serve(async (req) => {
 
     const workspaceId = config.workspace_id;
 
+    // Fetch workspace name for AI context (prevents cross-workspace confusion)
+    let workspaceName: string | null = null;
+    const { data: workspace } = await supabase
+      .from("workspaces")
+      .select("name")
+      .eq("id", workspaceId)
+      .single();
+    
+    if (workspace) {
+      workspaceName = workspace.name;
+      console.log("[GHL-MESSAGE] Workspace context", { workspaceId, workspaceName });
+    }
+
     // 2. Check idempotency - have we already processed this message?
     const { data: existingMessage } = await supabase
       .from("messages")
@@ -439,6 +452,7 @@ serve(async (req) => {
     if (isInbound) {
       triggerAutopilotResponse(supabase, supabaseUrl, supabaseServiceKey, {
         workspaceId,
+        workspaceName,
         conversationId,
         messageId: newMessage.id,
         channel,
@@ -581,6 +595,7 @@ function normalizeDirection(direction: string): string {
 
 interface AutopilotParams {
   workspaceId: string;
+  workspaceName: string | null;
   conversationId: string;
   messageId: string;
   channel: string;
@@ -596,7 +611,7 @@ async function triggerAutopilotResponse(
   supabaseServiceKey: string,
   params: AutopilotParams
 ): Promise<void> {
-  const { workspaceId, conversationId, channel, leadId, ghlContactId, locationId } = params;
+  const { workspaceId, workspaceName, conversationId, channel, leadId, ghlContactId, locationId } = params;
 
   console.log("[AUTOPILOT] Checking autopilot config for workspace", { workspaceId, conversationId });
 
@@ -761,6 +776,7 @@ async function triggerAutopilotResponse(
       leadData,
       channel,
       workspaceId,
+      workspaceName, // NEW: Pass workspace name for context when no persona/knowledge
       personaId: autopilotConfig.persona_id,
       useKnowledgeBase: true,
       conversationId,
