@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
 import { KnowledgeBaseList } from './KnowledgeBaseList';
 import { PersonaList } from './PersonaList';
@@ -88,33 +89,60 @@ export function KnowledgeBaseModule() {
   const [personaType, setPersonaType] = useState('atendimento');
   const [personaTone, setPersonaTone] = useState('empático');
 
+  // Function to load KB details
+  const loadKBDetails = async (kbId: string) => {
+    try {
+      const [entriesData, sourcesData] = await Promise.all([
+        fetchEntries(kbId),
+        fetchSources(kbId)
+      ]);
+      setEntries(entriesData);
+      setSources(sourcesData as KnowledgeSource[]);
+      return sourcesData;
+    } catch (error) {
+      console.error('Error loading KB details:', error);
+      return [];
+    }
+  };
+
   // Load entries and sources when a KB is selected
   useEffect(() => {
-    const loadKBDetails = async () => {
-      if (!selectedKB) {
-        setEntries([]);
-        setSources([]);
-        setIsLoadingDetails(false);
-        return;
-      }
-      
-      setIsLoadingDetails(true);
-      try {
-        const [entriesData, sourcesData] = await Promise.all([
-          fetchEntries(selectedKB),
-          fetchSources(selectedKB)
-        ]);
-        setEntries(entriesData);
-        setSources(sourcesData as KnowledgeSource[]);
-      } catch (error) {
-        console.error('Error loading KB details:', error);
-      } finally {
-        setIsLoadingDetails(false);
-      }
-    };
-
-    loadKBDetails();
+    if (!selectedKB) {
+      setEntries([]);
+      setSources([]);
+      setIsLoadingDetails(false);
+      return;
+    }
+    
+    setIsLoadingDetails(true);
+    loadKBDetails(selectedKB).finally(() => setIsLoadingDetails(false));
   }, [selectedKB, fetchEntries, fetchSources]);
+
+  // Auto-refresh when there are pending/processing sources
+  useEffect(() => {
+    if (!selectedKB) return;
+    
+    const hasPending = sources.some(s => 
+      s.processingStatus === 'pending' || s.processingStatus === 'processing'
+    );
+    
+    if (!hasPending) return;
+
+    // Poll every 5 seconds while there are pending sources
+    const interval = setInterval(async () => {
+      const updatedSources = await loadKBDetails(selectedKB);
+      const stillPending = (updatedSources as KnowledgeSource[]).some(s => 
+        s.processingStatus === 'pending' || s.processingStatus === 'processing'
+      );
+      
+      if (!stillPending) {
+        clearInterval(interval);
+        toast.success('Processamento concluído!');
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [selectedKB, sources]);
 
   // Tabs with counts
   const tabsWithCounts = useMemo(() => {
@@ -420,6 +448,28 @@ export function KnowledgeBaseModule() {
                     <KnowledgeSourcesPanel
                       sources={sources}
                       isLoading={isLoadingDetails}
+                      onReprocess={async (sourceId) => {
+                        const source = sources.find(s => s.id === sourceId);
+                        if (source) {
+                          toast.info('A reprocessar fonte...');
+                          // Reset status to pending
+                          await supabase
+                            .from('knowledge_sources')
+                            .update({ processing_status: 'processing' })
+                            .eq('id', sourceId);
+                          // Trigger reprocessing
+                          await supabase.functions.invoke('knowledge-process', {
+                            body: {
+                              sourceId,
+                              sourceType: source.sourceType,
+                              url: source.sourceUrl,
+                              knowledgeBaseType: 'general'
+                            }
+                          });
+                          // Refresh will happen via polling
+                          await loadKBDetails(selectedKB);
+                        }
+                      }}
                     />
                   </TabsContent>
 
@@ -427,32 +477,21 @@ export function KnowledgeBaseModule() {
                     <AddSourcePanel 
                       onAddUrl={async (url) => {
                         await handleAddUrl(url);
-                        // Refresh after processing
-                        setTimeout(async () => {
-                          const [entriesData, sourcesData] = await Promise.all([
-                            fetchEntries(selectedKB),
-                            fetchSources(selectedKB)
-                          ]);
-                          setEntries(entriesData);
-                          setSources(sourcesData as KnowledgeSource[]);
-                        }, 3000);
+                        // Initial refresh - polling will handle subsequent updates
+                        await loadKBDetails(selectedKB);
+                        setKbDetailTab('sources');
                       }}
                       onAddManual={async (data) => {
                         await handleAddManual(data);
                         const updated = await fetchEntries(selectedKB);
                         setEntries(updated);
+                        setKbDetailTab('entries');
                       }}
                       onAddDocument={async (file) => {
                         await handleAddDocument(file);
-                        // Refresh after processing (documents take longer)
-                        setTimeout(async () => {
-                          const [entriesData, sourcesData] = await Promise.all([
-                            fetchEntries(selectedKB),
-                            fetchSources(selectedKB)
-                          ]);
-                          setEntries(entriesData);
-                          setSources(sourcesData as KnowledgeSource[]);
-                        }, 5000);
+                        // Initial refresh - polling will handle subsequent updates
+                        await loadKBDetails(selectedKB);
+                        setKbDetailTab('sources');
                       }}
                       isProcessing={isProcessing}
                     />
