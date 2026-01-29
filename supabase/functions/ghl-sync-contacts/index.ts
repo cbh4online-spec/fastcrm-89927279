@@ -128,22 +128,32 @@ Deno.serve(async (req) => {
     while (hasMore && pageCount < maxPages) {
       pageCount++;
       
-      // Build GHL API URL
-      let ghlUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${locationId}&limit=100`;
+      // Build GHL API URL - use POST /contacts/search endpoint instead of GET /contacts
+      // This endpoint typically works with standard API keys
+      const ghlUrl = `https://services.leadconnectorhq.com/contacts/search`;
+
+      console.log(`[GHL Sync] Fetching page ${pageCount} via search endpoint`);
+
+      // Call GHL API using search endpoint with POST
+      const searchPayload: Record<string, unknown> = {
+        locationId: locationId,
+        limit: 100,
+        query: "", // Empty query returns all contacts
+      };
+      
       if (startAfterId) {
-        ghlUrl += `&startAfterId=${startAfterId}`;
+        searchPayload.startAfterId = startAfterId;
       }
 
-      console.log(`[GHL Sync] Fetching page ${pageCount}: ${ghlUrl}`);
-
-      // Call GHL API
       const ghlResponse = await fetch(ghlUrl, {
-        method: "GET",
+        method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           Version: "2021-07-28",
+          "Content-Type": "application/json",
           Accept: "application/json",
         },
+        body: JSON.stringify(searchPayload),
       });
 
       if (!ghlResponse.ok) {
@@ -152,16 +162,21 @@ Deno.serve(async (req) => {
         
         // Provide user-friendly error messages
         if (ghlResponse.status === 401) {
-          const errorData = JSON.parse(errorText).message || "";
-          if (errorData.includes("not authorized for this scope")) {
-            result.errors.push("A API Key não tem permissão para aceder aos contactos. Por favor, gere uma nova API Key no GHL com o scope 'contacts.readonly'.");
-          } else {
+          try {
+            const errorData = JSON.parse(errorText);
+            const errorMsg = errorData.message || "";
+            if (errorMsg.includes("not authorized for this scope")) {
+              result.errors.push("A API Key não tem permissão. Por favor, gere uma nova API Key no GHL com os scopes 'contacts.readonly' e 'contacts.search'.");
+            } else {
+              result.errors.push("API Key inválida ou expirada. Por favor, verifique a sua API Key.");
+            }
+          } catch {
             result.errors.push("API Key inválida ou expirada. Por favor, verifique a sua API Key.");
           }
         } else if (ghlResponse.status === 403) {
           result.errors.push("Acesso negado. Verifique se o Location ID está correcto.");
         } else {
-          result.errors.push(`Erro da API GHL: ${ghlResponse.status}`);
+          result.errors.push(`Erro da API GHL: ${ghlResponse.status} - ${errorText}`);
         }
         break;
       }
