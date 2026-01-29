@@ -436,9 +436,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Chat Messages */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <ScrollArea className="flex-1 p-4">
             {messagesLoading ? (
               <div className="flex items-center justify-center py-8">
