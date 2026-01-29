@@ -70,7 +70,7 @@ export function KnowledgeMetricsCard({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[...Array(6)].map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-4">
@@ -96,7 +96,7 @@ export function KnowledgeMetricsCard({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {stats.map((stat, index) => (
         <Card key={index} className="hover:shadow-md transition-shadow">
           <CardContent className="p-4">

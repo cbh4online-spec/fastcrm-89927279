@@ -564,12 +564,14 @@ export function KnowledgeBaseModule() {
       )}
 
       {activeTab === "query" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          {/* AI Chat Panel */}
           <AIQueryPanel 
             personas={personas}
             onQuery={queryKnowledge}
             context="test"
           />
+          {/* Metrics below */}
           <KnowledgeMetricsCard metrics={metrics} isLoading={isLoading} />
         </div>
       )}
