@@ -2554,6 +2554,164 @@ export type Database = {
           },
         ]
       }
+      channel_defaults: {
+        Row: {
+          channel: string
+          created_at: string
+          default_buttons: boolean | null
+          default_emojis: boolean | null
+          default_ideal_length: number
+          default_images: boolean | null
+          default_markdown: boolean | null
+          default_max_length: number
+          default_quick_replies: boolean | null
+          description: string | null
+          display_name: string
+          hard_limit_length: number | null
+          icon: string | null
+          id: string
+          requires_opt_in: boolean | null
+          supports_rich_text: boolean | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          default_buttons?: boolean | null
+          default_emojis?: boolean | null
+          default_ideal_length: number
+          default_images?: boolean | null
+          default_markdown?: boolean | null
+          default_max_length: number
+          default_quick_replies?: boolean | null
+          description?: string | null
+          display_name: string
+          hard_limit_length?: number | null
+          icon?: string | null
+          id?: string
+          requires_opt_in?: boolean | null
+          supports_rich_text?: boolean | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          default_buttons?: boolean | null
+          default_emojis?: boolean | null
+          default_ideal_length?: number
+          default_images?: boolean | null
+          default_markdown?: boolean | null
+          default_max_length?: number
+          default_quick_replies?: boolean | null
+          description?: string | null
+          display_name?: string
+          hard_limit_length?: number | null
+          icon?: string | null
+          id?: string
+          requires_opt_in?: boolean | null
+          supports_rich_text?: boolean | null
+        }
+        Relationships: []
+      }
+      channel_format_config: {
+        Row: {
+          channel: string
+          created_at: string
+          enable_message_splitting: boolean | null
+          greeting_style: string | null
+          id: string
+          ideal_response_length: number | null
+          is_active: boolean
+          link_preview: boolean | null
+          max_line_breaks: number | null
+          max_messages_per_response: number | null
+          max_response_length: number
+          max_typing_duration_ms: number | null
+          show_typing_indicator: boolean | null
+          signature_enabled: boolean | null
+          signature_text: string | null
+          split_delay_ms: number | null
+          supports_buttons: boolean | null
+          supports_cards: boolean | null
+          supports_images: boolean | null
+          supports_links: boolean | null
+          supports_quick_replies: boolean | null
+          truncation_strategy: string | null
+          typing_duration_per_char_ms: number | null
+          updated_at: string
+          use_emojis: boolean | null
+          use_line_breaks: boolean | null
+          use_markdown: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          enable_message_splitting?: boolean | null
+          greeting_style?: string | null
+          id?: string
+          ideal_response_length?: number | null
+          is_active?: boolean
+          link_preview?: boolean | null
+          max_line_breaks?: number | null
+          max_messages_per_response?: number | null
+          max_response_length?: number
+          max_typing_duration_ms?: number | null
+          show_typing_indicator?: boolean | null
+          signature_enabled?: boolean | null
+          signature_text?: string | null
+          split_delay_ms?: number | null
+          supports_buttons?: boolean | null
+          supports_cards?: boolean | null
+          supports_images?: boolean | null
+          supports_links?: boolean | null
+          supports_quick_replies?: boolean | null
+          truncation_strategy?: string | null
+          typing_duration_per_char_ms?: number | null
+          updated_at?: string
+          use_emojis?: boolean | null
+          use_line_breaks?: boolean | null
+          use_markdown?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          enable_message_splitting?: boolean | null
+          greeting_style?: string | null
+          id?: string
+          ideal_response_length?: number | null
+          is_active?: boolean
+          link_preview?: boolean | null
+          max_line_breaks?: number | null
+          max_messages_per_response?: number | null
+          max_response_length?: number
+          max_typing_duration_ms?: number | null
+          show_typing_indicator?: boolean | null
+          signature_enabled?: boolean | null
+          signature_text?: string | null
+          split_delay_ms?: number | null
+          supports_buttons?: boolean | null
+          supports_cards?: boolean | null
+          supports_images?: boolean | null
+          supports_links?: boolean | null
+          supports_quick_replies?: boolean | null
+          truncation_strategy?: string | null
+          typing_duration_per_char_ms?: number | null
+          updated_at?: string
+          use_emojis?: boolean | null
+          use_line_breaks?: boolean | null
+          use_markdown?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_format_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_entitlements: {
         Row: {
           company_id: string | null
@@ -19207,6 +19365,10 @@ export type Database = {
         Args: { p_name: string; p_slug: string }
         Returns: Json
       }
+      format_response_for_channel: {
+        Args: { p_channel: string; p_response: string; p_workspace_id: string }
+        Returns: Json
+      }
       generate_invoice_number: {
         Args: { p_workspace_id: string }
         Returns: string
@@ -19337,6 +19499,10 @@ export type Database = {
           slot_end: string
           slot_start: string
         }[]
+      }
+      get_channel_config: {
+        Args: { p_channel: string; p_workspace_id: string }
+        Returns: Json
       }
       get_entity_memory_stats: {
         Args: {
