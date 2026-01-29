@@ -7960,18 +7960,22 @@ export type Database = {
       }
       knowledge_entries: {
         Row: {
+          allowed_topics: string[] | null
           content: string
           created_at: string
           created_by: string
           embedding: string | null
           entry_type: string
           expires_at: string | null
+          forbidden_topics: string[] | null
           id: string
+          is_factual_only: boolean | null
           keywords: string[] | null
           knowledge_base_id: string
           last_used_at: string | null
           question: string | null
           source_id: string | null
+          source_priority: number | null
           status: string
           summary: string | null
           title: string
@@ -7982,18 +7986,22 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          allowed_topics?: string[] | null
           content: string
           created_at?: string
           created_by: string
           embedding?: string | null
           entry_type?: string
           expires_at?: string | null
+          forbidden_topics?: string[] | null
           id?: string
+          is_factual_only?: boolean | null
           keywords?: string[] | null
           knowledge_base_id: string
           last_used_at?: string | null
           question?: string | null
           source_id?: string | null
+          source_priority?: number | null
           status?: string
           summary?: string | null
           title: string
@@ -8004,18 +8012,22 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          allowed_topics?: string[] | null
           content?: string
           created_at?: string
           created_by?: string
           embedding?: string | null
           entry_type?: string
           expires_at?: string | null
+          forbidden_topics?: string[] | null
           id?: string
+          is_factual_only?: boolean | null
           keywords?: string[] | null
           knowledge_base_id?: string
           last_used_at?: string | null
           question?: string | null
           source_id?: string | null
+          source_priority?: number | null
           status?: string
           summary?: string | null
           title?: string
@@ -8108,9 +8120,11 @@ export type Database = {
       }
       knowledge_sources: {
         Row: {
+          allowed_topics: string[] | null
           created_at: string
           created_by: string
           extracted_topics: string[] | null
+          forbidden_topics: string[] | null
           id: string
           knowledge_base_id: string
           last_processed_at: string | null
@@ -8119,15 +8133,18 @@ export type Database = {
           processing_error: string | null
           processing_status: string | null
           source_file_path: string | null
+          source_priority: number | null
           source_type: string
           source_url: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          allowed_topics?: string[] | null
           created_at?: string
           created_by: string
           extracted_topics?: string[] | null
+          forbidden_topics?: string[] | null
           id?: string
           knowledge_base_id: string
           last_processed_at?: string | null
@@ -8136,15 +8153,18 @@ export type Database = {
           processing_error?: string | null
           processing_status?: string | null
           source_file_path?: string | null
+          source_priority?: number | null
           source_type: string
           source_url?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          allowed_topics?: string[] | null
           created_at?: string
           created_by?: string
           extracted_topics?: string[] | null
+          forbidden_topics?: string[] | null
           id?: string
           knowledge_base_id?: string
           last_processed_at?: string | null
@@ -8153,6 +8173,7 @@ export type Database = {
           processing_error?: string | null
           processing_status?: string | null
           source_file_path?: string | null
+          source_priority?: number | null
           source_type?: string
           source_url?: string | null
           updated_at?: string
@@ -18470,6 +18491,7 @@ export type Database = {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: string
       }
+      get_source_priority: { Args: { source_type: string }; Returns: number }
       get_upcoming_renewals: {
         Args: { days_ahead?: number }
         Returns: {
