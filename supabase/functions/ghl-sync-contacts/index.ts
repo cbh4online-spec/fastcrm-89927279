@@ -128,7 +128,16 @@ Deno.serve(async (req) => {
         .map(l => l.ghl_contact_id)
         .filter((id): id is string => id !== null)
     );
-    console.log(`[GHL Sync] Loaded ${existingGhlIds.size} existing GHL contacts from DB`);
+    
+    // DIAGNOSTIC LOGGING - Very detailed to identify the issue
+    console.log(`[GHL Sync] ========== DIAGNOSTIC START ==========`);
+    console.log(`[GHL Sync] existingLeadsData count: ${existingLeadsData?.length || 0}`);
+    console.log(`[GHL Sync] existingGhlIds Set size: ${existingGhlIds.size}`);
+    
+    // Log sample IDs from database
+    const sampleDbIds = Array.from(existingGhlIds).slice(0, 5);
+    console.log(`[GHL Sync] Sample DB ghl_contact_ids: ${sampleDbIds.length > 0 ? sampleDbIds.join(', ') : '(empty)'}`);
+    console.log(`[GHL Sync] ========== DIAGNOSTIC END ==========`);
 
     // If streaming is requested, use SSE
     if (stream) {
@@ -238,6 +247,18 @@ Deno.serve(async (req) => {
                 ai_next_action_type: null;
                 ai_temperature: string;
               }> = [];
+
+              // DEBUG: Log first page contact IDs for comparison
+              if (pageCount === 1) {
+                console.log(`[GHL Sync] ===== FIRST PAGE DEBUG =====`);
+                console.log(`[GHL Sync] First 3 GHL contact IDs from API:`);
+                for (let i = 0; i < Math.min(3, contacts.length); i++) {
+                  const c = contacts[i];
+                  const existsInSet = existingGhlIds.has(c.id);
+                  console.log(`[GHL Sync]   ${i+1}. ID="${c.id}" | Type=${typeof c.id} | ExistsInSet=${existsInSet}`);
+                }
+                console.log(`[GHL Sync] ===== END FIRST PAGE DEBUG =====`);
+              }
 
               for (const contact of contacts) {
                 result.total_processed++;
