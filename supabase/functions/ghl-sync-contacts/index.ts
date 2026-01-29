@@ -214,6 +214,14 @@ Deno.serve(async (req) => {
                 .in("ghl_contact_id", ghlIds);
 
               const existingGhlIds = new Set((existingByGhlId || []).map(l => l.ghl_contact_id));
+              
+              // DIAGNOSTIC: Log query results
+              console.log(`[GHL Sync] Page ${pageCount}: ${ghlIds.length} GHL IDs sent, ${existingByGhlId?.length || 0} found in DB`);
+              
+              if (pageCount === 1 && contacts.length > 0) {
+                console.log(`[GHL Sync] Sample GHL contact ID: "${contacts[0].id}"`);
+                console.log(`[GHL Sync] Sample existing IDs in Set: ${Array.from(existingGhlIds).slice(0,3).map(id => `"${id}"`).join(', ') || 'NONE'}`);
+              }
 
               // Prepare batch inserts
               const leadsToInsert: Array<{
@@ -253,6 +261,9 @@ Deno.serve(async (req) => {
                   ghl_synced_at: new Date().toISOString(),
                 });
               }
+
+              // DIAGNOSTIC: Log insert decision
+              console.log(`[GHL Sync] Page ${pageCount}: ${leadsToInsert.length} to insert, ${result.skipped} skipped total so far`);
 
               // Batch insert new leads (using direct insert since we already checked for existing)
               if (leadsToInsert.length > 0) {
