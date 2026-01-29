@@ -62,6 +62,7 @@ interface InboxReplyRequest {
   currentReply?: string;
   modifyAction?: "shorten" | "direct" | "rewrite" | "formal" | "friendly" | "commercial";
   workspaceId?: string;
+  workspaceName?: string;
   personaId?: string;
   useKnowledgeBase?: boolean;
   conversationId?: string;
@@ -283,9 +284,42 @@ const buildSystemPrompt = (
   channel?: string, 
   template?: TemplateData,
   knowledgeEntries?: KnowledgeEntry[],
-  persona?: any
+  persona?: any,
+  workspaceName?: string
 ): string => {
   const channelGuide = channel ? channelGuidelines[channel] || channelGuidelines.webchat : channelGuidelines.webchat;
+  
+  // ULTRA-RESTRICTIVE FALLBACK: When no knowledge base AND no persona configured
+  // This prevents the AI from inventing product/service information
+  if ((!knowledgeEntries || knowledgeEntries.length === 0) && !persona) {
+    console.log("[AI-INBOX-REPLY] No persona and no knowledge entries - using ultra-restrictive fallback mode");
+    const businessName = workspaceName || "a nossa empresa";
+    
+    return `Sou assistente virtual de ${businessName}.
+
+## REGRAS ABSOLUTAS - CUMPRIR RIGOROSAMENTE:
+1. NÃO conheço os produtos, serviços ou cursos específicos desta empresa
+2. NÃO posso dar detalhes sobre preços, ofertas ou promoções  
+3. NÃO posso inventar nomes de produtos, métodos, cursos ou serviços
+4. NÃO posso fazer promessas ou compromissos em nome da empresa
+5. NUNCA mencionar produtos ou serviços que não foram explicitamente mencionados pelo cliente
+6. NUNCA inventar informação que não tenho
+
+## O QUE POSSO FAZER:
+- Confirmar a receção da mensagem de forma educada
+- Agradecer o contacto
+- Explicar que vou encaminhar para um colega da equipa
+- Perguntar como posso ajudar de forma genérica
+- Sugerir que um especialista entrará em contacto
+
+## RESPOSTA PADRÃO:
+Se o cliente perguntar sobre produtos, serviços, cursos ou preços, responder algo como:
+"Obrigado pelo seu interesse! Vou encaminhar a sua questão para um colega especializado que poderá dar-lhe todas as informações detalhadas. Em breve entraremos em contacto!"
+
+${channelGuide}
+
+Responde APENAS em Português de Portugal. Sê breve, educado e profissional.`;
+  }
   
   // Persona-specific instructions
   let personaInstructions = "";
@@ -525,6 +559,7 @@ serve(async (req) => {
       currentReply,
       modifyAction,
       workspaceId,
+      workspaceName,
       personaId,
       useKnowledgeBase = true,
       conversationId,
@@ -687,7 +722,8 @@ serve(async (req) => {
       userContent += "Personalize this template using the conversation context and lead data provided above.\n";
     }
 
-    const systemPrompt = buildSystemPrompt(action, channel, template, knowledgeEntries, persona);
+    // Pass workspaceName for fallback context when no persona/knowledge
+    const systemPrompt = buildSystemPrompt(action, channel, template, knowledgeEntries, persona, workspaceName);
     const actionTools = tools[action];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
