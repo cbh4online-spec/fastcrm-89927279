@@ -306,14 +306,15 @@ Deno.serve(async (req) => {
               .update({ last_sync_at: new Date().toISOString() })
               .eq("workspace_id", workspace_id);
 
-            // Log sync result (use placeholder for required fastcrm_entity_id)
-            const syncLogId = `sync_${Date.now()}`;
+            // Log sync result with valid UUIDs
+            const syncLogId = crypto.randomUUID();
+            console.log(`[GHL Sync] Final result: created=${result.created}, skipped=${result.skipped}, errors=${result.errors.length}`);
             await supabase.from("ghl_sync_log").insert({
               workspace_id,
               ghl_entity_type: "contact_batch",
               ghl_entity_id: syncLogId,
               fastcrm_entity_type: "leads",
-              fastcrm_entity_id: syncLogId, // Use sync ID as placeholder for batch operations
+              fastcrm_entity_id: syncLogId,
               event_type: timedOut ? "partial_sync" : (result.errors.length > 0 ? "sync_with_errors" : "full_sync"),
               payload: {
                 created: result.created,
@@ -518,14 +519,15 @@ Deno.serve(async (req) => {
       .update({ last_sync_at: new Date().toISOString() })
       .eq("workspace_id", workspace_id);
 
-    // Log sync result (use placeholder for required fastcrm_entity_id)
-    const syncLogId = `sync_${Date.now()}`;
+    // Log sync result with valid UUIDs
+    const syncLogId = crypto.randomUUID();
+    console.log(`[GHL Sync] Final result: created=${result.created}, skipped=${result.skipped}, errors=${result.errors.length}`);
     await supabase.from("ghl_sync_log").insert({
       workspace_id,
       ghl_entity_type: "contact_batch",
       ghl_entity_id: syncLogId,
       fastcrm_entity_type: "leads",
-      fastcrm_entity_id: syncLogId, // Use sync ID as placeholder for batch operations
+      fastcrm_entity_id: syncLogId,
       event_type: timedOut ? "partial_sync" : (result.errors.length > 0 ? "sync_with_errors" : "full_sync"),
       payload: {
         created: result.created,
