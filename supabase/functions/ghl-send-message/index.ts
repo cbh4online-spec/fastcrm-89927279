@@ -115,19 +115,36 @@ serve(async (req) => {
         contactPayload.email = contactEmail;
       }
       
-      // Add name - use lead/contact name or generate from identifier
-      const leadName = (conversation as Record<string, unknown>).lead as { name?: string } | null;
-      const contactName = (conversation as Record<string, unknown>).contact as { name?: string } | null;
-      const name = (leadName as { name?: string } | undefined)?.name || 
-                   (contactName as { name?: string } | undefined)?.name || 
-                   (instagramUsername ? `@${instagramUsername}` : contactPhone || "Unknown Contact");
-      contactPayload.name = name;
+      // Get name from lead/contact
+      const leadObj = conversation.lead as { name?: string } | null;
+      const contactObj = conversation.contact as { name?: string } | null;
+      const fullName = (Array.isArray(leadObj) ? leadObj[0]?.name : leadObj?.name) || 
+                       (Array.isArray(contactObj) ? contactObj[0]?.name : contactObj?.name) || "";
       
-      // For Instagram, we need to set up the contact with custom fields or tags
+      // GHL requires at least firstName or lastName (does not accept just "name")
+      if (fullName && !fullName.startsWith("@")) {
+        const nameParts = fullName.trim().split(" ");
+        contactPayload.firstName = nameParts[0];
+        if (nameParts.length > 1) {
+          contactPayload.lastName = nameParts.slice(1).join(" ");
+        }
+      } else if (instagramUsername) {
+        // For Instagram without real name, use username as firstName
+        contactPayload.firstName = instagramUsername;
+        contactPayload.lastName = "(Instagram)";
+      } else if (contactPhone) {
+        // For contacts with only phone
+        contactPayload.firstName = "Contacto";
+        contactPayload.lastName = contactPhone;
+      } else {
+        // Absolute fallback
+        contactPayload.firstName = "Contacto";
+        contactPayload.lastName = "Desconhecido";
+      }
+      
+      // For Instagram, add tags and custom fields
       if (instagramUsername) {
         contactPayload.tags = ["instagram", `ig:${instagramUsername}`];
-        // Note: GHL doesn't have a native Instagram username field, 
-        // we'll add it as custom value if possible
         contactPayload.customFields = [
           { key: "instagram_username", value: instagramUsername }
         ];
