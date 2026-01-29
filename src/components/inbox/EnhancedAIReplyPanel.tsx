@@ -361,7 +361,7 @@ export function EnhancedAIReplyPanel({
                   </div>
                 )}
 
-                <div className="p-2 bg-muted/50 rounded-lg border text-xs whitespace-pre-wrap">
+                <div className="p-2 bg-muted/50 rounded-lg border text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
                   {templateDraft}
                 </div>
 
@@ -455,7 +455,7 @@ export function EnhancedAIReplyPanel({
 
               {/* Preview */}
               {displayReply && (
-                <div className="p-2 bg-background rounded-lg border">
+                <div className="p-2 bg-background rounded-lg border max-h-40 overflow-y-auto">
                   <p className="text-xs whitespace-pre-wrap">{displayReply}</p>
                 </div>
               )}
