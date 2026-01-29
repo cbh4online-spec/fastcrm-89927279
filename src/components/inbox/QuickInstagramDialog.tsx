@@ -15,7 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useInstagramConnection } from "@/hooks/useInstagramConnection";
+import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { findOrCreateLeadByField, findOrCreateConversation, createOutboundMessage } from "./composeHelpers";
@@ -31,15 +31,13 @@ export function QuickInstagramDialog({
 }: QuickInstagramDialogProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
-  const { data: instagramConnection } = useInstagramConnection();
+  const { config: ghlConfig, isConfigured } = useWorkspaceGHLConfig();
   const navigate = useNavigate();
   
   const [instagramUsername, setInstagramUsername] = useState("");
   const [contactName, setContactName] = useState("");
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
-
-  const isConnected = instagramConnection?.is_active;
 
   const handleGoToSettings = () => {
     onOpenChange(false);
@@ -58,8 +56,8 @@ export function QuickInstagramDialog({
       return;
     }
 
-    if (!isConnected || !instagramConnection) {
-      toast.error("Configure a conexão Instagram nas Definições > Canais");
+    if (!isConfigured || !ghlConfig) {
+      toast.error("Configure a integração GHL nas Definições > Canais");
       return;
     }
 
@@ -90,13 +88,14 @@ export function QuickInstagramDialog({
         { instagram_username: normalizedUsername }
       );
 
-      // Send message via Instagram edge function
-      const { error } = await supabase.functions.invoke("instagram-send-message", {
+      // Send message via GHL edge function (Instagram = IG type)
+      const { error } = await supabase.functions.invoke("ghl-send-message", {
         body: {
           workspaceId: currentWorkspace.id,
           conversationId: conversationId,
-          recipientUsername: normalizedUsername,
           message: message.trim(),
+          channel: "IG",
+          instagramUsername: normalizedUsername,
         },
       });
 
@@ -133,16 +132,16 @@ export function QuickInstagramDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {!isConnected ? (
+          {!isConfigured ? (
             <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-3">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                    Instagram não conectado
+                    Integração GHL não configurada
                   </p>
                   <p className="text-sm text-amber-600 dark:text-amber-500">
-                    Para enviar mensagens no Instagram, conecte a sua conta nas definições.
+                    Para enviar mensagens no Instagram, configure a integração GoHighLevel nas definições.
                   </p>
                 </div>
               </div>
@@ -160,7 +159,7 @@ export function QuickInstagramDialog({
               <div className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10 border border-green-500/20">
                 <CheckCircle2 className="w-4 h-4 text-green-500" />
                 <span className="text-sm text-green-700 dark:text-green-400">
-                  Conectado como @{instagramConnection.instagram_username}
+                  Integração GHL activa
                 </span>
               </div>
 
@@ -206,7 +205,7 @@ export function QuickInstagramDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          {isConnected && (
+          {isConfigured && (
             <Button
               onClick={handleSend}
               disabled={isSending || !instagramUsername.trim() || !message.trim()}
