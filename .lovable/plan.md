@@ -1,71 +1,68 @@
 
 
-# Plano: Corrigir Sincronização de Contactos GHL
+# Plano: Forçar Re-deploy e Corrigir Lógica de Sincronização GHL
 
-## Problema Identificado
+## Diagnóstico Completo
 
-A sincronização de contactos do GoHighLevel não está a guardar novos leads na base de dados. O sistema processa 10.000+ contactos mas mostra **0 criados** e todos como "existentes".
+Após análise detalhada, identifiquei **três problemas** que impedem a sincronização:
 
-### Causas Raiz
+### Problema 1: Função Não Foi Deployada
+Os logs da Edge Function mostram apenas `[GHL Sync] Fetching page X` mas **não mostram** os novos logs `Page X: Inserting X new leads` que foram adicionados. Isto confirma que a versão deployada ainda é antiga.
 
-1. **Índice Parcial Incompatível**: O índice único `idx_leads_ghl_contact_unique` é um *partial index* (`WHERE ghl_contact_id IS NOT NULL`). O Supabase `upsert` com `onConflict` **não funciona corretamente** com índices parciais - requer uma constraint nomeada.
+### Problema 2: Erro no ghl_sync_log
+O PostgreSQL está a rejeitar inserções no `ghl_sync_log` porque a coluna `fastcrm_entity_id` é do tipo **UUID** mas o código tenta inserir uma string `sync_1769687581930`:
+```
+ERROR: invalid input syntax for type uuid: "sync_1769687581930"
+```
 
-2. **Fallback Silencioso**: Quando o `onConflict` falha em encontrar a constraint, o upsert trata todos os registos como conflitos e não insere nada (comportamento de `ignoreDuplicates: true`).
-
-3. **Verificação Prévia Insuficiente**: Apesar de haver uma verificação de IDs existentes antes do insert, o problema está no upsert que falha silenciosamente.
+### Problema 3: Contagem Errada
+Mesmo que os inserts funcionassem, a lógica actual pode não estar a contar correctamente os contactos criados.
 
 ---
 
-## Solução Proposta
+## Solução
 
-### Passo 1: Criar Constraint Única Real (Base de Dados)
+### Passo 1: Corrigir a Inserção no ghl_sync_log
 
-Converter o índice parcial numa constraint única adequada que o Supabase possa usar:
-
-```sql
--- Remover índice parcial existente
-DROP INDEX IF EXISTS idx_leads_ghl_contact_unique;
-
--- Criar uma constraint única real
-ALTER TABLE leads ADD CONSTRAINT leads_ghl_contact_unique 
-  UNIQUE (workspace_id, ghl_contact_id);
-```
-
-**Nota**: Isso permitirá `ghl_contact_id` NULL (pois NULLs são únicos por defeito em PostgreSQL).
-
-### Passo 2: Simplificar Lógica de Insert (Edge Function)
-
-Modificar `ghl-sync-contacts/index.ts` para usar **insert directo** em vez de upsert, dado que já verificamos existentes:
+Modificar a função para usar um UUID válido em vez de string:
 
 ```typescript
-// Em vez de upsert problemático:
-if (leadsToInsert.length > 0) {
-  const { error: insertError, data: insertedData } = await supabase
-    .from("leads")
-    .insert(leadsToInsert)
-    .select("id");
+// ANTES (erro):
+const syncLogId = `sync_${Date.now()}`;
+await supabase.from("ghl_sync_log").insert({
+  fastcrm_entity_id: syncLogId, // STRING - ERRO!
+});
 
-  if (insertError) {
-    // Se houver erro de conflito, é porque já existe - ignorar
-    if (insertError.code === '23505') {
-      console.log(`[GHL Sync] Some contacts already exist, skipping`);
-    } else {
-      console.error(`[GHL Sync] Batch insert error:`, insertError);
-      result.errors.push(`Batch error: ${insertError.message}`);
-    }
-  } else {
-    result.created += insertedData?.length || 0;
-  }
+// DEPOIS (correcto):
+// Usar crypto.randomUUID() para gerar UUID válido
+const syncLogId = crypto.randomUUID();
+await supabase.from("ghl_sync_log").insert({
+  fastcrm_entity_id: syncLogId, // UUID válido
+});
+```
+
+### Passo 2: Adicionar Logging Detalhado
+
+Adicionar logs mais explícitos para debug:
+
+```typescript
+console.log(`[GHL Sync] Page ${pageCount}: ${contacts.length} from GHL, ${existingGhlIds.size} existing, ${leadsToInsert.length} to insert`);
+```
+
+### Passo 3: Verificar e Tratar Erros de Insert
+
+Garantir que erros são logados correctamente:
+
+```typescript
+if (insertError) {
+  console.error(`[GHL Sync] Insert error code ${insertError.code}:`, insertError.message);
+  // Continuar mesmo com erro para processar próxima página
 }
 ```
 
-### Passo 3: Adicionar Logging de Debug
+### Passo 4: Re-deploy Forçado
 
-Adicionar logs detalhados para ver exactamente o que está a acontecer:
-
-```typescript
-console.log(`[GHL Sync] Page ${pageCount}: ${contacts.length} contacts, ${leadsToInsert.length} new to insert, ${result.skipped} skipped`);
-```
+Após as alterações, a função precisa ser deployada novamente para que as alterações entrem em vigor.
 
 ---
 
@@ -73,16 +70,15 @@ console.log(`[GHL Sync] Page ${pageCount}: ${contacts.length} contacts, ${leadsT
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `supabase/migrations/...` | Criar constraint única real |
-| `supabase/functions/ghl-sync-contacts/index.ts` | Usar insert directo + logging |
+| `supabase/functions/ghl-sync-contacts/index.ts` | Corrigir UUID no sync log + adicionar logging detalhado |
 
 ---
 
 ## Resultado Esperado
 
 Após implementação:
-- Os contactos novos serão inseridos corretamente
-- A barra de progresso mostrará contagens reais
-- Contactos existentes serão correctamente ignorados
-- Logs detalhados para debugging
+1. A função será deployada com o código correcto
+2. Os logs mostrarão exactamente quantos contactos são processados vs. inseridos
+3. O `ghl_sync_log` será escrito sem erros
+4. Os contactos novos serão criados na tabela `leads`
 
