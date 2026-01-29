@@ -3667,6 +3667,84 @@ export type Database = {
           },
         ]
       }
+      compliance_violations: {
+        Row: {
+          auto_blocked: boolean | null
+          conversation_id: string
+          corrective_action: string | null
+          created_at: string
+          expected_behavior: string | null
+          id: string
+          led_to_complaint: boolean | null
+          led_to_escalation: boolean | null
+          message_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rule_description: string
+          rule_id: string | null
+          rule_type: string
+          severity: string
+          violated_content: string | null
+          violation_type: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_blocked?: boolean | null
+          conversation_id: string
+          corrective_action?: string | null
+          created_at?: string
+          expected_behavior?: string | null
+          id?: string
+          led_to_complaint?: boolean | null
+          led_to_escalation?: boolean | null
+          message_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_description: string
+          rule_id?: string | null
+          rule_type: string
+          severity?: string
+          violated_content?: string | null
+          violation_type: string
+          workspace_id: string
+        }
+        Update: {
+          auto_blocked?: boolean | null
+          conversation_id?: string
+          corrective_action?: string | null
+          created_at?: string
+          expected_behavior?: string | null
+          id?: string
+          led_to_complaint?: boolean | null
+          led_to_escalation?: boolean | null
+          message_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_description?: string
+          rule_id?: string | null
+          rule_type?: string
+          severity?: string
+          violated_content?: string | null
+          violation_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_violations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_violations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumption_logs: {
         Row: {
           acquired_product_id: string
@@ -15307,6 +15385,71 @@ export type Database = {
           },
         ]
       }
+      response_validations: {
+        Row: {
+          action_taken: string
+          check_commercial_rules: boolean | null
+          check_forbidden_content: boolean | null
+          check_knowledge_bounds: boolean | null
+          check_length_limits: boolean | null
+          check_persona_alignment: boolean | null
+          check_vibe_compliance: boolean | null
+          conversation_id: string
+          created_at: string
+          failed_checks: Json | null
+          id: string
+          modified_response: string | null
+          passed_all_checks: boolean
+          proposed_response: string
+          validation_latency_ms: number | null
+          workspace_id: string
+        }
+        Insert: {
+          action_taken: string
+          check_commercial_rules?: boolean | null
+          check_forbidden_content?: boolean | null
+          check_knowledge_bounds?: boolean | null
+          check_length_limits?: boolean | null
+          check_persona_alignment?: boolean | null
+          check_vibe_compliance?: boolean | null
+          conversation_id: string
+          created_at?: string
+          failed_checks?: Json | null
+          id?: string
+          modified_response?: string | null
+          passed_all_checks: boolean
+          proposed_response: string
+          validation_latency_ms?: number | null
+          workspace_id: string
+        }
+        Update: {
+          action_taken?: string
+          check_commercial_rules?: boolean | null
+          check_forbidden_content?: boolean | null
+          check_knowledge_bounds?: boolean | null
+          check_length_limits?: boolean | null
+          check_persona_alignment?: boolean | null
+          check_vibe_compliance?: boolean | null
+          conversation_id?: string
+          created_at?: string
+          failed_checks?: Json | null
+          id?: string
+          modified_response?: string | null
+          passed_all_checks?: boolean
+          proposed_response?: string
+          validation_latency_ms?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "response_validations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saas_categories: {
         Row: {
           color: string | null
@@ -17376,6 +17519,163 @@ export type Database = {
           },
         ]
       }
+      success_metrics_daily: {
+        Row: {
+          audit_pass_rate: number | null
+          avg_conversation_score: number | null
+          avg_messages_to_goal: number | null
+          avg_response_latency_ms: number | null
+          avg_time_to_preregistration_minutes: number | null
+          classification_accuracy: number | null
+          compliance_rate: number | null
+          concurrent_conversations_peak: number | null
+          conversations_audited: number | null
+          created_at: string
+          escalation_rate: number | null
+          friction_points_detected: number | null
+          goal_path_deviation_rate: number | null
+          id: string
+          leads_disqualified: number | null
+          leads_qualified: number | null
+          metric_date: string
+          preregistration_completed: number | null
+          preregistration_conversion_rate: number | null
+          preregistration_started: number | null
+          reclassification_rate: number | null
+          timeout_rate: number | null
+          total_conversations: number | null
+          total_messages: number | null
+          unique_leads: number | null
+          violations_blocked: number | null
+          violations_count: number | null
+          violations_critical: number | null
+          workspace_id: string
+        }
+        Insert: {
+          audit_pass_rate?: number | null
+          avg_conversation_score?: number | null
+          avg_messages_to_goal?: number | null
+          avg_response_latency_ms?: number | null
+          avg_time_to_preregistration_minutes?: number | null
+          classification_accuracy?: number | null
+          compliance_rate?: number | null
+          concurrent_conversations_peak?: number | null
+          conversations_audited?: number | null
+          created_at?: string
+          escalation_rate?: number | null
+          friction_points_detected?: number | null
+          goal_path_deviation_rate?: number | null
+          id?: string
+          leads_disqualified?: number | null
+          leads_qualified?: number | null
+          metric_date: string
+          preregistration_completed?: number | null
+          preregistration_conversion_rate?: number | null
+          preregistration_started?: number | null
+          reclassification_rate?: number | null
+          timeout_rate?: number | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          unique_leads?: number | null
+          violations_blocked?: number | null
+          violations_count?: number | null
+          violations_critical?: number | null
+          workspace_id: string
+        }
+        Update: {
+          audit_pass_rate?: number | null
+          avg_conversation_score?: number | null
+          avg_messages_to_goal?: number | null
+          avg_response_latency_ms?: number | null
+          avg_time_to_preregistration_minutes?: number | null
+          classification_accuracy?: number | null
+          compliance_rate?: number | null
+          concurrent_conversations_peak?: number | null
+          conversations_audited?: number | null
+          created_at?: string
+          escalation_rate?: number | null
+          friction_points_detected?: number | null
+          goal_path_deviation_rate?: number | null
+          id?: string
+          leads_disqualified?: number | null
+          leads_qualified?: number | null
+          metric_date?: string
+          preregistration_completed?: number | null
+          preregistration_conversion_rate?: number | null
+          preregistration_started?: number | null
+          reclassification_rate?: number | null
+          timeout_rate?: number | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          unique_leads?: number | null
+          violations_blocked?: number | null
+          violations_count?: number | null
+          violations_critical?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_metrics_daily_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      success_thresholds: {
+        Row: {
+          created_at: string
+          critical_threshold: number | null
+          higher_is_better: boolean
+          id: string
+          is_active: boolean | null
+          metric_category: string
+          metric_key: string
+          metric_name: string
+          target_value: number
+          updated_at: string
+          warning_threshold: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          critical_threshold?: number | null
+          higher_is_better?: boolean
+          id?: string
+          is_active?: boolean | null
+          metric_category: string
+          metric_key: string
+          metric_name: string
+          target_value: number
+          updated_at?: string
+          warning_threshold?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          critical_threshold?: number | null
+          higher_is_better?: boolean
+          id?: string
+          is_active?: boolean | null
+          metric_category?: string
+          metric_key?: string
+          metric_name?: string
+          target_value?: number
+          updated_at?: string
+          warning_threshold?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_thresholds_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_incidents: {
         Row: {
           created_at: string
@@ -19137,6 +19437,77 @@ export type Database = {
           },
         ]
       }
+      workspace_health: {
+        Row: {
+          active_alerts: Json | null
+          active_conversations: number | null
+          ai_engine_status: string | null
+          avg_latency_last_hour_ms: number | null
+          capacity_utilization: number | null
+          error_rate_last_hour: number | null
+          health_status: string
+          id: string
+          integration_status: string | null
+          knowledge_base_status: string | null
+          last_error_at: string | null
+          last_error_message: string | null
+          last_health_check: string
+          messages_last_hour: number | null
+          rules_engine_status: string | null
+          throttling_active: boolean | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active_alerts?: Json | null
+          active_conversations?: number | null
+          ai_engine_status?: string | null
+          avg_latency_last_hour_ms?: number | null
+          capacity_utilization?: number | null
+          error_rate_last_hour?: number | null
+          health_status?: string
+          id?: string
+          integration_status?: string | null
+          knowledge_base_status?: string | null
+          last_error_at?: string | null
+          last_error_message?: string | null
+          last_health_check?: string
+          messages_last_hour?: number | null
+          rules_engine_status?: string | null
+          throttling_active?: boolean | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active_alerts?: Json | null
+          active_conversations?: number | null
+          ai_engine_status?: string | null
+          avg_latency_last_hour_ms?: number | null
+          capacity_utilization?: number | null
+          error_rate_last_hour?: number | null
+          health_status?: string
+          id?: string
+          integration_status?: string | null
+          knowledge_base_status?: string | null
+          last_error_at?: string | null
+          last_error_message?: string | null
+          last_health_check?: string
+          messages_last_hour?: number | null
+          rules_engine_status?: string | null
+          throttling_active?: boolean | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_health_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_industry_labels: {
         Row: {
           created_at: string
@@ -20026,6 +20397,10 @@ export type Database = {
           total_subscriptions: number
         }[]
       }
+      calculate_success_metrics: {
+        Args: { p_date?: string; p_workspace_id: string }
+        Returns: Json
+      }
       check_agent_rate_limit: {
         Args: {
           p_agent_type: string
@@ -20402,6 +20777,10 @@ export type Database = {
         Args: { p_vibe_profile_id: string }
         Returns: string
       }
+      get_workspace_health_summary: {
+        Args: { p_workspace_id: string }
+        Returns: Json
+      }
       get_workspace_stripe_config: {
         Args: { p_workspace_id: string }
         Returns: {
@@ -20661,6 +21040,15 @@ export type Database = {
           p_validated_by?: string
         }
         Returns: boolean
+      }
+      validate_response_compliance: {
+        Args: {
+          p_conversation_context?: Json
+          p_persona_id?: string
+          p_response: string
+          p_workspace_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {
