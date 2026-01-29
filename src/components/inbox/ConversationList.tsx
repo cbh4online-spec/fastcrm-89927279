@@ -72,6 +72,11 @@ const channelIcons: Record<ConversationChannel, React.ElementType> = {
   webchat: Globe,
   instagram: Instagram,
   facebook: Facebook,
+  messenger: Facebook,
+  live_chat: MessageSquare,
+  web_widget: Globe,
+  phone: Phone,
+  other: MessageSquare,
 };
 
 const channelColors: Record<ConversationChannel, string> = {
@@ -81,6 +86,11 @@ const channelColors: Record<ConversationChannel, string> = {
   webchat: "text-cyan-500 bg-cyan-500/10",
   instagram: "text-pink-500 bg-pink-500/10",
   facebook: "text-indigo-500 bg-indigo-500/10",
+  messenger: "text-blue-600 bg-blue-600/10",
+  live_chat: "text-teal-500 bg-teal-500/10",
+  web_widget: "text-cyan-500 bg-cyan-500/10",
+  phone: "text-green-600 bg-green-600/10",
+  other: "text-gray-500 bg-gray-500/10",
 };
 
 export type ConversationPriority = "high" | "medium" | "low";

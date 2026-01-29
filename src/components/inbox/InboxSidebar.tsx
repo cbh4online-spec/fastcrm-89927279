@@ -67,6 +67,7 @@ const channels: ChannelItem[] = [
   { id: "whatsapp", label: "WhatsApp", icon: Phone, color: "text-green-500" },
   { id: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
   { id: "facebook", label: "Facebook", icon: Facebook, color: "text-indigo-500" },
+  { id: "messenger", label: "Messenger", icon: Facebook, color: "text-blue-600" },
   { id: "webchat", label: "Website", icon: Globe, color: "text-cyan-500" },
 ];
 
@@ -113,9 +114,14 @@ export function InboxSidebar({
     email: allConversations?.filter(c => c.channel === "email").length || 0,
     whatsapp: allConversations?.filter(c => c.channel === "whatsapp").length || 0,
     instagram: allConversations?.filter(c => c.channel === "instagram").length || 0,
-    facebook: allConversations?.filter(c => c.channel === "facebook").length || 0,
-    webchat: allConversations?.filter(c => c.channel === "webchat").length || 0,
+    facebook: allConversations?.filter(c => c.channel === "facebook" || c.channel === "messenger").length || 0,
+    messenger: allConversations?.filter(c => c.channel === "messenger").length || 0,
+    webchat: allConversations?.filter(c => c.channel === "webchat" || c.channel === "web_widget" || c.channel === "live_chat").length || 0,
     sms: allConversations?.filter(c => c.channel === "sms").length || 0,
+    live_chat: allConversations?.filter(c => c.channel === "live_chat").length || 0,
+    web_widget: allConversations?.filter(c => c.channel === "web_widget").length || 0,
+    phone: allConversations?.filter(c => c.channel === "phone").length || 0,
+    other: allConversations?.filter(c => c.channel === "other").length || 0,
   };
 
   // Get recent contacts from conversations
