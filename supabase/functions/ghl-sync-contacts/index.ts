@@ -128,32 +128,22 @@ Deno.serve(async (req) => {
     while (hasMore && pageCount < maxPages) {
       pageCount++;
       
-      // Build GHL API URL - use POST /contacts/search endpoint instead of GET /contacts
-      // This endpoint typically works with standard API keys
-      const ghlUrl = `https://services.leadconnectorhq.com/contacts/search`;
-
-      console.log(`[GHL Sync] Fetching page ${pageCount} via search endpoint`);
-
-      // Call GHL API using search endpoint with POST
-      const searchPayload: Record<string, unknown> = {
-        locationId: locationId,
-        limit: 100,
-        query: "", // Empty query returns all contacts
-      };
+      // Build GHL API URL with query params (GET method works with standard API Key)
+      let ghlUrl = `https://services.leadconnectorhq.com/contacts/search?locationId=${encodeURIComponent(locationId)}&limit=100`;
       
       if (startAfterId) {
-        searchPayload.startAfterId = startAfterId;
+        ghlUrl += `&startAfterId=${encodeURIComponent(startAfterId)}`;
       }
 
+      console.log(`[GHL Sync] Fetching page ${pageCount} via GET search endpoint`);
+
       const ghlResponse = await fetch(ghlUrl, {
-        method: "POST",
+        method: "GET",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           Version: "2021-07-28",
-          "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(searchPayload),
       });
 
       if (!ghlResponse.ok) {
