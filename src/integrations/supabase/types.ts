@@ -3890,6 +3890,198 @@ export type Database = {
           },
         ]
       }
+      conversation_sessions: {
+        Row: {
+          abandonment_reason: string | null
+          channel: string
+          completed_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          current_step_id: string | null
+          flow_id: string | null
+          goal_achieved: boolean | null
+          goal_achieved_at: string | null
+          handed_off_at: string | null
+          handed_off_to: string | null
+          id: string
+          lead_id: string | null
+          started_at: string
+          status: Database["public"]["Enums"]["session_status"]
+          step_history: Json | null
+          updated_at: string
+          variables: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          abandonment_reason?: string | null
+          channel: string
+          completed_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          current_step_id?: string | null
+          flow_id?: string | null
+          goal_achieved?: boolean | null
+          goal_achieved_at?: string | null
+          handed_off_at?: string | null
+          handed_off_to?: string | null
+          id?: string
+          lead_id?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          step_history?: Json | null
+          updated_at?: string
+          variables?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          abandonment_reason?: string | null
+          channel?: string
+          completed_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          current_step_id?: string | null
+          flow_id?: string | null
+          goal_achieved?: boolean | null
+          goal_achieved_at?: string | null
+          handed_off_at?: string | null
+          handed_off_to?: string | null
+          id?: string
+          lead_id?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          step_history?: Json | null
+          updated_at?: string
+          variables?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_sessions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_sessions_current_step_id_fkey"
+            columns: ["current_step_id"]
+            isOneToOne: false
+            referencedRelation: "flow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_sessions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversational_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversational_flows: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          fallback_behavior: string | null
+          goal_description: string | null
+          goal_type: string | null
+          id: string
+          is_default: boolean | null
+          knowledge_base_ids: string[] | null
+          max_retries: number | null
+          name: string
+          persona_id: string | null
+          priority: number | null
+          status: Database["public"]["Enums"]["flow_status"]
+          success_message: string | null
+          timeout_minutes: number | null
+          trigger_channels: string[] | null
+          trigger_conditions: Json | null
+          trigger_keywords: string[] | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          fallback_behavior?: string | null
+          goal_description?: string | null
+          goal_type?: string | null
+          id?: string
+          is_default?: boolean | null
+          knowledge_base_ids?: string[] | null
+          max_retries?: number | null
+          name: string
+          persona_id?: string | null
+          priority?: number | null
+          status?: Database["public"]["Enums"]["flow_status"]
+          success_message?: string | null
+          timeout_minutes?: number | null
+          trigger_channels?: string[] | null
+          trigger_conditions?: Json | null
+          trigger_keywords?: string[] | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          fallback_behavior?: string | null
+          goal_description?: string | null
+          goal_type?: string | null
+          id?: string
+          is_default?: boolean | null
+          knowledge_base_ids?: string[] | null
+          max_retries?: number | null
+          name?: string
+          persona_id?: string | null
+          priority?: number | null
+          status?: Database["public"]["Enums"]["flow_status"]
+          success_message?: string | null
+          timeout_minutes?: number | null
+          trigger_channels?: string[] | null
+          trigger_conditions?: Json | null
+          trigger_keywords?: string[] | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversational_flows_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversational_flows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           ai_classification_at: string | null
@@ -5217,6 +5409,251 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_analytics: {
+        Row: {
+          avg_duration_seconds: number | null
+          avg_steps_completed: number | null
+          created_at: string
+          date: string
+          flow_id: string
+          goals_achieved: number | null
+          id: string
+          sessions_abandoned: number | null
+          sessions_completed: number | null
+          sessions_handed_off: number | null
+          sessions_started: number | null
+          step_metrics: Json | null
+          total_conversion_value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          avg_duration_seconds?: number | null
+          avg_steps_completed?: number | null
+          created_at?: string
+          date: string
+          flow_id: string
+          goals_achieved?: number | null
+          id?: string
+          sessions_abandoned?: number | null
+          sessions_completed?: number | null
+          sessions_handed_off?: number | null
+          sessions_started?: number | null
+          step_metrics?: Json | null
+          total_conversion_value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          avg_duration_seconds?: number | null
+          avg_steps_completed?: number | null
+          created_at?: string
+          date?: string
+          flow_id?: string
+          goals_achieved?: number | null
+          id?: string
+          sessions_abandoned?: number | null
+          sessions_completed?: number | null
+          sessions_handed_off?: number | null
+          sessions_started?: number | null
+          step_metrics?: Json | null
+          total_conversion_value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_analytics_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversational_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_analytics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_steps: {
+        Row: {
+          action_config: Json | null
+          action_type: string | null
+          condition_false_step_id: string | null
+          condition_field: string | null
+          condition_operator:
+            | Database["public"]["Enums"]["flow_condition_operator"]
+            | null
+          condition_true_step_id: string | null
+          condition_value: string | null
+          conversion_value: number | null
+          created_at: string
+          flow_id: string
+          goal_name: string | null
+          id: string
+          is_entry_point: boolean | null
+          message_content: string | null
+          message_variants: string[] | null
+          name: string
+          next_step_id: string | null
+          position: number | null
+          position_x: number | null
+          position_y: number | null
+          quick_replies: string[] | null
+          step_type: Database["public"]["Enums"]["flow_step_type"]
+          updated_at: string
+          variable_id: string | null
+        }
+        Insert: {
+          action_config?: Json | null
+          action_type?: string | null
+          condition_false_step_id?: string | null
+          condition_field?: string | null
+          condition_operator?:
+            | Database["public"]["Enums"]["flow_condition_operator"]
+            | null
+          condition_true_step_id?: string | null
+          condition_value?: string | null
+          conversion_value?: number | null
+          created_at?: string
+          flow_id: string
+          goal_name?: string | null
+          id?: string
+          is_entry_point?: boolean | null
+          message_content?: string | null
+          message_variants?: string[] | null
+          name: string
+          next_step_id?: string | null
+          position?: number | null
+          position_x?: number | null
+          position_y?: number | null
+          quick_replies?: string[] | null
+          step_type: Database["public"]["Enums"]["flow_step_type"]
+          updated_at?: string
+          variable_id?: string | null
+        }
+        Update: {
+          action_config?: Json | null
+          action_type?: string | null
+          condition_false_step_id?: string | null
+          condition_field?: string | null
+          condition_operator?:
+            | Database["public"]["Enums"]["flow_condition_operator"]
+            | null
+          condition_true_step_id?: string | null
+          condition_value?: string | null
+          conversion_value?: number | null
+          created_at?: string
+          flow_id?: string
+          goal_name?: string | null
+          id?: string
+          is_entry_point?: boolean | null
+          message_content?: string | null
+          message_variants?: string[] | null
+          name?: string
+          next_step_id?: string | null
+          position?: number | null
+          position_x?: number | null
+          position_y?: number | null
+          quick_replies?: string[] | null
+          step_type?: Database["public"]["Enums"]["flow_step_type"]
+          updated_at?: string
+          variable_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_false_step"
+            columns: ["condition_false_step_id"]
+            isOneToOne: false
+            referencedRelation: "flow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_next_step"
+            columns: ["next_step_id"]
+            isOneToOne: false
+            referencedRelation: "flow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_true_step"
+            columns: ["condition_true_step_id"]
+            isOneToOne: false
+            referencedRelation: "flow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_steps_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversational_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_steps_variable_id_fkey"
+            columns: ["variable_id"]
+            isOneToOne: false
+            referencedRelation: "flow_variables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_variables: {
+        Row: {
+          choices: string[] | null
+          created_at: string
+          default_value: string | null
+          display_name: string
+          flow_id: string
+          id: string
+          is_required: boolean | null
+          map_to_field: string | null
+          name: string
+          position: number | null
+          validation_message: string | null
+          validation_pattern: string | null
+          variable_type: string
+        }
+        Insert: {
+          choices?: string[] | null
+          created_at?: string
+          default_value?: string | null
+          display_name: string
+          flow_id: string
+          id?: string
+          is_required?: boolean | null
+          map_to_field?: string | null
+          name: string
+          position?: number | null
+          validation_message?: string | null
+          validation_pattern?: string | null
+          variable_type?: string
+        }
+        Update: {
+          choices?: string[] | null
+          created_at?: string
+          default_value?: string | null
+          display_name?: string
+          flow_id?: string
+          id?: string
+          is_required?: boolean | null
+          map_to_field?: string | null
+          name?: string
+          position?: number | null
+          validation_message?: string | null
+          validation_pattern?: string | null
+          variable_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_variables_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversational_flows"
             referencedColumns: ["id"]
           },
         ]
@@ -18180,6 +18617,24 @@ export type Database = {
       crm_view_mode: "table" | "board"
       execution_status: "pending" | "running" | "completed" | "failed"
       feed_type: "workspace" | "team" | "user" | "client"
+      flow_condition_operator:
+        | "equals"
+        | "not_equals"
+        | "contains"
+        | "not_contains"
+        | "greater_than"
+        | "less_than"
+        | "is_empty"
+        | "is_not_empty"
+        | "matches_intent"
+      flow_status: "draft" | "active" | "paused" | "archived"
+      flow_step_type:
+        | "message"
+        | "question"
+        | "condition"
+        | "action"
+        | "goal"
+        | "handoff"
       goal_period:
         | "daily"
         | "weekly"
@@ -18209,6 +18664,7 @@ export type Database = {
         | "daily_checklist"
         | "winners"
         | "ai_alert"
+      session_status: "active" | "completed" | "abandoned" | "handed_off"
       sso_token_status: "pending" | "active" | "used" | "expired" | "revoked"
       student_journey_stage:
         | "lead"
@@ -18490,6 +18946,26 @@ export const Constants = {
       crm_view_mode: ["table", "board"],
       execution_status: ["pending", "running", "completed", "failed"],
       feed_type: ["workspace", "team", "user", "client"],
+      flow_condition_operator: [
+        "equals",
+        "not_equals",
+        "contains",
+        "not_contains",
+        "greater_than",
+        "less_than",
+        "is_empty",
+        "is_not_empty",
+        "matches_intent",
+      ],
+      flow_status: ["draft", "active", "paused", "archived"],
+      flow_step_type: [
+        "message",
+        "question",
+        "condition",
+        "action",
+        "goal",
+        "handoff",
+      ],
       goal_period: [
         "daily",
         "weekly",
@@ -18523,6 +18999,7 @@ export const Constants = {
         "winners",
         "ai_alert",
       ],
+      session_status: ["active", "completed", "abandoned", "handed_off"],
       sso_token_status: ["pending", "active", "used", "expired", "revoked"],
       student_journey_stage: [
         "lead",
