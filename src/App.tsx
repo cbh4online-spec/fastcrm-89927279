@@ -45,6 +45,7 @@ import Invoices from "./pages/Invoices";
 import InvoiceDetail from "./pages/InvoiceDetail";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import AIProfiles from "./pages/AIProfiles";
+import ConversationalEngine from "./pages/ConversationalEngine";
 import MarketingHomepage from "./pages/MarketingHomepage";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
 import ReportsOverview from "./pages/ReportsOverview";
@@ -176,6 +177,7 @@ const App = () => (
                       <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
                       <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
                       <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
+                      <Route path="/dashboard/conversational-engine" element={<ConversationalEngine />} />
                       <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
                       <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
                       <Route path="/dashboard/reports" element={<ReportsOverview />} />

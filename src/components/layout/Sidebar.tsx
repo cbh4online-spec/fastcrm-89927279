@@ -225,6 +225,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Importações", href: "/dashboard/imports", icon: Download, tooltip: "Importar dados" },
       { name: "Integrações", href: "/dashboard/settings/integrations", icon: Link2, tooltip: "Conectar apps" },
       { name: "Perfis IA", href: "/dashboard/ai-profiles", icon: Brain, tooltip: "Comportamento da IA" },
+      { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, tooltip: "Vibe, Regras e Auto-Pilot" },
       { name: "Bases Conhecimento", href: "/dashboard/knowledge-base", icon: Brain, tooltip: "Treinar a IA" },
       { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, tooltip: "Módulos", highlight: true },
     ],
