@@ -3,7 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { Lead } from "./useLeads";
 
-export type ConversationChannel = "whatsapp" | "email" | "sms" | "webchat" | "instagram" | "facebook";
+export type ConversationChannel = "whatsapp" | "email" | "sms" | "webchat" | "instagram" | "facebook" | "messenger" | "live_chat" | "web_widget" | "phone" | "other";
 export type ConversationStatus = "open" | "closed" | "archived";
 
 export interface ConversationContact {
