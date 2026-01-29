@@ -1,66 +1,88 @@
 
-# Plano: Corrigir Sincronização GHL - Usar Endpoint Correcto
 
-## Diagnóstico
+# Plano: Corrigir Sincronização de Contactos GHL
 
-Após análise detalhada da documentação da API do GoHighLevel, identifiquei o problema:
+## Problema Identificado
 
-| Endpoint | Scope Necessário | Status |
-|----------|------------------|--------|
-| `GET /contacts/` | `contacts.readonly` | Deprecado mas funcional |
-| `GET /contacts/search?query=X` | Funciona para pesquisa específica | OK (usado em `ghl-send-message`) |
-| `GET /contacts/search` (sem query) | Scope adicional não disponível | 401 Error |
-| `POST /contacts/search` | `contacts.search` (não disponível) | 401 Error |
+A sincronização de contactos do GoHighLevel não está a guardar novos leads na base de dados. O sistema processa 10.000+ contactos mas mostra **0 criados** e todos como "existentes".
 
-A API Key actual tem `contacts.readonly` (porque cria/actualiza contactos), mas NÃO tem o scope `contacts.search` necessário para listar todos.
+### Causas Raiz
 
-## Solucao
+1. **Índice Parcial Incompatível**: O índice único `idx_leads_ghl_contact_unique` é um *partial index* (`WHERE ghl_contact_id IS NOT NULL`). O Supabase `upsert` com `onConflict` **não funciona corretamente** com índices parciais - requer uma constraint nomeada.
 
-Alterar a funcao para usar o endpoint `GET /contacts/` (deprecado mas funcional) em vez de `/contacts/search`.
+2. **Fallback Silencioso**: Quando o `onConflict` falha em encontrar a constraint, o upsert trata todos os registos como conflitos e não insere nada (comportamento de `ignoreDuplicates: true`).
 
-### Parametros do Endpoint GET /contacts/
+3. **Verificação Prévia Insuficiente**: Apesar de haver uma verificação de IDs existentes antes do insert, o problema está no upsert que falha silenciosamente.
 
-```text
-GET https://services.leadconnectorhq.com/contacts/
-Query Parameters:
-  - locationId: string (required)
-  - limit: number (max 100)
-  - startAfterId: string (for pagination)
+---
+
+## Solução Proposta
+
+### Passo 1: Criar Constraint Única Real (Base de Dados)
+
+Converter o índice parcial numa constraint única adequada que o Supabase possa usar:
+
+```sql
+-- Remover índice parcial existente
+DROP INDEX IF EXISTS idx_leads_ghl_contact_unique;
+
+-- Criar uma constraint única real
+ALTER TABLE leads ADD CONSTRAINT leads_ghl_contact_unique 
+  UNIQUE (workspace_id, ghl_contact_id);
 ```
 
-## Alteracao no Codigo
+**Nota**: Isso permitirá `ghl_contact_id` NULL (pois NULLs são únicos por defeito em PostgreSQL).
 
-**Ficheiro:** `supabase/functions/ghl-sync-contacts/index.ts`
+### Passo 2: Simplificar Lógica de Insert (Edge Function)
 
-```text
-Linha 131-147 - Antes:
-────────────────────────────────────────────────────────
-let ghlUrl = `https://services.leadconnectorhq.com/contacts/search?locationId=${...}&limit=100`;
-...
-const ghlResponse = await fetch(ghlUrl, {
-  method: "GET",
-  headers: {...},
-});
+Modificar `ghl-sync-contacts/index.ts` para usar **insert directo** em vez de upsert, dado que já verificamos existentes:
 
-Depois:
-────────────────────────────────────────────────────────
-// Use deprecated but working /contacts/ endpoint (requires contacts.readonly only)
-let ghlUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${...}&limit=100`;
-...
-const ghlResponse = await fetch(ghlUrl, {
-  method: "GET",
-  headers: {...},
-});
+```typescript
+// Em vez de upsert problemático:
+if (leadsToInsert.length > 0) {
+  const { error: insertError, data: insertedData } = await supabase
+    .from("leads")
+    .insert(leadsToInsert)
+    .select("id");
+
+  if (insertError) {
+    // Se houver erro de conflito, é porque já existe - ignorar
+    if (insertError.code === '23505') {
+      console.log(`[GHL Sync] Some contacts already exist, skipping`);
+    } else {
+      console.error(`[GHL Sync] Batch insert error:`, insertError);
+      result.errors.push(`Batch error: ${insertError.message}`);
+    }
+  } else {
+    result.created += insertedData?.length || 0;
+  }
+}
 ```
+
+### Passo 3: Adicionar Logging de Debug
+
+Adicionar logs detalhados para ver exactamente o que está a acontecer:
+
+```typescript
+console.log(`[GHL Sync] Page ${pageCount}: ${contacts.length} contacts, ${leadsToInsert.length} new to insert, ${result.skipped} skipped`);
+```
+
+---
 
 ## Ficheiros a Modificar
 
-| Ficheiro | Alteracao |
+| Ficheiro | Alteração |
 |----------|-----------|
-| `supabase/functions/ghl-sync-contacts/index.ts` | Mudar endpoint de `/contacts/search` para `/contacts/` |
+| `supabase/migrations/...` | Criar constraint única real |
+| `supabase/functions/ghl-sync-contacts/index.ts` | Usar insert directo + logging |
+
+---
 
 ## Resultado Esperado
 
-- A sincronizacao funcionara com a API Key existente que ja tem `contacts.readonly`
-- O endpoint deprecado continua a funcionar (apenas nao e recomendado para novas integracoes)
-- Todos os contactos do GHL serao importados para o FastCRM
+Após implementação:
+- Os contactos novos serão inseridos corretamente
+- A barra de progresso mostrará contagens reais
+- Contactos existentes serão correctamente ignorados
+- Logs detalhados para debugging
+
