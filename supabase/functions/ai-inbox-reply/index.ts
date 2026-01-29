@@ -64,6 +64,20 @@ interface InboxReplyRequest {
   workspaceId?: string;
   personaId?: string;
   useKnowledgeBase?: boolean;
+  conversationId?: string;
+  useConversationalFlows?: boolean;
+}
+
+interface FlowEngineResponse {
+  hasActiveFlow: boolean;
+  flowId?: string;
+  flowName?: string;
+  sessionId?: string;
+  responses?: string[];
+  sessionState?: "active" | "completed" | "handed_off";
+  collectedVariables?: Record<string, unknown>;
+  personaId?: string;
+  knowledgeBaseIds?: string[];
 }
 
 // Channel-specific guidelines
@@ -461,8 +475,75 @@ serve(async (req) => {
       modifyAction,
       workspaceId,
       personaId,
-      useKnowledgeBase = true
+      useKnowledgeBase = true,
+      conversationId,
+      useConversationalFlows = true
     }: InboxReplyRequest = await req.json();
+
+    // Check for active conversational flows first
+    if (useConversationalFlows && workspaceId && conversationId && messages?.length) {
+      const lastInboundMessage = messages.filter(m => m.direction === "inbound").pop();
+      
+      if (lastInboundMessage) {
+        try {
+          const flowResponse = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/flow-engine`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                action: "continue",
+                workspaceId,
+                conversationId,
+                leadId: leadData?.id,
+                userMessage: lastInboundMessage.content,
+                channel,
+              }),
+            }
+          );
+
+          if (flowResponse.ok) {
+            const flowResult: FlowEngineResponse = await flowResponse.json();
+            
+            // If there's an active flow with responses, use those instead of AI generation
+            if (flowResult.hasActiveFlow && flowResult.responses?.length) {
+              console.log(`[AI-INBOX-REPLY] Using flow "${flowResult.flowName}" response`);
+              
+              // Override persona if flow specifies one
+              if (flowResult.personaId && !personaId) {
+                // Will be used in knowledge base search below
+              }
+
+              return new Response(
+                JSON.stringify({
+                  action: "suggest_reply",
+                  result: {
+                    reasoning: `Resposta gerada pelo fluxo "${flowResult.flowName}"`,
+                    suggestions: flowResult.responses.map((text, i) => ({
+                      text,
+                      tone: "professional",
+                      intent: i === 0 ? "Resposta do fluxo conversacional" : "Continuação do fluxo"
+                    }))
+                  },
+                  flowUsed: true,
+                  flowId: flowResult.flowId,
+                  flowName: flowResult.flowName,
+                  sessionState: flowResult.sessionState,
+                  collectedVariables: flowResult.collectedVariables,
+                }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+          }
+        } catch (flowError) {
+          console.error("[AI-INBOX-REPLY] Flow engine error:", flowError);
+          // Continue with normal AI generation if flow fails
+        }
+      }
+    }
 
     if (!action) {
       return new Response(
