@@ -1201,54 +1201,84 @@ export type Database = {
       }
       ai_personas: {
         Row: {
+          allowed_channels: string[] | null
           created_at: string
           created_by: string
+          decision_framework: Json | null
           description: string | null
+          escalation_rules: Json | null
           id: string
           is_active: boolean | null
           knowledge_base_ids: string[] | null
+          language_code: string | null
           language_style: string | null
           limitations: string[] | null
+          max_questions_per_turn: number | null
           name: string
           persona_type: string
+          primary_goal: string | null
+          response_style: string | null
+          secondary_goal: string | null
+          stop_conditions: Json | null
           system_prompt: string | null
           technical_depth: string
           tone_of_voice: string
           updated_at: string
+          use_emojis: boolean | null
           workspace_id: string
         }
         Insert: {
+          allowed_channels?: string[] | null
           created_at?: string
           created_by: string
+          decision_framework?: Json | null
           description?: string | null
+          escalation_rules?: Json | null
           id?: string
           is_active?: boolean | null
           knowledge_base_ids?: string[] | null
+          language_code?: string | null
           language_style?: string | null
           limitations?: string[] | null
+          max_questions_per_turn?: number | null
           name: string
           persona_type: string
+          primary_goal?: string | null
+          response_style?: string | null
+          secondary_goal?: string | null
+          stop_conditions?: Json | null
           system_prompt?: string | null
           technical_depth?: string
           tone_of_voice?: string
           updated_at?: string
+          use_emojis?: boolean | null
           workspace_id: string
         }
         Update: {
+          allowed_channels?: string[] | null
           created_at?: string
           created_by?: string
+          decision_framework?: Json | null
           description?: string | null
+          escalation_rules?: Json | null
           id?: string
           is_active?: boolean | null
           knowledge_base_ids?: string[] | null
+          language_code?: string | null
           language_style?: string | null
           limitations?: string[] | null
+          max_questions_per_turn?: number | null
           name?: string
           persona_type?: string
+          primary_goal?: string | null
+          response_style?: string | null
+          secondary_goal?: string | null
+          stop_conditions?: Json | null
           system_prompt?: string | null
           technical_depth?: string
           tone_of_voice?: string
           updated_at?: string
+          use_emojis?: boolean | null
           workspace_id?: string
         }
         Relationships: [
@@ -11657,6 +11687,192 @@ export type Database = {
         }
         Relationships: []
       }
+      persona_escalation_rules: {
+        Row: {
+          assign_to_team: string | null
+          assign_to_user_id: string | null
+          created_at: string
+          escalation_message: string | null
+          escalation_priority: string
+          id: string
+          internal_note: string | null
+          is_active: boolean
+          notify_channels: string[] | null
+          persona_id: string
+          rule_name: string
+          trigger_config: Json
+          trigger_type: string
+          workspace_id: string
+        }
+        Insert: {
+          assign_to_team?: string | null
+          assign_to_user_id?: string | null
+          created_at?: string
+          escalation_message?: string | null
+          escalation_priority?: string
+          id?: string
+          internal_note?: string | null
+          is_active?: boolean
+          notify_channels?: string[] | null
+          persona_id: string
+          rule_name: string
+          trigger_config?: Json
+          trigger_type?: string
+          workspace_id: string
+        }
+        Update: {
+          assign_to_team?: string | null
+          assign_to_user_id?: string | null
+          created_at?: string
+          escalation_message?: string | null
+          escalation_priority?: string
+          id?: string
+          internal_note?: string | null
+          is_active?: boolean
+          notify_channels?: string[] | null
+          persona_id?: string
+          rule_name?: string
+          trigger_config?: Json
+          trigger_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_escalation_rules_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persona_escalation_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persona_goals: {
+        Row: {
+          created_at: string
+          goal_description: string | null
+          goal_name: string
+          goal_type: string
+          id: string
+          is_active: boolean
+          persona_id: string
+          priority: number
+          success_condition: string
+          success_value: string | null
+          success_variable: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          goal_description?: string | null
+          goal_name: string
+          goal_type?: string
+          id?: string
+          is_active?: boolean
+          persona_id: string
+          priority?: number
+          success_condition?: string
+          success_value?: string | null
+          success_variable?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          goal_description?: string | null
+          goal_name?: string
+          goal_type?: string
+          id?: string
+          is_active?: boolean
+          persona_id?: string
+          priority?: number
+          success_condition?: string
+          success_value?: string | null
+          success_variable?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_goals_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persona_goals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persona_stop_conditions: {
+        Row: {
+          condition_config: Json
+          condition_name: string
+          condition_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          persona_id: string
+          priority: number
+          stop_action: string
+          stop_message: string | null
+          workspace_id: string
+        }
+        Insert: {
+          condition_config?: Json
+          condition_name: string
+          condition_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          persona_id: string
+          priority?: number
+          stop_action?: string
+          stop_message?: string | null
+          workspace_id: string
+        }
+        Update: {
+          condition_config?: Json
+          condition_name?: string
+          condition_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          persona_id?: string
+          priority?: number
+          stop_action?: string
+          stop_message?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_stop_conditions_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persona_stop_conditions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_stages: {
         Row: {
           color: string
@@ -18656,6 +18872,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_persona_decision_config: {
+        Args: { p_persona_id: string }
+        Returns: Json
       }
       get_plan_limits: {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
