@@ -120,12 +120,23 @@ Deno.serve(async (req) => {
       total_processed: 0,
     };
 
+    const startTime = Date.now();
+    const maxExecutionTime = 50000; // 50 seconds (leave buffer for cleanup)
+
     let startAfterId: string | undefined = undefined;
     let hasMore = true;
     let pageCount = 0;
-    const maxPages = 50; // Safety limit
+    const maxPages = 100; // Safety limit
+    let timedOut = false;
 
     while (hasMore && pageCount < maxPages) {
+      // Check if we're running out of time
+      if (Date.now() - startTime > maxExecutionTime) {
+        console.log(`[GHL Sync] Approaching timeout, stopping after ${pageCount} pages`);
+        timedOut = true;
+        break;
+      }
+
       pageCount++;
       
       // Use deprecated /contacts/ endpoint (requires contacts.readonly only, not contacts.search)
@@ -181,102 +192,75 @@ Deno.serve(async (req) => {
         break;
       }
 
-      // Process each contact
+      // Get all existing leads for batch comparison
+      const ghlIds = contacts.map(c => c.id);
+      const emails = contacts.filter(c => c.email).map(c => c.email!.toLowerCase());
+      const phones = contacts.filter(c => c.phone).map(c => c.phone!.replace(/\D/g, "").slice(-9));
+
+      // Batch query for existing leads
+      const { data: existingByGhlId } = await supabase
+        .from("leads")
+        .select("id, ghl_contact_id, email, phone")
+        .eq("workspace_id", workspace_id)
+        .in("ghl_contact_id", ghlIds);
+
+      const existingGhlIds = new Set((existingByGhlId || []).map(l => l.ghl_contact_id));
+
+      // Prepare batch inserts
+      const leadsToInsert: Array<{
+        workspace_id: string;
+        name: string;
+        email: string | null;
+        phone: string | null;
+        ghl_contact_id: string;
+        status: string;
+        source: string;
+        tags: string[];
+        ghl_synced_at: string;
+      }> = [];
+
       for (const contact of contacts) {
         result.total_processed++;
 
-        try {
-          const fullName = [contact.firstName, contact.lastName]
-            .filter(Boolean)
-            .join(" ")
-            .trim() || "Sem Nome";
+        // Skip if already synced
+        if (existingGhlIds.has(contact.id)) {
+          result.skipped++;
+          continue;
+        }
 
-          // Check if lead exists by ghl_contact_id, email, or phone
-          let existingLead = null;
+        const fullName = [contact.firstName, contact.lastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || "Sem Nome";
 
-          // First check by ghl_contact_id
-          const { data: byGhlId } = await supabase
-            .from("leads")
-            .select("id, ghl_contact_id")
-            .eq("workspace_id", workspace_id)
-            .eq("ghl_contact_id", contact.id)
-            .limit(1)
-            .maybeSingle();
+        leadsToInsert.push({
+          workspace_id,
+          name: fullName,
+          email: contact.email?.toLowerCase() || null,
+          phone: contact.phone || null,
+          ghl_contact_id: contact.id,
+          status: "new",
+          source: "ghl",
+          tags: contact.tags || [],
+          ghl_synced_at: new Date().toISOString(),
+        });
+      }
 
-          if (byGhlId) {
-            existingLead = byGhlId;
-          }
+      // Batch insert new leads
+      if (leadsToInsert.length > 0) {
+        const { error: insertError, data: insertedData } = await supabase
+          .from("leads")
+          .upsert(leadsToInsert, { 
+            onConflict: "workspace_id,ghl_contact_id",
+            ignoreDuplicates: true 
+          })
+          .select("id");
 
-          // Check by email if not found
-          if (!existingLead && contact.email) {
-            const { data: byEmail } = await supabase
-              .from("leads")
-              .select("id, ghl_contact_id")
-              .eq("workspace_id", workspace_id)
-              .eq("email", contact.email.toLowerCase())
-              .limit(1)
-              .maybeSingle();
-
-            if (byEmail) {
-              existingLead = byEmail;
-            }
-          }
-
-          // Check by phone if not found
-          if (!existingLead && contact.phone) {
-            const normalizedPhone = contact.phone.replace(/\D/g, "");
-            const { data: byPhone } = await supabase
-              .from("leads")
-              .select("id, ghl_contact_id")
-              .eq("workspace_id", workspace_id)
-              .ilike("phone", `%${normalizedPhone.slice(-9)}%`)
-              .limit(1)
-              .maybeSingle();
-
-            if (byPhone) {
-              existingLead = byPhone;
-            }
-          }
-
-          if (existingLead) {
-            // Update existing lead with ghl_contact_id if not set
-            if (!existingLead.ghl_contact_id) {
-              await supabase
-                .from("leads")
-                .update({
-                  ghl_contact_id: contact.id,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", existingLead.id);
-              result.updated++;
-            } else {
-              result.skipped++;
-            }
-          } else {
-            // Create new lead
-            const { error: insertError } = await supabase.from("leads").insert({
-              workspace_id,
-              name: fullName,
-              email: contact.email?.toLowerCase() || null,
-              phone: contact.phone || null,
-              ghl_contact_id: contact.id,
-              status: "new",
-              source: "ghl_sync",
-              tags: contact.tags || [],
-              created_at: contact.dateAdded || new Date().toISOString(),
-            });
-
-            if (insertError) {
-              console.error(`[GHL Sync] Insert error for ${contact.id}:`, insertError);
-              result.errors.push(`Failed to create lead for ${contact.id}: ${insertError.message}`);
-            } else {
-              result.created++;
-            }
-          }
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          console.error(`[GHL Sync] Error processing contact ${contact.id}:`, errorMsg);
-          result.errors.push(`Error processing ${contact.id}: ${errorMsg}`);
+        if (insertError) {
+          console.error(`[GHL Sync] Batch insert error:`, insertError);
+          result.errors.push(`Batch insert failed: ${insertError.message}`);
+        } else {
+          result.created += insertedData?.length || leadsToInsert.length;
         }
       }
 
@@ -290,8 +274,8 @@ Deno.serve(async (req) => {
         startAfterId = contacts[contacts.length - 1].id;
       }
 
-      // Rate limiting delay (100ms between pages)
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Minimal delay between pages
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
     // Update last_sync_at
@@ -303,21 +287,25 @@ Deno.serve(async (req) => {
     // Log sync result
     await supabase.from("ghl_sync_log").insert({
       workspace_id,
-      entity_type: "contact_sync",
+      ghl_entity_type: "contact_batch",
       ghl_entity_id: `sync_${Date.now()}`,
-      local_entity_id: null,
-      local_entity_type: "leads",
-      sync_direction: "inbound",
-      status: result.errors.length > 0 ? "partial" : "success",
-      error_message: result.errors.length > 0 ? result.errors.join("; ") : null,
-      metadata: {
+      fastcrm_entity_type: "leads",
+      fastcrm_entity_id: null,
+      event_type: timedOut ? "partial_sync" : (result.errors.length > 0 ? "sync_with_errors" : "full_sync"),
+      payload: {
         created: result.created,
         updated: result.updated,
         skipped: result.skipped,
         total_processed: result.total_processed,
         pages_fetched: pageCount,
+        timed_out: timedOut,
+        errors: result.errors,
       },
     });
+
+    if (timedOut) {
+      result.errors.push(`Sincronização parcial: processadas ${pageCount} páginas (${result.total_processed} contactos). Execute novamente para continuar.`);
+    }
 
     console.log(`[GHL Sync] Complete: ${JSON.stringify(result)}`);
 
