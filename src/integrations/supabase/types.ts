@@ -4304,6 +4304,93 @@ export type Database = {
           },
         ]
       }
+      conversation_journey: {
+        Row: {
+          completed_at: string | null
+          conversation_id: string
+          created_at: string
+          crm_lead_stage: string | null
+          crm_synced: boolean | null
+          crm_synced_at: string | null
+          current_stage_code: string
+          current_stage_id: string | null
+          data_collected: Json | null
+          engagement_score: number | null
+          id: string
+          intent_signals: string[] | null
+          interest_level: string | null
+          last_stage_change_at: string | null
+          lead_id: string | null
+          objectives_completed: string[] | null
+          outcome: string | null
+          outcome_reason: string | null
+          started_at: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          crm_lead_stage?: string | null
+          crm_synced?: boolean | null
+          crm_synced_at?: string | null
+          current_stage_code?: string
+          current_stage_id?: string | null
+          data_collected?: Json | null
+          engagement_score?: number | null
+          id?: string
+          intent_signals?: string[] | null
+          interest_level?: string | null
+          last_stage_change_at?: string | null
+          lead_id?: string | null
+          objectives_completed?: string[] | null
+          outcome?: string | null
+          outcome_reason?: string | null
+          started_at?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          crm_lead_stage?: string | null
+          crm_synced?: boolean | null
+          crm_synced_at?: string | null
+          current_stage_code?: string
+          current_stage_id?: string | null
+          data_collected?: Json | null
+          engagement_score?: number | null
+          id?: string
+          intent_signals?: string[] | null
+          interest_level?: string | null
+          last_stage_change_at?: string | null
+          lead_id?: string | null
+          objectives_completed?: string[] | null
+          outcome?: string | null
+          outcome_reason?: string | null
+          started_at?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_journey_current_stage_id_fkey"
+            columns: ["current_stage_id"]
+            isOneToOne: false
+            referencedRelation: "journey_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_journey_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_objective_progress: {
         Row: {
           attempts: number | null
@@ -8617,6 +8704,131 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "journey_automations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_stages: {
+        Row: {
+          allowed_actions: string[] | null
+          auto_advance_condition: Json | null
+          blocked_actions: string[] | null
+          color: string | null
+          created_at: string
+          crm_stage_mapping: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_terminal: boolean | null
+          stage_code: string
+          stage_description: string | null
+          stage_name: string
+          stage_order: number
+          sync_to_crm: boolean | null
+          triggers_stop: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          allowed_actions?: string[] | null
+          auto_advance_condition?: Json | null
+          blocked_actions?: string[] | null
+          color?: string | null
+          created_at?: string
+          crm_stage_mapping?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_terminal?: boolean | null
+          stage_code: string
+          stage_description?: string | null
+          stage_name: string
+          stage_order: number
+          sync_to_crm?: boolean | null
+          triggers_stop?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          allowed_actions?: string[] | null
+          auto_advance_condition?: Json | null
+          blocked_actions?: string[] | null
+          color?: string | null
+          created_at?: string
+          crm_stage_mapping?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_terminal?: boolean | null
+          stage_code?: string
+          stage_description?: string | null
+          stage_name?: string
+          stage_order?: number
+          sync_to_crm?: boolean | null
+          triggers_stop?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_transitions: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          from_stage: string | null
+          id: string
+          journey_id: string
+          message_count_at_transition: number | null
+          time_in_previous_stage_seconds: number | null
+          to_stage: string
+          trigger_data: Json | null
+          trigger_type: string
+          workspace_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          journey_id: string
+          message_count_at_transition?: number | null
+          time_in_previous_stage_seconds?: number | null
+          to_stage: string
+          trigger_data?: Json | null
+          trigger_type: string
+          workspace_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          journey_id?: string
+          message_count_at_transition?: number | null
+          time_in_previous_stage_seconds?: number | null
+          to_stage?: string
+          trigger_data?: Json | null
+          trigger_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_transitions_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_journey"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_transitions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -19195,6 +19407,15 @@ export type Database = {
         }
         Returns: Json
       }
+      advance_journey_stage: {
+        Args: {
+          p_conversation_id: string
+          p_new_stage_code: string
+          p_trigger_data?: Json
+          p_trigger_type?: string
+        }
+        Returns: Json
+      }
       calculate_module_margin: {
         Args: {
           p_end_date?: string
@@ -19613,6 +19834,14 @@ export type Database = {
           _workspace_id: string
         }
         Returns: boolean
+      }
+      init_conversation_journey: {
+        Args: {
+          p_conversation_id: string
+          p_lead_id?: string
+          p_workspace_id: string
+        }
+        Returns: string
       }
       initialize_workspace_activity_profiles: {
         Args: { p_created_by?: string; p_workspace_id: string }
