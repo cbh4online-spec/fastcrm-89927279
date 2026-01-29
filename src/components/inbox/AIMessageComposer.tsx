@@ -325,7 +325,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
                     {reasoning}
                   </p>
                 )}
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-60 overflow-y-auto">
                   {suggestions.map((suggestion, index) => (
                     <div
                       key={index}
@@ -337,7 +337,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
                         </Badge>
                         <span className="text-[10px] text-muted-foreground">{suggestion.intent}</span>
                       </div>
-                      <p className="text-sm">{suggestion.text}</p>
+                      <p className="text-sm max-h-24 overflow-y-auto">{suggestion.text}</p>
                       <div className="flex items-center gap-1">
                         <Button
                           variant="secondary"
