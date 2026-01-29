@@ -254,21 +254,28 @@ Deno.serve(async (req) => {
                 });
               }
 
-              // Batch insert new leads
+              // Batch insert new leads (using direct insert since we already checked for existing)
               if (leadsToInsert.length > 0) {
+                console.log(`[GHL Sync] Page ${pageCount}: Inserting ${leadsToInsert.length} new leads`);
+                
                 const { error: insertError, data: insertedData } = await supabase
                   .from("leads")
-                  .upsert(leadsToInsert, { 
-                    onConflict: "workspace_id,ghl_contact_id",
-                    ignoreDuplicates: true 
-                  })
+                  .insert(leadsToInsert)
                   .select("id");
 
                 if (insertError) {
-                  console.error(`[GHL Sync] Batch insert error:`, insertError);
-                  result.errors.push(`Batch error: ${insertError.message}`);
+                  // Handle unique constraint violation (already exists)
+                  if (insertError.code === '23505') {
+                    console.log(`[GHL Sync] Some contacts already exist, skipping duplicates`);
+                    result.skipped += leadsToInsert.length;
+                  } else {
+                    console.error(`[GHL Sync] Batch insert error:`, insertError);
+                    result.errors.push(`Batch error: ${insertError.message}`);
+                  }
                 } else {
-                  result.created += insertedData?.length || leadsToInsert.length;
+                  const insertedCount = insertedData?.length || 0;
+                  result.created += insertedCount;
+                  console.log(`[GHL Sync] Successfully inserted ${insertedCount} leads`);
                 }
               }
 
@@ -472,19 +479,26 @@ Deno.serve(async (req) => {
       }
 
       if (leadsToInsert.length > 0) {
+        console.log(`[GHL Sync] Page ${pageCount}: Inserting ${leadsToInsert.length} new leads`);
+        
         const { error: insertError, data: insertedData } = await supabase
           .from("leads")
-          .upsert(leadsToInsert, { 
-            onConflict: "workspace_id,ghl_contact_id",
-            ignoreDuplicates: true 
-          })
+          .insert(leadsToInsert)
           .select("id");
 
         if (insertError) {
-          console.error(`[GHL Sync] Batch insert error:`, insertError);
-          result.errors.push(`Batch insert failed: ${insertError.message}`);
+          // Handle unique constraint violation (already exists)
+          if (insertError.code === '23505') {
+            console.log(`[GHL Sync] Some contacts already exist, skipping duplicates`);
+            result.skipped += leadsToInsert.length;
+          } else {
+            console.error(`[GHL Sync] Batch insert error:`, insertError);
+            result.errors.push(`Batch insert failed: ${insertError.message}`);
+          }
         } else {
-          result.created += insertedData?.length || leadsToInsert.length;
+          const insertedCount = insertedData?.length || 0;
+          result.created += insertedCount;
+          console.log(`[GHL Sync] Successfully inserted ${insertedCount} leads`);
         }
       }
 
