@@ -28,17 +28,20 @@ import {
   Users,
   MessageSquare,
   Link as LinkIcon,
-  ListChecks
+  ListChecks,
+  Workflow
 } from 'lucide-react';
 import { KNOWLEDGE_BASE_TYPES, PERSONA_TYPES, TONE_OPTIONS } from '@/types/knowledge-base';
 import type { KnowledgeEntry, KnowledgeSource } from '@/types/knowledge-base';
 import { toast } from 'sonner';
+import { FlowBuilderModule } from '@/components/flow-builder/FlowBuilderModule';
 
-type ActiveTab = "bases" | "personas" | "query";
+type ActiveTab = "bases" | "personas" | "flows" | "query";
 
 const pageTabs = [
   { id: "bases", label: "Bases", icon: <BookOpen className="h-4 w-4" /> },
   { id: "personas", label: "Personas", icon: <Users className="h-4 w-4" /> },
+  { id: "flows", label: "Fluxos", icon: <Workflow className="h-4 w-4" /> },
   { id: "query", label: "Testar IA", icon: <MessageSquare className="h-4 w-4" /> },
 ];
 
@@ -560,6 +563,13 @@ export function KnowledgeBaseModule() {
           )}
           isLoading={isLoading}
           onCreateNew={() => setShowCreatePersona(true)}
+        />
+      )}
+
+      {activeTab === "flows" && (
+        <FlowBuilderModule 
+          personas={personas.map(p => ({ id: p.id, name: p.name, isActive: p.isActive }))}
+          knowledgeBases={knowledgeBases.map(kb => ({ id: kb.id, name: kb.name }))}
         />
       )}
 
