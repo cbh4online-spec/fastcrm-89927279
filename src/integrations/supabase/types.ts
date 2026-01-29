@@ -3920,6 +3920,168 @@ export type Database = {
           },
         ]
       }
+      conversation_objective_progress: {
+        Row: {
+          attempts: number | null
+          collected_at: string | null
+          collected_value: string | null
+          conversation_id: string
+          created_at: string
+          crm_update_error: string | null
+          crm_updated: boolean | null
+          id: string
+          last_attempt_at: string | null
+          lead_id: string | null
+          objective_id: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          collected_at?: string | null
+          collected_value?: string | null
+          conversation_id: string
+          created_at?: string
+          crm_update_error?: string | null
+          crm_updated?: boolean | null
+          id?: string
+          last_attempt_at?: string | null
+          lead_id?: string | null
+          objective_id: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number | null
+          collected_at?: string | null
+          collected_value?: string | null
+          conversation_id?: string
+          created_at?: string
+          crm_update_error?: string | null
+          crm_updated?: boolean | null
+          id?: string
+          last_attempt_at?: string | null
+          lead_id?: string | null
+          objective_id?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_objective_progress_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_objective_progress_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_objectives: {
+        Row: {
+          blocks_next_questions: boolean
+          created_at: string
+          created_by: string
+          crm_entity: string
+          crm_field_to_update: string
+          crm_field_type: string | null
+          flow_id: string | null
+          id: string
+          is_active: boolean
+          is_required: boolean
+          objective_code: string
+          objective_description: string | null
+          objective_name: string
+          on_complete_action: string | null
+          on_complete_message: string | null
+          on_complete_update: Json | null
+          persona_id: string | null
+          prompt_template: string | null
+          skip_if_filled: boolean
+          sort_position: number
+          trigger_condition: Json | null
+          updated_at: string
+          validation_rules: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          blocks_next_questions?: boolean
+          created_at?: string
+          created_by: string
+          crm_entity?: string
+          crm_field_to_update: string
+          crm_field_type?: string | null
+          flow_id?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          objective_code: string
+          objective_description?: string | null
+          objective_name: string
+          on_complete_action?: string | null
+          on_complete_message?: string | null
+          on_complete_update?: Json | null
+          persona_id?: string | null
+          prompt_template?: string | null
+          skip_if_filled?: boolean
+          sort_position?: number
+          trigger_condition?: Json | null
+          updated_at?: string
+          validation_rules?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          blocks_next_questions?: boolean
+          created_at?: string
+          created_by?: string
+          crm_entity?: string
+          crm_field_to_update?: string
+          crm_field_type?: string | null
+          flow_id?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          objective_code?: string
+          objective_description?: string | null
+          objective_name?: string
+          on_complete_action?: string | null
+          on_complete_message?: string | null
+          on_complete_update?: Json | null
+          persona_id?: string | null
+          prompt_template?: string | null
+          skip_if_filled?: boolean
+          sort_position?: number
+          trigger_condition?: Json | null
+          updated_at?: string
+          validation_rules?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_objectives_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_objectives_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_rule_executions: {
         Row: {
           action_taken: string | null
@@ -11486,6 +11648,60 @@ export type Database = {
           },
         ]
       }
+      objective_phase_options: {
+        Row: {
+          created_at: string
+          id: string
+          objective_id: string
+          option_description: string | null
+          option_label: string
+          option_value: string
+          sort_order: number | null
+          triggers_escalation: boolean | null
+          triggers_stop: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          objective_id: string
+          option_description?: string | null
+          option_label: string
+          option_value: string
+          sort_order?: number | null
+          triggers_escalation?: boolean | null
+          triggers_stop?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          objective_id?: string
+          option_description?: string | null
+          option_label?: string
+          option_value?: string
+          sort_order?: number | null
+          triggers_escalation?: boolean | null
+          triggers_stop?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_phase_options_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_phase_options_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunities: {
         Row: {
           ai_analyzed_at: string | null
@@ -18689,6 +18905,15 @@ export type Database = {
       cleanup_expired_agent_memory: { Args: never; Returns: number }
       cleanup_expired_cache: { Args: never; Returns: number }
       cleanup_expired_sso_tokens: { Args: never; Returns: undefined }
+      complete_objective: {
+        Args: {
+          p_collected_value: string
+          p_conversation_id: string
+          p_lead_id?: string
+          p_objective_id: string
+        }
+        Returns: Json
+      }
       consolidate_entity_memories: {
         Args: {
           p_entity_id?: string
@@ -18851,6 +19076,22 @@ export type Database = {
       get_module_trial_status: {
         Args: { p_module_id: string; p_workspace_id: string }
         Returns: Json
+      }
+      get_next_objective: {
+        Args: {
+          p_conversation_id: string
+          p_lead_id?: string
+          p_persona_id?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          crm_field: string
+          objective_code: string
+          objective_id: string
+          objective_name: string
+          prompt_template: string
+          sort_pos: number
+        }[]
       }
       get_or_create_prospecting_usage: {
         Args: { p_workspace_id: string }
