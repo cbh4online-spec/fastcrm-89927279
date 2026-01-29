@@ -1,65 +1,67 @@
 
-# Plano: Responder a Mensagens Instagram via GHL
+# Plano: Corrigir Scroll do Painel de Sugestões AI
 
-## Resumo do Problema
-As mensagens recebidas do Instagram via GoHighLevel chegam correctamente ao FastCRM, mas quando tentas responder, o sistema está a tentar usar a edge function `instagram-send-message` (integração directa Meta) em vez de enviar via GHL.
+## Problema Identificado
+O painel lateral direito (AI Assistant Panel) não permite scroll porque:
+
+1. O container exterior (linha 508) tem `overflow-y-auto` mas falta `min-h-0` - essencial para flex containers
+2. O `EnhancedAIReplyPanel` usa `ScrollArea` com `h-full` mas está dentro de uma div sem altura definida
+3. Conflito entre múltiplos mecanismos de scroll aninhados
 
 ## Solução
-Actualizar a lógica de routing no hook `useSendMessage` para que **conversas Instagram que vêm do GHL** usem a edge function `ghl-send-message` (que já suporta o tipo `"IG"`).
 
-## Mudança Necessária
+### Ficheiro: `src/components/inbox/ConversationDetail.tsx`
 
-**Ficheiro:** `src/hooks/useMessages.ts`
-
-**Alteração:** Expandir a condição que detecta conversas GHL para incluir o canal `instagram`:
+**Alteração 1** - Linha 508:
+Adicionar `min-h-0` ao container do AI Assistant Panel para garantir que o flex layout permite scroll:
 
 ```text
-ANTES (linha 142):
-  if (isGHLConversation && ["sms", "whatsapp"].includes(conversation.channel))
+ANTES:
+  <div className="w-80 border-l border-border bg-muted/20 hidden lg:block overflow-y-auto">
 
 DEPOIS:
-  if (isGHLConversation && ["sms", "whatsapp", "instagram", "messenger", "facebook"].includes(conversation.channel))
+  <div className="w-80 border-l border-border bg-muted/20 hidden lg:block overflow-y-auto min-h-0">
 ```
 
-Esta mudança simples garante que:
-- Mensagens Instagram recebidas via GHL sejam respondidas via GHL
-- O mapeamento `instagram` -> `IG` na edge function `ghl-send-message` envia correctamente para o GHL
-- O GHL encaminha a resposta para o Instagram/Meta
+### Ficheiro: `src/components/inbox/EnhancedAIReplyPanel.tsx`
 
----
+**Alteração 2** - Linha 164:
+Remover o `ScrollArea` exterior que conflitua com o scroll do container pai. O scroll já é gerido pelo painel pai.
+
+```text
+ANTES:
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-3 space-y-3">
+        ...
+      </div>
+    </ScrollArea>
+  );
+
+DEPOIS:
+  return (
+    <div className="space-y-3">
+      ...
+    </div>
+  );
+```
 
 ## Detalhes Técnicos
 
-### Fluxo Actual (com bug)
+### Porquê o `min-h-0`?
+Em layouts flex, elementos filhos com `overflow-auto` ou `overflow-hidden` precisam de `min-h-0` para que o overflow funcione. Sem isto, o browser tenta expandir o elemento para mostrar todo o conteúdo.
+
+### Hierarquia de Scroll
 ```text
-Instagram DM → Meta → GHL → ghl-webhook-message → FastCRM (channel=instagram)
-                                                         ↓
-Utilizador responde → useSendMessage → instagram-send-message ❌ (erro: não há conexão directa Meta)
+InboxView (h-[calc(100vh-8rem)])
+  └─ Messages Area (flex-1 overflow-hidden min-h-0) ✅ Já corrigido
+       └─ Chat Messages (flex-1 min-h-0 overflow-hidden) ✅ Já corrigido
+       └─ AI Panel (w-80 overflow-y-auto) ← Falta min-h-0
+            └─ Inner content com vários componentes
+                 └─ EnhancedAIReplyPanel ← ScrollArea desnecessário
 ```
 
-### Fluxo Corrigido
-```text
-Instagram DM → Meta → GHL → ghl-webhook-message → FastCRM (channel=instagram, source=ghl)
-                                                         ↓
-Utilizador responde → useSendMessage → ghl-send-message (type=IG) → GHL → Meta ✅
-```
-
-### Código Existente que Já Suporta Isto
-
-**ghl-send-message (linhas 300-314):**
-```typescript
-function mapChannelToGHLType(channel: string): string {
-  const typeMap: Record<string, string> = {
-    "instagram": "IG",     // ✅ Já mapeado
-    "messenger": "FB",     // ✅ Facebook Messenger
-    "facebook": "FB",      // ✅ Facebook
-    // ...outros canais
-  };
-  return typeMap[channel.toLowerCase()] || "SMS";
-}
-```
-
-### Impacto
-- **Sem risco:** A edge function `ghl-send-message` já está preparada
-- **Sem alterações na base de dados**
-- **Compatível:** Conversas Instagram directas (sem GHL) continuam a usar `instagram-send-message`
+## Impacto
+- Painel AI lateral passa a fazer scroll correctamente
+- Remove conflito de scroll aninhado
+- Mantém compatibilidade com todos os componentes existentes
