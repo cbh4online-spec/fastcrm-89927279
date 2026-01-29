@@ -149,7 +149,20 @@ Deno.serve(async (req) => {
       if (!ghlResponse.ok) {
         const errorText = await ghlResponse.text();
         console.error(`[GHL Sync] API Error: ${ghlResponse.status} - ${errorText}`);
-        result.errors.push(`GHL API error: ${ghlResponse.status}`);
+        
+        // Provide user-friendly error messages
+        if (ghlResponse.status === 401) {
+          const errorData = JSON.parse(errorText).message || "";
+          if (errorData.includes("not authorized for this scope")) {
+            result.errors.push("A API Key não tem permissão para aceder aos contactos. Por favor, gere uma nova API Key no GHL com o scope 'contacts.readonly'.");
+          } else {
+            result.errors.push("API Key inválida ou expirada. Por favor, verifique a sua API Key.");
+          }
+        } else if (ghlResponse.status === 403) {
+          result.errors.push("Acesso negado. Verifique se o Location ID está correcto.");
+        } else {
+          result.errors.push(`Erro da API GHL: ${ghlResponse.status}`);
+        }
         break;
       }
 
