@@ -1,10 +1,10 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { Check, CheckCheck, FileText, Paperclip, Download } from "lucide-react";
+import { FileText, Paperclip, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-
+import { MessageDeliveryStatus, getDeliveryStatus } from "./MessageDeliveryStatus";
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -12,6 +12,9 @@ interface MessageBubbleProps {
     direction: "inbound" | "outbound";
     created_at: string;
     read_at?: string | null;
+    delivered_at?: string | null;
+    sent_at?: string | null;
+    status?: string;
     channel_metadata?: Record<string, any>;
   };
   senderName?: string;
@@ -28,7 +31,7 @@ export function MessageBubble({
   showTimestamp = true,
 }: MessageBubbleProps) {
   const isOutbound = message.direction === "outbound";
-  const isRead = !!message.read_at;
+  const deliveryStatus = getDeliveryStatus(message);
   
   // Parse attachments from metadata
   const attachments = message.channel_metadata?.attachments as Array<{
@@ -58,11 +61,7 @@ export function MessageBubble({
           {/* Header */}
           <div className="flex items-center justify-end gap-2 mb-1">
             <span className="text-xs font-medium text-foreground">{companyName}</span>
-            {isRead ? (
-              <CheckCheck className="w-3.5 h-3.5 text-green-500" />
-            ) : (
-              <Check className="w-3.5 h-3.5 text-muted-foreground" />
-            )}
+            <MessageDeliveryStatus status={deliveryStatus} />
           </div>
           
           {/* Bubble */}
