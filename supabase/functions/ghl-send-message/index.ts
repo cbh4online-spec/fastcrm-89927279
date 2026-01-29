@@ -10,6 +10,8 @@ interface SendMessageRequest {
   conversationId: string;
   message: string;
   channel?: string; // sms, email, whatsapp, etc.
+  phone?: string; // For new outbound messages
+  instagramUsername?: string; // For new Instagram DMs
 }
 
 serve(async (req) => {
@@ -25,9 +27,9 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body
-    const { conversationId, message, channel }: SendMessageRequest = await req.json();
+    const { conversationId, message, channel, phone, instagramUsername }: SendMessageRequest = await req.json();
 
-    console.log("[GHL-SEND] Received request", { conversationId, messageLength: message?.length, channel });
+    console.log("[GHL-SEND] Received request", { conversationId, messageLength: message?.length, channel, phone, instagramUsername });
 
     if (!conversationId || !message) {
       return new Response(
@@ -72,12 +74,164 @@ serve(async (req) => {
     
     // Also try to get from channel_metadata
     const metaGhlContactId = channelMetadata?.ghl_contact_id as string | undefined;
-    const finalGhlContactId = ghlContactId || metaGhlContactId;
+    let finalGhlContactId = ghlContactId || metaGhlContactId;
+
+    // If no GHL contact exists, we need to create one first
+    if (!finalGhlContactId) {
+      console.log("[GHL-SEND] No GHL contact ID found, attempting to create contact in GHL");
+      
+      // First, get GHL config (we'll need it for creating contact)
+      const { data: configForCreate, error: configCreateError } = await supabase
+        .from("workspace_ghl_config")
+        .select("ghl_location_id, ghl_api_key_encrypted")
+        .eq("workspace_id", conversation.workspace_id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (configCreateError || !configForCreate?.ghl_api_key_encrypted) {
+        console.error("[GHL-SEND] Cannot create contact - GHL not configured");
+        return new Response(
+          JSON.stringify({ error: "GHL integration not configured" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const ghlBaseUrl = "https://services.leadconnectorhq.com";
+      
+      // Build contact payload based on available data
+      const contactPayload: Record<string, unknown> = {
+        locationId: configForCreate.ghl_location_id,
+      };
+      
+      // Add phone if available
+      const contactPhone = phone || lead?.phone || contact?.phone;
+      if (contactPhone) {
+        contactPayload.phone = contactPhone;
+      }
+      
+      // Add email if available
+      const contactEmail = lead?.email || contact?.email;
+      if (contactEmail) {
+        contactPayload.email = contactEmail;
+      }
+      
+      // Add name - use lead/contact name or generate from identifier
+      const leadName = (conversation as Record<string, unknown>).lead as { name?: string } | null;
+      const contactName = (conversation as Record<string, unknown>).contact as { name?: string } | null;
+      const name = (leadName as { name?: string } | undefined)?.name || 
+                   (contactName as { name?: string } | undefined)?.name || 
+                   (instagramUsername ? `@${instagramUsername}` : contactPhone || "Unknown Contact");
+      contactPayload.name = name;
+      
+      // For Instagram, we need to set up the contact with custom fields or tags
+      if (instagramUsername) {
+        contactPayload.tags = ["instagram", `ig:${instagramUsername}`];
+        // Note: GHL doesn't have a native Instagram username field, 
+        // we'll add it as custom value if possible
+        contactPayload.customFields = [
+          { key: "instagram_username", value: instagramUsername }
+        ];
+      }
+
+      console.log("[GHL-SEND] Creating GHL contact", contactPayload);
+
+      // Create contact in GHL
+      const createContactResponse = await fetch(`${ghlBaseUrl}/contacts/`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${configForCreate.ghl_api_key_encrypted}`,
+          "Version": "2021-07-28",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(contactPayload),
+      });
+
+      const createContactText = await createContactResponse.text();
+      let createContactData: Record<string, unknown> = {};
+      
+      try {
+        createContactData = JSON.parse(createContactText);
+      } catch {
+        console.error("[GHL-SEND] Failed to parse create contact response", createContactText);
+      }
+
+      if (!createContactResponse.ok) {
+        console.error("[GHL-SEND] Failed to create GHL contact", { 
+          status: createContactResponse.status, 
+          response: createContactText 
+        });
+        
+        // Check if it's a duplicate error - in that case, try to search for existing contact
+        if (createContactResponse.status === 400 && createContactText.includes("duplicate")) {
+          console.log("[GHL-SEND] Duplicate contact, searching for existing...");
+          
+          // Try to search by phone or email
+          const searchQuery = contactPhone || contactEmail || instagramUsername;
+          if (searchQuery) {
+            const searchResponse = await fetch(
+              `${ghlBaseUrl}/contacts/search?locationId=${configForCreate.ghl_location_id}&query=${encodeURIComponent(searchQuery)}`, 
+              {
+                method: "GET",
+                headers: {
+                  "Authorization": `Bearer ${configForCreate.ghl_api_key_encrypted}`,
+                  "Version": "2021-07-28",
+                },
+              }
+            );
+            
+            if (searchResponse.ok) {
+              const searchData = await searchResponse.json();
+              const foundContact = searchData.contacts?.[0];
+              if (foundContact?.id) {
+                finalGhlContactId = foundContact.id;
+                console.log("[GHL-SEND] Found existing GHL contact", { finalGhlContactId });
+              }
+            }
+          }
+        }
+        
+        if (!finalGhlContactId) {
+          return new Response(
+            JSON.stringify({ error: "Failed to create contact in GHL", details: createContactData }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } else {
+        // Contact created successfully
+        finalGhlContactId = (createContactData.contact as Record<string, unknown>)?.id as string || 
+                            createContactData.id as string;
+        console.log("[GHL-SEND] Created GHL contact", { finalGhlContactId });
+      }
+
+      // Update the lead with the new GHL contact ID
+      if (finalGhlContactId && conversation.lead_id) {
+        await supabase
+          .from("leads")
+          .update({ 
+            ghl_contact_id: finalGhlContactId,
+            ghl_synced_at: new Date().toISOString()
+          })
+          .eq("id", conversation.lead_id);
+        
+        // Also update conversation metadata
+        await supabase
+          .from("conversations")
+          .update({
+            channel_metadata: {
+              ...channelMetadata,
+              ghl_contact_id: finalGhlContactId,
+            }
+          })
+          .eq("id", conversationId);
+          
+        console.log("[GHL-SEND] Updated lead and conversation with GHL contact ID");
+      }
+    }
 
     if (!finalGhlContactId) {
-      console.error("[GHL-SEND] No GHL contact ID found for conversation", { conversationId });
+      console.error("[GHL-SEND] Still no GHL contact ID after creation attempt", { conversationId });
       return new Response(
-        JSON.stringify({ error: "No GHL contact linked to this conversation" }),
+        JSON.stringify({ error: "Could not link or create GHL contact" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
