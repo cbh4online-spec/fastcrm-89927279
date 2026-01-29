@@ -468,16 +468,30 @@ export function KnowledgeBaseModule() {
                         }
                       }}
                       onDelete={async (sourceId) => {
-                        const { error } = await supabase
-                          .from('knowledge_sources')
-                          .delete()
-                          .eq('id', sourceId);
-                        if (error) {
+                        try {
+                          // First delete related entries
+                          await supabase
+                            .from('knowledge_entries')
+                            .delete()
+                            .eq('source_id', sourceId);
+                          
+                          // Then delete the source
+                          const { error } = await supabase
+                            .from('knowledge_sources')
+                            .delete()
+                            .eq('id', sourceId);
+                          
+                          if (error) {
+                            console.error('Delete source error:', error);
+                            toast.error(`Erro ao eliminar fonte: ${error.message}`);
+                            return;
+                          }
+                          toast.success('Fonte e entradas eliminadas');
+                          await loadKBDetails(selectedKB);
+                        } catch (err) {
+                          console.error('Delete error:', err);
                           toast.error('Erro ao eliminar fonte');
-                          return;
                         }
-                        toast.success('Fonte eliminada');
-                        await loadKBDetails(selectedKB);
                       }}
                     />
                   </TabsContent>
