@@ -1,5 +1,5 @@
-// Version 3.0 - Using npm: specifier for reliable deployment
-import { createClient } from "npm:@supabase/supabase-js@2";
+// Version 4.0 - FORCE CACHE BUST 2026-01-29T14:45
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,7 +38,7 @@ interface SyncResult {
 
 Deno.serve(async (req) => {
   // VERSION MARKER - confirms deployment success
-  console.log(`[GHL Sync v3.0] Function started at ${new Date().toISOString()}`);
+  console.log(`[GHL Sync v4.0 2026-01-29] Function started at ${new Date().toISOString()}`);
   
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
