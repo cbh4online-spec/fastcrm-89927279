@@ -38,6 +38,7 @@ import { InsightsSidebar } from "@/components/insights";
 import { ConvertLeadDialog } from "@/components/crm/ConvertLeadDialog";
 import { IdentificationSection } from "@/components/leads/sections/IdentificationSection";
 import { TagsSection } from "@/components/leads/sections/TagsSection";
+import { NotesSection } from "@/components/leads/sections/NotesSection";
 import { SocialMediaSection } from "@/components/leads/sections/SocialMediaSection";
 import { EntitySocialMediaAnalysisSection } from "@/components/shared/EntitySocialMediaAnalysisSection";
 import { EntitySidebarMenu } from "@/components/entity/EntitySidebarMenu";
@@ -219,7 +220,11 @@ export function LeadDetailWithSidebar() {
         );
       case 'notes':
         return (
-          <TagsSection lead={lead} onFieldChange={handleFieldChange} />
+          <NotesSection 
+            entityType="lead" 
+            entityId={id!} 
+            entityName={lead.name} 
+          />
         );
       case 'details':
         return (
