@@ -837,12 +837,12 @@ async function sendAutopilotMessage(
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      workspace_id: workspaceId,
-      conversation_id: conversationId,
-      contact_id: ghlContactId,
-      location_id: locationId,
+      conversationId: conversationId, // Use camelCase to match ghl-send-message interface
       message,
       channel,
+      // Include GHL IDs for direct routing if available
+      ghlContactId,
+      locationId,
       is_autopilot: true
     })
   });
