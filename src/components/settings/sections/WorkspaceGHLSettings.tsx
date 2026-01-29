@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users } from "lucide-react";
+import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users, ArrowRight } from "lucide-react";
 import { useWorkspaceGHLConfig, SaveGHLConfigInput } from "@/hooks/useWorkspaceGHLConfig";
 import { useGHLContactSync } from "@/hooks/useGHLContactSync";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 export function WorkspaceGHLSettings() {
   const {
@@ -24,7 +25,7 @@ export function WorkspaceGHLSettings() {
     isTesting,
   } = useWorkspaceGHLConfig();
 
-  const { syncContacts: triggerSync, isSyncing, lastResult } = useGHLContactSync();
+  const { syncContacts: triggerSync, isSyncing, lastResult, progress } = useGHLContactSync();
 
   const [locationId, setLocationId] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -93,6 +94,11 @@ export function WorkspaceGHLSettings() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const webhookContactUrl = `${supabaseUrl}/functions/v1/ghl-webhook-contact`;
   const webhookMessageUrl = `${supabaseUrl}/functions/v1/ghl-webhook-message`;
+
+  // Calculate progress percentage
+  const progressPercent = progress && progress.estimatedTotal > 0 
+    ? Math.min(100, Math.round((progress.processed / progress.estimatedTotal) * 100))
+    : undefined;
 
   if (isLoading) {
     return (
@@ -245,18 +251,60 @@ export function WorkspaceGHLSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isSyncing && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  A sincronizar contactos...
+            {/* Real-time progress */}
+            {isSyncing && progress && (
+              <div className="space-y-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/50">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="font-medium">A sincronizar contactos...</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    Página {progress.page}
+                  </span>
                 </div>
-                <Progress value={undefined} className="h-2" />
+                
+                <Progress 
+                  value={progressPercent} 
+                  className="h-2 bg-orange-100 dark:bg-orange-900/30"
+                />
+                
+                <div className="grid grid-cols-3 gap-2 text-xs text-center">
+                  <div className="p-2 bg-white dark:bg-background rounded-md shadow-sm">
+                    <span className="block text-lg font-bold text-orange-600">{progress.processed}</span>
+                    <span className="text-muted-foreground">Processados</span>
+                    {progress.estimatedTotal > 0 && (
+                      <span className="block text-muted-foreground text-[10px]">
+                        de ~{progress.estimatedTotal}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-2 bg-white dark:bg-background rounded-md shadow-sm">
+                    <span className="block text-lg font-bold text-green-600">{progress.created}</span>
+                    <span className="text-muted-foreground">Criados</span>
+                  </div>
+                  <div className="p-2 bg-white dark:bg-background rounded-md shadow-sm">
+                    <span className="block text-lg font-bold text-gray-500">{progress.skipped}</span>
+                    <span className="text-muted-foreground">Existentes</span>
+                  </div>
+                </div>
               </div>
             )}
 
+            {/* Syncing without progress data yet */}
+            {isSyncing && !progress && (
+              <div className="space-y-2 p-3 rounded-lg bg-muted">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  A iniciar sincronização...
+                </div>
+                <Progress className="h-2" />
+              </div>
+            )}
+
+            {/* Last result */}
             {lastResult && !isSyncing && (
-              <div className="rounded-lg bg-muted p-3 space-y-1">
+              <div className="rounded-lg bg-muted p-3 space-y-3">
                 <p className="text-sm font-medium">Última sincronização:</p>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="text-center p-2 bg-green-100 dark:bg-green-900/30 rounded">
@@ -272,6 +320,17 @@ export function WorkspaceGHLSettings() {
                     Ignorados
                   </div>
                 </div>
+                
+                {lastResult.created > 0 && (
+                  <Link 
+                    to="/dashboard/leads" 
+                    className="flex items-center justify-center gap-2 w-full py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-md transition-colors"
+                  >
+                    Ver {lastResult.created} leads importados
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                )}
+                
                 {lastResult.errors.length > 0 && (
                   <p className="text-xs text-destructive mt-2">
                     {lastResult.errors.length} erro(s) durante a sincronização
@@ -300,7 +359,7 @@ export function WorkspaceGHLSettings() {
 
             <p className="text-xs text-muted-foreground text-center">
               Isto irá importar todos os contactos do GHL como leads.
-              Contactos existentes serão actualizados com o ID do GHL.
+              Contactos existentes serão ignorados.
             </p>
           </CardContent>
         </Card>
