@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -169,7 +168,6 @@ export function EntityTimelineSection({
   maxHeight = "500px",
 }: EntityTimelineSectionProps) {
   const { currentWorkspace } = useWorkspace();
-  const { workspaceClient } = useWorkspaceInstance();
 
   // Fetch activities from entity_activities
   const { data: activities = [], isLoading, refetch, isRefetching } = useQuery({
@@ -194,12 +192,12 @@ export function EntityTimelineSection({
 
   // Also fetch from crm_activities using lead_id, contact_id, or company_id
   const { data: crmActivities = [] } = useQuery({
-    queryKey: ["crm-activities-timeline", entityType, entityId],
+    queryKey: ["crm-activities-timeline", entityType, entityId, currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
       // Build query based on entity type - use the specific foreign key fields
-      let query = workspaceClient
+      let query = supabase
         .from("crm_activities")
         .select("*")
         .eq("workspace_id", currentWorkspace.id);
@@ -218,7 +216,11 @@ export function EntityTimelineSection({
         .order("created_at", { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[Timeline] Error fetching crm_activities:", error);
+        return [];
+      }
+      
       return (data || []) as Array<{
         id: string;
         activity_type: string;
