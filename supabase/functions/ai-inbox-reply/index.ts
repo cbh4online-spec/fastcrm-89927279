@@ -191,6 +191,8 @@ async function fetchKnowledgeContext(
     return { entries: [], persona };
   }
 
+  let useTextFallback = false;
+  
   try {
     const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
       method: "POST",
@@ -205,43 +207,72 @@ async function fetchKnowledgeContext(
     });
 
     if (!embeddingResponse.ok) {
-      console.error("[AI-INBOX-REPLY] Embedding API error:", await embeddingResponse.text());
-      return { entries: [], persona };
+      const errorText = await embeddingResponse.text();
+      console.warn("[AI-INBOX-REPLY] Embedding API error, using text fallback:", errorText);
+      useTextFallback = true;
+    } else {
+      const embeddingData = await embeddingResponse.json();
+      const queryEmbedding = embeddingData.data[0].embedding;
+
+      // Search for semantically similar entries
+      const { data: results, error } = await supabaseAdmin.rpc("match_knowledge_entries", {
+        query_embedding: queryEmbedding,
+        match_threshold: 0.65,
+        match_count: 5,
+        filter_workspace_id: workspaceId,
+        filter_knowledge_base_id: knowledgeBaseIds.length === 1 ? knowledgeBaseIds[0] : null,
+        filter_status: 'validated'
+      });
+
+      if (error) {
+        console.error("[AI-INBOX-REPLY] Knowledge search error:", error);
+        useTextFallback = true;
+      } else {
+        entries = (results || []).map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          question: r.question,
+          content: r.content,
+          similarity: r.similarity
+        }));
+        console.log(`[AI-INBOX-REPLY] Found ${entries.length} relevant entries via embeddings`);
+      }
     }
-
-    const embeddingData = await embeddingResponse.json();
-    const queryEmbedding = embeddingData.data[0].embedding;
-
-    // Search for semantically similar entries
-    const { data: results, error } = await supabaseAdmin.rpc("match_knowledge_entries", {
-      query_embedding: queryEmbedding,
-      match_threshold: 0.65,
-      match_count: 5,
-      filter_workspace_id: workspaceId,
-      filter_knowledge_base_id: knowledgeBaseIds.length === 1 ? knowledgeBaseIds[0] : null,
-      filter_status: 'validated'
-    });
-
-    if (error) {
-      console.error("[AI-INBOX-REPLY] Knowledge search error:", error);
-      return { entries: [], persona };
-    }
-
-    entries = (results || []).map((r: any) => ({
-      id: r.id,
-      title: r.title,
-      question: r.question,
-      content: r.content,
-      similarity: r.similarity
-    }));
-
-    console.log(`[AI-INBOX-REPLY] Found ${entries.length} relevant knowledge entries`);
-
-    // Log found entries (don't block on usage update)
-    console.log(`[AI-INBOX-REPLY] Using ${entries.length} knowledge entries for context`);
-
   } catch (error) {
-    console.error("[AI-INBOX-REPLY] Error fetching knowledge:", error);
+    console.warn("[AI-INBOX-REPLY] Embedding error, using text fallback:", error);
+    useTextFallback = true;
+  }
+
+  // Fallback: text-based search when embeddings fail
+  if (useTextFallback && knowledgeBaseIds.length > 0) {
+    console.log("[AI-INBOX-REPLY] Using text-based fallback search");
+    try {
+      // Extract keywords from query (simple tokenization)
+      const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const searchPattern = `%${keywords.slice(0, 3).join('%')}%`;
+      
+      const { data: textResults, error: textError } = await supabaseAdmin
+        .from('knowledge_entries')
+        .select('id, title, question, content')
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'validated')
+        .in('knowledge_base_id', knowledgeBaseIds)
+        .or(`title.ilike.${searchPattern},question.ilike.${searchPattern},content.ilike.${searchPattern}`)
+        .limit(5);
+
+      if (!textError && textResults) {
+        entries = textResults.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          question: r.question,
+          content: r.content,
+          similarity: 0.7 // Estimated similarity for text match
+        }));
+        console.log(`[AI-INBOX-REPLY] Found ${entries.length} entries via text fallback`);
+      }
+    } catch (fallbackError) {
+      console.error("[AI-INBOX-REPLY] Text fallback also failed:", fallbackError);
+    }
   }
 
   return { entries, persona };
