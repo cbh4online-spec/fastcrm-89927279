@@ -70,10 +70,10 @@ export function QuickInstagramDialog({
     try {
       const leadId = await findOrCreateLeadByField(
         currentWorkspace.id,
-        "instagram_username",
+        "external_username",
         normalizedUsername,
         {
-          instagram_username: normalizedUsername,
+          external_username: normalizedUsername,
           name: contactName.trim() || `@${normalizedUsername}`,
           source: "instagram",
           status: "new",
@@ -85,7 +85,7 @@ export function QuickInstagramDialog({
         currentWorkspace.id,
         leadId,
         "instagram",
-        { instagram_username: normalizedUsername }
+        { external_username: normalizedUsername }
       );
 
       // Send message via GHL edge function (Instagram = IG type)
