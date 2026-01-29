@@ -161,8 +161,7 @@ export function EnhancedAIReplyPanel({
   }
 
   return (
-    <ScrollArea className="h-full">
-      <div className="p-3 space-y-3">
+    <div className="p-3 space-y-3">
         {/* Header */}
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
@@ -484,7 +483,6 @@ export function EnhancedAIReplyPanel({
             </div>
           </>
         )}
-      </div>
-    </ScrollArea>
+    </div>
   );
 }
