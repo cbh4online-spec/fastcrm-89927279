@@ -1,102 +1,144 @@
 
 
-# Plano: Corrigir Envio de Instagram DM via GHL
+# Plano: Sincronização de Contactos do GoHighLevel
 
-## Problema Identificado
+## Diagnóstico do Problema
 
-O GHL rejeita o envio de mensagens Instagram DM com o erro "Contact has no Instagram id, skipping" porque:
+Após análise detalhada, identifiquei dois problemas distintos:
 
-1. **Limitação da API do Instagram**: O Instagram não permite enviar DMs a utilizadores que não tenham iniciado uma conversa primeiro (política anti-spam)
-2. **Bug no mapeamento de canal**: Os logs mostram `messageType: "SMS"` quando deveria ser `"IG"`
+### 1. Timeline vazio para alguns leads
+O lead "Maria Oliveira" não tem actividades no Timeline porque:
+- Não existem conversas/mensagens associadas a este lead
+- O lead foi criado via webhook GHL mas não teve interacções posteriores
+- O Jorge Cardoso, por contraste, tem 16 mensagens e actividades registadas
 
-## Análise dos Logs
+### 2. Falta de sincronização proactiva do GHL
+Actualmente o sistema só recebe contactos do GHL quando:
+- Um webhook é disparado (novo contacto ou mensagem)
+- O contacto interage via Instagram/Facebook/SMS/WhatsApp
+
+**Não existe** uma forma de importar todos os contactos existentes no GHL de uma só vez.
+
+---
+
+## Solução Proposta
+
+Criar uma funcionalidade de **Sync Manual de Contactos GHL** que permite:
+1. Importar todos os contactos da location GHL configurada
+2. Fazer match com leads/contactos existentes (por email/telefone)
+3. Criar novos leads para contactos não existentes
+4. Sincronizar histórico de conversas (opcional, mais complexo)
+
+---
+
+## Implementação Técnica
+
+### Parte 1: Edge Function `ghl-sync-contacts`
+
+Nova edge function que:
+- Busca todos os contactos da API do GHL via paginação
+- Para cada contacto:
+  - Verifica se já existe no FastCRM (por email ou telefone)
+  - Actualiza o `ghl_contact_id` se existir
+  - Cria novo lead se não existir
+- Regista progresso e erros no `ghl_sync_log`
 
 ```text
-[GHL-SEND] Sending to GHL {
-  ghlContactId: "LWSFlLhVfR8hxjq8u68p",
-  messageType: "SMS",    ← ERRADO! Deveria ser "IG"
-  channel: "IG"
-}
+Endpoint GHL: GET /contacts/?locationId={id}&limit=100&startAfterId={cursor}
 ```
 
-## Solução em Duas Partes
+**Ficheiro**: `supabase/functions/ghl-sync-contacts/index.ts`
 
-### Parte 1: Corrigir Mapeamento de Canal (Bug)
+### Parte 2: Hook de Sincronização
 
-**Ficheiro**: `supabase/functions/ghl-send-message/index.ts` (linha ~472)
-
-Adicionar mapeamento para `"IG"` na função `mapChannelToGHLType`:
-
-```typescript
-function mapChannelToGHLType(channel: string): string {
-  const typeMap: Record<string, string> = {
-    "sms": "SMS",
-    "whatsapp": "WhatsApp",
-    "email": "Email",
-    "messenger": "FB",
-    "facebook": "FB",
-    "instagram": "IG",
-    "IG": "IG",  // Adicionar este mapeamento directo
-  };
-  return typeMap[channel.toLowerCase()] || channel.toUpperCase();
-}
+```text
+src/hooks/useGHLContactSync.ts
 ```
 
-### Parte 2: Tratamento de Erro Específico para Instagram
+Hook que:
+- Chama a edge function com o workspace actual
+- Gere estado de loading/progresso
+- Mostra feedback de sucesso/erro
 
-Adicionar lógica para detectar quando o Instagram não está disponível e informar o utilizador:
+### Parte 3: UI de Sincronização
 
-```typescript
-// Na verificação de erros (após linha 365)
-if (!sendResponse.ok) {
-  // Detectar erro específico de Instagram
-  if (responseText.includes("no Instagram id") || 
-      responseText.includes("skipping")) {
-    return new Response(
-      JSON.stringify({ 
-        error: "O contacto não tem uma conta Instagram vinculada no GHL. " +
-               "O Instagram só permite respostas a mensagens recebidas.",
-        ghlStatus: sendResponse.status,
-        details: responseData
-      }),
-      { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-  // ... resto do tratamento de erros
-}
+Adicionar botão "Sincronizar Contactos" nas definições GHL:
+
+```text
+src/components/settings/sections/WorkspaceGHLSettings.tsx
 ```
 
-### Parte 3: Actualizar UI para Mostrar Limitação
+- Botão com ícone de sincronização
+- Estado de loading com progresso
+- Feedback de quantos contactos importados/actualizados
 
-**Ficheiro**: `src/components/inbox/QuickInstagramDialog.tsx`
+---
 
-Adicionar aviso sobre a limitação do Instagram:
+## Ficheiros a Criar/Modificar
 
-```tsx
-<div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-  <div className="flex items-start gap-2">
-    <Info className="w-4 h-4 text-blue-500 mt-0.5" />
-    <p className="text-xs text-blue-600 dark:text-blue-400">
-      Nota: O Instagram só permite enviar mensagens a utilizadores que já 
-      iniciaram uma conversa consigo. Se o contacto nunca interagiu via 
-      Instagram, a mensagem poderá falhar.
-    </p>
-  </div>
-</div>
+| Ficheiro | Acção |
+|----------|-------|
+| `supabase/functions/ghl-sync-contacts/index.ts` | Criar |
+| `src/hooks/useGHLContactSync.ts` | Criar |
+| `src/components/settings/sections/WorkspaceGHLSettings.tsx` | Modificar |
+
+---
+
+## Fluxo da Sincronização
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    Utilizador                               │
+│                         │                                   │
+│              Clica "Sincronizar Contactos"                  │
+│                         ▼                                   │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │           Edge Function: ghl-sync-contacts          │   │
+│  │                                                     │   │
+│  │   1. Buscar config GHL do workspace                 │   │
+│  │   2. Chamar API GHL: GET /contacts/?limit=100       │   │
+│  │   3. Para cada contacto:                            │   │
+│  │      - Verificar se existe (email/phone)            │   │
+│  │      - Criar ou actualizar lead                     │   │
+│  │   4. Repetir até não haver mais páginas             │   │
+│  │   5. Retornar estatísticas                          │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                         │                                   │
+│                         ▼                                   │
+│   ┌─────────────────────────────────────────────────┐       │
+│   │   Resposta:                                     │       │
+│   │   - created: 45                                 │       │
+│   │   - updated: 12                                 │       │
+│   │   - skipped: 3                                  │       │
+│   │   - errors: []                                  │       │
+│   └─────────────────────────────────────────────────┘       │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Ficheiros a Modificar
+---
 
-1. `supabase/functions/ghl-send-message/index.ts` - Corrigir mapeamento e tratamento de erro
-2. `src/components/inbox/QuickInstagramDialog.tsx` - Adicionar aviso ao utilizador
+## Limitações e Considerações
+
+1. **Rate Limiting**: A API do GHL tem limites (tipicamente 100 req/min). A edge function implementará delays entre páginas.
+
+2. **Timeout**: Para locations com muitos contactos (1000+), pode ser necessário implementar processamento em background via Trigger.dev.
+
+3. **Histórico de mensagens**: A sincronização inicial importará contactos mas **não o histórico de conversas**. Isso seria uma fase 2 mais complexa.
+
+4. **Dados sincronizados**:
+   - Nome (first_name + last_name)
+   - Email
+   - Telefone
+   - Tags
+   - Data de criação no GHL
+
+---
 
 ## Resultado Esperado
 
-1. O mapeamento de canal funcionará correctamente (`IG` → `IG`)
-2. Mensagens de erro serão mais claras para o utilizador
-3. O utilizador será avisado sobre a limitação antes de tentar enviar
-
-## Limitação Fundamental
-
-É importante notar que **não podemos contornar** a limitação do Instagram - só é possível responder a utilizadores que já enviaram uma mensagem primeiro. Esta é uma política da Meta/Instagram, não do GHL.
+Após a implementação:
+- Botão "Sincronizar Contactos" nas configurações GHL
+- Importação de todos os contactos do GHL como leads no FastCRM
+- Cada lead terá o `ghl_contact_id` preenchido para futuras interacções
+- Timeline funcionará para todos os leads assim que houver actividade
 
