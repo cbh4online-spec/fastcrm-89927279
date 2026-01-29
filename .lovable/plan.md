@@ -1,80 +1,66 @@
 
+# Plano: Corrigir Sincronização GHL - Usar Endpoint Correcto
 
-# Plano: Corrigir Sincronização de Contactos GHL
+## Diagnóstico
 
-## Problema Identificado
+Após análise detalhada da documentação da API do GoHighLevel, identifiquei o problema:
 
-O erro `401 - "The token is not authorized for this scope"` ocorre porque o endpoint `POST /contacts/search` requer um scope adicional (`contacts.search`) que a API Key atual não possui.
+| Endpoint | Scope Necessário | Status |
+|----------|------------------|--------|
+| `GET /contacts/` | `contacts.readonly` | Deprecado mas funcional |
+| `GET /contacts/search?query=X` | Funciona para pesquisa específica | OK (usado em `ghl-send-message`) |
+| `GET /contacts/search` (sem query) | Scope adicional não disponível | 401 Error |
+| `POST /contacts/search` | `contacts.search` (não disponível) | 401 Error |
 
-No entanto, a função `ghl-send-message` já usa com sucesso o endpoint `GET /contacts/search` com query params - **que funciona com a mesma API Key**.
+A API Key actual tem `contacts.readonly` (porque cria/actualiza contactos), mas NÃO tem o scope `contacts.search` necessário para listar todos.
 
-### Comparação dos Endpoints
+## Solucao
 
-| Método | Endpoint | Scope Necessário | Status |
-|--------|----------|------------------|--------|
-| `GET` | `/contacts/search?locationId=X&query=Y` | Funciona com API Key actual | ✓ |
-| `POST` | `/contacts/search` (body JSON) | Requer `contacts.search` scope | ✗ |
+Alterar a funcao para usar o endpoint `GET /contacts/` (deprecado mas funcional) em vez de `/contacts/search`.
 
----
+### Parametros do Endpoint GET /contacts/
 
-## Solução
+```text
+GET https://services.leadconnectorhq.com/contacts/
+Query Parameters:
+  - locationId: string (required)
+  - limit: number (max 100)
+  - startAfterId: string (for pagination)
+```
 
-Alterar a função `ghl-sync-contacts` para usar **GET com query params** em vez de POST com body, mantendo compatibilidade com a API Key existente.
-
-### Alterações no Código
+## Alteracao no Codigo
 
 **Ficheiro:** `supabase/functions/ghl-sync-contacts/index.ts`
 
 ```text
-Antes (linhas 131-157):
-────────────────────────────────────────
-const ghlUrl = `https://services.leadconnectorhq.com/contacts/search`;
-
-const searchPayload: Record<string, unknown> = {
-  locationId: locationId,
-  limit: 100,
-  query: "",
-};
-
+Linha 131-147 - Antes:
+────────────────────────────────────────────────────────
+let ghlUrl = `https://services.leadconnectorhq.com/contacts/search?locationId=${...}&limit=100`;
+...
 const ghlResponse = await fetch(ghlUrl, {
-  method: "POST",
+  method: "GET",
   headers: {...},
-  body: JSON.stringify(searchPayload),
 });
 
 Depois:
-────────────────────────────────────────
-// Construir URL com query params (método GET funciona com API Key standard)
-let ghlUrl = `https://services.leadconnectorhq.com/contacts/search?locationId=${locationId}&limit=100`;
-
-if (startAfterId) {
-  ghlUrl += `&startAfterId=${startAfterId}`;
-}
-
+────────────────────────────────────────────────────────
+// Use deprecated but working /contacts/ endpoint (requires contacts.readonly only)
+let ghlUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${...}&limit=100`;
+...
 const ghlResponse = await fetch(ghlUrl, {
   method: "GET",
-  headers: {
-    Authorization: `Bearer ${apiKey}`,
-    Version: "2021-07-28",
-    Accept: "application/json",
-  },
-  // Sem body no GET
+  headers: {...},
 });
 ```
 
----
-
 ## Ficheiros a Modificar
 
-| Ficheiro | Alteração |
+| Ficheiro | Alteracao |
 |----------|-----------|
-| `supabase/functions/ghl-sync-contacts/index.ts` | Mudar de POST para GET com query params |
-
----
+| `supabase/functions/ghl-sync-contacts/index.ts` | Mudar endpoint de `/contacts/search` para `/contacts/` |
 
 ## Resultado Esperado
 
-- A sincronização de contactos funcionará com a mesma API Key que já envia mensagens
-- Não é necessário gerar nova API Key com scopes adicionais
-- O botão "Sincronizar Contactos" importará todos os contactos do GHL
-
+- A sincronizacao funcionara com a API Key existente que ja tem `contacts.readonly`
+- O endpoint deprecado continua a funcionar (apenas nao e recomendado para novas integracoes)
+- Todos os contactos do GHL serao importados para o FastCRM
