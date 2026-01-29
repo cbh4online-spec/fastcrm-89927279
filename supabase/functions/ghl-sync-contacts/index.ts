@@ -1,4 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Version 2.1 - Cache bust with pinned version
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,6 +37,9 @@ interface SyncResult {
 }
 
 Deno.serve(async (req) => {
+  // VERSION MARKER - confirms deployment success
+  console.log(`[GHL Sync v2.1] Function started at ${new Date().toISOString()}`);
+  
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
