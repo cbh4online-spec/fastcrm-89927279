@@ -1,139 +1,82 @@
+# Plano: Motor Conversacional da IA
 
+## ✅ CONCLUÍDO
 
-# Plano: Corrigir Políticas RLS para Tabelas de Knowledge Base
+### 1. RLS Policies para Knowledge Base
+- [x] Adicionadas 12 políticas Super Admin (SELECT, INSERT, UPDATE, DELETE) para:
+  - `knowledge_bases`
+  - `knowledge_sources`
+  - `knowledge_entries`
+- [x] Corrigidas políticas existentes com `WITH CHECK` clauses
 
-## Diagnóstico
+### 2. UI do Motor Conversacional
 
-O utilizador (Super Admin) está a tentar criar uma Base de Conhecimento num workspace onde não é membro directo. O erro:
+#### Componentes Criados
+- [x] `ConversationalEngineModule` - Módulo principal com tabs
+- [x] `VibeProfilesTab` - Gestão de perfis de vibe/estilo
+- [x] `VibeProfileForm` - Formulário para criar/editar vibes
+- [x] `ConversationRulesTab` - Gestão de regras DO/DONT/STOP/REDIRECT
+- [x] `ConversationRuleForm` - Formulário para criar/editar regras
+- [x] `AutopilotConfigTab` - Configuração do Auto-Pilot
 
-```
-"new row violates row-level security policy for table \"knowledge_bases\""
-```
+#### Hooks Criados
+- [x] `useVibeProfiles` - CRUD de perfis de vibe
+- [x] `useConversationRules` - CRUD de regras de conversa
+- [x] `useAutopilotConfig` - Gestão de configuração do autopilot
 
-### Tabelas Afectadas
+#### Tipos Criados
+- [x] `src/types/conversational-engine.ts` - Tipos e constantes
 
-| Tabela | Políticas Actuais | Problema |
-|--------|-------------------|----------|
-| `knowledge_bases` | 2 políticas (SELECT, ALL) | Sem Super Admin, sem WITH CHECK |
-| `knowledge_sources` | 2 políticas (SELECT, ALL) | Sem Super Admin, sem WITH CHECK |
-| `knowledge_entries` | 2 políticas (SELECT, ALL) | Sem Super Admin, sem WITH CHECK |
+#### Rota Adicionada
+- [x] `/dashboard/conversational-engine` - Nova página
 
----
-
-## Solução
-
-Aplicar o mesmo padrão usado para `ai_personas` e outras tabelas: adicionar políticas RLS para Super Admins em todas as 3 tabelas.
-
-### SQL a Aplicar
-
-```sql
--- ==========================================
--- knowledge_bases - Super Admin policies
--- ==========================================
-
-CREATE POLICY "Super admins can view all knowledge_bases"
-  ON public.knowledge_bases FOR SELECT
-  USING (public.is_super_admin(auth.uid()));
-
-CREATE POLICY "Super admins can insert knowledge_bases"
-  ON public.knowledge_bases FOR INSERT
-  WITH CHECK (public.is_super_admin(auth.uid()));
-
-CREATE POLICY "Super admins can update all knowledge_bases"
-  ON public.knowledge_bases FOR UPDATE
-  USING (public.is_super_admin(auth.uid()));
-
-CREATE POLICY "Super admins can delete all knowledge_bases"
-  ON public.knowledge_bases FOR DELETE
-  USING (public.is_super_admin(auth.uid()));
-
--- Corrigir política existente com WITH CHECK
-DROP POLICY IF EXISTS "Users can manage knowledge bases in their workspace" 
-  ON public.knowledge_bases;
-
-CREATE POLICY "Users can manage knowledge bases in their workspace"
-  ON public.knowledge_bases FOR ALL
-  USING (workspace_id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()))
-  WITH CHECK (workspace_id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()));
-
--- ==========================================
--- knowledge_sources - Super Admin policies
--- ==========================================
-
-CREATE POLICY "Super admins can view all knowledge_sources"
-  ON public.knowledge_sources FOR SELECT
-  USING (public.is_super_admin(auth.uid()));
-
-CREATE POLICY "Super admins can insert knowledge_sources"
-  ON public.knowledge_sources FOR INSERT
-  WITH CHECK (public.is_super_admin(auth.uid()));
-
-CREATE POLICY "Super admins can update all knowledge_sources"
-  ON public.knowledge_sources FOR UPDATE
-  USING (public.is_super_admin(auth.uid()));
-
-CREATE POLICY "Super admins can delete all knowledge_sources"
-  ON public.knowledge_sources FOR DELETE
-  USING (public.is_super_admin(auth.uid()));
-
--- Corrigir política existente
-DROP POLICY IF EXISTS "Users can manage knowledge sources in their workspace" 
-  ON public.knowledge_sources;
-
-CREATE POLICY "Users can manage knowledge sources in their workspace"
-  ON public.knowledge_sources FOR ALL
-  USING (workspace_id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()))
-  WITH CHECK (workspace_id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()));
-
--- ==========================================
--- knowledge_entries - Super Admin policies
--- ==========================================
-
-CREATE POLICY "Super admins can view all knowledge_entries"
-  ON public.knowledge_entries FOR SELECT
-  USING (public.is_super_admin(auth.uid()));
-
-CREATE POLICY "Super admins can insert knowledge_entries"
-  ON public.knowledge_entries FOR INSERT
-  WITH CHECK (public.is_super_admin(auth.uid()));
-
-CREATE POLICY "Super admins can update all knowledge_entries"
-  ON public.knowledge_entries FOR UPDATE
-  USING (public.is_super_admin(auth.uid()));
-
-CREATE POLICY "Super admins can delete all knowledge_entries"
-  ON public.knowledge_entries FOR DELETE
-  USING (public.is_super_admin(auth.uid()));
-
--- Corrigir política existente
-DROP POLICY IF EXISTS "Users can manage knowledge entries in their workspace" 
-  ON public.knowledge_entries;
-
-CREATE POLICY "Users can manage knowledge entries in their workspace"
-  ON public.knowledge_entries FOR ALL
-  USING (workspace_id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()))
-  WITH CHECK (workspace_id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()));
-```
+#### Sidebar
+- [x] Link "Motor Conversacional" adicionado à secção Utilitários
 
 ---
 
-## Resumo das Alterações
+## Funcionalidades Implementadas
 
-| Tabela | Novas Políticas |
-|--------|-----------------|
-| `knowledge_bases` | +4 Super Admin (SELECT, INSERT, UPDATE, DELETE) + fix WITH CHECK |
-| `knowledge_sources` | +4 Super Admin (SELECT, INSERT, UPDATE, DELETE) + fix WITH CHECK |
-| `knowledge_entries` | +4 Super Admin (SELECT, INSERT, UPDATE, DELETE) + fix WITH CHECK |
+### Perfis de Vibe
+- Gestão de tom (calmo, energético, etc.)
+- Configuração de formalidade (informal, neutro, formal)
+- Controlo de emojis, exclamações, contrações
+- Limite de frases por resposta
+- Abordagem comercial (não comercial, soft sell, valor)
+- Definir perfil padrão
 
-**Total: 12 novas políticas + 3 políticas corrigidas**
+### Regras de Conversa
+- **DO**: Ações que a IA DEVE executar
+- **DONT**: Ações PROIBIDAS (com mensagem de recusa)
+- **STOP**: Condições que terminam a conversa
+- **REDIRECT**: Redireciona para outro fluxo/persona
+- Condições por palavra-chave, regex, intenção, sentimento
+- Prioridade configurável
+- Âmbito (workspace, persona, canal, fluxo)
+
+### Auto-Pilot
+- Toggle master de ativação
+- Delays de resposta simulando humano (8-12s)
+- Indicador "A escrever..."
+- Limites de mensagens por conversa
+- Pausar quando humano intervém
+- Reativação automática
+- Horário de funcionamento
+- Fuso horário
+- Capacidades (imagens, áudio, ficheiros)
 
 ---
 
-## Resultado Esperado
+## Próximos Passos (Futuro)
 
-Após aplicar a migração:
-1. Super Admin pode criar bases de conhecimento em qualquer workspace
-2. Super Admin pode adicionar fontes (URLs, documentos) em qualquer workspace
-3. Super Admin pode criar/editar/validar entradas em qualquer workspace
-4. Utilizadores normais continuam com acesso apenas aos seus workspaces
+1. **Integração com Edge Functions**
+   - Conectar `ai-inbox-reply` para usar estas configurações
 
+2. **Dashboard de Métricas**
+   - Visualizar compliance, latência, conversões
+
+3. **Replay Conversacional**
+   - Interface para reproduzir conversas no CRM
+
+4. **A/B Testing de Personas**
+   - Comparar performance entre perfis
