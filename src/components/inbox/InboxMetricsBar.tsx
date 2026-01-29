@@ -12,6 +12,7 @@ import {
 import { Clock, MessageSquare, AlertTriangle, TrendingUp, RefreshCw, RotateCcw, ChevronDown } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { IntegrationStatusPanel } from "./IntegrationStatusPanel";
+import { AutopilotToggle } from "./AutopilotToggle";
 import { cn } from "@/lib/utils";
 
 export function InboxMetricsBar() {
@@ -124,6 +125,11 @@ export function InboxMetricsBar() {
           <TrendingUp className="w-4 h-4 text-green-500" />
           <span className="text-xs text-muted-foreground">Tempo médio: ~15min</span>
         </div>
+        
+        <div className="w-px h-4 bg-border" />
+        
+        {/* Autopilot Toggle */}
+        <AutopilotToggle />
         
         <div className="w-px h-4 bg-border" />
         
