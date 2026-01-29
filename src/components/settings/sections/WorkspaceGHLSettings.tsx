@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users, ArrowRight } from "lucide-react";
+import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users, ArrowRight, MessageSquare } from "lucide-react";
 import { useWorkspaceGHLConfig, SaveGHLConfigInput } from "@/hooks/useWorkspaceGHLConfig";
 import { useGHLContactSync } from "@/hooks/useGHLContactSync";
+import { useGHLConversationSync } from "@/hooks/useGHLConversationSync";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -26,7 +27,12 @@ export function WorkspaceGHLSettings() {
   } = useWorkspaceGHLConfig();
 
   const { syncContacts: triggerSync, isSyncing, lastResult, progress } = useGHLContactSync();
-
+  const { 
+    syncConversations: triggerConversationSync, 
+    isSyncing: isSyncingConversations, 
+    lastResult: lastConversationResult, 
+    progress: conversationProgress 
+  } = useGHLConversationSync();
   const [locationId, setLocationId] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
@@ -360,6 +366,123 @@ export function WorkspaceGHLSettings() {
             <p className="text-xs text-muted-foreground text-center">
               Isto irá importar todos os contactos do GHL como leads.
               Contactos existentes serão ignorados.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sync Conversations Section */}
+      {isConfigured && (
+        <Card className="border-blue-200 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-blue-500" />
+              Sincronizar Conversas do GHL
+            </CardTitle>
+            <CardDescription>
+              Importar conversas e mensagens existentes para o inbox
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Real-time progress */}
+            {isSyncingConversations && conversationProgress && (
+              <div className="space-y-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="font-medium">A sincronizar conversas...</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    Página {conversationProgress.page}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2 text-xs text-center">
+                  <div className="p-2 bg-white dark:bg-background rounded-md shadow-sm">
+                    <span className="block text-lg font-bold text-blue-600">{conversationProgress.processed}</span>
+                    <span className="text-muted-foreground">Processados</span>
+                  </div>
+                  <div className="p-2 bg-white dark:bg-background rounded-md shadow-sm">
+                    <span className="block text-lg font-bold text-green-600">{conversationProgress.conversations_created}</span>
+                    <span className="text-muted-foreground">Conversas</span>
+                  </div>
+                  <div className="p-2 bg-white dark:bg-background rounded-md shadow-sm">
+                    <span className="block text-lg font-bold text-purple-600">{conversationProgress.messages_created}</span>
+                    <span className="text-muted-foreground">Mensagens</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Syncing without progress data yet */}
+            {isSyncingConversations && !conversationProgress && (
+              <div className="space-y-2 p-3 rounded-lg bg-muted">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  A iniciar sincronização de conversas...
+                </div>
+                <Progress className="h-2" />
+              </div>
+            )}
+
+            {/* Last result */}
+            {lastConversationResult && !isSyncingConversations && (
+              <div className="rounded-lg bg-muted p-3 space-y-3">
+                <p className="text-sm font-medium">Última sincronização:</p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="text-center p-2 bg-green-100 dark:bg-green-900/30 rounded">
+                    <span className="block text-lg font-bold text-green-600">{lastConversationResult.conversations_created}</span>
+                    Conversas
+                  </div>
+                  <div className="text-center p-2 bg-purple-100 dark:bg-purple-900/30 rounded">
+                    <span className="block text-lg font-bold text-purple-600">{lastConversationResult.messages_created}</span>
+                    Mensagens
+                  </div>
+                  <div className="text-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                    <span className="block text-lg font-bold text-muted-foreground">{lastConversationResult.messages_skipped}</span>
+                    Ignoradas
+                  </div>
+                </div>
+                
+                {lastConversationResult.conversations_created > 0 && (
+                  <Link 
+                    to="/dashboard/inbox" 
+                    className="flex items-center justify-center gap-2 w-full py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-md transition-colors"
+                  >
+                    Ver {lastConversationResult.conversations_created} conversas importadas
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                )}
+                
+                {lastConversationResult.errors.length > 0 && (
+                  <p className="text-xs text-destructive mt-2">
+                    {lastConversationResult.errors.length} erro(s) durante a sincronização
+                  </p>
+                )}
+              </div>
+            )}
+
+            <Button
+              onClick={() => triggerConversationSync(true, 30)}
+              disabled={isSyncingConversations}
+              className="w-full bg-blue-500 hover:bg-blue-600"
+            >
+              {isSyncingConversations ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  A Sincronizar...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Sincronizar Conversas Agora
+                </>
+              )}
+            </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Isto irá importar conversas e mensagens dos últimos 30 dias.
+              Requer que os contactos já estejam sincronizados.
             </p>
           </CardContent>
         </Card>
