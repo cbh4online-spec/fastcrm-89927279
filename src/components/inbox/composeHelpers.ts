@@ -15,7 +15,7 @@ export async function findOrCreateLeadByField(
     created_by?: string;
     phone?: string;
     email?: string;
-    instagram_username?: string;
+    external_username?: string;
   }
 ): Promise<string> {
   // Use RPC or direct query - wrap in any to avoid type issues
