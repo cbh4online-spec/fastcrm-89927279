@@ -4931,6 +4931,65 @@ export type Database = {
           },
         ]
       }
+      entity_notes: {
+        Row: {
+          attachments: Json | null
+          audio_duration_seconds: number | null
+          audio_url: string | null
+          content: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          is_pinned: boolean | null
+          note_type: string
+          transcription: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          is_pinned?: boolean | null
+          note_type?: string
+          transcription?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          is_pinned?: boolean | null
+          note_type?: string
+          transcription?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_notes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_profile_data: {
         Row: {
           activity_profile_id: string
