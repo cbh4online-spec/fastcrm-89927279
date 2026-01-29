@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Mail, Phone, Instagram, Facebook, Globe, MessageSquare, X, Send, Loader2 } from "lucide-react";
+import { Plus, Mail, Phone, Instagram, Facebook, Globe, MessageSquare, Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,21 +24,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmailConnections } from "@/hooks/useEmailConnection";
+import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
+import { useInstagramConnection } from "@/hooks/useInstagramConnection";
 import { toast } from "sonner";
+import { QuickGHLChannelDialog, GHLChannel } from "./QuickGHLChannelDialog";
+import { QuickInstagramDialog } from "./QuickInstagramDialog";
 
 interface ComposeButtonProps {
   className?: string;
   variant?: "default" | "floating";
 }
-
-const channels = [
-  { id: "email", label: "Novo Email", icon: Mail, color: "text-blue-500 bg-blue-500/10", available: true },
-  { id: "whatsapp", label: "WhatsApp", icon: Phone, color: "text-green-500 bg-green-500/10", available: false },
-  { id: "instagram", label: "Instagram DM", icon: Instagram, color: "text-pink-500 bg-pink-500/10", available: false },
-  { id: "facebook", label: "Facebook Messenger", icon: Facebook, color: "text-indigo-500 bg-indigo-500/10", available: false },
-  { id: "sms", label: "SMS", icon: MessageSquare, color: "text-purple-500 bg-purple-500/10", available: false },
-  { id: "webchat", label: "Website Chat", icon: Globe, color: "text-cyan-500 bg-cyan-500/10", available: false },
-];
 
 function QuickComposeDialog({
   open,
@@ -231,12 +226,114 @@ function QuickComposeDialog({
 
 export function ComposeButton({ className, variant = "default" }: ComposeButtonProps) {
   const [showEmailCompose, setShowEmailCompose] = useState(false);
+  const [showGHLDialog, setShowGHLDialog] = useState(false);
+  const [showInstagramDialog, setShowInstagramDialog] = useState(false);
+  const [selectedGHLChannel, setSelectedGHLChannel] = useState<GHLChannel>("whatsapp");
+
+  // Check connection status
+  const { data: emailConnections } = useEmailConnections();
+  const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
+  const { data: instagramConnection } = useInstagramConnection();
+
+  const hasEmailConnection = emailConnections?.some(c => c.is_active);
+  const hasInstagramConnection = instagramConnection?.is_active;
+
+  const channels = [
+    { 
+      id: "email", 
+      label: "Novo Email", 
+      icon: Mail, 
+      color: "text-blue-500 bg-blue-500/10", 
+      available: true,
+      configured: hasEmailConnection,
+    },
+    { 
+      id: "whatsapp", 
+      label: "WhatsApp", 
+      icon: Phone, 
+      color: "text-green-500 bg-green-500/10", 
+      available: true,
+      configured: isGHLConfigured,
+    },
+    { 
+      id: "instagram", 
+      label: "Instagram DM", 
+      icon: Instagram, 
+      color: "text-pink-500 bg-pink-500/10", 
+      available: true,
+      configured: hasInstagramConnection,
+    },
+    { 
+      id: "facebook", 
+      label: "Facebook Messenger", 
+      icon: Facebook, 
+      color: "text-indigo-500 bg-indigo-500/10", 
+      available: true,
+      configured: isGHLConfigured,
+    },
+    { 
+      id: "sms", 
+      label: "SMS", 
+      icon: MessageSquare, 
+      color: "text-purple-500 bg-purple-500/10", 
+      available: true,
+      configured: isGHLConfigured,
+    },
+    { 
+      id: "webchat", 
+      label: "Website Chat", 
+      icon: Globe, 
+      color: "text-cyan-500 bg-cyan-500/10", 
+      available: false,
+      configured: false,
+    },
+  ];
 
   const handleChannelSelect = (channelId: string) => {
-    if (channelId === "email") {
-      setShowEmailCompose(true);
+    switch (channelId) {
+      case "email":
+        setShowEmailCompose(true);
+        break;
+      case "whatsapp":
+        setSelectedGHLChannel("whatsapp");
+        setShowGHLDialog(true);
+        break;
+      case "sms":
+        setSelectedGHLChannel("sms");
+        setShowGHLDialog(true);
+        break;
+      case "facebook":
+        setSelectedGHLChannel("facebook");
+        setShowGHLDialog(true);
+        break;
+      case "instagram":
+        setShowInstagramDialog(true);
+        break;
     }
-    // Other channels can be added later
+  };
+
+  const renderChannelItem = (channel: typeof channels[0]) => {
+    const Icon = channel.icon;
+    return (
+      <DropdownMenuItem
+        key={channel.id}
+        onClick={() => handleChannelSelect(channel.id)}
+        disabled={!channel.available}
+        className="gap-3"
+      >
+        <div className={cn("p-1.5 rounded", channel.color)}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <span className="flex-1">{channel.label}</span>
+        {!channel.available ? (
+          <span className="text-xs text-muted-foreground">Em breve</span>
+        ) : channel.configured ? (
+          <CheckCircle2 className="w-4 h-4 text-green-500" />
+        ) : (
+          <AlertCircle className="w-4 h-4 text-amber-500" />
+        )}
+      </DropdownMenuItem>
+    );
   };
 
   if (variant === "floating") {
@@ -258,31 +355,22 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Nova Mensagem</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {channels.map((channel) => {
-              const Icon = channel.icon;
-              return (
-                <DropdownMenuItem
-                  key={channel.id}
-                  onClick={() => handleChannelSelect(channel.id)}
-                  disabled={!channel.available}
-                  className="gap-3"
-                >
-                  <div className={cn("p-1.5 rounded", channel.color)}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span>{channel.label}</span>
-                  {!channel.available && (
-                    <span className="ml-auto text-xs text-muted-foreground">Em breve</span>
-                  )}
-                </DropdownMenuItem>
-              );
-            })}
+            {channels.map(renderChannelItem)}
           </DropdownMenuContent>
         </DropdownMenu>
 
         <QuickComposeDialog
           open={showEmailCompose}
           onOpenChange={setShowEmailCompose}
+        />
+        <QuickGHLChannelDialog
+          open={showGHLDialog}
+          onOpenChange={setShowGHLDialog}
+          channel={selectedGHLChannel}
+        />
+        <QuickInstagramDialog
+          open={showInstagramDialog}
+          onOpenChange={setShowInstagramDialog}
         />
       </>
     );
@@ -307,31 +395,22 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
         <DropdownMenuContent align="start" className="w-56">
           <DropdownMenuLabel>Escolher Canal</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {channels.map((channel) => {
-            const Icon = channel.icon;
-            return (
-              <DropdownMenuItem
-                key={channel.id}
-                onClick={() => handleChannelSelect(channel.id)}
-                disabled={!channel.available}
-                className="gap-3"
-              >
-                <div className={cn("p-1.5 rounded", channel.color)}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <span>{channel.label}</span>
-                {!channel.available && (
-                  <span className="ml-auto text-xs text-muted-foreground">Em breve</span>
-                )}
-              </DropdownMenuItem>
-            );
-          })}
+          {channels.map(renderChannelItem)}
         </DropdownMenuContent>
       </DropdownMenu>
 
       <QuickComposeDialog
         open={showEmailCompose}
         onOpenChange={setShowEmailCompose}
+      />
+      <QuickGHLChannelDialog
+        open={showGHLDialog}
+        onOpenChange={setShowGHLDialog}
+        channel={selectedGHLChannel}
+      />
+      <QuickInstagramDialog
+        open={showInstagramDialog}
+        onOpenChange={setShowInstagramDialog}
       />
     </>
   );
