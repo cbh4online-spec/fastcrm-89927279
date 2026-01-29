@@ -128,14 +128,14 @@ Deno.serve(async (req) => {
     while (hasMore && pageCount < maxPages) {
       pageCount++;
       
-      // Build GHL API URL with query params (GET method works with standard API Key)
-      let ghlUrl = `https://services.leadconnectorhq.com/contacts/search?locationId=${encodeURIComponent(locationId)}&limit=100`;
+      // Use deprecated /contacts/ endpoint (requires contacts.readonly only, not contacts.search)
+      let ghlUrl = `https://services.leadconnectorhq.com/contacts/?locationId=${encodeURIComponent(locationId)}&limit=100`;
       
       if (startAfterId) {
         ghlUrl += `&startAfterId=${encodeURIComponent(startAfterId)}`;
       }
 
-      console.log(`[GHL Sync] Fetching page ${pageCount} via GET search endpoint`);
+      console.log(`[GHL Sync] Fetching page ${pageCount} via /contacts/ endpoint`);
 
       const ghlResponse = await fetch(ghlUrl, {
         method: "GET",
