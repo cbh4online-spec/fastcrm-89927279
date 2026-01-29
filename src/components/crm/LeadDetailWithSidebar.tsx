@@ -59,6 +59,7 @@ import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { OpportunitiesSection } from "@/components/leads/sections/OpportunitiesSection";
 import { ProposalsSection } from "@/components/leads/sections/ProposalsSection";
+import { EntityTimelineSection } from "@/components/timeline";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -287,6 +288,14 @@ export function LeadDetailWithSidebar() {
           <ProposalsSection
             leadId={id!}
             leadName={lead.name}
+          />
+        );
+      case 'history':
+        return (
+          <EntityTimelineSection
+            entityType="lead"
+            entityId={id!}
+            entityName={lead.name}
           />
         );
       default:

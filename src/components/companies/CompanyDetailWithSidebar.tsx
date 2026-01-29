@@ -66,6 +66,7 @@ import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 import { EntityOpportunitiesSection } from "@/components/opportunities/EntityOpportunitiesSection";
+import { EntityTimelineSection } from "@/components/timeline";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -268,6 +269,14 @@ export function CompanyDetailWithSidebar() {
         );
       case 'history':
         return <CompanyContactsHistory companyId={id || ''} />;
+      case 'timeline':
+        return (
+          <EntityTimelineSection
+            entityType="company"
+            entityId={id!}
+            entityName={company.name}
+          />
+        );
       case 'payments':
         return <AcquiredProductsSection companyId={id} />;
       case 'messages':
