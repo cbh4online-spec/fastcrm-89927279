@@ -368,7 +368,7 @@ export function ConversationList({
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full bg-card">
+      <div className="flex flex-col h-full bg-card overflow-hidden">
         {/* Header */}
         <div className="p-4 border-b border-border space-y-3">
           <div className="flex items-center justify-between">
