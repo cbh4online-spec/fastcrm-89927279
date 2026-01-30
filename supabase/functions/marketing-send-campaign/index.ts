@@ -244,9 +244,10 @@ serve(async (req) => {
         if (response.ok && result.id) {
           sentCount++;
           
-          // Create recipient record
+          // Create recipient record with workspace_id for webhook processing
           await supabase.from("marketing_recipients").insert({
             campaign_id: campaignId,
+            workspace_id: workspaceId,
             email: recipient.email,
             contact_id: recipient.type === "contact" ? recipient.id : null,
             lead_id: recipient.type === "lead" ? recipient.id : null,

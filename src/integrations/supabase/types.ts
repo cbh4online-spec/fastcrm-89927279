@@ -10335,6 +10335,7 @@ export type Database = {
           bounced_at: string | null
           campaign_id: string
           clicked_at: string | null
+          company_id: string | null
           contact_id: string | null
           created_at: string
           delivered_at: string | null
@@ -10358,6 +10359,7 @@ export type Database = {
           bounced_at?: string | null
           campaign_id: string
           clicked_at?: string | null
+          company_id?: string | null
           contact_id?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -10381,6 +10383,7 @@ export type Database = {
           bounced_at?: string | null
           campaign_id?: string
           clicked_at?: string | null
+          company_id?: string | null
           contact_id?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -10403,6 +10406,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_recipients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -20812,6 +20822,10 @@ export type Database = {
           _workspace_id: string
         }
         Returns: boolean
+      }
+      increment_campaign_stat: {
+        Args: { p_campaign_id: string; p_field: string }
+        Returns: undefined
       }
       init_conversation_journey: {
         Args: {

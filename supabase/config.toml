@@ -165,3 +165,6 @@ verify_jwt = false
 
 [functions.marketing-send-campaign]
 verify_jwt = false
+
+[functions.marketing-webhook]
+verify_jwt = false
