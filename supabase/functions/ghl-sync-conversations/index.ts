@@ -95,6 +95,41 @@ function resolveChannel(typeCode?: number, fallback?: string): string {
   return "other";
 }
 
+/**
+ * Convert GHL timestamp (can be Unix ms, Unix s, or ISO string) to ISO string
+ */
+function normalizeTimestamp(value?: string | number): string | null {
+  if (!value) return null;
+  
+  // If it's already a string that looks like ISO, return it
+  if (typeof value === "string") {
+    // Check if it's a valid ISO date
+    const parsed = Date.parse(value);
+    if (!isNaN(parsed)) {
+      return new Date(parsed).toISOString();
+    }
+    // Try to parse as number string
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue)) {
+      value = numValue;
+    } else {
+      return null;
+    }
+  }
+  
+  // Handle numeric timestamps
+  if (typeof value === "number") {
+    // If value is > 1e12, it's in milliseconds, otherwise seconds
+    if (value > 1e12) {
+      return new Date(value).toISOString();
+    } else if (value > 1e9) {
+      return new Date(value * 1000).toISOString();
+    }
+  }
+  
+  return null;
+}
+
 function normalizeDirection(direction?: string): "inbound" | "outbound" {
   if (!direction) return "inbound";
   const lower = direction.toLowerCase();
@@ -317,6 +352,11 @@ Deno.serve(async (req) => {
                 let conversationId = conversationsByThreadId.get(externalThreadId);
 
                 if (!conversationId) {
+                  // Normalize the timestamp from GHL
+                  const lastMessageAt = normalizeTimestamp(ghlConv.lastMessageDate) || 
+                                        normalizeTimestamp(ghlConv.dateUpdated) || 
+                                        new Date().toISOString();
+                  
                   // Create new conversation
                   const { data: newConv, error: convError } = await supabase
                     .from("conversations")
@@ -327,7 +367,7 @@ Deno.serve(async (req) => {
                       status: "open",
                       unread_count: ghlConv.unreadCount || 0,
                       external_thread_id: externalThreadId,
-                      last_message_at: ghlConv.lastMessageDate || ghlConv.dateUpdated,
+                      last_message_at: lastMessageAt,
                       last_message_preview: ghlConv.lastMessageBody?.substring(0, 100),
                       channel_metadata: {
                         ghl_conversation_id: ghlConv.id,
@@ -349,10 +389,13 @@ Deno.serve(async (req) => {
                   console.log(`[GHL Sync Conversations] Created conversation ${conversationId}`);
                 } else {
                   // Update existing conversation
+                  const lastMessageAt = normalizeTimestamp(ghlConv.lastMessageDate) || 
+                                        normalizeTimestamp(ghlConv.dateUpdated);
+                  
                   await supabase
                     .from("conversations")
                     .update({
-                      last_message_at: ghlConv.lastMessageDate || ghlConv.dateUpdated,
+                      last_message_at: lastMessageAt,
                       last_message_preview: ghlConv.lastMessageBody?.substring(0, 100),
                       unread_count: ghlConv.unreadCount || 0,
                     })
@@ -393,6 +436,8 @@ Deno.serve(async (req) => {
                           name: att.name || "attachment",
                         }));
 
+                        const sentAt = normalizeTimestamp(msg.dateAdded) || new Date().toISOString();
+                        
                         const { error: msgError } = await supabase
                           .from("messages")
                           .insert({
@@ -400,7 +445,7 @@ Deno.serve(async (req) => {
                             workspace_id,
                             content: msg.body || "",
                             direction,
-                            sent_at: msg.dateAdded || new Date().toISOString(),
+                            sent_at: sentAt,
                             ghl_message_id: msg.id,
                             external_message_id: msg.id,
                             attachments: attachments.length > 0 ? attachments : null,
