@@ -63,13 +63,15 @@ import { calculateTemperature } from "@/lib/conversationTemperature";
 // Design System imports
 import { EmptyState, LoadingSpinner } from "@/components/design-system";
 
-const channelIcons = {
+const channelIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   whatsapp: Phone,
   email: Mail,
   sms: MessageSquare,
   webchat: Globe,
   instagram: Instagram,
   facebook: Facebook,
+  ghl: MessageSquare,
+  other: MessageSquare,
 };
 
 interface ConversationDetailProps {
@@ -283,7 +285,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     );
   }
 
-  const ChannelIcon = channelIcons[conversation.channel];
+  const ChannelIcon = channelIcons[conversation.channel] || MessageSquare;
 
   return (
     <div className="h-full flex flex-col bg-background">
