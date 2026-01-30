@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -12,6 +13,16 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { X, Trash2, Copy, ChevronUp, ChevronDown, Upload } from 'lucide-react';
+import {
+  HeroBlockEditor,
+  ProductBlockEditor,
+  CountdownBlockEditor,
+  TestimonialBlockEditor,
+  MenuBlockEditor,
+  ImageTextBlockEditor,
+  SocialBlockEditor,
+  VideoBlockEditor,
+} from './editors';
 import type { 
   EmailBlock, 
   TextBlockContent,
@@ -20,6 +31,15 @@ import type {
   DividerBlockContent,
   SpacerBlockContent,
   FooterBlockContent,
+  HeroBlockContent,
+  ProductBlockContent,
+  CountdownBlockContent,
+  TestimonialBlockContent,
+  MenuBlockContent,
+  ImageTextBlockContent,
+  SocialBlockContent,
+  VideoBlockContent,
+  HtmlBlockContent,
 } from '@/types/emailBuilder';
 
 interface BlockEditorProps {
@@ -176,6 +196,22 @@ export function BlockEditor({
           </div>
         </div>
         <div className="space-y-2">
+          <Label className="text-xs">Tamanho</Label>
+          <Select
+            value={content.size || 'medium'}
+            onValueChange={(value: 'small' | 'medium' | 'large') => updateContent({ size: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">Pequeno</SelectItem>
+              <SelectItem value="medium">Médio</SelectItem>
+              <SelectItem value="large">Grande</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
           <Label className="text-xs">Arredondamento</Label>
           <Select
             value={content.borderRadius || '6px'}
@@ -192,6 +228,13 @@ export function BlockEditor({
               <SelectItem value="50px">Pílula</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Largura Total</Label>
+          <Switch
+            checked={content.fullWidth || false}
+            onCheckedChange={(checked) => updateContent({ fullWidth: checked })}
+          />
         </div>
       </div>
     );
@@ -292,6 +335,14 @@ export function BlockEditor({
             placeholder="{{empresa_nome}} | {{empresa_endereco}}"
           />
         </div>
+        <div className="space-y-2">
+          <Label className="text-xs">Informação da Empresa</Label>
+          <Input
+            value={content.companyInfo || ''}
+            onChange={(e) => updateContent({ companyInfo: e.target.value })}
+            placeholder="{{empresa_endereco}}"
+          />
+        </div>
         <div className="flex items-center justify-between">
           <div>
             <Label className="text-xs">Mostrar Link de Cancelamento</Label>
@@ -306,12 +357,28 @@ export function BlockEditor({
     );
   };
 
+  const renderHtmlEditor = () => {
+    const content = block.content as HtmlBlockContent;
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label className="text-xs">Código HTML Personalizado</Label>
+          <Textarea
+            value={content.html}
+            onChange={(e) => updateContent({ html: e.target.value })}
+            className="min-h-[200px] font-mono text-xs"
+            placeholder="<!-- HTML personalizado -->"
+          />
+          <p className="text-xs text-muted-foreground">
+            Código HTML avançado. Use com cuidado.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   const renderStyleEditor = () => (
-    <div className="space-y-4 pt-4 border-t">
-      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        Estilos
-      </h4>
-      
+    <div className="space-y-4">
       <div className="space-y-2">
         <Label className="text-xs">Alinhamento</Label>
         <Select
@@ -331,10 +398,37 @@ export function BlockEditor({
       
       <div className="space-y-2">
         <Label className="text-xs">Padding</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            value={block.styles.paddingTop || ''}
+            onChange={(e) => updateStyles({ paddingTop: e.target.value })}
+            placeholder="Topo"
+            className="font-mono text-xs"
+          />
+          <Input
+            value={block.styles.paddingBottom || ''}
+            onChange={(e) => updateStyles({ paddingBottom: e.target.value })}
+            placeholder="Base"
+            className="font-mono text-xs"
+          />
+          <Input
+            value={block.styles.paddingLeft || ''}
+            onChange={(e) => updateStyles({ paddingLeft: e.target.value })}
+            placeholder="Esquerda"
+            className="font-mono text-xs"
+          />
+          <Input
+            value={block.styles.paddingRight || ''}
+            onChange={(e) => updateStyles({ paddingRight: e.target.value })}
+            placeholder="Direita"
+            className="font-mono text-xs"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">Ou usar formato único:</p>
         <Input
-          value={block.styles.padding || '10px 0'}
+          value={block.styles.padding || ''}
           onChange={(e) => updateStyles({ padding: e.target.value })}
-          placeholder="10px 0"
+          placeholder="10px 20px"
           className="font-mono text-xs"
         />
       </div>
@@ -357,6 +451,35 @@ export function BlockEditor({
           />
         </div>
       </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">Arredondamento</Label>
+        <Select
+          value={block.styles.borderRadius || '0px'}
+          onValueChange={(value) => updateStyles({ borderRadius: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0px">Nenhum</SelectItem>
+            <SelectItem value="4px">Pequeno</SelectItem>
+            <SelectItem value="8px">Médio</SelectItem>
+            <SelectItem value="12px">Grande</SelectItem>
+            <SelectItem value="16px">Extra Grande</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">Borda</Label>
+        <Input
+          value={block.styles.border || ''}
+          onChange={(e) => updateStyles({ border: e.target.value })}
+          placeholder="1px solid #e5e5e5"
+          className="font-mono text-xs"
+        />
+      </div>
     </div>
   );
 
@@ -375,6 +498,69 @@ export function BlockEditor({
         return renderSpacerEditor();
       case 'footer':
         return renderFooterEditor();
+      case 'html':
+        return renderHtmlEditor();
+      case 'hero':
+        return (
+          <HeroBlockEditor
+            content={block.content as HeroBlockContent}
+            onUpdate={(updates) => updateContent(updates)}
+            onOpenImageUploader={onOpenImageUploader}
+          />
+        );
+      case 'product':
+        return (
+          <ProductBlockEditor
+            content={block.content as ProductBlockContent}
+            onUpdate={(updates) => updateContent(updates)}
+            onOpenImageUploader={onOpenImageUploader}
+          />
+        );
+      case 'countdown':
+        return (
+          <CountdownBlockEditor
+            content={block.content as CountdownBlockContent}
+            onUpdate={(updates) => updateContent(updates)}
+          />
+        );
+      case 'testimonial':
+        return (
+          <TestimonialBlockEditor
+            content={block.content as TestimonialBlockContent}
+            onUpdate={(updates) => updateContent(updates)}
+            onOpenImageUploader={onOpenImageUploader}
+          />
+        );
+      case 'menu':
+        return (
+          <MenuBlockEditor
+            content={block.content as MenuBlockContent}
+            onUpdate={(updates) => updateContent(updates)}
+          />
+        );
+      case 'imageText':
+        return (
+          <ImageTextBlockEditor
+            content={block.content as ImageTextBlockContent}
+            onUpdate={(updates) => updateContent(updates)}
+            onOpenImageUploader={onOpenImageUploader}
+          />
+        );
+      case 'social':
+        return (
+          <SocialBlockEditor
+            content={block.content as SocialBlockContent}
+            onUpdate={(updates) => updateContent(updates)}
+          />
+        );
+      case 'video':
+        return (
+          <VideoBlockEditor
+            content={block.content as VideoBlockContent}
+            onUpdate={(updates) => updateContent(updates)}
+            onOpenImageUploader={onOpenImageUploader}
+          />
+        );
       default:
         return <p className="text-sm text-muted-foreground">Editor não disponível para este tipo.</p>;
     }
@@ -392,6 +578,12 @@ export function BlockEditor({
     logo: 'Logo',
     video: 'Vídeo',
     html: 'HTML',
+    hero: 'Hero',
+    product: 'Produto',
+    countdown: 'Countdown',
+    testimonial: 'Testemunho',
+    menu: 'Menu',
+    imageText: 'Imagem + Texto',
   };
 
   return (
@@ -408,12 +600,25 @@ export function BlockEditor({
         </Button>
       </div>
       
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
-          {renderBlockTypeEditor()}
-          {renderStyleEditor()}
-        </div>
-      </ScrollArea>
+      <Tabs defaultValue="content" className="flex-1 flex flex-col overflow-hidden">
+        <TabsList className="grid w-full grid-cols-2 rounded-none border-b h-9 bg-transparent px-4">
+          <TabsTrigger value="content" className="text-xs data-[state=active]:bg-muted rounded-sm h-7">
+            Conteúdo
+          </TabsTrigger>
+          <TabsTrigger value="style" className="text-xs data-[state=active]:bg-muted rounded-sm h-7">
+            Estilos
+          </TabsTrigger>
+        </TabsList>
+        
+        <ScrollArea className="flex-1">
+          <TabsContent value="content" className="m-0 p-4">
+            {renderBlockTypeEditor()}
+          </TabsContent>
+          <TabsContent value="style" className="m-0 p-4">
+            {renderStyleEditor()}
+          </TabsContent>
+        </ScrollArea>
+      </Tabs>
       
       <div className="p-4 border-t space-y-2">
         <div className="flex gap-2">
