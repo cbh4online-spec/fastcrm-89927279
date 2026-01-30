@@ -256,7 +256,7 @@ Deno.serve(async (req) => {
 
               pageCount++;
               
-              // Use GET /conversations/ with query params (correct GHL API endpoint)
+              // Use GET /conversations/search with query params (correct GHL API endpoint)
               const queryParams = new URLSearchParams({
                 locationId,
                 limit: "50",
@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
                 queryParams.set("startAfterId", lastId);
               }
               
-              const ghlUrl = `https://services.leadconnectorhq.com/conversations/?${queryParams.toString()}`;
+              const ghlUrl = `https://services.leadconnectorhq.com/conversations/search?${queryParams.toString()}`;
               
               console.log(`[GHL Sync Conversations] Fetching page ${pageCount}: ${ghlUrl}`);
 
