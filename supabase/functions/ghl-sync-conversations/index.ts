@@ -246,6 +246,8 @@ Deno.serve(async (req) => {
             const sinceDate = new Date();
             sinceDate.setDate(sinceDate.getDate() - days_back);
 
+            let lastId: string | undefined;
+
             while (hasMore && pageCount < maxPages) {
               if (Date.now() - startTime > maxExecutionTime) {
                 result.errors.push(`Sincronização parcial: timeout após ${pageCount} páginas.`);
@@ -254,24 +256,26 @@ Deno.serve(async (req) => {
 
               pageCount++;
               
-              const ghlUrl = `https://services.leadconnectorhq.com/conversations/search`;
+              // Use GET /conversations/ with query params (correct GHL API endpoint)
+              const queryParams = new URLSearchParams({
+                locationId,
+                limit: "50",
+              });
+              if (lastId) {
+                queryParams.set("startAfterId", lastId);
+              }
               
-              console.log(`[GHL Sync Conversations] Fetching page ${pageCount}`);
+              const ghlUrl = `https://services.leadconnectorhq.com/conversations/?${queryParams.toString()}`;
+              
+              console.log(`[GHL Sync Conversations] Fetching page ${pageCount}: ${ghlUrl}`);
 
               const ghlResponse = await fetch(ghlUrl, {
-                method: "POST",
+                method: "GET",
                 headers: {
                   Authorization: `Bearer ${apiKey}`,
                   Version: "2021-04-15",
-                  "Content-Type": "application/json",
                   Accept: "application/json",
                 },
-                body: JSON.stringify({
-                  locationId,
-                  limit: 50,
-                  sort: "desc",
-                  sortBy: "last_message_date",
-                }),
               });
 
               if (!ghlResponse.ok) {
@@ -428,8 +432,13 @@ Deno.serve(async (req) => {
                 });
               }
 
-              // For now, don't paginate further (API doesn't have cursor-based pagination for search)
-              hasMore = false;
+              // Update lastId for pagination
+              if (conversations.length > 0) {
+                lastId = conversations[conversations.length - 1].id;
+              }
+              
+              // Continue if we got a full page
+              hasMore = conversations.length >= 50;
             }
 
             // Update last_sync_at
