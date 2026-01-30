@@ -176,6 +176,87 @@ export function useDeleteSegment() {
   });
 }
 
+// Helper function to count segment entities without fetching all data
+export async function countSegmentEntities(
+  workspaceId: string,
+  filterRules: SegmentFilterRules
+): Promise<number> {
+  let totalCount = 0;
+
+  const applyConditions = (query: any, conditions: typeof filterRules.conditions) => {
+    for (const condition of conditions || []) {
+      const value = typeof condition.value === 'string' ? condition.value : '';
+      switch (condition.field) {
+        case 'tags':
+          if (condition.operator === 'contains' && value) {
+            query = query.contains('tags', [value]);
+          }
+          break;
+        case 'company':
+          if (condition.operator === 'equals' && value) {
+            query = query.eq('company', value);
+          } else if (condition.operator === 'contains' && value) {
+            query = query.ilike('company', `%${value}%`);
+          }
+          break;
+      }
+    }
+    return query;
+  };
+
+  // Count contacts
+  let contactsQuery = supabase
+    .from('contacts')
+    .select('id', { count: 'exact', head: true })
+    .eq('workspace_id', workspaceId);
+  contactsQuery = applyConditions(contactsQuery, filterRules?.conditions);
+  const { count: contactsCount } = await contactsQuery;
+  totalCount += contactsCount || 0;
+
+  // Count leads
+  let leadsQuery = supabase
+    .from('leads')
+    .select('id', { count: 'exact', head: true })
+    .eq('workspace_id', workspaceId);
+  leadsQuery = applyConditions(leadsQuery, filterRules?.conditions);
+  const { count: leadsCount } = await leadsQuery;
+  totalCount += leadsCount || 0;
+
+  // Count companies
+  let companiesQuery = supabase
+    .from('companies')
+    .select('id', { count: 'exact', head: true })
+    .eq('workspace_id', workspaceId);
+  companiesQuery = applyConditions(companiesQuery, filterRules?.conditions);
+  const { count: companiesCount } = await companiesQuery;
+  totalCount += companiesCount || 0;
+
+  return totalCount;
+}
+
+// Hook to get live count for a segment
+export function useSegmentLiveCount(segment: { id: string; filterRules: SegmentFilterRules } | null) {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ['segment-live-count', segment?.id],
+    queryFn: async () => {
+      if (!segment || !currentWorkspace?.id) return 0;
+      const count = await countSegmentEntities(currentWorkspace.id, segment.filterRules);
+      
+      // Update the stored count
+      await supabase
+        .from('marketing_segments')
+        .update({ contact_count: count })
+        .eq('id', segment.id);
+      
+      return count;
+    },
+    enabled: !!segment && !!currentWorkspace?.id,
+    staleTime: 30000, // Cache for 30 seconds
+  });
+}
+
 export interface SegmentEntity {
   id: string;
   name: string;
