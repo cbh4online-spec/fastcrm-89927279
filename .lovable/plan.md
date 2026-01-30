@@ -1,386 +1,238 @@
 
 
-# Plano: Email Builder Visual Profissional - Experiencia de Nivel Enterprise
+# Plano: Otimizar Editor de Email - Layout Centrado e Totalmente Editavel
 
-## Analise Comparativa
+## Problemas Atuais Identificados
 
-Depois de analisar os screenshots do E-goi e GoHighLevel, identifiquei as seguintes lacunas criticas:
-
-### O que falta (vs exemplos profissionais):
-
-| Funcionalidade | Estado Atual | E-goi/GoHighLevel |
-|----------------|--------------|-------------------|
-| Editar texto inline | Textarea com HTML | Editor WYSIWYG direto no canvas |
-| Upload de imagens | URL manual | Drag-drop com upload integrado |
-| Selecao visual de elementos | Clica > sidebar | Clica diretamente e edita inline |
-| Toolbar flutuante | Basica | Rica com bold, italic, cores, links |
-| Preview em tempo real | Modal separado | Lado a lado com toggle |
-| Galeria de templates | 4 layouts basicos | Galeria visual com thumbnails |
-| Quick actions | Botoes simples | Contextual com hover inteligente |
-| Variaveis dinamicas | Escrever manual | Picker visual integrado |
-| Arrastar elementos | Funciona | Feedback visual mais rico |
-| Bloco Hero | Nao existe | Imagem grande + titulo + CTA |
-| Bloco Countdown | Nao existe | Timer animado |
-| Bloco Testimonial | Nao existe | Citacao + avatar |
-| Bloco Product Card | Nao existe | Imagem + preco + botao |
+1. **Layout Descentrado**: O canvas fica colado a esquerda quando nao ha bloco selecionado
+2. **Painel Direito Vazio**: Quando nenhum bloco esta selecionado, o painel direito desaparece completamente
+3. **Falta Edicao Inline**: Os blocos de texto ainda usam textarea em vez de edicao direta
+4. **Editores Incompletos**: Blocos premium (Hero, Product, Testimonial, Countdown, Menu) nao tem editores no BlockEditor
+5. **Feedback Visual Fraco**: Nao fica claro que os elementos sao editaveis
 
 ---
 
-## Arquitetura da Solucao
+## Solucao Proposta
+
+### 1. Layout de 3 Colunas Permanente
+
+Redesenhar o layout para ter sempre 3 paineis visiveis:
 
 ```text
 +--------------------------------------------------+
-|                   HEADER BAR                      |
-| [X] [Titulo] [Undo][Redo] [Desktop][Mobile] [Save]|
-+--------+-----------------------------+------------+
-|        |                             |            |
-| LEFT   |         CANVAS              |   RIGHT    |
-| PANEL  |    (Preview Live)           |   PANEL    |
-|        |                             |            |
-| Tabs:  |   +-------------------+     | Properties |
-| - Add  |   |     HEADER        |     |            |
-| - Rows |   |   [Edit Inline]   |     | - Content  |
-| - Setup|   +-------------------+     | - Style    |
-|        |   |                   |     | - Advanced |
-| Cards  |   |   BODY CONTENT    |     |            |
-| visuais|   |   [Rich Editor]   |     | Actions:   |
-|        |   |                   |     | - Duplicate|
-|        |   +-------------------+     | - Delete   |
-|        |   |     FOOTER        |     | - Move     |
-|        |   +-------------------+     |            |
-+--------+-----------------------------+------------+
-|               VARIABLE PICKER BAR                 |
-+--------------------------------------------------+
+|                    HEADER                         |
++----------+------------------------+---------------+
+|          |                        |               |
+|  LEFT    |       CANVAS           |    RIGHT      |
+|  PANEL   |     (centrado)         |    PANEL      |
+|  (272px) |     (flex-1)           |   (300px)     |
+|          |                        |               |
+|          |                        | Sem selecao:  |
+|          |                        | Design Global |
+|          |                        |               |
+|          |                        | Com selecao:  |
+|          |                        | Block Editor  |
++----------+------------------------+---------------+
 ```
 
----
+**Comportamento do Painel Direito:**
+- Sem bloco selecionado: Mostra Design Global (cores, fontes, largura)
+- Com bloco selecionado: Mostra BlockEditor do bloco
 
-## Fase 1: Novos Tipos de Blocos Visuais
+### 2. Edicao Inline no Canvas
 
-### Blocos Premium a Adicionar
+Integrar o RichTextEditor existente diretamente nos blocos de texto:
 
-1. **Hero Block**
-   - Imagem de fundo full-width
-   - Titulo overlay
-   - Subtitulo
-   - CTA button
+- Clicar num bloco de texto ativa modo edicao
+- Toolbar flutuante aparece
+- Clicar fora guarda alteracoes
 
-2. **Product Card**
-   - Imagem do produto
-   - Nome e descricao
-   - Preco (com strike para desconto)
-   - Botao comprar
+### 3. Editores Completos para Todos os Blocos
 
-3. **Testimonial**
-   - Citacao
-   - Avatar
-   - Nome e cargo
+Adicionar editores no BlockEditor para:
 
-4. **Countdown Timer**
-   - Data/hora alvo
-   - Estilo visual (dias, horas, mins, segs)
-   - Mensagem de urgencia
+| Bloco | Campos Editaveis |
+|-------|------------------|
+| Hero | Titulo, Subtitulo, Texto botao, URL, Imagem fundo, Altura, Overlay |
+| Product | Nome, Descricao, Preco, Preco antigo, Imagem, URL compra |
+| Testimonial | Citacao, Nome, Cargo, Avatar |
+| Countdown | Data/Hora alvo, Titulo, Subtitulo, Cores |
+| Menu | Lista de links (nome + URL), Alinhamento |
+| ImageText | Imagem, Texto, Layout (esquerda/direita), Proporcao |
+| Social | Redes (adicionar/remover), Estilo icones, Tamanho |
 
-5. **Image + Text Row**
-   - Lado a lado (50/50, 60/40, etc)
-   - Imagem esquerda ou direita
-   - Texto rico
+### 4. Feedback Visual Melhorado
 
-6. **Menu/Navigation**
-   - Links horizontais
-   - Separadores
-
-7. **Video Thumbnail**
-   - Imagem com botao play
-   - Link para video
+- Indicadores "Clica para editar" nos blocos vazios
+- Hover states mais obvios
+- Animacao quando bloco fica selecionado
+- Icons contextuais nos blocos
 
 ---
 
-## Fase 2: Editor Inline WYSIWYG
+## Ficheiros a Modificar
 
-### Componente RichTextEditor
+### `src/components/email-builder/EmailBuilder.tsx`
 
-Em vez de editar HTML numa textarea, implementar edicao direta no canvas:
+Alteracoes:
+- Layout de 3 colunas permanentes
+- Painel direito sempre visivel
+- Logica para mostrar DesignSidebar vs BlockEditor
 
 ```text
-Clicar num bloco de texto:
-  -> Ativa modo edicao inline
-  -> Toolbar flutuante aparece:
-     [B] [I] [U] [S] | [Color] [Link] | [H1] [H2] [P] | [{{}}]
-  -> Clicar fora = guardar automaticamente
+Antes:
+{selectedBlock && (
+  <div className="w-80 border-l bg-background">
+    <BlockEditor ... />
+  </div>
+)}
+
+Depois:
+<div className="w-80 border-l bg-background">
+  {selectedBlock ? (
+    <BlockEditor ... />
+  ) : (
+    <DesignSidebar ... />
+  )}
+</div>
 ```
 
-### Tecnologia
+### `src/components/email-builder/EmailCanvas.tsx`
 
-Usar `contentEditable` nativo do React com handlers customizados para:
-- Negrito (Ctrl+B)
-- Italico (Ctrl+I)
-- Links
-- Cores de texto
-- Inserir variaveis
+Alteracoes:
+- Integrar RichTextEditor para blocos de texto
+- Edicao inline para campos simples (titulos, botoes)
+- Melhor feedback visual de hover/selecao
+- Indicadores "editavel" nos blocos
 
----
+### `src/components/email-builder/BlockEditor.tsx`
 
-## Fase 3: Upload de Imagens Integrado
+Alteracoes:
+- Adicionar editores para Hero, Product, Testimonial, Countdown, Menu, ImageText, Social
+- Organizar em tabs: Conteudo | Estilo
+- Adicionar controles visuais de padding (4 inputs)
+- Preview inline das alteracoes
 
-### Fluxo de Upload
+### `src/components/email-builder/DesignSidebar.tsx`
 
-1. Clicar no bloco imagem vazio
-2. Modal abre com opcoes:
-   - Upload do computador (drag-drop)
-   - Colar URL
-   - Galeria de imagens anteriores
-   - Stock photos (unsplash integration)
-3. Preview antes de confirmar
-4. Cropping basico
-
-### Armazenamento
-
-Usar Supabase Storage bucket `email-images` para guardar uploads.
+Alteracoes:
+- Adicionar mais opcoes de design global
+- Bordas arredondadas do container
+- Sombras
+- Espacamento interno padrao
 
 ---
 
-## Fase 4: Sidebar Esquerda Redesenhada
+## Detalhes Tecnicos
 
-### Estrutura em Tabs
+### Editores de Blocos Premium
 
-**Tab: Adicionar**
-- Cards visuais grandes com preview de cada elemento
-- Organizados por categoria com icones coloridos
-- Drag-and-drop com ghost preview
+**Hero Block Editor:**
+```text
+- Titulo (input)
+- Subtitulo (input)
+- Botao: Texto + URL
+- Altura (slider: 200-500px)
+- Imagem de fundo (upload)
+- Cor overlay (color picker + opacidade)
+- Alinhamento vertical (top/center/bottom)
+```
 
-**Tab: Linhas (Rows)**
-- Pre-sets de estruturas:
-  - 1 coluna (100%)
-  - 2 colunas (50-50, 60-40, 70-30)
-  - 3 colunas
-  - 4 colunas
+**Product Block Editor:**
+```text
+- Imagem do produto (upload)
+- Nome (input)
+- Descricao (textarea)
+- Preco atual (input)
+- Preco antigo (input, opcional)
+- Badge (input, ex: "Novo", "Desconto")
+- Texto botao + URL
+```
 
-**Tab: Design**
-- Cores globais com swatches
-- Tipografia com preview
-- Espacamento
-- Bordas
+**Countdown Block Editor:**
+```text
+- Data alvo (date picker)
+- Hora alvo (time picker)
+- Titulo (input)
+- Subtitulo (input)
+- Cor de fundo (color)
+- Cor dos numeros (color)
+- Mostrar: Dias/Horas/Mins/Segs (checkboxes)
+```
 
----
+**Menu Block Editor:**
+```text
+- Lista de links (array):
+  - Label (input)
+  - URL (input)
+  - [Adicionar] [Remover]
+- Separador (input)
+- Alinhamento (left/center/right)
+```
 
-## Fase 5: Painel Direito Contextual
+### Edicao Inline no Canvas
 
-### Redesign do BlockEditor
-
-Quando um bloco esta selecionado:
+Para blocos de texto, substituir renderizacao estatica por RichTextEditor:
 
 ```text
-+------------------------+
-|  [Icone] Tipo Bloco    |
-|  [X fechar]            |
-+------------------------+
-| TABS: Content | Style  |
-+------------------------+
+Antes:
+<div dangerouslySetInnerHTML={{ __html: content.html }} />
 
-Content Tab:
-- Campos especificos do tipo
-- Preview live inline
-- Botao inserir variavel
-
-Style Tab:
-- Padding visual (4 inputs)
-- Margem
-- Background (color picker)
-- Bordas (width, color, radius)
-- Sombra (toggle + config)
-
-+------------------------+
-| [Duplicar] [Eliminar]  |
-+------------------------+
+Depois:
+{isSelected ? (
+  <RichTextEditor
+    value={content.html}
+    onChange={(html) => onUpdateBlock(block.id, { content: { ...content, html } })}
+    autoFocus
+  />
+) : (
+  <div dangerouslySetInnerHTML={{ __html: content.html }} />
+)}
 ```
 
-### Animacoes
-
-- Slide-in suave quando bloco selecionado
-- Transicoes entre tabs
-- Highlight do bloco no canvas
-
----
-
-## Fase 6: Galeria de Templates Premium
-
-### Categorias de Templates
-
-1. **E-commerce**
-   - Lancamento de produto
-   - Carrinho abandonado
-   - Confirmacao de compra
-
-2. **Newsletter**
-   - Blog digest
-   - Noticias semanais
-   - Curadoria
-
-3. **Promocional**
-   - Black Friday
-   - Desconto flash
-   - Membro VIP
-
-4. **Transacional**
-   - Boas-vindas
-   - Reset password
-   - Confirmacao
-
-5. **Eventos**
-   - Webinar
-   - Convite
-   - Lembrete
-
-### UI da Galeria
-
-- Grid visual com thumbnails reais
-- Filtro por categoria
-- Pesquisa por nome
-- Preview em hover
-- Favoritos
-
----
-
-## Fase 7: Quick Actions e UX Polish
-
-### Toolbar Flutuante no Canvas
-
-Quando hover sobre um bloco:
+Para titulos e botoes, usar contentEditable:
 
 ```text
-      +------------------------+
-      | [Tipo] | ^ v | [+] [x] |
-      +------------------------+
+<span
+  contentEditable={isSelected}
+  suppressContentEditableWarning
+  onBlur={(e) => updateContent({ text: e.currentTarget.textContent })}
+>
+  {content.text}
+</span>
 ```
-
-- Arrastar com grip
-- Mover cima/baixo
-- Adicionar bloco depois
-- Eliminar
-
-### Zonas de Drop Visuais
-
-- Linha azul animada entre blocos
-- Indicador de posicao quando arrasta
-- Snap-to-grid suave
-
-### Atalhos de Teclado
-
-- `Delete` - Eliminar bloco
-- `Ctrl+D` - Duplicar bloco
-- `Ctrl+Z/Y` - Undo/Redo
-- `Ctrl+S` - Guardar
-- `Arrow Up/Down` - Navegar blocos
-
----
-
-## Fase 8: Variable Picker Integrado
-
-### Componente VariablePicker
-
-Barra inferior ou popup com:
-
-```text
-+--------------------------------------------+
-| Variaveis: [{{primeiro_nome}}] [{{email}}] |
-|            [{{empresa}}] [{{unsub}}] [+]   |
-+--------------------------------------------+
-```
-
-- Click para inserir na posicao do cursor
-- Drag para posicao especifica
-- Tooltip com preview
-
----
-
-## Ficheiros a Criar
-
-| Ficheiro | Descricao |
-|----------|-----------|
-| `src/components/email-builder/RichTextEditor.tsx` | Editor WYSIWYG inline |
-| `src/components/email-builder/InlineToolbar.tsx` | Toolbar flutuante de formatacao |
-| `src/components/email-builder/ImageUploader.tsx` | Modal de upload de imagens |
-| `src/components/email-builder/VariablePicker.tsx` | Picker de variaveis |
-| `src/components/email-builder/TemplateGallery.tsx` | Galeria visual de templates |
-| `src/components/email-builder/blocks/HeroBlock.tsx` | Bloco hero premium |
-| `src/components/email-builder/blocks/ProductCard.tsx` | Bloco cartao de produto |
-| `src/components/email-builder/blocks/Testimonial.tsx` | Bloco testemunho |
-| `src/components/email-builder/blocks/ImageTextRow.tsx` | Bloco imagem + texto |
-| `src/components/email-builder/blocks/CountdownBlock.tsx` | Bloco countdown |
-| `src/components/email-builder/RowLayouts.tsx` | Selector de estruturas |
-| `src/components/email-builder/QuickActionsBar.tsx` | Barra de acoes rapidas |
-| `src/components/email-builder/KeyboardShortcuts.tsx` | Hook para atalhos |
-| `src/components/email-builder/DragGhostPreview.tsx` | Preview ao arrastar |
-
----
-
-## Ficheiros a Modificar Significativamente
-
-| Ficheiro | Alteracao |
-|----------|-----------|
-| `EmailBuilder.tsx` | Nova estrutura de layout, undo/redo, atalhos |
-| `EmailCanvas.tsx` | Edicao inline, drop zones animadas, zoom |
-| `ElementsSidebar.tsx` | Cards visuais, categorias coloridas |
-| `BlockEditor.tsx` | Tabs, padding visual, sombras |
-| `DesignSidebar.tsx` | Swatches, tipografia melhorada |
-| `emailBuilder.ts` (types) | Novos tipos de blocos |
-| `emailRenderer.ts` | Renderizar novos blocos |
-
----
-
-## Dependencias Necessarias
-
-Nenhuma nova - usar:
-- `contentEditable` nativo
-- Supabase Storage para imagens
-- CSS animations existentes
-
----
-
-## Preview do Resultado Final
-
-Apos implementacao, o editor tera:
-
-1. **Visual profissional** - Aspeto de ferramenta enterprise
-2. **Edicao inline** - Clicar e escrever diretamente
-3. **Drag-and-drop fluido** - Com feedback visual rico
-4. **Templates prontos** - 15+ templates para usar
-5. **Upload de imagens** - Simples e integrado
-6. **Variaveis faceis** - Um click para inserir
-7. **Preview instantaneo** - Desktop/mobile lado a lado
-8. **Undo/Redo** - Historico de alteracoes
-9. **Atalhos** - Para utilizadores avancados
-10. **Responsive** - Funciona em tablet/mobile
 
 ---
 
 ## Prioridade de Implementacao
 
-### Sprint 1 (Essencial)
-- RichTextEditor inline
-- InlineToolbar
-- ImageUploader com Supabase Storage
-- 3 novos blocos (Hero, ImageText, Product)
+### Fase 1 - Layout (Imediato)
+1. Painel direito sempre visivel
+2. Canvas centrado
+3. Transicao suave entre Design e BlockEditor
 
-### Sprint 2 (Completo)
-- VariablePicker
-- TemplateGallery com 15 templates
-- Undo/Redo
-- Atalhos de teclado
+### Fase 2 - Editores Completos
+4. Editor Hero block
+5. Editor Product block
+6. Editor Countdown block
+7. Editor Testimonial block
+8. Editor Menu block
+9. Editor ImageText block
+10. Editor Social block
 
-### Sprint 3 (Polish)
-- Animacoes e transicoes
-- Countdown block
-- Testimonial block
-- Preview side-by-side
+### Fase 3 - Edicao Inline
+11. RichTextEditor no canvas para texto
+12. ContentEditable para titulos
+13. Feedback visual melhorado
 
 ---
 
-## Metricas de Sucesso
+## Resultado Esperado
 
-- Utilizador cria email em < 5 minutos
-- Zero necessidade de escrever HTML
-- NPS > 8 na experiencia de edicao
-- Taxa de conclusao de campanhas > 80%
+Apos implementacao:
+- Editor sempre com 3 colunas visiveis
+- Canvas perfeitamente centrado
+- Todos os blocos com editores completos
+- Edicao inline para texto
+- UX profissional e intuitiva
 
