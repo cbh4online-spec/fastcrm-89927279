@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { X, Trash2, Copy, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Trash2, Copy, ChevronUp, ChevronDown, Upload } from 'lucide-react';
 import type { 
   EmailBlock, 
   TextBlockContent,
@@ -32,6 +32,7 @@ interface BlockEditorProps {
   onClose: () => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  onOpenImageUploader?: () => void;
 }
 
 export function BlockEditor({
@@ -44,6 +45,7 @@ export function BlockEditor({
   onClose,
   canMoveUp,
   canMoveDown,
+  onOpenImageUploader,
 }: BlockEditorProps) {
   const updateContent = (contentUpdates: Record<string, unknown>) => {
     onUpdate({
@@ -81,6 +83,16 @@ export function BlockEditor({
     const content = block.content as ImageBlockContent;
     return (
       <div className="space-y-4">
+        {onOpenImageUploader && (
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={onOpenImageUploader}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Carregar Imagem
+          </Button>
+        )}
         <div className="space-y-2">
           <Label className="text-xs">URL da Imagem</Label>
           <Input
