@@ -169,15 +169,24 @@ export function EmailCanvas({
     setHoveredDropZone(null);
   };
 
-  const renderBlockPreview = (block: EmailBlock) => {
+  const renderBlockPreview = (block: EmailBlock, isSelected: boolean) => {
     switch (block.type) {
       case 'text': {
         const content = block.content as TextBlockContent;
         return (
-          <div 
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: content.html }}
-          />
+          <div className="relative group/text">
+            <div 
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: content.html }}
+            />
+            {isSelected && (
+              <div className="absolute inset-0 flex items-center justify-center bg-primary/5 rounded opacity-0 group-hover/text:opacity-100 transition-opacity pointer-events-none">
+                <span className="text-xs text-primary font-medium px-2 py-1 bg-background rounded shadow-sm">
+                  Editar no painel →
+                </span>
+              </div>
+            )}
+          </div>
         );
       }
       case 'image':
@@ -496,10 +505,10 @@ export function EmailCanvas({
                           borderRadius: block.styles.borderRadius,
                           border: block.styles.border,
                           boxShadow: block.styles.boxShadow,
-                          minHeight: block.styles.minHeight,
+                        minHeight: block.styles.minHeight,
                         }}
                       >
-                        {renderBlockPreview(block)}
+                        {renderBlockPreview(block, isSelected)}
                       </div>
                     </div>
                     

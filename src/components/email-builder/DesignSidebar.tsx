@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Palette } from 'lucide-react';
 import type { EmailGlobalStyles } from '@/types/emailBuilder';
 
 interface DesignSidebarProps {
@@ -29,11 +30,16 @@ const FONT_FAMILIES = [
 export function DesignSidebar({ globalStyles, onUpdateStyles }: DesignSidebarProps) {
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b">
-        <h3 className="font-semibold text-sm">Design</h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          Configurações globais do email
-        </p>
+      <div className="p-4 border-b flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <Palette className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-sm">Design Global</h3>
+          <p className="text-xs text-muted-foreground">
+            Configurações do template
+          </p>
+        </div>
       </div>
       
       <ScrollArea className="flex-1">
@@ -127,6 +133,27 @@ export function DesignSidebar({ globalStyles, onUpdateStyles }: DesignSidebarPro
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="accent-color" className="text-xs">
+                Cor de Destaque
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="accent-color"
+                  type="color"
+                  value={globalStyles.accentColor}
+                  onChange={(e) => onUpdateStyles({ accentColor: e.target.value })}
+                  className="w-12 h-9 p-1 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={globalStyles.accentColor}
+                  onChange={(e) => onUpdateStyles({ accentColor: e.target.value })}
+                  className="flex-1 font-mono text-xs"
+                />
+              </div>
+            </div>
           </div>
           
           {/* Layout */}
@@ -152,6 +179,27 @@ export function DesignSidebar({ globalStyles, onUpdateStyles }: DesignSidebarPro
                 step={10}
                 onValueChange={([value]) => onUpdateStyles({ contentWidth: value })}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="border-radius" className="text-xs">
+                Arredondamento do Container
+              </Label>
+              <Select
+                value={globalStyles.borderRadius}
+                onValueChange={(value) => onUpdateStyles({ borderRadius: value })}
+              >
+                <SelectTrigger id="border-radius">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0px">Nenhum</SelectItem>
+                  <SelectItem value="4px">Pequeno (4px)</SelectItem>
+                  <SelectItem value="8px">Médio (8px)</SelectItem>
+                  <SelectItem value="12px">Grande (12px)</SelectItem>
+                  <SelectItem value="16px">Extra Grande (16px)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
@@ -185,6 +233,16 @@ export function DesignSidebar({ globalStyles, onUpdateStyles }: DesignSidebarPro
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Tips */}
+          <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+            <h4 className="text-xs font-medium">💡 Dicas</h4>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>• Clica num bloco para editá-lo</li>
+              <li>• Arrasta elementos da sidebar esquerda</li>
+              <li>• Usa os templates para começar rapidamente</li>
+            </ul>
           </div>
         </div>
       </ScrollArea>

@@ -9,8 +9,6 @@ import {
   Tablet,
   Smartphone,
   Code,
-  Undo2,
-  Redo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,7 +37,7 @@ interface EmailBuilderProps {
   onCancel: () => void;
 }
 
-type SidebarTab = 'elements' | 'layouts' | 'design';
+type SidebarTab = 'elements' | 'layouts';
 type PreviewMode = 'desktop' | 'tablet' | 'mobile';
 
 export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderProps) {
@@ -110,7 +108,6 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
   };
 
   const handleInsertVariable = useCallback((variable: string) => {
-    // Could be enhanced to insert at cursor position
     console.log('Insert variable:', variable);
   }, []);
 
@@ -188,12 +185,12 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
         </div>
       </div>
       
-      {/* Main content */}
+      {/* Main content - 3 column layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar */}
-        <div className="w-72 border-r bg-background flex flex-col">
+        {/* Left sidebar - Elements & Layouts */}
+        <div className="w-64 border-r bg-background flex flex-col">
           <Tabs value={sidebarTab} onValueChange={(v) => setSidebarTab(v as SidebarTab)} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 rounded-none border-b h-10 bg-transparent">
+            <TabsList className="grid w-full grid-cols-2 rounded-none border-b h-10 bg-transparent">
               <TabsTrigger value="elements" className="gap-1.5 text-xs data-[state=active]:bg-muted rounded-none">
                 <LayoutGrid className="h-3.5 w-3.5" />
                 Elementos
@@ -201,10 +198,6 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
               <TabsTrigger value="layouts" className="gap-1.5 text-xs data-[state=active]:bg-muted rounded-none">
                 <LayoutGrid className="h-3.5 w-3.5" />
                 Templates
-              </TabsTrigger>
-              <TabsTrigger value="design" className="gap-1.5 text-xs data-[state=active]:bg-muted rounded-none">
-                <Palette className="h-3.5 w-3.5" />
-                Design
               </TabsTrigger>
             </TabsList>
             
@@ -219,17 +212,10 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
             <TabsContent value="layouts" className="flex-1 m-0 overflow-hidden">
               <LayoutsSidebar onSelectLayout={handleSelectLayout} />
             </TabsContent>
-            
-            <TabsContent value="design" className="flex-1 m-0 overflow-hidden">
-              <DesignSidebar
-                globalStyles={design.globalStyles}
-                onUpdateStyles={updateGlobalStyles}
-              />
-            </TabsContent>
           </Tabs>
         </div>
         
-        {/* Canvas */}
+        {/* Canvas - Center */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <EmailCanvas
             blocks={design.blocks}
@@ -253,9 +239,9 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
           <VariablePicker onInsert={handleInsertVariable} variant="bar" />
         </div>
         
-        {/* Right sidebar - Block Editor */}
-        {selectedBlock && (
-          <div className="w-80 border-l bg-background animate-slide-in-right">
+        {/* Right sidebar - Always visible: Design or Block Editor */}
+        <div className="w-80 border-l bg-background flex flex-col">
+          {selectedBlock ? (
             <BlockEditor
               block={selectedBlock}
               onUpdate={(updates) => updateBlock(selectedBlock.id, updates)}
@@ -268,8 +254,13 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
               canMoveDown={blockIndex < design.blocks.length - 1}
               onOpenImageUploader={() => handleOpenImageUploader(selectedBlock.id)}
             />
-          </div>
-        )}
+          ) : (
+            <DesignSidebar
+              globalStyles={design.globalStyles}
+              onUpdateStyles={updateGlobalStyles}
+            />
+          )}
+        </div>
       </div>
       
       {/* Image Uploader Modal */}
