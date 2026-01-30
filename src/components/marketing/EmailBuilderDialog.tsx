@@ -1,8 +1,9 @@
-import { useState } from 'react';
 import {
   Dialog,
-  DialogContent,
+  DialogPortal,
+  DialogOverlay,
 } from '@/components/ui/dialog';
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { EmailBuilder } from '@/components/email-builder';
 import { renderEmailToHtml } from '@/utils/emailRenderer';
 import { useCreateMarketingTemplate } from '@/hooks/useMarketingTemplates';
@@ -54,13 +55,20 @@ export function EmailBuilderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] p-0 rounded-none">
-        <EmailBuilder
-          initialDesign={initialDesign}
-          onSave={handleSave}
-          onCancel={handleCancel}
-        />
-      </DialogContent>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogPrimitive.Content
+          className="fixed inset-0 z-50 bg-background overflow-hidden"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={() => onOpenChange(false)}
+        >
+          <EmailBuilder
+            initialDesign={initialDesign}
+            onSave={handleSave}
+            onCancel={handleCancel}
+          />
+        </DialogPrimitive.Content>
+      </DialogPortal>
     </Dialog>
   );
 }

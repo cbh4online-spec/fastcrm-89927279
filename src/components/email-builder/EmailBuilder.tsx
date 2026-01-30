@@ -186,9 +186,9 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
       </div>
       
       {/* Main content - 3 column layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Left sidebar - Elements & Layouts */}
-        <div className="w-64 border-r bg-background flex flex-col">
+        <div className="w-64 shrink-0 border-r bg-background flex flex-col min-h-0">
           <Tabs value={sidebarTab} onValueChange={(v) => setSidebarTab(v as SidebarTab)} className="flex-1 flex flex-col">
             <TabsList className="grid w-full grid-cols-2 rounded-none border-b h-10 bg-transparent">
               <TabsTrigger value="elements" className="gap-1.5 text-xs data-[state=active]:bg-muted rounded-none">
@@ -216,7 +216,7 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
         </div>
         
         {/* Canvas - Center */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <EmailCanvas
             blocks={design.blocks}
             globalStyles={{
@@ -240,7 +240,7 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
         </div>
         
         {/* Right sidebar - Always visible: Design or Block Editor */}
-        <div className="w-80 border-l bg-background flex flex-col">
+        <div className="w-80 shrink-0 border-l bg-background flex flex-col min-h-0">
           {selectedBlock ? (
             <BlockEditor
               block={selectedBlock}
