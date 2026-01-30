@@ -1,186 +1,296 @@
 
 
-# Plano: Email Builder Visual Completo
+# Plano: Email Builder Visual Profissional - Experiencia de Nivel Enterprise
 
-## Objetivo
+## Analise Comparativa
 
-Criar um construtor de email marketing visual com drag-and-drop, semelhante às ferramentas profissionais mostradas (E-goi, GoHighLevel), substituindo o editor HTML atual por uma experiência intuitiva e completa.
+Depois de analisar os screenshots do E-goi e GoHighLevel, identifiquei as seguintes lacunas criticas:
+
+### O que falta (vs exemplos profissionais):
+
+| Funcionalidade | Estado Atual | E-goi/GoHighLevel |
+|----------------|--------------|-------------------|
+| Editar texto inline | Textarea com HTML | Editor WYSIWYG direto no canvas |
+| Upload de imagens | URL manual | Drag-drop com upload integrado |
+| Selecao visual de elementos | Clica > sidebar | Clica diretamente e edita inline |
+| Toolbar flutuante | Basica | Rica com bold, italic, cores, links |
+| Preview em tempo real | Modal separado | Lado a lado com toggle |
+| Galeria de templates | 4 layouts basicos | Galeria visual com thumbnails |
+| Quick actions | Botoes simples | Contextual com hover inteligente |
+| Variaveis dinamicas | Escrever manual | Picker visual integrado |
+| Arrastar elementos | Funciona | Feedback visual mais rico |
+| Bloco Hero | Nao existe | Imagem grande + titulo + CTA |
+| Bloco Countdown | Nao existe | Timer animado |
+| Bloco Testimonial | Nao existe | Citacao + avatar |
+| Bloco Product Card | Nao existe | Imagem + preco + botao |
 
 ---
 
-## Visao Geral da Arquitetura
-
-O sistema sera composto por:
-1. **Template Library** - Galeria de templates pre-feitos e modelos do utilizador
-2. **Layout Selector** - Escolha de estruturas base (1 coluna, 2 colunas, etc.)
-3. **Email Builder Visual** - Editor drag-and-drop com elementos e preview em tempo real
-4. **Campaign Flow** - Fluxo de criacao de campanha estilo wizard
-
----
-
-## Fase 1: Estrutura de Dados
-
-### Novos Tipos TypeScript
+## Arquitetura da Solucao
 
 ```text
-EmailBlock {
-  id: string
-  type: 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'columns' | 'social' | 'footer' | 'logo' | 'video' | 'html'
-  content: Record<string, any>
-  styles: Record<string, string>
-  children?: EmailBlock[] (para colunas)
-}
-
-EmailDesign {
-  blocks: EmailBlock[]
-  globalStyles: {
-    backgroundColor: string
-    contentWidth: number
-    fontFamily: string
-    linkColor: string
-  }
-}
++--------------------------------------------------+
+|                   HEADER BAR                      |
+| [X] [Titulo] [Undo][Redo] [Desktop][Mobile] [Save]|
++--------+-----------------------------+------------+
+|        |                             |            |
+| LEFT   |         CANVAS              |   RIGHT    |
+| PANEL  |    (Preview Live)           |   PANEL    |
+|        |                             |            |
+| Tabs:  |   +-------------------+     | Properties |
+| - Add  |   |     HEADER        |     |            |
+| - Rows |   |   [Edit Inline]   |     | - Content  |
+| - Setup|   +-------------------+     | - Style    |
+|        |   |                   |     | - Advanced |
+| Cards  |   |   BODY CONTENT    |     |            |
+| visuais|   |   [Rich Editor]   |     | Actions:   |
+|        |   |                   |     | - Duplicate|
+|        |   +-------------------+     | - Delete   |
+|        |   |     FOOTER        |     | - Move     |
+|        |   +-------------------+     |            |
++--------+-----------------------------+------------+
+|               VARIABLE PICKER BAR                 |
++--------------------------------------------------+
 ```
 
-### Atualizacao do Schema de Templates
+---
 
-- Adicionar campo `design_json` para armazenar a estrutura de blocos
-- Manter `body_html` como versao renderizada final
+## Fase 1: Novos Tipos de Blocos Visuais
+
+### Blocos Premium a Adicionar
+
+1. **Hero Block**
+   - Imagem de fundo full-width
+   - Titulo overlay
+   - Subtitulo
+   - CTA button
+
+2. **Product Card**
+   - Imagem do produto
+   - Nome e descricao
+   - Preco (com strike para desconto)
+   - Botao comprar
+
+3. **Testimonial**
+   - Citacao
+   - Avatar
+   - Nome e cargo
+
+4. **Countdown Timer**
+   - Data/hora alvo
+   - Estilo visual (dias, horas, mins, segs)
+   - Mensagem de urgencia
+
+5. **Image + Text Row**
+   - Lado a lado (50/50, 60/40, etc)
+   - Imagem esquerda ou direita
+   - Texto rico
+
+6. **Menu/Navigation**
+   - Links horizontais
+   - Separadores
+
+7. **Video Thumbnail**
+   - Imagem com botao play
+   - Link para video
 
 ---
 
-## Fase 2: Componentes do Email Builder
+## Fase 2: Editor Inline WYSIWYG
 
-### 2.1 ElementsSidebar
+### Componente RichTextEditor
 
-Painel lateral com elementos arrastaveis:
-- **Conteudo**: Texto, Imagem, Imagem+Texto, Botao
-- **Estrutura**: Colunas (2, 3), Divisor, Espacador
-- **Social**: Icones redes sociais, Links de partilha
-- **Avancado**: HTML personalizado, Video, Rodape
+Em vez de editar HTML numa textarea, implementar edicao direta no canvas:
 
-### 2.2 LayoutsSidebar
+```text
+Clicar num bloco de texto:
+  -> Ativa modo edicao inline
+  -> Toolbar flutuante aparece:
+     [B] [I] [U] [S] | [Color] [Link] | [H1] [H2] [P] | [{{}}]
+  -> Clicar fora = guardar automaticamente
+```
 
-Galeria de layouts pre-definidos:
-- Blank Template
-- Simple Text
-- 1 Column with Image
-- 2 Columns Alternate
-- Hero + Features
-- Newsletter Classic
+### Tecnologia
 
-### 2.3 DesignSidebar
-
-Configuracoes globais:
-- Cor de fundo do email
-- Cor de fundo do conteudo
-- Largura do modelo (px)
-- Tamanho do limite exterior
-- Familia de fonte
-
-### 2.4 EmailCanvas
-
-Area central de edicao visual:
-- Renderizacao em tempo real dos blocos
-- Suporte a drag-and-drop para reordenacao
-- Selecao de bloco com borda visual
-- Toolbar flutuante para cada bloco (mover, duplicar, eliminar)
-- Responsivo com preview desktop/mobile
-
-### 2.5 BlockEditor
-
-Edicao inline ou painel lateral para:
-- Propriedades de texto (fonte, tamanho, cor, alinhamento)
-- Upload de imagem e alt text
-- Configuracao de botao (texto, URL, cor, arredondamento)
-- Links e variaveis dinamicas
+Usar `contentEditable` nativo do React com handlers customizados para:
+- Negrito (Ctrl+B)
+- Italico (Ctrl+I)
+- Links
+- Cores de texto
+- Inserir variaveis
 
 ---
 
-## Fase 3: Template Library
+## Fase 3: Upload de Imagens Integrado
 
-### 3.1 TemplateGalleryDialog
+### Fluxo de Upload
 
-Modal para selecao de templates:
-- Abas: Templates Guardados, Pre-feitos, Modelos Basicos
-- Filtros por categoria
+1. Clicar no bloco imagem vazio
+2. Modal abre com opcoes:
+   - Upload do computador (drag-drop)
+   - Colar URL
+   - Galeria de imagens anteriores
+   - Stock photos (unsplash integration)
+3. Preview antes de confirmar
+4. Cropping basico
+
+### Armazenamento
+
+Usar Supabase Storage bucket `email-images` para guardar uploads.
+
+---
+
+## Fase 4: Sidebar Esquerda Redesenhada
+
+### Estrutura em Tabs
+
+**Tab: Adicionar**
+- Cards visuais grandes com preview de cada elemento
+- Organizados por categoria com icones coloridos
+- Drag-and-drop com ghost preview
+
+**Tab: Linhas (Rows)**
+- Pre-sets de estruturas:
+  - 1 coluna (100%)
+  - 2 colunas (50-50, 60-40, 70-30)
+  - 3 colunas
+  - 4 colunas
+
+**Tab: Design**
+- Cores globais com swatches
+- Tipografia com preview
+- Espacamento
+- Bordas
+
+---
+
+## Fase 5: Painel Direito Contextual
+
+### Redesign do BlockEditor
+
+Quando um bloco esta selecionado:
+
+```text
++------------------------+
+|  [Icone] Tipo Bloco    |
+|  [X fechar]            |
++------------------------+
+| TABS: Content | Style  |
++------------------------+
+
+Content Tab:
+- Campos especificos do tipo
+- Preview live inline
+- Botao inserir variavel
+
+Style Tab:
+- Padding visual (4 inputs)
+- Margem
+- Background (color picker)
+- Bordas (width, color, radius)
+- Sombra (toggle + config)
+
++------------------------+
+| [Duplicar] [Eliminar]  |
++------------------------+
+```
+
+### Animacoes
+
+- Slide-in suave quando bloco selecionado
+- Transicoes entre tabs
+- Highlight do bloco no canvas
+
+---
+
+## Fase 6: Galeria de Templates Premium
+
+### Categorias de Templates
+
+1. **E-commerce**
+   - Lancamento de produto
+   - Carrinho abandonado
+   - Confirmacao de compra
+
+2. **Newsletter**
+   - Blog digest
+   - Noticias semanais
+   - Curadoria
+
+3. **Promocional**
+   - Black Friday
+   - Desconto flash
+   - Membro VIP
+
+4. **Transacional**
+   - Boas-vindas
+   - Reset password
+   - Confirmacao
+
+5. **Eventos**
+   - Webinar
+   - Convite
+   - Lembrete
+
+### UI da Galeria
+
+- Grid visual com thumbnails reais
+- Filtro por categoria
 - Pesquisa por nome
-- Cards com preview thumbnail
-- Opcao de favoritar
-
-### 3.2 SystemTemplates
-
-Templates pre-configurados incluidos:
-- Newsletter Moderna
-- Promocao Black Friday
-- Boas-vindas
-- Reativacao de Cliente
-- Evento/Webinar
-- E-commerce Produto
+- Preview em hover
+- Favoritos
 
 ---
 
-## Fase 4: Campaign Wizard Melhorado
+## Fase 7: Quick Actions e UX Polish
 
-### Novo Fluxo de Criacao
+### Toolbar Flutuante no Canvas
+
+Quando hover sobre um bloco:
 
 ```text
-Passo 1: Escolher Base
-  - Template guardado
-  - Template pre-feito
-  - Layout basico
-  - Importar HTML
-  - Campanha recente
-
-Passo 2: Editar Conteudo
-  - Email Builder Visual
-  - Elementos arrastáveis
-  - Design settings
-
-Passo 3: Configurar Envio
-  - Enviar Agora / Agendar / Smart Send
-  - Nome do remetente
-  - Email de resposta
-  - Segmento de destinatarios
-
-Passo 4: Definicoes Avancadas
-  - Track clicks (toggle)
-  - UTM Tracking (toggle)
-  - Adicionar tags (toggle)
-  - Reenviar a quem nao abriu
-  - Tipo de preferencia
+      +------------------------+
+      | [Tipo] | ^ v | [+] [x] |
+      +------------------------+
 ```
+
+- Arrastar com grip
+- Mover cima/baixo
+- Adicionar bloco depois
+- Eliminar
+
+### Zonas de Drop Visuais
+
+- Linha azul animada entre blocos
+- Indicador de posicao quando arrasta
+- Snap-to-grid suave
+
+### Atalhos de Teclado
+
+- `Delete` - Eliminar bloco
+- `Ctrl+D` - Duplicar bloco
+- `Ctrl+Z/Y` - Undo/Redo
+- `Ctrl+S` - Guardar
+- `Arrow Up/Down` - Navegar blocos
 
 ---
 
-## Fase 5: Funcionalidades Avancadas
+## Fase 8: Variable Picker Integrado
 
-### 5.1 Preview Multi-dispositivo
+### Componente VariablePicker
 
-- Toggle Desktop / Tablet / Mobile
-- Preview em browser (nova aba)
-- Enviar email de teste
+Barra inferior ou popup com:
 
-### 5.2 Variaveis Dinamicas
+```text
++--------------------------------------------+
+| Variaveis: [{{primeiro_nome}}] [{{email}}] |
+|            [{{empresa}}] [{{unsub}}] [+]   |
++--------------------------------------------+
+```
 
-Picker integrado para inserir:
-- `{{primeiro_nome}}`
-- `{{nome_cliente}}`
-- `{{empresa_nome}}`
-- `{{unsubscribe_url}}`
-
-### 5.3 AI Content Generation
-
-Botao "Content AI" junto ao assunto:
-- Gerar linha de assunto
-- Sugerir texto para blocos
-- Reescrever conteudo selecionado
-
-### 5.4 Spam Score (Futuro)
-
-Indicador visual de spam score:
-- Analise do conteudo
-- Sugestoes de melhoria
+- Click para inserir na posicao do cursor
+- Drag para posicao especifica
+- Tooltip com preview
 
 ---
 
@@ -188,65 +298,89 @@ Indicador visual de spam score:
 
 | Ficheiro | Descricao |
 |----------|-----------|
-| `src/components/email-builder/EmailBuilder.tsx` | Componente principal do editor |
-| `src/components/email-builder/EmailCanvas.tsx` | Canvas central com preview |
-| `src/components/email-builder/ElementsSidebar.tsx` | Painel de elementos |
-| `src/components/email-builder/LayoutsSidebar.tsx` | Painel de layouts |
-| `src/components/email-builder/DesignSidebar.tsx` | Configuracoes de design |
-| `src/components/email-builder/BlockEditor.tsx` | Editor de propriedades do bloco |
-| `src/components/email-builder/blocks/*.tsx` | Componentes individuais por tipo de bloco |
-| `src/components/email-builder/TemplateGalleryDialog.tsx` | Modal de galeria de templates |
-| `src/components/email-builder/EmailPreviewModal.tsx` | Modal de preview |
-| `src/types/emailBuilder.ts` | Tipos TypeScript |
-| `src/hooks/useEmailBuilder.ts` | Hook de estado do builder |
-| `src/utils/emailRenderer.ts` | Renderizador de blocos para HTML |
+| `src/components/email-builder/RichTextEditor.tsx` | Editor WYSIWYG inline |
+| `src/components/email-builder/InlineToolbar.tsx` | Toolbar flutuante de formatacao |
+| `src/components/email-builder/ImageUploader.tsx` | Modal de upload de imagens |
+| `src/components/email-builder/VariablePicker.tsx` | Picker de variaveis |
+| `src/components/email-builder/TemplateGallery.tsx` | Galeria visual de templates |
+| `src/components/email-builder/blocks/HeroBlock.tsx` | Bloco hero premium |
+| `src/components/email-builder/blocks/ProductCard.tsx` | Bloco cartao de produto |
+| `src/components/email-builder/blocks/Testimonial.tsx` | Bloco testemunho |
+| `src/components/email-builder/blocks/ImageTextRow.tsx` | Bloco imagem + texto |
+| `src/components/email-builder/blocks/CountdownBlock.tsx` | Bloco countdown |
+| `src/components/email-builder/RowLayouts.tsx` | Selector de estruturas |
+| `src/components/email-builder/QuickActionsBar.tsx` | Barra de acoes rapidas |
+| `src/components/email-builder/KeyboardShortcuts.tsx` | Hook para atalhos |
+| `src/components/email-builder/DragGhostPreview.tsx` | Preview ao arrastar |
 
 ---
 
-## Ficheiros a Modificar
+## Ficheiros a Modificar Significativamente
 
 | Ficheiro | Alteracao |
 |----------|-----------|
-| `src/pages/Marketing.tsx` | Adicionar rota para builder visual |
-| `src/components/marketing/CampaignFormDialog.tsx` | Integrar novo builder |
-| `src/components/marketing/TemplateFormDialog.tsx` | Integrar builder visual |
-| `src/types/marketing.ts` | Adicionar tipos de EmailDesign |
-| `src/hooks/useMarketingTemplates.ts` | Suportar design_json |
+| `EmailBuilder.tsx` | Nova estrutura de layout, undo/redo, atalhos |
+| `EmailCanvas.tsx` | Edicao inline, drop zones animadas, zoom |
+| `ElementsSidebar.tsx` | Cards visuais, categorias coloridas |
+| `BlockEditor.tsx` | Tabs, padding visual, sombras |
+| `DesignSidebar.tsx` | Swatches, tipografia melhorada |
+| `emailBuilder.ts` (types) | Novos tipos de blocos |
+| `emailRenderer.ts` | Renderizar novos blocos |
 
 ---
 
-## Dependencias
+## Dependencias Necessarias
 
-O projeto ja inclui as dependencias necessarias:
-- `@xyflow/react` - Pode servir de referencia para drag-and-drop (ja usado no FlowBuilder)
-- Drag-and-drop nativo com React (useState + onDragStart/onDrop)
+Nenhuma nova - usar:
+- `contentEditable` nativo
+- Supabase Storage para imagens
+- CSS animations existentes
+
+---
+
+## Preview do Resultado Final
+
+Apos implementacao, o editor tera:
+
+1. **Visual profissional** - Aspeto de ferramenta enterprise
+2. **Edicao inline** - Clicar e escrever diretamente
+3. **Drag-and-drop fluido** - Com feedback visual rico
+4. **Templates prontos** - 15+ templates para usar
+5. **Upload de imagens** - Simples e integrado
+6. **Variaveis faceis** - Um click para inserir
+7. **Preview instantaneo** - Desktop/mobile lado a lado
+8. **Undo/Redo** - Historico de alteracoes
+9. **Atalhos** - Para utilizadores avancados
+10. **Responsive** - Funciona em tablet/mobile
 
 ---
 
 ## Prioridade de Implementacao
 
-1. **MVP (Essencial)**
-   - EmailBuilder com 5 tipos de blocos (Texto, Imagem, Botao, Divisor, Espacador)
-   - Canvas com drag-and-drop basico
-   - 3 layouts pre-definidos
-   - Renderizador HTML
+### Sprint 1 (Essencial)
+- RichTextEditor inline
+- InlineToolbar
+- ImageUploader com Supabase Storage
+- 3 novos blocos (Hero, ImageText, Product)
 
-2. **Fase 2 (Completo)**
-   - Todos os tipos de blocos
-   - Template Gallery
-   - Campaign Wizard redesenhado
-   - Preview multi-dispositivo
+### Sprint 2 (Completo)
+- VariablePicker
+- TemplateGallery com 15 templates
+- Undo/Redo
+- Atalhos de teclado
 
-3. **Fase 3 (Avancado)**
-   - AI Content Generation
-   - Spam Score
-   - Templates de sistema
-   - Undo/Redo
+### Sprint 3 (Polish)
+- Animacoes e transicoes
+- Countdown block
+- Testimonial block
+- Preview side-by-side
 
 ---
 
-## Estimativa
+## Metricas de Sucesso
 
-- MVP: 3-4 iteracoes de desenvolvimento
-- Versao Completa: 6-8 iteracoes
+- Utilizador cria email em < 5 minutos
+- Zero necessidade de escrever HTML
+- NPS > 8 na experiencia de edicao
+- Taxa de conclusao de campanhas > 80%
 
