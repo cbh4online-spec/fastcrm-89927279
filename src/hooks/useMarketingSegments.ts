@@ -176,6 +176,13 @@ export function useDeleteSegment() {
   });
 }
 
+export interface SegmentEntity {
+  id: string;
+  name: string;
+  email: string | null;
+  type: 'contact' | 'lead' | 'company';
+}
+
 export function useSegmentContacts(segmentId: string | undefined) {
   const { currentWorkspace } = useWorkspace();
 
@@ -195,44 +202,75 @@ export function useSegmentContacts(segmentId: string | undefined) {
 
       const rules = segment.filter_rules as unknown as SegmentFilterRules;
       
-      // Build query based on rules
-      let query = supabase
+      const allEntities: SegmentEntity[] = [];
+
+      // Helper function to apply filter conditions
+      const applyConditions = (query: any, conditions: typeof rules.conditions) => {
+        for (const condition of conditions || []) {
+          const value = typeof condition.value === 'string' ? condition.value : '';
+          switch (condition.field) {
+            case 'tags':
+              if (condition.operator === 'contains' && value) {
+                query = query.contains('tags', [value]);
+              }
+              break;
+            case 'company':
+              if (condition.operator === 'equals' && value) {
+                query = query.eq('company', value);
+              } else if (condition.operator === 'contains' && value) {
+                query = query.ilike('company', `%${value}%`);
+              }
+              break;
+          }
+        }
+        return query;
+      };
+
+      // Query contacts
+      let contactsQuery = supabase
         .from('contacts')
         .select('id, name, email')
         .eq('workspace_id', currentWorkspace.id);
-
-      // Apply conditions
-      for (const condition of rules?.conditions || []) {
-        const value = typeof condition.value === 'string' ? condition.value : '';
-        switch (condition.field) {
-          case 'tags':
-            if (condition.operator === 'contains' && value) {
-              query = query.contains('tags', [value]);
-            }
-            break;
-          case 'company':
-            if (condition.operator === 'equals' && value) {
-              query = query.eq('company', value);
-            } else if (condition.operator === 'contains' && value) {
-              query = query.ilike('company', `%${value}%`);
-            }
-            break;
-        }
+      contactsQuery = applyConditions(contactsQuery, rules?.conditions);
+      const { data: contacts } = await contactsQuery.limit(200);
+      
+      if (contacts) {
+        allEntities.push(...contacts.map(c => ({ ...c, type: 'contact' as const })));
       }
 
-      const { data: contacts, error } = await query.limit(500);
+      // Query leads
+      let leadsQuery = supabase
+        .from('leads')
+        .select('id, name, email')
+        .eq('workspace_id', currentWorkspace.id);
+      leadsQuery = applyConditions(leadsQuery, rules?.conditions);
+      const { data: leads } = await leadsQuery.limit(200);
+      
+      if (leads) {
+        allEntities.push(...leads.map(l => ({ ...l, type: 'lead' as const })));
+      }
 
-      if (error) throw error;
+      // Query companies (use 'name' as name and 'email' field)
+      let companiesQuery = supabase
+        .from('companies')
+        .select('id, name, email')
+        .eq('workspace_id', currentWorkspace.id);
+      companiesQuery = applyConditions(companiesQuery, rules?.conditions);
+      const { data: companies } = await companiesQuery.limit(200);
+      
+      if (companies) {
+        allEntities.push(...companies.map(c => ({ ...c, type: 'company' as const })));
+      }
 
       // Update segment contact count
       await supabase
         .from('marketing_segments')
-        .update({ contact_count: contacts?.length || 0 })
+        .update({ contact_count: allEntities.length })
         .eq('id', segmentId);
 
       return {
-        contacts: contacts || [],
-        count: contacts?.length || 0,
+        contacts: allEntities,
+        count: allEntities.length,
       };
     },
     enabled: !!segmentId && !!currentWorkspace?.id,
