@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { POSProductSelector } from "./POSProductSelector";
 import { ProposalCart, CartItem } from "./ProposalCart";
 import { AIProductSuggestions } from "./AIProductSuggestions";
@@ -33,51 +34,44 @@ export function POSProposalBuilder({
     setItems,
   } = useProposalCart();
 
-  // Initialize with existing items if provided
-  if (initialItems && items.length === 0 && initialItems.length > 0) {
-    setItems(initialItems);
-  }
+  const initializedRef = useRef(false);
 
+  // Initialize with existing items only once
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0 && !initializedRef.current) {
+      setItems(initialItems);
+      initializedRef.current = true;
+    }
+  }, [initialItems, setItems]);
+
+  // Sync items to parent when state changes
+  useEffect(() => {
+    onItemsChange?.(items);
+  }, [items, onItemsChange]);
+
+  // Simplified handlers - no need to call onItemsChange manually
   const handleAddProduct = (product: Product) => {
     addItem(product);
-    onItemsChange?.([...items, { product, quantity: 1 }]);
   };
 
   const handleRemoveProduct = (productId: string) => {
     removeItem(productId);
-    onItemsChange?.(items.filter((item) => item.product.id !== productId));
   };
 
   const handleUpdateQuantity = (productId: string, quantity: number) => {
     updateQuantity(productId, quantity);
-    onItemsChange?.(
-      items.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
-      )
-    );
   };
 
   const handleUpdatePrice = (productId: string, price: number | undefined) => {
     updatePrice(productId, price);
-    onItemsChange?.(
-      items.map((item) =>
-        item.product.id === productId ? { ...item, priceOverride: price } : item
-      )
-    );
   };
 
   const handleUpdateDiscount = (productId: string, discount: number | undefined) => {
     updateDiscount(productId, discount);
-    onItemsChange?.(
-      items.map((item) =>
-        item.product.id === productId ? { ...item, discount } : item
-      )
-    );
   };
 
   const handleClear = () => {
     clearCart();
-    onItemsChange?.([]);
   };
 
   return (
