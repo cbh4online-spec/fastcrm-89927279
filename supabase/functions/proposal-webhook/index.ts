@@ -52,7 +52,7 @@ serve(async (req) => {
         // Get proposal with opportunity details
         const { data: proposal } = await supabaseClient
           .from("proposals")
-          .select("title, template_id, opportunities(id, title, owner_id, lead_id, value)")
+          .select("title, template_id, contact_id, company_id, opportunities(id, title, owner_id, lead_id, value)")
           .eq("id", proposalId)
           .single();
 
@@ -64,6 +64,13 @@ serve(async (req) => {
           lead_id: string | null; 
           value: number | null;
         } | null;
+
+        // Get proposal items for product tracking
+        const { data: proposalItems } = await supabaseClient
+          .from("proposal_items")
+          .select("*")
+          .eq("proposal_id", proposalId)
+          .eq("is_enabled", true);
 
         // Update proposal with idempotency key and status
         await supabaseClient
@@ -95,6 +102,31 @@ serve(async (req) => {
             .eq("id", opportunityId);
 
           console.log(`[PROPOSAL-WEBHOOK] Opportunity ${opportunityId} marked as won`);
+        }
+
+        // Create contact_products records for each item (product ownership tracking)
+        if (proposalItems && proposalItems.length > 0 && workspaceId) {
+          const contactId = proposal?.contact_id || opportunity?.lead_id;
+          const companyId = proposal?.company_id;
+          
+          for (const item of proposalItems) {
+            if (item.product_id) {
+              await supabaseClient.from("contact_products").insert({
+                workspace_id: workspaceId,
+                contact_id: contactId || null,
+                company_id: companyId || null,
+                product_id: item.product_id,
+                quantity: item.quantity,
+                purchased_quantity: item.quantity,
+                unit_price: item.unit_price,
+                total_value: item.total_price || (item.quantity * item.unit_price),
+                acquisition_date: new Date().toISOString().split('T')[0],
+                status: "active",
+                notes: `Adquirido via proposta: ${proposal?.title || proposalId}`,
+              });
+            }
+          }
+          console.log(`[PROPOSAL-WEBHOOK] Created ${proposalItems.length} contact_products records`);
         }
 
         // Log activity and analytics

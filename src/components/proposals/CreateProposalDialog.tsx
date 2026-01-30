@@ -29,6 +29,7 @@ import type { CartItem } from "./ProposalCart";
 import {
   useProposalTemplates,
   useCreateProposal,
+  useUpdateProposalItems,
 } from "@/hooks/useProposals";
 import { useOpportunities, useOpportunity } from "@/hooks/useOpportunities";
 import { useGenerateProposalCopy, ProposalTone } from "@/hooks/useGenerateProposalCopy";
@@ -116,6 +117,7 @@ export function CreateProposalDialog({
     selectedOpportunityId || undefined
   );
   const createProposal = useCreateProposal();
+  const updateProposalItems = useUpdateProposalItems();
   const { isLoading: aiLoading, generateCopy } = useGenerateProposalCopy();
 
   // Build variables from opportunity
@@ -227,7 +229,7 @@ export function CreateProposalDialog({
     const oppId = selectedOpportunityId === "__none__" ? "" : selectedOpportunityId;
     if (!oppId) return;
 
-    await createProposal.mutateAsync({
+    const proposal = await createProposal.mutateAsync({
       opportunity_id: oppId,
       template_id: selectedTemplateId && selectedTemplateId !== "__none__" ? selectedTemplateId : undefined,
       title,
@@ -238,6 +240,22 @@ export function CreateProposalDialog({
       price: price ? parseFloat(price) : selectedOpportunity?.value || undefined,
       expires_at: expiresAt || undefined,
     });
+
+    // Save cart items to proposal_items table
+    if (cartItems.length > 0 && proposal?.id) {
+      await updateProposalItems.mutateAsync({
+        proposalId: proposal.id,
+        items: cartItems.map((item, idx) => ({
+          product_id: item.product.id,
+          name: item.product.name,
+          description: item.product.short_description || null,
+          quantity: item.quantity,
+          unit_price: item.priceOverride ?? item.product.base_price ?? 0,
+          position: idx,
+          is_enabled: true,
+        })),
+      });
+    }
 
     onOpenChange(false);
     resetForm();

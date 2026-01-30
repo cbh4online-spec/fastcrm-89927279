@@ -32,6 +32,13 @@ serve(async (req) => {
     if (proposal.status !== "published") throw new Error("Proposal not published");
     if (!proposal.price) throw new Error("Proposal has no price");
 
+    // Get proposal items for detailed checkout
+    const { data: proposalItems } = await supabaseClient
+      .from("proposal_items")
+      .select("name, description, quantity, unit_price")
+      .eq("proposal_id", proposalId)
+      .eq("is_enabled", true);
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -46,13 +53,28 @@ serve(async (req) => {
       }
     }
 
-    // Create one-time payment session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : email,
-      line_items: [{
+    // Build line items from proposal items or fallback to single item
+    const currency = proposal.currency?.toLowerCase() || "eur";
+    let lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+
+    if (proposalItems && proposalItems.length > 0) {
+      // Use individual product items for detailed receipt
+      lineItems = proposalItems.map((item) => ({
         price_data: {
-          currency: proposal.currency?.toLowerCase() || "brl",
+          currency,
+          product_data: {
+            name: item.name,
+            description: item.description || undefined,
+          },
+          unit_amount: Math.round(item.unit_price * 100),
+        },
+        quantity: item.quantity,
+      }));
+    } else {
+      // Fallback: single item with total price
+      lineItems = [{
+        price_data: {
+          currency,
           product_data: {
             name: proposal.title,
             description: `Proposta para ${proposal.opportunity?.lead?.name || "Cliente"}`,
@@ -60,7 +82,14 @@ serve(async (req) => {
           unit_amount: Math.round(proposal.price * 100),
         },
         quantity: 1,
-      }],
+      }];
+    }
+
+    // Create one-time payment session
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      customer_email: customerId ? undefined : email,
+      line_items: lineItems,
       mode: "payment",
       success_url: `${req.headers.get("origin")}/p/${proposal.slug}?payment=success`,
       cancel_url: `${req.headers.get("origin")}/p/${proposal.slug}?payment=canceled`,
