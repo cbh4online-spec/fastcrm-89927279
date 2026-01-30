@@ -35,7 +35,7 @@ interface CampaignFormDialogProps {
 export function CampaignFormDialog({
   open,
   onOpenChange,
-  campaign,
+  campaign = null,
   onClose,
 }: CampaignFormDialogProps) {
   const createCampaign = useCreateCampaign();
