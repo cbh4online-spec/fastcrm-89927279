@@ -1,10 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { 
   GripVertical, 
   Trash2, 
   Copy, 
   ChevronUp, 
   ChevronDown,
+  Plus,
   Type,
   Image,
   MousePointer,
@@ -14,9 +15,24 @@ import {
   FileText,
   Code,
   Columns,
+  Sparkles,
+  LayoutPanelLeft,
+  ShoppingBag,
+  Quote,
+  Clock,
+  Menu,
+  Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import {
+  HeroBlockPreview,
+  ImageTextBlockPreview,
+  ProductBlockPreview,
+  TestimonialBlockPreview,
+  CountdownBlockPreview,
+  MenuBlockPreview,
+} from './blocks';
 import type { 
   EmailBlock, 
   EmailBlockType,
@@ -27,6 +43,14 @@ import type {
   DividerBlockContent,
   SpacerBlockContent,
   FooterBlockContent,
+  SocialBlockContent,
+  HeroBlockContent,
+  ImageTextBlockContent,
+  ProductBlockContent,
+  TestimonialBlockContent,
+  CountdownBlockContent,
+  MenuBlockContent,
+  VideoBlockContent,
 } from '@/types/emailBuilder';
 
 interface EmailCanvasProps {
@@ -40,6 +64,8 @@ interface EmailCanvasProps {
   onReorderBlocks: (fromIndex: number, toIndex: number) => void;
   draggedBlockType: EmailBlockType | null;
   onDropNewBlock: (type: EmailBlockType, index: number) => void;
+  onUpdateBlock?: (blockId: string, updates: Partial<EmailBlock>) => void;
+  onOpenImageUploader?: (blockId: string) => void;
 }
 
 const BLOCK_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -52,8 +78,44 @@ const BLOCK_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
   social: Share2,
   footer: FileText,
   logo: Image,
-  video: Image,
+  video: Play,
   html: Code,
+  hero: Sparkles,
+  imageText: LayoutPanelLeft,
+  product: ShoppingBag,
+  testimonial: Quote,
+  countdown: Clock,
+  menu: Menu,
+};
+
+const BLOCK_NAMES: Record<string, string> = {
+  text: 'Texto',
+  image: 'Imagem',
+  button: 'Botão',
+  divider: 'Divisor',
+  spacer: 'Espaçador',
+  columns: 'Colunas',
+  social: 'Redes Sociais',
+  footer: 'Rodapé',
+  logo: 'Logo',
+  video: 'Vídeo',
+  html: 'HTML',
+  hero: 'Hero',
+  imageText: 'Imagem + Texto',
+  product: 'Produto',
+  testimonial: 'Testemunho',
+  countdown: 'Countdown',
+  menu: 'Menu',
+};
+
+const SOCIAL_ICONS: Record<string, string> = {
+  facebook: '📘',
+  twitter: '𝕏',
+  instagram: '📸',
+  linkedin: '💼',
+  youtube: '▶️',
+  tiktok: '🎵',
+  whatsapp: '💬',
 };
 
 export function EmailCanvas({
@@ -67,9 +129,12 @@ export function EmailCanvas({
   onReorderBlocks,
   draggedBlockType,
   onDropNewBlock,
+  onUpdateBlock,
+  onOpenImageUploader,
 }: EmailCanvasProps) {
   const dragItemRef = useRef<number | null>(null);
   const dragOverItemRef = useRef<number | null>(null);
+  const [hoveredDropZone, setHoveredDropZone] = useState<number | null>(null);
 
   const handleDragStart = (index: number) => {
     dragItemRef.current = index;
@@ -91,11 +156,17 @@ export function EmailCanvas({
     if (draggedBlockType) {
       onDropNewBlock(draggedBlockType, index);
     }
+    setHoveredDropZone(null);
   };
 
-  const handleDropZoneDragOver = (e: React.DragEvent) => {
+  const handleDropZoneDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
+    setHoveredDropZone(index);
+  };
+
+  const handleDropZoneDragLeave = () => {
+    setHoveredDropZone(null);
   };
 
   const renderBlockPreview = (block: EmailBlock) => {
@@ -116,25 +187,38 @@ export function EmailCanvas({
           <img 
             src={content.src} 
             alt={content.alt} 
-            className="max-w-full h-auto"
+            className="max-w-full h-auto rounded cursor-pointer"
             style={{ maxWidth: block.styles.maxWidth }}
+            onClick={() => onOpenImageUploader?.(block.id)}
           />
         ) : (
-          <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center">
-            <Image className="h-8 w-8 mx-auto text-muted-foreground/50" />
+          <div 
+            className="border-2 border-dashed border-primary/30 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+            onClick={() => onOpenImageUploader?.(block.id)}
+          >
+            <Image className="h-10 w-10 mx-auto text-primary/40" />
             <p className="text-sm text-muted-foreground mt-2">Clica para adicionar imagem</p>
           </div>
         );
       }
       case 'button': {
         const content = block.content as ButtonBlockContent;
+        const sizeClasses = {
+          small: 'px-4 py-2 text-sm',
+          medium: 'px-6 py-3',
+          large: 'px-8 py-4 text-lg',
+        };
         return (
           <button
-            className="px-6 py-3 font-bold rounded-md"
+            className={cn(
+              "font-semibold rounded-lg transition-transform hover:scale-105",
+              sizeClasses[content.size || 'medium'],
+              content.fullWidth && 'w-full'
+            )}
             style={{
               backgroundColor: content.backgroundColor || '#3b82f6',
               color: content.textColor || '#ffffff',
-              borderRadius: content.borderRadius || '6px',
+              borderRadius: content.borderRadius || '8px',
             }}
           >
             {content.text}
@@ -145,7 +229,7 @@ export function EmailCanvas({
         const content = block.content as DividerBlockContent;
         return (
           <hr 
-            className="border-0"
+            className="border-0 my-2"
             style={{
               borderTop: `${content.thickness || '1px'} ${content.style || 'solid'} ${content.color || '#e5e5e5'}`,
             }}
@@ -156,94 +240,158 @@ export function EmailCanvas({
         const content = block.content as SpacerBlockContent;
         return (
           <div 
-            className="bg-muted/30"
+            className="bg-muted/20 rounded flex items-center justify-center text-xs text-muted-foreground"
             style={{ height: content.height }}
-          />
+          >
+            {content.height}
+          </div>
         );
       }
       case 'social': {
+        const content = block.content as SocialBlockContent;
         return (
-          <div className="flex items-center justify-center gap-4">
-            <span className="text-2xl">📘</span>
-            <span className="text-2xl">📸</span>
-            <span className="text-2xl">💼</span>
+          <div className="flex items-center justify-center gap-3">
+            {content.networks.map((network, index) => (
+              <a
+                key={index}
+                href="#"
+                className={cn(
+                  "flex items-center justify-center transition-transform hover:scale-110",
+                  content.iconStyle === 'circle' && 'rounded-full bg-muted p-2',
+                  content.iconStyle === 'square' && 'rounded bg-muted p-2',
+                  content.iconStyle === 'rounded' && 'rounded-lg bg-muted p-2'
+                )}
+                style={{ fontSize: content.iconSize || '24px' }}
+              >
+                {SOCIAL_ICONS[network.type] || '🔗'}
+              </a>
+            ))}
           </div>
         );
       }
       case 'footer': {
         const content = block.content as FooterBlockContent;
         return (
-          <div className="text-center text-sm text-muted-foreground">
-            <p>{content.text}</p>
+          <div className="text-center">
+            <p className="text-sm">{content.text}</p>
+            {content.companyInfo && (
+              <p className="text-sm mt-1 opacity-70">{content.companyInfo}</p>
+            )}
             {content.showUnsubscribe && (
-              <p className="mt-2">
-                <a href="#" className="underline">Cancelar subscrição</a>
+              <p className="mt-3">
+                <a href="#" className="text-sm underline opacity-70 hover:opacity-100">
+                  Cancelar subscrição
+                </a>
               </p>
             )}
           </div>
         );
       }
+      case 'video': {
+        const content = block.content as VideoBlockContent;
+        return content.thumbnailUrl ? (
+          <div className="relative group cursor-pointer">
+            <img 
+              src={content.thumbnailUrl} 
+              alt="Video thumbnail"
+              className="w-full h-auto rounded-lg"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div 
+                className="w-16 h-16 rounded-full flex items-center justify-center bg-black/50 group-hover:bg-black/70 transition-colors"
+                style={{ color: content.playButtonColor || '#ffffff' }}
+              >
+                <Play className="h-8 w-8 fill-current" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center">
+            <Play className="h-10 w-10 mx-auto text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground mt-2">Adicionar vídeo</p>
+          </div>
+        );
+      }
+      case 'hero':
+        return <HeroBlockPreview content={block.content as HeroBlockContent} isEditing />;
+      case 'imageText':
+        return <ImageTextBlockPreview content={block.content as ImageTextBlockContent} isEditing />;
+      case 'product':
+        return <ProductBlockPreview content={block.content as ProductBlockContent} isEditing />;
+      case 'testimonial':
+        return <TestimonialBlockPreview content={block.content as TestimonialBlockContent} />;
+      case 'countdown':
+        return <CountdownBlockPreview content={block.content as CountdownBlockContent} />;
+      case 'menu':
+        return <MenuBlockPreview content={block.content as MenuBlockContent} isEditing />;
       default:
-        return <p className="text-muted-foreground text-sm">Bloco não suportado</p>;
+        return <p className="text-muted-foreground text-sm italic">Bloco não suportado</p>;
     }
   };
 
-  const blockTypeNames: Record<string, string> = {
-    text: 'Texto',
-    image: 'Imagem',
-    button: 'Botão',
-    divider: 'Divisor',
-    spacer: 'Espaçador',
-    columns: 'Colunas',
-    social: 'Redes Sociais',
-    footer: 'Rodapé',
-    logo: 'Logo',
-    video: 'Vídeo',
-    html: 'HTML',
-  };
+  const DropZone = ({ index, isFirst }: { index: number; isFirst?: boolean }) => (
+    <div
+      className={cn(
+        "transition-all duration-200",
+        draggedBlockType ? "py-1" : "py-0",
+        hoveredDropZone === index ? "py-3" : ""
+      )}
+      onDragOver={(e) => handleDropZoneDragOver(e, index)}
+      onDragLeave={handleDropZoneDragLeave}
+      onDrop={() => handleDropZoneDrop(index)}
+    >
+      <div
+        className={cn(
+          "h-1 rounded-full transition-all duration-200 mx-4",
+          draggedBlockType ? "bg-primary/20" : "bg-transparent",
+          hoveredDropZone === index && "h-2 bg-primary/40"
+        )}
+      />
+    </div>
+  );
 
   return (
     <div 
-      className="flex-1 overflow-auto p-8"
+      className="flex-1 overflow-auto p-6"
       style={{ backgroundColor: globalStyles.backgroundColor }}
+      onClick={() => onSelectBlock(null)}
     >
       <div 
-        className="mx-auto rounded-lg shadow-sm overflow-hidden"
+        className="mx-auto rounded-lg shadow-lg overflow-hidden transition-all duration-300"
         style={{ 
           maxWidth: globalStyles.contentWidth,
           backgroundColor: globalStyles.contentBackgroundColor,
           fontFamily: globalStyles.fontFamily,
           color: globalStyles.textColor,
+          borderRadius: globalStyles.borderRadius,
         }}
       >
         <div className="p-6">
           {blocks.length === 0 ? (
             <div 
               className={cn(
-                "border-2 border-dashed rounded-lg p-12 text-center transition-colors",
-                draggedBlockType ? "border-primary bg-primary/5" : "border-muted-foreground/30"
+                "border-2 border-dashed rounded-xl p-16 text-center transition-all duration-300",
+                draggedBlockType 
+                  ? "border-primary bg-primary/5 scale-[1.02]" 
+                  : "border-muted-foreground/20"
               )}
-              onDragOver={handleDropZoneDragOver}
+              onDragOver={(e) => handleDropZoneDragOver(e, 0)}
+              onDragLeave={handleDropZoneDragLeave}
               onDrop={() => handleDropZoneDrop(0)}
             >
-              <Type className="h-12 w-12 mx-auto text-muted-foreground/50" />
-              <h3 className="text-lg font-medium mt-4">
-                Começa a construir o teu email
+              <div className="inline-flex p-4 rounded-2xl bg-muted mb-4">
+                <Sparkles className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mt-2">
+                Começa a criar o teu email
               </h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                Arrasta elementos do painel lateral ou escolhe um layout
+              <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                Arrasta elementos do painel lateral ou escolhe um layout para começar
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {/* Drop zone before first block */}
-              {draggedBlockType && (
-                <div
-                  className="h-2 bg-primary/20 rounded transition-all hover:h-8 hover:bg-primary/30"
-                  onDragOver={handleDropZoneDragOver}
-                  onDrop={() => handleDropZoneDrop(0)}
-                />
-              )}
+            <div>
+              <DropZone index={0} isFirst />
               
               {blocks.map((block, index) => {
                 const isSelected = selectedBlockId === block.id;
@@ -253,31 +401,36 @@ export function EmailCanvas({
                   <div key={block.id}>
                     <div
                       className={cn(
-                        "group relative rounded-lg border transition-all",
+                        "group relative rounded-lg transition-all duration-200",
                         isSelected 
-                          ? "border-primary ring-2 ring-primary/20" 
-                          : "border-transparent hover:border-muted-foreground/30"
+                          ? "ring-2 ring-primary ring-offset-2" 
+                          : "hover:ring-1 hover:ring-muted-foreground/30"
                       )}
-                      onClick={() => onSelectBlock(block.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectBlock(block.id);
+                      }}
                       draggable
                       onDragStart={() => handleDragStart(index)}
                       onDragEnter={() => handleDragEnter(index)}
                       onDragEnd={handleDragEnd}
                       onDragOver={(e) => e.preventDefault()}
                     >
-                      {/* Block toolbar */}
+                      {/* Quick actions toolbar */}
                       <div className={cn(
-                        "absolute -top-3 left-1/2 -translate-x-1/2 z-10",
-                        "flex items-center gap-1 px-2 py-1 rounded-full bg-background border shadow-sm",
-                        "opacity-0 group-hover:opacity-100 transition-opacity",
+                        "absolute -top-4 left-1/2 -translate-x-1/2 z-20",
+                        "flex items-center gap-0.5 px-2 py-1 rounded-full",
+                        "bg-popover border shadow-md",
+                        "opacity-0 group-hover:opacity-100 transition-all duration-200",
                         isSelected && "opacity-100"
                       )}>
-                        <div className="flex items-center gap-1 pr-2 border-r">
-                          <BlockIcon className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            {blockTypeNames[block.type]}
+                        <div className="flex items-center gap-1.5 pr-2 border-r mr-1">
+                          <BlockIcon className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-xs font-medium">
+                            {BLOCK_NAMES[block.type]}
                           </span>
                         </div>
+                        
                         <Button
                           variant="ghost"
                           size="icon"
@@ -288,7 +441,7 @@ export function EmailCanvas({
                           }}
                           disabled={index === 0}
                         >
-                          <ChevronUp className="h-3 w-3" />
+                          <ChevronUp className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -300,8 +453,11 @@ export function EmailCanvas({
                           }}
                           disabled={index === blocks.length - 1}
                         >
-                          <ChevronDown className="h-3 w-3" />
+                          <ChevronDown className="h-3.5 w-3.5" />
                         </Button>
+                        
+                        <div className="w-px h-4 bg-border mx-0.5" />
+                        
                         <Button
                           variant="ghost"
                           size="icon"
@@ -311,45 +467,43 @@ export function EmailCanvas({
                             onDuplicateBlock(block.id);
                           }}
                         >
-                          <Copy className="h-3 w-3" />
+                          <Copy className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-destructive hover:text-destructive"
+                          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={(e) => {
                             e.stopPropagation();
                             onDeleteBlock(block.id);
                           }}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                        <div className="cursor-grab active:cursor-grabbing pl-1 border-l">
+                        
+                        <div className="cursor-grab active:cursor-grabbing pl-1 border-l ml-0.5">
                           <GripVertical className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </div>
                       
                       {/* Block content */}
                       <div 
-                        className="p-4"
+                        className="relative"
                         style={{
                           textAlign: block.styles.textAlign as 'left' | 'center' | 'right' | undefined,
                           padding: block.styles.padding,
                           backgroundColor: block.styles.backgroundColor,
+                          borderRadius: block.styles.borderRadius,
+                          border: block.styles.border,
+                          boxShadow: block.styles.boxShadow,
+                          minHeight: block.styles.minHeight,
                         }}
                       >
                         {renderBlockPreview(block)}
                       </div>
                     </div>
                     
-                    {/* Drop zone after each block */}
-                    {draggedBlockType && (
-                      <div
-                        className="h-2 bg-primary/20 rounded transition-all hover:h-8 hover:bg-primary/30 mt-2"
-                        onDragOver={handleDropZoneDragOver}
-                        onDrop={() => handleDropZoneDrop(index + 1)}
-                      />
-                    )}
+                    <DropZone index={index + 1} />
                   </div>
                 );
               })}
