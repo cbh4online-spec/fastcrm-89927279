@@ -33,6 +33,7 @@ import { useMarketingSegments, useDeleteSegment } from '@/hooks/useMarketingSegm
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { SegmentFormDialog } from './SegmentFormDialog';
+import { SegmentContactCount } from './SegmentContactCount';
 import type { MarketingSegment } from '@/types/marketing';
 
 interface MarketingSegmentsListProps {
@@ -162,10 +163,7 @@ export function MarketingSegmentsList({ onCreateNew }: MarketingSegmentsListProp
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        <span>{segment.contactCount} contactos</span>
-                      </div>
+                      <SegmentContactCount segment={segment} />
                       <Badge variant={segment.isDynamic ? 'default' : 'secondary'}>
                         {segment.isDynamic ? 'Dinâmico' : 'Estático'}
                       </Badge>
