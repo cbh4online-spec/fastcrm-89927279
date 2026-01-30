@@ -100,7 +100,7 @@ export default function Marketing() {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <MarketingDashboard />
+            <MarketingDashboard onCreateCampaign={() => setShowCampaignDialog(true)} />
           </TabsContent>
 
           <TabsContent value="campaigns" className="space-y-6">

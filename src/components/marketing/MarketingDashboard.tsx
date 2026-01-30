@@ -19,7 +19,11 @@ import { pt } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
-export function MarketingDashboard() {
+interface MarketingDashboardProps {
+  onCreateCampaign?: () => void;
+}
+
+export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps) {
   const navigate = useNavigate();
   const { data: usage, isLoading: usageLoading } = useMarketingUsage();
   const { data: campaigns = [], isLoading: campaignsLoading } = useMarketingCampaigns();
@@ -124,7 +128,7 @@ export function MarketingDashboard() {
             <div className="text-center py-8">
               <Mail className="h-12 w-12 mx-auto text-muted-foreground/50" />
               <p className="mt-2 text-muted-foreground">Ainda não criaste nenhuma campanha</p>
-              <Button variant="outline" className="mt-4">
+              <Button variant="outline" className="mt-4" onClick={onCreateCampaign}>
                 <Send className="h-4 w-4 mr-2" />
                 Criar Primeira Campanha
               </Button>
