@@ -125,6 +125,7 @@ export default function Marketing() {
       <CampaignFormDialog
         open={showCampaignDialog}
         onOpenChange={setShowCampaignDialog}
+        campaign={null}
         onClose={() => setShowCampaignDialog(false)}
       />
 
