@@ -11,7 +11,8 @@ import {
   Plus,
   Send,
   FileText,
-  Target
+  Target,
+  Paintbrush
 } from 'lucide-react';
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
@@ -21,6 +22,7 @@ import { MarketingSettingsPanel } from '@/components/marketing/MarketingSettings
 import { CampaignFormDialog } from '@/components/marketing/CampaignFormDialog';
 import { SegmentFormDialog } from '@/components/marketing/SegmentFormDialog';
 import { TemplateFormDialog } from '@/components/marketing/TemplateFormDialog';
+import { EmailBuilderDialog } from '@/components/marketing/EmailBuilderDialog';
 
 export default function Marketing() {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ export default function Marketing() {
   const [showCampaignDialog, setShowCampaignDialog] = useState(false);
   const [showSegmentDialog, setShowSegmentDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [showEmailBuilder, setShowEmailBuilder] = useState(false);
 
   const getAddButton = () => {
     switch (activeTab) {
@@ -47,10 +50,16 @@ export default function Marketing() {
         );
       case 'templates':
         return (
-          <Button onClick={() => setShowTemplateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Template
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowEmailBuilder(true)}>
+              <Paintbrush className="h-4 w-4 mr-2" />
+              Editor Visual
+            </Button>
+            <Button onClick={() => setShowTemplateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Template
+            </Button>
+          </div>
         );
       default:
         return null;
@@ -139,6 +148,11 @@ export default function Marketing() {
         open={showTemplateDialog}
         onOpenChange={setShowTemplateDialog}
         onClose={() => setShowTemplateDialog(false)}
+      />
+
+      <EmailBuilderDialog
+        open={showEmailBuilder}
+        onOpenChange={setShowEmailBuilder}
       />
     </DashboardLayout>
   );
