@@ -202,9 +202,10 @@ serve(async (req) => {
       .eq("workspace_id", workspaceId)
       .single();
 
-    // Get verified domain for sending - use default metodopare domain
-    const fromDomain = "metodopare.ai";
-    const fromEmail = `${campaign.from_name?.toLowerCase().replace(/\s+/g, ".") || "noreply"}@${fromDomain}`;
+    // Get verified domain for sending - use the official marketing subdomain
+    // CRITICAL: Must match the domain scope of the RESEND_API_KEY
+    const fromDomain = "m.fastcrm.metodopare.ai";
+    const fromEmail = `news@${fromDomain}`;
 
     let sentCount = 0;
     let failedCount = 0;
