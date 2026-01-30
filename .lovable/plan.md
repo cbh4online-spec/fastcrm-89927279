@@ -1,238 +1,235 @@
 
+# Plano: Corrigir Gravacao de Itens e Implementar Tracking de Vendas
 
-# Plano: Otimizar Editor de Email - Layout Centrado e Totalmente Editavel
+## Problema Identificado
 
-## Problemas Atuais Identificados
+### 1. Propostas com Preco mas Sem Itens
 
-1. **Layout Descentrado**: O canvas fica colado a esquerda quando nao ha bloco selecionado
-2. **Painel Direito Vazio**: Quando nenhum bloco esta selecionado, o painel direito desaparece completamente
-3. **Falta Edicao Inline**: Os blocos de texto ainda usam textarea em vez de edicao direta
-4. **Editores Incompletos**: Blocos premium (Hero, Product, Testimonial, Countdown, Menu) nao tem editores no BlockEditor
-5. **Feedback Visual Fraco**: Nao fica claro que os elementos sao editaveis
+Ao criar uma proposta no `CreateProposalDialog`, o utilizador adiciona produtos no tab "Produtos" (POSProposalBuilder), mas quando clica em guardar, a funcao `handleSave` **nao guarda os `cartItems` na tabela `proposal_items`**:
+
+```text
+CreateProposalDialog.tsx (linha 226-240):
+handleSave() {
+  createProposal.mutateAsync({
+    opportunity_id: oppId,
+    title,
+    content_blocks: blocks,
+    price: parseFloat(price),  // <-- So guarda o preco total
+    ...
+  });
+  // FALTA: Guardar os cartItems na proposal_items
+}
+```
+
+O preco de 97 euros existe porque o sistema calcula o total do carrinho, mas os itens individuais nunca sao persistidos na base de dados.
+
+### 2. Falta de Tracking Pos-Venda
+
+Quando uma proposta e aceite e paga (via `proposal-webhook`):
+- A proposta e marcada como `accepted`
+- A oportunidade e marcada como `won`
+- Registos de actividade sao criados
+
+**O que falta:**
+- Criar registos na tabela `contact_products` (produtos adquiridos pelo cliente)
+- Actualizar estatisticas de vendas dos produtos
+- Permitir tracking de consumo/utilizacao dos produtos vendidos
+
+---
+
+## Estrutura de Dados Existente
+
+```text
+proposals
+  - id, price, status, opportunity_id, contact_id, company_id
+  
+proposal_items
+  - id, proposal_id, product_id, name, quantity, unit_price, total_price
+  
+contact_products (produtos adquiridos)
+  - id, contact_id/company_id, product_id, quantity, unit_price, total_value
+  - status: active/expired/consumed
+  - acquisition_date, expiry_date
+  - consumed_quantity, purchased_quantity
+  
+consumption_logs (registo de consumo)
+  - id, contact_id/company_id, product_id, acquired_product_id
+  - quantity, consumption_date
+```
 
 ---
 
 ## Solucao Proposta
 
-### 1. Layout de 3 Colunas Permanente
+### Fase 1: Gravar Itens ao Criar Proposta
 
-Redesenhar o layout para ter sempre 3 paineis visiveis:
+**Ficheiro:** `src/components/proposals/CreateProposalDialog.tsx`
+
+Modificar a funcao `handleSave`:
 
 ```text
-+--------------------------------------------------+
-|                    HEADER                         |
-+----------+------------------------+---------------+
-|          |                        |               |
-|  LEFT    |       CANVAS           |    RIGHT      |
-|  PANEL   |     (centrado)         |    PANEL      |
-|  (272px) |     (flex-1)           |   (300px)     |
-|          |                        |               |
-|          |                        | Sem selecao:  |
-|          |                        | Design Global |
-|          |                        |               |
-|          |                        | Com selecao:  |
-|          |                        | Block Editor  |
-+----------+------------------------+---------------+
+const handleSave = async () => {
+  // 1. Criar proposta
+  const proposal = await createProposal.mutateAsync({...});
+  
+  // 2. Gravar itens do carrinho (NOVO)
+  if (cartItems.length > 0) {
+    await updateProposalItems.mutateAsync({
+      proposalId: proposal.id,
+      items: cartItems.map((item, idx) => ({
+        product_id: item.product.id,
+        name: item.product.name,
+        description: item.product.short_description,
+        quantity: item.quantity,
+        unit_price: item.priceOverride ?? item.product.base_price ?? 0,
+        position: idx,
+      })),
+    });
+  }
+};
 ```
 
-**Comportamento do Painel Direito:**
-- Sem bloco selecionado: Mostra Design Global (cores, fontes, largura)
-- Com bloco selecionado: Mostra BlockEditor do bloco
+Importar o hook `useUpdateProposalItems` de `@/hooks/useProposals`.
 
-### 2. Edicao Inline no Canvas
+### Fase 2: Tracking de Produtos Vendidos (Backend)
 
-Integrar o RichTextEditor existente diretamente nos blocos de texto:
+**Ficheiro:** `supabase/functions/proposal-webhook/index.ts`
 
-- Clicar num bloco de texto ativa modo edicao
-- Toolbar flutuante aparece
-- Clicar fora guarda alteracoes
+Adicionar apos marcacao da proposta como aceite:
 
-### 3. Editores Completos para Todos os Blocos
+```text
+// Buscar itens da proposta
+const { data: proposalItems } = await supabaseClient
+  .from("proposal_items")
+  .select("*")
+  .eq("proposal_id", proposalId)
+  .eq("is_enabled", true);
 
-Adicionar editores no BlockEditor para:
+// Criar registos de produtos adquiridos para cada item
+if (proposalItems && proposalItems.length > 0) {
+  const contactId = proposal.contact_id || opportunity?.contact_id;
+  const companyId = proposal.company_id || opportunity?.company_id;
+  
+  for (const item of proposalItems) {
+    await supabaseClient.from("contact_products").insert({
+      workspace_id: workspaceId,
+      contact_id: contactId,
+      company_id: companyId,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      purchased_quantity: item.quantity,
+      unit_price: item.unit_price,
+      total_value: item.total_price,
+      acquisition_date: new Date().toISOString().split('T')[0],
+      status: "active",
+      notes: `Adquirido via proposta: ${proposal.title}`,
+    });
+  }
+}
+```
 
-| Bloco | Campos Editaveis |
-|-------|------------------|
-| Hero | Titulo, Subtitulo, Texto botao, URL, Imagem fundo, Altura, Overlay |
-| Product | Nome, Descricao, Preco, Preco antigo, Imagem, URL compra |
-| Testimonial | Citacao, Nome, Cargo, Avatar |
-| Countdown | Data/Hora alvo, Titulo, Subtitulo, Cores |
-| Menu | Lista de links (nome + URL), Alinhamento |
-| ImageText | Imagem, Texto, Layout (esquerda/direita), Proporcao |
-| Social | Redes (adicionar/remover), Estilo icones, Tamanho |
+### Fase 3: Checkout Stripe com Itens Detalhados
 
-### 4. Feedback Visual Melhorado
+**Ficheiro:** `supabase/functions/proposal-checkout/index.ts`
 
-- Indicadores "Clica para editar" nos blocos vazios
-- Hover states mais obvios
-- Animacao quando bloco fica selecionado
-- Icons contextuais nos blocos
+Modificar para enviar itens individuais ao Stripe em vez de um item unico:
+
+```text
+// Antes: 1 item generico com valor total
+// Depois: Lista de produtos reais
+
+const { data: proposalItems } = await supabaseClient
+  .from("proposal_items")
+  .select("name, description, quantity, unit_price")
+  .eq("proposal_id", proposalId)
+  .eq("is_enabled", true);
+
+const lineItems = proposalItems?.map(item => ({
+  price_data: {
+    currency: proposal.currency?.toLowerCase() || "eur",
+    product_data: {
+      name: item.name,
+      description: item.description || undefined,
+    },
+    unit_amount: Math.round(item.unit_price * 100),
+  },
+  quantity: item.quantity,
+})) || [];
+
+// Fallback se nao houver itens
+if (lineItems.length === 0) {
+  lineItems.push({
+    price_data: {
+      currency: proposal.currency?.toLowerCase() || "eur",
+      product_data: { name: proposal.title },
+      unit_amount: Math.round(proposal.price * 100),
+    },
+    quantity: 1,
+  });
+}
+
+const session = await stripe.checkout.sessions.create({
+  line_items: lineItems,
+  // ...resto igual
+});
+```
 
 ---
 
 ## Ficheiros a Modificar
 
-### `src/components/email-builder/EmailBuilder.tsx`
-
-Alteracoes:
-- Layout de 3 colunas permanentes
-- Painel direito sempre visivel
-- Logica para mostrar DesignSidebar vs BlockEditor
-
-```text
-Antes:
-{selectedBlock && (
-  <div className="w-80 border-l bg-background">
-    <BlockEditor ... />
-  </div>
-)}
-
-Depois:
-<div className="w-80 border-l bg-background">
-  {selectedBlock ? (
-    <BlockEditor ... />
-  ) : (
-    <DesignSidebar ... />
-  )}
-</div>
-```
-
-### `src/components/email-builder/EmailCanvas.tsx`
-
-Alteracoes:
-- Integrar RichTextEditor para blocos de texto
-- Edicao inline para campos simples (titulos, botoes)
-- Melhor feedback visual de hover/selecao
-- Indicadores "editavel" nos blocos
-
-### `src/components/email-builder/BlockEditor.tsx`
-
-Alteracoes:
-- Adicionar editores para Hero, Product, Testimonial, Countdown, Menu, ImageText, Social
-- Organizar em tabs: Conteudo | Estilo
-- Adicionar controles visuais de padding (4 inputs)
-- Preview inline das alteracoes
-
-### `src/components/email-builder/DesignSidebar.tsx`
-
-Alteracoes:
-- Adicionar mais opcoes de design global
-- Bordas arredondadas do container
-- Sombras
-- Espacamento interno padrao
+| Ficheiro | Alteracao |
+|----------|-----------|
+| `src/components/proposals/CreateProposalDialog.tsx` | Chamar `useUpdateProposalItems` apos criar proposta |
+| `supabase/functions/proposal-checkout/index.ts` | Enviar itens individuais ao Stripe |
+| `supabase/functions/proposal-webhook/index.ts` | Criar `contact_products` ao aceitar proposta |
 
 ---
 
-## Detalhes Tecnicos
-
-### Editores de Blocos Premium
-
-**Hero Block Editor:**
-```text
-- Titulo (input)
-- Subtitulo (input)
-- Botao: Texto + URL
-- Altura (slider: 200-500px)
-- Imagem de fundo (upload)
-- Cor overlay (color picker + opacidade)
-- Alinhamento vertical (top/center/bottom)
-```
-
-**Product Block Editor:**
-```text
-- Imagem do produto (upload)
-- Nome (input)
-- Descricao (textarea)
-- Preco atual (input)
-- Preco antigo (input, opcional)
-- Badge (input, ex: "Novo", "Desconto")
-- Texto botao + URL
-```
-
-**Countdown Block Editor:**
-```text
-- Data alvo (date picker)
-- Hora alvo (time picker)
-- Titulo (input)
-- Subtitulo (input)
-- Cor de fundo (color)
-- Cor dos numeros (color)
-- Mostrar: Dias/Horas/Mins/Segs (checkboxes)
-```
-
-**Menu Block Editor:**
-```text
-- Lista de links (array):
-  - Label (input)
-  - URL (input)
-  - [Adicionar] [Remover]
-- Separador (input)
-- Alinhamento (left/center/right)
-```
-
-### Edicao Inline no Canvas
-
-Para blocos de texto, substituir renderizacao estatica por RichTextEditor:
+## Fluxo Apos Implementacao
 
 ```text
-Antes:
-<div dangerouslySetInnerHTML={{ __html: content.html }} />
+1. CRIAR PROPOSTA
+   Utilizador adiciona produtos no carrinho
+   -> Proposta criada com preco total
+   -> proposal_items criados com cada produto
 
-Depois:
-{isSelected ? (
-  <RichTextEditor
-    value={content.html}
-    onChange={(html) => onUpdateBlock(block.id, { content: { ...content, html } })}
-    autoFocus
-  />
-) : (
-  <div dangerouslySetInnerHTML={{ __html: content.html }} />
-)}
+2. PUBLICAR E PARTILHAR
+   Cliente ve proposta com lista de produtos
+   Cliente pode activar/desactivar itens opcionais
+
+3. CHECKOUT STRIPE
+   Stripe recebe lista de produtos individuais
+   Recibo detalha cada item comprado
+
+4. PAGAMENTO CONCLUIDO (Webhook)
+   Proposta marcada como aceite
+   Oportunidade marcada como ganha
+   Para cada item:
+     -> Cria registo em contact_products
+     -> Produto fica associado ao cliente
+   
+5. POS-VENDA
+   Na ficha do cliente: Lista de produtos adquiridos
+   Tracking de consumo (sessoes usadas, etc.)
+   Historico completo de compras
 ```
 
-Para titulos e botoes, usar contentEditable:
+---
 
-```text
-<span
-  contentEditable={isSelected}
-  suppressContentEditableWarning
-  onBlur={(e) => updateContent({ text: e.currentTarget.textContent })}
->
-  {content.text}
-</span>
-```
+## Impacto nos Relatorios
+
+Com os `contact_products` a serem criados automaticamente:
+
+- **Ficha de Cliente**: Mostra produtos adquiridos
+- **Produto Stats**: Contagem de vendas actualizada
+- **Historico**: Timeline de aquisicoes
+- **Consumo**: Tracking de sessoes/unidades usadas
 
 ---
 
 ## Prioridade de Implementacao
 
-### Fase 1 - Layout (Imediato)
-1. Painel direito sempre visivel
-2. Canvas centrado
-3. Transicao suave entre Design e BlockEditor
-
-### Fase 2 - Editores Completos
-4. Editor Hero block
-5. Editor Product block
-6. Editor Countdown block
-7. Editor Testimonial block
-8. Editor Menu block
-9. Editor ImageText block
-10. Editor Social block
-
-### Fase 3 - Edicao Inline
-11. RichTextEditor no canvas para texto
-12. ContentEditable para titulos
-13. Feedback visual melhorado
-
----
-
-## Resultado Esperado
-
-Apos implementacao:
-- Editor sempre com 3 colunas visiveis
-- Canvas perfeitamente centrado
-- Todos os blocos com editores completos
-- Edicao inline para texto
-- UX profissional e intuitiva
-
+1. **Critico** - Gravar `proposal_items` ao criar proposta
+2. **Alto** - Criar `contact_products` no webhook
+3. **Medio** - Checkout Stripe com itens detalhados
