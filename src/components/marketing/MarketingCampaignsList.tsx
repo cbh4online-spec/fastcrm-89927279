@@ -32,7 +32,8 @@ import {
   Copy,
   Mail
 } from 'lucide-react';
-import { useMarketingCampaigns, useDeleteCampaign, useSendCampaign } from '@/hooks/useMarketingCampaigns';
+import { useMarketingCampaigns, useDeleteCampaign, useSendCampaign, useCreateCampaign } from '@/hooks/useMarketingCampaigns';
+import { toast } from 'sonner';
 import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_COLORS, calculateCampaignStats } from '@/types/marketing';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -55,6 +56,27 @@ export function MarketingCampaignsList({ onCreateNew }: MarketingCampaignsListPr
   const { data: campaigns = [], isLoading } = useMarketingCampaigns();
   const deleteCampaign = useDeleteCampaign();
   const sendCampaign = useSendCampaign();
+  const createCampaign = useCreateCampaign();
+
+  const handleDuplicate = async (campaign: MarketingCampaign) => {
+    try {
+      await createCampaign.mutateAsync({
+        name: `${campaign.name} (cópia)`,
+        subject: campaign.subject,
+        previewText: campaign.previewText,
+        fromName: campaign.fromName,
+        replyTo: campaign.replyTo,
+        bodyHtml: campaign.bodyHtml,
+        bodyText: campaign.bodyText,
+        templateId: campaign.templateId,
+        segmentId: campaign.segmentId,
+      });
+      toast.success('Campanha duplicada com sucesso');
+    } catch (error) {
+      console.error('Error duplicating campaign:', error);
+      toast.error('Erro ao duplicar campanha');
+    }
+  };
 
   const filteredCampaigns = campaigns.filter(
     (c) =>
@@ -207,7 +229,7 @@ export function MarketingCampaignsList({ onCreateNew }: MarketingCampaignsListPr
                             </DropdownMenuItem>
                           </>
                         )}
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(campaign)}>
                           <Copy className="h-4 w-4 mr-2" />
                           Duplicar
                         </DropdownMenuItem>
