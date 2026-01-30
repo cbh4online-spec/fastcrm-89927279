@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { 
   LayoutGrid, 
   Palette, 
@@ -9,6 +9,8 @@ import {
   Tablet,
   Smartphone,
   Code,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,7 +29,9 @@ import { LayoutsSidebar } from './LayoutsSidebar';
 import { DesignSidebar } from './DesignSidebar';
 import { BlockEditor } from './BlockEditor';
 import { EmailCanvas } from './EmailCanvas';
-import type { EmailDesign, EmailLayout, EmailBlockType } from '@/types/emailBuilder';
+import { VariablePicker } from './VariablePicker';
+import { ImageUploader } from './ImageUploader';
+import type { EmailDesign, EmailLayout, EmailBlockType, ImageBlockContent } from '@/types/emailBuilder';
 
 interface EmailBuilderProps {
   initialDesign?: EmailDesign;
@@ -43,6 +47,7 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
   const [previewMode, setPreviewMode] = useState<PreviewMode>('desktop');
   const [showPreview, setShowPreview] = useState(false);
   const [showHtml, setShowHtml] = useState(false);
+  const [imageUploaderBlockId, setImageUploaderBlockId] = useState<string | null>(null);
 
   const {
     design,
@@ -88,6 +93,27 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
     setDraggedBlockType(null);
   };
 
+  const handleOpenImageUploader = (blockId: string) => {
+    setImageUploaderBlockId(blockId);
+  };
+
+  const handleImageSelect = (url: string, alt?: string) => {
+    if (imageUploaderBlockId) {
+      const block = design.blocks.find(b => b.id === imageUploaderBlockId);
+      if (block && (block.type === 'image' || block.type === 'logo')) {
+        updateBlock(imageUploaderBlockId, {
+          content: { ...block.content, src: url, alt: alt || 'Imagem' } as ImageBlockContent,
+        });
+      }
+    }
+    setImageUploaderBlockId(null);
+  };
+
+  const handleInsertVariable = useCallback((variable: string) => {
+    // Could be enhanced to insert at cursor position
+    console.log('Insert variable:', variable);
+  }, []);
+
   const previewWidths: Record<PreviewMode, number> = {
     desktop: 600,
     tablet: 480,
@@ -101,13 +127,13 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
   return (
     <div className="h-full flex flex-col bg-muted/30">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-background border-b">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <X className="h-5 w-5" />
+      <div className="flex items-center justify-between px-4 py-2.5 bg-background border-b">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onCancel}>
+            <X className="h-4 w-4" />
           </Button>
           <div>
-            <h2 className="font-semibold">Editor de Email</h2>
+            <h2 className="font-semibold text-sm">Editor de Email</h2>
             <p className="text-xs text-muted-foreground">
               {design.blocks.length} blocos
             </p>
@@ -116,14 +142,14 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
         
         <div className="flex items-center gap-2">
           {/* Preview mode toggle */}
-          <div className="flex items-center gap-1 border rounded-md p-1">
+          <div className="flex items-center gap-0.5 border rounded-lg p-0.5 bg-muted/50">
             <Button
               variant={previewMode === 'desktop' ? 'secondary' : 'ghost'}
               size="icon"
               className="h-7 w-7"
               onClick={() => setPreviewMode('desktop')}
             >
-              <Monitor className="h-4 w-4" />
+              <Monitor className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant={previewMode === 'tablet' ? 'secondary' : 'ghost'}
@@ -131,7 +157,7 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
               className="h-7 w-7"
               onClick={() => setPreviewMode('tablet')}
             >
-              <Tablet className="h-4 w-4" />
+              <Tablet className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant={previewMode === 'mobile' ? 'secondary' : 'ghost'}
@@ -139,22 +165,24 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
               className="h-7 w-7"
               onClick={() => setPreviewMode('mobile')}
             >
-              <Smartphone className="h-4 w-4" />
+              <Smartphone className="h-3.5 w-3.5" />
             </Button>
           </div>
           
-          <Button variant="outline" size="sm" onClick={() => setShowHtml(true)}>
-            <Code className="h-4 w-4 mr-2" />
+          <div className="w-px h-6 bg-border" />
+          
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowHtml(true)}>
+            <Code className="h-3.5 w-3.5 mr-1.5" />
             HTML
           </Button>
           
-          <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
-            <Eye className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowPreview(true)}>
+            <Eye className="h-3.5 w-3.5 mr-1.5" />
             Preview
           </Button>
           
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
+          <Button size="sm" className="h-8" onClick={handleSave}>
+            <Save className="h-3.5 w-3.5 mr-1.5" />
             Guardar
           </Button>
         </div>
@@ -163,19 +191,19 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left sidebar */}
-        <div className="w-64 border-r bg-background flex flex-col">
+        <div className="w-72 border-r bg-background flex flex-col">
           <Tabs value={sidebarTab} onValueChange={(v) => setSidebarTab(v as SidebarTab)} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 rounded-none border-b">
-              <TabsTrigger value="elements" className="gap-1 text-xs py-2">
-                <LayoutGrid className="h-3 w-3" />
+            <TabsList className="grid w-full grid-cols-3 rounded-none border-b h-10 bg-transparent">
+              <TabsTrigger value="elements" className="gap-1.5 text-xs data-[state=active]:bg-muted rounded-none">
+                <LayoutGrid className="h-3.5 w-3.5" />
                 Elementos
               </TabsTrigger>
-              <TabsTrigger value="layouts" className="gap-1 text-xs py-2">
-                <LayoutGrid className="h-3 w-3" />
-                Layouts
+              <TabsTrigger value="layouts" className="gap-1.5 text-xs data-[state=active]:bg-muted rounded-none">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Templates
               </TabsTrigger>
-              <TabsTrigger value="design" className="gap-1 text-xs py-2">
-                <Palette className="h-3 w-3" />
+              <TabsTrigger value="design" className="gap-1.5 text-xs data-[state=active]:bg-muted rounded-none">
+                <Palette className="h-3.5 w-3.5" />
                 Design
               </TabsTrigger>
             </TabsList>
@@ -202,7 +230,7 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
         </div>
         
         {/* Canvas */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden">
           <EmailCanvas
             blocks={design.blocks}
             globalStyles={{
@@ -217,12 +245,17 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
             onReorderBlocks={reorderBlocks}
             draggedBlockType={draggedBlockType}
             onDropNewBlock={handleDropNewBlock}
+            onUpdateBlock={updateBlock}
+            onOpenImageUploader={handleOpenImageUploader}
           />
+          
+          {/* Variable picker bar */}
+          <VariablePicker onInsert={handleInsertVariable} variant="bar" />
         </div>
         
         {/* Right sidebar - Block Editor */}
         {selectedBlock && (
-          <div className="w-72 border-l bg-background">
+          <div className="w-80 border-l bg-background animate-slide-in-right">
             <BlockEditor
               block={selectedBlock}
               onUpdate={(updates) => updateBlock(selectedBlock.id, updates)}
@@ -233,10 +266,18 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
               onClose={() => setSelectedBlockId(null)}
               canMoveUp={blockIndex > 0}
               canMoveDown={blockIndex < design.blocks.length - 1}
+              onOpenImageUploader={() => handleOpenImageUploader(selectedBlock.id)}
             />
           </div>
         )}
       </div>
+      
+      {/* Image Uploader Modal */}
+      <ImageUploader
+        open={imageUploaderBlockId !== null}
+        onOpenChange={(open) => !open && setImageUploaderBlockId(null)}
+        onImageSelect={handleImageSelect}
+      />
       
       {/* Preview Modal */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
