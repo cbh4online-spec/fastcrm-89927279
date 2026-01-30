@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -14,10 +15,12 @@ import {
 import { useMarketingUsage } from '@/hooks/useMarketingSettings';
 import { useMarketingCampaigns } from '@/hooks/useMarketingCampaigns';
 import { calculateCampaignStats, CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_COLORS } from '@/types/marketing';
+import type { MarketingCampaign } from '@/types/marketing';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { CampaignDetailDialog } from './CampaignDetailDialog';
 
 interface MarketingDashboardProps {
   onCreateCampaign?: () => void;
@@ -27,6 +30,14 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
   const navigate = useNavigate();
   const { data: usage, isLoading: usageLoading } = useMarketingUsage();
   const { data: campaigns = [], isLoading: campaignsLoading } = useMarketingCampaigns();
+  
+  const [selectedCampaign, setSelectedCampaign] = useState<MarketingCampaign | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+
+  const handleViewCampaign = (campaign: MarketingCampaign) => {
+    setSelectedCampaign(campaign);
+    setShowDetailDialog(true);
+  };
 
   const recentCampaigns = campaigns.slice(0, 5);
   
@@ -140,6 +151,7 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
                 return (
                   <div
                     key={campaign.id}
+                    onClick={() => handleViewCampaign(campaign)}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                   >
                     <div className="space-y-1">
@@ -200,6 +212,13 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
           </CardContent>
         </Card>
       )}
+
+      {/* Campaign Detail Dialog */}
+      <CampaignDetailDialog
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        campaign={selectedCampaign}
+      />
     </div>
   );
 }
