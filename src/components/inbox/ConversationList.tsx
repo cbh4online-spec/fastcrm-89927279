@@ -262,6 +262,13 @@ export function ConversationList({
     }
   }, [externalChannelFilter]);
 
+  // Sync statusFilter with defaultStatus prop changes (for category filtering)
+  useEffect(() => {
+    if (defaultStatus) {
+      setStatusFilter(defaultStatus);
+    }
+  }, [defaultStatus]);
+
   const { data: conversations, isLoading } = useConversations({
     status: statusFilter === "all" ? undefined : statusFilter,
     channel: channelFilter === "all" ? undefined : channelFilter,
@@ -274,6 +281,26 @@ export function ConversationList({
     if (!conversations) return [];
     
     let filtered = conversations.filter((conv) => {
+      // Category-based filtering from sidebar
+      if (selectedCategory === "new") {
+        // "Novas" - only show conversations with unread messages
+        if (conv.unread_count === 0) return false;
+      }
+      if (selectedCategory === "assigned") {
+        // "Atribuídas" - only show assigned conversations
+        if (!conv.assigned_to) return false;
+      }
+      if (selectedCategory === "negotiations") {
+        // "Negociações" - only show sales intent conversations
+        const intent = conv.user_intent || conv.ai_intent;
+        if (intent !== "sales") return false;
+      }
+      if (selectedCategory === "starred") {
+        // "Favoritas" - this filter requires is_starred field which doesn't exist yet
+        // For now, return false to show empty (feature not implemented)
+        return false;
+      }
+      
       // Search filter - includes contact, company, lead
       if (search) {
         const searchLower = search.toLowerCase();
@@ -335,7 +362,7 @@ export function ConversationList({
     });
     
     return withPriority;
-  }, [conversations, search, smartFilter]);
+  }, [conversations, search, smartFilter, selectedCategory]);
 
   const toggleSelectAll = () => {
     if (selectedIds.size === processedConversations.length) {
