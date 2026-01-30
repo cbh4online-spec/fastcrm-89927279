@@ -162,3 +162,6 @@ verify_jwt = false
 
 [functions.ghl-sync-contacts]
 verify_jwt = false
+
+[functions.marketing-send-campaign]
+verify_jwt = false
