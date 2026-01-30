@@ -1,6 +1,7 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, useId } from 'react';
 import { cn } from '@/lib/utils';
 import { InlineToolbar } from './InlineToolbar';
+import { useEmailEditorContext } from '@/contexts/EmailEditorContext';
 
 interface RichTextEditorProps {
   value: string;
@@ -24,6 +25,15 @@ export function RichTextEditor({
   const [showToolbar, setShowToolbar] = useState(false);
   const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
   const [hasSelection, setHasSelection] = useState(false);
+  const editorId = useId();
+  
+  // Try to get context - may not exist if used outside EmailEditorProvider
+  let editorContext: ReturnType<typeof useEmailEditorContext> | null = null;
+  try {
+    editorContext = useEmailEditorContext();
+  } catch {
+    // Context not available, that's ok
+  }
 
   // Set initial content
   useEffect(() => {
@@ -39,13 +49,75 @@ export function RichTextEditor({
     }
   }, [onChange]);
 
+  const insertVariable = useCallback((variable: string) => {
+    if (!editorRef.current) return;
+    
+    // Focus the editor first
+    editorRef.current.focus();
+    
+    const selection = window.getSelection();
+    let range: Range;
+    
+    if (selection && selection.rangeCount > 0) {
+      range = selection.getRangeAt(0);
+      // Check if selection is within our editor
+      if (!editorRef.current.contains(range.commonAncestorContainer)) {
+        // Selection is outside, place at end
+        range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false);
+      }
+    } else {
+      // No selection, create range at end
+      range = document.createRange();
+      range.selectNodeContents(editorRef.current);
+      range.collapse(false);
+    }
+    
+    const span = document.createElement('span');
+    span.className = 'variable-tag';
+    span.contentEditable = 'false';
+    span.textContent = variable;
+    span.style.cssText = 'background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 0.875em; cursor: default; display: inline-block; margin: 0 2px;';
+    
+    range.deleteContents();
+    range.insertNode(span);
+    
+    // Add a space after and move cursor there
+    const space = document.createTextNode(' ');
+    range.setStartAfter(span);
+    range.insertNode(space);
+    range.setStartAfter(space);
+    range.setEndAfter(space);
+    
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    
+    handleInput();
+  }, [handleInput]);
+
+  // Register with context
+  useEffect(() => {
+    if (editorContext) {
+      editorContext.registerEditor(editorId, insertVariable);
+      return () => {
+        editorContext.unregisterEditor(editorId);
+      };
+    }
+  }, [editorContext, editorId, insertVariable]);
+
   const handleFocus = useCallback(() => {
     setIsEditing(true);
+    if (editorContext) {
+      editorContext.setActiveEditor(editorId);
+    }
     onFocus?.();
-  }, [onFocus]);
+  }, [onFocus, editorContext, editorId]);
 
   const handleBlur = useCallback(() => {
-    // Delay to allow toolbar clicks
+    // Delay to allow toolbar clicks and variable insertion
     setTimeout(() => {
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) {
@@ -113,30 +185,6 @@ export function RichTextEditor({
       }
     }
   }, [execCommand]);
-
-  const insertVariable = useCallback((variable: string) => {
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const span = document.createElement('span');
-      span.className = 'variable-tag';
-      span.contentEditable = 'false';
-      span.textContent = variable;
-      span.style.cssText = 'background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 0.875em; cursor: default;';
-      
-      range.deleteContents();
-      range.insertNode(span);
-      
-      // Move cursor after the variable
-      range.setStartAfter(span);
-      range.setEndAfter(span);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    } else if (editorRef.current) {
-      editorRef.current.innerHTML += variable;
-    }
-    handleInput();
-  }, [handleInput]);
 
   const isEmpty = !value || value === '<p><br></p>' || value === '<br>';
 

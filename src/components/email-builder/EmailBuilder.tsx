@@ -29,6 +29,7 @@ import { BlockEditor } from './BlockEditor';
 import { EmailCanvas } from './EmailCanvas';
 import { VariablePicker } from './VariablePicker';
 import { ImageUploader } from './ImageUploader';
+import { EmailEditorProvider, useEmailEditorContext } from '@/contexts/EmailEditorContext';
 import type { EmailDesign, EmailLayout, EmailBlockType, ImageBlockContent } from '@/types/emailBuilder';
 
 interface EmailBuilderProps {
@@ -40,7 +41,7 @@ interface EmailBuilderProps {
 type SidebarTab = 'elements' | 'layouts';
 type PreviewMode = 'desktop' | 'tablet' | 'mobile';
 
-export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderProps) {
+function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderProps) {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('elements');
   const [previewMode, setPreviewMode] = useState<PreviewMode>('desktop');
   const [showPreview, setShowPreview] = useState(false);
@@ -108,7 +109,9 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
   };
 
   const handleInsertVariable = useCallback((variable: string) => {
-    console.log('Insert variable:', variable);
+    // This is now handled by the EmailEditorContext
+    // The VariablePicker will call context.insertVariable directly
+    console.log('Insert variable via context:', variable);
   }, []);
 
   const previewWidths: Record<PreviewMode, number> = {
@@ -321,5 +324,14 @@ export function EmailBuilder({ initialDesign, onSave, onCancel }: EmailBuilderPr
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// Wrapper with provider
+export function EmailBuilder(props: EmailBuilderProps) {
+  return (
+    <EmailEditorProvider>
+      <EmailBuilderContent {...props} />
+    </EmailEditorProvider>
   );
 }

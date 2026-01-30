@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { X, Trash2, Copy, ChevronUp, ChevronDown, Upload } from 'lucide-react';
+import { RichTextEditor } from './RichTextEditor';
 import {
   HeroBlockEditor,
   ProductBlockEditor,
@@ -84,15 +85,17 @@ export function BlockEditor({
     return (
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-xs">Conteúdo HTML</Label>
-          <Textarea
-            value={content.html}
-            onChange={(e) => updateContent({ html: e.target.value })}
-            className="min-h-[150px] font-mono text-xs"
-            placeholder="<p>O teu texto aqui...</p>"
-          />
+          <Label className="text-xs">Conteúdo</Label>
+          <div className="border rounded-md p-2 min-h-[150px] bg-background">
+            <RichTextEditor
+              value={content.html}
+              onChange={(html) => updateContent({ html })}
+              placeholder="Escreve o teu texto aqui..."
+              className="min-h-[130px]"
+            />
+          </div>
           <p className="text-xs text-muted-foreground">
-            Podes usar HTML básico e variáveis como {'{{primeiro_nome}}'}
+            Clica nas variáveis na barra inferior para as inserir no texto
           </p>
         </div>
       </div>

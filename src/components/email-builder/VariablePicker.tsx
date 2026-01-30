@@ -9,11 +9,13 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { DYNAMIC_VARIABLES, type DynamicVariable } from '@/types/emailBuilder';
+import { useEmailEditorContext } from '@/contexts/EmailEditorContext';
 
 interface VariablePickerProps {
-  onInsert: (variable: string) => void;
+  onInsert?: (variable: string) => void;
   variant?: 'bar' | 'button' | 'compact';
   className?: string;
+  useContext?: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -30,8 +32,27 @@ const CATEGORY_NAMES: Record<string, string> = {
   date: 'Data',
 };
 
-export function VariablePicker({ onInsert, variant = 'bar', className }: VariablePickerProps) {
+export function VariablePicker({ onInsert, variant = 'bar', className, useContext = true }: VariablePickerProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // Try to get context
+  let editorContext: ReturnType<typeof useEmailEditorContext> | null = null;
+  try {
+    if (useContext) {
+      editorContext = useEmailEditorContext();
+    }
+  } catch {
+    // Context not available
+  }
+  
+  const handleInsert = (variable: string) => {
+    // Prefer context if available
+    if (editorContext) {
+      editorContext.insertVariable(variable);
+    } else if (onInsert) {
+      onInsert(variable);
+    }
+  };
   
   const categories = Array.from(new Set(DYNAMIC_VARIABLES.map(v => v.category)));
   const filteredVariables = selectedCategory
@@ -61,7 +82,7 @@ export function VariablePicker({ onInsert, variant = 'bar', className }: Variabl
                 <VariableItem
                   key={variable.key}
                   variable={variable}
-                  onClick={() => onInsert(variable.key)}
+                  onClick={() => handleInsert(variable.key)}
                 />
               ))}
             </div>
@@ -88,7 +109,7 @@ export function VariablePicker({ onInsert, variant = 'bar', className }: Variabl
               <button
                 key={variable.key}
                 className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent flex items-center justify-between group"
-                onClick={() => onInsert(variable.key)}
+                onClick={() => handleInsert(variable.key)}
               >
                 <span>{variable.label}</span>
                 <code className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded group-hover:bg-background">
@@ -145,7 +166,7 @@ export function VariablePicker({ onInsert, variant = 'bar', className }: Variabl
           {filteredVariables.map((variable) => (
             <button
               key={variable.key}
-              onClick={() => onInsert(variable.key)}
+              onClick={() => handleInsert(variable.key)}
               className={cn(
                 "flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium",
                 "bg-primary/10 text-primary hover:bg-primary/20 transition-colors",
