@@ -33,6 +33,7 @@ import {
   RefreshCw,
   Loader2,
   History,
+  ShoppingCart,
 } from "lucide-react";
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -99,6 +100,11 @@ const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
   followup_completed: <CheckCircle2 className="w-4 h-4" />,
   automation_triggered: <RefreshCw className="w-4 h-4" />,
   custom: <MessageSquare className="w-4 h-4" />,
+  // Order notes
+  order_submitted: <ShoppingCart className="w-4 h-4" />,
+  order_approved: <CheckCircle2 className="w-4 h-4" />,
+  order_rejected: <XCircle className="w-4 h-4" />,
+  order_invoiced: <FileText className="w-4 h-4" />,
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
@@ -139,6 +145,11 @@ const ACTIVITY_COLORS: Record<string, string> = {
   followup_completed: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
   automation_triggered: "bg-yellow-500/20 text-yellow-600 border-yellow-500/30",
   custom: "bg-slate-500/20 text-slate-600 border-slate-500/30",
+  // Order notes
+  order_submitted: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+  order_approved: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
+  order_rejected: "bg-red-500/20 text-red-600 border-red-500/30",
+  order_invoiced: "bg-purple-500/20 text-purple-600 border-purple-500/30",
 };
 
 function getDateGroup(date: Date): string {
@@ -272,6 +283,39 @@ export function EntityTimelineSection({
     enabled: !!currentWorkspace?.id && !!entityId,
   });
 
+  // Fetch order notes for contacts and companies via client_users
+  const { data: orderNotes = [] } = useQuery({
+    queryKey: ["entity-order-notes-timeline", entityType, entityId],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      if (entityType !== "contact" && entityType !== "company") return [];
+
+      // First get client_users associated with this entity
+      const clientUserColumn = entityType === "contact" ? "contact_id" : "company_id";
+      const { data: clientUsers, error: clientError } = await supabase
+        .from("client_users")
+        .select("id")
+        .eq(clientUserColumn, entityId);
+
+      if (clientError || !clientUsers || clientUsers.length === 0) return [];
+
+      const clientUserIds = clientUsers.map(c => c.id);
+
+      // Fetch orders for those client users
+      const { data: orders, error: ordersError } = await supabase
+        .from("order_notes")
+        .select("id, order_number, status, total_gross, submitted_at, approved_at, rejected_at, created_at")
+        .in("client_user_id", clientUserIds)
+        .neq("status", "draft")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (ordersError) throw ordersError;
+      return orders || [];
+    },
+    enabled: !!currentWorkspace?.id && !!entityId && (entityType === "contact" || entityType === "company"),
+  });
+
   // Combine all activities into unified timeline
   const unifiedTimeline = useMemo(() => {
     const timeline: Array<{
@@ -361,11 +405,45 @@ export function EntityTimelineSection({
       }
     });
 
+    // Add order notes (B2B orders)
+    orderNotes.forEach((order) => {
+      // Determine the activity type based on order status
+      let activityType = "order_submitted";
+      let title = "Encomenda B2B submetida";
+      let activityDate = order.submitted_at || order.created_at;
+
+      if (order.status === "approved" && order.approved_at) {
+        activityType = "order_approved";
+        title = "Encomenda B2B aprovada";
+        activityDate = order.approved_at;
+      } else if (order.status === "rejected" && order.rejected_at) {
+        activityType = "order_rejected";
+        title = "Encomenda B2B rejeitada";
+        activityDate = order.rejected_at;
+      } else if (order.status === "invoiced") {
+        activityType = "order_invoiced";
+        title = "Encomenda B2B faturada";
+      }
+
+      const orderId = `order-${order.id}-${activityType}`;
+      if (!addedIds.has(orderId)) {
+        addedIds.add(orderId);
+        timeline.push({
+          id: orderId,
+          type: activityType,
+          title: title,
+          description: `${order.order_number} - ${order.total_gross?.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' }) || '€0,00'}`,
+          date: new Date(activityDate),
+          metadata: { order_id: order.id, order_number: order.order_number },
+        });
+      }
+    });
+
     // Sort by date descending
     timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return timeline;
-  }, [activities, crmActivities, tasks, notes]);
+  }, [activities, crmActivities, tasks, notes, orderNotes]);
 
   // Group by date
   const groupedTimeline = useMemo(() => {

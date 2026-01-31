@@ -1,181 +1,162 @@
 
-# Plano: Fase 5 - Integração Final & Polimento
+# Módulo de Notas de Encomenda - CONCLUÍDO ✅
 
-## Estado Actual (Fases 1-4 Concluídas)
+## Todas as Fases Implementadas
 
-**Fase 1 (Base):** Base de dados, Portal do Cliente, Hooks do cliente
-**Fase 2 (Core):** Edge Functions, Dashboard Admin, Workflow de estados
-**Fase 3 (Polish):** ProductDetailModal, PDF, Dialogs de cliente, OrderCard
-**Fase 4 (Integração):** OrderNoteEvent, CompanyOrderNoteEvent, CreateDealFromOrder, ClientUserStats
+### Fase 1: Base de Dados & Portal do Cliente ✅
+- Tabelas: `client_users`, `order_notes`, `order_note_items`
+- RLS policies para segurança
+- Portal do Cliente com 7 páginas funcionais
+- Hooks: `useClientUser`, `useClientOrders`, `useClientProducts`
 
-### Componentes Criados mas NÃO Integrados
+### Fase 2: Edge Functions & Dashboard Admin ✅
+- Edge Functions: `order-note-submit`, `order-note-notify`
+- Dashboard Admin: `OrderNotesPage`, `OrderNoteDetailPage`, `ClientUsersPage`
+- Hooks admin: `useOrderNotes`, `useOrderNoteStatus`, `useClientUsers`
+- Menu de navegação actualizado
 
-Os seguintes componentes foram criados na Fase 4 mas ainda não estão a ser usados:
+### Fase 3: Polish & UX ✅
+- `ProductDetailModal` com galeria e info técnica
+- `ProductImageGallery`, `ProductTechnicalInfo`, `ProductAttributeTags`
+- Geração de PDF com `useOrderNotePDF` e `OrderNotePDF`
+- Dialogs: `InviteClientDialog`, `EditClientDialog`
+- Cards visuais: `OrderCard`, `OrderTimeline`
+- Integração com Edge Function na submissão
 
-| Componente | Estado | Problema |
-|------------|--------|----------|
-| `OrderNoteEvent` | Criado | Não integrado na timeline de contactos |
-| `CompanyOrderNoteEvent` | Criado | Não integrado na timeline de empresas |
-| `useContactOrderNotes` | Criado | Hook não utilizado em nenhum componente |
-| `useCompanyOrderNotes` | Criado | Hook não utilizado em nenhum componente |
+### Fase 4: Integração CRM ✅
+- `OrderNoteEvent` para timeline de contactos
+- `CompanyOrderNoteEvent` para timeline de empresas
+- `CreateDealFromOrder` para criar oportunidades a partir de encomendas
+- `ClientUserStats` com métricas de clientes B2B
+- Hooks: `useContactOrderNotes`, `useCompanyOrderNotes`
 
----
+### Fase 5: Integração Final ✅
+- Nova secção "Encomendas B2B" no menu lateral de Contactos e Empresas
+- `ContactOrderNotesSection` e `CompanyOrderNotesSection`
+- Contagem de encomendas no badge do menu (`useEntityCounts`)
+- Tipo `MenuSection` actualizado com 'orders'
+- Configuração de layout workspace actualizada
 
-## Fase 5: Integração Final
-
-### 1. Criar Secção de Encomendas para Contactos
-
-Integrar os Order Notes na página de detalhe do Contacto, adicionando uma nova secção no menu lateral.
-
-| Ficheiro | Tipo | Descrição |
-|----------|------|-----------|
-| `src/components/contacts/sections/ContactOrderNotesSection.tsx` | Novo | Secção que lista encomendas do contacto |
-
-**Funcionalidades:**
-- Mostrar lista de encomendas associadas ao contacto (via client_user.contact_id)
-- Usar o hook `useContactOrderNotes`
-- Usar o componente `OrderNoteEvent` para cada encomenda
-- Estado vazio se não houver cliente B2B associado
-
-### 2. Criar Secção de Encomendas para Empresas
-
-Integrar os Order Notes na página de detalhe da Empresa.
-
-| Ficheiro | Tipo | Descrição |
-|----------|------|-----------|
-| `src/components/companies/sections/CompanyOrderNotesSection.tsx` | Novo | Secção que lista encomendas da empresa |
-
-**Funcionalidades:**
-- Mostrar lista de encomendas de todos os clientes B2B da empresa
-- Usar o hook `useCompanyOrderNotes`
-- Usar o componente `CompanyOrderNoteEvent` para cada encomenda
-- Mostrar estatísticas agregadas
-
-### 3. Adicionar Item "Encomendas" ao Menu de Entidade
-
-Adicionar nova opção ao menu lateral das páginas de Contacto e Empresa.
-
-| Ficheiro | Tipo | Descrição |
-|----------|------|-----------|
-| `src/types/entity.ts` | Editar | Adicionar 'orders' ao MenuSection type |
-| `src/components/entity/EntitySidebarMenu.tsx` | Editar | Adicionar item "Encomendas B2B" |
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Editar | Renderizar ContactOrderNotesSection |
-| `src/components/companies/CompanyDetailWithSidebar.tsx` | Editar | Renderizar CompanyOrderNotesSection |
-
-### 4. Adicionar Contagem de Encomendas aos Counts
-
-| Ficheiro | Tipo | Descrição |
-|----------|------|-----------|
-| `src/hooks/useEntityCounts.ts` | Editar | Adicionar contagem de encomendas |
-
-### 5. Integrar com EntityTimelineSection (Opcional)
-
-Adicionar eventos de encomenda à timeline unificada.
-
-| Ficheiro | Tipo | Descrição |
-|----------|------|-----------|
-| `src/components/timeline/EntityTimelineSection.tsx` | Editar | Buscar e mostrar order_notes na timeline |
+### Fase 5.1: Timeline Unificada ✅
+- Eventos de encomenda integrados no `EntityTimelineSection`
+- Tipos de evento: `order_submitted`, `order_approved`, `order_rejected`, `order_invoiced`
+- Ícones e cores específicos para cada estado
+- Query para buscar encomendas via `client_users`
 
 ---
 
-## Estrutura de Ficheiros
+## Estrutura Final de Ficheiros
 
-### Novos Ficheiros (2)
-```text
-src/components/contacts/sections/ContactOrderNotesSection.tsx
-src/components/companies/sections/CompanyOrderNotesSection.tsx
+### Portal do Cliente
+```
+src/pages/client/
+├── ClientAuthPage.tsx
+├── ClientDashboardPage.tsx
+├── ClientCatalogPage.tsx
+├── ClientCartPage.tsx
+├── ClientOrdersPage.tsx
+├── ClientAccountPage.tsx
+└── ClientSupportPage.tsx
+
+src/components/client-portal/
+├── catalog/
+│   ├── ProductDetailModal.tsx
+│   ├── ProductImageGallery.tsx
+│   ├── ProductTechnicalInfo.tsx
+│   └── ProductAttributeTags.tsx
+├── orders/
+│   ├── OrderCard.tsx
+│   └── OrderTimeline.tsx
+└── ...
+
+src/hooks/client-portal/
+├── useClientUser.ts
+├── useClientOrders.ts
+└── useClientProducts.ts
 ```
 
-### Ficheiros a Editar (5)
-```text
-src/types/entity.ts                                    # MenuSection type
-src/components/entity/EntitySidebarMenu.tsx           # Novo item menu
-src/components/contacts/eni/ENIContactDetailWithSidebar.tsx  # Case 'orders'
-src/components/companies/CompanyDetailWithSidebar.tsx  # Case 'orders'
-src/hooks/useEntityCounts.ts                          # Contagem
+### Dashboard Admin
+```
+src/pages/
+├── OrderNotesPage.tsx
+├── OrderNoteDetailPage.tsx
+└── ClientUsersPage.tsx
+
+src/components/order-notes/
+├── OrderNoteDetail.tsx
+├── OrderNotePDF.tsx
+└── CreateDealFromOrder.tsx
+
+src/components/client-users/
+├── ClientUsersList.tsx
+├── ClientUserStats.tsx
+├── InviteClientDialog.tsx
+└── EditClientDialog.tsx
 ```
 
----
+### Integração CRM
+```
+src/components/contacts/
+├── sections/
+│   └── ContactOrderNotesSection.tsx
+└── timeline/
+    └── OrderNoteEvent.tsx
 
-## Detalhe Técnico: ContactOrderNotesSection
+src/components/companies/
+├── sections/
+│   └── CompanyOrderNotesSection.tsx
+└── timeline/
+    └── CompanyOrderNoteEvent.tsx
 
-```text
-+------------------------------------------+
-| ENCOMENDAS B2B                           |
-+------------------------------------------+
-| [Card] Sem cliente B2B associado         |
-| ou                                       |
-| [OrderNoteEvent] NE-2026-00001 ✓ Aprovado|
-| [OrderNoteEvent] NE-2026-00002 ⏳ Submet.|
-| [OrderNoteEvent] NE-2026-00003 ✗ Cancelado|
-+------------------------------------------+
+src/components/timeline/
+└── EntityTimelineSection.tsx (editado)
 ```
 
----
-
-## Detalhe Técnico: Menu Lateral
-
-Adicionar ao `EntitySidebarMenu.tsx`:
-
-```text
-Secções existentes:
-- Visão Geral
-- Insights
-- Detalhes
-- Histórico
-- Timeline
-- Mensagens
-- Tarefas
-- Automatizações
-- Oportunidades
-- Notas
-- Pagamentos
-
-Nova secção:
-- Encomendas B2B (icon: ShoppingCart ou FileText)
+### Hooks
+```
+src/hooks/
+├── useOrderNotes.ts
+├── useOrderNoteStatus.ts
+├── useClientUsers.ts
+├── useOrderNotePDF.ts
+├── useContactOrderNotes.ts
+├── useCompanyOrderNotes.ts
+└── useEntityCounts.ts (editado)
 ```
 
----
-
-## Detalhe Técnico: useEntityCounts
-
-Adicionar query para contar encomendas associadas:
-
-```text
-// Para contactos
-SELECT COUNT(*) FROM order_notes
-WHERE client_user_id IN (
-  SELECT id FROM client_users WHERE contact_id = :entityId
-)
-AND status != 'draft'
-
-// Para empresas
-SELECT COUNT(*) FROM order_notes
-WHERE client_user_id IN (
-  SELECT id FROM client_users WHERE company_id = :entityId
-)
-AND status != 'draft'
+### Edge Functions
+```
+supabase/functions/
+├── order-note-submit/
+│   └── index.ts
+└── order-note-notify/
+    └── index.ts
 ```
 
 ---
 
-## Ordem de Implementação
+## Funcionalidades Completas
 
-1. Editar `src/types/entity.ts` - adicionar 'orders' ao MenuSection
-2. Criar `ContactOrderNotesSection.tsx`
-3. Criar `CompanyOrderNotesSection.tsx`
-4. Editar `EntitySidebarMenu.tsx` - adicionar item de menu
-5. Editar `ENIContactDetailWithSidebar.tsx` - case 'orders'
-6. Editar `CompanyDetailWithSidebar.tsx` - case 'orders'
-7. (Opcional) Editar `useEntityCounts.ts` - adicionar orders_count
+1. **Portal do Cliente B2B**
+   - Login seguro
+   - Catálogo de produtos com ficha técnica completa
+   - Carrinho de compras com cálculo IVA
+   - Histórico de encomendas
+   - Pedidos de prestações
 
----
+2. **Dashboard Admin**
+   - Lista de encomendas com filtros
+   - Detalhe de encomenda com workflow de estados
+   - Gestão de clientes B2B
+   - Estatísticas e métricas
+   - Exportação PDF
 
-## Resultado Final
+3. **Integração CRM**
+   - Secção "Encomendas B2B" em Contactos e Empresas
+   - Eventos na timeline unificada
+   - Contagem no menu lateral
+   - Criar oportunidades a partir de encomendas
 
-Após esta fase:
-- Página de Contacto terá secção "Encomendas B2B" no menu lateral
-- Página de Empresa terá secção "Encomendas B2B" no menu lateral
-- Cada secção mostrará as encomendas associadas via client_users
-- Clique na encomenda abre o detalhe no dashboard admin
-- Módulo de Notas de Encomenda totalmente integrado com o CRM
+4. **Notificações**
+   - Email automático na submissão
+   - Email de aprovação/rejeição
