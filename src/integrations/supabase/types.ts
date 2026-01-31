@@ -15114,6 +15114,7 @@ export type Database = {
           delivery_notes: string | null
           demo_video_url: string | null
           direct_cost: number | null
+          embedding: string | null
           id: string
           images: string[] | null
           included_quantity: number | null
@@ -15170,6 +15171,7 @@ export type Database = {
           delivery_notes?: string | null
           demo_video_url?: string | null
           direct_cost?: number | null
+          embedding?: string | null
           id?: string
           images?: string[] | null
           included_quantity?: number | null
@@ -15226,6 +15228,7 @@ export type Database = {
           delivery_notes?: string | null
           demo_video_url?: string | null
           direct_cost?: number | null
+          embedding?: string | null
           id?: string
           images?: string[] | null
           included_quantity?: number | null
@@ -21772,6 +21775,28 @@ export type Database = {
           status: string
           title: string
           usage_count: number
+        }[]
+      }
+      match_products: {
+        Args: {
+          filter_workspace_id?: string
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          base_price: number
+          category: string
+          commercial_description: string
+          id: string
+          images: string[]
+          name: string
+          primary_image_index: number
+          short_description: string
+          similarity: number
+          sku: string
+          status: string
+          workspace_id: string
         }[]
       }
       rag_hybrid_search: {
