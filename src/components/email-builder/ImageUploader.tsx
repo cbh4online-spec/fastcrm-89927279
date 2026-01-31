@@ -73,15 +73,14 @@ export function ImageUploader({
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `email-images/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('marketing-assets')
-        .upload(filePath, file);
+        .from('email-images')
+        .upload(fileName, file);
 
       if (uploadError) {
         // If bucket doesn't exist, show friendly message
-        if (uploadError.message.includes('Bucket not found')) {
+        if (uploadError.message.includes('Bucket not found') || uploadError.message.includes('bucket')) {
           toast({
             title: 'Armazenamento não configurado',
             description: 'Por favor configure o bucket de storage primeiro',
@@ -93,8 +92,8 @@ export function ImageUploader({
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('marketing-assets')
-        .getPublicUrl(filePath);
+        .from('email-images')
+        .getPublicUrl(fileName);
 
       setPreviewUrl(publicUrl);
       
