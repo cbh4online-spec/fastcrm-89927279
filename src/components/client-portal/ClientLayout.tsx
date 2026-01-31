@@ -9,7 +9,8 @@ import {
   Menu, 
   X,
   User,
-  Heart
+  Heart,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
@@ -25,6 +26,7 @@ interface ClientLayoutProps {
 const navItems = [
   { path: "/client/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/client/catalog", icon: Package, label: "Catálogo" },
+  { path: "/client/assistant", icon: Sparkles, label: "Assistente IA" },
   { path: "/client/favorites", icon: Heart, label: "Favoritos", showBadge: "favorites" as const },
   { path: "/client/cart", icon: ShoppingCart, label: "Carrinho", showBadge: "cart" as const },
   { path: "/client/orders", icon: FileText, label: "Encomendas" },
