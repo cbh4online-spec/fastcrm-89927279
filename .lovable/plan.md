@@ -1,446 +1,279 @@
 
-# Plano: Modulo de Nota de Encomenda Profissional
+# Plano: Fase 2 - Modulo de Nota de Encomenda Profissional
 
-## Visao Geral
+## Estado Actual (Fase 1 Concluida)
 
-Este modulo cria um sistema completo de pre-compra B2B onde clientes profissionais autenticados podem consultar um catalogo tecnico, montar encomendas com calculo automatico de IVA, e submeter pedidos para aprovacao administrativa (incluindo opcao de pagamento em prestacoes).
+A Fase 1 implementou com sucesso:
+- Base de dados (tabelas client_users, order_notes, order_note_items, product_attributes com RLS)
+- Portal do Cliente completo (7 paginas: login, dashboard, catalogo, carrinho, checkout, historico, detalhe)
+- Hooks do cliente (useClientAuth, useClientProducts, useClientOrders)
+- CartContext para gestao do carrinho
+- Tipos TypeScript (order-note.ts, client-user.ts, product-attributes.ts)
 
 ---
 
-## Arquitectura do Sistema
+## Fase 2: Core (A Implementar)
 
+### 1. Edge Function: order-note-submit
+
+Processa submissao de encomenda com:
+- Validacao completa dos dados
+- Recalculo de totais (proteccao contra manipulacao)
+- Actualizacao da encomenda na base de dados
+- Envio de email para o escritorio via Resend
+
+| Ficheiro | Tipo |
+|----------|------|
+| `supabase/functions/order-note-submit/index.ts` | Novo |
+
+**Funcionalidades:**
+- Validar que a encomenda pertence ao cliente autenticado
+- Recalcular total_net, total_vat, total_gross a partir dos itens
+- Actualizar status para "submitted" ou "awaiting_approval"
+- Gerar numero sequencial definitivo (se necessario)
+- Enviar email HTML profissional para admin do workspace
+
+### 2. Edge Function: order-note-notify
+
+Envia notificacoes de mudanca de estado:
+- Email para cliente quando estado muda
+- Templates diferentes por tipo de transicao
+
+| Ficheiro | Tipo |
+|----------|------|
+| `supabase/functions/order-note-notify/index.ts` | Novo |
+
+**Estados notificados:**
+- approved (Encomenda aprovada)
+- rejected (Encomenda rejeitada - com motivo)
+- in_preparation (Em preparacao)
+- invoiced (Faturada)
+
+### 3. Dashboard Admin: Lista de Encomendas
+
+| Ficheiro | Tipo |
+|----------|------|
+| `src/pages/OrderNotesPage.tsx` | Novo |
+| `src/components/order-notes/OrderNotesList.tsx` | Novo |
+| `src/components/order-notes/OrderNoteFilters.tsx` | Novo |
+| `src/components/order-notes/OrderNoteStatusBadge.tsx` | Novo |
+
+**Funcionalidades:**
+- Tabela com todas as encomendas do workspace
+- Filtros por estado, cliente, data
+- Pesquisa por numero de encomenda
+- Indicador visual para pedidos de prestacoes
+- Link para detalhe
+
+### 4. Dashboard Admin: Detalhe de Encomenda
+
+| Ficheiro | Tipo |
+|----------|------|
+| `src/pages/OrderNoteDetailPage.tsx` | Novo |
+| `src/components/order-notes/OrderNoteDetail.tsx` | Novo |
+| `src/components/order-notes/OrderNoteStatusFlow.tsx` | Novo |
+| `src/components/order-notes/InstallmentApproval.tsx` | Novo |
+| `src/components/order-notes/OrderNoteActions.tsx` | Novo |
+
+**Funcionalidades:**
+- Visualizacao completa da encomenda
+- Dados do cliente
+- Lista de itens com imagens
+- Totais detalhados
+- Notas do cliente
+- Secao de prestacoes (se solicitado)
+- Workflow de aprovacao
+
+### 5. Workflow de Estados
+
+| Ficheiro | Tipo |
+|----------|------|
+| `src/hooks/useOrderNotes.ts` | Novo |
+| `src/hooks/useOrderNoteStatus.ts` | Novo |
+
+**Transicoes permitidas:**
 ```text
-+-------------------+     +------------------+     +------------------+
-| Portal Cliente    |     | Dashboard Admin  |     | CRM Integration  |
-| (Public Routes)   |     | (Internal)       |     |                  |
-+-------------------+     +------------------+     +------------------+
-         |                        |                       |
-         v                        v                       v
-+----------------------------------------------------------------+
-|                    API Layer (Supabase)                        |
-|  - order_notes table                                           |
-|  - order_note_items table                                      |
-|  - client_users (extended auth)                                |
-+----------------------------------------------------------------+
-         |                        |
-         v                        v
-+------------------+     +------------------------+
-| Email Service    |     | Admin Notifications    |
-| (Resend)         |     | (Real-time)            |
-+------------------+     +------------------------+
+draft -> submitted
+draft -> cancelled
+
+submitted -> approved
+submitted -> in_preparation
+submitted -> cancelled
+
+awaiting_approval -> approved (prestacoes aceites)
+awaiting_approval -> rejected (prestacoes rejeitadas)
+awaiting_approval -> cancelled
+
+approved -> in_preparation
+in_preparation -> invoiced
 ```
 
----
+**Accoes administrativas:**
+- Aprovar encomenda
+- Rejeitar (com motivo obrigatorio)
+- Marcar como "Em Preparacao"
+- Marcar como "Faturada"
+- Cancelar (com motivo opcional)
+- Adicionar notas internas
 
-## 1. Modelo de Dados (Base de Dados)
+### 6. Gestao de Clientes B2B
 
-### 1.1 Tabela: `client_users`
-Perfis de clientes B2B autenticados.
+| Ficheiro | Tipo |
+|----------|------|
+| `src/pages/ClientUsersPage.tsx` | Novo |
+| `src/components/client-users/ClientUsersList.tsx` | Novo |
+| `src/components/client-users/ClientUserDetail.tsx` | Novo |
+| `src/components/client-users/InviteClientDialog.tsx` | Novo |
+| `src/hooks/useClientUsers.ts` | Novo |
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid PK | ID unico |
-| auth_user_id | uuid FK | Referencia a auth.users |
-| workspace_id | uuid FK | Workspace associado |
-| contact_id | uuid FK | Link opcional a contacts |
-| company_id | uuid FK | Link opcional a companies |
-| name | text | Nome do cliente |
-| email | text | Email |
-| phone | text | Telefone |
-| tax_id | text | NIF/NIPC |
-| billing_address | jsonb | Endereco de faturacao |
-| credit_limit | numeric | Limite de credito (opcional) |
-| payment_terms | text | Condicoes de pagamento |
-| status | text | active/suspended/pending |
-| created_at | timestamptz | Data criacao |
-| updated_at | timestamptz | Ultima atualizacao |
-
-### 1.2 Tabela: `order_notes`
-Notas de encomenda (pedidos).
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid PK | ID unico |
-| workspace_id | uuid FK | Workspace |
-| client_user_id | uuid FK | Cliente que fez o pedido |
-| order_number | text | Numero sequencial (NE-2026-0001) |
-| status | text | draft/submitted/approved/in_preparation/invoiced/cancelled |
-| total_net | numeric | Total sem IVA |
-| total_vat | numeric | Valor do IVA |
-| total_gross | numeric | Total com IVA |
-| currency | text | Moeda (EUR) |
-| installment_requested | boolean | Pediu prestacoes? |
-| installment_count | integer | Numero de prestacoes |
-| installment_notes | text | Justificacao/observacoes |
-| client_notes | text | Notas do cliente |
-| admin_notes | text | Notas internas (backoffice) |
-| billing_address | jsonb | Endereco faturacao |
-| shipping_address | jsonb | Endereco entrega |
-| submitted_at | timestamptz | Data submissao |
-| approved_at | timestamptz | Data aprovacao |
-| approved_by | uuid FK | Quem aprovou |
-| created_at | timestamptz | Data criacao |
-| updated_at | timestamptz | Ultima atualizacao |
-
-### 1.3 Tabela: `order_note_items`
-Itens de cada encomenda.
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid PK | ID unico |
-| order_note_id | uuid FK | Encomenda |
-| workspace_id | uuid FK | Workspace |
-| product_id | uuid FK | Produto do catalogo |
-| product_name | text | Nome (snapshot) |
-| product_sku | text | SKU (snapshot) |
-| quantity | integer | Quantidade |
-| unit_price_net | numeric | Preco unitario sem IVA |
-| vat_rate | numeric | Taxa IVA (%) |
-| vat_amount | numeric | Valor IVA da linha |
-| line_total_net | numeric | Subtotal sem IVA |
-| line_total_gross | numeric | Subtotal com IVA |
-| position | integer | Ordem na lista |
-| created_at | timestamptz | Data criacao |
-
-### 1.4 Tabela: `product_attributes`
-Atributos tecnicos/clinicos dos produtos (indexadores).
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid PK | ID unico |
-| workspace_id | uuid FK | Workspace |
-| product_id | uuid FK | Produto |
-| attribute_type | text | function/pathology/indication/protocol |
-| attribute_value | text | Valor do atributo |
-| created_at | timestamptz | Data criacao |
+**Funcionalidades:**
+- Lista de clientes B2B do workspace
+- Criar/Editar cliente
+- Activar/Suspender cliente
+- Ver historico de encomendas do cliente
+- Definir limite de credito
+- Associar a contacto/empresa do CRM
 
 ---
 
-## 2. Rotas e Paginas
+## Estrutura de Ficheiros a Criar
 
-### 2.1 Rotas Publicas (Portal Cliente)
-
-| Rota | Pagina | Descricao |
-|------|--------|-----------|
-| `/client/login` | ClientLoginPage | Login de clientes B2B |
-| `/client/dashboard` | ClientDashboardPage | Dashboard do cliente |
-| `/client/catalog` | ClientCatalogPage | Catalogo de produtos |
-| `/client/cart` | ClientCartPage | Carrinho/Nota de Encomenda |
-| `/client/checkout` | ClientCheckoutPage | Finalizacao do pedido |
-| `/client/orders` | ClientOrdersPage | Historico de encomendas |
-| `/client/orders/:id` | ClientOrderDetailPage | Detalhe de encomenda |
-
-### 2.2 Rotas Internas (Dashboard Admin)
-
-| Rota | Pagina | Descricao |
-|------|--------|-----------|
-| `/dashboard/order-notes` | OrderNotesPage | Lista de encomendas |
-| `/dashboard/order-notes/:id` | OrderNoteDetailPage | Detalhe/gestao |
-| `/dashboard/client-users` | ClientUsersPage | Gestao de clientes B2B |
-
----
-
-## 3. Componentes UI
-
-### 3.1 Portal Cliente
-
+### Edge Functions (2 ficheiros)
 ```text
-src/components/client-portal/
-  ClientLayout.tsx           # Layout com navegacao cliente
-  ClientSidebar.tsx          # Menu lateral simplificado
-  ClientDashboard.tsx        # Dashboard com resumo
-  
-  catalog/
-    ProductCatalog.tsx       # Grid de produtos com filtros
-    ProductCard.tsx          # Card de produto
-    ProductDetailModal.tsx   # Modal com ficha tecnica completa
-    CatalogFilters.tsx       # Filtros (linha, categoria, funcao, patologia)
-  
-  cart/
-    CartContext.tsx          # Context para estado do carrinho
-    CartSummary.tsx          # Resumo do carrinho (sidebar)
-    CartItemList.tsx         # Lista de itens editavel
-    CartTotals.tsx           # Totais (sem IVA, IVA, com IVA)
-  
-  checkout/
-    CheckoutForm.tsx         # Formulario de finalizacao
-    InstallmentRequest.tsx   # Pedido de prestacoes
-    OrderConfirmation.tsx    # Confirmacao pos-envio
-  
-  orders/
-    OrderList.tsx            # Lista de encomendas
-    OrderCard.tsx            # Card de encomenda
-    OrderDetail.tsx          # Detalhe completo
-    OrderStatusBadge.tsx     # Badge com estado
+supabase/functions/
+  order-note-submit/index.ts
+  order-note-notify/index.ts
 ```
 
-### 3.2 Admin/Backoffice
+### Paginas Admin (3 ficheiros)
+```text
+src/pages/
+  OrderNotesPage.tsx
+  OrderNoteDetailPage.tsx
+  ClientUsersPage.tsx
+```
 
+### Componentes Admin (10 ficheiros)
 ```text
 src/components/order-notes/
-  OrderNotesList.tsx         # Lista com filtros/pesquisa
-  OrderNoteDetail.tsx        # Detalhe administrativo
-  OrderNoteStatusFlow.tsx    # Workflow de estados
-  InstallmentApproval.tsx    # Aprovar/rejeitar prestacoes
-  OrderNotesPDF.tsx          # Exportar PDF da nota
+  OrderNotesList.tsx
+  OrderNoteFilters.tsx
+  OrderNoteDetail.tsx
+  OrderNoteStatusFlow.tsx
+  OrderNoteStatusBadge.tsx
+  OrderNoteActions.tsx
+  InstallmentApproval.tsx
+
+src/components/client-users/
+  ClientUsersList.tsx
+  ClientUserDetail.tsx
+  InviteClientDialog.tsx
 ```
 
----
-
-## 4. Hooks e Logica
-
-### 4.1 Hooks Cliente
-
-```text
-src/hooks/client-portal/
-  useClientAuth.ts           # Auth especifica para clientes
-  useClientProducts.ts       # Catalogo filtrado
-  useCart.ts                 # Gestao do carrinho
-  useClientOrders.ts         # Historico de encomendas
-  useSubmitOrder.ts          # Submeter encomenda
-```
-
-### 4.2 Hooks Admin
-
+### Hooks Admin (3 ficheiros)
 ```text
 src/hooks/
-  useOrderNotes.ts           # CRUD de encomendas
-  useOrderNoteStatus.ts      # Alteracao de estados
-  useClientUsers.ts          # Gestao de clientes B2B
+  useOrderNotes.ts
+  useOrderNoteStatus.ts
+  useClientUsers.ts
+```
+
+### Rotas (App.tsx)
+```text
+Adicionar:
+  /dashboard/order-notes       -> OrderNotesPage
+  /dashboard/order-notes/:id   -> OrderNoteDetailPage
+  /dashboard/client-users      -> ClientUsersPage
 ```
 
 ---
 
-## 5. Edge Functions
+## Detalhe Tecnico: Email de Nova Encomenda
 
-### 5.1 `order-note-submit`
-Processa submissao de encomenda:
-- Valida dados
-- Gera numero sequencial
-- Envia email para escritorio
-- Cria notificacao admin
-
-### 5.2 `order-note-notify`
-Envia notificacoes de estado:
-- Aprovado
-- Em preparacao
-- Faturado
-
-### 5.3 `client-user-invite`
-Convida novo cliente B2B:
-- Cria user em auth.users
-- Envia email de boas-vindas
-- Configura perfil client_users
-
----
-
-## 6. Ficha de Produto Detalhada
-
-A modal de produto tera as seguintes seccoes:
-
-### 6.1 Galeria de Imagens
-- Imagem principal grande
-- Miniaturas (frente, verso, rotulo)
-- Navegacao por setas
-
-### 6.2 Informacao Tecnica
-Usando campos existentes + novos atributos:
+Template HTML profissional enviado ao escritorio:
 
 ```text
-+----------------------------------+
-| Nome do Produto                  |
-| SKU: ABC-123                     |
-+----------------------------------+
-| DESCRICAO TECNICA                |
-| commercial_description           |
-| short_description                |
-+----------------------------------+
-| COMPOSICAO / ATIVOS              |
-| specifications["composition"]     |
-| specifications["active_ingredients"]|
-+----------------------------------+
-| MODO DE USO                      |
-| specifications["usage_instructions"]|
-+----------------------------------+
-| FUNCOES                          |
-| product_attributes (type=function)|
-+----------------------------------+
-| PATOLOGIAS / SITUACOES           |
-| product_attributes (type=pathology)|
-+----------------------------------+
-| RESULTADOS ESPERADOS             |
-| specifications["expected_results"]|
-+----------------------------------+
-```
+Assunto: Nova Encomenda #{order_number} - {client_name}
 
-### 6.3 Seccao de Compra
-```text
-+----------------------------------+
-| Preco unitario (s/ IVA): 45,00€  |
-| IVA (23%):               10,35€  |
-| Preco unitario (c/ IVA): 55,35€  |
-+----------------------------------+
-| Quantidade: [- 1 +]              |
-| Subtotal:   55,35€               |
-+----------------------------------+
-| [   ADICIONAR AO CARRINHO   ]    |
-+----------------------------------+
+Corpo:
+- Logo do workspace
+- Dados do cliente (nome, email, NIF)
+- Numero da encomenda
+- Data de submissao
+- Lista de produtos (nome, quantidade, preco)
+- Totais (sem IVA, IVA, com IVA)
+- Notas do cliente (se existirem)
+- ALERTA: Pedido de prestacoes (se aplicavel)
+  - Numero de prestacoes
+  - Valor por prestacao
+  - Justificacao do cliente
+- Link para ver no dashboard
 ```
 
 ---
 
-## 7. Fluxo de Estados
+## Detalhe Tecnico: Workflow de Aprovacao de Prestacoes
 
-```text
-+--------+     +----------+     +------------+     +-----------+     +----------+
-| draft  | --> | submitted| --> | approved   | --> | in_prep   | --> | invoiced |
-+--------+     +----------+     +------------+     +-----------+     +----------+
-                    |                                                      
-                    v                                                      
-              +-----------+                                                
-              | cancelled |                                                
-              +-----------+                                                
-```
+Quando `installment_requested = true`:
 
-Se `installment_requested = true`:
-```text
-submitted --> awaiting_approval --> approved / rejected
-```
-
----
-
-## 8. Integracao CRM
-
-### 8.1 Associacao Automatica
-- Se `client_user.contact_id` existe, encomenda aparece no timeline do contacto
-- Se `client_user.company_id` existe, encomenda aparece na empresa
-
-### 8.2 Criacao de Oportunidade (Opcional)
-- Ao aprovar encomenda, pode criar oportunidade no pipeline de vendas
+1. Estado inicial: `awaiting_approval`
+2. Admin ve badge amarelo "Aguardando Aprovacao"
+3. Secao especial no detalhe:
+   - Numero de prestacoes solicitadas
+   - Valor por prestacao
+   - Justificacao do cliente
+   - Limite de credito do cliente
+   - Botoes: Aprovar / Rejeitar
+4. Ao aprovar:
+   - status -> approved
+   - approved_at = now()
+   - approved_by = user_id
+   - Email de confirmacao ao cliente
+5. Ao rejeitar:
+   - status -> rejected
+   - rejected_at = now()
+   - rejected_by = user_id
+   - rejection_reason obrigatorio
+   - Email ao cliente com motivo
 
 ---
 
-## 9. Emails Automaticos
+## Actualizacao do Hook useClientOrders
 
-### 9.1 Para Escritorio (Admin)
-- Nova encomenda recebida
-- Pedido de prestacoes (requer aprovacao)
-
-### 9.2 Para Cliente
-- Confirmacao de envio
-- Encomenda aprovada
-- Encomenda em preparacao
-- Encomenda faturada
-
----
-
-## 10. Seguranca (RLS)
-
-### Politicas Principais:
+Modificar para usar edge function na submissao:
 
 ```text
--- client_users: cliente so ve o proprio perfil
-CREATE POLICY "client_users_own" ON client_users
-  FOR ALL USING (auth_user_id = auth.uid());
+// Antes: update directo
+const { error } = await supabase
+  .from("order_notes")
+  .update(...)
 
--- order_notes: cliente so ve as proprias encomendas
-CREATE POLICY "client_orders_own" ON order_notes
-  FOR ALL USING (
-    client_user_id IN (
-      SELECT id FROM client_users WHERE auth_user_id = auth.uid()
-    )
-  );
-
--- Admins do workspace veem tudo
-CREATE POLICY "admin_full_access" ON order_notes
-  FOR ALL USING (
-    workspace_id IN (
-      SELECT workspace_id FROM workspace_members 
-      WHERE user_id = auth.uid() AND role IN ('owner', 'admin', 'agent')
-    )
-  );
+// Depois: chamar edge function
+const response = await supabase.functions.invoke('order-note-submit', {
+  body: { orderId, installmentData }
+});
 ```
 
 ---
 
-## 11. Prioridade de Implementacao
+## Integracao com Navegacao do Dashboard
 
-### Fase 1: Base (Semana 1-2)
-1. Migracao de base de dados (tabelas + RLS)
-2. ClientLayout e autenticacao de clientes
-3. Catalogo basico de produtos
-4. Carrinho funcional
-
-### Fase 2: Core (Semana 3-4)
-5. Checkout com opcao de prestacoes
-6. Edge function de submissao + email
-7. Dashboard admin de encomendas
-8. Workflow de estados
-
-### Fase 3: Polish (Semana 5)
-9. Ficha de produto completa (atributos clinicos)
-10. Historico de encomendas cliente
-11. Exportar PDF da nota
-12. Notificacoes real-time
-
-### Fase 4: Integracao (Semana 6)
-13. Integracao CRM (timeline)
-14. Gestao de clientes B2B
-15. Testes e refinamentos
+Adicionar ao menu lateral do dashboard:
+- Secao "Encomendas"
+  - Item: Notas de Encomenda (icon: FileText)
+  - Item: Clientes B2B (icon: Users)
 
 ---
 
-## 12. Tipos TypeScript
+## Ordem de Implementacao
 
-```text
-src/types/
-  order-note.ts              # OrderNote, OrderNoteItem, OrderNoteStatus
-  client-user.ts             # ClientUser, ClientUserStatus
-  product-attributes.ts      # ProductAttribute, AttributeType
-```
-
----
-
-## 13. Ficheiros a Criar
-
-### Migracoes SQL
-- `create_client_users_table.sql`
-- `create_order_notes_tables.sql`
-- `create_product_attributes_table.sql`
-- `order_notes_rls_policies.sql`
-
-### Paginas (12 ficheiros)
-- 7 paginas portal cliente
-- 3 paginas admin
-- 2 paginas de gestao
-
-### Componentes (~25 ficheiros)
-- 15 componentes portal cliente
-- 10 componentes admin
-
-### Hooks (8 ficheiros)
-- 5 hooks cliente
-- 3 hooks admin
-
-### Edge Functions (3 ficheiros)
-- order-note-submit
-- order-note-notify
-- client-user-invite
-
-### Tipos (3 ficheiros)
-- order-note.ts
-- client-user.ts
-- product-attributes.ts
-
----
-
-## Estimativa de Esforco
-
-| Fase | Componentes | Tempo Estimado |
-|------|-------------|----------------|
-| Base | DB + Auth + Catalogo | 2-3 sessoes |
-| Core | Checkout + Admin | 2-3 sessoes |
-| Polish | Ficha + Historico + PDF | 1-2 sessoes |
-| Integracao | CRM + Testes | 1-2 sessoes |
-
-**Total estimado: 6-10 sessoes de desenvolvimento**
+1. Edge function `order-note-submit` (envio + email)
+2. Hook `useOrderNotes` (lista de encomendas admin)
+3. Pagina `OrderNotesPage` com lista
+4. Hook `useOrderNoteStatus` (alteracao de estados)
+5. Pagina `OrderNoteDetailPage` com workflow
+6. Edge function `order-note-notify` (emails de estado)
+7. Hook `useClientUsers` (gestao de clientes)
+8. Pagina `ClientUsersPage`
+9. Rotas no App.tsx
+10. Menu de navegacao
