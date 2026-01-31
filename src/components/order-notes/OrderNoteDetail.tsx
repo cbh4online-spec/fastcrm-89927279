@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,9 @@ import { InstallmentApproval } from "./InstallmentApproval";
 import { OrderNotePDF } from "./OrderNotePDF";
 import { useOrderNote, useOrderNoteActions } from "@/hooks/useOrderNotes";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 import {
   User,
   Mail,
@@ -24,6 +28,7 @@ import {
   MessageSquare,
   Save,
   Loader2,
+  Copy,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -35,7 +40,9 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
   const { order, loading, refetch } = useOrderNote(orderId);
   const { addAdminNote, isUpdating } = useOrderNoteActions();
   const { currentWorkspace } = useWorkspace();
+  const navigate = useNavigate();
   const [newNote, setNewNote] = useState("");
+  const [isDuplicating, setIsDuplicating] = useState(false);
 
   if (loading) {
     return (
@@ -64,6 +71,82 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
     }
   };
 
+  const handleDuplicateOrder = async () => {
+    if (!order || !order.items || order.items.length === 0) {
+      toast.error("Esta encomenda não tem produtos para duplicar");
+      return;
+    }
+
+    setIsDuplicating(true);
+
+    try {
+      // Generate new order number
+      const timestamp = Date.now().toString().slice(-8);
+      const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const newOrderNumber = `NE-${timestamp}-${random}`;
+
+      // Create new order note as draft
+      const { data: newOrder, error: orderError } = await supabase
+        .from("order_notes")
+        .insert([{
+          workspace_id: order.workspace_id,
+          client_user_id: order.client_user_id,
+          order_number: newOrderNumber,
+          status: "draft" as const,
+          total_net: order.total_net,
+          total_vat: order.total_vat,
+          total_gross: order.total_gross,
+          currency: order.currency,
+          billing_address: order.billing_address as Json,
+          shipping_address: order.shipping_address as Json,
+          client_notes: order.client_notes,
+          admin_notes: `Duplicada da encomenda ${order.order_number}`,
+        }])
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Copy items
+      const itemsToInsert = order.items.map((item, index) => ({
+        order_note_id: newOrder.id,
+        workspace_id: order.workspace_id,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        product_sku: item.product_sku,
+        product_image_url: item.product_image_url,
+        quantity: item.quantity,
+        unit_price_net: item.unit_price_net,
+        vat_rate: item.vat_rate,
+        vat_amount: item.vat_amount,
+        line_total_net: item.line_total_net,
+        line_total_gross: item.line_total_gross,
+        position: index,
+        notes: item.notes,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_note_items")
+        .insert(itemsToInsert);
+
+      if (itemsError) throw itemsError;
+
+      toast.success("Encomenda duplicada com sucesso!", {
+        action: {
+          label: "Ver encomenda",
+          onClick: () => navigate(`/dashboard/order-notes/${newOrder.id}`),
+        },
+      });
+
+      navigate(`/dashboard/order-notes/${newOrder.id}`);
+    } catch (err) {
+      console.error("Error duplicating order:", err);
+      toast.error("Erro ao duplicar encomenda");
+    } finally {
+      setIsDuplicating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -80,7 +163,21 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
             })}
           </p>
         </div>
-        <OrderNotePDF order={order} workspaceName={currentWorkspace?.name} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleDuplicateOrder}
+            disabled={isDuplicating}
+          >
+            {isDuplicating ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Copy className="h-4 w-4 mr-2" />
+            )}
+            Duplicar
+          </Button>
+          <OrderNotePDF order={order} workspaceName={currentWorkspace?.name} />
+        </div>
       </div>
 
       {/* Status Flow */}

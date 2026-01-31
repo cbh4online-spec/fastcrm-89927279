@@ -2,6 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientOrders } from "@/hooks/client-portal/useClientOrders";
+import { RepeatOrderButton } from "@/components/client-portal/RepeatOrderButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,7 @@ export default function ClientOrderDetailPage() {
               Criada em {format(new Date(order.created_at), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: pt })}
             </p>
           </div>
+          <RepeatOrderButton order={order} variant="button" size="default" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
