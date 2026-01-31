@@ -12,10 +12,28 @@ export function useUserRole() {
     queryFn: async () => {
       if (!user?.id) return [];
       
+      // First get the profile ID for this auth user
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        return [];
+      }
+
+      if (!profile) {
+        console.warn("No profile found for user:", user.id);
+        return [];
+      }
+
+      // Then get roles using profile.id
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id);
+        .eq("user_id", profile.id);
 
       if (error) {
         console.error("Error fetching user roles:", error);
