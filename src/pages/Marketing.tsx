@@ -23,11 +23,13 @@ import { CampaignFormDialog } from '@/components/marketing/CampaignFormDialog';
 import { SegmentFormDialog } from '@/components/marketing/SegmentFormDialog';
 import { TemplateFormDialog } from '@/components/marketing/TemplateFormDialog';
 import { EmailBuilderDialog } from '@/components/marketing/EmailBuilderDialog';
+import { CampaignCreationFlow } from '@/components/marketing/CampaignCreationFlow';
 
 export default function Marketing() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [showCampaignDialog, setShowCampaignDialog] = useState(false);
+  const [showCampaignCreation, setShowCampaignCreation] = useState(false);
+  const [showCampaignEdit, setShowCampaignEdit] = useState(false);
   const [showSegmentDialog, setShowSegmentDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showEmailBuilder, setShowEmailBuilder] = useState(false);
@@ -36,7 +38,7 @@ export default function Marketing() {
     switch (activeTab) {
       case 'campaigns':
         return (
-          <Button onClick={() => setShowCampaignDialog(true)}>
+          <Button onClick={() => setShowCampaignCreation(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nova Campanha
           </Button>
@@ -109,11 +111,11 @@ export default function Marketing() {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <MarketingDashboard onCreateCampaign={() => setShowCampaignDialog(true)} />
+            <MarketingDashboard onCreateCampaign={() => setShowCampaignCreation(true)} />
           </TabsContent>
 
           <TabsContent value="campaigns" className="space-y-6">
-            <MarketingCampaignsList onCreateNew={() => setShowCampaignDialog(true)} />
+            <MarketingCampaignsList onCreateNew={() => setShowCampaignCreation(true)} />
           </TabsContent>
 
           <TabsContent value="segments" className="space-y-6">
@@ -131,11 +133,16 @@ export default function Marketing() {
       </div>
 
       {/* Dialogs */}
+      <CampaignCreationFlow
+        open={showCampaignCreation}
+        onOpenChange={setShowCampaignCreation}
+      />
+
       <CampaignFormDialog
-        open={showCampaignDialog}
-        onOpenChange={setShowCampaignDialog}
+        open={showCampaignEdit}
+        onOpenChange={setShowCampaignEdit}
         campaign={null}
-        onClose={() => setShowCampaignDialog(false)}
+        onClose={() => setShowCampaignEdit(false)}
       />
 
       <SegmentFormDialog
