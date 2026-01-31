@@ -48,6 +48,16 @@ import AIProfiles from "./pages/AIProfiles";
 import ConversationalEngine from "./pages/ConversationalEngine";
 import MarketingHomepage from "./pages/MarketingHomepage";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
+
+// Client Portal
+import { CartProvider } from "@/contexts/CartContext";
+import ClientLoginPage from "./pages/client/ClientLoginPage";
+import ClientDashboardPage from "./pages/client/ClientDashboardPage";
+import ClientCatalogPage from "./pages/client/ClientCatalogPage";
+import ClientCartPage from "./pages/client/ClientCartPage";
+import ClientCheckoutPage from "./pages/client/ClientCheckoutPage";
+import ClientOrdersPage from "./pages/client/ClientOrdersPage";
+import ClientOrderDetailPage from "./pages/client/ClientOrderDetailPage";
 import ReportsOverview from "./pages/ReportsOverview";
 import ReportsForecasts from "./pages/ReportsForecasts";
 import ReportsConsumption from "./pages/ReportsConsumption";
@@ -141,6 +151,15 @@ const App = () => (
                       <Route path="/guides/:slug" element={<GuidePage />} />
                       <Route path="/glossary" element={<GlossaryListPage />} />
                       <Route path="/glossary/:slug" element={<GlossaryTermPage />} />
+                      
+                      {/* Client Portal Routes */}
+                      <Route path="/client/login" element={<CartProvider><ClientLoginPage /></CartProvider>} />
+                      <Route path="/client/dashboard" element={<CartProvider><ClientDashboardPage /></CartProvider>} />
+                      <Route path="/client/catalog" element={<CartProvider><ClientCatalogPage /></CartProvider>} />
+                      <Route path="/client/cart" element={<CartProvider><ClientCartPage /></CartProvider>} />
+                      <Route path="/client/checkout" element={<CartProvider><ClientCheckoutPage /></CartProvider>} />
+                      <Route path="/client/orders" element={<CartProvider><ClientOrdersPage /></CartProvider>} />
+                      <Route path="/client/orders/:id" element={<CartProvider><ClientOrderDetailPage /></CartProvider>} />
                       
                       {/* Main Routes */}
                       <Route path="/" element={<MarketingHomepage />} />

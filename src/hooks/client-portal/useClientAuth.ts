@@ -1,0 +1,108 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import type { ClientUser } from "@/types/client-user";
+
+interface UseClientAuthReturn {
+  user: User | null;
+  clientUser: ClientUser | null;
+  loading: boolean;
+  error: string | null;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  isAuthenticated: boolean;
+}
+
+export function useClientAuth(): UseClientAuthReturn {
+  const [user, setUser] = useState<User | null>(null);
+  const [clientUser, setClientUser] = useState<ClientUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch client user profile
+          const { data, error: fetchError } = await supabase
+            .from("client_users")
+            .select("*")
+            .eq("auth_user_id", session.user.id)
+            .eq("status", "active")
+            .maybeSingle();
+          
+          if (fetchError) {
+            console.error("Error fetching client user:", fetchError);
+            setError("Erro ao carregar perfil de cliente");
+            setClientUser(null);
+          } else {
+            setClientUser(data as ClientUser | null);
+            setError(null);
+          }
+        } else {
+          setClientUser(null);
+        }
+        
+        setLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        const { data, error: fetchError } = await supabase
+          .from("client_users")
+          .select("*")
+          .eq("auth_user_id", session.user.id)
+          .eq("status", "active")
+          .maybeSingle();
+        
+        if (fetchError) {
+          console.error("Error fetching client user:", fetchError);
+          setError("Erro ao carregar perfil de cliente");
+        } else {
+          setClientUser(data as ClientUser | null);
+        }
+      }
+      
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    setLoading(true);
+    setError(null);
+    
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return { error };
+    }
+    
+    return { error: null };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setClientUser(null);
+  };
+
+  return {
+    user,
+    clientUser,
+    loading,
+    error,
+    signIn,
+    signOut,
+    isAuthenticated: !!user && !!clientUser,
+  };
+}

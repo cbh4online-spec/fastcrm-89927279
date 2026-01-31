@@ -3032,6 +3032,88 @@ export type Database = {
           },
         ]
       }
+      client_users: {
+        Row: {
+          auth_user_id: string
+          billing_address: Json | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          credit_limit: number | null
+          email: string
+          id: string
+          name: string
+          notes: string | null
+          payment_terms: string | null
+          phone: string | null
+          shipping_address: Json | null
+          status: Database["public"]["Enums"]["client_user_status"] | null
+          tax_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          billing_address?: Json | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          credit_limit?: number | null
+          email: string
+          id?: string
+          name: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["client_user_status"] | null
+          tax_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          billing_address?: Json | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          credit_limit?: number | null
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["client_user_status"] | null
+          tax_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_users_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_users_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_users_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_templates: {
         Row: {
           body: string
@@ -12911,6 +12993,188 @@ export type Database = {
           },
         ]
       }
+      order_note_items: {
+        Row: {
+          created_at: string
+          id: string
+          line_total_gross: number | null
+          line_total_net: number | null
+          notes: string | null
+          order_note_id: string
+          position: number | null
+          product_id: string | null
+          product_image_url: string | null
+          product_name: string
+          product_sku: string | null
+          quantity: number
+          unit_price_net: number
+          vat_amount: number | null
+          vat_rate: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_total_gross?: number | null
+          line_total_net?: number | null
+          notes?: string | null
+          order_note_id: string
+          position?: number | null
+          product_id?: string | null
+          product_image_url?: string | null
+          product_name: string
+          product_sku?: string | null
+          quantity?: number
+          unit_price_net?: number
+          vat_amount?: number | null
+          vat_rate?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_total_gross?: number | null
+          line_total_net?: number | null
+          notes?: string | null
+          order_note_id?: string
+          position?: number | null
+          product_id?: string | null
+          product_image_url?: string | null
+          product_name?: string
+          product_sku?: string | null
+          quantity?: number
+          unit_price_net?: number
+          vat_amount?: number | null
+          vat_rate?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_note_items_order_note_id_fkey"
+            columns: ["order_note_id"]
+            isOneToOne: false
+            referencedRelation: "order_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_note_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "order_note_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_note_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_notes: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          billing_address: Json | null
+          client_notes: string | null
+          client_user_id: string
+          created_at: string
+          currency: string | null
+          id: string
+          installment_count: number | null
+          installment_notes: string | null
+          installment_requested: boolean | null
+          order_number: string
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          shipping_address: Json | null
+          status: Database["public"]["Enums"]["order_note_status"] | null
+          submitted_at: string | null
+          total_gross: number | null
+          total_net: number | null
+          total_vat: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_address?: Json | null
+          client_notes?: string | null
+          client_user_id: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          installment_count?: number | null
+          installment_notes?: string | null
+          installment_requested?: boolean | null
+          order_number: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["order_note_status"] | null
+          submitted_at?: string | null
+          total_gross?: number | null
+          total_net?: number | null
+          total_vat?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_address?: Json | null
+          client_notes?: string | null
+          client_user_id?: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          installment_count?: number | null
+          installment_notes?: string | null
+          installment_requested?: boolean | null
+          order_number?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["order_note_status"] | null
+          submitted_at?: string | null
+          total_gross?: number | null
+          total_net?: number | null
+          total_vat?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_notes_client_user_id_fkey"
+            columns: ["client_user_id"]
+            isOneToOne: false
+            referencedRelation: "client_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_notes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -13803,6 +14067,58 @@ export type Database = {
           },
           {
             foreignKeyName: "price_tables_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_attributes: {
+        Row: {
+          attribute_type: Database["public"]["Enums"]["product_attribute_type"]
+          attribute_value: string
+          created_at: string
+          display_order: number | null
+          id: string
+          product_id: string
+          workspace_id: string
+        }
+        Insert: {
+          attribute_type: Database["public"]["Enums"]["product_attribute_type"]
+          attribute_value: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          product_id: string
+          workspace_id: string
+        }
+        Update: {
+          attribute_type?: Database["public"]["Enums"]["product_attribute_type"]
+          attribute_value?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          product_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_attributes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_attributes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_attributes_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -20577,6 +20893,10 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
+      generate_order_note_number: {
+        Args: { p_workspace_id: string }
+        Returns: string
+      }
       generate_workflow_idempotency_key: {
         Args: {
           p_entity_id: string
@@ -21176,6 +21496,7 @@ export type Database = {
         | "semi_annual"
         | "yearly"
       billing_type: "one_time" | "recurring"
+      client_user_status: "active" | "suspended" | "pending"
       condition_operator:
         | "equals"
         | "not_equals"
@@ -21226,6 +21547,15 @@ export type Database = {
         | "paused"
         | "past_due"
         | "canceled"
+      order_note_status:
+        | "draft"
+        | "submitted"
+        | "awaiting_approval"
+        | "approved"
+        | "rejected"
+        | "in_preparation"
+        | "invoiced"
+        | "cancelled"
       payment_method_type:
         | "stripe"
         | "bank_transfer"
@@ -21239,6 +21569,11 @@ export type Database = {
         | "daily_checklist"
         | "winners"
         | "ai_alert"
+      product_attribute_type:
+        | "function"
+        | "pathology"
+        | "indication"
+        | "protocol"
       session_status: "active" | "completed" | "abandoned" | "handed_off"
       sso_token_status: "pending" | "active" | "used" | "expired" | "revoked"
       student_journey_stage:
@@ -21506,6 +21841,7 @@ export const Constants = {
         "yearly",
       ],
       billing_type: ["one_time", "recurring"],
+      client_user_status: ["active", "suspended", "pending"],
       condition_operator: [
         "equals",
         "not_equals",
@@ -21561,6 +21897,16 @@ export const Constants = {
         "past_due",
         "canceled",
       ],
+      order_note_status: [
+        "draft",
+        "submitted",
+        "awaiting_approval",
+        "approved",
+        "rejected",
+        "in_preparation",
+        "invoiced",
+        "cancelled",
+      ],
       payment_method_type: [
         "stripe",
         "bank_transfer",
@@ -21575,6 +21921,12 @@ export const Constants = {
         "daily_checklist",
         "winners",
         "ai_alert",
+      ],
+      product_attribute_type: [
+        "function",
+        "pathology",
+        "indication",
+        "protocol",
       ],
       session_status: ["active", "completed", "abandoned", "handed_off"],
       sso_token_status: ["pending", "active", "used", "expired", "revoked"],
