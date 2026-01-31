@@ -58,6 +58,10 @@ import ClientCartPage from "./pages/client/ClientCartPage";
 import ClientCheckoutPage from "./pages/client/ClientCheckoutPage";
 import ClientOrdersPage from "./pages/client/ClientOrdersPage";
 import ClientOrderDetailPage from "./pages/client/ClientOrderDetailPage";
+// Admin Order Notes
+import OrderNotesPage from "./pages/OrderNotesPage";
+import OrderNoteDetailPage from "./pages/OrderNoteDetailPage";
+import ClientUsersPage from "./pages/ClientUsersPage";
 import ReportsOverview from "./pages/ReportsOverview";
 import ReportsForecasts from "./pages/ReportsForecasts";
 import ReportsConsumption from "./pages/ReportsConsumption";
@@ -224,6 +228,11 @@ const App = () => (
                       <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
                       <Route path="/dashboard/credit" element={<CreditIntermediation />} />
                       <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
+                      
+                      {/* Order Notes Admin Routes */}
+                      <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />
+                      <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
+                      <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
                       
                       {/* Student Journey Module Routes */}
                       <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
