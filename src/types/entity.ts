@@ -76,7 +76,8 @@ export type MenuSection =
   | 'history'
   | 'contacts'
   | 'automations'
-  | 'credit'; // Credit intermediation proposals
+  | 'credit'
+  | 'orders'; // B2B Order Notes
 
 export interface MenuItemConfig {
   id: MenuSection;

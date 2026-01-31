@@ -14,6 +14,7 @@ import {
   Users,
   Zap,
   Plus,
+  ShoppingCart,
 } from 'lucide-react';
 import { MenuSection } from '@/types/entity';
 
@@ -130,6 +131,12 @@ const SECTION_CONFIG: Record<MenuSection, {
     description: 'Nenhuma proposta de crédito associada.',
     suggestion: 'Cria uma proposta quando identificares necessidade de financiamento.',
     actionLabel: 'Criar Proposta de Crédito',
+  },
+  orders: {
+    icon: ShoppingCart,
+    title: 'Sem encomendas B2B',
+    description: 'Nenhuma encomenda B2B associada.',
+    suggestion: 'As encomendas aparecerão quando houver clientes B2B com encomendas.',
   },
 };
 

@@ -18,6 +18,7 @@ import {
   History,
   Users,
   Landmark,
+  ShoppingCart,
 } from 'lucide-react';
 import { EntityType, MenuSection } from '@/types/entity';
 import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
@@ -34,6 +35,7 @@ interface EntitySidebarMenuProps {
     proposals?: number;
     contacts?: number;
     credit?: number;
+    orders?: number;
   };
 }
 
@@ -72,6 +74,7 @@ const MENU_SECTIONS: {
       { id: 'proposals', label: 'Propostas', icon: FileText, showFor: ['lead', 'contact', 'company'] },
       { id: 'credit', label: 'Crédito', icon: Landmark, showFor: ['lead', 'contact', 'company'] },
       { id: 'payments', label: 'Pagamentos', icon: CreditCard, showFor: ['contact', 'company'] },
+      { id: 'orders', label: 'Encomendas B2B', icon: ShoppingCart, showFor: ['contact', 'company'] },
       { id: 'contacts', label: 'Contactos', icon: Users, showFor: ['company'] },
     ],
   },
@@ -101,6 +104,7 @@ export function EntitySidebarMenu({
       case 'proposals': return counts.proposals;
       case 'contacts': return counts.contacts;
       case 'credit': return counts.credit;
+      case 'orders': return counts.orders;
       default: return undefined;
     }
   };
