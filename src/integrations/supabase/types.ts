@@ -2945,6 +2945,59 @@ export type Database = {
           },
         ]
       }
+      client_price_tiers: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string
+          description: string | null
+          discount_percentage: number | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          priority: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          priority?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          priority?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_price_tiers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_requirements: {
         Row: {
           category: string | null
@@ -3036,6 +3089,7 @@ export type Database = {
         Row: {
           auth_user_id: string
           billing_address: Json | null
+          business_type: string | null
           company_id: string | null
           contact_id: string | null
           created_at: string
@@ -3046,6 +3100,7 @@ export type Database = {
           notes: string | null
           payment_terms: string | null
           phone: string | null
+          price_tier_id: string | null
           shipping_address: Json | null
           status: Database["public"]["Enums"]["client_user_status"] | null
           tax_id: string | null
@@ -3055,6 +3110,7 @@ export type Database = {
         Insert: {
           auth_user_id: string
           billing_address?: Json | null
+          business_type?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
@@ -3065,6 +3121,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          price_tier_id?: string | null
           shipping_address?: Json | null
           status?: Database["public"]["Enums"]["client_user_status"] | null
           tax_id?: string | null
@@ -3074,6 +3131,7 @@ export type Database = {
         Update: {
           auth_user_id?: string
           billing_address?: Json | null
+          business_type?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
@@ -3084,6 +3142,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          price_tier_id?: string | null
           shipping_address?: Json | null
           status?: Database["public"]["Enums"]["client_user_status"] | null
           tax_id?: string | null
@@ -3103,6 +3162,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_users_price_tier_id_fkey"
+            columns: ["price_tier_id"]
+            isOneToOne: false
+            referencedRelation: "client_price_tiers"
             referencedColumns: ["id"]
           },
           {
@@ -14377,6 +14443,75 @@ export type Database = {
           },
         ]
       }
+      product_cross_sells: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          reason: string | null
+          source_product_id: string
+          target_product_id: string
+          weight: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          source_product_id: string
+          target_product_id: string
+          weight?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          source_product_id?: string
+          target_product_id?: string
+          weight?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_cross_sells_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_cross_sells_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_cross_sells_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_cross_sells_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_cross_sells_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_cycles: {
         Row: {
           action_config: Json
@@ -14588,6 +14723,133 @@ export type Database = {
           },
           {
             foreignKeyName: "product_progressions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_protocols: {
+        Row: {
+          category: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_percentage: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          position: number | null
+          short_description: string | null
+          tags: string[] | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          position?: number | null
+          short_description?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          position?: number | null
+          short_description?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_protocols_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_tier_prices: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          price_net: number
+          product_id: string
+          tier_id: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          price_net: number
+          product_id: string
+          tier_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          price_net?: number
+          product_id?: string
+          tier_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_tier_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_tier_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tier_prices_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "client_price_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tier_prices_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -15680,6 +15942,61 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocol_products: {
+        Row: {
+          created_at: string
+          id: string
+          is_optional: boolean | null
+          notes: string | null
+          position: number | null
+          product_id: string
+          protocol_id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_optional?: boolean | null
+          notes?: string | null
+          position?: number | null
+          product_id: string
+          protocol_id: string
+          quantity?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_optional?: boolean | null
+          notes?: string | null
+          position?: number | null
+          product_id?: string
+          protocol_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "protocol_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_products_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "product_protocols"
             referencedColumns: ["id"]
           },
         ]
