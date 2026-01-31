@@ -10,7 +10,6 @@ interface SearchRequest {
   query: string;
   workspaceId: string;
   limit?: number;
-  threshold?: number;
 }
 
 serve(async (req) => {
@@ -19,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, workspaceId, limit = 10, threshold = 0.5 }: SearchRequest = await req.json();
+    const { query, workspaceId, limit = 10 }: SearchRequest = await req.json();
 
     if (!query || !workspaceId) {
       return new Response(
@@ -28,51 +27,16 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ success: false, error: "AI gateway not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     console.log(`Semantic search: "${query}" in workspace ${workspaceId}`);
 
-    // Generate embedding for query
-    const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-embedding-ada-002",
-        input: query,
-      }),
-    });
-
-    if (!embeddingResponse.ok) {
-      const errorText = await embeddingResponse.text();
-      console.error("Embedding API error:", errorText);
-      return new Response(
-        JSON.stringify({ success: false, error: `Embedding API error: ${embeddingResponse.status}` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const embeddingData = await embeddingResponse.json();
-    const queryEmbedding = embeddingData.data[0].embedding;
-
-    // Search using database function
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Use text-based search function
     const { data: products, error: searchError } = await supabase.rpc("match_products", {
-      query_embedding: queryEmbedding,
-      match_threshold: threshold,
+      query_text: query,
       match_count: limit,
       filter_workspace_id: workspaceId,
     });

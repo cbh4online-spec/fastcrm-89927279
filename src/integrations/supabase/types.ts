@@ -15132,6 +15132,7 @@ export type Database = {
           product_type: string
           recommended_frequency: string | null
           recurring_fee: number | null
+          search_keywords: string | null
           setup_fee: number | null
           sheet_published: boolean | null
           sheet_slug: string | null
@@ -15189,6 +15190,7 @@ export type Database = {
           product_type?: string
           recommended_frequency?: string | null
           recurring_fee?: number | null
+          search_keywords?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null
           sheet_slug?: string | null
@@ -15246,6 +15248,7 @@ export type Database = {
           product_type?: string
           recommended_frequency?: string | null
           recurring_fee?: number | null
+          search_keywords?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null
           sheet_slug?: string | null
@@ -21777,28 +21780,47 @@ export type Database = {
           usage_count: number
         }[]
       }
-      match_products: {
-        Args: {
-          filter_workspace_id?: string
-          match_count?: number
-          match_threshold?: number
-          query_embedding: string
-        }
-        Returns: {
-          base_price: number
-          category: string
-          commercial_description: string
-          id: string
-          images: string[]
-          name: string
-          primary_image_index: number
-          short_description: string
-          similarity: number
-          sku: string
-          status: string
-          workspace_id: string
-        }[]
-      }
+      match_products:
+        | {
+            Args: {
+              filter_workspace_id?: string
+              match_count?: number
+              match_threshold?: number
+              query_embedding: string
+            }
+            Returns: {
+              base_price: number
+              category: string
+              commercial_description: string
+              id: string
+              images: string[]
+              name: string
+              primary_image_index: number
+              short_description: string
+              similarity: number
+              sku: string
+              status: string
+              workspace_id: string
+            }[]
+          }
+        | {
+            Args: {
+              filter_workspace_id?: string
+              match_count?: number
+              query_text: string
+            }
+            Returns: {
+              base_price: number
+              category: string
+              id: string
+              images: string[]
+              name: string
+              primary_image_index: number
+              short_description: string
+              similarity: number
+              sku: string
+            }[]
+          }
       rag_hybrid_search: {
         Args: {
           filter_workspace_id: string

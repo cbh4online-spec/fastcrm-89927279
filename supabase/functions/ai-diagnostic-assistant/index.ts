@@ -42,35 +42,43 @@ serve(async (req) => {
 
     console.log(`Diagnostic assistant query: "${message}" in workspace ${workspaceId}`);
 
-    // Step 1: Generate embedding for the user's message
-    const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+    // First, use AI to extract search keywords from the user's message
+    const keywordResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "text-embedding-ada-002",
-        input: message,
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content: `Extrai palavras-chave de pesquisa da mensagem do utilizador.
+Inclui: sinónimos, termos técnicos, abreviações comuns (CRM, ERP, etc).
+Responde APENAS com palavras separadas por espaço, sem pontuação.
+Exemplo: "preciso de ajuda com clientes" -> "clientes CRM gestão vendas relacionamento"`
+          },
+          { role: "user", content: message }
+        ],
+        max_tokens: 100,
+        temperature: 0.3,
       }),
     });
 
-    if (!embeddingResponse.ok) {
-      const errorText = await embeddingResponse.text();
-      console.error("Embedding error:", errorText);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to process query" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let searchTerms = message;
+    if (keywordResponse.ok) {
+      const keywordData = await keywordResponse.json();
+      const keywords = keywordData.choices?.[0]?.message?.content?.trim();
+      if (keywords) {
+        searchTerms = `${message} ${keywords}`;
+        console.log(`Enhanced search terms: ${searchTerms}`);
+      }
     }
 
-    const embeddingData = await embeddingResponse.json();
-    const queryEmbedding = embeddingData.data[0].embedding;
-
-    // Step 2: Search for relevant products
+    // Search for relevant products using text search
     const { data: products, error: searchError } = await supabase.rpc("match_products", {
-      query_embedding: queryEmbedding,
-      match_threshold: 0.4,
+      query_text: searchTerms,
       match_count: 5,
       filter_workspace_id: workspaceId,
     });
@@ -79,35 +87,33 @@ serve(async (req) => {
       console.error("Product search error:", searchError);
     }
 
-    // Step 3: Build context for AI
+    // Build context for AI
     const productContext = (products || [])
       .map((p: any, i: number) => {
-        const imageUrl = p.images?.[p.primary_image_index ?? 0] || null;
         return `[Produto ${i + 1}]
 Nome: ${p.name}
 SKU: ${p.sku || "N/A"}
 Preço: ${p.base_price?.toFixed(2) || "N/A"}€
 Categoria: ${p.category || "N/A"}
-Descrição: ${p.short_description || p.commercial_description || "Sem descrição"}
-Relevância: ${(p.similarity * 100).toFixed(0)}%`;
+Descrição: ${p.short_description || "Sem descrição"}`;
       })
       .join("\n\n");
 
-    const systemPrompt = `Você é um assistente especializado em produtos de saúde e bem-estar. 
+    const systemPrompt = `Você é um assistente especializado em produtos e serviços. 
 Ajuda clientes a encontrar os produtos mais adequados para as suas necessidades.
 
 INSTRUÇÕES:
-- Analise a descrição do cliente e recomende produtos do catálogo
+- Analise o pedido do cliente e recomende produtos do catálogo
 - Explique brevemente porque cada produto é adequado
 - Se não houver produtos relevantes, diga honestamente
 - Seja conciso e profissional
 - Responda sempre em português de Portugal
-- Use linguagem acessível, evitando termos demasiado técnicos
+- Use linguagem acessível
 
 PRODUTOS DISPONÍVEIS:
 ${productContext || "Nenhum produto encontrado no catálogo para esta pesquisa."}`;
 
-    // Step 4: Generate AI response
+    // Generate AI response
     const chatResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -115,7 +121,7 @@ ${productContext || "Nenhum produto encontrado no catálogo para esta pesquisa."
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           ...conversationHistory.slice(-6),
