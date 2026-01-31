@@ -1,155 +1,35 @@
 
+# Plano: Abrir Editor Visual ao Criar Nova Campanha
 
-# Plano: Corrigir Sincronizacao do Estado do Carrinho
+## Contexto Actual
 
-## Problema Identificado
-
-O componente `POSProposalBuilder` chama o callback `onItemsChange` com o estado antigo de `items` antes do hook `useProposalCart` actualizar o seu estado interno. Isto causa:
-
-1. O `cartItems` no `CreateProposalDialog` estar sempre desactualizado
-2. Quando o utilizador guarda a proposta, `cartItems` esta vazio ou incompleto
-3. Os itens nunca sao persistidos na tabela `proposal_items`
-
-### Evidencia do Bug
-
-```text
-// POSProposalBuilder.tsx (linha 41-44)
-const handleAddProduct = (product: Product) => {
-  addItem(product);  // Estado atualiza ASYNC
-  onItemsChange?.([...items, { product, quantity: 1 }]);  
-  // ^ 'items' ainda é o valor ANTIGO aqui!
-};
-```
-
-O mesmo padrao errado repete-se em:
-- `handleAddProduct` (linha 41)
-- `handleRemoveProduct` (linha 46)
-- `handleUpdateQuantity` (linha 51)
-- `handleUpdatePrice` (linha 60)
-- `handleUpdateDiscount` (linha 69)
-
----
+Quando o utilizador clica em "Nova Campanha", abre o `CampaignFormDialog` que apresenta um `Textarea` para editar HTML manualmente. Isto contrasta com o editor visual profissional (`EmailBuilder`) que ja existe no sistema e oferece uma experiencia drag-and-drop de 3 colunas.
 
 ## Solucao Proposta
 
-Refatorar o `POSProposalBuilder` para usar `useEffect` que observa mudancas no `items` e dispara `onItemsChange` automaticamente com o estado correcto:
+Modificar o fluxo para que ao criar uma nova campanha, o utilizador seja levado primeiro pelo editor visual. O processo sera:
 
-```text
-// Antes (errado)
-const handleAddProduct = (product: Product) => {
-  addItem(product);
-  onItemsChange?.([...items, { product, quantity: 1 }]); // items antigo
-};
-
-// Depois (correcto)
-useEffect(() => {
-  onItemsChange?.(items);
-}, [items]); // Dispara quando items realmente muda
-
-const handleAddProduct = (product: Product) => {
-  addItem(product);
-  // Nao precisa chamar onItemsChange aqui
-};
-```
+1. Clique em "Nova Campanha"
+2. Abre o editor visual full-screen
+3. Utilizador desenha o email com blocos
+4. Ao guardar, e mostrado um formulario simples para completar os metadados (nome, assunto, segmento)
+5. Campanha e criada com o design visual persistido
 
 ---
 
-## Implementacao
-
-### Ficheiro: `src/components/proposals/POSProposalBuilder.tsx`
+## Arquitectura da Solucao
 
 ```text
-import { useEffect, useRef } from "react";
-// ...imports existentes
-
-export function POSProposalBuilder({
-  opportunityTitle,
-  opportunityValue,
-  leadName,
-  companyName,
-  onItemsChange,
-  initialItems,
-}: POSProposalBuilderProps) {
-  const {
-    items,
-    addItem,
-    removeItem,
-    updateQuantity,
-    updatePrice,
-    updateDiscount,
-    clearCart,
-    getSelectedProductIds,
-    setItems,
-  } = useProposalCart();
-
-  const initializedRef = useRef(false);
-
-  // Initialize with existing items only once
-  useEffect(() => {
-    if (initialItems && initialItems.length > 0 && !initializedRef.current) {
-      setItems(initialItems);
-      initializedRef.current = true;
-    }
-  }, [initialItems, setItems]);
-
-  // NOVO: Sync items to parent quando o estado muda
-  useEffect(() => {
-    onItemsChange?.(items);
-  }, [items]);
-
-  // Handlers simplificados - nao precisam chamar onItemsChange
-  const handleAddProduct = (product: Product) => {
-    addItem(product);
-  };
-
-  const handleRemoveProduct = (productId: string) => {
-    removeItem(productId);
-  };
-
-  const handleUpdateQuantity = (productId: string, quantity: number) => {
-    updateQuantity(productId, quantity);
-  };
-
-  const handleUpdatePrice = (productId: string, price: number | undefined) => {
-    updatePrice(productId, price);
-  };
-
-  const handleUpdateDiscount = (productId: string, discount: number | undefined) => {
-    updateDiscount(productId, discount);
-  };
-
-  const handleClear = () => {
-    clearCart();
-  };
-
-  // ...resto igual
-}
-```
-
----
-
-## Vantagens da Solucao
-
-| Antes | Depois |
-|-------|--------|
-| Callback com estado antigo | Callback com estado actual |
-| Items nao sincronizados | Sincronizacao garantida via useEffect |
-| Bug silencioso | Comportamento previsivel |
-| Logica duplicada em cada handler | Logica centralizada no useEffect |
-
----
-
-## Fluxo Corrigido
-
-```text
-1. Utilizador adiciona produto no POSProductSelector
-2. handleAddProduct() chama addItem(product)
-3. useProposalCart actualiza 'items' internamente
-4. useEffect detecta mudanca em 'items'
-5. onItemsChange(items) e chamado com o estado CORRETO
-6. CreateProposalDialog recebe cartItems actualizados
-7. handleSave() usa cartItems com todos os produtos
-8. Itens sao guardados em proposal_items
++---------------------+     +------------------+     +-------------------+
+| "Nova Campanha"     | --> | EmailBuilder     | --> | CampaignSaveModal |
+| Button              |     | (Editor Visual)  |     | (Nome, Assunto)   |
++---------------------+     +------------------+     +-------------------+
+                                    |
+                                    v
+                            +------------------+
+                            | createCampaign() |
+                            | bodyHtml + design|
+                            +------------------+
 ```
 
 ---
@@ -158,5 +38,120 @@ export function POSProposalBuilder({
 
 | Ficheiro | Alteracao |
 |----------|-----------|
-| `src/components/proposals/POSProposalBuilder.tsx` | Usar useEffect para sincronizar items, simplificar handlers |
+| `src/pages/Marketing.tsx` | Abrir EmailBuilderDialog ao clicar "Nova Campanha" em vez de CampaignFormDialog |
+| `src/components/marketing/EmailBuilderDialog.tsx` | Adicionar modo "campaign" que mostra formulario de metadados antes de guardar |
+| `src/components/marketing/CampaignFormDialog.tsx` | Manter para edicao de campanhas existentes (que ja tem HTML) |
 
+---
+
+## Implementacao Detalhada
+
+### 1. Criar Componente CampaignCreationFlow
+
+Novo componente que gere o fluxo completo:
+
+```text
+// CampaignCreationFlow.tsx
+
+Estado interno:
+- step: 'editor' | 'metadata'
+- design: EmailDesign
+- html: string
+
+Fluxo:
+1. Inicialmente step = 'editor', mostra EmailBuilder
+2. Quando utilizador clica "Guardar" no EmailBuilder:
+   - Recebe (design, html)
+   - Muda para step = 'metadata'
+   - Mostra formulario simples (nome, assunto, fromName, segmento)
+3. Quando utilizador submete formulario:
+   - Chama createCampaign com bodyHtml + metadados
+   - Fecha dialogo
+```
+
+### 2. Formulario de Metadados Simplificado
+
+```text
+Campos obrigatorios:
+- Nome da Campanha
+- Assunto do Email
+- Nome do Remetente
+
+Campos opcionais:
+- Texto de Preview
+- Segmento de destinatarios
+- Email de resposta
+```
+
+### 3. Modificar Marketing.tsx
+
+```text
+// Antes
+const [showCampaignDialog, setShowCampaignDialog] = useState(false);
+
+// Depois
+const [showCampaignCreation, setShowCampaignCreation] = useState(false);
+const [showCampaignEdit, setShowCampaignEdit] = useState(false);
+const [campaignToEdit, setCampaignToEdit] = useState(null);
+
+// Novo botao "Nova Campanha" abre fluxo de criacao
+<Button onClick={() => setShowCampaignCreation(true)}>
+  <Plus className="h-4 w-4 mr-2" />
+  Nova Campanha
+</Button>
+```
+
+---
+
+## Fluxo de Utilizador Apos Implementacao
+
+```text
+1. Utilizador clica "Nova Campanha"
+   -> Abre editor visual full-screen
+
+2. Arrasta blocos, personaliza design
+   -> Clica "Guardar"
+
+3. Aparece modal simples:
+   - Nome: "Newsletter Fevereiro 2026"
+   - Assunto: "Novidades de Fevereiro"
+   - Remetente: "Joao Silva"
+   - Segmento: [Dropdown]
+   -> Clica "Criar Campanha"
+
+4. Campanha criada com status "draft"
+   -> Pode editar, pre-visualizar, enviar
+```
+
+---
+
+## Experiencia de Edicao de Campanhas Existentes
+
+Para campanhas ja criadas:
+- Se tem `design_json` -> Abre EmailBuilder com o design
+- Se so tem `body_html` -> Abre CampaignFormDialog com textarea
+
+Isto requer adicionar campo `design_json` a tabela `marketing_campaigns` para persistir o design visual.
+
+---
+
+## Migracao de Base de Dados
+
+Adicionar coluna para guardar o design visual (permite reedicao futura):
+
+```text
+ALTER TABLE marketing_campaigns 
+ADD COLUMN design_json JSONB;
+
+COMMENT ON COLUMN marketing_campaigns.design_json IS 
+'Design visual do email (JSON do EmailBuilder)';
+```
+
+---
+
+## Prioridades de Implementacao
+
+1. Criar `CampaignCreationFlow.tsx` com os dois passos
+2. Modificar `Marketing.tsx` para usar o novo fluxo
+3. Adicionar coluna `design_json` a base de dados
+4. Adaptar edicao de campanhas para detectar se tem design visual
