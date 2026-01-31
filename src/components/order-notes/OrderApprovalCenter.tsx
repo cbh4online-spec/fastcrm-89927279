@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useOrderApprovals, useApprovalStats } from "@/hooks/useOrderApprovals";
 import { orderNoteStatusConfig } from "@/types/order-note";
 import type { OrderNote } from "@/types/order-note";
+import { OrderApprovalPreview } from "./OrderApprovalPreview";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { 
@@ -31,7 +32,8 @@ import {
   User,
   Calendar,
   Euro,
-  Package
+  Package,
+  Eye
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +47,8 @@ export function OrderApprovalCenter() {
   const [approveNotes, setApproveNotes] = useState("");
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [orderToApprove, setOrderToApprove] = useState<string | null>(null);
+  const [previewOrder, setPreviewOrder] = useState<OrderNote | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const { data: stats } = useApprovalStats();
   const { 
@@ -76,6 +80,7 @@ export function OrderApprovalCenter() {
 
   const handleApprove = async (orderId: string) => {
     setOrderToApprove(orderId);
+    setPreviewOpen(false);
     setApproveDialogOpen(true);
   };
 
@@ -87,8 +92,14 @@ export function OrderApprovalCenter() {
     setApproveNotes("");
   };
 
+  const handlePreview = (order: OrderNote) => {
+    setPreviewOrder(order);
+    setPreviewOpen(true);
+  };
+
   const handleReject = (orderId: string) => {
     setOrderToReject(orderId);
+    setPreviewOpen(false);
     setRejectDialogOpen(true);
   };
 
@@ -248,6 +259,7 @@ export function OrderApprovalCenter() {
                     order={order}
                     selected={selectedOrders.includes(order.id)}
                     onSelect={(checked) => handleSelectOrder(order.id, checked)}
+                    onPreview={() => handlePreview(order)}
                     onApprove={() => handleApprove(order.id)}
                     onReject={() => handleReject(order.id)}
                   />
@@ -316,6 +328,15 @@ export function OrderApprovalCenter() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Preview Sheet */}
+      <OrderApprovalPreview
+        order={previewOrder}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        onApprove={() => previewOrder && handleApprove(previewOrder.id)}
+        onReject={() => previewOrder && handleReject(previewOrder.id)}
+      />
     </div>
   );
 }
@@ -324,22 +345,26 @@ interface OrderApprovalRowProps {
   order: OrderNote;
   selected: boolean;
   onSelect: (checked: boolean) => void;
+  onPreview: () => void;
   onApprove: () => void;
   onReject: () => void;
 }
 
-function OrderApprovalRow({ order, selected, onSelect, onApprove, onReject }: OrderApprovalRowProps) {
+function OrderApprovalRow({ order, selected, onSelect, onPreview, onApprove, onReject }: OrderApprovalRowProps) {
   const statusConfig = orderNoteStatusConfig[order.status];
   const clientName = order.client_user?.name || "Cliente desconhecido";
 
   return (
     <div className={cn(
-      "flex items-center gap-3 px-4 py-3 border rounded-lg transition-colors",
+      "flex items-center gap-3 px-4 py-3 border rounded-lg transition-colors cursor-pointer hover:bg-muted/50",
       selected && "bg-primary/5 border-primary/30"
-    )}>
+    )}
+    onClick={onPreview}
+    >
       <Checkbox
         checked={selected}
         onCheckedChange={onSelect}
+        onClick={(e) => e.stopPropagation()}
       />
       
       <div className="flex-1 min-w-0">
@@ -386,7 +411,16 @@ function OrderApprovalRow({ order, selected, onSelect, onApprove, onReject }: Or
         </span>
       </div>
 
-      <div className="w-32 flex items-center justify-end gap-2">
+      <div className="w-36 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 p-0"
+          onClick={onPreview}
+          title="Ver detalhes"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
         <Button
           size="sm"
           variant="ghost"

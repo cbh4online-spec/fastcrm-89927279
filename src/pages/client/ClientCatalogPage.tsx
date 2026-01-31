@@ -3,6 +3,7 @@ import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientProducts } from "@/hooks/client-portal/useClientProducts";
 import { useCart } from "@/contexts/CartContext";
+import { ProtocolsSection } from "@/components/client-portal/catalog/ProtocolsSection";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
