@@ -2,18 +2,13 @@ import { Link } from "react-router-dom";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientOrders } from "@/hooks/client-portal/useClientOrders";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { OrderCard } from "@/components/client-portal/orders/OrderCard";
 import { 
   FileText, 
-  ArrowRight,
   Package,
   Loader2
 } from "lucide-react";
-import { orderNoteStatusConfig } from "@/types/order-note";
-import { format } from "date-fns";
-import { pt } from "date-fns/locale";
 
 export default function ClientOrdersPage() {
   const { clientUser } = useClientAuth();
@@ -54,65 +49,10 @@ export default function ClientOrdersPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
-            {orders.map((order) => {
-              const statusConfig = orderNoteStatusConfig[order.status];
-              const itemCount = order.items?.length || 0;
-
-              return (
-                <Card key={order.id} className="hover:border-primary/50 transition-colors">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-semibold text-lg">{order.order_number}</h3>
-                          <Badge className={`${statusConfig.bgColor} ${statusConfig.color}`}>
-                            {statusConfig.labelPT}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(order.created_at), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: pt })}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {itemCount} {itemCount === 1 ? "produto" : "produtos"}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-primary">
-                            {order.total_gross.toFixed(2)}€
-                          </p>
-                          <p className="text-xs text-muted-foreground">c/ IVA</p>
-                        </div>
-                        <Link to={`/client/orders/${order.id}`}>
-                          <Button variant="outline" size="sm">
-                            Ver detalhes
-                            <ArrowRight className="h-4 w-4 ml-2" />
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-
-                    {/* Additional info */}
-                    {(order.installment_requested || order.client_notes) && (
-                      <div className="mt-4 pt-4 border-t flex flex-wrap gap-4">
-                        {order.installment_requested && (
-                          <Badge variant="outline">
-                            {order.installment_count}x prestações solicitadas
-                          </Badge>
-                        )}
-                        {order.client_notes && (
-                          <p className="text-sm text-muted-foreground">
-                            <span className="font-medium">Notas:</span> {order.client_notes}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <div className="grid gap-4 md:grid-cols-2">
+            {orders.map((order) => (
+              <OrderCard key={order.id} order={order} />
+            ))}
           </div>
         )}
       </div>

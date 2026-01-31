@@ -10,7 +10,9 @@ import { OrderNoteStatusBadge } from "./OrderNoteStatusBadge";
 import { OrderNoteStatusFlow } from "./OrderNoteStatusFlow";
 import { OrderNoteActions } from "./OrderNoteActions";
 import { InstallmentApproval } from "./InstallmentApproval";
+import { OrderNotePDF } from "./OrderNotePDF";
 import { useOrderNote, useOrderNoteActions } from "@/hooks/useOrderNotes";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   User,
   Mail,
@@ -32,6 +34,7 @@ interface OrderNoteDetailProps {
 export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
   const { order, loading, refetch } = useOrderNote(orderId);
   const { addAdminNote, isUpdating } = useOrderNoteActions();
+  const { currentWorkspace } = useWorkspace();
   const [newNote, setNewNote] = useState("");
 
   if (loading) {
@@ -77,6 +80,7 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
             })}
           </p>
         </div>
+        <OrderNotePDF order={order} workspaceName={currentWorkspace?.name} />
       </div>
 
       {/* Status Flow */}
