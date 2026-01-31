@@ -1,288 +1,217 @@
 
-# Plano de Evolução do Módulo de Notas de Encomenda B2B
+# Fase 5: Experiência do Cliente (Portal B2B)
 
-## Visão Geral
-
-Transformar o módulo existente num sistema B2B profissional e escalável através de 7 camadas estratégicas que aumentam receita, reduzem fricção operacional e diferenciam o FastCRM.
-
----
-
-## Fases de Implementação
-
-### Fase 1: Camada Comercial (Kits, Cross-sell, Escalões)
-
-**Objectivo**: Aumentar ticket médio com bundles, recomendações e preços segmentados.
-
-**1.1 Sistema de Kits/Protocolos**
-- Nova tabela `product_protocols` (bundles com nomes comerciais como "Protocolo AAG")
-- Componente `ProtocolCard` no catálogo B2B com botão "Adicionar Protocolo"
-- Um clique adiciona todos os produtos do protocolo ao carrinho com quantidades pré-definidas
-- Integração com a tabela existente `product_components` para componentes
-
-**1.2 Recomendações de Complementos (Cross-sell)**
-- Nova tabela `product_cross_sells` (produto origem, produto sugerido, peso/ordem)
-- Componente `CrossSellSuggestions` exibido no modal de produto e carrinho
-- Lógica: "Quem compra X normalmente adiciona Y"
-- Edge function `suggest-order-cross-sells` com IA opcional
-
-**1.3 Escalões de Preço por Cliente**
-- Nova tabela `client_price_tiers` (Gold, Silver, Bronze, etc.)
-- Extensão `client_users` com campo `price_tier_id`
-- Nova tabela `product_tier_prices` (preço por produto + tier)
-- Hook `useClientPricing` que aplica preços correctos automaticamente
-- Campanhas promocionais via tabela `pricing_campaigns`
+## Objectivo
+Aumentar velocidade, criar hábito de compra e fidelizar clientes através de funcionalidades que reduzem fricção no processo de encomenda.
 
 ---
 
-### Fase 2: Controlo Operacional
+## 5.1 Repetir Encomenda (1-Click Reorder)
 
-**Objectivo**: Evitar pedidos impossíveis e reduzir chamadas ao escritório.
+**Funcionalidade**: Permitir ao cliente duplicar uma encomenda anterior com um clique.
 
-**2.1 Stock Informativo**
-- Extensão `products` com campos: `stock_status` (enum: available, limited, backorder, out_of_stock), `stock_notes`
-- Badge visual no catálogo e modal de produto
-- Bloqueio de adicionar ao carrinho se `out_of_stock`
+**Implementação**:
 
-**2.2 MOQ / Packs / Múltiplos**
-- Extensão `products` com campos: `min_order_quantity`, `order_multiple`, `pack_size`
-- Validação no `CartContext` e checkout
-- Mensagem de erro clara: "Este produto vende-se em caixas de 6"
+1. **Componente `RepeatOrderButton.tsx`**
+   - Botão "Repetir Encomenda" exibido no `OrderCard` e página de detalhe
+   - Ao clicar:
+     - Valida disponibilidade actual de cada produto
+     - Aplica preços actualizados (respeitando escalões do cliente)
+     - Adiciona todos os itens ao carrinho
+     - Redireciona para `/client/cart`
+   - Mostra alerta se algum produto estiver indisponível ou com preço diferente
 
-**2.3 Prazo Estimado por Produto**
-- Extensão `products` com campo `delivery_estimate` (ex: "24-48h", "5-7 dias")
-- Campo `delivery_notes` para informação adicional
-- Exibição no catálogo e resumo da encomenda
-- Cálculo de prazo máximo no checkout baseado nos itens
+2. **Lógica de validação**:
+   - Verifica `stock_status` de cada produto
+   - Recalcula preços com base no `price_tier` actual do cliente
+   - Alerta visual para produtos alterados ou removidos
 
----
-
-### Fase 3: Centro de Aprovações e Governação
-
-**Objectivo**: Gestão profissional de aprovações com auditoria completa.
-
-**3.1 Centro de Aprovações (Backoffice)**
-- Nova página `/dashboard/order-approvals` com fila de aprovações pendentes
-- Filtros por tipo: prestações, crédito excedido, valor alto
-- Acções em lote: aprovar múltiplos, rejeitar com template
-- Widget de resumo no dashboard principal
-
-**3.2 Trilho de Auditoria Completo**
-- Nova tabela `order_audit_log` (order_id, action, old_value, new_value, user_id, timestamp, ip_address)
-- Trigger automático em alterações de `order_notes`
-- Componente `OrderAuditTrail` na página de detalhe
-- Conformidade RGPD com campos de retenção
-
-**3.3 Workflow de Estados com Automações**
-- Nova tabela `order_workflows` (status_from, status_to, actions: JSON)
-- Acções disponíveis: enviar email, criar tarefa, notificar, webhook
-- Edge function `order-workflow-processor` executada nas transições
-- Interface de configuração no Admin Settings
+3. **Integração no `OrderCard`**:
+   - Adicionar botão ao lado de "Ver detalhes"
+   - Exibir apenas para encomendas com status `approved`, `in_preparation`, ou `invoiced`
 
 ---
 
-### Fase 4: Integração CRM Avançada
+## 5.2 Lista de Favoritos
 
-**Objectivo**: Transformar encomendas em máquina de retenção.
+**Funcionalidade**: Clientes podem marcar produtos como favoritos para acesso rápido.
 
-**4.1 Associação Nativa a Oportunidades**
-- Extensão `order_notes` com campo `opportunity_id` (nullable)
-- Na criação, opção de criar oportunidade "Recompra" automaticamente
-- Componente `CreateDealFromOrder` já existe, melhorar integração
+**Base de dados**:
 
-**4.2 Timeline Enriquecida**
-- Já implementado na Timeline unificada
-- Adicionar mais eventos: alteração de estado, notas internas, aprovações
-- Ícones e cores distintas por tipo de evento
+```text
+Tabela: client_favorites
+- id: uuid (PK)
+- client_user_id: uuid (FK -> client_users)
+- product_id: uuid (FK -> products)
+- created_at: timestamp
+- Índice único: (client_user_id, product_id)
+```
 
-**4.3 Sistema de Alertas de Recompra**
-- Nova tabela `reorder_alerts` (client_user_id, product_id, expected_date, notified)
-- Baseado em `typical_duration_days` do produto
-- Edge function `check-reorder-alerts` com cron diário
-- Notificações para equipa comercial e cliente (opt-in)
+**Implementação**:
 
----
+1. **Hook `useClientFavorites.ts`**
+   - `favorites`: lista de produtos favoritos
+   - `isFavorite(productId)`: verificar se produto está nos favoritos
+   - `toggleFavorite(productId)`: adicionar/remover favorito
+   - Optimistic updates para resposta imediata
 
-### Fase 5: Experiência do Cliente (Portal B2B)
+2. **Componente `FavoriteButton.tsx`**
+   - Botão coração que alterna estado
+   - Animação ao favoritar
+   - Exibido no catálogo e modal de produto
 
-**Objectivo**: Velocidade, hábito e fidelização.
+3. **Página `ClientFavoritesPage.tsx`**
+   - Nova rota: `/client/favorites`
+   - Grid de produtos favoritos com quick-add ao carrinho
+   - Link no menu de navegação
 
-**5.1 Repetir Encomenda**
-- Botão "Repetir Encomenda" na lista de encomendas do cliente
-- Pré-preenche carrinho com mesmos produtos/quantidades
-- Valida disponibilidade e preços actuais
-
-**5.2 Lista de Favoritos**
-- Nova tabela `client_favorites` (client_user_id, product_id)
-- Botão coração nos produtos
-- Página `/client/favorites` com produtos favoritos
-- Quick-add ao carrinho
-
-**5.3 Perfis de Compra por Tipo de Cliente**
-- Extensão `client_users` com campo `business_type` (Cabeleireiro, Clínica, Terapeuta, etc.)
-- Catálogo filtrado por perfil como opção default
-- Sugestões de produtos baseadas no perfil
+4. **Actualização da navegação**:
+   - Adicionar item "Favoritos" ao `ClientLayout.tsx`
+   - Badge com contador de favoritos
 
 ---
 
-### Fase 6: Comunicação e Documentação
+## 5.3 Perfis de Compra por Tipo de Cliente
 
-**Objectivo**: Menos ruído, mais clareza, menos erros.
+**Funcionalidade**: Catálogo filtrado automaticamente baseado no tipo de negócio do cliente.
 
-**6.1 PDF Profissional**
-- Já existe `OrderNotePDF` - melhorar com:
-- Branding do workspace (logo, cores)
-- Dados fiscais completos
-- Notas de protocolo por item
-- QR code para rastreio
+**Base de dados**:
+- Campo `business_type` já adicionado à tabela `client_users` na Fase 1
+- Tipos disponíveis: `hairdresser`, `clinic`, `therapist`, `aesthetics`, `pharmacy`, `other`
 
-**6.2 Templates de Email Configuráveis**
-- Nova tabela `email_templates` (workspace_id, type, subject, html_body)
-- Interface de edição com preview
-- Variáveis dinâmicas: {{client_name}}, {{order_number}}, etc.
-- Tipos: confirmação, aprovação, rejeição, preparação, facturação
+**Implementação**:
 
-**6.3 Campo "Observações do Protocolo" por Item**
-- Extensão `order_note_items` com campo `protocol_notes`
-- Exibição no picking e PDF
-- Útil para instruções de preparação
+1. **Componente `BusinessTypeFilter.tsx`**
+   - Selector de perfil no topo do catálogo
+   - Opção "Ver todos" para catálogo completo
+   - Persiste preferência no localStorage
 
----
+2. **Extensão da tabela `products`**:
+   - Novo campo `business_types` (array de strings)
+   - Produtos podem ser marcados para múltiplos tipos de negócio
 
-### Fase 7: Inteligência (Diferenciador Premium)
+3. **Hook `useClientProducts` actualizado**:
+   - Filtro automático por `business_type` do cliente
+   - Toggle para ver catálogo completo
+   - Ordenação de produtos relevantes primeiro
 
-**Objectivo**: Pesquisa semântica, assistente de diagnóstico, detecção de inconsistências.
-
-**7.1 Pesquisa Semântica no Catálogo**
-- Edge function `catalog-semantic-search` usando Lovable AI
-- Cliente escreve "queda de cabelo" → encontra produtos e protocolos relevantes
-- Indexação de atributos, descrições e nomes
-
-**7.2 Assistente "Escolha por Diagnóstico"**
-- Componente `DiagnosisAssistant` com wizard de perguntas
-- Perguntas simples → recomenda produtos e bundle adequado
-- Baseado em `product_attributes` (patologia, indicação, função)
-
-**7.3 Detetor de Inconsistências**
-- Análise do carrinho antes de checkout
-- Alerta: "Adicionou X mas faltou o passo Y do protocolo"
-- Edge function `validate-order-consistency`
+4. **Sugestões personalizadas**:
+   - Secção "Recomendados para si" no dashboard
+   - Baseado em `business_type` e histórico de compras
 
 ---
 
-## Estrutura de Ficheiros a Criar
+## Estrutura de Ficheiros
 
 ```text
 src/
 ├── components/
-│   └── order-notes/
-│       ├── OrderApprovalCenter.tsx
-│       ├── OrderApprovalQueue.tsx
-│       ├── OrderAuditTrail.tsx
-│       ├── OrderWorkflowConfig.tsx
-│       └── ReorderAlertsList.tsx
 │   └── client-portal/
-│       ├── catalog/
-│       │   ├── ProtocolCard.tsx
-│       │   ├── CrossSellSuggestions.tsx
-│       │   ├── StockBadge.tsx
-│       │   ├── DeliveryEstimate.tsx
-│       │   └── DiagnosisAssistant.tsx
-│       ├── FavoritesList.tsx
-│       └── RepeatOrderButton.tsx
+│       ├── RepeatOrderButton.tsx (novo)
+│       ├── FavoriteButton.tsx (novo)
+│       ├── FavoritesList.tsx (novo)
+│       └── BusinessTypeFilter.tsx (novo)
 ├── hooks/
-│   ├── useClientPricing.ts
-│   ├── useOrderApprovals.ts
-│   ├── useClientFavorites.ts
-│   ├── useReorderAlerts.ts
-│   └── useSemanticSearch.ts
+│   └── client-portal/
+│       └── useClientFavorites.ts (novo)
 ├── pages/
-│   ├── OrderApprovalsPage.tsx
 │   └── client/
-│       └── ClientFavoritesPage.tsx
-└── types/
-    ├── order-audit.ts
-    ├── pricing-tier.ts
-    └── protocol.ts
+│       └── ClientFavoritesPage.tsx (novo)
+```
 
-supabase/
-├── functions/
-│   ├── catalog-semantic-search/
-│   ├── order-workflow-processor/
-│   ├── check-reorder-alerts/
-│   ├── suggest-order-cross-sells/
-│   └── validate-order-consistency/
-└── migrations/
-    └── [novas tabelas e extensões]
+**Ficheiros a modificar**:
+- `src/components/client-portal/orders/OrderCard.tsx` - adicionar botão repetir
+- `src/components/client-portal/ClientLayout.tsx` - adicionar link favoritos
+- `src/pages/client/ClientCatalogPage.tsx` - adicionar botão favoritos e filtro perfil
+- `src/App.tsx` - adicionar rota favoritos
+
+---
+
+## Migração de Base de Dados
+
+```text
+1. Criar tabela client_favorites:
+   - id, client_user_id, product_id, created_at
+   - Constraint única (client_user_id, product_id)
+   - RLS policies para clientes acederem apenas aos seus favoritos
+
+2. Adicionar campo business_types à tabela products:
+   - Array de strings para tipos de negócio
+   - Default: array vazio (visível para todos)
 ```
 
 ---
 
-## Novas Tabelas de Base de Dados
+## Fluxo de Utilizador
 
-| Tabela | Descrição |
-|--------|-----------|
-| `product_protocols` | Kits/Protocolos comerciais com produtos |
-| `protocol_products` | Produtos dentro de cada protocolo (N:M) |
-| `product_cross_sells` | Relações de cross-sell entre produtos |
-| `client_price_tiers` | Escalões de preço (Gold, Silver, etc.) |
-| `product_tier_prices` | Preços por produto e escalão |
-| `pricing_campaigns` | Campanhas promocionais temporárias |
-| `order_audit_log` | Registo de alterações (auditoria) |
-| `order_workflows` | Automações por transição de estado |
-| `reorder_alerts` | Alertas de recompra previstos |
-| `client_favorites` | Produtos favoritos por cliente |
-| `email_templates` | Templates de email configuráveis |
+### Repetir Encomenda
+```text
+1. Cliente abre histórico de encomendas
+2. Clica em "Repetir" numa encomenda anterior
+3. Sistema valida disponibilidade e preços
+4. Mostra resumo de alterações (se houver)
+5. Adiciona itens ao carrinho
+6. Redireciona para checkout
+```
 
----
+### Favoritos
+```text
+1. Cliente navega no catálogo
+2. Clica no coração de um produto
+3. Produto aparece na página "Favoritos"
+4. Quick-add ao carrinho a partir dos favoritos
+```
 
-## Extensões a Tabelas Existentes
-
-**products:**
-- `stock_status`, `stock_notes`
-- `min_order_quantity`, `order_multiple`, `pack_size`
-- `delivery_estimate`, `delivery_notes`
-
-**client_users:**
-- `price_tier_id`, `business_type`
-
-**order_notes:**
-- `opportunity_id`
-
-**order_note_items:**
-- `protocol_notes`
+### Perfil de Compra
+```text
+1. Cliente (tipo "Clínica") abre catálogo
+2. Vê automaticamente produtos relevantes para clínicas
+3. Pode alternar para "Ver todos"
+4. Dashboard mostra recomendações personalizadas
+```
 
 ---
 
-## Priorização Sugerida
+## Detalhes Técnicos
 
-| Sprint | Fases | Impacto |
-|--------|-------|---------|
-| Sprint 1 | 2 (Controlo Operacional) | Reduz problemas imediatos |
-| Sprint 2 | 3 (Aprovações e Auditoria) | Conformidade e governação |
-| Sprint 3 | 1 (Camada Comercial) | Aumento de receita |
-| Sprint 4 | 5 (Experiência Cliente) | Retenção e fidelização |
-| Sprint 5 | 4+6 (CRM + Documentação) | Integração completa |
-| Sprint 6 | 7 (Inteligência) | Diferenciação premium |
+### Hook useClientFavorites
+
+```text
+- Query: GET favoritos do cliente autenticado
+- Mutations: INSERT/DELETE com optimistic updates
+- Cache: Invalidação selectiva para performance
+```
+
+### RepeatOrderButton Logic
+
+```text
+1. Fetch produtos actuais pelos IDs da encomenda
+2. Comparar preços e disponibilidade
+3. Gerar relatório de diferenças
+4. Se tudo OK: addItem() para cada produto
+5. Se há problemas: mostrar modal de confirmação
+```
+
+### RLS Policies
+
+```text
+- client_favorites: SELECT/INSERT/DELETE onde client_user_id = auth.uid()
+- Acesso restrito ao próprio cliente
+```
 
 ---
 
 ## Estimativa de Esforço
 
-- **Fase 1 (Comercial)**: 8-10 horas
-- **Fase 2 (Operacional)**: 4-5 horas
-- **Fase 3 (Aprovações)**: 6-8 horas
-- **Fase 4 (CRM)**: 4-5 horas
-- **Fase 5 (Portal)**: 5-6 horas
-- **Fase 6 (Comunicação)**: 4-5 horas
-- **Fase 7 (Inteligência)**: 6-8 horas
+| Componente | Tempo Estimado |
+|------------|----------------|
+| Migração BD (favoritos + business_types) | 30 min |
+| useClientFavorites hook | 45 min |
+| FavoriteButton + FavoritesList | 45 min |
+| ClientFavoritesPage | 30 min |
+| RepeatOrderButton | 1 hora |
+| BusinessTypeFilter | 45 min |
+| Actualizações catálogo/layout | 30 min |
+| Testes e ajustes | 30 min |
 
-**Total estimado**: 37-47 horas de desenvolvimento
-
----
-
-## Dependências
-
-- Resend API para emails (já configurado)
-- Lovable AI para pesquisa semântica (nativo)
-- Sistema de workspaces (já existe)
-- Trigger.dev para jobs agendados (já configurado)
+**Total**: ~5-6 horas
