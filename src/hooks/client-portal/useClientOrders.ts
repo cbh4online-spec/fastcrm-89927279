@@ -122,7 +122,7 @@ export function useClientOrders(clientUserId: string | undefined): UseClientOrde
     },
   });
 
-  // Submit order
+  // Submit order via edge function
   const submitOrderMutation = useMutation({
     mutationFn: async ({ 
       orderId, 
@@ -131,24 +131,14 @@ export function useClientOrders(clientUserId: string | undefined): UseClientOrde
       orderId: string; 
       installmentData?: { requested: boolean; count: number; notes: string } 
     }) => {
-      const updateData: Record<string, any> = {
-        status: installmentData?.requested ? "awaiting_approval" : "submitted",
-        submitted_at: new Date().toISOString(),
-      };
-
-      if (installmentData?.requested) {
-        updateData.installment_requested = true;
-        updateData.installment_count = installmentData.count;
-        updateData.installment_notes = installmentData.notes;
-      }
-
-      const { error } = await supabase
-        .from("order_notes")
-        .update(updateData)
-        .eq("id", orderId);
+      const { data, error } = await supabase.functions.invoke('order-note-submit', {
+        body: { orderId, installmentData }
+      });
 
       if (error) throw error;
-      return true;
+      if (data?.error) throw new Error(data.error);
+      
+      return data;
     },
     onSuccess: () => {
       toast.success("Encomenda enviada com sucesso!");

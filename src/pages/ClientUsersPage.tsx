@@ -1,5 +1,7 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ClientUsersList } from "@/components/client-users/ClientUsersList";
+import { ClientUserStats } from "@/components/client-users/ClientUserStats";
+import { InviteClientDialog } from "@/components/client-users/InviteClientDialog";
 import { Users } from "lucide-react";
 
 export default function ClientUsersPage() {
@@ -16,7 +18,10 @@ export default function ClientUsersPage() {
               Gerir clientes profissionais e seus acessos ao portal
             </p>
           </div>
+          <InviteClientDialog />
         </div>
+
+        <ClientUserStats />
 
         <ClientUsersList />
       </div>
