@@ -20,60 +20,71 @@ export function useClientAuth(): UseClientAuthReturn {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Set up auth state listener
+    let isMounted = true;
+    
+    const fetchClientUser = async (userId: string) => {
+      try {
+        const { data, error: fetchError } = await supabase
+          .from("client_users")
+          .select("*")
+          .eq("auth_user_id", userId)
+          .eq("status", "active")
+          .maybeSingle();
+        
+        if (!isMounted) return;
+        
+        if (fetchError) {
+          console.error("Error fetching client user:", fetchError);
+          setError("Erro ao carregar perfil de cliente");
+          setClientUser(null);
+        } else {
+          setClientUser(data as ClientUser | null);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error("Exception fetching client user:", err);
+          setError("Erro ao carregar perfil");
+          setClientUser(null);
+        }
+      }
+    };
+
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+        
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch client user profile
-          const { data, error: fetchError } = await supabase
-            .from("client_users")
-            .select("*")
-            .eq("auth_user_id", session.user.id)
-            .eq("status", "active")
-            .maybeSingle();
-          
-          if (fetchError) {
-            console.error("Error fetching client user:", fetchError);
-            setError("Erro ao carregar perfil de cliente");
-            setClientUser(null);
-          } else {
-            setClientUser(data as ClientUser | null);
-            setError(null);
-          }
+          await fetchClientUser(session.user.id);
         } else {
           setClientUser(null);
+          setError(null);
         }
         
         setLoading(false);
       }
     );
 
-    // Check for existing session
+    // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;
+      
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        const { data, error: fetchError } = await supabase
-          .from("client_users")
-          .select("*")
-          .eq("auth_user_id", session.user.id)
-          .eq("status", "active")
-          .maybeSingle();
-        
-        if (fetchError) {
-          console.error("Error fetching client user:", fetchError);
-          setError("Erro ao carregar perfil de cliente");
-        } else {
-          setClientUser(data as ClientUser | null);
-        }
+        await fetchClientUser(session.user.id);
       }
       
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
