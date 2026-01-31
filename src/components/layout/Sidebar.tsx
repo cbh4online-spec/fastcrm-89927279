@@ -255,6 +255,16 @@ const navigationGroups: NavGroup[] = [
       { name: "Turmas", href: "/dashboard/student-journey/cohorts", icon: Users, tooltip: "Gestão de turmas", moduleSlug: "student-journey" },
     ],
   },
+  // ENCOMENDAS B2B
+  {
+    name: "Encomendas",
+    icon: FileText,
+    tooltip: "Gestão de notas de encomenda B2B",
+    items: [
+      { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: FileText, tooltip: "Lista de encomendas" },
+      { name: "Clientes B2B", href: "/dashboard/client-users", icon: UsersRound, tooltip: "Clientes profissionais" },
+    ],
+  },
 ];
 
 const settingsItems: NavItem[] = [
