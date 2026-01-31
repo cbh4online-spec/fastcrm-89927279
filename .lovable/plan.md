@@ -1,157 +1,228 @@
 
-# Plano: Abrir Editor Visual ao Criar Nova Campanha
+# Plano: Auditoria Funcional Dinamica com Actualizacao e Relatorio PDF Detalhado
 
-## Contexto Actual
+## Problema Identificado
 
-Quando o utilizador clica em "Nova Campanha", abre o `CampaignFormDialog` que apresenta um `Textarea` para editar HTML manualmente. Isto contrasta com o editor visual profissional (`EmailBuilder`) que ja existe no sistema e oferece uma experiencia drag-and-drop de 3 colunas.
+A auditoria actual tem duas limitacoes principais:
+
+1. **Dados estaticos hardcoded**: Os numeros mostrados (65 rotas, 100 tabelas, etc.) estao fixos no codigo e nao reflectem a realidade actual do sistema (ja existem 297 tabelas na base de dados, 130+ edge functions, 180+ hooks)
+
+2. **Relatorio PDF basico**: O PDF gerado tem apenas 6 paginas com informacao generica, sem dados reais sobre o estado do sistema
+
+3. **Sem indicacao de ultima actualizacao**: O utilizador nao sabe quando os dados foram recolhidos
+
+---
 
 ## Solucao Proposta
 
-Modificar o fluxo para que ao criar uma nova campanha, o utilizador seja levado primeiro pelo editor visual. O processo sera:
+### 1. Dados Dinamicos em Tempo Real
 
-1. Clique em "Nova Campanha"
-2. Abre o editor visual full-screen
-3. Utilizador desenha o email com blocos
-4. Ao guardar, e mostrado um formulario simples para completar os metadados (nome, assunto, segmento)
-5. Campanha e criada com o design visual persistido
-
----
-
-## Arquitectura da Solucao
+Criar um sistema que recolhe metricas reais:
 
 ```text
-+---------------------+     +------------------+     +-------------------+
-| "Nova Campanha"     | --> | EmailBuilder     | --> | CampaignSaveModal |
-| Button              |     | (Editor Visual)  |     | (Nome, Assunto)   |
-+---------------------+     +------------------+     +-------------------+
-                                    |
-                                    v
-                            +------------------+
-                            | createCampaign() |
-                            | bodyHtml + design|
-                            +------------------+
+Metricas a recolher dinamicamente:
+- Tabelas: Query a information_schema.tables (actualmente 297)
+- Edge Functions: Contagem de diretorias em supabase/functions (130+)
+- Rotas: Contagem de <Route> no App.tsx (99+)
+- Componentes: Contagem de ficheiros .tsx em src/components
+- Hooks: Contagem de ficheiros em src/hooks (180+)
+- Modulos instalados por workspace
+```
+
+### 2. Botao de Actualizacao com Timestamp
+
+Adicionar no topo da secao:
+- Data/hora da ultima actualizacao
+- Botao "Actualizar Auditoria" que recarrega todas as metricas
+- Indicador visual de "dados actualizados" vs "dados antigos"
+
+### 3. Relatorio PDF Profissional e Detalhado
+
+Expandir o PDF de 6 para ~20 paginas com:
+
+```text
+Indice:
+1. Capa Profissional
+2. Sumario Executivo (2 pag)
+3. Metricas do Sistema (2 pag) - com graficos
+4. Arquitectura Tecnica (3 pag)
+   - Stack tecnologico
+   - Diagrama de componentes
+   - Fluxo de dados
+5. Modulos Funcionais (4 pag) - um por pagina
+6. Estrutura de Base de Dados (3 pag)
+   - Entidades principais com relacoes
+   - Politicas RLS
+   - Triggers e funcoes
+7. Edge Functions (2 pag)
+   - Lista categorizada
+   - Intencao de cada funcao
+8. Seguranca e Compliance (2 pag)
+   - RLS policies activas
+   - Roles e permissoes
+   - RGPD
+9. Integracoes Externas (1 pag)
+10. Roadmap e Recomendacoes (1 pag)
 ```
 
 ---
 
-## Ficheiros a Modificar
+## Implementacao Tecnica
 
-| Ficheiro | Alteracao |
-|----------|-----------|
-| `src/pages/Marketing.tsx` | Abrir EmailBuilderDialog ao clicar "Nova Campanha" em vez de CampaignFormDialog |
-| `src/components/marketing/EmailBuilderDialog.tsx` | Adicionar modo "campaign" que mostra formulario de metadados antes de guardar |
-| `src/components/marketing/CampaignFormDialog.tsx` | Manter para edicao de campanhas existentes (que ja tem HTML) |
+### Ficheiro: `src/hooks/useSystemAudit.ts` (Novo)
 
----
-
-## Implementacao Detalhada
-
-### 1. Criar Componente CampaignCreationFlow
-
-Novo componente que gere o fluxo completo:
+Hook para recolher metricas reais:
 
 ```text
-// CampaignCreationFlow.tsx
+export function useSystemAudit() {
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [metrics, setMetrics] = useState<AuditMetrics | null>(null);
 
-Estado interno:
-- step: 'editor' | 'metadata'
-- design: EmailDesign
-- html: string
+  const fetchMetrics = async () => {
+    setIsLoading(true);
+    
+    // Query tabelas reais
+    const { count: tableCount } = await supabase
+      .from('information_schema.tables')
+      .select('*', { count: 'exact', head: true })
+      .eq('table_schema', 'public');
 
-Fluxo:
-1. Inicialmente step = 'editor', mostra EmailBuilder
-2. Quando utilizador clica "Guardar" no EmailBuilder:
-   - Recebe (design, html)
-   - Muda para step = 'metadata'
-   - Mostra formulario simples (nome, assunto, fromName, segmento)
-3. Quando utilizador submete formulario:
-   - Chama createCampaign com bodyHtml + metadados
-   - Fecha dialogo
+    // Outras metricas via edge function ou estimativas
+    // ...
+
+    setLastUpdated(new Date());
+    setIsLoading(false);
+  };
+
+  return { metrics, lastUpdated, isLoading, refresh: fetchMetrics };
+}
 ```
 
-### 2. Formulario de Metadados Simplificado
+### Ficheiro: `src/components/super-admin/FunctionalAuditSection.tsx` (Modificar)
 
 ```text
-Campos obrigatorios:
-- Nome da Campanha
-- Assunto do Email
-- Nome do Remetente
-
-Campos opcionais:
-- Texto de Preview
-- Segmento de destinatarios
-- Email de resposta
+Alteracoes:
+1. Usar useSystemAudit() em vez de constantes hardcoded
+2. Adicionar header com lastUpdated e botao Refresh
+3. Expandir generatePDF() para 20+ paginas
+4. Adicionar secoes detalhadas ao PDF
 ```
 
-### 3. Modificar Marketing.tsx
+### Estrutura do PDF Expandido
 
 ```text
-// Antes
-const [showCampaignDialog, setShowCampaignDialog] = useState(false);
+Novas secoes a adicionar ao generatePDF():
 
-// Depois
-const [showCampaignCreation, setShowCampaignCreation] = useState(false);
-const [showCampaignEdit, setShowCampaignEdit] = useState(false);
-const [campaignToEdit, setCampaignToEdit] = useState(null);
+// Arquitectura
+- Diagrama de componentes (ASCII art)
+- Lista de tecnologias com versoes
+- Padrao de pastas do projecto
 
-// Novo botao "Nova Campanha" abre fluxo de criacao
-<Button onClick={() => setShowCampaignCreation(true)}>
-  <Plus className="h-4 w-4 mr-2" />
-  Nova Campanha
-</Button>
-```
+// Base de Dados Detalhada  
+- Lista completa de tabelas agrupadas por modulo
+- Relacoes entre entidades
+- Triggers activos
 
----
+// Edge Functions
+- Categorias: AI, Email, Billing, Integrations, etc.
+- Descricao de cada funcao
 
-## Fluxo de Utilizador Apos Implementacao
+// Seguranca Detalhada
+- Numero de policies RLS por tabela
+- Buckets de storage
+- Regras de autenticacao
 
-```text
-1. Utilizador clica "Nova Campanha"
-   -> Abre editor visual full-screen
-
-2. Arrasta blocos, personaliza design
-   -> Clica "Guardar"
-
-3. Aparece modal simples:
-   - Nome: "Newsletter Fevereiro 2026"
-   - Assunto: "Novidades de Fevereiro"
-   - Remetente: "Joao Silva"
-   - Segmento: [Dropdown]
-   -> Clica "Criar Campanha"
-
-4. Campanha criada com status "draft"
-   -> Pode editar, pre-visualizar, enviar
+// Metricas de Performance
+- Tabelas com mais registos
+- Queries lentas (se disponivel)
 ```
 
 ---
 
-## Experiencia de Edicao de Campanhas Existentes
+## Interface do Utilizador
 
-Para campanhas ja criadas:
-- Se tem `design_json` -> Abre EmailBuilder com o design
-- Se so tem `body_html` -> Abre CampaignFormDialog com textarea
-
-Isto requer adicionar campo `design_json` a tabela `marketing_campaigns` para persistir o design visual.
-
----
-
-## Migracao de Base de Dados
-
-Adicionar coluna para guardar o design visual (permite reedicao futura):
+### Header da Secao
 
 ```text
-ALTER TABLE marketing_campaigns 
-ADD COLUMN design_json JSONB;
++------------------------------------------------------------------+
+| Auditoria Funcional                                               |
+| Gerar documentacao tecnica completa do sistema                   |
++------------------------------------------------------------------+
+| Ultima actualizacao: 31 Jan 2026, 16:45                          |
+| [Actualizar Dados]                      Status: Dados actualizados|
++------------------------------------------------------------------+
+```
 
-COMMENT ON COLUMN marketing_campaigns.design_json IS 
-'Design visual do email (JSON do EmailBuilder)';
+### Cards de Metricas (dinamicos)
+
+```text
+Em vez de:  65+ Rotas (hardcoded)
+Mostrar:    99 Rotas (dinamico, com loading state)
 ```
 
 ---
 
-## Prioridades de Implementacao
+## Ficheiros a Criar/Modificar
 
-1. Criar `CampaignCreationFlow.tsx` com os dois passos
-2. Modificar `Marketing.tsx` para usar o novo fluxo
-3. Adicionar coluna `design_json` a base de dados
-4. Adaptar edicao de campanhas para detectar se tem design visual
+| Ficheiro | Tipo | Descricao |
+|----------|------|-----------|
+| `src/hooks/useSystemAudit.ts` | Novo | Hook para recolher metricas reais |
+| `src/components/super-admin/FunctionalAuditSection.tsx` | Modificar | Usar dados dinamicos + PDF expandido |
+| `src/utils/pdfAuditGenerator.ts` | Novo | Logica de geracao do PDF separada |
+| `src/types/audit.ts` | Novo | Tipos TypeScript para auditoria |
+
+---
+
+## Conteudo Detalhado do PDF
+
+### Capa (pagina 1)
+- Logo FastCRM
+- Titulo: "Auditoria Funcional Completa"
+- Data de geracao
+- Versao do sistema
+
+### Sumario Executivo (paginas 2-3)
+- Visao geral do sistema
+- Principais metricas em destaque
+- Estado de saude geral
+- Pontos fortes identificados
+
+### Metricas Detalhadas (paginas 4-5)
+- Tabela com todas as metricas
+- Comparacao com benchmarks
+- Evolucao (se disponivel historico)
+
+### Arquitectura (paginas 6-8)
+- Stack: React, Vite, Tailwind, TypeScript, Supabase
+- Estrutura de pastas
+- Padrao de componentes
+- Fluxo de autenticacao
+
+### Modulos (paginas 9-12)
+- Uma pagina por grupo de modulos
+- Componentes de cada modulo
+- Estado de implementacao
+- Funcionalidades principais
+
+### Base de Dados (paginas 13-15)
+- Lista de 297 tabelas agrupadas
+- Relacoes principais
+- Policies RLS activas
+- Storage buckets
+
+### Edge Functions (paginas 16-17)
+- 130+ funcoes categorizadas
+- AI Functions, Email, Billing, Integracao
+- Descricao de cada categoria
+
+### Seguranca (paginas 18-19)
+- RLS em todas as tabelas
+- Roles do sistema
+- Compliance RGPD
+- Recomendacoes
+
+### Conclusao (pagina 20)
+- Resumo do estado
+- Proximos passos recomendados
+- Contacto para suporte
