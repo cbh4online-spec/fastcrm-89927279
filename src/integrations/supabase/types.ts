@@ -12993,6 +12993,66 @@ export type Database = {
           },
         ]
       }
+      order_audit_log: {
+        Row: {
+          action: string
+          changed_fields: string[] | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          new_value: Json | null
+          old_value: Json | null
+          order_note_id: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          order_note_id: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          order_note_id?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_audit_log_order_note_id_fkey"
+            columns: ["order_note_id"]
+            isOneToOne: false
+            referencedRelation: "order_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_note_items: {
         Row: {
           created_at: string
@@ -13006,6 +13066,7 @@ export type Database = {
           product_image_url: string | null
           product_name: string
           product_sku: string | null
+          protocol_notes: string | null
           quantity: number
           unit_price_net: number
           vat_amount: number | null
@@ -13024,6 +13085,7 @@ export type Database = {
           product_image_url?: string | null
           product_name: string
           product_sku?: string | null
+          protocol_notes?: string | null
           quantity?: number
           unit_price_net?: number
           vat_amount?: number | null
@@ -13042,6 +13104,7 @@ export type Database = {
           product_image_url?: string | null
           product_name?: string
           product_sku?: string | null
+          protocol_notes?: string | null
           quantity?: number
           unit_price_net?: number
           vat_amount?: number | null
@@ -13093,6 +13156,7 @@ export type Database = {
           installment_count: number | null
           installment_notes: string | null
           installment_requested: boolean | null
+          opportunity_id: string | null
           order_number: string
           rejected_at: string | null
           rejected_by: string | null
@@ -13119,6 +13183,7 @@ export type Database = {
           installment_count?: number | null
           installment_notes?: string | null
           installment_requested?: boolean | null
+          opportunity_id?: string | null
           order_number: string
           rejected_at?: string | null
           rejected_by?: string | null
@@ -13145,6 +13210,7 @@ export type Database = {
           installment_count?: number | null
           installment_notes?: string | null
           installment_requested?: boolean | null
+          opportunity_id?: string | null
           order_number?: string
           rejected_at?: string | null
           rejected_by?: string | null
@@ -13167,7 +13233,64 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "order_notes_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "order_notes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_workflows: {
+        Row: {
+          actions: Json | null
+          conditions: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          status_from: string
+          status_to: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actions?: Json | null
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          status_from: string
+          status_to: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          actions?: Json | null
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          status_from?: string
+          status_to?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_workflows_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -14680,7 +14803,9 @@ export type Database = {
           created_at: string
           created_by: string
           currency: string
+          delivery_estimate: string | null
           delivery_mode: string | null
+          delivery_notes: string | null
           demo_video_url: string | null
           direct_cost: number | null
           id: string
@@ -14691,8 +14816,11 @@ export type Database = {
           labor_hours: number | null
           labor_included_in_price: boolean | null
           labor_notes: string | null
+          min_order_quantity: number | null
           name: string
           operational_cost: number | null
+          order_multiple: number | null
+          pack_size: number | null
           primary_image_index: number | null
           product_type: string
           recommended_frequency: string | null
@@ -14704,6 +14832,8 @@ export type Database = {
           sku: string | null
           specifications: Json | null
           status: string
+          stock_notes: string | null
+          stock_status: Database["public"]["Enums"]["stock_status"] | null
           target_margin_pct: number | null
           tax_rate_estimate_pct: number | null
           total_units: number | null
@@ -14728,7 +14858,9 @@ export type Database = {
           created_at?: string
           created_by: string
           currency?: string
+          delivery_estimate?: string | null
           delivery_mode?: string | null
+          delivery_notes?: string | null
           demo_video_url?: string | null
           direct_cost?: number | null
           id?: string
@@ -14739,8 +14871,11 @@ export type Database = {
           labor_hours?: number | null
           labor_included_in_price?: boolean | null
           labor_notes?: string | null
+          min_order_quantity?: number | null
           name: string
           operational_cost?: number | null
+          order_multiple?: number | null
+          pack_size?: number | null
           primary_image_index?: number | null
           product_type?: string
           recommended_frequency?: string | null
@@ -14752,6 +14887,8 @@ export type Database = {
           sku?: string | null
           specifications?: Json | null
           status?: string
+          stock_notes?: string | null
+          stock_status?: Database["public"]["Enums"]["stock_status"] | null
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
@@ -14776,7 +14913,9 @@ export type Database = {
           created_at?: string
           created_by?: string
           currency?: string
+          delivery_estimate?: string | null
           delivery_mode?: string | null
+          delivery_notes?: string | null
           demo_video_url?: string | null
           direct_cost?: number | null
           id?: string
@@ -14787,8 +14926,11 @@ export type Database = {
           labor_hours?: number | null
           labor_included_in_price?: boolean | null
           labor_notes?: string | null
+          min_order_quantity?: number | null
           name?: string
           operational_cost?: number | null
+          order_multiple?: number | null
+          pack_size?: number | null
           primary_image_index?: number | null
           product_type?: string
           recommended_frequency?: string | null
@@ -14800,6 +14942,8 @@ export type Database = {
           sku?: string | null
           specifications?: Json | null
           status?: string
+          stock_notes?: string | null
+          stock_status?: Database["public"]["Enums"]["stock_status"] | null
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
@@ -21584,6 +21728,7 @@ export type Database = {
         | "protocol"
       session_status: "active" | "completed" | "abandoned" | "handed_off"
       sso_token_status: "pending" | "active" | "used" | "expired" | "revoked"
+      stock_status: "available" | "limited" | "backorder" | "out_of_stock"
       student_journey_stage:
         | "lead"
         | "inscrito"
@@ -21938,6 +22083,7 @@ export const Constants = {
       ],
       session_status: ["active", "completed", "abandoned", "handed_off"],
       sso_token_status: ["pending", "active", "used", "expired", "revoked"],
+      stock_status: ["available", "limited", "backorder", "out_of_stock"],
       student_journey_stage: [
         "lead",
         "inscrito",

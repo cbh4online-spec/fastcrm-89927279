@@ -61,6 +61,7 @@ import ClientOrderDetailPage from "./pages/client/ClientOrderDetailPage";
 // Admin Order Notes
 import OrderNotesPage from "./pages/OrderNotesPage";
 import OrderNoteDetailPage from "./pages/OrderNoteDetailPage";
+import OrderApprovalsPage from "./pages/OrderApprovalsPage";
 import ClientUsersPage from "./pages/ClientUsersPage";
 import ReportsOverview from "./pages/ReportsOverview";
 import ReportsForecasts from "./pages/ReportsForecasts";
@@ -232,6 +233,7 @@ const App = () => (
                       {/* Order Notes Admin Routes */}
                       <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />
                       <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
+                      <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
                       <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
                       
                       {/* Student Journey Module Routes */}
