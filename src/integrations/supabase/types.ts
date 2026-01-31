@@ -20765,11 +20765,23 @@ export type Database = {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
         Returns: Json
       }
+      get_public_table_count: { Args: never; Returns: number }
+      get_rls_policy_count: { Args: never; Returns: number }
       get_sj_permission: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: string
       }
       get_source_priority: { Args: { source_type: string }; Returns: number }
+      get_table_details: {
+        Args: never
+        Returns: {
+          has_rls: boolean
+          name: string
+          policy_count: number
+          row_count: number
+        }[]
+      }
+      get_trigger_count: { Args: never; Returns: number }
       get_upcoming_renewals: {
         Args: { days_ahead?: number }
         Returns: {
