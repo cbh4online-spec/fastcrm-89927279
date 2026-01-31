@@ -48,6 +48,7 @@ import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
 import { EntityTimelineSection } from "@/components/timeline";
+import { ContactOrderNotesSection } from "@/components/contacts/sections/ContactOrderNotesSection";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -342,6 +343,10 @@ export function ENIContactDetailWithSidebar() {
             entityId={id!}
             entityName={contact.name}
           />
+        );
+      case 'orders':
+        return (
+          <ContactOrderNotesSection contactId={id!} />
         );
       default:
         return (

@@ -30,6 +30,7 @@ const SECTION_LABELS: Record<MenuSection, string> = {
   'contacts': 'Contactos',
   'automations': 'Automações',
   'credit': 'Propostas de Crédito',
+  'orders': 'Encomendas B2B',
 };
 
 const ENTITY_LABELS: Record<EntityType, string> = {
