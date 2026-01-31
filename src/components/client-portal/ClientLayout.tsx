@@ -8,11 +8,13 @@ import {
   LogOut, 
   Menu, 
   X,
-  User
+  User,
+  Heart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useCart } from "@/contexts/CartContext";
+import { useClientFavorites } from "@/hooks/client-portal/useClientFavorites";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,14 +25,22 @@ interface ClientLayoutProps {
 const navItems = [
   { path: "/client/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/client/catalog", icon: Package, label: "Catálogo" },
-  { path: "/client/cart", icon: ShoppingCart, label: "Carrinho" },
+  { path: "/client/favorites", icon: Heart, label: "Favoritos", showBadge: "favorites" as const },
+  { path: "/client/cart", icon: ShoppingCart, label: "Carrinho", showBadge: "cart" as const },
   { path: "/client/orders", icon: FileText, label: "Encomendas" },
 ];
 
 export function ClientLayout({ children }: ClientLayoutProps) {
   const { clientUser, loading, signOut, isAuthenticated } = useClientAuth();
   const { itemCount } = useCart();
+  const { favoriteCount } = useClientFavorites();
   const location = useLocation();
+  
+  const getBadgeCount = (badgeType?: "cart" | "favorites") => {
+    if (badgeType === "cart") return itemCount;
+    if (badgeType === "favorites") return favoriteCount;
+    return 0;
+  };
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (loading) {
@@ -60,7 +70,9 @@ export function ClientLayout({ children }: ClientLayoutProps) {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
+            {navItems.map((item) => {
+              const badgeCount = getBadgeCount(item.showBadge);
+              return (
               <Link key={item.path} to={item.path}>
                 <Button
                   variant={location.pathname === item.path ? "secondary" : "ghost"}
@@ -69,14 +81,19 @@ export function ClientLayout({ children }: ClientLayoutProps) {
                 >
                   <item.icon className="h-4 w-4 mr-2" />
                   {item.label}
-                  {item.path === "/client/cart" && itemCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                      {itemCount}
+                  {badgeCount > 0 && (
+                    <span className={cn(
+                      "absolute -top-1 -right-1 h-5 w-5 rounded-full text-xs flex items-center justify-center",
+                      item.showBadge === "favorites" 
+                        ? "bg-red-500 text-white" 
+                        : "bg-primary text-primary-foreground"
+                    )}>
+                      {badgeCount}
                     </span>
                   )}
                 </Button>
               </Link>
-            ))}
+            )})}
           </nav>
 
           {/* User Menu */}
@@ -106,7 +123,9 @@ export function ClientLayout({ children }: ClientLayoutProps) {
         {mobileMenuOpen && (
           <div className="md:hidden border-t bg-background p-4">
             <nav className="flex flex-col gap-2">
-              {navItems.map((item) => (
+              {navItems.map((item) => {
+                const badgeCount = getBadgeCount(item.showBadge);
+                return (
                 <Link 
                   key={item.path} 
                   to={item.path}
@@ -118,14 +137,19 @@ export function ClientLayout({ children }: ClientLayoutProps) {
                   >
                     <item.icon className="h-4 w-4 mr-2" />
                     {item.label}
-                    {item.path === "/client/cart" && itemCount > 0 && (
-                      <span className="ml-auto h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                        {itemCount}
+                    {badgeCount > 0 && (
+                      <span className={cn(
+                        "ml-auto h-5 w-5 rounded-full text-xs flex items-center justify-center",
+                        item.showBadge === "favorites"
+                          ? "bg-red-500 text-white"
+                          : "bg-primary text-primary-foreground"
+                      )}>
+                        {badgeCount}
                       </span>
                     )}
                   </Button>
                 </Link>
-              ))}
+              )})}
             </nav>
           </div>
         )}
