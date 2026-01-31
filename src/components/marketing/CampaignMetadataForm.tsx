@@ -204,15 +204,26 @@ export function CampaignMetadataForm({
             <ScrollArea className="flex-1">
               <div className="p-4">
                 <div
-                  className="bg-white rounded-lg shadow-sm"
-                  dangerouslySetInnerHTML={{
-                    __html: html
-                      .replace(/\{\{primeiro_nome\}\}/g, 'João')
-                      .replace(/\{\{nome_cliente\}\}/g, 'João Silva')
-                      .replace(/\{\{empresa_nome\}\}/g, 'Minha Empresa')
-                      .replace(/\{\{subject\}\}/g, formData.subject || 'Assunto'),
-                  }}
-                />
+                  className="bg-white rounded-lg shadow-sm overflow-hidden"
+                  style={{ minHeight: '400px' }}
+                >
+                  {html ? (
+                    <iframe
+                      srcDoc={html
+                        .replace(/\{\{primeiro_nome\}\}/g, 'João')
+                        .replace(/\{\{nome_cliente\}\}/g, 'João Silva')
+                        .replace(/\{\{empresa_nome\}\}/g, 'Minha Empresa')
+                        .replace(/\{\{subject\}\}/g, formData.subject || 'Assunto')}
+                      title="Email Preview"
+                      className="w-full h-[600px] border-0"
+                      sandbox="allow-same-origin"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                      Nenhum conteúdo de email
+                    </div>
+                  )}
+                </div>
               </div>
             </ScrollArea>
           </div>
