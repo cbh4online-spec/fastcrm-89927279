@@ -22,18 +22,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useClientUsers, useClientOrders } from "@/hooks/useClientUsers";
-import { clientUserStatusConfig, type ClientUserStatus } from "@/types/client-user";
+import { clientUserStatusConfig, type ClientUserStatus, type ClientUser } from "@/types/client-user";
 import { orderNoteStatusConfig } from "@/types/order-note";
-import { User, Search, Mail, Phone, Building2, CreditCard, FileText, Eye, X } from "lucide-react";
+import { EditClientDialog } from "./EditClientDialog";
+import { User, Search, Mail, Phone, Building2, CreditCard, FileText, Eye, X, MoreHorizontal, Pencil } from "lucide-react";
 
 export function ClientUsersList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ClientUserStatus | "all">("all");
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [editingClient, setEditingClient] = useState<ClientUser | null>(null);
 
-  const { clients, loading, error } = useClientUsers({
+  const { clients, loading, error, refetch } = useClientUsers({
     status: statusFilter,
     search,
   });
@@ -170,9 +178,29 @@ export function ClientUsersList() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedClient(client.id);
+                            }}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingClient(client);
+                            }}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -202,6 +230,13 @@ export function ClientUsersList() {
           </Card>
         )}
       </div>
+      {/* Edit Dialog */}
+      <EditClientDialog
+        client={editingClient}
+        open={!!editingClient}
+        onOpenChange={(open) => !open && setEditingClient(null)}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

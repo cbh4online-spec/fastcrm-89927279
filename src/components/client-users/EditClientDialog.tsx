@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -421,7 +420,7 @@ export function EditClientDialog({
               )}
             />
 
-            <DialogFooter>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
@@ -433,7 +432,7 @@ export function EditClientDialog({
                 {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Guardar Alterações
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
       </DialogContent>

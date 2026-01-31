@@ -9,7 +9,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -432,7 +431,7 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
               )}
             />
 
-            <DialogFooter>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
@@ -449,7 +448,7 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
                 )}
                 Criar Cliente
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
       </DialogContent>
