@@ -10107,6 +10107,7 @@ export type Database = {
           created_at: string
           created_by: string
           delivered_count: number | null
+          design_json: Json | null
           from_name: string
           id: string
           link_count: number | null
@@ -10139,6 +10140,7 @@ export type Database = {
           created_at?: string
           created_by: string
           delivered_count?: number | null
+          design_json?: Json | null
           from_name: string
           id?: string
           link_count?: number | null
@@ -10171,6 +10173,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           delivered_count?: number | null
+          design_json?: Json | null
           from_name?: string
           id?: string
           link_count?: number | null
