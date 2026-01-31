@@ -58,6 +58,7 @@ import ClientCartPage from "./pages/client/ClientCartPage";
 import ClientCheckoutPage from "./pages/client/ClientCheckoutPage";
 import ClientOrdersPage from "./pages/client/ClientOrdersPage";
 import ClientOrderDetailPage from "./pages/client/ClientOrderDetailPage";
+import ClientFavoritesPage from "./pages/client/ClientFavoritesPage";
 // Admin Order Notes
 import OrderNotesPage from "./pages/OrderNotesPage";
 import OrderNoteDetailPage from "./pages/OrderNoteDetailPage";
@@ -165,6 +166,7 @@ const App = () => (
                       <Route path="/client/checkout" element={<CartProvider><ClientCheckoutPage /></CartProvider>} />
                       <Route path="/client/orders" element={<CartProvider><ClientOrdersPage /></CartProvider>} />
                       <Route path="/client/orders/:id" element={<CartProvider><ClientOrderDetailPage /></CartProvider>} />
+                      <Route path="/client/favorites" element={<CartProvider><ClientFavoritesPage /></CartProvider>} />
                       
                       {/* Main Routes */}
                       <Route path="/" element={<MarketingHomepage />} />

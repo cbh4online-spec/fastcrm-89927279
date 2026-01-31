@@ -2945,6 +2945,49 @@ export type Database = {
           },
         ]
       }
+      client_favorites: {
+        Row: {
+          client_user_id: string
+          created_at: string
+          id: string
+          product_id: string
+        }
+        Insert: {
+          client_user_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+        }
+        Update: {
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_favorites_client_user_id_fkey"
+            columns: ["client_user_id"]
+            isOneToOne: false
+            referencedRelation: "client_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "client_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_price_tiers: {
         Row: {
           code: string
@@ -15057,6 +15100,7 @@ export type Database = {
           billing_frequency: string | null
           billing_type: string
           bundle_price_mode: string | null
+          business_types: string[] | null
           category: string | null
           commercial_description: string | null
           commission_default: number | null
@@ -15112,6 +15156,7 @@ export type Database = {
           billing_frequency?: string | null
           billing_type?: string
           bundle_price_mode?: string | null
+          business_types?: string[] | null
           category?: string | null
           commercial_description?: string | null
           commission_default?: number | null
@@ -15167,6 +15212,7 @@ export type Database = {
           billing_frequency?: string | null
           billing_type?: string
           bundle_price_mode?: string | null
+          business_types?: string[] | null
           category?: string | null
           commercial_description?: string | null
           commission_default?: number | null

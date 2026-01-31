@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { orderNoteStatusConfig, type OrderNote } from "@/types/order-note";
 import { ArrowRight, CreditCard, Package } from "lucide-react";
+import { RepeatOrderButton } from "@/components/client-portal/RepeatOrderButton";
 
 interface OrderCardProps {
   order: OrderNote;
@@ -100,8 +101,9 @@ export function OrderCard({ order }: OrderCardProps) {
             </p>
           )}
 
-          {/* Action Button */}
-          <div className="flex justify-end pt-2">
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2 pt-2">
+            <RepeatOrderButton order={order} />
             <Link to={`/client/orders/${order.id}`}>
               <Button variant="outline" size="sm" className="gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                 Ver detalhes
