@@ -12,32 +12,39 @@ import type {
   SocialBlockContent,
   FooterBlockContent,
   HtmlBlockContent,
+  HeroBlockContent,
+  ImageTextBlockContent,
+  ProductBlockContent,
+  TestimonialBlockContent,
+  CountdownBlockContent,
+  MenuBlockContent,
 } from '@/types/emailBuilder';
+
+function camelToKebab(str: string): string {
+  return str.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
+function stylesToString(styles: Record<string, any>): string {
+  return Object.entries(styles)
+    .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
+    .join('; ');
+}
 
 function renderTextBlock(block: EmailBlock): string {
   const content = block.content as TextBlockContent;
-  const styles = block.styles;
-  
-  const styleStr = Object.entries(styles)
-    .filter(([_, v]) => v)
-    .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
-    .join('; ');
-  
+  const styleStr = stylesToString(block.styles);
   return `<div style="${styleStr}">${content.html}</div>`;
 }
 
 function renderImageBlock(block: EmailBlock): string {
   const content = block.content as ImageBlockContent;
-  const styles = block.styles;
+  const wrapperStyle = stylesToString(block.styles);
+  const imgStyle = `max-width: 100%; height: auto;${block.styles.maxWidth ? ` max-width: ${block.styles.maxWidth};` : ''}`;
   
-  const wrapperStyle = Object.entries(styles)
-    .filter(([_, v]) => v)
-    .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
-    .join('; ');
-  
-  const imgStyle = `max-width: 100%; height: auto;${styles.maxWidth ? ` max-width: ${styles.maxWidth};` : ''}`;
-  
-  const img = `<img src="${content.src}" alt="${content.alt}" style="${imgStyle}" />`;
+  const img = content.src 
+    ? `<img src="${content.src}" alt="${content.alt}" style="${imgStyle}" />`
+    : `<div style="background: #f0f0f0; padding: 40px; text-align: center; color: #999;">Imagem</div>`;
   
   if (content.link) {
     return `<div style="${wrapperStyle}"><a href="${content.link}" target="_blank">${img}</a></div>`;
@@ -48,12 +55,7 @@ function renderImageBlock(block: EmailBlock): string {
 
 function renderButtonBlock(block: EmailBlock): string {
   const content = block.content as ButtonBlockContent;
-  const styles = block.styles;
-  
-  const wrapperStyle = Object.entries(styles)
-    .filter(([_, v]) => v)
-    .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
-    .join('; ');
+  const wrapperStyle = stylesToString(block.styles);
   
   const buttonStyle = [
     'display: inline-block',
@@ -70,12 +72,7 @@ function renderButtonBlock(block: EmailBlock): string {
 
 function renderDividerBlock(block: EmailBlock): string {
   const content = block.content as DividerBlockContent;
-  const styles = block.styles;
-  
-  const wrapperStyle = Object.entries(styles)
-    .filter(([_, v]) => v)
-    .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
-    .join('; ');
+  const wrapperStyle = stylesToString(block.styles);
   
   const hrStyle = [
     'border: none',
@@ -93,12 +90,7 @@ function renderSpacerBlock(block: EmailBlock): string {
 
 function renderSocialBlock(block: EmailBlock): string {
   const content = block.content as SocialBlockContent;
-  const styles = block.styles;
-  
-  const wrapperStyle = Object.entries(styles)
-    .filter(([_, v]) => v)
-    .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
-    .join('; ');
+  const wrapperStyle = stylesToString(block.styles);
   
   const iconSize = content.iconSize || '32px';
   
@@ -109,6 +101,7 @@ function renderSocialBlock(block: EmailBlock): string {
     linkedin: '💼',
     youtube: '▶️',
     tiktok: '🎵',
+    whatsapp: '💬',
   };
   
   const icons = content.networks
@@ -120,14 +113,13 @@ function renderSocialBlock(block: EmailBlock): string {
 
 function renderFooterBlock(block: EmailBlock, globalStyles: EmailGlobalStyles): string {
   const content = block.content as FooterBlockContent;
-  const styles = block.styles;
-  
-  const wrapperStyle = Object.entries(styles)
-    .filter(([_, v]) => v)
-    .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
-    .join('; ');
+  const wrapperStyle = stylesToString(block.styles);
   
   let footerHtml = `<p style="margin: 0;">${content.text}</p>`;
+  
+  if (content.companyInfo) {
+    footerHtml += `<p style="margin-top: 8px; opacity: 0.8;">${content.companyInfo}</p>`;
+  }
   
   if (content.showUnsubscribe) {
     footerHtml += `<p style="margin-top: 10px;"><a href="{{unsubscribe_url}}" style="color: ${globalStyles.linkColor};">Cancelar subscrição</a></p>`;
@@ -138,14 +130,195 @@ function renderFooterBlock(block: EmailBlock, globalStyles: EmailGlobalStyles): 
 
 function renderHtmlBlock(block: EmailBlock): string {
   const content = block.content as HtmlBlockContent;
-  const styles = block.styles;
-  
-  const wrapperStyle = Object.entries(styles)
-    .filter(([_, v]) => v)
-    .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
-    .join('; ');
-  
+  const wrapperStyle = stylesToString(block.styles);
   return `<div style="${wrapperStyle}">${content.html}</div>`;
+}
+
+// Premium block renderers
+function renderHeroBlock(block: EmailBlock): string {
+  const content = block.content as HeroBlockContent;
+  const height = content.height || '400px';
+  const alignment = content.alignment || 'center';
+  
+  const containerStyle = [
+    `min-height: ${height}`,
+    `background-color: ${content.backgroundColor || '#1a1a2e'}`,
+    content.backgroundImage ? `background-image: url(${content.backgroundImage})` : '',
+    'background-size: cover',
+    'background-position: center',
+    'position: relative',
+    'display: table',
+    'width: 100%',
+  ].filter(Boolean).join('; ');
+  
+  const overlayStyle = content.backgroundImage && content.overlayColor ? [
+    'position: absolute',
+    'top: 0',
+    'left: 0',
+    'right: 0',
+    'bottom: 0',
+    `background-color: ${content.overlayColor}`,
+    `opacity: ${content.overlayOpacity || 0.5}`,
+  ].join('; ') : '';
+  
+  const contentStyle = [
+    'display: table-cell',
+    'vertical-align: middle',
+    'padding: 40px 30px',
+    `text-align: ${alignment}`,
+    'position: relative',
+    'z-index: 1',
+  ].join('; ');
+  
+  const titleStyle = 'color: #ffffff; font-size: 36px; font-weight: bold; margin: 0 0 16px 0; line-height: 1.2;';
+  const subtitleStyle = 'color: rgba(255,255,255,0.9); font-size: 18px; margin: 0 0 24px 0; line-height: 1.5;';
+  const buttonStyle = content.buttonText ? [
+    'display: inline-block',
+    'text-decoration: none',
+    'font-weight: bold',
+    'padding: 14px 32px',
+    `background-color: ${content.buttonColor || '#3b82f6'}`,
+    'color: #ffffff',
+    'border-radius: 8px',
+    'font-size: 16px',
+  ].join('; ') : '';
+  
+  let innerHtml = '';
+  if (overlayStyle) {
+    innerHtml += `<div style="${overlayStyle}"></div>`;
+  }
+  innerHtml += `<div style="${contentStyle}">`;
+  innerHtml += `<h1 style="${titleStyle}">${content.title}</h1>`;
+  if (content.subtitle) {
+    innerHtml += `<p style="${subtitleStyle}">${content.subtitle}</p>`;
+  }
+  if (content.buttonText && content.buttonUrl) {
+    innerHtml += `<a href="${content.buttonUrl}" style="${buttonStyle}">${content.buttonText}</a>`;
+  }
+  innerHtml += '</div>';
+  
+  return `<div style="${containerStyle}">${innerHtml}</div>`;
+}
+
+function renderImageTextBlock(block: EmailBlock): string {
+  const content = block.content as ImageTextBlockContent;
+  const wrapperStyle = stylesToString(block.styles);
+  const imageWidth = parseInt(content.imageWidth) || 50;
+  const textWidth = 100 - imageWidth;
+  
+  const imgCell = `
+    <td style="width: ${imageWidth}%; vertical-align: top; padding: 10px;">
+      ${content.imageSrc 
+        ? `<img src="${content.imageSrc}" alt="${content.imageAlt}" style="max-width: 100%; height: auto; border-radius: 8px;" />`
+        : `<div style="background: #f0f0f0; padding: 60px; text-align: center; color: #999; border-radius: 8px;">Imagem</div>`
+      }
+    </td>
+  `;
+  
+  const buttonHtml = content.buttonText && content.buttonUrl
+    ? `<a href="${content.buttonUrl}" style="display: inline-block; text-decoration: none; font-weight: bold; padding: 10px 24px; background-color: ${content.buttonColor || '#3b82f6'}; color: #ffffff; border-radius: 6px; margin-top: 16px;">${content.buttonText}</a>`
+    : '';
+  
+  const textCell = `
+    <td style="width: ${textWidth}%; vertical-align: middle; padding: 10px;">
+      <h3 style="margin: 0 0 12px 0; font-size: 22px; font-weight: bold;">${content.title}</h3>
+      <p style="margin: 0; line-height: 1.6; color: #666;">${content.text}</p>
+      ${buttonHtml}
+    </td>
+  `;
+  
+  const cells = content.imagePosition === 'left' ? imgCell + textCell : textCell + imgCell;
+  
+  return `<div style="${wrapperStyle}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></div>`;
+}
+
+function renderProductBlock(block: EmailBlock): string {
+  const content = block.content as ProductBlockContent;
+  const wrapperStyle = stylesToString(block.styles);
+  
+  const badgeHtml = content.badge 
+    ? `<span style="display: inline-block; background-color: #ef4444; color: white; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 4px; margin-bottom: 12px;">${content.badge}</span>`
+    : '';
+  
+  const priceHtml = content.originalPrice
+    ? `<span style="text-decoration: line-through; color: #999; margin-right: 8px;">${content.originalPrice}</span><span style="color: #10b981; font-weight: bold; font-size: 24px;">${content.price}</span>`
+    : `<span style="font-weight: bold; font-size: 24px;">${content.price}</span>`;
+  
+  return `
+    <div style="${wrapperStyle}">
+      ${badgeHtml}
+      ${content.imageSrc 
+        ? `<img src="${content.imageSrc}" alt="${content.imageAlt}" style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 16px;" />`
+        : `<div style="background: #f0f0f0; padding: 60px; text-align: center; color: #999; border-radius: 8px; margin-bottom: 16px;">Imagem do Produto</div>`
+      }
+      <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: bold;">${content.name}</h3>
+      ${content.description ? `<p style="margin: 0 0 12px 0; color: #666; line-height: 1.5;">${content.description}</p>` : ''}
+      <div style="margin-bottom: 16px;">${priceHtml}</div>
+      <a href="${content.buttonUrl}" style="display: inline-block; text-decoration: none; font-weight: bold; padding: 12px 28px; background-color: ${content.buttonColor || '#10b981'}; color: #ffffff; border-radius: 8px;">${content.buttonText}</a>
+    </div>
+  `;
+}
+
+function renderTestimonialBlock(block: EmailBlock): string {
+  const content = block.content as TestimonialBlockContent;
+  const wrapperStyle = stylesToString(block.styles);
+  
+  const stars = content.rating 
+    ? '⭐'.repeat(content.rating)
+    : '';
+  
+  const authorImageHtml = content.authorImage
+    ? `<img src="${content.authorImage}" alt="${content.authorName}" style="width: 60px; height: 60px; border-radius: 50%; margin-bottom: 12px;" />`
+    : '';
+  
+  return `
+    <div style="${wrapperStyle}">
+      ${stars ? `<div style="margin-bottom: 16px; font-size: 24px;">${stars}</div>` : ''}
+      <p style="margin: 0 0 20px 0; font-size: 18px; font-style: italic; line-height: 1.6;">${content.quote}</p>
+      ${authorImageHtml}
+      <p style="margin: 0; font-weight: bold;">${content.authorName}</p>
+      ${content.authorTitle ? `<p style="margin: 4px 0 0 0; color: #666; font-size: 14px;">${content.authorTitle}</p>` : ''}
+    </div>
+  `;
+}
+
+function renderCountdownBlock(block: EmailBlock): string {
+  const content = block.content as CountdownBlockContent;
+  const wrapperStyle = stylesToString(block.styles);
+  const bgColor = content.backgroundColor || '#1a1a2e';
+  const textColor = content.textColor || '#ffffff';
+  
+  // Note: Real countdown requires JS which doesn't work in email.
+  // This renders a static placeholder that can be replaced with an image-based countdown service.
+  const boxStyle = `display: inline-block; background-color: ${content.accentColor || '#ef4444'}; color: ${textColor}; padding: 12px 16px; border-radius: 8px; margin: 4px; text-align: center; min-width: 60px;`;
+  
+  return `
+    <div style="${wrapperStyle}; background-color: ${bgColor}; color: ${textColor};">
+      ${content.title ? `<h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: bold;">${content.title}</h2>` : ''}
+      ${content.subtitle ? `<p style="margin: 0 0 20px 0; opacity: 0.9;">${content.subtitle}</p>` : ''}
+      <div>
+        <div style="${boxStyle}"><div style="font-size: 28px; font-weight: bold;">00</div><div style="font-size: 12px;">DIAS</div></div>
+        <div style="${boxStyle}"><div style="font-size: 28px; font-weight: bold;">00</div><div style="font-size: 12px;">HORAS</div></div>
+        <div style="${boxStyle}"><div style="font-size: 28px; font-weight: bold;">00</div><div style="font-size: 12px;">MIN</div></div>
+        <div style="${boxStyle}"><div style="font-size: 28px; font-weight: bold;">00</div><div style="font-size: 12px;">SEG</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMenuBlock(block: EmailBlock): string {
+  const content = block.content as MenuBlockContent;
+  const wrapperStyle = stylesToString(block.styles);
+  const separator = content.separator || '|';
+  
+  const links = content.items
+    .map((item, i) => {
+      const sep = i < content.items.length - 1 ? ` <span style="margin: 0 12px; color: #ccc;">${separator}</span>` : '';
+      return `<a href="${item.url}" style="text-decoration: none; color: inherit;">${item.text}</a>${sep}`;
+    })
+    .join('');
+  
+  return `<div style="${wrapperStyle}; text-align: ${content.alignment || 'center'};">${links}</div>`;
 }
 
 function renderBlock(block: EmailBlock, globalStyles: EmailGlobalStyles): string {
@@ -168,18 +341,25 @@ function renderBlock(block: EmailBlock, globalStyles: EmailGlobalStyles): string
     case 'html':
       return renderHtmlBlock(block);
     case 'video':
-      // Render video as image with play button overlay
       return renderImageBlock(block);
+    case 'hero':
+      return renderHeroBlock(block);
+    case 'imageText':
+      return renderImageTextBlock(block);
+    case 'product':
+      return renderProductBlock(block);
+    case 'testimonial':
+      return renderTestimonialBlock(block);
+    case 'countdown':
+      return renderCountdownBlock(block);
+    case 'menu':
+      return renderMenuBlock(block);
     case 'columns':
       // TODO: Implement columns rendering
       return '';
     default:
       return '';
   }
-}
-
-function camelToKebab(str: string): string {
-  return str.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
 export function renderEmailToHtml(design: EmailDesign): string {
