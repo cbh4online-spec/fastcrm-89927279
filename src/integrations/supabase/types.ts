@@ -3290,6 +3290,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          abc_category: string | null
           activity_profile_id: string | null
           activity_profile_override: Json | null
           address: string | null
@@ -3303,6 +3304,7 @@ export type Database = {
           assigned_to: string | null
           automation_active: boolean | null
           avatar_url: string | null
+          average_ticket: number | null
           business_status: string | null
           cae_codes: string[] | null
           cae_description: string | null
@@ -3333,6 +3335,7 @@ export type Database = {
           industry: string | null
           instagram_url: string | null
           last_contact_at: string | null
+          last_purchase_date: string | null
           latitude: number | null
           legal_nature: string | null
           linkedin_url: string | null
@@ -3348,16 +3351,22 @@ export type Database = {
           preferred_payment_method: string | null
           price_level: string | null
           region: string | null
+          sales_2023: number | null
+          sales_2024: number | null
+          sales_2025: number | null
+          sales_2026: number | null
           size: string | null
           source: string | null
           tags: string[] | null
           tax_id: string | null
+          total_revenue: number | null
           twitter_url: string | null
           updated_at: string
           website: string | null
           workspace_id: string
         }
         Insert: {
+          abc_category?: string | null
           activity_profile_id?: string | null
           activity_profile_override?: Json | null
           address?: string | null
@@ -3371,6 +3380,7 @@ export type Database = {
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
+          average_ticket?: number | null
           business_status?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
@@ -3401,6 +3411,7 @@ export type Database = {
           industry?: string | null
           instagram_url?: string | null
           last_contact_at?: string | null
+          last_purchase_date?: string | null
           latitude?: number | null
           legal_nature?: string | null
           linkedin_url?: string | null
@@ -3416,16 +3427,22 @@ export type Database = {
           preferred_payment_method?: string | null
           price_level?: string | null
           region?: string | null
+          sales_2023?: number | null
+          sales_2024?: number | null
+          sales_2025?: number | null
+          sales_2026?: number | null
           size?: string | null
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
           website?: string | null
           workspace_id: string
         }
         Update: {
+          abc_category?: string | null
           activity_profile_id?: string | null
           activity_profile_override?: Json | null
           address?: string | null
@@ -3439,6 +3456,7 @@ export type Database = {
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
+          average_ticket?: number | null
           business_status?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
@@ -3469,6 +3487,7 @@ export type Database = {
           industry?: string | null
           instagram_url?: string | null
           last_contact_at?: string | null
+          last_purchase_date?: string | null
           latitude?: number | null
           legal_nature?: string | null
           linkedin_url?: string | null
@@ -3484,10 +3503,15 @@ export type Database = {
           preferred_payment_method?: string | null
           price_level?: string | null
           region?: string | null
+          sales_2023?: number | null
+          sales_2024?: number | null
+          sales_2025?: number | null
+          sales_2026?: number | null
           size?: string | null
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
           website?: string | null

@@ -44,6 +44,15 @@ export interface Company {
   credit_active: boolean | null;
   activity_profile_id: string | null;
   profile_field_values?: Record<string, unknown>;
+  // Commercial history fields
+  sales_2023: number | null;
+  sales_2024: number | null;
+  sales_2025: number | null;
+  sales_2026: number | null;
+  total_revenue: number | null;
+  average_ticket: number | null;
+  last_purchase_date: string | null;
+  abc_category: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -162,6 +171,15 @@ export function useCompanies() {
       if (data.credit_limit !== undefined) updateData.credit_limit = data.credit_limit;
       if (data.preferred_payment_method !== undefined) updateData.preferred_payment_method = data.preferred_payment_method;
       if (data.credit_active !== undefined) updateData.credit_active = data.credit_active;
+      // Commercial history fields
+      if ((data as any).sales_2023 !== undefined) updateData.sales_2023 = (data as any).sales_2023;
+      if ((data as any).sales_2024 !== undefined) updateData.sales_2024 = (data as any).sales_2024;
+      if ((data as any).sales_2025 !== undefined) updateData.sales_2025 = (data as any).sales_2025;
+      if ((data as any).sales_2026 !== undefined) updateData.sales_2026 = (data as any).sales_2026;
+      if ((data as any).total_revenue !== undefined) updateData.total_revenue = (data as any).total_revenue;
+      if ((data as any).average_ticket !== undefined) updateData.average_ticket = (data as any).average_ticket;
+      if ((data as any).last_purchase_date !== undefined) updateData.last_purchase_date = (data as any).last_purchase_date;
+      if ((data as any).abc_category !== undefined) updateData.abc_category = (data as any).abc_category;
 
       const { data: company, error } = await supabase
         .from("companies")

@@ -19,6 +19,7 @@ import {
   Users,
   Landmark,
   ShoppingCart,
+  TrendingUp,
 } from 'lucide-react';
 import { EntityType, MenuSection } from '@/types/entity';
 import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
@@ -72,6 +73,7 @@ const MENU_SECTIONS: {
     items: [
       { id: 'opportunities', label: 'Oportunidades', icon: Target, showFor: ['lead', 'contact', 'company'] },
       { id: 'proposals', label: 'Propostas', icon: FileText, showFor: ['lead', 'contact', 'company'] },
+      { id: 'history', label: 'Histórico Comercial', icon: TrendingUp, showFor: ['contact', 'company'] },
       { id: 'credit', label: 'Crédito', icon: Landmark, showFor: ['lead', 'contact', 'company'] },
       { id: 'payments', label: 'Pagamentos', icon: CreditCard, showFor: ['contact', 'company'] },
       { id: 'orders', label: 'Encomendas B2B', icon: ShoppingCart, showFor: ['contact', 'company'] },
