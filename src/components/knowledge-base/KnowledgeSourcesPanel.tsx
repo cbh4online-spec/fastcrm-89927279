@@ -180,10 +180,10 @@ export function KnowledgeSourcesPanel({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {source.processingStatus === 'failed' && onReprocess && (
+                          {(source.processingStatus === 'failed' || source.processingStatus === 'pending' || source.processingStatus === 'completed') && onReprocess && (
                             <DropdownMenuItem onClick={() => onReprocess(source.id)}>
                               <RefreshCw className="h-4 w-4 mr-2" />
-                              Reprocessar
+                              {source.processingStatus === 'completed' ? 'Reprocessar' : 'Processar Agora'}
                             </DropdownMenuItem>
                           )}
                           {onDelete && (

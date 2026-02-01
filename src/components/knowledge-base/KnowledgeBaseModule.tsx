@@ -470,13 +470,20 @@ export function KnowledgeBaseModule() {
                           toast.info('A reprocessar fonte...');
                           await supabase
                             .from('knowledge_sources')
-                            .update({ processing_status: 'processing' })
+                            .update({ processing_status: 'processing', processing_error: null })
                             .eq('id', sourceId);
-                          await supabase.functions.invoke('knowledge-process', {
+                          
+                          // Use the correct function based on source type
+                          const functionName = source.sourceType === 'document' 
+                            ? 'knowledge-document-process' 
+                            : 'knowledge-process';
+                          
+                          await supabase.functions.invoke(functionName, {
                             body: {
                               sourceId,
                               sourceType: source.sourceType,
                               url: source.sourceUrl,
+                              filePath: source.sourceFilePath,
                               knowledgeBaseType: 'general'
                             }
                           });
