@@ -15,6 +15,7 @@ import {
   Zap,
   Plus,
   ShoppingCart,
+  GraduationCap,
 } from 'lucide-react';
 import { MenuSection } from '@/types/entity';
 
@@ -137,6 +138,13 @@ const SECTION_CONFIG: Record<MenuSection, {
     title: 'Sem encomendas B2B',
     description: 'Nenhuma encomenda B2B associada.',
     suggestion: 'As encomendas aparecerão quando houver clientes B2B com encomendas.',
+  },
+  'student-journey': {
+    icon: GraduationCap,
+    title: 'Sem perfil Student Journey',
+    description: 'Este contacto não tem perfil no Student Journey.',
+    suggestion: 'Cria um perfil para acompanhar a jornada educacional.',
+    actionLabel: 'Criar Perfil',
   },
 };
 

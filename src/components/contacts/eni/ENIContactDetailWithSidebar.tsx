@@ -49,6 +49,8 @@ import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
 import { EntityTimelineSection } from "@/components/timeline";
 import { ContactOrderNotesSection } from "@/components/contacts/sections/ContactOrderNotesSection";
+import { ContactStudentJourneySection } from "@/components/contacts/sections/ContactStudentJourneySection";
+import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -79,6 +81,9 @@ export function ENIContactDetailWithSidebar() {
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  
+  // Student Journey profile check
+  const { data: sjProfile } = useContactStudentJourneyProfile(id);
   
   const contact = contacts.find(c => c.id === id) as unknown as ENIContact | undefined;
   const { role } = useContactPermissions();
@@ -348,6 +353,14 @@ export function ENIContactDetailWithSidebar() {
         return (
           <ContactOrderNotesSection contactId={id!} />
         );
+      case 'student-journey':
+        return (
+          <ContactStudentJourneySection 
+            contactId={id!} 
+            contactName={contact.name}
+            contactEmail={contact.email}
+          />
+        );
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
@@ -486,6 +499,7 @@ export function ENIContactDetailWithSidebar() {
           activeSection={activeSection}
           onSectionChange={setActiveSection}
           counts={counts}
+          hasStudentJourneyProfile={!!sjProfile}
         />
 
         {/* Center Content */}

@@ -20,6 +20,7 @@ import {
   Landmark,
   ShoppingCart,
   TrendingUp,
+  GraduationCap,
 } from 'lucide-react';
 import { EntityType, MenuSection } from '@/types/entity';
 import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
@@ -38,6 +39,7 @@ interface EntitySidebarMenuProps {
     credit?: number;
     orders?: number;
   };
+  hasStudentJourneyProfile?: boolean;
 }
 
 interface MenuItem {
@@ -87,6 +89,12 @@ const MENU_SECTIONS: {
       { id: 'custom-fields', label: 'Campos Personalizados', icon: Layers, showFor: ['lead', 'contact', 'company'] },
     ],
   },
+  {
+    title: 'MÓDULOS',
+    items: [
+      { id: 'student-journey', label: 'Student Journey', icon: GraduationCap, showFor: ['contact'] },
+    ],
+  },
 ];
 
 export function EntitySidebarMenu({
@@ -94,6 +102,7 @@ export function EntitySidebarMenu({
   activeSection,
   onSectionChange,
   counts = {},
+  hasStudentJourneyProfile = false,
 }: EntitySidebarMenuProps) {
   const { data: layoutConfig } = useWorkspaceLayoutConfig(entityType);
   const visibleSections = getVisibleSections(entityType, layoutConfig);
@@ -115,6 +124,10 @@ export function EntitySidebarMenu({
     // Credit section is only visible if module is installed
     if (sectionId === 'credit' && !isModuleInstalled('credit-intermediation')) {
       return false;
+    }
+    // Student Journey section is visible if module is installed OR contact has a profile
+    if (sectionId === 'student-journey') {
+      return isModuleInstalled('student-journey') || hasStudentJourneyProfile;
     }
     return visibleSections.includes(sectionId);
   };
