@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { toast } from "sonner";
+import { trackPaymentReceived } from "@/modules/growth-seo/lib/gtmEvents";
 
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
 
@@ -366,6 +367,15 @@ export function useMarkInvoicePaid() {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", data.id] });
       toast.success("Fatura marcada como paga");
+      
+      // Track payment in GTM
+      trackPaymentReceived({
+        invoice_id: data.id,
+        value: data.total,
+        currency: 'EUR',
+        customer_id: data.company_id || data.contact_id || data.lead_id || undefined,
+        workspace_id: data.workspace_id,
+      });
     },
     onError: (error) => {
       console.error("Error marking invoice as paid:", error);

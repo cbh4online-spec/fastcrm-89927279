@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { trackProposalAccepted } from "@/modules/growth-seo/lib/gtmEvents";
 import type {
   Proposal,
   ProposalTemplate,
@@ -285,6 +286,13 @@ export function useUpdateProposal() {
 
   return useMutation({
     mutationFn: async ({ id, createVersion, ...input }: UpdateProposalInput & { id: string; createVersion?: boolean }) => {
+      // Get current status before update to detect status change
+      const { data: currentProposal } = await supabase
+        .from("proposals")
+        .select("status")
+        .eq("id", id)
+        .single();
+
       const updateData: Record<string, unknown> = {};
       if (input.title !== undefined) updateData.title = input.title;
       if (input.content_blocks !== undefined) updateData.content_blocks = input.content_blocks;
@@ -347,12 +355,27 @@ export function useUpdateProposal() {
         await supabase.from("proposal_versions").insert(versionData as never);
       }
 
-      return data as unknown as Proposal;
+      return { 
+        ...(data as unknown as Proposal), 
+        _previousStatus: currentProposal?.status 
+      };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       queryClient.invalidateQueries({ queryKey: ["proposal"] });
       toast.success("Proposta atualizada!");
+      
+      // Track proposal accepted in GTM when status changes to 'accepted'
+      if (data.status === 'accepted' && data._previousStatus !== 'accepted') {
+        trackProposalAccepted({
+          proposal_id: data.id,
+          proposal_title: data.title,
+          value: data.price || 0,
+          currency: data.currency || 'EUR',
+          opportunity_id: data.opportunity_id || undefined,
+          workspace_id: data.workspace_id,
+        });
+      }
     },
     onError: (error) => {
       toast.error(`Erro ao atualizar proposta: ${error.message}`);
