@@ -244,6 +244,7 @@ function getMaxAttempts(jobType: string): number {
     'batch-process': 2,
     'integration-sync': 5,
     'rag-indexing': 3,
+    'knowledge-document': 2,
   };
   return maxAttempts[jobType] || 3;
 }
