@@ -1,161 +1,106 @@
 
-
-# Plano: Redesenho da Secção Student Journey no Contacto
+# Plano: Substituir Progresso por Data do Curso na Jornada
 
 ## Problema Identificado
 
-A interface actual está fragmentada e confusa:
-1. Card de perfil com 2 botões redundantes (Ver Perfil / Inscrições)
-2. Secção "Jornada do Aluno" vazia (sem inscrições)
-3. "Formações Disponíveis" ocupa muito espaço visual
-4. Não há hierarquia clara nem call-to-action óbvio
+Na tab "Jornada", os cursos presenciais mostram "0%" de progresso, o que não faz sentido. Para formações presenciais, o que interessa saber é **quando o curso acontece** (data de início/fim).
 
 ## Solução Proposta
 
-Consolidar tudo num único card organizado em tabs, mostrando claramente:
-- O estado actual do aluno
-- Cursos onde está inscrito vs disponíveis
-- Acção principal clara
+Substituir a barra de progresso por informação contextual baseada no tipo de curso:
+- **Cursos presenciais**: Mostrar data do curso (se disponível) ou data de inscrição
+- **Cursos online**: Mantém progresso % (se aplicável)
 
-## Nova Estrutura Visual
+## Alteração Visual
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│  [Avatar] Karen Guimarães                      [Badge Lead] │
-│           Lifecycle: Lead • Score: 50/100                   │
-│                                                             │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│  │ Minha       │ │ Formações   │ │ Perfil      │            │
-│  │ Jornada (0) │ │ Disponíveis │ │ Completo    │            │
-│  └─────────────┘ └─────────────┘ └─────────────┘            │
-│                                                             │
-│  ══════════════════════════════════════════════             │
-│                                                             │
-│  [TAB: Minha Jornada - se houver inscrições]                │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ ✓ Iniciação          │ Em Progresso  │ 85%         │    │
-│  │ ○ Básica             │ Por Iniciar   │ 0%          │    │
-│  │ ✓ Aromaterapia       │ Concluído     │ 100%        │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                             │
-│  [TAB: Formações Disponíveis]                               │
-│  ┌──────────────────┐ ┌──────────────────┐                  │
-│  │ Avançada         │ │ Tricologia       │                  │
-│  │ Presencial       │ │ Presencial       │                  │
-│  │ [+ Inscrever]    │ │ [+ Inscrever]    │                  │
-│  └──────────────────┘ └──────────────────┘                  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+ANTES (confuso):
+┌─────────────────────────────────────────────────────────┐
+│ → Avançada           [███░░░░░░░] 0%      Em Progresso │
+│ → Básica             [███░░░░░░░] 0%      Em Progresso │
+└─────────────────────────────────────────────────────────┘
+
+DEPOIS (mais útil):
+┌─────────────────────────────────────────────────────────┐
+│ → Avançada           Início: 15 Mar 2026   Em Progresso │
+│ → Básica             Início: 22 Mar 2026   Em Progresso │
+└─────────────────────────────────────────────────────────┘
+
+OU (se não há data definida):
+┌─────────────────────────────────────────────────────────┐
+│ → Avançada           Presencial            Em Progresso │
+│ → Básica             Presencial            Em Progresso │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## Alterações Técnicas
 
 ### Ficheiro: `src/components/contacts/sections/ContactStudentJourneySection.tsx`
 
-**1. Remover múltiplos Cards e usar Tabs**
-```typescript
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-```
+1. Remover a barra de progresso para todos os cursos
+2. Mostrar informação contextual:
+   - Se curso tem `start_date`: mostrar "Início: {data formatada}"
+   - Se curso tem `end_date` e `start_date`: mostrar período
+   - Se não tem datas: mostrar tipo do curso (Presencial/Online)
+   - Para cursos concluídos: mostrar data de conclusão se disponível
 
-**2. Novo Layout Consolidado**
-- Header unificado com avatar, nome, stage e score
-- 3 tabs: "Minha Jornada", "Formações Disponíveis", "Perfil Completo"
-- Cada tab tem conteúdo focado e accionável
-
-**3. Tab "Minha Jornada"**
-- Lista vertical de inscrições com:
-  - Nome do curso
-  - Estado (badge colorido)
-  - Barra de progresso inline
-- Se vazio: mensagem "Ainda não iniciou nenhuma formação"
-
-**4. Tab "Formações Disponíveis"**
-- Grid de cursos disponíveis
-- Cada curso com botão "Inscrever" directo
-- Ao clicar abre o diálogo de inscrição com curso pré-seleccionado
-
-**5. Tab "Perfil Completo"**
-- Link para página de detalhe do perfil SJ
-- Mostra estatísticas resumidas
-- Acções avançadas (editar, follow-up)
-
-## Melhorias de UX
-
-| Antes | Depois |
-|-------|--------|
-| 3 cards separados | 1 card com tabs |
-| Botões redundantes | Navegação por tabs |
-| Jornada vazia confusa | Mensagem clara + CTA |
-| Cursos sem acção directa | Botão "Inscrever" por curso |
-| Informação dispersa | Tudo num só lugar |
-
-## Código Principal
+### Lógica de Exibição
 
 ```typescript
-<Card>
-  <CardHeader>
-    {/* Avatar + Nome + Badges */}
-    <div className="flex items-center gap-3">
-      <Avatar />
-      <div>
-        <h3>{profile.full_name}</h3>
-        <span>Lifecycle: {stage} • Score: {score}</span>
-      </div>
-      <Badge>{stageConfig.label}</Badge>
-    </div>
-  </CardHeader>
+// Determinar o que mostrar em vez do progresso
+const getEnrollmentInfo = (enrollment: any) => {
+  const course = enrollment.course;
   
-  <CardContent>
-    <Tabs defaultValue={enrollments.length > 0 ? "journey" : "available"}>
-      <TabsList className="w-full grid grid-cols-3">
-        <TabsTrigger value="journey">
-          Minha Jornada ({enrollments.length})
-        </TabsTrigger>
-        <TabsTrigger value="available">
-          Disponíveis ({availableCourses.length})
-        </TabsTrigger>
-        <TabsTrigger value="profile">
-          Perfil
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="journey">
-        {/* Lista de inscrições com progresso inline */}
-      </TabsContent>
-      
-      <TabsContent value="available">
-        {/* Grid de cursos com botão inscrever */}
-      </TabsContent>
-      
-      <TabsContent value="profile">
-        {/* Links e estatísticas */}
-      </TabsContent>
-    </Tabs>
-  </CardContent>
-</Card>
+  // Se concluído, mostrar data de conclusão
+  if (enrollment.status === 'completed' && enrollment.completed_at) {
+    return `Concluído: ${format(new Date(enrollment.completed_at), 'dd MMM yyyy', { locale: pt })}`;
+  }
+  
+  // Se tem data de início do curso
+  if (course?.start_date) {
+    return `Início: ${format(new Date(course.start_date), 'dd MMM yyyy', { locale: pt })}`;
+  }
+  
+  // Se tem data de início da inscrição
+  if (enrollment.started_at) {
+    return `Desde: ${format(new Date(enrollment.started_at), 'dd MMM yyyy', { locale: pt })}`;
+  }
+  
+  // Fallback: tipo do curso
+  return course?.course_type === 'presencial' ? 'Presencial' 
+       : course?.course_type === 'online' ? 'Online' 
+       : 'Híbrido';
+};
 ```
 
-## Comportamento das Inscrições
+### Novo Layout do Item
 
-Na tab "Minha Jornada", cada inscrição mostra:
-- Ícone de estado (✓ concluído, → em progresso, ○ por iniciar)
-- Nome do curso
-- Estado como texto colorido
-- Barra de progresso pequena
-- Clicável para ir ao detalhe
+```typescript
+<div className="flex items-center gap-3">
+  <StatusIcon className="w-4 h-4 shrink-0" />
+  <div className="flex-1 min-w-0">
+    <p className="text-sm font-medium truncate">
+      {enrollment.course?.name || "Curso"}
+    </p>
+    <p className="text-xs text-muted-foreground mt-0.5">
+      {getEnrollmentInfo(enrollment)}
+    </p>
+  </div>
+  <Badge variant="secondary">
+    {statusInfo.label}
+  </Badge>
+</div>
+```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/contacts/sections/ContactStudentJourneySection.tsx` | Redesenho completo com tabs |
+| `src/components/contacts/sections/ContactStudentJourneySection.tsx` | Substituir Progress por data/info contextual |
 
 ## Resultado Esperado
 
-1. Interface consolidada num único card
-2. Navegação clara por tabs
-3. "Formações Disponíveis" mostra cursos com botão de inscrição por curso
-4. "Minha Jornada" mostra progresso de forma linear e clara
-5. Acesso rápido ao perfil completo
-6. Mensagens claras quando não há dados
-
+1. Cursos mostram informação relevante (data ou tipo) em vez de progresso
+2. Layout mais limpo sem barra de progresso desnecessária
+3. Informação mais útil para o utilizador perceber quando é o curso
+4. Para cursos concluídos, mostra quando foi concluído
