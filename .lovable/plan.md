@@ -1,158 +1,222 @@
 
 
-# Plano: Template Atendimento Cliente Profissional
+# Plano: Agentes IA Multi-Plataforma com Bases de Conhecimento Independentes
 
 ## Objetivo
-Criar um novo template de fluxo conversacional para **Atendimento Geral a Clientes Profissionais (B2B)**, baseado na Matriz Geral de Atendimento fornecida.
+Criar um sistema de **Agentes IA** que permita configurar assistentes distintos para cada plataforma/canal (WhatsApp, Instagram, Widget, Email, etc.), cada um com a sua propria persona e bases de conhecimento especificas.
 
 ---
 
-## Estrutura do Fluxo
+## Arquitetura Atual vs. Proposta
 
+### Situacao Atual
 ```text
-[ENTRADA] → [Saudação Premium Ana/Pharliss]
-                    ↓
-            [Recolha Nome]
-                    ↓
-            [É Profissional?]
-                 ↓ Sim         ↓ Não
-        [Questionário       [Informa Requisitos]
-         Profissional]           ↓
-              ↓              [Handoff SAC]
-        [Objetivo Principal]
-              ↓
-        [Situação Atual]
-              ↓
-        [Zona do País + Localidade]
-              ↓
-        [Formação Atual]
-              ↓
-        [Experiência Profissional]
-              ↓
-        [Verifica Parceiros Locais]
-              ↓
-        [Recomendação/Handoff]
-              ↓
-        [Goal: Lead B2B Qualificado]
+[Workspace]
+    ├── [Personas IA] ── allowed_channels[], knowledge_base_ids[]
+    └── [Widget Config] ── default_persona_id, knowledge_base_ids[]
+```
+- Uma Persona pode ter multiplos canais, mas nao ha uma forma clara de definir comportamentos diferentes por canal
+- O Widget tem a sua propria configuracao, mas WhatsApp/Instagram/Email nao tem
+
+### Arquitetura Proposta
+```text
+[Workspace]
+    ├── [Agentes IA] ──┬── Widget Agent (Persona A, KB 1,2)
+    │                  ├── WhatsApp Agent (Persona B, KB 2,3)  
+    │                  ├── Instagram Agent (Persona C, KB 1)
+    │                  └── Email Agent (Persona D, KB 3,4)
+    ├── [Personas IA] ── Tom, comportamento, limitacoes
+    └── [Bases Conhecimento] ── FAQs, documentos, artigos
 ```
 
 ---
 
-## Variáveis a Recolher
+## Nova Entidade: AI Agents
 
-| Variavel | Tipo | Obrigatoria | Mapeamento CRM |
-|----------|------|-------------|----------------|
-| `nome` | text | Sim | lead.name |
-| `telefone` | phone | Sim | lead.phone |
-| `email` | email | Sim | lead.email |
-| `e_profissional` | boolean | Sim | - |
-| `objetivo_principal` | choice | Sim | lead.specialty |
-| `situacao_atual` | text | Sim | - |
-| `zona_pais` | text | Sim | lead.city |
-| `codigo_postal` | text | Sim | - |
-| `formacao_atual` | text | Sim | - |
-| `experiencia_profissional` | text | Sim | - |
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| `id` | uuid | Identificador unico |
+| `workspace_id` | uuid | Workspace associado |
+| `name` | text | Nome do agente (ex: "Bot WhatsApp Vendas") |
+| `description` | text | Descricao do agente |
+| `channel` | text | Canal: widget, whatsapp, instagram, facebook, email, sms |
+| `persona_id` | uuid | FK para ai_personas |
+| `knowledge_base_ids` | uuid[] | Array de KBs associadas |
+| `flow_id` | uuid | Fluxo conversacional padrao (opcional) |
+| `is_active` | boolean | Ativo/Inativo |
+| `priority` | integer | Prioridade quando ha multiplos agentes no mesmo canal |
+| `settings` | jsonb | Configuracoes especificas do canal |
+| `created_at` | timestamp | Data de criacao |
+| `updated_at` | timestamp | Data de atualizacao |
 
 ---
 
-## Passos do Fluxo (16 passos)
+## Interface do Utilizador
 
-| # | Tipo | Nome | Conteudo |
-|---|------|------|----------|
-| 1 | message | Saudacao Premium | "Ola! Que alegria imensa receber o seu contacto. O meu nome e Ana da ENsI Pharliss, e estou aqui para acompanhar cada passo consigo, seja na sua formacao, evolucao profissional ou no cuidado capilar mais avancado. Como posso ajudar hoje?" |
-| 2 | question | Recolha Nome | "Para preparar um atendimento completo, poderia indicar o seu nome?" |
-| 3 | question | Recolha Telefone | "Qual o seu numero de telefone para contacto?" |
-| 4 | question | Recolha Email | "E o seu email profissional?" |
-| 5 | message | Agradecimento | "Obrigada, {nome}!" |
-| 6 | question | Verifica Profissional | "Para direcionar melhor o atendimento, confirma que e profissional da area de beleza/saude?" → Quick Replies: "Sim, sou profissional", "Nao" |
-| 7 | condition | Condicao Profissional | Campo: e_profissional, Operador: equals, Valor: "Sim, sou profissional" |
-| 8 | question | Objetivo Principal | "Qual e o seu objetivo principal neste momento?" → Quick Replies: "Melhorar couro cabeludo", "Melhorar pele ou corpo", "Fortalecer cabelo", "Formacao profissional", "Equipamentos" |
-| 9 | question | Situacao Atual | "Como esta atualmente a situacao que pretende resolver?" |
-| 10 | question | Zona do Pais | "Em que zona do pais se encontra? (localidade e codigo postal)" |
-| 11 | question | Formacao Atual | "Qual e a sua formacao atual na area?" |
-| 12 | question | Experiencia | "Quantos anos de experiencia profissional tem?" |
-| 13 | message | Analise Parceiros | "Perfeito, {nome}! Estou a verificar se existem parceiros Pharliss na sua zona de {zona_pais}. Com base no seu perfil profissional e objetivos, vou preparar uma recomendacao personalizada." |
-| 14 | handoff | Handoff Coordenadora | "Vou passar o seu processo para a nossa coordenadora responsavel que ira analisar o seu perfil e entrar em contacto nas proximas duas horas." |
-| 15 | message | Lead Nao Profissional | "Os nossos produtos sao de uso profissional. Para garantir os melhores resultados, recomendamos que contacte um profissional certificado na sua area. Posso ajudar a encontrar um parceiro proximo de si?" |
-| 16 | goal | Lead B2B Qualificado | Objetivo: "Lead Profissional Qualificado Pharliss" |
+### Localizacao
+- Nova tab **"Agentes"** no modulo de Bases de Conhecimento e IA
+- Tabs: Bases | Personas | **Agentes** | Fluxos | Widget | Testar IA
+
+### Lista de Agentes
+- Cards por canal com icone identificativo (WhatsApp verde, Instagram rosa, etc.)
+- Badge de estado (Ativo/Inativo)
+- Indicacao de Persona e numero de KBs associadas
+- Botao "Novo Agente" com selecao de canal
+
+### Formulario de Criacao/Edicao
+1. **Selecionar Canal** - dropdown com canais disponiveis
+2. **Nome do Agente** - identificacao interna
+3. **Selecionar Persona** - escolher entre personas existentes
+4. **Bases de Conhecimento** - multi-select de KBs ativas
+5. **Fluxo Conversacional** - opcional, para funis estruturados
+6. **Configuracoes Especificas** - variam por canal
+
+---
+
+## Fluxo de Utilizacao
+
+```text
+1. Utilizador cria Personas (define tom, comportamento)
+2. Utilizador cria Bases de Conhecimento (adiciona conteudo)
+3. Utilizador cria Agentes:
+   - WhatsApp Agent → Persona "Comercial" + KBs "Vendas" e "Produtos"
+   - Instagram Agent → Persona "Social" + KBs "FAQ" e "Promocoes"
+   - Widget Agent → Persona "Suporte" + KBs "Suporte" e "Tutorial"
+4. Cada canal usa o agente configurado automaticamente
+```
 
 ---
 
 ## Implementacao Tecnica
 
-### Ficheiro a Modificar
-- `src/components/flow-builder/FlowTemplates.tsx`
+### 1. Nova Tabela no Banco de Dados
 
-### Alteracoes
-1. **Novo Template**: Adicionar constante `ATENDIMENTO_PROFISSIONAL_TEMPLATE`
-2. **Icone**: Usar `Users` (ja importado) para representar B2B/profissionais
-3. **Categoria**: "Vendas" (consistente com os outros)
-4. **Canais**: WhatsApp, Instagram, Widget
-
-### Codigo Principal
-
-```typescript
-export const ATENDIMENTO_PROFISSIONAL_TEMPLATE: FlowTemplate = {
-  id: 'atendimento-profissional',
-  name: 'Atendimento Cliente Profissional',
-  description: 'Fluxo de qualificacao e atendimento para clientes profissionais B2B',
-  category: 'Vendas',
-  icon: Users,
-  defaultGoalType: 'lead_capture',
-  defaultChannels: ['whatsapp', 'instagram', 'widget'],
+```sql
+CREATE TABLE ai_agents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  channel TEXT NOT NULL, -- widget, whatsapp, instagram, facebook, email, sms
+  persona_id UUID REFERENCES ai_personas(id) ON DELETE SET NULL,
+  knowledge_base_ids UUID[] DEFAULT '{}',
+  flow_id UUID REFERENCES conversational_flows(id) ON DELETE SET NULL,
+  is_active BOOLEAN DEFAULT true,
+  priority INTEGER DEFAULT 0,
+  settings JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
   
-  variables: [...],  // 10 variaveis definidas acima
-  steps: [...]       // 16 passos definidos acima
-};
+  CONSTRAINT unique_workspace_channel_priority 
+    UNIQUE (workspace_id, channel, priority)
+);
+
+-- Index para busca rapida por workspace e canal
+CREATE INDEX idx_ai_agents_workspace_channel 
+  ON ai_agents(workspace_id, channel) WHERE is_active = true;
 ```
 
-### Atualizar Lista de Templates
+### 2. Politicas RLS
+
+```sql
+-- Leitura para membros do workspace
+CREATE POLICY "Members can view agents" ON ai_agents
+  FOR SELECT USING (
+    workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())
+    OR public.is_super_admin(auth.uid())
+  );
+
+-- Gestao para admins e super admins
+CREATE POLICY "Admins can manage agents" ON ai_agents
+  FOR ALL USING (
+    workspace_id IN (
+      SELECT workspace_id FROM workspace_members 
+      WHERE user_id = auth.uid() AND role IN ('admin', 'owner')
+    )
+    OR public.is_super_admin(auth.uid())
+  );
+```
+
+### 3. Novos Componentes React
+
+| Componente | Descricao |
+|------------|-----------|
+| `AIAgentList.tsx` | Lista de agentes com filtro por canal |
+| `AIAgentCard.tsx` | Card individual com icone do canal |
+| `AIAgentForm.tsx` | Formulario de criacao/edicao |
+| `AIAgentSelector.tsx` | Dropdown para selecionar agente |
+
+### 4. Hook de Gestao
 
 ```typescript
-export const FLOW_TEMPLATES: FlowTemplate[] = [
-  PHARLISS_UNIVERSAL_TEMPLATE,
-  DR_KRAUT_TEMPLATE,
-  ATENDIMENTO_PROFISSIONAL_TEMPLATE  // Novo template
-];
+// src/hooks/useAIAgents.ts
+export function useAIAgents() {
+  // fetchAgents() - lista todos os agentes
+  // fetchAgentByChannel(channel) - busca agente ativo para canal
+  // createAgent(data) - cria novo agente
+  // updateAgent(id, data) - atualiza agente
+  // deleteAgent(id) - remove agente
+  // toggleAgentStatus(id) - ativa/desativa
+}
 ```
+
+### 5. Atualizacao das Edge Functions
+
+As funcoes `chat-widget`, `ai-inbox-reply`, e futuras integracoes WhatsApp/Instagram irao:
+1. Identificar o canal de origem
+2. Buscar o agente ativo para esse canal via `ai_agents`
+3. Carregar a persona e KBs associadas
+4. Gerar resposta com contexto correto
 
 ---
 
-## Diferencas dos Templates Existentes
+## Canais Suportados
 
-| Aspeto | Pharliss Universal | Dr. Kraut | Cliente Profissional |
-|--------|-------------------|-----------|---------------------|
-| Foco | Consumidor Final | Consumidor Final | B2B Profissionais |
-| Variaveis | 8 | 6 | 10 |
-| Passos | 15 | 14 | 16 |
-| Verificacao | Tem profissional? | Interesse compra? | E profissional? |
-| Handoff | Especialista | Vendas | Coordenadora |
-| Persona | Assistente generico | Dr. Kraut | Ana da Pharliss |
+| Canal | Icone | Cor | Integracao |
+|-------|-------|-----|------------|
+| Widget | MessageCircle | Indigo | Ja implementado |
+| WhatsApp | Phone | Verde | GHL + futuro nativo |
+| Instagram | Instagram | Rosa/Magenta | GHL + futuro nativo |
+| Facebook | Facebook | Azul | GHL |
+| Email | Mail | Cinza | SMTP/GHL |
+| SMS | MessageSquare | Amarelo | GHL |
+
+---
+
+## Ficheiros a Criar/Modificar
+
+### Novos Ficheiros
+- `src/components/ai-agents/AIAgentList.tsx`
+- `src/components/ai-agents/AIAgentCard.tsx`
+- `src/components/ai-agents/AIAgentForm.tsx`
+- `src/components/ai-agents/CreateAgentDialog.tsx`
+- `src/hooks/useAIAgents.ts`
+- `src/types/aiAgents.ts`
+
+### Ficheiros a Modificar
+- `src/components/knowledge-base/KnowledgeBaseModule.tsx` - adicionar tab "Agentes"
+- `supabase/functions/chat-widget/index.ts` - buscar agente por canal
+- `supabase/functions/ai-inbox-reply/index.ts` - buscar agente por canal
 
 ---
 
 ## Resultado Final
 
 Apos implementacao, o utilizador podera:
-1. Ir ao Flow Builder
-2. Clicar em "Criar Fluxo"
-3. Selecionar "Usar Template" → "Atendimento Cliente Profissional"
-4. O fluxo completo com 16 passos sera criado automaticamente
-5. Ativar o fluxo para canais WhatsApp, Instagram e Widget
+1. Criar agentes especificos para cada canal (WhatsApp, Instagram, Widget, etc.)
+2. Associar personas diferentes a cada agente
+3. Definir bases de conhecimento especificas por agente
+4. Ter respostas contextualizadas para cada plataforma
+5. Gerir todos os agentes de forma centralizada
 
 ---
 
-## Detalhes Tecnicos
+## Estimativa
 
-### Estimativa de Codigo
-- Novo template: ~250 linhas TypeScript
-- Nenhuma alteracao de base de dados necessaria
-- Usa estrutura existente de `FlowTemplate`
-
-### Elementos Especiais deste Template
-- Verificacao de perfil profissional no inicio do fluxo
-- Recolha de dados B2B (formacao, experiencia)
-- Ramificacao para leads nao-profissionais
-- Handoff para coordenadora (nao vendas genericas)
-- Persona especifica "Ana da Pharliss"
+- **Migracao SQL**: ~50 linhas
+- **Novos componentes React**: ~400 linhas
+- **Hook useAIAgents**: ~150 linhas
+- **Tipos TypeScript**: ~50 linhas
+- **Atualizacao edge functions**: ~100 linhas
+- **Total estimado**: ~750 linhas de codigo
 
