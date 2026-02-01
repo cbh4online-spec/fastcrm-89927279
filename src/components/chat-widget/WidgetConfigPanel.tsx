@@ -480,7 +480,7 @@ export function WidgetConfigPanel() {
                   {widget?.id ? (
                     <>
                       <div className="relative">
-                        <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
+                        <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto whitespace-pre-wrap break-all">
                           {getEmbedCode()}
                         </pre>
                         <Button
@@ -513,9 +513,21 @@ export function WidgetConfigPanel() {
                       </div>
                     </>
                   ) : (
-                    <p className="text-muted-foreground">
-                      Guarde as configurações primeiro para obter o código de embed.
-                    </p>
+                    <div className="text-center py-6 space-y-4">
+                      <div className="text-muted-foreground">
+                        <Code className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                        <p className="font-medium">Nenhuma configuração guardada</p>
+                        <p className="text-sm mt-1">
+                          Guarde as configurações para gerar o código de embed.
+                        </p>
+                      </div>
+                      <Button onClick={handleSave} disabled={saveMutation.isPending}>
+                        {saveMutation.isPending ? (
+                          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Guardar e Gerar Código
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
