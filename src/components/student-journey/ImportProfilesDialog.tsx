@@ -36,6 +36,7 @@ import {
   FileText,
   XCircle,
   ArrowRight,
+  Hash,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -62,6 +63,7 @@ interface ParsedProfile {
   full_name: string;
   email?: string;
   phone?: string;
+  client_number?: string;
   primary_interest?: string;
   interests?: string[];
   source?: string;
@@ -70,7 +72,7 @@ interface ParsedProfile {
   // Contact matching info
   matchedContactId?: string;
   matchedContactName?: string;
-  matchType?: "email" | "phone" | "name";
+  matchType?: "email" | "phone" | "client_number" | "name";
   // Course matching info - now supports multiple courses
   matchedCourses: MatchedCourse[];
 }
@@ -83,7 +85,7 @@ interface ImportResult {
 }
 
 // Column mapping types
-type MappingFieldType = "nome" | "email" | "telefone" | "origem" | "notas" | "curso" | "ignorar";
+type MappingFieldType = "nome" | "email" | "telefone" | "n_cliente" | "origem" | "notas" | "curso" | "ignorar";
 
 interface DetectedColumn {
   originalName: string;
@@ -99,6 +101,7 @@ const MAPPING_FIELDS: { value: MappingFieldType; label: string; icon: React.Comp
   { value: "nome", label: "Nome", icon: User },
   { value: "email", label: "Email", icon: Mail },
   { value: "telefone", label: "Telefone", icon: Phone },
+  { value: "n_cliente", label: "Nº Cliente", icon: Hash },
   { value: "curso", label: "Formação/Curso", icon: GraduationCap },
   { value: "origem", label: "Origem/Fonte", icon: Globe },
   { value: "notas", label: "Notas", icon: FileText },
@@ -124,6 +127,7 @@ const FIELD_PATTERNS: Record<MappingFieldType, string[]> = {
   nome: ["nome", "name", "full_name", "nome_completo", "primeiro_nome", "first_name", "apelido", "last_name"],
   email: ["email", "e_mail", "mail", "correio"],
   telefone: ["telefone", "phone", "telemovel", "mobile", "contacto", "celular"],
+  n_cliente: ["n_cliente", "cliente", "client", "num_cliente", "numero_cliente", "cliente_numero", "client_number", "cod_cliente", "codigo_cliente"],
   origem: ["origem", "source", "canal", "proveniencia", "referencia"],
   notas: ["notas", "notes", "observacoes", "comentarios", "obs"],
   curso: COURSE_COLUMN_PATTERNS,
@@ -475,6 +479,9 @@ export function ImportProfilesDialog({
             case "telefone":
               profile.phone = value;
               break;
+            case "n_cliente":
+              profile.client_number = value;
+              break;
             case "origem":
               profile.source = value;
               break;
@@ -514,10 +521,10 @@ export function ImportProfilesDialog({
     setIsMatching(true);
 
     try {
-      // Get all contacts for matching
+      // Get all contacts for matching (include client_number)
       const { data: contacts } = await supabase
         .from("contacts")
-        .select("id, name, email, phone")
+        .select("id, name, email, phone, client_number")
         .eq("workspace_id", currentWorkspace.id);
 
       if (!contacts) return;
@@ -550,6 +557,21 @@ export function ImportProfilesDialog({
               matchedContactId: phoneMatch.id,
               matchedContactName: phoneMatch.name,
               matchType: "phone" as const,
+            };
+          }
+        }
+
+        // Try client_number match
+        if (profile.client_number) {
+          const clientMatch = contacts.find(
+            (c) => c.client_number?.toLowerCase() === profile.client_number?.toLowerCase()
+          );
+          if (clientMatch) {
+            return {
+              ...profile,
+              matchedContactId: clientMatch.id,
+              matchedContactName: clientMatch.name,
+              matchType: "client_number" as const,
             };
           }
         }
@@ -609,7 +631,25 @@ export function ImportProfilesDialog({
         if (error) throw error;
 
         result.created++;
-        if (profile.matchedContactId) result.matched++;
+        if (profile.matchedContactId) {
+          result.matched++;
+          
+          // Update contact's client_number if profile has one and contact doesn't
+          if (profile.client_number) {
+            const { data: existingContact } = await supabase
+              .from("contacts")
+              .select("client_number")
+              .eq("id", profile.matchedContactId)
+              .single();
+            
+            if (existingContact && !existingContact.client_number) {
+              await supabase
+                .from("contacts")
+                .update({ client_number: profile.client_number })
+                .eq("id", profile.matchedContactId);
+            }
+          }
+        }
 
         // Create enrollments for ALL matched courses
         if (createdProfile && profile.matchedCourses.length > 0) {
