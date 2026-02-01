@@ -248,7 +248,7 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
             clientEmail: data.email,
             workspaceName: workspace?.name || "FastCRM",
             workspaceId: currentWorkspace.id,
-            portalUrl: `${window.location.origin}/client/login`,
+            portalUrl: "https://fastcrm.metodopare.ai/client/login",
             temporaryPassword: temporaryPassword,
           },
         }

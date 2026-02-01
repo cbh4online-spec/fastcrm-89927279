@@ -190,7 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Campos obrigatórios em falta: clientName, clientEmail, workspaceName");
     }
 
-    const finalPortalUrl = portalUrl || "https://fastcrm.lovable.app/client/login";
+    const finalPortalUrl = portalUrl || "https://fastcrm.metodopare.ai/client/login";
 
     // Try to fetch custom template if workspaceId is provided
     let template: EmailTemplate = defaultTemplate;
