@@ -92,6 +92,7 @@ export function ClientUsersList() {
             clientName: client.name,
             clientEmail: client.email,
             workspaceName: workspace?.name || "FastCRM",
+            workspaceId: client.workspace_id,
             portalUrl: `${window.location.origin}/client/login`,
             temporaryPassword: temporaryPassword,
           },

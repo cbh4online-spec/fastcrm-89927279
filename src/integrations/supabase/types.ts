@@ -20237,6 +20237,74 @@ export type Database = {
           },
         ]
       }
+      workspace_email_templates: {
+        Row: {
+          button_text: string | null
+          created_at: string
+          created_by: string | null
+          custom_portal_url: string | null
+          features_list: Json | null
+          features_title: string | null
+          footer_text: string | null
+          greeting_template: string | null
+          header_title: string | null
+          id: string
+          intro_text: string | null
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          template_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          button_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_portal_url?: string | null
+          features_list?: Json | null
+          features_title?: string | null
+          footer_text?: string | null
+          greeting_template?: string | null
+          header_title?: string | null
+          id?: string
+          intro_text?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          template_type?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          button_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_portal_url?: string | null
+          features_list?: Json | null
+          features_title?: string | null
+          footer_text?: string | null
+          greeting_template?: string | null
+          header_title?: string | null
+          id?: string
+          intro_text?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          template_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_email_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_ghl_config: {
         Row: {
           created_at: string | null
