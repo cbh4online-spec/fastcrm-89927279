@@ -6,3 +6,5 @@ export { FlowStepNode } from './FlowStepNode';
 export { FlowList } from './FlowList';
 export { StepPropertiesPanel } from './StepPropertiesPanel';
 export { CreateFlowDialog } from './CreateFlowDialog';
+export { FLOW_TEMPLATES, TemplateCard } from './FlowTemplates';
+export type { FlowTemplate, FlowTemplateStep, FlowTemplateVariable } from './FlowTemplates';
