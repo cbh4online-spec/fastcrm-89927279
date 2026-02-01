@@ -28,7 +28,7 @@ export function useClientAuth(): UseClientAuthReturn {
           .from("client_users")
           .select("*")
           .eq("auth_user_id", userId)
-          .eq("status", "active")
+          .in("status", ["active", "pending"])
           .maybeSingle();
         
         if (!isMounted) return;

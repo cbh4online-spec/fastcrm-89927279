@@ -59,6 +59,15 @@ export default function ClientSetPasswordPage() {
         throw updateError;
       }
 
+      // Activate client user after password change
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("client_users")
+          .update({ status: "active" })
+          .eq("auth_user_id", user.id);
+      }
+
       toast.success("Palavra-passe alterada com sucesso!");
       navigate("/client/dashboard");
     } catch (err: any) {
