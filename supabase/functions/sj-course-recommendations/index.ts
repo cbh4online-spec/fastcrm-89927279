@@ -8,10 +8,11 @@ const corsHeaders = {
 
 interface RecommendationRequest {
   workspaceId: string;
-  action: "generate" | "explain" | "generate_message" | "batch_generate";
+  action: "generate" | "explain" | "generate_message" | "batch_generate" | "generate_contact_message";
   profileId?: string;
   courseId?: string;
   profileIds?: string[];
+  messageType?: "general" | "course_invite" | "reactivation" | "followup";
 }
 
 interface ScoreBreakdown {
@@ -54,7 +55,7 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     const body: RecommendationRequest = await req.json();
-    const { workspaceId, action, profileId, courseId, profileIds } = body;
+    const { workspaceId, action, profileId, courseId, profileIds, messageType } = body;
 
     // Fetch all active courses with new fields
     const { data: courses, error: coursesError } = await supabase
@@ -355,6 +356,96 @@ Responde em JSON:
           success: true,
           processed: results.length,
           results,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (action === "generate_contact_message" && profileId) {
+      // Generate personalized contact/reactivation message (no course required)
+      const { data: profile } = await supabase
+        .from("sj_profiles")
+        .select("*")
+        .eq("id", profileId)
+        .single();
+
+      if (!profile) {
+        throw new Error("Perfil não encontrado");
+      }
+
+      const messageTypePrompts: Record<string, string> = {
+        general: "Gera uma mensagem de contacto geral para reatar a comunicação com este aluno.",
+        reactivation: "Gera uma mensagem de reativação para incentivar este aluno inativo a voltar a participar em formações.",
+        followup: "Gera uma mensagem de follow-up para verificar o interesse ou progresso deste aluno.",
+      };
+
+      const prompt = messageTypePrompts[messageType || "general"] || messageTypePrompts.general;
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            {
+              role: "system",
+              content: `És um especialista em comunicação para formação profissional. Gera mensagens personalizadas.
+
+REGRAS:
+- PT-PT profissional mas cordial
+- Tom empresarial, não informal
+- Curto e direto (máx. 100 palavras)
+- Incluir CTA claro
+- Personalizar com nome e contexto
+- NÃO incluir preços ou datas fictícias`,
+            },
+            {
+              role: "user",
+              content: `${prompt}
+
+Aluno: ${profile.full_name}
+Email: ${profile.email || "N/A"}
+Canal preferido: ${profile.preferred_channel || "email"}
+Última formação: ${profile.last_course_completed_at ? new Date(profile.last_course_completed_at).toLocaleDateString("pt-PT") : "N/A"}
+Interesses: ${JSON.stringify(profile.interests || [])}
+Especialidade principal: ${profile.primary_specialty || profile.primary_interest || "N/A"}
+Total cursos concluídos: ${profile.total_courses_completed || 0}
+
+Responde em JSON:
+{
+  "subject": "assunto do email",
+  "message": "corpo da mensagem",
+  "cta": "call to action"
+}`,
+            },
+          ],
+          temperature: 0.8,
+          max_tokens: 300,
+        }),
+      });
+
+      const aiData = await aiResponse.json();
+      const content = aiData.choices?.[0]?.message?.content || "{}";
+      
+      let parsedMessage = { subject: "", message: "", cta: "" };
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedMessage = JSON.parse(jsonMatch[0]);
+        }
+      } catch (e) {
+        parsedMessage.message = content;
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          ...parsedMessage,
+          profile_id: profileId,
+          message_type: messageType || "general",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

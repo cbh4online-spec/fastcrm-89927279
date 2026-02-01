@@ -14,3 +14,5 @@ export { CreateTouchpointDialog } from "./CreateTouchpointDialog";
 export { CreateTaskDialog } from "./CreateTaskDialog";
 export { LinkContactDialog } from "./LinkContactDialog";
 export { CreateOpportunityDialog } from "./CreateOpportunityDialog";
+export { GenerateMessageDialog } from "./GenerateMessageDialog";
+export { AddInterestDialog } from "./AddInterestDialog";

@@ -59,6 +59,9 @@ import { CreateProfileDialog } from "@/components/student-journey/CreateProfileD
 import { ScheduleFollowUpDialog } from "@/components/student-journey/ScheduleFollowUpDialog";
 import { ImportProfilesDialog } from "@/components/student-journey/ImportProfilesDialog";
 import { EditProfileDialog } from "@/components/student-journey/EditProfileDialog";
+import { CreateEnrollmentDialog } from "@/components/student-journey/CreateEnrollmentDialog";
+import { GenerateMessageDialog } from "@/components/student-journey/GenerateMessageDialog";
+import { AddInterestDialog } from "@/components/student-journey/AddInterestDialog";
 import { Link, useSearchParams } from "react-router-dom";
 import type { SJProfile } from "@/types/studentJourney";
 
@@ -113,7 +116,11 @@ export default function SJProfiles() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [editProfileDialogOpen, setEditProfileDialogOpen] = useState(false);
+  const [enrollmentDialogOpen, setEnrollmentDialogOpen] = useState(false);
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [interestDialogOpen, setInterestDialogOpen] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<SJProfile | null>(null);
   const [editingProfile, setEditingProfile] = useState<SJProfile | null>(null);
 
   // Get unique interests and specialties
@@ -216,6 +223,21 @@ export default function SJProfiles() {
   const handleEditProfile = (profile: SJProfile) => {
     setEditingProfile(profile);
     setEditProfileDialogOpen(true);
+  };
+
+  const handleNewEnrollment = (profile: SJProfile) => {
+    setSelectedProfile(profile);
+    setEnrollmentDialogOpen(true);
+  };
+
+  const handleGenerateMessage = (profile: SJProfile) => {
+    setSelectedProfile(profile);
+    setMessageDialogOpen(true);
+  };
+
+  const handleMarkInterest = (profile: SJProfile) => {
+    setSelectedProfile(profile);
+    setInterestDialogOpen(true);
   };
 
   const getScoreColor = (score: number) => {
@@ -458,15 +480,15 @@ export default function SJProfiles() {
                               <Calendar className="h-4 w-4 mr-2" />
                               Marcar Follow-up
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleNewEnrollment(profile)}>
                               <ClipboardList className="h-4 w-4 mr-2" />
                               Nova Inscrição
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleGenerateMessage(profile)}>
                               <MessageSquare className="h-4 w-4 mr-2" />
                               Gerar Mensagem IA
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleMarkInterest(profile)}>
                               <Star className="h-4 w-4 mr-2" />
                               Marcar Interesse
                             </DropdownMenuItem>
@@ -500,6 +522,21 @@ export default function SJProfiles() {
         open={editProfileDialogOpen}
         onOpenChange={setEditProfileDialogOpen}
         profile={editingProfile}
+      />
+      <CreateEnrollmentDialog
+        open={enrollmentDialogOpen}
+        onOpenChange={setEnrollmentDialogOpen}
+        profileId={selectedProfile?.id}
+      />
+      <GenerateMessageDialog
+        open={messageDialogOpen}
+        onOpenChange={setMessageDialogOpen}
+        profile={selectedProfile}
+      />
+      <AddInterestDialog
+        open={interestDialogOpen}
+        onOpenChange={setInterestDialogOpen}
+        profile={selectedProfile}
       />
     </div>
   );
