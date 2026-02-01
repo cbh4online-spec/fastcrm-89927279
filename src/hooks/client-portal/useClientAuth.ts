@@ -1,3 +1,4 @@
+// v2.0 - Fixed race condition in auth loading states
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
