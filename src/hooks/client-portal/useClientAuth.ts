@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import type { ClientUser } from "@/types/client-user";
@@ -17,63 +17,70 @@ interface UseClientAuthReturn {
 export function useClientAuth(): UseClientAuthReturn {
   const [user, setUser] = useState<User | null>(null);
   const [clientUser, setClientUser] = useState<ClientUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [clientLoading, setClientLoading] = useState(false);
+  const [clientChecked, setClientChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchClientUser = useCallback(async (userId: string) => {
+    setClientLoading(true);
+    setClientChecked(false);
+    
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("client_users")
+        .select("*")
+        .eq("auth_user_id", userId)
+        .in("status", ["active", "pending"])
+        .maybeSingle();
+      
+      if (fetchError) {
+        console.error("Error fetching client user:", fetchError);
+        setError("Erro ao carregar perfil de cliente");
+        setClientUser(null);
+      } else {
+        setClientUser(data as ClientUser | null);
+        setError(null);
+      }
+    } catch (err) {
+      console.error("Exception fetching client user:", err);
+      setError("Erro ao carregar perfil");
+      setClientUser(null);
+    } finally {
+      setClientLoading(false);
+      setClientChecked(true);
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
     
     // Safety timeout - never stay in loading state forever
     const loadingTimeout = setTimeout(() => {
-      if (isMounted) {
+      if (isMounted && authLoading) {
         console.warn("Client auth: Loading timeout reached");
-        setLoading(false);
+        setAuthLoading(false);
+        setClientChecked(true);
       }
     }, 10000);
     
-    const fetchClientUser = async (userId: string) => {
-      try {
-        const { data, error: fetchError } = await supabase
-          .from("client_users")
-          .select("*")
-          .eq("auth_user_id", userId)
-          .in("status", ["active", "pending"])
-          .maybeSingle();
-        
-        if (!isMounted) return;
-        
-        if (fetchError) {
-          console.error("Error fetching client user:", fetchError);
-          setError("Erro ao carregar perfil de cliente");
-          setClientUser(null);
-        } else {
-          setClientUser(data as ClientUser | null);
-          setError(null);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error("Exception fetching client user:", err);
-          setError("Erro ao carregar perfil");
-          setClientUser(null);
-        }
-      }
-    };
-
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
         
+        console.log("Client auth state change:", event, session?.user?.email);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           await fetchClientUser(session.user.id);
         } else {
           setClientUser(null);
+          setClientChecked(true);
           setError(null);
         }
         
-        setLoading(false);
+        setAuthLoading(false);
       }
     );
 
@@ -81,13 +88,16 @@ export function useClientAuth(): UseClientAuthReturn {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return;
       
+      console.log("Client auth initial session:", session?.user?.email);
       setUser(session?.user ?? null);
       
       if (session?.user) {
         await fetchClientUser(session.user.id);
+      } else {
+        setClientChecked(true);
       }
       
-      setLoading(false);
+      setAuthLoading(false);
     });
 
     return () => {
@@ -95,33 +105,46 @@ export function useClientAuth(): UseClientAuthReturn {
       clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchClientUser]);
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true);
+    setAuthLoading(true);
+    setClientChecked(false);
     setError(null);
     
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
       setError(error.message);
-      setLoading(false);
+      setAuthLoading(false);
+      setClientChecked(true);
       return { error };
     }
     
-    // Set loading to false immediately after successful login
-    // The onAuthStateChange will also set it, but this prevents race conditions
-    setLoading(false);
+    // Auth state change listener will handle the rest
     return { error: null };
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
     setClientUser(null);
+    setClientChecked(false);
+    setError(null);
   };
 
-  // Detect authenticated user without client record
-  const hasAuthButNoClient = !!user && !clientUser && !loading && !error;
+  // Loading is TRUE if:
+  // - Auth is still loading OR
+  // - We have user but client is still loading
+  const loading = authLoading || (!!user && clientLoading);
+  
+  // hasAuthButNoClient is TRUE only when EVERYTHING has been verified:
+  // 1. We have authenticated user
+  // 2. We DON'T have clientUser
+  // 3. We're NOT in general loading
+  // 4. We've already checked for clientUser (fetchClientUser finished)
+  // 5. There's no error
+  const hasAuthButNoClient = !!user && !clientUser && !loading && clientChecked && !error;
 
   return {
     user,
