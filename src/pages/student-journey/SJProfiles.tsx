@@ -58,6 +58,7 @@ import { pt } from "date-fns/locale";
 import { CreateProfileDialog } from "@/components/student-journey/CreateProfileDialog";
 import { ScheduleFollowUpDialog } from "@/components/student-journey/ScheduleFollowUpDialog";
 import { ImportProfilesDialog } from "@/components/student-journey/ImportProfilesDialog";
+import { BulkEnrollmentDialog } from "@/components/student-journey/BulkEnrollmentDialog";
 import { EditProfileDialog } from "@/components/student-journey/EditProfileDialog";
 import { CreateEnrollmentDialog } from "@/components/student-journey/CreateEnrollmentDialog";
 import { GenerateMessageDialog } from "@/components/student-journey/GenerateMessageDialog";
@@ -262,6 +263,7 @@ export default function SJProfiles() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <BulkEnrollmentDialog />
           <ImportProfilesDialog />
           <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
             <UserPlus className="h-4 w-4" />
