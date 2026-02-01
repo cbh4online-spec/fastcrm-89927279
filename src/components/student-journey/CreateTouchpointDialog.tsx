@@ -92,12 +92,12 @@ export function CreateTouchpointDialog({
 
           <div className="grid gap-2">
             <Label>Resultado</Label>
-            <Select value={outcome} onValueChange={(v) => setOutcome(v as TouchpointOutcome)}>
+            <Select value={outcome || "none"} onValueChange={(v) => setOutcome(v === "none" ? "" : v as TouchpointOutcome)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sem resultado específico</SelectItem>
+                <SelectItem value="none">Sem resultado específico</SelectItem>
                 <SelectItem value="no_answer">Sem Resposta</SelectItem>
                 <SelectItem value="interested">Interessado</SelectItem>
                 <SelectItem value="needs_follow_up">Precisa Follow-up</SelectItem>
