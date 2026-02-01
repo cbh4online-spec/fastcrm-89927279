@@ -24,6 +24,7 @@ interface ChunkResult {
 
 const CHUNK_SIZE = 30000;
 const MAX_TOTAL_CHARS = 100000;
+const MAX_DOWNLOAD_SIZE = 20 * 1024 * 1024; // 20MB - safe limit for edge function memory
 
 // Main handler - returns immediately, processes in background
 Deno.serve(async (req) => {
@@ -50,12 +51,11 @@ Deno.serve(async (req) => {
       .from('knowledge_sources')
       .update({ 
         processing_status: 'processing',
-        processing_error: 'A iniciar processamento em background...'
+        processing_error: 'A iniciar processamento...'
       })
       .eq('id', sourceId);
 
     // Start background processing with EdgeRuntime.waitUntil
-    // This allows us to return immediately while processing continues
     (globalThis as any).EdgeRuntime.waitUntil(
       processDocumentInBackground(
         sourceId,
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
           .from('knowledge_sources')
           .update({
             processing_status: 'failed',
-            processing_error: error instanceof Error ? error.message : 'Background processing failed'
+            processing_error: error instanceof Error ? error.message : 'Erro no processamento'
           })
           .eq('id', sourceId);
       })
@@ -89,7 +89,6 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("[KNOWLEDGE-DOC] Error:", error);
     
-    // Update source with error if we have sourceId
     if (sourceId) {
       try {
         const supabase = createClient(
@@ -101,7 +100,7 @@ Deno.serve(async (req) => {
           .from('knowledge_sources')
           .update({
             processing_status: 'failed',
-            processing_error: error instanceof Error ? error.message : 'Unknown error'
+            processing_error: error instanceof Error ? error.message : 'Erro desconhecido'
           })
           .eq('id', sourceId);
       } catch {}
@@ -138,7 +137,6 @@ async function processDocumentInBackground(
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Update progress
   const updateProgress = async (message: string) => {
     await supabase
       .from('knowledge_sources')
@@ -146,21 +144,66 @@ async function processDocumentInBackground(
       .eq('id', sourceId);
   };
 
-  await updateProgress('A descarregar ficheiro...');
+  await updateProgress('A verificar tamanho do ficheiro...');
 
-  // Download file from storage - use streaming for large files
-  const { data: fileData, error: downloadError } = await supabase.storage
+  // Get file metadata first to check size
+  const { data: fileList, error: listError } = await supabase.storage
     .from('knowledge-documents')
-    .download(filePath);
+    .list(filePath.split('/').slice(0, -1).join('/'), {
+      search: filePath.split('/').pop()
+    });
 
-  if (downloadError || !fileData) {
-    throw new Error(`Failed to download file: ${downloadError?.message}`);
+  // Get signed URL for range request
+  const { data: urlData, error: urlError } = await supabase.storage
+    .from('knowledge-documents')
+    .createSignedUrl(filePath, 300);
+
+  if (urlError || !urlData) {
+    throw new Error(`Failed to get file URL: ${urlError?.message}`);
   }
 
-  const fileSize = fileData.size;
-  console.log(`[KNOWLEDGE-DOC] File size: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+  // Fetch file with HEAD request to get size
+  const headResponse = await fetch(urlData.signedUrl, { method: 'HEAD' });
+  const contentLength = parseInt(headResponse.headers.get('content-length') || '0');
+  const fileSizeMB = contentLength / (1024 * 1024);
 
-  await updateProgress(`Ficheiro descarregado (${(fileSize / 1024 / 1024).toFixed(1)}MB). A extrair texto...`);
+  console.log(`[KNOWLEDGE-DOC] File size: ${fileSizeMB.toFixed(2)}MB`);
+
+  let fileData: Blob;
+  let isPartialDownload = false;
+
+  // Use range request for files > 20MB to stay within memory limits
+  if (contentLength > MAX_DOWNLOAD_SIZE) {
+    isPartialDownload = true;
+    await updateProgress(`Ficheiro grande (${fileSizeMB.toFixed(1)}MB). A processar primeiros 20MB...`);
+    
+    // Download only first 20MB using Range header
+    const rangeResponse = await fetch(urlData.signedUrl, {
+      headers: {
+        'Range': `bytes=0-${MAX_DOWNLOAD_SIZE - 1}`
+      }
+    });
+
+    if (!rangeResponse.ok && rangeResponse.status !== 206) {
+      throw new Error(`Failed to download file: ${rangeResponse.status}`);
+    }
+
+    fileData = await rangeResponse.blob();
+    console.log(`[KNOWLEDGE-DOC] Downloaded partial: ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
+  } else {
+    await updateProgress('A descarregar ficheiro...');
+    
+    // Download full file for smaller files
+    const response = await fetch(urlData.signedUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.status}`);
+    }
+    fileData = await response.blob();
+  }
+
+  console.log(`[KNOWLEDGE-DOC] Downloaded: ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
+  
+  await updateProgress(`Ficheiro obtido. A extrair texto...`);
 
   let textContent = '';
 
@@ -168,15 +211,14 @@ async function processDocumentInBackground(
   if (mimeType === 'text/plain') {
     textContent = await fileData.text();
   } else if (mimeType === 'application/pdf') {
-    // For large PDFs, extract text in smaller batches
-    textContent = await extractPDFContentStreaming(fileData, LOVABLE_API_KEY, fileSize, updateProgress);
+    textContent = await extractPDFContent(fileData, LOVABLE_API_KEY, updateProgress);
   } else if (mimeType.includes('word') || mimeType.includes('document')) {
     const arrayBuffer = await fileData.arrayBuffer();
     textContent = await extractDocxContent(new Uint8Array(arrayBuffer));
   }
 
   if (!textContent || textContent.length < 10) {
-    throw new Error('Could not extract text content from document');
+    throw new Error('Não foi possível extrair texto do documento');
   }
 
   console.log(`[KNOWLEDGE-DOC] Extracted ${textContent.length} characters`);
@@ -197,7 +239,6 @@ async function processDocumentInBackground(
 
   const allResults: ChunkResult[] = [];
 
-  // Process each chunk
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
     console.log(`[KNOWLEDGE-DOC] Processing chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
@@ -216,7 +257,6 @@ async function processDocumentInBackground(
     allResults.push(result);
   }
 
-  // Merge results
   const mergedResult = mergeChunkResults(allResults);
 
   console.log(`[KNOWLEDGE-DOC] Total FAQs extracted: ${mergedResult.faqs.length}`);
@@ -224,15 +264,22 @@ async function processDocumentInBackground(
 
   await updateProgress('A guardar resultados...');
 
+  // Add note about partial processing if applicable
+  const partialNote = isPartialDownload 
+    ? `\n\n---\n⚠️ Processado parcialmente: primeiros 20MB de ${fileSizeMB.toFixed(1)}MB` 
+    : '';
+
   // Update source with processed content
   await supabase
     .from('knowledge_sources')
     .update({
       original_content: totalContent.slice(0, 50000),
-      processed_content: mergedResult.processedContent,
+      processed_content: mergedResult.processedContent + partialNote,
       extracted_topics: mergedResult.topics,
       processing_status: 'completed',
-      processing_error: null,
+      processing_error: isPartialDownload 
+        ? `Processado parcialmente (20MB de ${fileSizeMB.toFixed(1)}MB)` 
+        : null,
       last_processed_at: new Date().toISOString()
     })
     .eq('id', sourceId);
@@ -268,13 +315,17 @@ async function processDocumentInBackground(
   }
 
   // Create main article entry
+  const articleTitle = isPartialDownload 
+    ? `${fileName.replace(/\.[^/.]+$/, '')} (parcial)`
+    : fileName.replace(/\.[^/.]+$/, '');
+
   const { error: articleError } = await supabase.from('knowledge_entries').insert({
     knowledge_base_id: knowledgeBaseId,
     source_id: sourceId,
     workspace_id: workspaceId,
     entry_type: 'article',
-    title: fileName.replace(/\.[^/.]+$/, ''),
-    content: mergedResult.processedContent,
+    title: articleTitle,
+    content: mergedResult.processedContent + partialNote,
     summary: mergedResult.summary,
     keywords: mergedResult.topics,
     category: mergedResult.categories?.[0],
@@ -286,39 +337,21 @@ async function processDocumentInBackground(
     console.error('[KNOWLEDGE-DOC] Error inserting article:', articleError);
   }
 
-  console.log(`[KNOWLEDGE-DOC] Successfully processed: ${fileName}`);
+  console.log(`[KNOWLEDGE-DOC] Successfully processed: ${fileName}${isPartialDownload ? ' (partial)' : ''}`);
 }
 
-// Streaming PDF extraction for large files
-async function extractPDFContentStreaming(
+// PDF extraction using AI vision
+async function extractPDFContent(
   blob: Blob, 
-  apiKey: string, 
-  fileSize: number,
+  apiKey: string,
   updateProgress: (msg: string) => Promise<void>
 ): Promise<string> {
-  const isLargePDF = fileSize > 20 * 1024 * 1024;
+  await updateProgress('A converter PDF para análise...');
   
-  console.log(`[KNOWLEDGE-DOC] PDF extraction - Size: ${(fileSize / 1024 / 1024).toFixed(2)}MB, Large: ${isLargePDF}`);
-
-  // For very large files, we need to be more careful with memory
-  if (isLargePDF) {
-    await updateProgress('PDF grande detectado. A processar em modo optimizado...');
-    
-    // For files over 20MB, extract in portions to avoid memory issues
-    // We'll take first 10MB worth of the file
-    const maxBytes = 10 * 1024 * 1024;
-    const portionBlob = blob.slice(0, maxBytes);
-    const base64 = await blobToBase64(portionBlob);
-    
-    return await extractPDFFromBase64(base64, apiKey);
-  }
-  
-  // For smaller files, process normally
   const base64 = await blobToBase64(blob);
-  return await extractPDFFromBase64(base64, apiKey);
-}
+  
+  await updateProgress('A extrair texto do PDF com IA...');
 
-async function extractPDFFromBase64(base64: string, apiKey: string): Promise<string> {
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -355,6 +388,18 @@ async function extractPDFFromBase64(base64: string, apiKey: string): Promise<str
 
   const result = await response.json();
   return result.choices?.[0]?.message?.content || "Could not extract PDF content";
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const arrayBuffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = '';
+  const chunkSize = 32768;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.slice(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
 }
 
 function splitIntoChunks(text: string, chunkSize: number): string[] {
@@ -502,10 +547,10 @@ function mergeChunkResults(results: ChunkResult[]): ChunkResult {
     }
     if (result.faqs) {
       for (const faq of result.faqs) {
-        const isDuplicate = allFaqs.some(existing => 
-          similarity(existing.question, faq.question) > 0.85
+        const exists = allFaqs.some(f => 
+          f.question.toLowerCase() === faq.question.toLowerCase()
         );
-        if (!isDuplicate) {
+        if (!exists) {
           allFaqs.push(faq);
         }
       }
@@ -515,78 +560,39 @@ function mergeChunkResults(results: ChunkResult[]): ChunkResult {
   return {
     processedContent: processedContents.join('\n\n---\n\n'),
     topics: Array.from(allTopics).slice(0, 20),
-    faqs: allFaqs,
-    categories: Array.from(allCategories).slice(0, 10),
-    summary: summaries.length > 0 
-      ? summaries.join(' ').slice(0, 500) 
-      : processedContents[0]?.slice(0, 200) || ''
+    faqs: allFaqs.slice(0, 30),
+    categories: Array.from(allCategories).slice(0, 5),
+    summary: summaries.join(' ').slice(0, 500)
   };
-}
-
-function similarity(s1: string, s2: string): number {
-  const longer = s1.length > s2.length ? s1 : s2;
-  const shorter = s1.length > s2.length ? s2 : s1;
-  
-  if (longer.length === 0) return 1.0;
-  
-  const costs: number[] = [];
-  for (let i = 0; i <= shorter.length; i++) {
-    let lastValue = i;
-    for (let j = 0; j <= longer.length; j++) {
-      if (i === 0) {
-        costs[j] = j;
-      } else if (j > 0) {
-        let newValue = costs[j - 1];
-        if (shorter.charAt(i - 1) !== longer.charAt(j - 1)) {
-          newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
-        }
-        costs[j - 1] = lastValue;
-        lastValue = newValue;
-      }
-    }
-    if (i > 0) costs[longer.length] = lastValue;
-  }
-  
-  return (longer.length - costs[longer.length]) / longer.length;
-}
-
-async function blobToBase64(blob: Blob): Promise<string> {
-  const arrayBuffer = await blob.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
 }
 
 async function extractDocxContent(data: Uint8Array): Promise<string> {
   try {
     const decoder = new TextDecoder('utf-8');
-    const content = decoder.decode(data);
+    const text = decoder.decode(data);
     
-    const xmlMatch = content.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
-    if (xmlMatch) {
-      const text = xmlMatch
-        .map(match => match.replace(/<[^>]+>/g, ''))
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+    const xmlContentMatch = text.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+    if (xmlContentMatch) {
+      const extractedText = xmlContentMatch
+        .map(match => {
+          const content = match.replace(/<[^>]+>/g, '');
+          return content;
+        })
+        .join(' ');
       
-      if (text.length > 100) {
-        return text;
+      if (extractedText.length > 50) {
+        return extractedText;
       }
     }
     
-    let text = content
+    const cleanText = text
       .replace(/<[^>]+>/g, ' ')
-      .replace(/[^\x20-\x7E\u00C0-\u024F\u1E00-\u1EFF]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
     
-    return text || 'Could not extract document content';
+    return cleanText.slice(0, 50000);
   } catch (error) {
     console.error('[KNOWLEDGE-DOC] DOCX extraction error:', error);
-    return 'Document extraction failed';
+    return 'Could not extract DOCX content';
   }
 }

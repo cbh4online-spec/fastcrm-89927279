@@ -32,6 +32,7 @@ const ACCEPTED_FILE_TYPES = {
 };
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const OPTIMAL_PROCESSING_SIZE = 20 * 1024 * 1024; // 20MB - for optimal processing
 
 export function AddSourcePanel({ 
   onAddUrl, 
@@ -252,23 +253,37 @@ export function AddSourcePanel({
             </div>
             
             {selectedFile && (
-              <Button 
-                onClick={handleSubmitDocument} 
-                disabled={!onAddDocument || isProcessing}
-                className="w-full"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    A processar documento...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Processar Documento
-                  </>
+              <>
+                {selectedFile.size > OPTIMAL_PROCESSING_SIZE && (
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-sm border border-amber-200 dark:border-amber-700">
+                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                    <div className="text-amber-700 dark:text-amber-400">
+                      <span className="font-medium">Ficheiro grande ({formatFileSize(selectedFile.size)})</span>
+                      <p className="text-xs mt-1">
+                        Apenas os primeiros 20MB serão processados para extrair conteúdo. 
+                        O ficheiro completo fica guardado.
+                      </p>
+                    </div>
+                  </div>
                 )}
-              </Button>
+                <Button 
+                  onClick={handleSubmitDocument} 
+                  disabled={!onAddDocument || isProcessing}
+                  className="w-full"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      A processar documento...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Processar Documento
+                    </>
+                  )}
+                </Button>
+              </>
             )}
             
             {!selectedFile && (
