@@ -235,7 +235,11 @@ serve(async (req) => {
         let flowUsed = false;
         let collectedVariables = {};
 
+        console.log("[CHAT-WIDGET] Processing message for workspace:", widget.workspace_id);
+
         try {
+          // First, try flow engine
+          console.log("[CHAT-WIDGET] Calling flow-engine...");
           const flowResponse = await fetch(
             `${Deno.env.get("SUPABASE_URL")}/functions/v1/flow-engine`,
             {
@@ -254,8 +258,11 @@ serve(async (req) => {
             }
           );
 
+          console.log("[CHAT-WIDGET] Flow engine response status:", flowResponse.status);
+
           if (flowResponse.ok) {
             const flowResult = await flowResponse.json();
+            console.log("[CHAT-WIDGET] Flow result:", JSON.stringify(flowResult));
             
             if (flowResult.hasActiveFlow && flowResult.responses?.length) {
               aiResponse = flowResult.responses.join("\n\n");
@@ -274,19 +281,51 @@ serve(async (req) => {
               }
             } else {
               // No active flow - use AI with knowledge base
+              console.log("[CHAT-WIDGET] No active flow, trying KB response...");
               const kbResponse = await generateKBResponse(
                 supabase,
                 widget,
                 message,
                 conversationId
               );
+              console.log("[CHAT-WIDGET] KB response:", kbResponse ? "Generated" : "None");
               if (kbResponse) {
                 aiResponse = kbResponse;
               }
             }
+          } else {
+            const errorText = await flowResponse.text();
+            console.error("[CHAT-WIDGET] Flow engine error response:", errorText);
+            
+            // Fallback to KB even if flow engine fails
+            console.log("[CHAT-WIDGET] Flow engine failed, trying KB response...");
+            const kbResponse = await generateKBResponse(
+              supabase,
+              widget,
+              message,
+              conversationId
+            );
+            if (kbResponse) {
+              aiResponse = kbResponse;
+            }
           }
         } catch (flowError) {
           console.error("[CHAT-WIDGET] Flow engine error:", flowError);
+          
+          // Fallback to KB
+          try {
+            const kbResponse = await generateKBResponse(
+              supabase,
+              widget,
+              message,
+              conversationId
+            );
+            if (kbResponse) {
+              aiResponse = kbResponse;
+            }
+          } catch (kbError) {
+            console.error("[CHAT-WIDGET] KB fallback error:", kbError);
+          }
         }
 
         // Save AI response
@@ -333,12 +372,17 @@ async function generateKBResponse(
   conversationId: string
 ): Promise<string | null> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) return null;
+  if (!LOVABLE_API_KEY) {
+    console.error("[CHAT-WIDGET] LOVABLE_API_KEY not configured");
+    return null;
+  }
 
   try {
     // Get knowledge base IDs
-    const kbIds = widget.knowledge_base_ids || [];
-    if (kbIds.length === 0) {
+    let kbIds = widget.knowledge_base_ids || [];
+    console.log("[CHAT-WIDGET] Widget KB IDs:", kbIds);
+    
+    if (!kbIds.length) {
       // Get all active KBs for workspace
       const { data: kbs } = await supabase
         .from("knowledge_bases")
@@ -346,45 +390,43 @@ async function generateKBResponse(
         .eq("workspace_id", widget.workspace_id)
         .eq("is_active", true);
       
-      if (kbs) kbIds.push(...kbs.map((kb: any) => kb.id));
+      if (kbs) kbIds = kbs.map((kb: any) => kb.id);
+      console.log("[CHAT-WIDGET] Active KBs from workspace:", kbIds);
     }
 
-    if (kbIds.length === 0) return null;
+    if (!kbIds.length) {
+      console.log("[CHAT-WIDGET] No knowledge bases found");
+      return null;
+    }
 
-    // Generate embedding
-    const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-embedding-ada-002",
-        input: userMessage,
-      }),
-    });
+    // Search knowledge base using direct text query (Lovable AI doesn't support embeddings API)
+    console.log("[CHAT-WIDGET] Searching KB entries with text query...");
+    
+    // Get all validated entries from the knowledge bases
+    const { data: entries, error: entriesError } = await supabase
+      .from("knowledge_entries")
+      .select("id, title, content")
+      .eq("workspace_id", widget.workspace_id)
+      .eq("status", "validated")
+      .in("knowledge_base_id", kbIds)
+      .limit(15);
 
-    if (!embeddingResponse.ok) return null;
+    if (entriesError) {
+      console.error("[CHAT-WIDGET] KB search error:", entriesError);
+      return null;
+    }
 
-    const embeddingData = await embeddingResponse.json();
-    const queryEmbedding = embeddingData.data[0].embedding;
+    console.log("[CHAT-WIDGET] KB entries found:", entries?.length || 0);
 
-    // Search knowledge base
-    const { data: results } = await supabase.rpc("match_knowledge_entries", {
-      query_embedding: queryEmbedding,
-      match_threshold: 0.65,
-      match_count: 3,
-      filter_workspace_id: widget.workspace_id,
-      filter_knowledge_base_id: null,
-      filter_status: "validated",
-    });
+    if (!entries?.length) {
+      console.log("[CHAT-WIDGET] No KB entries found for context");
+      return null;
+    }
 
-    if (!results?.length) return null;
-
-    // Build context from knowledge
-    const context = results
-      .map((r: any) => `${r.title}: ${r.content}`)
-      .join("\n\n");
+    // Build context from all relevant knowledge entries
+    const context = entries
+      .map((e: any) => `## ${e.title}\n${e.content}`)
+      .join("\n\n---\n\n");
 
     // Get persona if configured
     let personaInstructions = "";
@@ -405,6 +447,7 @@ ${persona.system_prompt || ""}
     }
 
     // Generate response
+    console.log("[CHAT-WIDGET] Generating AI response...");
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -412,7 +455,7 @@ ${persona.system_prompt || ""}
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
@@ -430,14 +473,21 @@ ${context}`,
             content: userMessage,
           },
         ],
-        max_tokens: 300,
+        max_tokens: 500,
       }),
     });
 
-    if (!aiResponse.ok) return null;
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("[CHAT-WIDGET] AI generation error:", errorText);
+      return null;
+    }
 
     const aiData = await aiResponse.json();
-    return aiData.choices?.[0]?.message?.content || null;
+    const responseContent = aiData.choices?.[0]?.message?.content;
+    console.log("[CHAT-WIDGET] AI response generated successfully");
+    
+    return responseContent || null;
   } catch (error) {
     console.error("[CHAT-WIDGET] KB response error:", error);
     return null;
