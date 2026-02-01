@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
@@ -15,6 +14,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreateEnrollmentDialog } from "@/components/student-journey/CreateEnrollmentDialog";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
 
 interface ContactStudentJourneySectionProps {
   contactId: string;
@@ -189,7 +190,31 @@ export function ContactStudentJourneySection({
                   {enrollments.map((enrollment: any) => {
                     const statusInfo = STATUS_CONFIG[enrollment.status] || STATUS_CONFIG.pending;
                     const StatusIcon = statusInfo.icon;
-                    const progress = enrollment.progress_percentage || 0;
+                    
+                    // Determine contextual info instead of progress
+                    const getEnrollmentInfo = () => {
+                      const course = enrollment.course;
+                      
+                      // If completed, show completion date
+                      if (enrollment.status === 'completed' && enrollment.completed_at) {
+                        return `Concluído: ${format(new Date(enrollment.completed_at), 'dd MMM yyyy', { locale: pt })}`;
+                      }
+                      
+                      // If course has start date
+                      if (course?.start_date) {
+                        return `Início: ${format(new Date(course.start_date), 'dd MMM yyyy', { locale: pt })}`;
+                      }
+                      
+                      // If enrollment has started_at
+                      if (enrollment.started_at) {
+                        return `Desde: ${format(new Date(enrollment.started_at), 'dd MMM yyyy', { locale: pt })}`;
+                      }
+                      
+                      // Fallback: course type
+                      return course?.course_type === 'presencial' ? 'Presencial' 
+                           : course?.course_type === 'online' ? 'Online' 
+                           : 'Híbrido';
+                    };
                     
                     return (
                       <div 
@@ -206,12 +231,9 @@ export function ContactStudentJourneySection({
                             <p className="text-sm font-medium truncate">
                               {enrollment.course?.name || "Curso"}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Progress value={progress} className="h-1.5 flex-1" />
-                              <span className="text-xs text-muted-foreground w-8 text-right">
-                                {progress}%
-                              </span>
-                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {getEnrollmentInfo()}
+                            </p>
                           </div>
                           <Badge variant="secondary" className="text-[10px] shrink-0">
                             {statusInfo.label}
