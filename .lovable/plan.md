@@ -1,163 +1,96 @@
 
-# Plano: Validação de Duplicados e Gestão de Merge
+# Plano: Suportar Documentos Superiores a 60MB na Base de Conhecimento
 
-## Resumo
+## Problema Actual
 
-Este plano implementa duas funcionalidades principais:
-1. **Validação preventiva** - Bloqueia a criação de contactos com email já existente
-2. **Ferramenta de gestão de duplicados** - Interface para visualizar, comparar e fazer merge de contactos
+| Componente | Limite Actual | Localização |
+|------------|--------------|-------------|
+| Bucket Storage | 10 MB | `storage.buckets.file_size_limit` |
+| Frontend UI | 10 MB | `AddSourcePanel.tsx` linha 34 |
+| Processamento AI | 50.000 chars | `knowledge-document-process/index.ts` linha 122 |
 
----
+## Solução Proposta
 
-## Parte 1: Validação na Criação de Contactos
+### Parte 1: Aumentar Limite do Bucket
 
-### Comportamento Actual
-O sistema já detecta duplicados e mostra um aviso, mas permite ao utilizador "Criar mesmo assim".
+Alterar o limite do bucket `knowledge-documents` para 100MB (suficiente para documentos grandes).
 
-### Novo Comportamento
-- **Email exacto**: Bloqueia criação (email deve ser único)
-- **Telefone similar**: Aviso com opção de usar existente
-- **Nome similar**: Aviso com opção de usar existente
+```sql
+UPDATE storage.buckets 
+SET file_size_limit = 104857600  -- 100MB
+WHERE name = 'knowledge-documents';
+```
 
-### Alterações
+### Parte 2: Actualizar Frontend
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/contacts/CreateContactDialog.tsx` | Bloquear submit quando existe email duplicado |
-| `src/hooks/useContactDuplicates.ts` | Adicionar flag `isExactEmailMatch` para diferenciar |
+| `src/components/knowledge-base/AddSourcePanel.tsx` | Aumentar `MAX_FILE_SIZE` para 100MB |
 
-### Lógica de Validação
+### Parte 3: Processamento Inteligente para Ficheiros Grandes
 
-```text
-SE email igual a contacto existente:
-  → Bloquear criação
-  → Mostrar mensagem: "Este email já está associado ao contacto X"
-  → Opção: "Ver contacto existente"
+Para ficheiros grandes, o processamento actual tem limitacoes:
 
-SE telefone ou nome similar:
-  → Mostrar aviso (actual)
-  → Permitir "Criar mesmo assim"
-```
+1. **PDFs grandes**: A API de visao tem limites de tamanho de imagem/payload
+2. **Memoria**: Carregar ficheiros de 60MB+ em memoria pode causar timeouts na edge function
 
----
-
-## Parte 2: Ferramenta de Gestão de Duplicados
-
-### Nova Página/Tab
-
-Adicionar uma nova tab "Duplicados" na página de Contactos que permite:
-- Ver grupos de contactos potencialmente duplicados
-- Comparar campos lado a lado
-- Seleccionar qual manter como principal
-- Fazer merge com migração de dados relacionados
-
-### Componentes Novos
-
-| Componente | Descrição |
-|------------|-----------|
-| `DuplicateManagementDialog.tsx` | Dialog principal de gestão |
-| `DuplicateContactCard.tsx` | Card de comparação de cada contacto |
-| `MergePreviewPanel.tsx` | Pré-visualização do resultado do merge |
-
-### Hook Novo
-
-| Hook | Descrição |
-|------|-----------|
-| `useContactDuplicateGroups.ts` | Busca todos os grupos de duplicados no workspace |
-| Adicionar `mergeContacts` ao `useContacts.ts` | Função de merge que migra referências |
-
-### Estrutura da UI
+**Estrategia de Chunking:**
 
 ```text
-┌──────────────────────────────────────────────────────────────┐
-│ Gestão de Duplicados                              [Analisar] │
-├──────────────────────────────────────────────────────────────┤
-│ Encontrados 5 grupos de possíveis duplicados                 │
-│                                                              │
-│ ┌─ Grupo 1: João Silva ───────────────────────────────────┐  │
-│ │                                                         │  │
-│ │  ◉ João Silva              ○ João P. Silva             │  │
-│ │  joao@empresa.pt           joao.silva@empresa.pt       │  │
-│ │  +351 912 345 678          912345678                   │  │
-│ │  Empresa XYZ               Empresa XYZ                 │  │
-│ │  Criado: 2024-01-15        Criado: 2024-03-20          │  │
-│ │  ✓ 3 oportunidades         ✓ 1 factura                 │  │
-│ │                                                         │  │
-│ │  [Manter esquerdo] [Manter direito] [Comparar] [Ignorar]│  │
-│ └─────────────────────────────────────────────────────────┘  │
-│                                                              │
-│ ┌─ Grupo 2: Maria Santos ─────────────────────────────────┐  │
-│ │  ...                                                    │  │
-│ └─────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────┘
+Ficheiro > 20MB?
+  ├─ SIM → Dividir em chunks de 15MB
+  │        Processar cada chunk separadamente
+  │        Combinar resultados
+  │
+  └─ NÃO → Processar normalmente
 ```
 
-### Lógica de Merge
+### Parte 4: Melhorias na Edge Function
 
-O merge precisa considerar as seguintes tabelas que referenciam `contact_id`:
-- `sj_profiles` - Perfis de alunos
-- `opportunities` - Oportunidades
-- `proposals` - Propostas
-- `invoices` - Facturas
-- `meetings` - Reuniões
-- `calendar_events` - Eventos
-- `conversations` - Conversas
-- `contact_documents` - Documentos
-- `contact_linkedin_data` - Dados LinkedIn
-- `subscriptions` - Subscrições
+| Alteracao | Descricao |
+|-----------|-----------|
+| Aumentar limite de texto | De 50.000 para 100.000 caracteres |
+| Chunked processing | Para PDFs grandes, processar por paginas |
+| Progress tracking | Actualizar status durante processamento longo |
+| Timeout handling | Retry automatico para operacoes longas |
 
-**Processo de Merge:**
-1. Seleccionar contacto principal (destino)
-2. Migrar todas as referências do duplicado para o principal
-3. Fazer merge de tags (união)
-4. Fazer merge de notas (concatenar)
-5. Manter dados mais completos de cada campo
-6. Eliminar contacto duplicado
+### Ficheiros a Modificar
 
----
-
-## Ficheiros a Criar
-
-| Ficheiro | Descrição |
+| Ficheiro | Alteracao |
 |----------|-----------|
-| `src/components/contacts/DuplicateManagementDialog.tsx` | Dialog de gestão de duplicados |
-| `src/hooks/useContactDuplicateGroups.ts` | Hook para buscar grupos de duplicados |
-
-## Ficheiros a Modificar
-
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/components/contacts/CreateContactDialog.tsx` | Bloquear submit em duplicado de email exacto |
-| `src/components/contacts/SmartContactsTable.tsx` | Adicionar botão "Gerir Duplicados" no toolbar |
-| `src/hooks/useContacts.ts` | Adicionar função `mergeContacts` |
-| `src/hooks/useContactDuplicates.ts` | Adicionar flag para tipo de match |
+| `src/components/knowledge-base/AddSourcePanel.tsx` | Limite 100MB + UI feedback para ficheiros grandes |
+| `supabase/functions/knowledge-document-process/index.ts` | Processamento chunked + limites maiores |
+| `src/hooks/useKnowledgeBase.ts` | Progress callback para uploads grandes |
 
 ---
 
-## Fluxo de Merge Detalhado
+## Detalhes Tecnicos
 
-```text
-1. Utilizador abre "Gerir Duplicados"
-2. Sistema analisa todos os contactos:
-   - Agrupa por email exacto
-   - Agrupa por telefone (últimos 9 dígitos)
-   - Agrupa por nome similar (>85%)
-3. Para cada grupo:
-   - Mostra comparação lado a lado
-   - Indica quantas referências cada contacto tem
-   - Sugere qual manter (o mais antigo com mais dados)
-4. Utilizador selecciona acção:
-   - "Manter X" → Migra tudo para X, elimina outros
-   - "Ignorar" → Marca como não-duplicado
-5. Confirmação antes de executar
-6. Feedback de sucesso com resumo
-```
+### Frontend: Upload com Progresso
+
+Para ficheiros grandes, mostrar barra de progresso durante upload.
+
+### Edge Function: Processamento por Chunks
+
+Para PDFs grandes:
+1. Extrair texto por paginas (nao tudo de uma vez)
+2. Processar em batches de 20 paginas
+3. Combinar FAQs e topicos de todos os chunks
+4. Actualizar status a cada batch processado
+
+### Limites Finais
+
+| Componente | Novo Limite |
+|------------|-------------|
+| Upload maximo | 100 MB |
+| Texto processado por batch | 30.000 chars |
+| Paginas por batch (PDF) | 20 |
+| Timeout total | 5 minutos |
 
 ---
 
-## Validações de Segurança
+## Notas de Implementacao
 
-- Confirmar antes de qualquer merge (AlertDialog)
-- Log de todas as operações de merge
-- Não permitir merge se contactos de workspaces diferentes
-- Validar permissões do utilizador
+1. O Supabase Storage suporta ficheiros ate 5GB (paid tier), portanto 100MB e seguro
+2. Edge functions tem timeout de 150s no plano free - o chunking evita este limite
+3. Ficheiros Word (DOCX) geralmente sao menores, mas o mesmo chunking aplica-se se necessario
