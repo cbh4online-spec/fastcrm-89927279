@@ -45,6 +45,7 @@ import Invoices from "./pages/Invoices";
 import InvoiceDetail from "./pages/InvoiceDetail";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import AIProfiles from "./pages/AIProfiles";
+import AIAssistants from "./pages/AIAssistants";
 import ConversationalEngine from "./pages/ConversationalEngine";
 import MarketingHomepage from "./pages/MarketingHomepage";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
@@ -214,6 +215,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
                 <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
                 <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
+                <Route path="/dashboard/ai-assistants" element={<AIAssistants />} />
                 <Route path="/dashboard/conversational-engine" element={<ConversationalEngine />} />
                 <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
                 <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />

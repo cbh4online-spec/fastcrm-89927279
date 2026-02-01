@@ -89,7 +89,7 @@ export function ConversationalEngineModule() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="vibe" className="gap-2">
             <Palette className="h-4 w-4" />
             <span className="hidden sm:inline">Perfis de Vibe</span>
@@ -105,11 +105,6 @@ export function ConversationalEngineModule() {
             <span className="hidden sm:inline">Objetivos</span>
             <span className="sm:hidden">Obj.</span>
           </TabsTrigger>
-          <TabsTrigger value="autopilot" className="gap-2">
-            <Bot className="h-4 w-4" />
-            <span className="hidden sm:inline">Auto-Pilot</span>
-            <span className="sm:hidden">Auto</span>
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="vibe" className="mt-6">
@@ -122,10 +117,6 @@ export function ConversationalEngineModule() {
 
         <TabsContent value="objectives" className="mt-6">
           <ConversationObjectivesTab />
-        </TabsContent>
-
-        <TabsContent value="autopilot" className="mt-6">
-          <AutopilotConfigTab />
         </TabsContent>
       </Tabs>
     </div>

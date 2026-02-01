@@ -824,6 +824,7 @@ export type Database = {
       }
       ai_agents: {
         Row: {
+          autopilot_enabled: boolean | null
           channel: string
           created_at: string | null
           description: string | null
@@ -831,14 +832,27 @@ export type Database = {
           id: string
           is_active: boolean | null
           knowledge_base_ids: string[] | null
+          max_consecutive_bot_messages: number | null
+          max_messages_per_conversation: number | null
           name: string
+          out_of_hours_message: string | null
           persona_id: string | null
           priority: number | null
+          respect_working_hours: boolean | null
+          response_delay_max: number | null
+          response_delay_min: number | null
           settings: Json | null
+          sleep_on_human_reply: boolean | null
+          timezone: string | null
+          typing_indicator: boolean | null
           updated_at: string | null
+          working_days: number[] | null
+          working_hours_end: string | null
+          working_hours_start: string | null
           workspace_id: string
         }
         Insert: {
+          autopilot_enabled?: boolean | null
           channel: string
           created_at?: string | null
           description?: string | null
@@ -846,14 +860,27 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           knowledge_base_ids?: string[] | null
+          max_consecutive_bot_messages?: number | null
+          max_messages_per_conversation?: number | null
           name: string
+          out_of_hours_message?: string | null
           persona_id?: string | null
           priority?: number | null
+          respect_working_hours?: boolean | null
+          response_delay_max?: number | null
+          response_delay_min?: number | null
           settings?: Json | null
+          sleep_on_human_reply?: boolean | null
+          timezone?: string | null
+          typing_indicator?: boolean | null
           updated_at?: string | null
+          working_days?: number[] | null
+          working_hours_end?: string | null
+          working_hours_start?: string | null
           workspace_id: string
         }
         Update: {
+          autopilot_enabled?: boolean | null
           channel?: string
           created_at?: string | null
           description?: string | null
@@ -861,11 +888,23 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           knowledge_base_ids?: string[] | null
+          max_consecutive_bot_messages?: number | null
+          max_messages_per_conversation?: number | null
           name?: string
+          out_of_hours_message?: string | null
           persona_id?: string | null
           priority?: number | null
+          respect_working_hours?: boolean | null
+          response_delay_max?: number | null
+          response_delay_min?: number | null
           settings?: Json | null
+          sleep_on_human_reply?: boolean | null
+          timezone?: string | null
+          typing_indicator?: boolean | null
           updated_at?: string | null
+          working_days?: number[] | null
+          working_hours_end?: string | null
+          working_hours_start?: string | null
           workspace_id?: string
         }
         Relationships: [
