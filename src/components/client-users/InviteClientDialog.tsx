@@ -247,6 +247,7 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
             clientName: data.name,
             clientEmail: data.email,
             workspaceName: workspace?.name || "FastCRM",
+            workspaceId: currentWorkspace.id,
             portalUrl: `${window.location.origin}/client/login`,
             temporaryPassword: temporaryPassword,
           },
