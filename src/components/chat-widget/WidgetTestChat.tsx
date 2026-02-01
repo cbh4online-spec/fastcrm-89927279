@@ -59,10 +59,10 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
         if (data.messages && data.messages.length > 0) {
           setMessages(
             data.messages.map((msg: any) => ({
-              id: msg.id,
-              role: msg.role,
-              content: msg.content,
-              timestamp: new Date(msg.created_at),
+              id: msg.id || crypto.randomUUID(),
+              role: msg.role as "user" | "assistant",
+              content: typeof msg.content === 'string' ? msg.content : String(msg.content || ''),
+              timestamp: new Date(msg.created_at || Date.now()),
             }))
           );
         } else if (config.welcome_message) {
@@ -276,7 +276,7 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
                       color: message.role === "user" ? "white" : config.text_color 
                     }}
                   >
-                    {message.content}
+                    {typeof message.content === 'string' ? message.content : String(message.content || '')}
                   </p>
                   <p 
                     className={`text-[10px] mt-1 ${
