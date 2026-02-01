@@ -274,17 +274,21 @@ Deno.serve(async (req) => {
   }
 });
 
-// PDF extraction using AI vision - process in larger chunks for Trigger.dev
+// PDF extraction using AI vision - process in smaller chunks
 async function extractPDFContent(
   blob: Blob, 
   apiKey: string,
   updateProgress: (msg: string) => Promise<void>
 ): Promise<string> {
-  const MAX_CHUNK_SIZE = 15 * 1024 * 1024; // 15MB per chunk for PDF
+  // Use smaller chunks - API has payload limits (~4MB base64 = ~3MB file)
+  const MAX_CHUNK_SIZE = 3 * 1024 * 1024; // 3MB per chunk
+  const MAX_CHUNKS = 10; // Process max 10 chunks (30MB of PDF content)
   const chunks: string[] = [];
   
-  // Split large PDFs into chunks for vision API
-  const totalChunks = Math.ceil(blob.size / MAX_CHUNK_SIZE);
+  const totalChunks = Math.min(Math.ceil(blob.size / MAX_CHUNK_SIZE), MAX_CHUNKS);
+  const processableSize = Math.min(blob.size, MAX_CHUNKS * MAX_CHUNK_SIZE);
+  
+  console.log(`[KNOWLEDGE-TRIGGER] PDF size: ${(blob.size / 1024 / 1024).toFixed(2)}MB, will process ${totalChunks} chunks (${(processableSize / 1024 / 1024).toFixed(2)}MB)`);
   
   for (let i = 0; i < totalChunks; i++) {
     const start = i * MAX_CHUNK_SIZE;
@@ -293,20 +297,44 @@ async function extractPDFContent(
     
     await updateProgress(`A extrair texto do PDF (parte ${i + 1} de ${totalChunks})...`);
     
-    const base64 = await blobToBase64(chunkBlob);
-    const text = await extractPDFFromBase64(base64, apiKey);
-    chunks.push(text);
+    try {
+      const base64 = await blobToBase64(chunkBlob);
+      console.log(`[KNOWLEDGE-TRIGGER] Processing chunk ${i + 1}: ${(chunkBlob.size / 1024 / 1024).toFixed(2)}MB, base64 length: ${base64.length}`);
+      
+      const text = await extractPDFFromBase64(base64, apiKey, i + 1, totalChunks);
+      
+      if (text && text.length > 50 && !text.includes('extraction requires manual review')) {
+        chunks.push(text);
+      }
+    } catch (chunkError) {
+      console.warn(`[KNOWLEDGE-TRIGGER] Failed to extract chunk ${i + 1}:`, chunkError);
+      // Continue with other chunks
+    }
     
-    // Small delay between API calls
+    // Delay between API calls to avoid rate limits
     if (i < totalChunks - 1) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
   
-  return chunks.join('\n\n---\n\n');
+  if (chunks.length === 0) {
+    console.warn('[KNOWLEDGE-TRIGGER] No chunks extracted successfully');
+    return '';
+  }
+  
+  const result = chunks.join('\n\n---\n\n');
+  console.log(`[KNOWLEDGE-TRIGGER] Total extracted text: ${result.length} characters from ${chunks.length} chunks`);
+  
+  return result;
 }
 
-async function extractPDFFromBase64(base64: string, apiKey: string): Promise<string> {
+async function extractPDFFromBase64(base64: string, apiKey: string, chunkNum: number, totalChunks: number): Promise<string> {
+  // Check if base64 is too large (API limit is roughly 20MB payload)
+  if (base64.length > 4 * 1024 * 1024) {
+    console.warn(`[KNOWLEDGE-TRIGGER] Base64 too large: ${(base64.length / 1024 / 1024).toFixed(2)}MB, skipping`);
+    return '';
+  }
+
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -321,7 +349,7 @@ async function extractPDFFromBase64(base64: string, apiKey: string): Promise<str
           content: [
             {
               type: "text",
-              text: "Extract ALL text content from this PDF document. Include all details, numbers, prices, dates. Return only the text, preserving structure with paragraphs."
+              text: `Extract ALL text content from this PDF document section (part ${chunkNum} of ${totalChunks}). Include all details, numbers, prices, dates. Return only the extracted text, preserving structure with paragraphs.`
             },
             {
               type: "image_url",
@@ -337,12 +365,13 @@ async function extractPDFFromBase64(base64: string, apiKey: string): Promise<str
   });
 
   if (!response.ok) {
-    console.warn(`[KNOWLEDGE-TRIGGER] PDF extraction failed: ${response.status}`);
-    return "PDF document - text extraction requires manual review";
+    const errorText = await response.text();
+    console.warn(`[KNOWLEDGE-TRIGGER] PDF extraction failed: ${response.status} - ${errorText.slice(0, 200)}`);
+    return '';
   }
 
   const result = await response.json();
-  return result.choices?.[0]?.message?.content || "Could not extract PDF content";
+  return result.choices?.[0]?.message?.content || '';
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
