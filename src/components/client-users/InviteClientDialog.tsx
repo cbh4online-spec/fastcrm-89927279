@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserPlus, Loader2 } from "lucide-react";
+import { UserPlus, Loader2, Link } from "lucide-react";
 import { toast } from "sonner";
 
 const inviteClientSchema = z.object({
@@ -52,6 +52,29 @@ const inviteClientSchema = z.object({
 });
 
 type InviteClientFormData = z.infer<typeof inviteClientSchema>;
+
+interface Contact {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  tax_id: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  tax_id: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+}
 
 interface InviteClientDialogProps {
   trigger?: React.ReactNode;
@@ -82,43 +105,78 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
     },
   });
 
-  // Fetch contacts for association
+  // Fetch contacts for association - expanded query with all needed fields
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts-for-client", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data } = await supabase
         .from("contacts")
-        .select("id, name, email")
+        .select("id, name, email, phone, tax_id, address, city, postal_code, country")
         .eq("workspace_id", currentWorkspace.id)
         .order("name");
-      return data || [];
+      return (data || []) as Contact[];
     },
     enabled: !!currentWorkspace?.id && open,
   });
 
-  // Fetch companies for association
+  // Fetch companies for association - expanded query with all needed fields
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-for-client", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data } = await supabase
         .from("companies")
-        .select("id, name")
+        .select("id, name, email, phone, tax_id, address, city, postal_code")
         .eq("workspace_id", currentWorkspace.id)
         .order("name");
-      return data || [];
+      return (data || []) as Company[];
     },
     enabled: !!currentWorkspace?.id && open,
   });
 
+  // Handler for contact selection - auto-fills form fields
+  const handleContactChange = (contactId: string) => {
+    form.setValue("contact_id", contactId);
+    
+    if (contactId && contactId !== "none") {
+      const contact = contacts.find(c => c.id === contactId);
+      if (contact) {
+        // Auto-fill fields with contact data
+        if (contact.name) form.setValue("name", contact.name);
+        if (contact.email) form.setValue("email", contact.email);
+        if (contact.phone) form.setValue("phone", contact.phone);
+        if (contact.tax_id) form.setValue("tax_id", contact.tax_id);
+        if (contact.address) form.setValue("billing_street", contact.address);
+        if (contact.city) form.setValue("billing_city", contact.city);
+        if (contact.postal_code) form.setValue("billing_postal_code", contact.postal_code);
+        if (contact.country) form.setValue("billing_country", contact.country);
+      }
+    }
+  };
+
+  // Handler for company selection - auto-fills form fields
+  const handleCompanyChange = (companyId: string) => {
+    form.setValue("company_id", companyId);
+    
+    if (companyId && companyId !== "none") {
+      const company = companies.find(c => c.id === companyId);
+      if (company) {
+        // Auto-fill fields with company data (only if currently empty)
+        if (!form.getValues("name") && company.name) form.setValue("name", company.name);
+        if (!form.getValues("email") && company.email) form.setValue("email", company.email);
+        if (!form.getValues("phone") && company.phone) form.setValue("phone", company.phone);
+        if (company.tax_id) form.setValue("tax_id", company.tax_id);
+        if (company.address) form.setValue("billing_street", company.address);
+        if (company.city) form.setValue("billing_city", company.city);
+        if (company.postal_code) form.setValue("billing_postal_code", company.postal_code);
+      }
+    }
+  };
+
   const createClientMutation = useMutation({
     mutationFn: async (data: InviteClientFormData) => {
       if (!currentWorkspace?.id) throw new Error("Workspace não encontrado");
-
-      // First, create the auth user (invitation)
-      // Note: In production, this would send an email invitation
-      // For now, we'll create the client_user record that will be linked when user signs up
 
       const billingAddress = {
         street: data.billing_street,
@@ -129,14 +187,13 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
 
       // We need to create a temporary auth_user_id placeholder
       // In production, this would be populated when the user accepts the invitation
-      // For now we use a placeholder UUID
       const tempAuthUserId = crypto.randomUUID();
 
       const { data: clientUser, error } = await supabase
         .from("client_users")
         .insert({
           workspace_id: currentWorkspace.id,
-          auth_user_id: tempAuthUserId, // Placeholder until user accepts invitation
+          auth_user_id: tempAuthUserId,
           name: data.name,
           email: data.email,
           phone: data.phone || null,
@@ -191,108 +248,181 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* CRM Association - MOVED TO TOP */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Link className="h-4 w-4" />
+                Associar a Registo CRM (opcional)
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="contact_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contacto CRM</FormLabel>
+                      <Select onValueChange={handleContactChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar contacto" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhum</SelectItem>
+                          {contacts.map((contact) => (
+                            <SelectItem key={contact.id} value={contact.id}>
+                              {contact.name} {contact.email && `(${contact.email})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Os dados do contacto serão preenchidos automaticamente
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="company_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Empresa CRM</FormLabel>
+                      <Select onValueChange={handleCompanyChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar empresa" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhuma</SelectItem>
+                          {companies.map((company) => (
+                            <SelectItem key={company.id} value={company.id}>
+                              {company.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Os dados da empresa serão preenchidos automaticamente
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
             {/* Basic Info */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nome do cliente" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="space-y-4">
+              <h4 className="font-medium">Informações Básicas</h4>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome do cliente" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email *</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="email@exemplo.pt" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email *</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="email@exemplo.pt" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="+351 912 345 678" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+351 912 345 678" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="tax_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>NIF/NIPC</FormLabel>
-                    <FormControl>
-                      <Input placeholder="123456789" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="tax_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>NIF/NIPC</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123456789" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             {/* Credit Info */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="credit_limit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Limite de Crédito (€)</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={0} step={0.01} {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Limite máximo para compras a crédito
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="payment_terms"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Condições de Pagamento</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <div className="space-y-4">
+              <h4 className="font-medium">Condições Comerciais</h4>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="credit_limit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Limite de Crédito (€)</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar" />
-                        </SelectTrigger>
+                        <Input type="number" min={0} step={0.01} {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="immediate">Imediato</SelectItem>
-                        <SelectItem value="15_days">15 dias</SelectItem>
-                        <SelectItem value="30_days">30 dias</SelectItem>
-                        <SelectItem value="45_days">45 dias</SelectItem>
-                        <SelectItem value="60_days">60 dias</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormDescription>
+                        Limite máximo para compras a crédito
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="payment_terms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Condições de Pagamento</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="immediate">Imediato</SelectItem>
+                          <SelectItem value="15_days">15 dias</SelectItem>
+                          <SelectItem value="30_days">30 dias</SelectItem>
+                          <SelectItem value="45_days">45 dias</SelectItem>
+                          <SelectItem value="60_days">60 dias</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             {/* Billing Address */}
@@ -355,61 +485,6 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
                   )}
                 />
               </div>
-            </div>
-
-            {/* CRM Association */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="contact_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Associar a Contacto CRM</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar contacto" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhum</SelectItem>
-                        {contacts.map((contact) => (
-                          <SelectItem key={contact.id} value={contact.id}>
-                            {contact.name} {contact.email && `(${contact.email})`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="company_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Associar a Empresa CRM</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar empresa" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhuma</SelectItem>
-                        {companies.map((company) => (
-                          <SelectItem key={company.id} value={company.id}>
-                            {company.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
             {/* Notes */}
