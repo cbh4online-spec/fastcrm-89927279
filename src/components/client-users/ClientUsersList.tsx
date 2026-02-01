@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -32,7 +33,9 @@ import { useClientUsers, useClientOrders } from "@/hooks/useClientUsers";
 import { clientUserStatusConfig, type ClientUserStatus, type ClientUser } from "@/types/client-user";
 import { orderNoteStatusConfig } from "@/types/order-note";
 import { EditClientDialog } from "./EditClientDialog";
-import { User, Search, Mail, Phone, Building2, CreditCard, FileText, Eye, X, MoreHorizontal, Pencil } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { User, Search, Mail, Phone, Building2, CreditCard, FileText, Eye, X, MoreHorizontal, Pencil, Send, Loader2 } from "lucide-react";
 
 export function ClientUsersList() {
   const navigate = useNavigate();
@@ -49,6 +52,37 @@ export function ClientUsersList() {
   const { orders: clientOrders, loading: ordersLoading } = useClientOrders(
     selectedClient || undefined
   );
+
+  const resendInvitationMutation = useMutation({
+    mutationFn: async (client: ClientUser) => {
+      const { data: workspace } = await supabase
+        .from("workspaces")
+        .select("name")
+        .eq("id", client.workspace_id)
+        .single();
+
+      const { error } = await supabase.functions.invoke(
+        "send-client-invitation",
+        {
+          body: {
+            clientName: client.name,
+            clientEmail: client.email,
+            workspaceName: workspace?.name || "FastCRM",
+            portalUrl: `${window.location.origin}/client-portal`,
+          },
+        }
+      );
+
+      if (error) throw error;
+      return client;
+    },
+    onSuccess: (client) => {
+      toast.success(`Convite reenviado para ${client.email}`);
+    },
+    onError: (error) => {
+      toast.error("Erro ao reenviar convite: " + error.message);
+    },
+  });
 
   const clearFilters = () => {
     setSearch("");
@@ -199,6 +233,22 @@ export function ClientUsersList() {
                               <Pencil className="h-4 w-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
+                            {client.status === "pending" && (
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  resendInvitationMutation.mutate(client);
+                                }}
+                                disabled={resendInvitationMutation.isPending}
+                              >
+                                {resendInvitationMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4 mr-2" />
+                                )}
+                                Reenviar Convite
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -220,6 +270,8 @@ export function ClientUsersList() {
             orders={clientOrders}
             ordersLoading={ordersLoading}
             onViewOrder={(id) => navigate(`/dashboard/order-notes/${id}`)}
+            onResendInvitation={(client) => resendInvitationMutation.mutate(client)}
+            isResending={resendInvitationMutation.isPending}
           />
         ) : (
           <Card>
@@ -247,12 +299,16 @@ function ClientDetailCard({
   orders,
   ordersLoading,
   onViewOrder,
+  onResendInvitation,
+  isResending,
 }: {
   clientId: string;
-  clients: any[];
+  clients: ClientUser[];
   orders: any[];
   ordersLoading: boolean;
   onViewOrder: (id: string) => void;
+  onResendInvitation: (client: ClientUser) => void;
+  isResending: boolean;
 }) {
   const client = clients.find((c) => c.id === clientId);
   if (!client) return null;
@@ -300,6 +356,25 @@ function ClientDetailCard({
             </div>
           )}
         </div>
+
+        {/* Resend Invitation Button */}
+        {client.status === "pending" && (
+          <div className="pt-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => onResendInvitation(client)}
+              disabled={isResending}
+            >
+              {isResending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Reenviar Convite
+            </Button>
+          </div>
+        )}
 
         {/* Recent Orders */}
         <div className="pt-4 border-t">
