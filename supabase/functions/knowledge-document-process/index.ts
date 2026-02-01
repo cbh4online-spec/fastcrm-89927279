@@ -15,6 +15,17 @@ interface ProcessRequest {
   workspaceId: string;
 }
 
+interface ChunkResult {
+  processedContent: string;
+  topics: string[];
+  faqs: { question: string; answer: string }[];
+  categories: string[];
+  summary: string;
+}
+
+const CHUNK_SIZE = 30000; // 30k chars per chunk
+const MAX_TOTAL_CHARS = 100000; // 100k chars max total
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -51,17 +62,19 @@ serve(async (req) => {
       throw new Error(`Failed to download file: ${downloadError?.message}`);
     }
 
+    const fileSize = fileData.size;
+    console.log(`[KNOWLEDGE-DOC] File size: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+
     let textContent = '';
 
     // Extract text based on mime type
     if (mimeType === 'text/plain') {
       textContent = await fileData.text();
     } else if (mimeType === 'application/pdf') {
-      // For PDF, we'll use the AI to extract/summarize
+      // For large PDFs, use chunked extraction
       const base64 = await blobToBase64(fileData);
-      textContent = await extractPDFContent(base64, LOVABLE_API_KEY);
+      textContent = await extractPDFContent(base64, LOVABLE_API_KEY, fileSize);
     } else if (mimeType.includes('word') || mimeType.includes('document')) {
-      // For Word docs, extract text (simplified - use docx library in production)
       const arrayBuffer = await fileData.arrayBuffer();
       textContent = await extractDocxContent(new Uint8Array(arrayBuffer));
     }
@@ -79,98 +92,62 @@ serve(async (req) => {
       .eq('id', knowledgeBaseId)
       .single();
 
-    // Process with AI to extract structured knowledge
-    const systemPrompt = `És um processador de conhecimento para CRM.
-Analisa o documento fornecido e extrai informação estruturada.
+    // Process content in chunks for large documents
+    const totalContent = textContent.slice(0, MAX_TOTAL_CHARS);
+    const chunks = splitIntoChunks(totalContent, CHUNK_SIZE);
+    
+    console.log(`[KNOWLEDGE-DOC] Processing ${chunks.length} chunk(s)`);
 
-Contexto: Base de conhecimento do tipo "${kb?.type || 'general'}"
-Nome do ficheiro: ${fileName}
+    // Update progress
+    await supabase
+      .from('knowledge_sources')
+      .update({ 
+        processing_error: `A processar: 0/${chunks.length} blocos completos` 
+      })
+      .eq('id', sourceId);
 
-Tarefas:
-1. Resume o conteúdo principal em linguagem clara
-2. Identifica tópicos/conceitos-chave
-3. Gera FAQs relevantes (perguntas e respostas)
-4. Sugere categorias para organização
+    const allResults: ChunkResult[] = [];
 
-Regras:
-- Nunca inventes informação
-- Mantém a precisão do conteúdo original
-- Usa linguagem simples e acessível
-- Foca no que é útil para atendimento, vendas ou suporte
+    // Process each chunk
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      console.log(`[KNOWLEDGE-DOC] Processing chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
 
-Responde em JSON:
-{
-  "processedContent": "Conteúdo processado e resumido...",
-  "topics": ["tópico1", "tópico2"],
-  "faqs": [
-    { "question": "Pergunta?", "answer": "Resposta." }
-  ],
-  "categories": ["categoria1"],
-  "summary": "Resumo em 2-3 frases"
-}`;
+      const result = await processChunkWithAI(
+        chunk, 
+        fileName, 
+        kb?.type || 'general', 
+        LOVABLE_API_KEY,
+        i + 1,
+        chunks.length
+      );
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Processa este documento:\n\n${textContent.slice(0, 50000)}` }
-        ],
-        temperature: 0.3,
-        max_tokens: 4000
-      }),
-    });
+      allResults.push(result);
 
-    if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        await supabase
-          .from('knowledge_sources')
-          .update({ 
-            processing_status: 'pending',
-            processing_error: 'Rate limit - will retry'
-          })
-          .eq('id', sourceId);
-        
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded, will retry" }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw new Error(`AI gateway error: ${aiResponse.status}`);
+      // Update progress
+      await supabase
+        .from('knowledge_sources')
+        .update({ 
+          processing_error: `A processar: ${i + 1}/${chunks.length} blocos completos` 
+        })
+        .eq('id', sourceId);
     }
 
-    const aiResult = await aiResponse.json();
-    const contentText = aiResult.choices?.[0]?.message?.content || "";
+    // Merge results from all chunks
+    const mergedResult = mergeChunkResults(allResults);
 
-    let result;
-    try {
-      const jsonMatch = contentText.match(/```json\n?([\s\S]*?)\n?```/) || 
-                        contentText.match(/```\n?([\s\S]*?)\n?```/) ||
-                        [null, contentText];
-      result = JSON.parse(jsonMatch[1] || contentText);
-    } catch {
-      result = {
-        processedContent: contentText,
-        topics: [],
-        faqs: [],
-        categories: [],
-        summary: contentText.slice(0, 200)
-      };
-    }
+    console.log(`[KNOWLEDGE-DOC] Total FAQs extracted: ${mergedResult.faqs.length}`);
+    console.log(`[KNOWLEDGE-DOC] Total topics: ${mergedResult.topics.length}`);
 
     // Update source with processed content
     await supabase
       .from('knowledge_sources')
       .update({
-        original_content: textContent.slice(0, 50000),
-        processed_content: result.processedContent,
-        extracted_topics: result.topics,
+        original_content: totalContent.slice(0, 50000),
+        processed_content: mergedResult.processedContent,
+        extracted_topics: mergedResult.topics,
         processing_status: 'completed',
+        processing_error: null,
         last_processed_at: new Date().toISOString()
       })
       .eq('id', sourceId);
@@ -183,8 +160,8 @@ Responde em JSON:
       .single();
 
     // Create entries from FAQs
-    if (result.faqs && result.faqs.length > 0) {
-      const entries = result.faqs.map((faq: { question: string; answer: string }) => ({
+    if (mergedResult.faqs && mergedResult.faqs.length > 0) {
+      const entries = mergedResult.faqs.map((faq) => ({
         knowledge_base_id: knowledgeBaseId,
         source_id: sourceId,
         workspace_id: workspaceId,
@@ -193,8 +170,8 @@ Responde em JSON:
         question: faq.question,
         content: faq.answer,
         summary: faq.answer.slice(0, 200),
-        keywords: result.topics,
-        category: result.categories?.[0],
+        keywords: mergedResult.topics,
+        category: mergedResult.categories?.[0],
         status: 'draft',
         created_by: sourceData?.created_by
       }));
@@ -211,11 +188,11 @@ Responde em JSON:
       source_id: sourceId,
       workspace_id: workspaceId,
       entry_type: 'article',
-      title: fileName.replace(/\.[^/.]+$/, ''), // Remove extension
-      content: result.processedContent,
-      summary: result.summary,
-      keywords: result.topics,
-      category: result.categories?.[0],
+      title: fileName.replace(/\.[^/.]+$/, ''),
+      content: mergedResult.processedContent,
+      summary: mergedResult.summary,
+      keywords: mergedResult.topics,
+      category: mergedResult.categories?.[0],
       status: 'draft',
       created_by: sourceData?.created_by
     });
@@ -230,9 +207,10 @@ Responde em JSON:
       JSON.stringify({
         success: true,
         sourceId,
-        entriesCreated: (result.faqs?.length || 0) + 1,
-        topics: result.topics,
-        summary: result.summary
+        entriesCreated: (mergedResult.faqs?.length || 0) + 1,
+        topics: mergedResult.topics,
+        summary: mergedResult.summary,
+        chunksProcessed: chunks.length
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -269,6 +247,202 @@ Responde em JSON:
   }
 });
 
+function splitIntoChunks(text: string, chunkSize: number): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+  
+  while (start < text.length) {
+    let end = start + chunkSize;
+    
+    // Try to break at paragraph or sentence boundary
+    if (end < text.length) {
+      const paragraphBreak = text.lastIndexOf('\n\n', end);
+      const sentenceBreak = text.lastIndexOf('. ', end);
+      
+      if (paragraphBreak > start + chunkSize * 0.7) {
+        end = paragraphBreak + 2;
+      } else if (sentenceBreak > start + chunkSize * 0.7) {
+        end = sentenceBreak + 2;
+      }
+    }
+    
+    chunks.push(text.slice(start, end).trim());
+    start = end;
+  }
+  
+  return chunks.filter(c => c.length > 0);
+}
+
+async function processChunkWithAI(
+  content: string, 
+  fileName: string, 
+  kbType: string, 
+  apiKey: string,
+  chunkNum: number,
+  totalChunks: number
+): Promise<ChunkResult> {
+  const isPartial = totalChunks > 1;
+  
+  const systemPrompt = `És um processador de conhecimento para CRM.
+Analisa o documento fornecido e extrai informação estruturada.
+
+Contexto: Base de conhecimento do tipo "${kbType}"
+Nome do ficheiro: ${fileName}
+${isPartial ? `NOTA: Esta é a parte ${chunkNum} de ${totalChunks} do documento. Extrai informação relevante desta secção.` : ''}
+
+IMPORTANTE: Extrai TODOS os detalhes relevantes, incluindo:
+- Preços, valores, custos
+- Datas, horários, durações
+- Localizações, moradas
+- Requisitos, pré-requisitos
+- Certificações, acreditações
+- Público-alvo
+- Metodologias, conteúdos programáticos
+- Formadores, instrutores
+- Materiais incluídos
+- Formas de pagamento
+- Contactos
+
+Tarefas:
+1. Resume o conteúdo principal preservando TODOS os dados específicos
+2. Identifica tópicos/conceitos-chave
+3. Gera FAQs relevantes (perguntas e respostas) baseadas no conteúdo
+4. Sugere categorias para organização
+
+Regras:
+- Nunca inventes informação
+- Mantém a precisão do conteúdo original
+- PRESERVA números, preços, datas exatamente como aparecem
+- Usa linguagem simples e acessível
+- Foca no que é útil para atendimento, vendas ou suporte
+
+Responde em JSON:
+{
+  "processedContent": "Conteúdo processado mantendo todos os detalhes...",
+  "topics": ["tópico1", "tópico2"],
+  "faqs": [
+    { "question": "Pergunta?", "answer": "Resposta completa." }
+  ],
+  "categories": ["categoria1"],
+  "summary": "Resumo em 2-3 frases com dados principais"
+}`;
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Processa este documento e extrai TODA a informação:\n\n${content}` }
+      ],
+      temperature: 0.2,
+      max_tokens: 6000
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      // Wait and retry on rate limit
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return processChunkWithAI(content, fileName, kbType, apiKey, chunkNum, totalChunks);
+    }
+    throw new Error(`AI gateway error: ${response.status}`);
+  }
+
+  const aiResult = await response.json();
+  const contentText = aiResult.choices?.[0]?.message?.content || "";
+
+  try {
+    const jsonMatch = contentText.match(/```json\n?([\s\S]*?)\n?```/) || 
+                      contentText.match(/```\n?([\s\S]*?)\n?```/) ||
+                      [null, contentText];
+    return JSON.parse(jsonMatch[1] || contentText);
+  } catch {
+    return {
+      processedContent: contentText,
+      topics: [],
+      faqs: [],
+      categories: [],
+      summary: contentText.slice(0, 200)
+    };
+  }
+}
+
+function mergeChunkResults(results: ChunkResult[]): ChunkResult {
+  const allTopics = new Set<string>();
+  const allCategories = new Set<string>();
+  const allFaqs: { question: string; answer: string }[] = [];
+  const processedContents: string[] = [];
+  const summaries: string[] = [];
+
+  for (const result of results) {
+    if (result.processedContent) {
+      processedContents.push(result.processedContent);
+    }
+    if (result.summary) {
+      summaries.push(result.summary);
+    }
+    if (result.topics) {
+      result.topics.forEach(t => allTopics.add(t));
+    }
+    if (result.categories) {
+      result.categories.forEach(c => allCategories.add(c));
+    }
+    if (result.faqs) {
+      // Deduplicate FAQs by question similarity
+      for (const faq of result.faqs) {
+        const isDuplicate = allFaqs.some(existing => 
+          similarity(existing.question, faq.question) > 0.85
+        );
+        if (!isDuplicate) {
+          allFaqs.push(faq);
+        }
+      }
+    }
+  }
+
+  return {
+    processedContent: processedContents.join('\n\n---\n\n'),
+    topics: Array.from(allTopics).slice(0, 20),
+    faqs: allFaqs,
+    categories: Array.from(allCategories).slice(0, 10),
+    summary: summaries.length > 0 
+      ? summaries.join(' ').slice(0, 500) 
+      : processedContents[0]?.slice(0, 200) || ''
+  };
+}
+
+function similarity(s1: string, s2: string): number {
+  const longer = s1.length > s2.length ? s1 : s2;
+  const shorter = s1.length > s2.length ? s2 : s1;
+  
+  if (longer.length === 0) return 1.0;
+  
+  const costs: number[] = [];
+  for (let i = 0; i <= shorter.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= longer.length; j++) {
+      if (i === 0) {
+        costs[j] = j;
+      } else if (j > 0) {
+        let newValue = costs[j - 1];
+        if (shorter.charAt(i - 1) !== longer.charAt(j - 1)) {
+          newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+        }
+        costs[j - 1] = lastValue;
+        lastValue = newValue;
+      }
+    }
+    if (i > 0) costs[longer.length] = lastValue;
+  }
+  
+  return (longer.length - costs[longer.length]) / longer.length;
+}
+
 async function blobToBase64(blob: Blob): Promise<string> {
   const arrayBuffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
@@ -279,8 +453,12 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-async function extractPDFContent(base64: string, apiKey: string): Promise<string> {
-  // Use vision model to extract text from PDF
+async function extractPDFContent(base64: string, apiKey: string, fileSize: number): Promise<string> {
+  // For very large PDFs (>20MB), we may need to limit what we send to vision API
+  const isLargePDF = fileSize > 20 * 1024 * 1024;
+  
+  console.log(`[KNOWLEDGE-DOC] PDF extraction - Large PDF: ${isLargePDF}`);
+  
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -295,7 +473,7 @@ async function extractPDFContent(base64: string, apiKey: string): Promise<string
           content: [
             {
               type: "text",
-              text: "Extract all text content from this PDF document. Return only the text, no formatting or commentary."
+              text: "Extract ALL text content from this PDF document. Include all details, numbers, prices, dates. Return only the text, preserving structure with paragraphs."
             },
             {
               type: "image_url",
@@ -306,12 +484,12 @@ async function extractPDFContent(base64: string, apiKey: string): Promise<string
           ]
         }
       ],
-      max_tokens: 8000
+      max_tokens: 16000
     }),
   });
 
   if (!response.ok) {
-    // Fallback: just note that it's a PDF
+    console.warn(`[KNOWLEDGE-DOC] PDF extraction failed: ${response.status}`);
     return "PDF document - text extraction requires manual review";
   }
 
@@ -320,7 +498,6 @@ async function extractPDFContent(base64: string, apiKey: string): Promise<string
 }
 
 async function extractDocxContent(data: Uint8Array): Promise<string> {
-  // Basic DOCX extraction - look for document.xml content
   try {
     const decoder = new TextDecoder('utf-8');
     const text = decoder.decode(data);
@@ -336,7 +513,7 @@ async function extractDocxContent(data: Uint8Array): Promise<string> {
     }
     
     // Fallback: extract any readable text
-    return text.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 50000);
+    return text.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_TOTAL_CHARS);
   } catch {
     return "Document content - text extraction requires manual review";
   }

@@ -31,7 +31,7 @@ const ACCEPTED_FILE_TYPES = {
   'text/plain': '.txt'
 };
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 export function AddSourcePanel({ 
   onAddUrl, 
@@ -68,7 +68,7 @@ export function AddSourcePanel({
 
   const handleFileSelect = (file: File) => {
     if (file.size > MAX_FILE_SIZE) {
-      alert('Ficheiro demasiado grande. Máximo 10MB.');
+      alert('Ficheiro demasiado grande. Máximo 100MB.');
       return;
     }
     
@@ -230,7 +230,7 @@ export function AddSourcePanel({
                   <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                   <p className="font-medium">Arrastar documento ou clicar</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    PDF, Word, TXT até 10MB
+                    PDF, Word, TXT até 100MB
                   </p>
                 </>
               )}
