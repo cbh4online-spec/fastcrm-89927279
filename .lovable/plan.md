@@ -1,97 +1,110 @@
 
+# Plano: Adicionar Funcionalidade de Reenviar Convites
 
-# Plano: Corrigir Erro de Foreign Key na Criação de Clientes B2B
+## Objectivo
+Permitir que os administradores reenviem convites de email para clientes B2B que ainda estejam com estado "pendente".
 
-## Diagnóstico do Problema
+## Alteracoes Necessarias
 
-A tabela `client_users` tem a seguinte estrutura:
+### 1. Actualizar ClientUsersList.tsx
 
-```
-auth_user_id: uuid (NOT NULL) -> FOREIGN KEY para auth.users(id)
-```
-
-O código actual tenta inserir um UUID aleatório gerado com `crypto.randomUUID()`, mas este UUID não existe na tabela `auth.users`, violando a constraint de foreign key.
-
-## Solução Proposta
-
-### Opção Implementada: Tornar `auth_user_id` Nullable
-
-A abordagem correcta para um sistema de convites B2B é permitir que `auth_user_id` seja NULL até que o cliente aceite o convite e crie uma conta. O fluxo correcto é:
+Adicionar opcao "Reenviar Convite" no menu dropdown de accoes:
 
 ```text
-1. Admin cria registo client_user (auth_user_id = NULL, status = 'pending')
-2. Sistema envia email de convite com link único
-3. Cliente clica no link e cria conta
-4. Sistema associa o auth_user_id ao registo existente
-5. Status muda para 'active'
+Menu Accoes (DropdownMenu):
+  - Ver Detalhes
+  - Editar
+  + Reenviar Convite (NOVO - apenas visivel para status "pending")
 ```
 
-## Alterações Necessárias
+A nova opcao ira:
+- Aparecer apenas quando `client.status === "pending"`
+- Usar o icone `Send` ou `RefreshCw` do Lucide
+- Chamar uma funcao `handleResendInvitation(client)`
 
-### 1. Migração da Base de Dados
+### 2. Implementar Logica de Reenvio
 
-Alterar a coluna `auth_user_id` para permitir NULL:
-
-```sql
--- Permitir NULL na coluna auth_user_id para suportar fluxo de convites
-ALTER TABLE public.client_users 
-  ALTER COLUMN auth_user_id DROP NOT NULL;
-
--- Adicionar comentário explicativo
-COMMENT ON COLUMN public.client_users.auth_user_id IS 
-  'ID do utilizador autenticado. NULL enquanto o convite está pendente.';
-```
-
-### 2. Actualizar Código (InviteClientDialog.tsx)
-
-Remover a geração de UUID temporário e inserir NULL:
+Criar uma mutation para reenviar o convite:
 
 ```typescript
-// ANTES (linha 190-196):
-const tempAuthUserId = crypto.randomUUID();
-// ...
-auth_user_id: tempAuthUserId,
+const resendInvitationMutation = useMutation({
+  mutationFn: async (client: ClientUser) => {
+    // Buscar nome do workspace
+    const { data: workspace } = await supabase
+      .from("workspaces")
+      .select("name")
+      .eq("id", client.workspace_id)
+      .single();
 
-// DEPOIS:
-// Remover tempAuthUserId
-// ...
-auth_user_id: null,  // Será preenchido quando o cliente aceitar o convite
+    // Chamar Edge Function existente
+    const { error } = await supabase.functions.invoke(
+      "send-client-invitation",
+      {
+        body: {
+          clientName: client.name,
+          clientEmail: client.email,
+          workspaceName: workspace?.name || "FastCRM",
+          portalUrl: `${window.location.origin}/client-portal`,
+        },
+      }
+    );
+
+    if (error) throw error;
+    return client;
+  },
+  onSuccess: (client) => {
+    toast.success(`Convite reenviado para ${client.email}`);
+  },
+  onError: (error) => {
+    toast.error("Erro ao reenviar convite: " + error.message);
+  },
+});
 ```
 
-### 3. Actualizar TypeScript Types (client-user.ts)
+### 3. Adicionar Botao no Card de Detalhes
 
-Actualizar o tipo para reflectir que `auth_user_id` pode ser null:
-
-```typescript
-export interface ClientUser {
-  id: string;
-  auth_user_id: string | null;  // NULL para convites pendentes
-  // ... resto igual
-}
-```
-
-## Fluxo de Dados Corrigido
+No `ClientDetailCard`, quando o cliente tiver status "pending", mostrar um botao proeminente para reenviar convite:
 
 ```text
-+------------------+     +-------------------+     +------------------+
-|  Admin cria      |     |  Cliente recebe   |     |  Cliente cria    |
-|  client_user     | --> |  email convite    | --> |  conta no portal |
-|  (pending, NULL) |     |                   |     |  (active, uuid)  |
-+------------------+     +-------------------+     +------------------+
++----------------------------------+
+|  Nome do Cliente                 |
+|  Badge: Pendente                 |
++----------------------------------+
+|  Email: cliente@email.pt         |
+|  Telefone: +351 912 345 678      |
+|                                  |
+|  [Reenviar Convite]  <-- NOVO    |
+|                                  |
++----------------------------------+
+|  Encomendas Recentes             |
+|  ...                             |
++----------------------------------+
 ```
 
 ## Ficheiros a Modificar
 
-| Ficheiro | Alteração |
+| Ficheiro | Alteracao |
 |----------|-----------|
-| **Base de Dados** | Migração: `ALTER COLUMN auth_user_id DROP NOT NULL` |
-| `src/components/client-users/InviteClientDialog.tsx` | Remover `tempAuthUserId`, passar `null` |
-| `src/types/client-user.ts` | Actualizar tipo: `auth_user_id: string \| null` |
+| `src/components/client-users/ClientUsersList.tsx` | Adicionar opcao no dropdown + mutation + botao no card de detalhes |
 
-## Detalhes Técnicos
+## Detalhes Tecnicos
 
-- A constraint `ON DELETE CASCADE` mantém-se intacta - quando um utilizador auth é eliminado, o registo client_user também é eliminado
-- Os registos pendentes (sem auth_user_id) não são afectados pelo CASCADE pois têm NULL
-- O hook `useClientAuth.ts` já filtra por `status: 'active'`, pelo que clientes pendentes não conseguem fazer login
-- Esta é a arquitectura padrão para sistemas de convites B2B
+- Reutiliza a Edge Function `send-client-invitation` existente
+- Nao e necessario criar nenhum novo endpoint
+- A opcao de reenvio apenas aparece para clientes com `status: "pending"`
+- Adicionar estados de loading durante o reenvio (icone spinner)
+- Importar icone `Send` ou `RefreshCw` do Lucide
 
+## Fluxo de Utilizador
+
+1. Admin ve lista de clientes
+2. Cliente pendente tem opcao "Reenviar Convite" no menu de accoes
+3. Admin clica na opcao
+4. Sistema mostra toast de confirmacao
+5. Email e reenviado ao cliente
+
+## Validacoes
+
+- Verificar que o cliente tem email valido antes de reenviar
+- Bloquear botao durante o envio para evitar cliques multiplos
+- Mostrar feedback visual (toast) de sucesso ou erro
