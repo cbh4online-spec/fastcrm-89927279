@@ -76,6 +76,23 @@ Deno.serve(async (req) => {
     if (contentLength > TRIGGER_THRESHOLD) {
       console.log(`[KNOWLEDGE-DOC] Large file detected. Delegating to Trigger.dev...`);
       
+      // Get source details including fileName from the database
+      const { data: sourceDetails, error: sourceError } = await supabase
+        .from('knowledge_sources')
+        .select('source_file_path, knowledge_base_id, workspace_id')
+        .eq('id', sourceId)
+        .single();
+      
+      if (sourceError) {
+        throw new Error(`Failed to get source details: ${sourceError.message}`);
+      }
+      
+      // Extract filename from file path if not provided
+      const actualFileName = fileName || (filePath ? filePath.split('/').pop() : 'document');
+      const actualMimeType = mimeType || 'application/octet-stream';
+      const actualKbId = knowledgeBaseId || sourceDetails?.knowledge_base_id;
+      const actualWorkspaceId = workspaceId || sourceDetails?.workspace_id;
+      
       await supabase
         .from('knowledge_sources')
         .update({ 
@@ -84,16 +101,16 @@ Deno.serve(async (req) => {
         })
         .eq('id', sourceId);
 
-      // Dispatch to Trigger.dev via the trigger-dispatch function
+      // Call the Trigger function directly with complete data
       const { data: triggerResult, error: triggerError } = await supabase.functions.invoke('knowledge-document-trigger', {
         body: {
-          workspaceId,
+          workspaceId: actualWorkspaceId,
           inputData: {
             sourceId,
             filePath,
-            fileName,
-            mimeType,
-            knowledgeBaseId,
+            fileName: actualFileName,
+            mimeType: actualMimeType,
+            knowledgeBaseId: actualKbId,
             fileSize: contentLength
           }
         }
