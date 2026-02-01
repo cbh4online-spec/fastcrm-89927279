@@ -134,7 +134,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <GTMProvider>
+          <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
             <AuthProvider>
               <WorkspaceProvider>
