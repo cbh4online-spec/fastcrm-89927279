@@ -97,12 +97,12 @@ export function CreateEnrollmentDialog({
           {selectedCourseId && cohorts.length > 0 && (
             <div className="grid gap-2">
               <Label>Turma (opcional)</Label>
-              <Select value={cohortId} onValueChange={setCohortId}>
+              <Select value={cohortId || "none"} onValueChange={(v) => setCohortId(v === "none" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma turma..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem turma específica</SelectItem>
+                  <SelectItem value="none">Sem turma específica</SelectItem>
                   {cohorts.map((cohort) => (
                     <SelectItem key={cohort.id} value={cohort.id}>
                       {cohort.name}
