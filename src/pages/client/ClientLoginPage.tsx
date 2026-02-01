@@ -17,30 +17,26 @@ export default function ClientLoginPage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Check if user needs to change password after login
+  // Handle navigation when authenticated - simplified logic
   useEffect(() => {
-    const checkPasswordChangeRequired = async () => {
-      if (user) {
+    if (!isAuthenticated || !user) return;
+    
+    const handleAuthenticatedUser = async () => {
+      try {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
         if (currentUser?.user_metadata?.requires_password_change) {
           navigate("/client/set-password", { replace: true });
-          return;
+        } else {
+          navigate("/client/dashboard", { replace: true });
         }
+      } catch (error) {
+        console.error("Error checking user status:", error);
+        navigate("/client/dashboard", { replace: true });
       }
     };
-
-    if (isAuthenticated) {
-      checkPasswordChangeRequired().then(() => {
-        // Only navigate to dashboard if password change is not required
-        const checkAgain = async () => {
-          const { data: { user: currentUser } } = await supabase.auth.getUser();
-          if (!currentUser?.user_metadata?.requires_password_change) {
-            navigate("/client/dashboard", { replace: true });
-          }
-        };
-        checkAgain();
-      });
-    }
+    
+    handleAuthenticatedUser();
   }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,14 +58,7 @@ export default function ClientLoginPage() {
       return;
     }
     
-    // Check if password change is required
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (currentUser?.user_metadata?.requires_password_change) {
-      navigate("/client/set-password");
-    } else {
-      navigate("/client/dashboard");
-    }
-    
+    // Navegação será tratada pelo useEffect quando isAuthenticated mudar
     setIsSubmitting(false);
   };
 
