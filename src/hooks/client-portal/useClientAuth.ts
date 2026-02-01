@@ -11,6 +11,7 @@ interface UseClientAuthReturn {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
+  hasAuthButNoClient: boolean;
 }
 
 export function useClientAuth(): UseClientAuthReturn {
@@ -119,6 +120,9 @@ export function useClientAuth(): UseClientAuthReturn {
     setClientUser(null);
   };
 
+  // Detect authenticated user without client record
+  const hasAuthButNoClient = !!user && !clientUser && !loading && !error;
+
   return {
     user,
     clientUser,
@@ -127,5 +131,6 @@ export function useClientAuth(): UseClientAuthReturn {
     signIn,
     signOut,
     isAuthenticated: !!user && !!clientUser,
+    hasAuthButNoClient,
   };
 }
