@@ -1,197 +1,211 @@
 
-# Plano: Corrigir Loading Infinito no Portal do Cliente
 
-## Diagnostico Detalhado
+# Plano: Corrigir Login do Portal do Cliente
 
-Foram identificados multiplos problemas que causam o loading infinito na pagina de login do portal do cliente:
+## Diagnóstico Completo
 
-### Problema 1: signIn nao define loading=false no sucesso
+O problema foi identificado através de análise detalhada da base de dados e do código:
 
-No hook `useClientAuth`, a funcao `signIn` define `setLoading(true)` no inicio, mas quando o login e bem sucedido, nao chama `setLoading(false)`:
-
-```text
-signIn()
-  ├── setLoading(true)          ← Loading activado
-  ├── signInWithPassword()
-  ├── if (error) 
-  │     └── setLoading(false)   ← Apenas no erro!
-  └── return { error: null }    ← Loading continua TRUE
-```
-
-O codigo depende do `onAuthStateChange` para definir `loading=false`, mas isso pode ter delays ou falhar.
-
-### Problema 2: Race condition no fluxo de autenticacao
-
-O fluxo actual tem uma dependencia fragil:
+### Situação Actual
 
 ```text
-1. signIn() → loading = true
-2. Supabase auth bem sucedido
-3. Espera onAuthStateChange disparar (pode demorar)
-4. onAuthStateChange → loading = false
-5. Pagina finalmente renderiza
+TABELA profiles (CRM)
+├── id: 4fef01e3-0141-4bee-8309-0bac5d4fb6ae
+├── email: jorge.cardoso@digital4ads.pt
+└── role: super_admin
 
-Se o passo 3-4 falhar ou demorar → loading infinito
+TABELA client_users (Portal Cliente)
+├── auth_user_id: 444ba746-3e86-4283-a363-ad2b27b81dc9 ← ID ERRADO!
+├── email: jorge.cardoso@digital4ads.pt
+└── status: active
 ```
 
-### Problema 3: Nao ha timeout de seguranca
+### Porque Falha
 
-Se a comunicacao com Supabase falhar silenciosamente, nao ha mecanismo de fallback para mostrar a pagina de login.
+```text
+1. Utilizador faz login em /client/login
+   ↓
+2. Supabase retorna sessão com user.id = 4fef01e3... (ID do CRM)
+   ↓
+3. useClientAuth procura: client_users WHERE auth_user_id = 4fef01e3...
+   ↓
+4. NÃO ENCONTRA porque client_users tem auth_user_id = 444ba746...
+   ↓
+5. isAuthenticated = !!user && !!clientUser = true && false = FALSE
+   ↓
+6. ClientLayout redireciona para /client/login
+   ↓
+7. LOOP INFINITO
+```
 
-## Solucao Proposta
+## Soluções Necessárias
 
-A correcao sera feita em dois ficheiros:
+### 1. Correcção de Dados (Imediata)
 
-### 1. useClientAuth.ts
+Actualizar o `client_users.auth_user_id` para apontar para o utilizador auth correcto:
 
-**Alteracao A**: Adicionar `setLoading(false)` apos login bem sucedido
+```sql
+UPDATE client_users 
+SET auth_user_id = '4fef01e3-0141-4bee-8309-0bac5d4fb6ae'
+WHERE email = 'jorge.cardoso@digital4ads.pt';
+```
+
+### 2. Melhoria do Hook useClientAuth
+
+Adicionar tratamento para quando o utilizador está autenticado mas não tem registo de cliente:
 
 ```typescript
-const signIn = async (email: string, password: string) => {
-  setLoading(true);
-  setError(null);
-  
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  
-  if (error) {
-    setError(error.message);
-    setLoading(false);
-    return { error };
-  }
-  
-  // O onAuthStateChange ira disparar, mas definimos loading=false
-  // aqui tambem para evitar race conditions
-  setLoading(false);
-  return { error: null };
+// Antes de retornar isAuthenticated
+const hasAuthButNoClient = !!user && !clientUser && !loading;
+
+return {
+  // ...
+  isAuthenticated: !!user && !!clientUser,
+  hasAuthButNoClient, // Nova propriedade para UI feedback
 };
 ```
 
-**Alteracao B**: Adicionar timeout de seguranca no useEffect
+### 3. Melhoria da Página de Login
 
-Garantir que o loading nunca fica preso indefinidamente:
-
-```typescript
-useEffect(() => {
-  let isMounted = true;
-  
-  // Timeout de seguranca - se nao resolver em 10 segundos, para o loading
-  const timeout = setTimeout(() => {
-    if (isMounted && loading) {
-      console.warn("Auth timeout - forcing loading to false");
-      setLoading(false);
-    }
-  }, 10000);
-  
-  // ... resto do codigo existente ...
-  
-  return () => {
-    isMounted = false;
-    clearTimeout(timeout);
-    subscription.unsubscribe();
-  };
-}, []);
-```
-
-### 2. ClientLoginPage.tsx (Opcional - Melhoria de UX)
-
-Adicionar um timeout local para mostrar mensagem de erro se o loading demorar demasiado:
+Mostrar mensagem clara quando o utilizador está autenticado mas não é cliente:
 
 ```typescript
-const [loadingTimeout, setLoadingTimeout] = useState(false);
-
-useEffect(() => {
-  if (loading) {
-    const timer = setTimeout(() => setLoadingTimeout(true), 8000);
-    return () => clearTimeout(timer);
-  }
-  setLoadingTimeout(false);
-}, [loading]);
-
-if (loading) {
+// No ClientLoginPage
+if (user && !clientUser && !loading) {
   return (
-    <div className="...">
-      <Loader2 className="..." />
-      {loadingTimeout && (
-        <p className="mt-4 text-muted-foreground">
-          A ligacao esta a demorar. Por favor, atualize a pagina.
-        </p>
-      )}
-    </div>
+    <Alert variant="destructive">
+      Esta conta não está associada ao portal de clientes.
+      Por favor contacte o suporte.
+    </Alert>
   );
 }
 ```
 
+### 4. Correcção do Edge Function (Prevenção Futura)
+
+O edge function `create-client-auth-user` já tem lógica para reutilizar utilizadores existentes, mas pode não estar a funcionar correctamente. Verificar se:
+- A busca por utilizador existente funciona
+- O ID correcto é usado ao actualizar client_users
+
 ## Ficheiros a Modificar
 
-### useClientAuth.ts
+### 1. src/hooks/client-portal/useClientAuth.ts
 
-| Alteracao | Descricao |
-|-----------|-----------|
-| Linha 100 | Adicionar `setLoading(false)` apos login bem sucedido |
-| Linhas 22-88 | Adicionar timeout de seguranca no useEffect |
+| Linha | Alteração |
+|-------|-----------|
+| Interface | Adicionar `hasAuthButNoClient: boolean` |
+| Return | Adicionar propriedade para detectar utilizador sem cliente |
 
-### ClientLoginPage.tsx (Opcional)
+### 2. src/pages/client/ClientLoginPage.tsx
 
-| Alteracao | Descricao |
-|-----------|-----------|
-| Novo estado | Adicionar `loadingTimeout` para mostrar mensagem de erro |
-| Render condicional | Mostrar aviso se loading demorar muito |
+| Linha | Alteração |
+|-------|-----------|
+| Novo bloco | Mostrar mensagem de erro quando utilizador não é cliente |
+| UX | Evitar loop infinito mostrando estado claro |
+
+### 3. Dados na Base de Dados
+
+| Tabela | Alteração |
+|--------|-----------|
+| client_users | Corrigir auth_user_id para jorge.cardoso@digital4ads.pt |
 
 ## Fluxo Corrigido
 
 ```text
-ANTES:
-signIn() → loading=true → espera onAuthStateChange → (pode nunca chegar)
+CENÁRIO A: Utilizador é cliente válido
+1. Login → Sessão com user.id
+2. Query encontra client_users com auth_user_id = user.id
+3. isAuthenticated = TRUE
+4. Acesso ao portal
 
-DEPOIS:
-signIn() → loading=true → login sucesso → loading=false imediatamente
-                                       ↓
-                          onAuthStateChange tambem define loading=false (redundante mas seguro)
+CENÁRIO B: Utilizador autenticado mas NÃO é cliente
+1. Login → Sessão com user.id
+2. Query NÃO encontra client_users
+3. hasAuthButNoClient = TRUE
+4. Mostra mensagem: "Esta conta não está associada ao portal"
+5. NÃO redireciona (evita loop)
+
+CENÁRIO C: Utilizador não autenticado
+1. Mostra formulário de login
 ```
 
 ## Resultado Esperado
 
-| Cenario | Antes | Depois |
+Após as alterações:
+
+| Cenário | Antes | Depois |
 |---------|-------|--------|
-| Login bem sucedido | Loading pode ficar preso | Pagina carrega imediatamente |
-| Timeout de comunicacao | Loading infinito | Pagina mostra apos 10s max |
-| Erro de rede | Loading infinito | Mensagem de erro apos timeout |
-| Utilizador ja autenticado | Pode demorar | Redireciona rapidamente |
+| Cliente válido | Loop infinito | Acede ao dashboard |
+| Utilizador CRM sem cliente | Loop infinito | Mensagem clara de erro |
+| Utilizador novo | Funciona | Continua a funcionar |
+| Credenciais erradas | Funciona | Continua a funcionar |
 
-## Detalhes Tecnicos
+## Detalhes Técnicos
 
-### Alteracao Principal (useClientAuth.ts linha 100)
+### Hook Actualizado
 
-Antes:
 ```typescript
-return { error: null };
+export function useClientAuth(): UseClientAuthReturn {
+  // ... estados existentes ...
+
+  // Detectar utilizador auth sem registo de cliente
+  const hasAuthButNoClient = !!user && !clientUser && !loading && !error;
+
+  return {
+    user,
+    clientUser,
+    loading,
+    error,
+    signIn,
+    signOut,
+    isAuthenticated: !!user && !!clientUser,
+    hasAuthButNoClient, // NOVA PROPRIEDADE
+  };
+}
 ```
 
-Depois:
-```typescript
-setLoading(false);
-return { error: null };
-```
-
-### Timeout de Seguranca (useClientAuth.ts)
-
-Adicionar dentro do useEffect existente:
+### Página de Login Actualizada
 
 ```typescript
-// Safety timeout - never stay in loading state forever
-const loadingTimeout = setTimeout(() => {
-  if (isMounted) {
-    console.warn("Client auth: Loading timeout reached");
-    setLoading(false);
+export default function ClientLoginPage() {
+  const { signIn, loading, error, isAuthenticated, user, clientUser, hasAuthButNoClient } = useClientAuth();
+  
+  // ... código existente ...
+
+  // NOVO: Mostrar erro claro quando utilizador não é cliente
+  if (hasAuthButNoClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center ...">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <CardTitle>Acesso Não Autorizado</CardTitle>
+            <CardDescription>
+              Esta conta não está registada como cliente do portal.
+              Por favor contacte o administrador.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={signOut} variant="outline" className="w-full">
+              Terminar Sessão
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
-}, 10000);
 
-// No return do cleanup:
-return () => {
-  isMounted = false;
-  clearTimeout(loadingTimeout);
-  subscription.unsubscribe();
-};
+  // ... resto do código ...
+}
 ```
 
-Esta abordagem resolve o problema de forma robusta sem quebrar o fluxo existente.
+### Correcção de Dados SQL
+
+```sql
+-- Corrigir o auth_user_id para o utilizador jorge.cardoso@digital4ads.pt
+UPDATE client_users 
+SET auth_user_id = '4fef01e3-0141-4bee-8309-0bac5d4fb6ae'
+WHERE email = 'jorge.cardoso@digital4ads.pt'
+AND auth_user_id = '444ba746-3e86-4283-a363-ad2b27b81dc9';
+```
+
