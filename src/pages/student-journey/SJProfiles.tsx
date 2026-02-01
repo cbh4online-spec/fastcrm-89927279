@@ -68,10 +68,28 @@ export default function SJProfiles() {
   const { courses } = useCourses();
   const [searchParams] = useSearchParams();
 
+  // Read initial filter from URL params (supports both "stage" and "state" params)
+  const getInitialStageFilter = (): LifecycleStage | "all" => {
+    const stageParam = searchParams.get("stage") || searchParams.get("state");
+    if (stageParam && stageParam !== "all") {
+      // Map journey states to lifecycle stages if needed
+      const stateToStageMap: Record<string, LifecycleStage> = {
+        "external_lead": "lead",
+        "new_student": "new_student",
+        "active_student": "active_student",
+        "completed_active": "completed_active",
+        "eligible_progression": "eligible_progression",
+        "alumni": "alumni",
+        "inactive": "inactive",
+        "churned": "churned",
+      };
+      return (stateToStageMap[stageParam] || stageParam) as LifecycleStage;
+    }
+    return "all";
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState<LifecycleStage | "all">(
-    (searchParams.get("stage") as LifecycleStage) || "all"
-  );
+  const [stageFilter, setStageFilter] = useState<LifecycleStage | "all">(getInitialStageFilter());
   const [riskFilter, setRiskFilter] = useState<DropoutRisk | "all">(
     searchParams.get("risk") === "high" ? "high" : "all"
   );
