@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -26,6 +27,32 @@ import type {
 export function useProfiles() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
+
+  // Realtime subscription for sj_profiles
+  useEffect(() => {
+    if (!currentWorkspace?.id) return;
+
+    const channel = supabase
+      .channel(`sj-profiles-${currentWorkspace.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "sj_profiles",
+          filter: `workspace_id=eq.${currentWorkspace.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
+          queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentWorkspace?.id, queryClient]);
 
   const query = useQuery({
     queryKey: ["sj-profiles", currentWorkspace?.id],
@@ -441,6 +468,33 @@ export function useCohort(cohortId?: string) {
 export function useEnrollments(filters?: { profileId?: string; courseId?: string; cohortId?: string }) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
+
+  // Realtime subscription for sj_enrollments
+  useEffect(() => {
+    if (!currentWorkspace?.id) return;
+
+    const channel = supabase
+      .channel(`sj-enrollments-${currentWorkspace.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "sj_enrollments",
+          filter: `workspace_id=eq.${currentWorkspace.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["sj-enrollments"] });
+          queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
+          queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentWorkspace?.id, queryClient]);
 
   const query = useQuery({
     queryKey: ["sj-enrollments", currentWorkspace?.id, filters],
