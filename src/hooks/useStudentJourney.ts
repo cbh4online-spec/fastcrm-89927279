@@ -483,10 +483,22 @@ export function useEnrollments(filters?: { profileId?: string; courseId?: string
         .single();
 
       if (error) throw error;
+
+      // Auto-update profile lifecycle_stage based on enrollment status
+      const newLifecycleStage = mapEnrollmentStatusToLifecycle(data.status || "interested");
+      if (newLifecycleStage) {
+        await supabase
+          .from("sj_profiles")
+          .update({ lifecycle_stage: newLifecycleStage })
+          .eq("id", data.profile_id);
+      }
+
       return enrollment;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sj-enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["sj-profile"] });
       toast.success("Inscrição criada");
     },
     onError: (error) => {
@@ -502,14 +514,28 @@ export function useEnrollments(filters?: { profileId?: string; courseId?: string
         .from("sj_enrollments")
         .update(updateData)
         .eq("id", id)
-        .select()
+        .select("*, profile_id")
         .single();
 
       if (error) throw error;
+
+      // Auto-update profile lifecycle_stage if status changed
+      if (data.status && enrollment.profile_id) {
+        const newLifecycleStage = mapEnrollmentStatusToLifecycle(data.status);
+        if (newLifecycleStage) {
+          await supabase
+            .from("sj_profiles")
+            .update({ lifecycle_stage: newLifecycleStage })
+            .eq("id", enrollment.profile_id);
+        }
+      }
+
       return enrollment;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sj-enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["sj-profile"] });
       toast.success("Inscrição atualizada");
     },
     onError: (error) => {
@@ -525,6 +551,26 @@ export function useEnrollments(filters?: { profileId?: string; courseId?: string
     createEnrollment,
     updateEnrollment,
   };
+}
+
+// Helper function to map enrollment status to profile lifecycle stage
+function mapEnrollmentStatusToLifecycle(status: string): LifecycleStage | null {
+  switch (status) {
+    case "interested":
+      return "prospect";
+    case "invited":
+      return "prospect";
+    case "enrolled":
+      return "enrolled";
+    case "active":
+      return "active_student";
+    case "completed":
+      return "completed";
+    case "dropped":
+      return "churned";
+    default:
+      return null;
+  }
 }
 
 // ============================================
