@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus, Sparkles, RefreshCw } from "lucide-react";
 import { useProfiles } from "@/hooks/useStudentJourney";
@@ -18,6 +19,7 @@ import { SJCopilotDrawer } from "@/components/student-journey/SJCopilotDrawer";
 import { toast } from "sonner";
 
 export default function SJDashboard() {
+  const navigate = useNavigate();
   const { profiles } = useProfiles();
   const { 
     journeyProfiles,
@@ -110,7 +112,10 @@ export default function SJDashboard() {
         {/* Left: Quick Actions */}
         <div className="lg:col-span-1 space-y-6">
           <QuickActionsPanel />
-          <JourneyFunnel stats={funnelStats} />
+          <JourneyFunnel 
+            stats={funnelStats} 
+            onStateClick={(state) => navigate(`/dashboard/student-journey/profiles?state=${state}`)}
+          />
         </div>
 
         {/* Right: Action Lists */}
