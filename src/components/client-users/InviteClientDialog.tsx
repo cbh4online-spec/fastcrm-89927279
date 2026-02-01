@@ -185,15 +185,11 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
         country: data.billing_country,
       };
 
-      // We need to create a temporary auth_user_id placeholder
-      // In production, this would be populated when the user accepts the invitation
-      const tempAuthUserId = crypto.randomUUID();
-
       const { data: clientUser, error } = await supabase
         .from("client_users")
         .insert({
           workspace_id: currentWorkspace.id,
-          auth_user_id: tempAuthUserId,
+          auth_user_id: null, // Will be set when client accepts invitation
           name: data.name,
           email: data.email,
           phone: data.phone || null,

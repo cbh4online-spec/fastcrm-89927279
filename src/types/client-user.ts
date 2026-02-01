@@ -4,7 +4,7 @@ export type ClientUserStatus = 'active' | 'suspended' | 'pending';
 
 export interface ClientUser {
   id: string;
-  auth_user_id: string;
+  auth_user_id: string | null; // NULL for pending invitations
   workspace_id: string;
   contact_id: string | null;
   company_id: string | null;
