@@ -6,6 +6,7 @@ export { CreateCohortDialog } from "./CreateCohortDialog";
 export { CreateCourseDialog } from "./CreateCourseDialog";
 export { EditCourseDialog } from "./EditCourseDialog";
 export { CreateEnrollmentDialog } from "./CreateEnrollmentDialog";
+export { EditEnrollmentDialog } from "./EditEnrollmentDialog";
 export { CreateTouchpointDialog } from "./CreateTouchpointDialog";
 export { CreateTaskDialog } from "./CreateTaskDialog";
 export { ScheduleFollowUpDialog } from "./ScheduleFollowUpDialog";
