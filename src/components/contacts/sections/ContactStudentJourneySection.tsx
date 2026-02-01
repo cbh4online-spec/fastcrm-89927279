@@ -137,62 +137,128 @@ export function ContactStudentJourneySection({
         </CardContent>
       </Card>
 
-      {/* Recent Enrollments */}
-      {recentEnrollments.length > 0 && (
+      {/* Student Journey Overview */}
+      {enrollments.length > 0 ? (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-primary" />
-              Inscrições Recentes
+              Jornada do Aluno
             </CardTitle>
+            <CardDescription className="text-xs">
+              Progresso nos cursos inscritos
+            </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-3">
-              {recentEnrollments.map((enrollment: any) => (
-                <div 
-                  key={enrollment.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
-                      <BookOpen className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">
-                        {enrollment.course?.name || "Curso"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {enrollment.status === 'active' ? 'Ativo' : 
-                         enrollment.status === 'completed' ? 'Concluído' :
-                         enrollment.status === 'enrolled' ? 'Inscrito' :
-                         enrollment.status}
-                      </p>
-                    </div>
-                  </div>
-                  {enrollment.progress_percentage !== null && (
-                    <div className="flex items-center gap-2">
-                      <Progress 
-                        value={enrollment.progress_percentage} 
-                        className="w-20 h-1.5" 
-                      />
-                      <span className="text-xs text-muted-foreground w-8 text-right">
-                        {enrollment.progress_percentage}%
-                      </span>
-                    </div>
-                  )}
+          <CardContent className="pt-0 space-y-4">
+            {/* Completed courses */}
+            {enrollments.filter((e: any) => e.status === 'completed' || e.progress_percentage === 100).length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Trophy className="w-4 h-4 text-emerald-500" />
+                  <span className="text-sm font-medium text-emerald-600">Concluídos</span>
+                  <Badge variant="secondary" className="text-xs ml-auto">
+                    {enrollments.filter((e: any) => e.status === 'completed' || e.progress_percentage === 100).length}
+                  </Badge>
                 </div>
-              ))}
-            </div>
+                <div className="space-y-2">
+                  {enrollments
+                    .filter((e: any) => e.status === 'completed' || e.progress_percentage === 100)
+                    .slice(0, 3)
+                    .map((enrollment: any) => (
+                      <div 
+                        key={enrollment.id}
+                        className="flex items-center gap-2 p-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                          <Trophy className="w-3 h-3 text-white" />
+                        </div>
+                        <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300 truncate">
+                          {enrollment.course?.name || "Curso"}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Active/In Progress courses */}
+            {enrollments.filter((e: any) => (e.status === 'active' || e.status === 'enrolled') && e.progress_percentage < 100).length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <BookOpen className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium text-blue-600">Em Progresso</span>
+                  <Badge variant="secondary" className="text-xs ml-auto">
+                    {enrollments.filter((e: any) => (e.status === 'active' || e.status === 'enrolled') && e.progress_percentage < 100).length}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  {enrollments
+                    .filter((e: any) => (e.status === 'active' || e.status === 'enrolled') && e.progress_percentage < 100)
+                    .slice(0, 3)
+                    .map((enrollment: any) => (
+                      <div 
+                        key={enrollment.id}
+                        className="flex items-center gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                          <BookOpen className="w-3 h-3 text-white" />
+                        </div>
+                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300 truncate flex-1">
+                          {enrollment.course?.name || "Curso"}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pending/Not Started courses */}
+            {enrollments.filter((e: any) => e.status === 'pending' || (e.progress_percentage === 0 && e.status !== 'completed')).length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-medium text-amber-600">Por Iniciar</span>
+                  <Badge variant="secondary" className="text-xs ml-auto">
+                    {enrollments.filter((e: any) => e.status === 'pending' || (e.progress_percentage === 0 && e.status !== 'completed')).length}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  {enrollments
+                    .filter((e: any) => e.status === 'pending' || (e.progress_percentage === 0 && e.status !== 'completed'))
+                    .slice(0, 3)
+                    .map((enrollment: any) => (
+                      <div 
+                        key={enrollment.id}
+                        className="flex items-center gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+                          <Clock className="w-3 h-3 text-white" />
+                        </div>
+                        <span className="text-sm font-medium text-amber-700 dark:text-amber-300 truncate">
+                          {enrollment.course?.name || "Curso"}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
 
             {enrollments.length > 3 && (
               <Button 
                 variant="ghost" 
-                className="w-full mt-3 text-sm"
+                className="w-full text-sm"
                 onClick={() => navigate(`/dashboard/student-journey/profiles/${profile.id}?tab=enrollments`)}
               >
                 Ver todas as {enrollments.length} inscrições
               </Button>
             )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-dashed">
+          <CardContent className="py-6 text-center">
+            <BookOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Sem inscrições registadas</p>
           </CardContent>
         </Card>
       )}
