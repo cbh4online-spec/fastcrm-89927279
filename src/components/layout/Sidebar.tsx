@@ -54,6 +54,7 @@ import {
   Hash,
   FolderOpen,
   Landmark,
+  ShoppingCart,
 } from "lucide-react";
 import {
   Collapsible,
@@ -186,6 +187,8 @@ const navigationGroups: NavGroup[] = [
       { name: "Faturas", href: "/dashboard/invoices", icon: PaymentIcon, tooltip: "Gestão de faturas" },
       { name: "Agendamento", href: "/dashboard/scheduling", icon: CalendarDays, tooltip: "Calendários e reuniões" },
       { name: "Produtos", href: "/dashboard/products", icon: Package, tooltip: "Catálogo de produtos" },
+      { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: ShoppingCart, tooltip: "Encomendas B2B" },
+      { name: "Clientes B2B", href: "/dashboard/client-users", icon: UsersRound, tooltip: "Clientes profissionais" },
     ],
   },
   // MARKETING
@@ -253,16 +256,6 @@ const navigationGroups: NavGroup[] = [
       { name: "Perfis", href: "/dashboard/student-journey/profiles", icon: UsersRound, tooltip: "Perfis de alunos", moduleSlug: "student-journey" },
       { name: "Cursos", href: "/dashboard/student-journey/courses", icon: FolderOpen, tooltip: "Gestão de cursos", moduleSlug: "student-journey" },
       { name: "Turmas", href: "/dashboard/student-journey/cohorts", icon: Users, tooltip: "Gestão de turmas", moduleSlug: "student-journey" },
-    ],
-  },
-  // ENCOMENDAS B2B
-  {
-    name: "Encomendas",
-    icon: FileText,
-    tooltip: "Gestão de notas de encomenda B2B",
-    items: [
-      { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: FileText, tooltip: "Lista de encomendas" },
-      { name: "Clientes B2B", href: "/dashboard/client-users", icon: UsersRound, tooltip: "Clientes profissionais" },
     ],
   },
 ];
