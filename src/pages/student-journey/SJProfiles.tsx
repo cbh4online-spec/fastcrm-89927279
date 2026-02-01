@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,28 +68,34 @@ export default function SJProfiles() {
   const { courses } = useCourses();
   const [searchParams] = useSearchParams();
 
-  // Read initial filter from URL params (supports both "stage" and "state" params)
-  const getInitialStageFilter = (): LifecycleStage | "all" => {
+  // Map journey states to database lifecycle stages
+  const stateToStageMap: Record<string, LifecycleStage> = {
+    "external_lead": "lead",
+    "lead": "lead",
+    "prospect": "prospect",
+    "new_student": "enrolled",
+    "enrolled": "enrolled",
+    "active_student": "active",
+    "active": "active",
+    "completed_active": "completed",
+    "completed": "completed",
+    "eligible_progression": "completed",
+    "alumni": "completed",
+    "inactive": "inactive",
+    "churned": "churned",
+  };
+
+  // Get initial stage filter from URL
+  const getStageFromUrl = (): LifecycleStage | "all" => {
     const stageParam = searchParams.get("stage") || searchParams.get("state");
     if (stageParam && stageParam !== "all") {
-      // Map journey states to lifecycle stages if needed
-      const stateToStageMap: Record<string, LifecycleStage> = {
-        "external_lead": "lead",
-        "new_student": "new_student",
-        "active_student": "active_student",
-        "completed_active": "completed_active",
-        "eligible_progression": "eligible_progression",
-        "alumni": "alumni",
-        "inactive": "inactive",
-        "churned": "churned",
-      };
-      return (stateToStageMap[stageParam] || stageParam) as LifecycleStage;
+      return stateToStageMap[stageParam] || (stageParam as LifecycleStage);
     }
     return "all";
   };
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState<LifecycleStage | "all">(getInitialStageFilter());
+  const [stageFilter, setStageFilter] = useState<LifecycleStage | "all">(getStageFromUrl());
   const [riskFilter, setRiskFilter] = useState<DropoutRisk | "all">(
     searchParams.get("risk") === "high" ? "high" : "all"
   );
@@ -97,6 +103,12 @@ export default function SJProfiles() {
   const [interestFilter, setInterestFilter] = useState<string>("all");
   const [timeFilter, setTimeFilter] = useState<string>("all");
   const [hasFollowUpFilter, setHasFollowUpFilter] = useState<"all" | "with" | "without" | "overdue">("all");
+
+  // Sync filter with URL params when they change
+  useEffect(() => {
+    const newStage = getStageFromUrl();
+    setStageFilter(newStage);
+  }, [searchParams]);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
@@ -173,9 +185,9 @@ export default function SJProfiles() {
   }, [enrichedProfiles, searchQuery, stageFilter, riskFilter, potentialFilter, 
       interestFilter, timeFilter, hasFollowUpFilter]);
 
+  // Use actual database lifecycle stages (matching the CHECK constraint)
   const stages: (LifecycleStage | "all")[] = [
-    "all", "lead", "new_student", "active_student", "completed_active",
-    "eligible_progression", "alumni", "inactive", "churned",
+    "all", "lead", "prospect", "enrolled", "active", "completed", "inactive", "churned",
   ];
 
   const hasActiveFilters =
