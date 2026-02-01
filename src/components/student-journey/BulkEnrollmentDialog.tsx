@@ -47,6 +47,12 @@ const COURSE_COLUMN_MAPPING: Record<string, string> = {
   aromaterapia: "01d4f74e-ab13-4db3-b6f7-d4927ea296b8",
 };
 
+// Expected header fields for dynamic header detection
+const EXPECTED_HEADER_FIELDS = ["nome", "iniciacao", "basica", "avancada", "tricologia", "aromaterapia"];
+
+// Name column patterns for robust matching
+const NAME_COLUMN_PATTERNS = ["nome", "name", "cliente", "client", "razaosocial"];
+
 interface ExcelRow {
   name: string;
   courses: { columnName: string; courseId: string; courseName: string }[];
@@ -119,6 +125,53 @@ export function BulkEnrollmentDialog({
       .replace(/[^a-z0-9]/g, ""); // Remove non-alphanumeric
   };
 
+  // Find the header row by scanning for expected fields
+  const findHeaderRow = (sheet: XLSX.WorkSheet): number => {
+    const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
+    const maxScanRows = Math.min(10, range.e.r + 1);
+
+    for (let row = 0; row < maxScanRows; row++) {
+      let matchCount = 0;
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddr = XLSX.utils.encode_cell({ r: row, c: col });
+        const cell = sheet[cellAddr];
+        if (cell && cell.v) {
+          const normalized = normalizeColumnName(String(cell.v));
+          if (EXPECTED_HEADER_FIELDS.some((f) => normalized.includes(f))) {
+            matchCount++;
+          }
+        }
+      }
+      // If we find at least 2 expected fields, this is the header row
+      if (matchCount >= 2) {
+        return row;
+      }
+    }
+    return 0; // Default: first row
+  };
+
+  // Find name column with robust pattern matching
+  const findNameColumn = (headers: string[]): string | null => {
+    const normalizedHeaders = headers.map((h) => ({
+      original: h,
+      normalized: normalizeColumnName(h),
+    }));
+
+    // Try exact match first
+    for (const pattern of NAME_COLUMN_PATTERNS) {
+      const match = normalizedHeaders.find((h) => h.normalized === pattern);
+      if (match) return match.original;
+    }
+
+    // Try partial match (contains)
+    for (const pattern of NAME_COLUMN_PATTERNS) {
+      const match = normalizedHeaders.find((h) => h.normalized.includes(pattern));
+      if (match) return match.original;
+    }
+
+    return null;
+  };
+
   // Match column name to course
   const matchColumnToCourse = (columnName: string): { courseId: string; courseName: string } | null => {
     const normalized = normalizeColumnName(columnName);
@@ -144,27 +197,34 @@ export function BulkEnrollmentDialog({
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       
-      // Convert to JSON with header row detection
-      const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+      // Detect header row (scan first 10 rows for expected fields)
+      const headerRow = findHeaderRow(sheet);
+      console.log(`Header row detected at index: ${headerRow}`);
+      
+      // Convert to JSON starting from the detected header row
+      const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { 
+        defval: "",
+        range: headerRow,
+      });
       
       if (json.length === 0) {
         toast.error("Ficheiro vazio ou sem dados válidos");
         return;
       }
 
-      // Get headers from first row
+      // Get headers from first row of parsed data
       const headers = Object.keys(json[0]);
+      console.log("Detected headers:", headers);
       
-      // Find "Nome" column
-      const nameColumn = headers.find((h) => 
-        normalizeColumnName(h).includes("nome") || 
-        normalizeColumnName(h) === "name"
-      );
+      // Find "Nome" column with robust matching
+      const nameColumn = findNameColumn(headers);
       
       if (!nameColumn) {
-        toast.error("Coluna 'Nome' não encontrada no ficheiro");
+        toast.error("Coluna 'Nome' não encontrada no ficheiro. Verifique se o ficheiro contém uma coluna com o nome dos clientes.");
         return;
       }
+      
+      console.log(`Name column found: "${nameColumn}"`);
 
       // Detect course columns
       const detectedCourses: { columnName: string; courseId: string; courseName: string; count: number }[] = [];
