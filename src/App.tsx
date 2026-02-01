@@ -213,8 +213,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/payments" element={<Payments />} />
                 <Route path="/dashboard/invoices" element={<Invoices />} />
                 <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
-                <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
-                <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
+                <Route path="/dashboard/knowledge-base" element={<Navigate to="/dashboard/ai-assistants" replace />} />
+                <Route path="/dashboard/ai-profiles" element={<Navigate to="/dashboard/ai-assistants" replace />} />
                 <Route path="/dashboard/ai-assistants" element={<AIAssistants />} />
                 <Route path="/dashboard/conversational-engine" element={<ConversationalEngine />} />
                 <Route path="/dashboard/kpis" element={<ReportsKPIs />} />

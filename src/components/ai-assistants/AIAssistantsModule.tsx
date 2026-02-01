@@ -1,11 +1,12 @@
 /**
  * AI Assistants Module - Unified Management
- * Consolidates Agents, Personas, Knowledge Bases, and Autopilot
+ * Consolidates Agents, Personas, Knowledge Bases, Flows, Widget and AI Testing
  */
 
 import { useState, useMemo } from "react";
 import { useAIChannelAgents } from "@/hooks/useAIChannelAgents";
 import { useKnowledgeBase } from "@/hooks/useKnowledgeBase";
+import { useConversationalFlows } from "@/hooks/useConversationalFlows";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { Button } from "@/components/ui/button";
@@ -16,22 +17,30 @@ import {
   Users, 
   BookOpen, 
   Settings, 
-  Plus, 
   RefreshCw,
-  Zap
+  Zap,
+  Workflow,
+  Globe,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import { AgentsTab } from "./AgentsTab";
 import { PersonasTab } from "./PersonasTab";
-import { KnowledgeBasesTab } from "./KnowledgeBasesTab";
+import { KnowledgeBasesFullTab } from "./KnowledgeBasesFullTab";
+import { FlowsTab } from "./FlowsTab";
+import { WidgetTab } from "./WidgetTab";
+import { TestAITab } from "./TestAITab";
 import { GlobalSettingsTab } from "./GlobalSettingsTab";
 
-type ActiveTab = "agents" | "personas" | "bases" | "settings";
+type ActiveTab = "agents" | "personas" | "bases" | "flows" | "widget" | "query" | "settings";
 
 const pageTabs = [
   { id: "agents", label: "Agentes", icon: <Bot className="h-4 w-4" /> },
   { id: "personas", label: "Personas", icon: <Users className="h-4 w-4" /> },
   { id: "bases", label: "Bases", icon: <BookOpen className="h-4 w-4" /> },
+  { id: "flows", label: "Fluxos", icon: <Workflow className="h-4 w-4" /> },
+  { id: "widget", label: "Widget", icon: <Globe className="h-4 w-4" /> },
+  { id: "query", label: "Testar IA", icon: <MessageSquare className="h-4 w-4" /> },
   { id: "settings", label: "Definições", icon: <Settings className="h-4 w-4" /> },
 ];
 
@@ -42,6 +51,7 @@ export function AIAssistantsModule() {
 
   const { agents, isLoading: isLoadingAgents, refresh: refreshAgents } = useAIChannelAgents();
   const { personas, knowledgeBases, isLoading: isLoadingKB, refresh: refreshKB } = useKnowledgeBase();
+  const { flows } = useConversationalFlows();
 
   // Stats
   const stats = useMemo(() => ({
@@ -49,8 +59,9 @@ export function AIAssistantsModule() {
     activeAgents: agents.filter(a => a.isActive).length,
     autopilotAgents: agents.filter(a => a.settings?.autopilotEnabled).length,
     totalPersonas: personas.length,
-    totalBases: knowledgeBases.length
-  }), [agents, personas, knowledgeBases]);
+    totalBases: knowledgeBases.length,
+    totalFlows: flows.length
+  }), [agents, personas, knowledgeBases, flows]);
 
   // Tabs with counts
   const tabsWithCounts = useMemo(() => {
@@ -62,9 +73,11 @@ export function AIAssistantsModule() {
           ? personas.length 
           : tab.id === "bases"
             ? knowledgeBases.length
-            : undefined
+            : tab.id === "flows"
+              ? flows.length
+              : undefined
     }));
-  }, [agents.length, personas.length, knowledgeBases.length]);
+  }, [agents.length, personas.length, knowledgeBases.length, flows.length]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -214,7 +227,16 @@ export function AIAssistantsModule() {
         <PersonasTab searchValue={searchValue} />
       )}
       {activeTab === "bases" && (
-        <KnowledgeBasesTab searchValue={searchValue} />
+        <KnowledgeBasesFullTab searchValue={searchValue} />
+      )}
+      {activeTab === "flows" && (
+        <FlowsTab />
+      )}
+      {activeTab === "widget" && (
+        <WidgetTab />
+      )}
+      {activeTab === "query" && (
+        <TestAITab />
       )}
       {activeTab === "settings" && (
         <GlobalSettingsTab />
