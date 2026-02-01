@@ -113,17 +113,39 @@ export function useClientAuth(): UseClientAuthReturn {
     setClientChecked(false);
     setError(null);
     
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (error) {
-      setError(error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      
+      if (error) {
+        console.error("Sign in error:", error);
+        setError(error.message);
+        setAuthLoading(false);
+        setClientChecked(true);
+        return { error };
+      }
+      
+      // Login bem sucedido - processar directamente
+      if (data?.user) {
+        console.log("Sign in successful, fetching client user:", data.user.email);
+        setUser(data.user);
+        await fetchClientUser(data.user.id);
+      } else {
+        console.warn("Sign in returned no user data");
+        setClientChecked(true);
+      }
+      
+      setAuthLoading(false);
+      return { error: null };
+    } catch (err) {
+      console.error("Sign in exception:", err);
+      setError("Erro inesperado durante o login");
       setAuthLoading(false);
       setClientChecked(true);
-      return { error };
+      return { error: err as Error };
     }
-    
-    // Auth state change listener will handle the rest
-    return { error: null };
   };
 
   const signOut = async () => {
