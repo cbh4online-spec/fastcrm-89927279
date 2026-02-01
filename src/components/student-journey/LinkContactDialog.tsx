@@ -43,7 +43,7 @@ export function LinkContactDialog({
   profile,
 }: LinkContactDialogProps) {
   const { convertToContact, linkToContact } = useSJCrmIntegration();
-  const { contacts } = useContacts();
+  const { contacts, linkedContactIds } = useContacts();
   const [tab, setTab] = useState<"create" | "link">("create");
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -56,15 +56,18 @@ export function LinkContactDialog({
   const [selectedContactId, setSelectedContactId] = useState("");
   const [autoMatched, setAutoMatched] = useState(false);
 
-  // Filter contacts that could match this profile
-  const suggestedContacts = contacts.filter((c) => {
+  // Filter contacts that are available (not linked to other SJ profiles)
+  const availableContacts = contacts.filter((c) => !linkedContactIds?.has(c.id) || c.id === profile.contact_id);
+
+  // Filter contacts that could match this profile (from available contacts)
+  const suggestedContacts = availableContacts.filter((c) => {
     if (profile.email && c.email?.toLowerCase() === profile.email.toLowerCase()) return true;
     if (profile.phone && c.phone === profile.phone) return true;
     if (c.name.toLowerCase() === profile.full_name.toLowerCase()) return true;
     return false;
   });
 
-  const otherContacts = contacts.filter((c) => !suggestedContacts.includes(c));
+  const otherContacts = availableContacts.filter((c) => !suggestedContacts.includes(c));
   const selectedContact = contacts.find((c) => c.id === selectedContactId);
 
   // Auto-match when dialog opens
