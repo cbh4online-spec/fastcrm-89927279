@@ -120,7 +120,9 @@ function DuplicateWarning({
               : "text-amber-800 dark:text-amber-200"
           )}>
             {hasBlockingDuplicate 
-              ? "Este email já está a ser utilizado" 
+              ? blockingDuplicates.some(d => d.matchType === "email") 
+                ? "Este email já está a ser utilizado"
+                : "Este nome já existe"
               : "Possível duplicado encontrado"
             }
           </p>
@@ -135,7 +137,7 @@ function DuplicateWarning({
                   <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <span className="truncate">{dup.contact.name}</span>
                   <Badge variant="destructive" className="text-[10px]">
-                    Email duplicado
+                    {dup.matchType === "email" ? "Email duplicado" : "Nome duplicado"}
                   </Badge>
                 </div>
                 <Button 
@@ -287,10 +289,18 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
       return;
     }
 
-    // Check for blocking duplicates (email)
+    // Check for blocking duplicates (email or exact name)
     const blockingDuplicates = duplicates.filter(d => d.isBlockingDuplicate);
     if (blockingDuplicates.length > 0) {
-      toast.error("Este email já está associado a outro contacto");
+      const hasEmailDuplicate = blockingDuplicates.some(d => d.matchType === "email");
+      const hasNameDuplicate = blockingDuplicates.some(d => d.matchType === "name_exact");
+      if (hasEmailDuplicate && hasNameDuplicate) {
+        toast.error("Este nome e email já existem");
+      } else if (hasEmailDuplicate) {
+        toast.error("Este email já está associado a outro contacto");
+      } else {
+        toast.error("Este nome já existe");
+      }
       return;
     }
 
