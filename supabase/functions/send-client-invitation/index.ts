@@ -14,6 +14,7 @@ interface ClientInvitationRequest {
   clientEmail: string;
   workspaceName: string;
   portalUrl: string;
+  temporaryPassword?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -23,7 +24,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { clientName, clientEmail, workspaceName, portalUrl }: ClientInvitationRequest = await req.json();
+    const { clientName, clientEmail, workspaceName, portalUrl, temporaryPassword }: ClientInvitationRequest = await req.json();
 
     // Validate required fields
     if (!clientName || !clientEmail || !workspaceName) {
@@ -31,6 +32,26 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const finalPortalUrl = portalUrl || "https://fastcrm.lovable.app/client/login";
+
+    // Build credentials section if temporary password is provided
+    const credentialsSection = temporaryPassword ? `
+      <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 30px 0; border-left: 4px solid #6366f1;">
+        <h3 style="margin: 0 0 15px; color: #18181b; font-size: 16px; font-weight: 600;">🔐 Credenciais de Acesso</h3>
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; color: #52525b; font-size: 14px; width: 140px;">Email:</td>
+            <td style="padding: 8px 0; color: #18181b; font-size: 14px; font-weight: 600;">${clientEmail}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #52525b; font-size: 14px;">Palavra-passe:</td>
+            <td style="padding: 8px 0; color: #18181b; font-size: 14px; font-weight: 600; font-family: monospace; background-color: #e5e7eb; padding: 4px 8px; border-radius: 4px; display: inline-block;">${temporaryPassword}</td>
+          </tr>
+        </table>
+        <p style="margin: 15px 0 0; color: #dc2626; font-size: 13px; font-weight: 500;">
+          ⚠️ IMPORTANTE: Por razões de segurança, será solicitado que altere a sua palavra-passe no primeiro acesso.
+        </p>
+      </div>
+    ` : '';
 
     const emailResponse = await resend.emails.send({
       from: "FastCRM <noreply@m.fastcrm.metodopare.ai>",
@@ -64,6 +85,8 @@ const handler = async (req: Request): Promise<Response> => {
                       <p style="margin: 0 0 20px; color: #52525b; font-size: 16px; line-height: 1.6;">
                         Foi convidado(a) para aceder ao Portal de Clientes de <strong>${workspaceName}</strong>.
                       </p>
+                      
+                      ${credentialsSection}
                       
                       <p style="margin: 0 0 30px; color: #52525b; font-size: 16px; line-height: 1.6;">
                         No portal, poderá:

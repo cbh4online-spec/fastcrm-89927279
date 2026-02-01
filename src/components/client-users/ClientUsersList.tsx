@@ -61,6 +61,30 @@ export function ClientUsersList() {
         .eq("id", client.workspace_id)
         .single();
 
+      // Create new auth user or update password
+      const { data: authResult, error: authError } = await supabase.functions.invoke(
+        "create-client-auth-user",
+        {
+          body: {
+            email: client.email,
+            name: client.name,
+            workspaceId: client.workspace_id,
+            clientUserId: client.id,
+          },
+        }
+      );
+
+      if (authError) {
+        throw new Error("Erro ao gerar novas credenciais");
+      }
+
+      if (!authResult?.success) {
+        throw new Error(authResult?.error || "Erro ao gerar novas credenciais");
+      }
+
+      const temporaryPassword = authResult.data.temporaryPassword;
+
+      // Send invitation email with new temporary password
       const { error } = await supabase.functions.invoke(
         "send-client-invitation",
         {
@@ -69,6 +93,7 @@ export function ClientUsersList() {
             clientEmail: client.email,
             workspaceName: workspace?.name || "FastCRM",
             portalUrl: `${window.location.origin}/client/login`,
+            temporaryPassword: temporaryPassword,
           },
         }
       );
@@ -77,7 +102,7 @@ export function ClientUsersList() {
       return client;
     },
     onSuccess: (client) => {
-      toast.success(`Convite reenviado para ${client.email}`);
+      toast.success(`Convite reenviado com novas credenciais para ${client.email}`);
     },
     onError: (error) => {
       toast.error("Erro ao reenviar convite: " + error.message);

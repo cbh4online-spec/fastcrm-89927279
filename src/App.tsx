@@ -60,6 +60,9 @@ import ClientOrdersPage from "./pages/client/ClientOrdersPage";
 import ClientOrderDetailPage from "./pages/client/ClientOrderDetailPage";
 import ClientFavoritesPage from "./pages/client/ClientFavoritesPage";
 import ClientAssistantPage from "./pages/client/ClientAssistantPage";
+import ClientSetPasswordPage from "./pages/client/ClientSetPasswordPage";
+import ClientForgotPasswordPage from "./pages/client/ClientForgotPasswordPage";
+import ClientResetPasswordPage from "./pages/client/ClientResetPasswordPage";
 // Admin Order Notes
 import OrderNotesPage from "./pages/OrderNotesPage";
 import OrderNoteDetailPage from "./pages/OrderNoteDetailPage";
@@ -161,6 +164,9 @@ const App = () => (
                       
                       {/* Client Portal Routes */}
                       <Route path="/client/login" element={<CartProvider><ClientLoginPage /></CartProvider>} />
+                      <Route path="/client/set-password" element={<CartProvider><ClientSetPasswordPage /></CartProvider>} />
+                      <Route path="/client/forgot-password" element={<CartProvider><ClientForgotPasswordPage /></CartProvider>} />
+                      <Route path="/client/reset-password" element={<CartProvider><ClientResetPasswordPage /></CartProvider>} />
                       <Route path="/client/dashboard" element={<CartProvider><ClientDashboardPage /></CartProvider>} />
                       <Route path="/client/catalog" element={<CartProvider><ClientCatalogPage /></CartProvider>} />
                       <Route path="/client/cart" element={<CartProvider><ClientCartPage /></CartProvider>} />

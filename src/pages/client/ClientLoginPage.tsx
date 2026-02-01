@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,17 +11,37 @@ import { Loader2, Package, AlertCircle } from "lucide-react";
 
 export default function ClientLoginPage() {
   const navigate = useNavigate();
-  const { signIn, loading, error, isAuthenticated } = useClientAuth();
+  const { signIn, loading, error, isAuthenticated, user } = useClientAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if already authenticated
-  if (isAuthenticated) {
-    navigate("/client/dashboard", { replace: true });
-    return null;
-  }
+  // Check if user needs to change password after login
+  useEffect(() => {
+    const checkPasswordChangeRequired = async () => {
+      if (user) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser?.user_metadata?.requires_password_change) {
+          navigate("/client/set-password", { replace: true });
+          return;
+        }
+      }
+    };
+
+    if (isAuthenticated) {
+      checkPasswordChangeRequired().then(() => {
+        // Only navigate to dashboard if password change is not required
+        const checkAgain = async () => {
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (!currentUser?.user_metadata?.requires_password_change) {
+            navigate("/client/dashboard", { replace: true });
+          }
+        };
+        checkAgain();
+      });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +58,14 @@ export default function ClientLoginPage() {
     
     if (signInError) {
       setLocalError("Credenciais inválidas. Verifique o seu email e palavra-passe.");
+      setIsSubmitting(false);
+      return;
+    }
+    
+    // Check if password change is required
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (currentUser?.user_metadata?.requires_password_change) {
+      navigate("/client/set-password");
     } else {
       navigate("/client/dashboard");
     }
@@ -87,7 +116,15 @@ export default function ClientLoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Palavra-passe</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Palavra-passe</Label>
+                <Link
+                  to="/client/forgot-password"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Esqueci-me da palavra-passe
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
