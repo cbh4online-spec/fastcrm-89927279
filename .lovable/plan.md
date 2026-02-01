@@ -1,76 +1,139 @@
 
-# Plano: Restaurar Valores de Faturação (Histórico Comercial)
+# Plano: Refresh Automático de Dados no Student Journey
 
-## Problema Identificado
+## Problema Actual
 
-A secção de "Histórico Comercial" que mostra vendas do ano atual e dos últimos 3 anos **existe no código** para contactos, mas:
+Actualmente, quando há alterações nos perfis ou inscrições do Student Journey, os dados só são actualizados se:
+- O utilizador clicar no botão "Atualizar Estados"
+- A página for recarregada
+- Uma mutação explícita invalidar as queries
 
-1. **Menu lateral não inclui a opção `history`** - O `EntitySidebarMenu.tsx` não tem a entrada para aceder à secção de histórico comercial
-2. **Empresas não têm componente equivalente** - Não existe uma `CommercialHistorySection` para empresas
-3. **Tabela de empresas não tem campos de vendas por ano** - A base de dados `companies` só tem `annual_revenue`, não tem `sales_2023`, `sales_2024`, etc.
+## Solução: Realtime com Supabase
 
-## Solução
+O projecto já utiliza realtime noutros módulos (CRM Activities, Messages, Meeting Automations). Vamos aplicar o mesmo padrão ao Student Journey.
 
-### Parte 1: Adicionar Secção ao Menu Lateral
+## Alterações Necessárias
 
-Modificar `src/components/entity/EntitySidebarMenu.tsx` para incluir a opção "Histórico Comercial":
+### 1. Base de Dados - Habilitar Realtime
+
+Adicionar as tabelas do Student Journey à publicação realtime:
+
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.sj_profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.sj_enrollments;
+```
+
+### 2. Hook `useStudentJourney.ts` - Adicionar Subscriptions
+
+**Modificar `useProfiles()`:**
 
 ```text
-Na secção NEGÓCIO, adicionar:
-{ id: 'history', label: 'Histórico Comercial', icon: TrendingUp, showFor: ['contact', 'company'] }
+Adicionar:
+- Import do useEffect
+- Import do useWorkspaceInstance (para workspaceClient)
+- Subscription realtime para INSERT, UPDATE, DELETE na tabela sj_profiles
+- Cleanup da subscription no unmount
 ```
 
-### Parte 2: Criar Secção de Histórico para Empresas
+**Estrutura da subscription:**
 
-Criar `src/components/companies/sections/CommercialHistorySection.tsx` similar à versão de contactos, mas adaptada para empresas:
-- Calcular vendas por ano a partir das faturas associadas à empresa
-- Usar os campos de revenue existentes (`annual_revenue`, etc.)
-- Mostrar categoria ABC calculada automaticamente
+```typescript
+useEffect(() => {
+  if (!currentWorkspace) return;
 
-### Parte 3: Base de Dados - Adicionar Campos de Vendas por Ano
+  const channel = supabase
+    .channel(`sj-profiles-${currentWorkspace.id}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",  // INSERT, UPDATE, DELETE
+        schema: "public",
+        table: "sj_profiles",
+        filter: `workspace_id=eq.${currentWorkspace.id}`,
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
+        queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
+      }
+    )
+    .subscribe();
 
-Adicionar colunas à tabela `companies`:
-```sql
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS sales_2023 NUMERIC;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS sales_2024 NUMERIC;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS sales_2025 NUMERIC;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS sales_2026 NUMERIC;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS total_revenue NUMERIC DEFAULT 0;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS average_ticket NUMERIC;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS last_purchase_date TIMESTAMP WITH TIME ZONE;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS abc_category TEXT;
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [currentWorkspace, queryClient]);
 ```
 
-### Parte 4: Integrar na Página de Detalhe de Empresa
+**Modificar `useEnrollments()`:**
 
-Modificar `src/components/companies/CompanyDetailWithSidebar.tsx`:
-- Importar o novo `CommercialHistorySection`
-- Adicionar case `'history'` no switch de `renderSectionContent`
+Mesma lógica mas para a tabela `sj_enrollments`:
 
-### Parte 5: Atualizar Tipos e Hooks
+```typescript
+useEffect(() => {
+  if (!currentWorkspace) return;
 
-Atualizar `src/hooks/useCompanies.ts`:
-- Adicionar novos campos ao tipo `Company`
-- Adicionar novos campos ao `updateCompany`
+  const channel = supabase
+    .channel(`sj-enrollments-${currentWorkspace.id}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "sj_enrollments",
+        filter: `workspace_id=eq.${currentWorkspace.id}`,
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey: ["sj-enrollments"] });
+        queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
+        queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
+      }
+    )
+    .subscribe();
 
-## Ficheiros a Modificar/Criar
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [currentWorkspace, queryClient]);
+```
 
-| Ficheiro | Ação |
-|----------|------|
-| `src/components/entity/EntitySidebarMenu.tsx` | Modificar - adicionar opção 'history' |
-| `src/components/companies/sections/CommercialHistorySection.tsx` | **Criar** |
-| `src/components/companies/CompanyDetailWithSidebar.tsx` | Modificar - adicionar case 'history' |
-| `src/hooks/useCompanies.ts` | Modificar - adicionar campos de vendas |
-| Migração SQL | Adicionar colunas de vendas por ano |
+## Fluxo de Actualização
 
-## Resultado Esperado
+```text
+┌──────────────────┐     ┌───────────────────┐     ┌──────────────────┐
+│  Utilizador A    │     │     Backend       │     │  Utilizador B    │
+│  (faz alteração) │     │    (Supabase)     │     │  (vê a lista)    │
+└────────┬─────────┘     └─────────┬─────────┘     └────────┬─────────┘
+         │                         │                        │
+         │ UPDATE sj_profiles      │                        │
+         │─────────────────────────>│                        │
+         │                         │                        │
+         │                         │ postgres_changes event │
+         │                         │───────────────────────>│
+         │                         │                        │
+         │                         │        invalidateQueries
+         │                         │                        │
+         │                         │        Refetch automático
+         │                         │                        │
+         │                         │        Lista actualizada!
+```
 
-Após implementação:
-- Menu lateral terá opção "Histórico Comercial" para contactos E empresas
-- Contactos continuarão a usar a `CommercialHistorySection` existente
-- Empresas terão nova secção equivalente mostrando:
-  - Vendas 2026, 2025, 2024, 2023
-  - Receita Total (calculada automaticamente)
-  - Ticket Médio
-  - Última Compra
-  - Categoria ABC (A/B/C)
+## Ficheiros a Modificar
+
+| Ficheiro | Alterações |
+|----------|------------|
+| Migração SQL | Adicionar tabelas ao supabase_realtime |
+| `src/hooks/useStudentJourney.ts` | Adicionar subscriptions realtime em `useProfiles` e `useEnrollments` |
+
+## Benefícios
+
+1. **Actualização automática** - Dados são actualizados assim que há alterações
+2. **Multi-utilizador** - Se dois utilizadores estão a ver a mesma lista, ambos vêem as alterações
+3. **Consistência** - KPIs, funil e listas sempre sincronizados
+4. **Padrão existente** - Segue a mesma abordagem já usada noutros módulos do CRM
+
+## Tabelas a Habilitar
+
+| Tabela | Eventos |
+|--------|---------|
+| `sj_profiles` | INSERT, UPDATE, DELETE |
+| `sj_enrollments` | INSERT, UPDATE, DELETE |
