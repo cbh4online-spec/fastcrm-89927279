@@ -24,6 +24,7 @@ export interface Company {
   created_by: string;
   name: string;
   tax_id: string | null;
+  client_number: string | null;
   website: string | null;
   industry: string | null;
   size: string | null;
@@ -60,6 +61,7 @@ export interface Company {
 export interface CreateCompanyData {
   name: string;
   tax_id?: string;
+  client_number?: string;
   website?: string;
   industry?: string;
   size?: string;

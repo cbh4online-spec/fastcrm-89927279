@@ -31,6 +31,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const COMPANY_COLUMNS: ColumnConfig[] = [
   // Basic
   { id: "name", label: "Empresa", category: "basic", defaultVisible: true },
+  { id: "client_number", label: "Nº Cliente", category: "basic", defaultVisible: true },
   { id: "industry", label: "Indústria", category: "basic", defaultVisible: true },
   { id: "source", label: "Origem", category: "basic", defaultVisible: true },
   { id: "city", label: "Cidade", category: "basic", defaultVisible: false },

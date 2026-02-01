@@ -3310,6 +3310,7 @@ export type Database = {
           cae_description: string | null
           capital_social: string | null
           city: string | null
+          client_number: string | null
           company_context: Json | null
           company_score: number | null
           company_status: string | null
@@ -3386,6 +3387,7 @@ export type Database = {
           cae_description?: string | null
           capital_social?: string | null
           city?: string | null
+          client_number?: string | null
           company_context?: Json | null
           company_score?: number | null
           company_status?: string | null
@@ -3462,6 +3464,7 @@ export type Database = {
           cae_description?: string | null
           capital_social?: string | null
           city?: string | null
+          client_number?: string | null
           company_context?: Json | null
           company_score?: number | null
           company_status?: string | null
@@ -4339,6 +4342,7 @@ export type Database = {
           cae_code: string | null
           cae_description: string | null
           city: string | null
+          client_number: string | null
           client_since: string | null
           client_status: string | null
           client_types: string | null
@@ -4411,6 +4415,7 @@ export type Database = {
           cae_code?: string | null
           cae_description?: string | null
           city?: string | null
+          client_number?: string | null
           client_since?: string | null
           client_status?: string | null
           client_types?: string | null
@@ -4483,6 +4488,7 @@ export type Database = {
           cae_code?: string | null
           cae_description?: string | null
           city?: string | null
+          client_number?: string | null
           client_since?: string | null
           client_status?: string | null
           client_types?: string | null

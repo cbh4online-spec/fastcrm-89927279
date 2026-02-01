@@ -18,6 +18,7 @@ export interface Contact {
   notes: string | null;
   tags: string[];
   tax_id: string | null;
+  client_number: string | null;
   linkedin_url: string | null;
   facebook_url: string | null;
   instagram_url: string | null;
@@ -37,6 +38,7 @@ export interface CreateContactData {
   notes?: string;
   tags?: string[];
   tax_id?: string;
+  client_number?: string;
   linkedin_url?: string;
   facebook_url?: string;
   instagram_url?: string;
