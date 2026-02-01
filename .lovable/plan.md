@@ -1,206 +1,153 @@
 
-
-# Plano: Adicionar Pesquisa por Texto na Selecção de Contactos
+# Plano: Adicionar Edição de Inscrições (Enrollments)
 
 ## Objectivo
 
-Substituir o select básico por um componente de pesquisa com autocomplete na tab "Ligar Contacto" do diálogo "Adicionar Perfil" no módulo Student Journey.
+Permitir editar as inscrições dos alunos directamente na página de detalhe do perfil, incluindo campos como estado, pagamento, progresso, turma e notas.
 
-## Situação Actual
+## Campos Editáveis
 
-O select actual (linha 70 do CreateProfileDialog.tsx) usa um Select simples:
+Com base no tipo `SJEnrollment`, os campos editáveis serão:
 
-```text
-┌─────────────────────────────────────────┐
-│ Selecione...                          ▼ │
-└─────────────────────────────────────────┘
-       │
-       └── Lista todos os contactos sem filtro
-           (difícil encontrar quando há muitos)
-```
-
-## Solução Proposta
-
-Implementar um Popover + Command com campo de pesquisa, seguindo o padrão já existente no projecto (ClientSearchSelect.tsx):
-
-```text
-┌─────────────────────────────────────────┐
-│ 🔍 Pesquisar contacto...                │
-├─────────────────────────────────────────┤
-│ ✓ João Silva (joao@email.com)           │
-│   Maria Santos (maria@email.com)        │
-│   Pedro Costa (pedro@email.com)         │
-│   ...                                   │
-└─────────────────────────────────────────┘
-```
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| status | EnrollmentStatus | Interessado, Convidado, Inscrito, Ativo, Concluído, Desistiu |
+| payment_status | PaymentStatus | Por Pagar, Parcial, Pago, Reembolsado |
+| progress_percent | number | Percentagem de progresso (0-100) |
+| cohort_id | string/null | Turma associada (se o curso tiver turmas) |
+| started_at | date/null | Data de início |
+| completed_at | date/null | Data de conclusão |
+| notes | string/null | Notas adicionais |
 
 ## Alterações Detalhadas
 
-### Ficheiro: src/components/student-journey/CreateProfileDialog.tsx
+### 1. Criar EditEnrollmentDialog.tsx
 
-| Alteração | Descrição |
-|-----------|-----------|
-| Novos imports | Adicionar Command, Popover, Check, ChevronsUpDown, Search, User |
-| Novo estado | Adicionar `contactSearch` e `contactPopoverOpen` |
-| Novo useMemo | Filtrar contactos baseado no texto de pesquisa |
-| Substituir Select | Usar Popover + Command em vez do Select simples |
+Novo componente seguindo o padrão do EditCourseDialog:
 
-### Novo Código para a Tab "Ligar Contacto"
-
-```typescript
-// Estados adicionais
-const [contactSearch, setContactSearch] = useState("");
-const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
-
-// Filtro de contactos
-const filteredContacts = useMemo(() => {
-  if (!contactSearch.trim()) return contacts;
-  const searchLower = contactSearch.toLowerCase();
-  return contacts.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchLower) ||
-      c.email?.toLowerCase().includes(searchLower) ||
-      c.phone?.includes(searchLower)
-  );
-}, [contacts, contactSearch]);
-
-// Contacto seleccionado
-const selectedContact = contacts.find((c) => c.id === selectedContactId);
+```text
+┌─────────────────────────────────────────┐
+│          Editar Inscrição               │
+├─────────────────────────────────────────┤
+│ Curso: Marketing Digital (readonly)     │
+│                                         │
+│ Turma:     [Dropdown com turmas]        │
+│                                         │
+│ ┌─────────────┐  ┌─────────────┐       │
+│ │ Estado:     │  │ Pagamento:  │       │
+│ │ [Ativo    ▼]│  │ [Pago     ▼]│       │
+│ └─────────────┘  └─────────────┘       │
+│                                         │
+│ Progresso: [═══════════════] 75%       │
+│            [    Slider     ]            │
+│                                         │
+│ Data Início:    [__/__/____]           │
+│ Data Conclusão: [__/__/____]           │
+│                                         │
+│ Notas:                                  │
+│ ┌─────────────────────────────────┐    │
+│ │                                 │    │
+│ └─────────────────────────────────┘    │
+│                                         │
+│         [Cancelar]  [Guardar]          │
+└─────────────────────────────────────────┘
 ```
 
-### Interface de Pesquisa
+### 2. Actualizar SJProfileDetail.tsx
+
+Adicionar:
+- Estado para controlar o diálogo de edição
+- Botão de edição em cada card de inscrição
+- Importar e renderizar o EditEnrollmentDialog
+
+### 3. Exportar no index.ts
+
+Adicionar exportação do novo componente
+
+## Código do EditEnrollmentDialog
 
 ```typescript
-<TabsContent value="link" className="space-y-4 mt-4">
-  <p className="text-sm text-muted-foreground">
-    Selecione um contacto existente do CRM.
-  </p>
-  
-  <Popover open={contactPopoverOpen} onOpenChange={setContactPopoverOpen}>
-    <PopoverTrigger asChild>
-      <Button
-        variant="outline"
-        role="combobox"
-        aria-expanded={contactPopoverOpen}
-        className="w-full justify-between"
-      >
-        <div className="flex items-center gap-2 truncate">
-          <User className="h-4 w-4 text-muted-foreground" />
-          {selectedContact ? (
-            <span className="truncate">{selectedContact.name}</span>
-          ) : (
-            <span className="text-muted-foreground">Pesquisar contacto...</span>
-          )}
-        </div>
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-      </Button>
-    </PopoverTrigger>
-    
-    <PopoverContent className="w-[350px] p-0" align="start">
-      <Command shouldFilter={false}>
-        <CommandInput
-          placeholder="Pesquisar por nome, email ou telefone..."
-          value={contactSearch}
-          onValueChange={setContactSearch}
-        />
-        <CommandList>
-          {filteredContacts.length === 0 ? (
-            <CommandEmpty>
-              <div className="text-center py-4">
-                <Search className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  Nenhum contacto encontrado
-                </p>
-              </div>
-            </CommandEmpty>
-          ) : (
-            <CommandGroup>
-              {filteredContacts.map((contact) => (
-                <CommandItem
-                  key={contact.id}
-                  value={contact.id}
-                  onSelect={() => {
-                    setSelectedContactId(contact.id);
-                    setContactPopoverOpen(false);
-                    setContactSearch("");
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "h-4 w-4 mr-2",
-                      selectedContactId === contact.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{contact.name}</div>
-                    {contact.email && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        {contact.email}
-                      </div>
-                    )}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-        </CommandList>
-      </Command>
-    </PopoverContent>
-  </Popover>
-</TabsContent>
-```
+// Estados inicializados com useEffect
+const [status, setStatus] = useState<EnrollmentStatus>("enrolled");
+const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("unpaid");
+const [progressPercent, setProgressPercent] = useState(0);
+const [cohortId, setCohortId] = useState<string | null>(null);
+const [startedAt, setStartedAt] = useState("");
+const [completedAt, setCompletedAt] = useState("");
+const [notes, setNotes] = useState("");
 
-## Imports Necessários
+// Carregar dados da inscrição
+useEffect(() => {
+  if (enrollment) {
+    setStatus(enrollment.status);
+    setPaymentStatus(enrollment.payment_status);
+    setProgressPercent(enrollment.progress_percent);
+    setCohortId(enrollment.cohort_id);
+    setStartedAt(enrollment.started_at?.split("T")[0] || "");
+    setCompletedAt(enrollment.completed_at?.split("T")[0] || "");
+    setNotes(enrollment.notes || "");
+  }
+}, [enrollment]);
 
-```typescript
-import { useState, useMemo } from "react";
-import { Check, ChevronsUpDown, Search, User, Link2, UserPlus, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-```
-
-## Reset do Formulário
-
-Actualizar a função `resetForm` para incluir os novos estados:
-
-```typescript
-const resetForm = () => {
-  setFullName("");
-  setEmail("");
-  setPhone("");
-  setStage("lead");
-  setPrimaryInterest("");
-  setSelectedContactId("");
-  setContactSearch("");       // NOVO
-  setContactPopoverOpen(false); // NOVO
-  setTab("new");
+// Submit
+const handleSubmit = async () => {
+  await updateEnrollment.mutateAsync({
+    id: enrollment.id,
+    status,
+    payment_status: paymentStatus,
+    progress_percent: progressPercent,
+    cohort_id: cohortId || null,
+    started_at: startedAt ? new Date(startedAt).toISOString() : null,
+    completed_at: completedAt ? new Date(completedAt).toISOString() : null,
+    notes: notes.trim() || null,
+  });
+  onOpenChange(false);
 };
 ```
 
-## Benefícios
+## Alteração no Card de Inscrição
 
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| Encontrar contacto | Scroll manual na lista | Pesquisa instantânea |
-| Pesquisa por | Apenas nome visível | Nome, email, telefone |
-| UX com muitos contactos | Difícil de usar | Rápido e eficiente |
-| Consistência | Select básico | Mesmo padrão do resto da app |
+Adicionar botão de edição no header de cada inscrição:
+
+```typescript
+<div className="flex items-start justify-between">
+  <div>
+    <p className="font-medium">{enrollment.course?.name}</p>
+    {enrollment.cohort && (
+      <p className="text-sm text-muted-foreground">
+        Turma: {enrollment.cohort.name}
+      </p>
+    )}
+  </div>
+  <div className="flex items-center gap-2">
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => {
+        setEditingEnrollment(enrollment);
+        setEditEnrollmentDialogOpen(true);
+      }}
+    >
+      <Edit className="h-4 w-4" />
+    </Button>
+    <Badge className={...}>{statusConfig.label}</Badge>
+  </div>
+</div>
+```
+
+## Ficheiros a Criar/Modificar
+
+| Ficheiro | Acção |
+|----------|-------|
+| src/components/student-journey/EditEnrollmentDialog.tsx | Criar |
+| src/pages/student-journey/SJProfileDetail.tsx | Modificar |
+| src/components/student-journey/index.ts | Modificar |
 
 ## Dependências
 
-Não são necessárias novas dependências - todos os componentes já existem no projecto:
-- `@/components/ui/command` (cmdk)
-- `@/components/ui/popover` (@radix-ui/react-popover)
-
+Utiliza componentes já existentes:
+- Dialog, Button, Input, Label, Textarea
+- Select (para status e payment_status)
+- Slider (para progress_percent)
+- useCohorts hook (para listar turmas do curso)
+- useEnrollments hook (já tem updateEnrollment)
