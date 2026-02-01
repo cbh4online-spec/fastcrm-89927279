@@ -55,6 +55,7 @@ import {
   FolderOpen,
   Landmark,
   ShoppingCart,
+  BookOpen,
 } from "lucide-react";
 import {
   Collapsible,
@@ -227,9 +228,9 @@ const navigationGroups: NavGroup[] = [
       { name: "Form Studio", href: "/dashboard/form-studio", icon: FileEdit, tooltip: "Construtor de formulários" },
       { name: "Importações", href: "/dashboard/imports", icon: Download, tooltip: "Importar dados" },
       { name: "Integrações", href: "/dashboard/settings/integrations", icon: Link2, tooltip: "Conectar apps" },
-      { name: "Perfis IA", href: "/dashboard/ai-profiles", icon: Brain, tooltip: "Comportamento da IA" },
-      { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, tooltip: "Vibe, Regras e Auto-Pilot" },
-      { name: "Bases Conhecimento", href: "/dashboard/knowledge-base", icon: Brain, tooltip: "Treinar a IA" },
+      { name: "Assistentes IA", href: "/dashboard/ai-assistants", icon: Brain, tooltip: "Agentes, Personas e Auto-Pilot", highlight: true },
+      { name: "Bases Conhecimento", href: "/dashboard/knowledge-base", icon: BookOpen, tooltip: "Treinar a IA" },
+      { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, tooltip: "Vibe, Regras e Objetivos" },
       { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, tooltip: "Módulos", highlight: true },
     ],
   },

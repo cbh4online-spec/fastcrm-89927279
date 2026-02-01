@@ -47,12 +47,10 @@ import { toast } from 'sonner';
 import { FlowBuilderModule } from '@/components/flow-builder/FlowBuilderModule';
 import { WidgetConfigPanel } from '@/components/chat-widget/WidgetConfigPanel';
 
-type ActiveTab = "bases" | "personas" | "agents" | "flows" | "widget" | "query";
+type ActiveTab = "bases" | "flows" | "widget" | "query";
 
 const pageTabs = [
   { id: "bases", label: "Bases", icon: <BookOpen className="h-4 w-4" /> },
-  { id: "personas", label: "Personas", icon: <Users className="h-4 w-4" /> },
-  { id: "agents", label: "Agentes", icon: <Bot className="h-4 w-4" /> },
   { id: "flows", label: "Fluxos", icon: <Workflow className="h-4 w-4" /> },
   { id: "widget", label: "Widget", icon: <Globe className="h-4 w-4" /> },
   { id: "query", label: "Testar IA", icon: <MessageSquare className="h-4 w-4" /> },
@@ -190,13 +188,9 @@ export function KnowledgeBaseModule() {
       ...tab,
       count: tab.id === "bases" 
         ? knowledgeBases.length 
-        : tab.id === "personas" 
-          ? personas.length 
-          : tab.id === "agents"
-            ? agents.length
-            : undefined
+        : undefined
     }));
-  }, [knowledgeBases.length, personas.length, agents.length]);
+  }, [knowledgeBases.length]);
 
   // Quick stats
   const quickStats = useMemo(() => {
@@ -423,11 +417,7 @@ export function KnowledgeBaseModule() {
         searchPlaceholder={
           activeTab === "bases" 
             ? "Pesquisar bases..." 
-            : activeTab === "personas" 
-              ? "Pesquisar personas..." 
-              : activeTab === "agents"
-                ? "Pesquisar agentes..."
-                : "Pesquisar..."
+            : "Pesquisar..."
         }
         onSearchChange={setSearchValue}
         showFilters={false}
@@ -437,21 +427,6 @@ export function KnowledgeBaseModule() {
               <Button size="sm" onClick={() => setShowCreateKB(true)}>
                 <Plus className="h-4 w-4 mr-1" />
                 Nova Base
-              </Button>
-            )}
-            {activeTab === "personas" && (
-              <Button size="sm" onClick={() => setShowCreatePersona(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Nova Persona
-              </Button>
-            )}
-            {activeTab === "agents" && (
-              <Button size="sm" onClick={() => {
-                setSelectedAgent(null);
-                setShowAgentDialog(true);
-              }}>
-                <Plus className="h-4 w-4 mr-1" />
-                Novo Agente
               </Button>
             )}
             <Button
@@ -649,39 +624,6 @@ export function KnowledgeBaseModule() {
             )}
           </div>
         </div>
-      )}
-
-      {activeTab === "personas" && (
-        <PersonaList 
-          personas={personas.filter(p => 
-            p.name.toLowerCase().includes(searchValue.toLowerCase())
-          )}
-          isLoading={isLoading}
-          onSelect={handleEditPersona}
-          onCreateNew={() => setShowCreatePersona(true)}
-        />
-      )}
-
-      {activeTab === "agents" && (
-        <AIAgentList
-          agents={agents.filter(a => 
-            a.name.toLowerCase().includes(searchValue.toLowerCase())
-          )}
-          isLoading={isLoadingAgents}
-          onEdit={(agent) => {
-            setSelectedAgent(agent);
-            setShowAgentDialog(true);
-          }}
-          onDelete={(agent) => {
-            setAgentToDelete(agent);
-            setShowDeleteAgentConfirm(true);
-          }}
-          onToggleStatus={(agent) => toggleAgentStatus(agent.id)}
-          onCreateNew={() => {
-            setSelectedAgent(null);
-            setShowAgentDialog(true);
-          }}
-        />
       )}
 
       {activeTab === "flows" && (
