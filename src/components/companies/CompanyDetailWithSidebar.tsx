@@ -68,6 +68,7 @@ import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 import { EntityOpportunitiesSection } from "@/components/opportunities/EntityOpportunitiesSection";
 import { EntityTimelineSection } from "@/components/timeline";
 import { CompanyOrderNotesSection } from "@/components/companies/sections/CompanyOrderNotesSection";
+import { CommercialHistorySection } from "@/components/companies/sections/CommercialHistorySection";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -269,7 +270,7 @@ export function CompanyDetailWithSidebar() {
           </div>
         );
       case 'history':
-        return <CompanyContactsHistory companyId={id || ''} />;
+        return <CommercialHistorySection company={company} onFieldChange={handleFieldChange} />;
       case 'timeline':
         return (
           <EntityTimelineSection
