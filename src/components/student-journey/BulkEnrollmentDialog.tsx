@@ -67,7 +67,7 @@ interface PreviewData {
 
 interface ProcessingResult {
   contactsProcessed: number;
-  contactsNotFound: string[];
+  contactsCreated: number;
   profilesCreated: number;
   profilesExisting: number;
   enrollmentsCreated: number;
@@ -304,7 +304,7 @@ export function BulkEnrollmentDialog({
 
     const processingResult: ProcessingResult = {
       contactsProcessed: 0,
-      contactsNotFound: [],
+      contactsCreated: 0,
       profilesCreated: 0,
       profilesExisting: 0,
       enrollmentsCreated: 0,
@@ -312,6 +312,14 @@ export function BulkEnrollmentDialog({
     };
 
     try {
+      // Fetch current user for created_by
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Utilizador não autenticado");
+        setStep("preview");
+        return;
+      }
+
       // Fetch all contacts for matching
       const { data: contacts } = await supabase
         .from("contacts")
@@ -344,12 +352,29 @@ export function BulkEnrollmentDialog({
         // Update progress
         setImportProgress(Math.round(((i + 1) / totalRows) * 100));
 
-        // 1. Find contact by name (case-insensitive)
-        const contact = contactsMap.get(row.name.toLowerCase().trim());
+        // 1. Find or CREATE contact by name (case-insensitive)
+        let contact = contactsMap.get(row.name.toLowerCase().trim());
         
         if (!contact) {
-          processingResult.contactsNotFound.push(row.name);
-          continue;
+          // Create new contact
+          const { data: newContact, error: contactError } = await supabase
+            .from("contacts")
+            .insert({
+              workspace_id: currentWorkspace.id,
+              created_by: user.id,
+              name: row.name,
+            })
+            .select("id, name")
+            .single();
+
+          if (contactError) {
+            console.error("Error creating contact:", contactError);
+            continue;
+          }
+
+          contact = newContact;
+          contactsMap.set(row.name.toLowerCase().trim(), newContact);
+          processingResult.contactsCreated++;
         }
 
         processingResult.contactsProcessed++;
@@ -641,49 +666,18 @@ export function BulkEnrollmentDialog({
               </div>
             </div>
 
-            {/* Contacts not found */}
-            {result.contactsNotFound.length > 0 && (
-              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                    <p className="font-medium text-amber-800 dark:text-amber-200">
-                      Contactos não encontrados ({result.contactsNotFound.length})
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1 text-amber-700 border-amber-300 hover:bg-amber-100 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-900/40"
-                    onClick={() => {
-                      // Create CSV content
-                      const csvContent = "Nome\n" + result.contactsNotFound.join("\n");
-                      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement("a");
-                      link.href = url;
-                      link.download = `contactos-nao-encontrados-${new Date().toISOString().split('T')[0]}.csv`;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      URL.revokeObjectURL(url);
-                      toast.success("Lista exportada com sucesso");
-                    }}
-                  >
-                    <Download className="h-3 w-3" />
-                    Exportar Lista
-                  </Button>
+            {/* Contacts created */}
+            {result.contactsCreated > 0 && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="h-4 w-4 text-blue-600" />
+                  <p className="font-medium text-blue-800 dark:text-blue-200">
+                    {result.contactsCreated} contactos criados automaticamente
+                  </p>
                 </div>
-                <ScrollArea className="h-[100px]">
-                  <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
-                    {result.contactsNotFound.map((name, idx) => (
-                      <li key={idx} className="flex items-center gap-2">
-                        <X className="h-3 w-3" />
-                        {name}
-                      </li>
-                    ))}
-                  </ul>
-                </ScrollArea>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  Os contactos que não existiam foram criados no CRM durante a importação.
+                </p>
               </div>
             )}
 
