@@ -71,6 +71,24 @@ export function useContacts() {
     enabled: !!currentWorkspace,
   });
 
+  // Query to get contact IDs that are already linked to SJ profiles
+  const linkedContactsQuery = useQuery({
+    queryKey: ["sj-linked-contacts", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace) return new Set<string>();
+      
+      const { data, error } = await supabase
+        .from("sj_profiles")
+        .select("contact_id")
+        .eq("workspace_id", currentWorkspace.id)
+        .not("contact_id", "is", null);
+
+      if (error) throw error;
+      return new Set(data.map((p) => p.contact_id as string));
+    },
+    enabled: !!currentWorkspace,
+  });
+
   const createContact = useMutation({
     mutationFn: async (data: CreateContactData) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
@@ -231,6 +249,7 @@ export function useContacts() {
 
   return {
     contacts: contactsQuery.data || [],
+    linkedContactIds: linkedContactsQuery.data,
     isLoading: contactsQuery.isLoading,
     error: contactsQuery.error,
     createContact,

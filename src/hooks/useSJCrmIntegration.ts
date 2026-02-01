@@ -95,6 +95,20 @@ export function useSJCrmIntegration() {
       profileId: string;
       contactId: string;
     }) => {
+      // Check if this contact is already linked to another profile
+      const { data: existingProfile, error: checkError } = await supabase
+        .from("sj_profiles")
+        .select("id, full_name")
+        .eq("contact_id", contactId)
+        .neq("id", profileId)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existingProfile) {
+        throw new Error(`Este contacto já está ligado ao perfil "${existingProfile.full_name}"`);
+      }
+
       const { error } = await supabase
         .from("sj_profiles")
         .update({ contact_id: contactId })
@@ -107,9 +121,13 @@ export function useSJCrmIntegration() {
       queryClient.invalidateQueries({ queryKey: ["sj-profile"] });
       toast.success("Perfil ligado ao contacto");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Error linking to contact:", error);
-      toast.error("Erro ao ligar ao contacto");
+      // Show user-friendly error message
+      const message = error.message?.includes("já está ligado") 
+        ? error.message 
+        : "Erro ao ligar ao contacto";
+      toast.error(message);
     },
   });
 
