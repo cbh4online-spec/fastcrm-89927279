@@ -1,80 +1,53 @@
 
-# Plano: Corrigir Problema de Acesso à Página de Detalhe de Encomenda (Cliente)
+# Plano: Instalar Google Tag Manager em Todas as Páginas
 
-## Diagnóstico do Problema
+## Objetivo
+Instalar o código do Google Tag Manager (GTM-WLVH4TJJ) no `<head>` de todas as páginas da aplicação.
 
-Através da análise dos logs da consola e do session replay, identifiquei que:
+## Análise da Situação Atual
 
-1. **Erros 404 Falsos**: Os erros para `/react-router-dom` e `/components/InsightIcon` são causados pelo **editor do Lovable** quando se clica em nomes de ficheiros no painel de código - não são problemas da aplicação em si.
+### ✅ O que já existe:
+- Componente `GTMProvider` em `src/modules/growth-seo/components/tracking/GTMProvider.tsx`
+- Este componente já está envolvendo toda a aplicação em `App.tsx` (linha 137)
+- O componente suporta GDPR Consent Mode v2 (respeita consentimentos)
 
-2. **A rota existe**: A página `/client/orders/:id` está corretamente definida em `App.tsx` e o componente `ClientOrderDetailPage.tsx` está implementado.
+### ❌ O que falta:
+- O `GTMProvider` está a ser usado SEM o `containerId` configurado
+- Actualmente: `<GTMProvider>` (sem props)
+- Necessário: `<GTMProvider containerId="GTM-WLVH4TJJ">`
 
-3. **Possíveis causas reais**:
-   - O utilizador não está autenticado como cliente B2B
-   - O cliente não tem encomendas na base de dados
-   - A navegação está a ser feita incorretamente
+## Alterações Necessárias
 
-## Solução Proposta
+### Ficheiro: `src/App.tsx`
+Alterar a linha 137 para passar o container ID:
 
-### Parte 1: Verificar se existe um cliente B2B de teste
-
-Primeiro, vou verificar se existem `client_users` e `order_notes` na base de dados para confirmar que há dados para visualizar.
-
-### Parte 2: Melhorar o fluxo de acesso
-
-Se necessário, vou garantir que:
-1. A página de histórico de encomendas (`/client/orders`) tem links corretos para os detalhes
-2. A navegação após submissão de encomenda redireciona corretamente
-
-### Parte 3: Teste end-to-end
-
-Depois das correções, testar o fluxo completo:
-1. Login como cliente B2B
-2. Ver lista de encomendas
-3. Clicar numa encomenda para ver detalhes
-
----
-
-## Detalhes Técnicos
-
-### Ficheiros Relevantes
-
-| Ficheiro | Propósito |
-|----------|-----------|
-| `src/pages/client/ClientOrdersPage.tsx` | Lista de encomendas do cliente |
-| `src/pages/client/ClientOrderDetailPage.tsx` | Página de detalhe individual |
-| `src/components/client-portal/orders/OrderCard.tsx` | Card de encomenda com link para detalhe |
-| `src/App.tsx` | Definição das rotas (linha 169) |
-
-### Verificação de Rotas
-
-A rota está correctamente definida:
 ```typescript
-<Route path="/client/orders/:id" element={<CartProvider><ClientOrderDetailPage /></CartProvider>} />
+// De:
+<GTMProvider>
+
+// Para:
+<GTMProvider containerId="GTM-WLVH4TJJ">
 ```
 
-### Verificação da Navegação
+## Como Vai Funcionar
 
-O `OrderCard` deve ter um `Link` para `/client/orders/${order.id}`. Vou confirmar que este link está correto.
+1. **Carregamento Automático**: O GTMProvider vai injectar o script do GTM no `<head>` assim que a aplicação carregar
+
+2. **Consent Mode v2**: O script já está configurado para:
+   - Iniciar com todos os consentimentos negados por defeito
+   - Actualizar consentimentos quando o utilizador interage com o banner GDPR
+   - Analytics e Marketing só ficam activos após consentimento explícito
+
+3. **Noscript Fallback**: Também adiciona automaticamente o iframe `<noscript>` no início do `<body>` para browsers sem JavaScript
+
+## Verificação Pós-Implementação
+
+Após a alteração, podes verificar se o GTM está a funcionar:
+1. Abrir as DevTools do browser (F12)
+2. Ir ao separador "Network"
+3. Filtrar por "gtm.js"
+4. Deves ver um request para `https://www.googletagmanager.com/gtm.js?id=GTM-WLVH4TJJ`
 
 ---
 
-## Próximos Passos
-
-1. **Verificar dados na BD**: Confirmar que existem encomendas para o cliente
-2. **Corrigir links se necessário**: Garantir que a navegação usa rotas válidas
-3. **Testar no preview**: Navegar manualmente para `/client/orders` e clicar numa encomenda
-
----
-
-## Nota Importante
-
-Para testar a página de detalhe de encomenda do cliente:
-
-1. Acede ao preview da aplicação (não ao editor de código)
-2. Vai para: `https://[preview-url]/client/login`
-3. Faz login com credenciais de cliente B2B
-4. Navega para "Encomendas" no menu
-5. Clica numa encomenda para ver os detalhes
-
-Os erros 404 que viste no screenshot são do **editor do Lovable** quando clicas em ficheiros do código, não da aplicação real.
+**Resumo**: Apenas 1 alteração simples em `App.tsx` - adicionar `containerId="GTM-WLVH4TJJ"` ao GTMProvider existente.
