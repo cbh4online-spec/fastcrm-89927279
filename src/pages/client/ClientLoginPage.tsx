@@ -16,6 +16,16 @@ export default function ClientLoginPage() {
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Show message if loading takes too long
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => setLoadingTimeout(true), 8000);
+      return () => clearTimeout(timer);
+    }
+    setLoadingTimeout(false);
+  }, [loading]);
 
   // Handle navigation when authenticated - simplified logic
   useEffect(() => {
@@ -64,8 +74,13 @@ export default function ClientLoginPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {loadingTimeout && (
+          <p className="mt-4 text-sm text-muted-foreground">
+            A ligação está a demorar. Por favor, atualize a página.
+          </p>
+        )}
       </div>
     );
   }

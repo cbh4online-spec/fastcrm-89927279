@@ -22,6 +22,14 @@ export function useClientAuth(): UseClientAuthReturn {
   useEffect(() => {
     let isMounted = true;
     
+    // Safety timeout - never stay in loading state forever
+    const loadingTimeout = setTimeout(() => {
+      if (isMounted) {
+        console.warn("Client auth: Loading timeout reached");
+        setLoading(false);
+      }
+    }, 10000);
+    
     const fetchClientUser = async (userId: string) => {
       try {
         const { data, error: fetchError } = await supabase
@@ -83,6 +91,7 @@ export function useClientAuth(): UseClientAuthReturn {
 
     return () => {
       isMounted = false;
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -99,6 +108,9 @@ export function useClientAuth(): UseClientAuthReturn {
       return { error };
     }
     
+    // Set loading to false immediately after successful login
+    // The onAuthStateChange will also set it, but this prevents race conditions
+    setLoading(false);
     return { error: null };
   };
 
