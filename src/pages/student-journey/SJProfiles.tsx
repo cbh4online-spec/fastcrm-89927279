@@ -40,6 +40,7 @@ import {
   Star,
   Clock,
   Filter,
+  Edit,
 } from "lucide-react";
 import { useProfiles, useCourses } from "@/hooks/useStudentJourney";
 import { useJourneyTransitions } from "@/hooks/useJourneyTransitions";
@@ -57,7 +58,9 @@ import { pt } from "date-fns/locale";
 import { CreateProfileDialog } from "@/components/student-journey/CreateProfileDialog";
 import { ScheduleFollowUpDialog } from "@/components/student-journey/ScheduleFollowUpDialog";
 import { ImportProfilesDialog } from "@/components/student-journey/ImportProfilesDialog";
+import { EditProfileDialog } from "@/components/student-journey/EditProfileDialog";
 import { Link, useSearchParams } from "react-router-dom";
+import type { SJProfile } from "@/types/studentJourney";
 
 export default function SJProfiles() {
   const { profiles, isLoading, deleteProfile } = useProfiles();
@@ -79,7 +82,9 @@ export default function SJProfiles() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
+  const [editProfileDialogOpen, setEditProfileDialogOpen] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState<SJProfile | null>(null);
 
   // Get unique interests and specialties
   const allInterests = useMemo(() => {
@@ -176,6 +181,11 @@ export default function SJProfiles() {
   const handleScheduleFollowUp = (profileId: string) => {
     setSelectedProfileId(profileId);
     setFollowUpDialogOpen(true);
+  };
+
+  const handleEditProfile = (profile: SJProfile) => {
+    setEditingProfile(profile);
+    setEditProfileDialogOpen(true);
   };
 
   const getScoreColor = (score: number) => {
@@ -409,6 +419,10 @@ export default function SJProfiles() {
                                 Ver Detalhe
                               </Link>
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditProfile(profile)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar Perfil
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleScheduleFollowUp(profile.id)}>
                               <Calendar className="h-4 w-4 mr-2" />
@@ -451,6 +465,11 @@ export default function SJProfiles() {
         open={followUpDialogOpen}
         onOpenChange={setFollowUpDialogOpen}
         profileId={selectedProfileId}
+      />
+      <EditProfileDialog
+        open={editProfileDialogOpen}
+        onOpenChange={setEditProfileDialogOpen}
+        profile={editingProfile}
       />
     </div>
   );
