@@ -30,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Campos obrigatórios em falta: clientName, clientEmail, workspaceName");
     }
 
-    const finalPortalUrl = portalUrl || "https://fastcrm.lovable.app/client-portal";
+    const finalPortalUrl = portalUrl || "https://fastcrm.lovable.app/client/login";
 
     const emailResponse = await resend.emails.send({
       from: "FastCRM <noreply@m.fastcrm.metodopare.ai>",

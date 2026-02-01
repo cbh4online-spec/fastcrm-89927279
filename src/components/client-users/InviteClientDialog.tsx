@@ -222,7 +222,7 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
             clientName: data.name,
             clientEmail: data.email,
             workspaceName: workspace?.name || "FastCRM",
-            portalUrl: `${window.location.origin}/client-portal`,
+            portalUrl: `${window.location.origin}/client/login`,
           },
         }
       );
