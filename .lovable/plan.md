@@ -1,133 +1,107 @@
 
-# Plano: Fluxo Universal de Resposta a Produtos e Equipamentos
+# Plano: Template de Fluxo Conversacional Dr. Kraut
 
 ## Objetivo
-Criar um fluxo conversacional completo no Visual Flow Builder que implementa o esquema de vendas descrito no documento. Este fluxo irá:
-- Capturar dados do lead (nome, contacto, email)
-- Identificar o objetivo do cliente (couro cabeludo, pele/corpo, cabelo)
-- Recolher informação sobre o problema (estado atual, tempo, intensidade)
-- Recomendar solução personalizada
-- Encaminhar para profissional ou handoff humano
+Criar um novo template de fluxo conversacional para a linha profissional Dr. Kraut (estética corporal e facial), baseado no esquema de resposta do documento fornecido.
 
 ---
 
 ## Estrutura do Fluxo
 
 ```text
-[ENTRADA] → [Saudação] → [Recolha Dados]
-                              ↓
-                        [Objetivo Principal]
-                              ↓
-                    ┌─────────┼─────────┐
-                    ↓         ↓         ↓
-               [Cabelo]   [Pele]   [Couro Cab.]
-                    └─────────┬─────────┘
-                              ↓
-                    [Pergunta A: Estado Atual]
-                              ↓
-                    [Pergunta B: Há quanto tempo]
-                              ↓
-                    [Pergunta C: Intensidade 1-10]
-                              ↓
-                    [Análise + Recomendação]
-                              ↓
-                    [Condição: Profissional próximo?]
-                       ↓ Sim           ↓ Não
-                 [Remete Prof.]    [Handoff Humano]
+[ENTRADA] → [Saudação Dr. Kraut] → [Recolha Nome]
+                                        ↓
+                              [Objetivo Principal]
+                              (7 opções de tratamento)
+                                        ↓
+                              [Zona de Foco]
+                              (5 zonas corporais)
+                                        ↓
+                              [Tempo do Problema]
+                                        ↓
+                              [Intensidade 1-10]
+                                        ↓
+                              [Apresentação Protocolo]
+                                        ↓
+                              [Interesse em Avançar?]
+                                   ↓ Sim        ↓ Não
+                            [Handoff Vendas]  [Follow-up]
+                                   ↓
+                            [Goal: Venda]
 ```
 
 ---
 
-## Passos a Implementar
+## Variáveis a Recolher
 
-### 1. Criar o Fluxo Base
-- **Nome**: "Funil Universal - Produtos e Equipamentos"
-- **Descrição**: "Fluxo de vendas para recolha de informação e recomendação de produtos Pharliss"
-- **Objetivo**: Captura de Lead + Qualificação
-- **Canais**: WhatsApp, Instagram, Widget
-
-### 2. Criar Variáveis do Fluxo
 | Variável | Tipo | Obrigatória | Mapeamento CRM |
 |----------|------|-------------|----------------|
 | `nome` | text | Sim | lead.name |
-| `contacto` | phone | Sim | lead.phone |
-| `email` | email | Sim | lead.email |
-| `objetivo` | choice | Sim | lead.specialty |
-| `estado_atual` | text | Sim | - |
-| `tempo_problema` | text | Sim | - |
+| `objetivo_tratamento` | choice | Sim | lead.specialty |
+| `zona_foco` | choice | Sim | - |
+| `tempo_necessidade` | text | Sim | - |
 | `intensidade` | number | Sim | - |
-| `tem_profissional` | boolean | Não | - |
+| `interesse_compra` | boolean | Não | - |
 
-### 3. Criar Passos do Fluxo
+---
+
+## Passos do Fluxo (14 passos)
 
 | # | Tipo | Nome | Conteúdo |
 |---|------|------|----------|
-| 1 | message | Saudação | "Olá! 👋 Que bom receber o seu contacto. Sou o assistente especializado da Pharliss e estou aqui para ajudar a encontrar a melhor opção dentro da nossa linha profissional." |
-| 2 | question | Recolha Nome | "Para que eu possa enviar recomendações personalizadas e instruções completas, poderia indicar o seu nome?" |
-| 3 | question | Recolha Contacto | "Qual o seu número de contacto?" |
-| 4 | question | Recolha Email | "E o seu email para enviarmos ofertas exclusivas?" |
-| 5 | message | Agradecimento | "Obrigado, {nome}! 🙏" |
-| 6 | question | Objetivo Principal | "Para entender exatamente o que procura, poderia dizer qual é o seu objetivo principal?" → Respostas Rápidas: "Melhorar couro cabeludo", "Melhorar pele ou corpo", "Fortalecer cabelo" |
-| 7 | question | Estado Atual | "Como está hoje o seu {objetivo}?" |
-| 8 | question | Tempo Problema | "Isto acontece há quanto tempo?" |
-| 9 | question | Intensidade | "Num nível de 1 a 10, como classificaria a intensidade da situação?" |
-| 10 | message | Análise | "Perfeito, obrigado por partilhar! 💡 Com base no que descreveu, posso recomendar uma solução profissional adequada à sua situação. Esta solução foi pensada para: • Melhorar gradualmente o problema • Atuar na causa e não só no efeito • Ser segura e de qualidade profissional • Ter resultados consistentes quando usada corretamente" |
-| 11 | question | Profissional | "Tem um profissional de beleza/saúde próximo da sua área de residência que possa indicar?" → Respostas Rápidas: "Sim", "Não" |
-| 12 | condition | Verifica Prof. | Campo: tem_profissional, Operador: equals, Valor: "Sim" |
-| 13 | message | Remete Prof. | "Excelente! Recomendo que visite o profissional para uma avaliação personalizada. Ele poderá indicar o produto ideal da nossa linha para o seu caso específico. Posso ajudar com mais alguma coisa?" |
-| 14 | handoff | Handoff Humano | "Como não tem um profissional próximo, vou transferir esta conversa para um especialista da nossa equipa que poderá ajudá-lo(a) diretamente com recomendações e opções de entrega. Um momento, por favor..." |
-| 15 | goal | Lead Qualificado | Objetivo concluído com valor de conversão |
-
-### 4. Conexões Entre Passos
-```text
-1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
-                                              ↓
-                                     Condição Verdadeira → 13 → 15
-                                     Condição Falsa → 14
-```
+| 1 | message | Saudação Dr. Kraut | "Olá! Que bom receber o seu contacto. A Dr. Kraut é uma linha profissional de estética corporal e facial com fórmulas de alta performance e protocolos desenvolvidos para resultados visíveis e consistentes. Como posso ajudar hoje na sua rotina ou tratamento estético?" |
+| 2 | question | Recolha Nome | "Para preparar um atendimento completo e direcionado para si, poderia indicar o seu nome?" |
+| 3 | message | Agradecimento | "Obrigado, {nome}!" |
+| 4 | question | Objetivo Tratamento | "Para eu poder recomendar o melhor protocolo, diga-me qual é o seu objetivo principal neste momento?" → Quick Replies: "Redução de volume", "Firmeza", "Drenagem", "Celulite", "Relaxamento", "Rejuvenescimento facial", "Hidratação avançada" |
+| 5 | question | Zona de Foco | "Em que zona pretende trabalhar?" → Quick Replies: "Rosto", "Pernas", "Abdómen", "Glúteos", "Corpo inteiro" |
+| 6 | question | Tempo Necessidade | "Há quanto tempo sente essa necessidade?" |
+| 7 | question | Intensidade | "Numa escala de 1 a 10, qual é a intensidade do problema ou urgência em resolver?" |
+| 8 | message | Análise Protocolo | "Perfeito, {nome}! Com base no que descreveu, posso recomendar um protocolo profissional Dr. Kraut adequado para {objetivo_tratamento} na zona de {zona_foco}. Os nossos protocolos são desenvolvidos para resultados visíveis e consistentes." |
+| 9 | question | Interesse Compra | "Gostaria que lhe enviasse informações sobre preços e como avançar com o protocolo recomendado?" → Quick Replies: "Sim, quero saber mais", "Ainda não" |
+| 10 | condition | Verifica Interesse | Campo: interesse_compra, Operador: equals, Valor: "Sim, quero saber mais" |
+| 11 | handoff | Transferir Vendas | "Vou transferir esta conversa para um especialista da nossa equipa que irá enviar-lhe o link seguro de pagamento e todas as informações do protocolo recomendado. Um momento, por favor..." |
+| 12 | message | Follow-up Agendado | "Sem problema, {nome}! Fico aqui disponível quando quiser retomar. Continuarei aqui para ajudar a escolher o melhor protocolo Dr. Kraut para si. Quando quiser avançar, basta enviar mensagem." |
+| 13 | goal | Venda Iniciada | Objetivo: "Lead Qualificado para Venda Dr. Kraut" |
+| 14 | goal | Lead Nurturing | Objetivo: "Lead para Follow-up Dr. Kraut" |
 
 ---
 
 ## Implementação Técnica
 
-### Ficheiros a Criar/Modificar
+### Ficheiro a Modificar
+- `src/components/flow-builder/FlowTemplates.tsx`
 
-1. **Novo Componente: Template de Fluxo**
-   - `src/components/flow-builder/FlowTemplates.tsx`
-   - Permite criar fluxos pré-configurados com um clique
+### Alterações
+1. **Novo Template**: Adicionar constante `DR_KRAUT_TEMPLATE` com a estrutura completa
+2. **Novo Ícone**: Usar `Sparkles` (já importado) para representar estética/beleza
+3. **Categoria**: "Vendas" (mesma do template Pharliss)
+4. **Canais**: WhatsApp, Instagram, Widget
 
-2. **Extensão do Diálogo de Criação**
-   - `src/components/flow-builder/CreateFlowDialog.tsx`
-   - Adicionar opção "Usar Template" com lista de templates disponíveis
+### Código a Adicionar
 
-3. **Função de Criação Automática**
-   - `src/hooks/useConversationalFlows.ts`
-   - Adicionar `createFlowFromTemplate(templateId)` que cria o fluxo completo com todos os passos e variáveis
-
-### Estrutura do Template
 ```typescript
-interface FlowTemplate {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  variables: Array<{
-    name: string;
-    displayName: string;
-    type: VariableType;
-    isRequired: boolean;
-    mapToField?: string;
-  }>;
-  steps: Array<{
-    type: FlowStepType;
-    name: string;
-    messageContent?: string;
-    quickReplies?: string[];
-    variableToCollect?: string;
-    connectsTo?: string; // Nome do passo seguinte
-    conditionConfig?: {...};
-  }>;
-}
+// Template: Funil Dr. Kraut - Estética Corporal e Facial
+export const DR_KRAUT_TEMPLATE: FlowTemplate = {
+  id: 'dr-kraut-estetica',
+  name: 'Dr. Kraut - Estética Corporal e Facial',
+  description: 'Fluxo de vendas para protocolos de estética corporal e facial Dr. Kraut',
+  category: 'Vendas',
+  icon: Sparkles,
+  defaultGoalType: 'lead_capture',
+  defaultChannels: ['whatsapp', 'instagram', 'widget'],
+  
+  variables: [...],  // 6 variáveis definidas acima
+  steps: [...]       // 14 passos definidos acima
+};
+```
+
+### Atualizar Lista de Templates
+
+```typescript
+export const FLOW_TEMPLATES: FlowTemplate[] = [
+  PHARLISS_UNIVERSAL_TEMPLATE,
+  DR_KRAUT_TEMPLATE  // Novo template
+];
 ```
 
 ---
@@ -137,25 +111,23 @@ interface FlowTemplate {
 Após implementação, o utilizador poderá:
 1. Ir ao Flow Builder
 2. Clicar em "Criar Fluxo"
-3. Selecionar "Usar Template" → "Funil Produtos Pharliss"
-4. O fluxo completo com 15 passos será criado automaticamente
+3. Selecionar "Usar Template" → "Dr. Kraut - Estética Corporal e Facial"
+4. O fluxo completo com 14 passos será criado automaticamente
 5. Personalizar mensagens conforme necessário
-6. Ativar o fluxo
+6. Ativar o fluxo para canais WhatsApp, Instagram e Widget
 
 ---
 
 ## Detalhes Técnicos
 
-### Base de Dados
-- Utiliza tabelas existentes: `conversational_flows`, `flow_steps`, `flow_variables`
-- Não requer migrações de schema
+### Estimativa de Código
+- Novo template: ~200 linhas TypeScript
+- Nenhuma alteração de base de dados necessária
+- Usa estrutura existente de `FlowTemplate`
 
-### Edge Functions
-- O `flow-engine` existente já suporta todos os tipos de passos necessários
-- Apenas necessita de dados corretos nos passos
-
-### Estimativa
-- Novo componente de templates: ~200 linhas
-- Extensão do diálogo: ~50 linhas
-- Função de criação: ~150 linhas
-
+### Diferenças do Template Pharliss
+- Foco em estética corporal/facial vs. couro cabeludo/cabelo
+- 7 objetivos de tratamento específicos Dr. Kraut
+- 5 zonas corporais para tratamento
+- Fluxo orientado diretamente para venda (handoff para pagamento)
+- Mensagens de follow-up para leads não convertidos
