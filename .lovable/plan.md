@@ -1,201 +1,224 @@
 
-# Plano: Corrigir Importação de Excel com Detecção Dinâmica de Cabeçalhos
+# Plano: Cruzar Formações na Importação de Perfis
 
-## Problema Identificado
+## Contexto
 
-Ao importar ficheiro Excel, o sistema mostra "0 perfis encontrados" porque:
+Atualmente, a importação de perfis do Excel apenas guarda o campo `primary_interest` como texto livre (ex: "Desenvolvimento Web"). Este valor não está ligado aos cursos existentes no sistema, perdendo a oportunidade de criar inscrições automáticas.
 
-1. O código assume que os headers estão na primeira linha
-2. Muitos ficheiros Excel têm linhas vazias ou títulos antes dos dados
-3. Não há detecção automática de onde começa a tabela de dados
-4. Os nomes das colunas podem ter variações (acentos, maiúsculas, espaços)
+## Funcionalidade Proposta
 
-## Solução Proposta
+Ao importar perfis, o sistema deve:
+1. Detectar colunas que indicam formações (ex: "Curso", "Formação", "Interesse")
+2. Cruzar os valores com os cursos existentes no workspace
+3. Mostrar no preview quais cursos foram identificados
+4. Criar automaticamente inscrições com status "interested" para cada match
 
-Implementar detecção dinâmica de cabeçalhos que:
-1. Procura a linha com os headers nas primeiras 10 linhas
-2. Normaliza nomes (remove acentos, lowercase, trim)
-3. Mapeia colunas de forma flexível
-4. Adiciona logging para debug
+## Fluxo de Utilizador Melhorado
+
+```text
+1. Upload do Excel
+   ↓
+2. Detecção de headers (já implementado)
+   ↓
+3. NOVO: Matching de cursos
+   - Compara "Curso Básico" → encontra "Formação Básica"
+   - Usa matching flexível (normalização, palavras-chave)
+   ↓
+4. Preview com nova coluna "Formação Identificada"
+   ↓
+5. Importação cria:
+   - Perfil (sj_profiles)
+   - Inscrição automática (sj_enrollments) ← NOVO
+```
 
 ## Alterações Técnicas
 
-### Ficheiro: `src/components/student-journey/ImportProfilesDialog.tsx`
+### 1. Adicionar Dados de Curso ao Matching
 
-**1. Adicionar função de normalização de headers**
+Antes do preview, buscar todos os cursos activos do workspace para matching:
+
 ```typescript
-const normalizeHeader = (header: string): string => {
-  if (!header) return "";
-  return header
-    .toString()
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-    .replace(/[^a-z0-9]/g, "_");     // Substitui espaços/símbolos por _
-};
+// Buscar cursos para matching
+const { data: courses } = await supabase
+  .from("sj_courses")
+  .select("id, name, tags")
+  .eq("workspace_id", currentWorkspace.id)
+  .eq("is_active", true);
 ```
 
-**2. Adicionar detecção dinâmica da linha de cabeçalhos**
-```typescript
-const EXPECTED_FIELDS = ["nome", "email", "telefone", "interesse", "origem"];
+### 2. Função de Matching de Cursos
 
-const findHeaderRow = (sheet: XLSX.WorkSheet): number => {
-  const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
-  const maxScanRows = Math.min(10, range.e.r + 1);
+Criar lógica de matching flexível que considera:
+- Nome exacto (normalizado)
+- Nome parcial (contém palavras-chave)
+- Tags do curso
+
+```typescript
+const normalizeName = (name: string): string => {
+  return name.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, " ")
+    .trim();
+};
+
+const findMatchingCourse = (interest: string, courses: SJCourse[]): SJCourse | null => {
+  if (!interest) return null;
+  const normalizedInterest = normalizeName(interest);
+  const interestWords = normalizedInterest.split(/\s+/).filter(w => w.length > 2);
   
-  for (let row = 0; row < maxScanRows; row++) {
-    let matchCount = 0;
-    for (let col = range.s.c; col <= range.e.c; col++) {
-      const cellAddr = XLSX.utils.encode_cell({ r: row, c: col });
-      const cell = sheet[cellAddr];
-      if (cell && cell.v) {
-        const normalized = normalizeHeader(String(cell.v));
-        if (EXPECTED_FIELDS.some(f => normalized.includes(f))) {
-          matchCount++;
-        }
-      }
-    }
-    // Se encontrar pelo menos 2 campos esperados, é provavelmente o header
-    if (matchCount >= 2) {
-      return row;
-    }
-  }
-  return 0; // Default: primeira linha
+  // 1. Match exacto
+  const exactMatch = courses.find(c => 
+    normalizeName(c.name) === normalizedInterest
+  );
+  if (exactMatch) return exactMatch;
+  
+  // 2. Match parcial (nome contém interesse ou vice-versa)
+  const partialMatch = courses.find(c => {
+    const courseName = normalizeName(c.name);
+    return courseName.includes(normalizedInterest) || 
+           normalizedInterest.includes(courseName);
+  });
+  if (partialMatch) return partialMatch;
+  
+  // 3. Match por palavras-chave
+  const keywordMatch = courses.find(c => {
+    const courseName = normalizeName(c.name);
+    const courseWords = courseName.split(/\s+/);
+    // Se 50% ou mais das palavras coincidirem
+    const matches = interestWords.filter(w => courseWords.some(cw => cw.includes(w)));
+    return matches.length >= Math.ceil(interestWords.length * 0.5);
+  });
+  if (keywordMatch) return keywordMatch;
+  
+  // 4. Match por tags
+  const tagMatch = courses.find(c => 
+    c.tags?.some(tag => normalizeName(tag).includes(normalizedInterest))
+  );
+  return tagMatch || null;
 };
 ```
 
-**3. Melhorar parseFile para usar header row detectado**
+### 3. Actualizar Interface ParsedProfile
+
+Adicionar campos para guardar o curso identificado:
+
 ```typescript
-const parseFile = async (file: File): Promise<ParsedProfile[]> => {
-  const ext = file.name.split(".").pop()?.toLowerCase();
-
-  if (ext === "xlsx" || ext === "xls") {
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    
-    // Detectar linha de headers
-    const headerRow = findHeaderRow(sheet);
-    console.log("Header row detected at:", headerRow);
-    
-    // Converter a partir da linha correcta
-    const json = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
-      header: 1, // Array de arrays
-      range: headerRow, // Começar da linha do header
-    });
-    
-    // Primeira linha são os headers
-    if (json.length < 2) return [];
-    
-    const headers = (json[0] as string[]).map(h => normalizeHeader(h || ""));
-    const dataRows = json.slice(1) as string[][];
-    
-    // Mapear dados para objectos
-    const records = dataRows
-      .filter(row => row.some(cell => cell))
-      .map(row => {
-        const obj: Record<string, string> = {};
-        headers.forEach((header, idx) => {
-          if (header && row[idx]) {
-            obj[header] = String(row[idx]);
-          }
-        });
-        return obj;
-      });
-    
-    console.log("Parsed records:", records.length, records[0]);
-    return mapToProfiles(records);
-  }
-  // ... CSV handling unchanged
-};
+interface ParsedProfile {
+  // ... campos existentes ...
+  // Novos campos para matching de cursos
+  matchedCourseId?: string;
+  matchedCourseName?: string;
+  courseMatchType?: "exact" | "partial" | "keyword" | "tag";
+}
 ```
 
-**4. Melhorar mapToProfiles para headers normalizados**
+### 4. Actualizar Preview com Coluna de Formação
+
+Adicionar coluna na tabela de preview:
+
 ```typescript
-const mapToProfiles = (data: Record<string, string>[]): ParsedProfile[] => {
-  return data.map((row) => {
-    // Normalizar todas as chaves do row
-    const normalizedRow: Record<string, string> = {};
-    Object.entries(row).forEach(([key, value]) => {
-      normalizedRow[normalizeHeader(key)] = value;
-    });
-    
-    const getName = () =>
-      normalizedRow.full_name ||
-      normalizedRow.nome ||
-      normalizedRow.name ||
-      normalizedRow.nome_completo ||
-      `${normalizedRow.primeiro_nome || normalizedRow.first_name || ""} ${normalizedRow.apelido || normalizedRow.last_name || ""}`.trim();
-
-    const getEmail = () =>
-      normalizedRow.email || normalizedRow.e_mail;
-
-    const getPhone = () =>
-      normalizedRow.phone || normalizedRow.telefone || normalizedRow.telemovel;
-
-    const getInterest = () =>
-      normalizedRow.primary_interest ||
-      normalizedRow.interesse ||
-      normalizedRow.curso ||
-      normalizedRow.formacao ||
-      normalizedRow.area_de_interesse;
-
-    const getSource = () =>
-      normalizedRow.source || normalizedRow.origem || normalizedRow.canal;
-
-    return {
-      full_name: getName(),
-      email: getEmail(),
-      phone: getPhone(),
-      primary_interest: getInterest(),
-      source: getSource(),
-      notes: normalizedRow.notes || normalizedRow.notas || normalizedRow.observacoes,
-      lifecycle_stage: "lead" as LifecycleStage,
-    };
-  }).filter((p) => p.full_name);
-};
+<th className="p-2 text-left">Formação</th>
+// ...
+<td className="p-2">
+  {profile.matchedCourseId ? (
+    <Badge variant="outline" className="gap-1 text-xs bg-purple-50 text-purple-700 border-purple-200">
+      <GraduationCap className="h-3 w-3" />
+      {profile.matchedCourseName}
+    </Badge>
+  ) : profile.primary_interest ? (
+    <span className="text-muted-foreground text-xs">{profile.primary_interest}</span>
+  ) : (
+    <span className="text-muted-foreground text-xs">—</span>
+  )}
+</td>
 ```
 
-## Fluxo Melhorado
+### 5. Criar Inscrições na Importação
 
-```text
-1. Utilizador carrega Excel
-   ↓
-2. Sistema lê ficheiro com XLSX
-   ↓
-3. Procura linha de headers (scan primeiras 10 linhas)
-   ↓
-4. Encontra linha onde há "nome", "email", etc.
-   ↓
-5. Extrai dados a partir dessa linha
-   ↓
-6. Normaliza headers (remove acentos, lowercase)
-   ↓
-7. Mapeia para campos esperados
-   ↓
-8. Mostra preview com perfis encontrados
+Após criar o perfil, criar automaticamente a inscrição:
+
+```typescript
+// Dentro de handleImport
+const { data: createdProfile, error } = await supabase
+  .from("sj_profiles")
+  .insert({ /* ... */ })
+  .select()
+  .single();
+
+if (!error && createdProfile && profile.matchedCourseId) {
+  // Criar inscrição automática
+  await supabase.from("sj_enrollments").insert({
+    workspace_id: currentWorkspace.id,
+    profile_id: createdProfile.id,
+    course_id: profile.matchedCourseId,
+    status: "interested",
+    payment_status: "unpaid",
+    source: "import",
+  });
+  result.enrollmentsCreated++;
+}
 ```
 
-## Headers Suportados Após Correcção
+### 6. Actualizar Estatísticas Finais
 
-| Campo | Variações Aceites |
-|-------|-------------------|
-| Nome | nome, name, full_name, nome_completo |
-| Email | email, e_mail, e-mail |
-| Telefone | telefone, phone, telemovel, telemóvel |
-| Interesse | interesse, curso, formacao, area_de_interesse |
-| Origem | origem, source, canal |
+Mostrar quantas inscrições foram criadas:
+
+```typescript
+interface ImportResult {
+  created: number;
+  matched: number;
+  enrollmentsCreated: number; // NOVO
+  errors: string[];
+}
+
+// No ecrã de conclusão
+<div className="bg-muted/50 rounded-lg p-4 text-center">
+  <p className="text-2xl font-bold text-purple-600">
+    {importResult.enrollmentsCreated}
+  </p>
+  <p className="text-sm text-muted-foreground">
+    Inscrições criadas
+  </p>
+</div>
+```
+
+### 7. Actualizar Template de Exemplo
+
+Actualizar o template descarregável com exemplos claros de formações:
+
+```typescript
+const template = [
+  {
+    nome: "João Silva",
+    email: "joao@exemplo.pt",
+    telefone: "912345678",
+    formacao: "Curso Básico",  // Nome de um curso existente
+    origem: "Website",
+    notas: "Interessado na formação básica",
+  },
+];
+```
+
+## Exemplos de Matching
+
+| Excel (Interesse) | Curso no Sistema | Match | Tipo |
+|-------------------|------------------|-------|------|
+| "Curso Básico" | "Curso Básico de Terapia" | ✓ | parcial |
+| "Formação Avançada" | "Formação Avançada" | ✓ | exacto |
+| "Basico" | "Curso Básico" | ✓ | keyword |
+| "Reiki" | Curso com tag "reiki" | ✓ | tag |
+| "Yoga para crianças" | Nenhum | ✗ | — |
 
 ## Ficheiros a Modificar
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/components/student-journey/ImportProfilesDialog.tsx` | Detecção dinâmica de headers, normalização, melhor mapeamento |
+| Ficheiro | Alterações |
+|----------|------------|
+| `src/components/student-journey/ImportProfilesDialog.tsx` | Matching de cursos, nova coluna preview, criação de inscrições |
 
 ## Resultado Esperado
 
-1. Ficheiros Excel com headers em qualquer das primeiras 10 linhas são suportados
-2. Variações de nomes de colunas são reconhecidas (com/sem acentos)
-3. Mensagens de debug na consola para troubleshooting
-4. Preview mostra correctamente os perfis encontrados
+1. Formações no Excel são automaticamente ligadas a cursos existentes
+2. Preview mostra visualmente quais formações foram identificadas
+3. Inscrições com status "interested" são criadas automaticamente
+4. Estatísticas finais mostram perfis criados + inscrições criadas
+5. Utilizador economiza tempo ao não ter que criar inscrições manualmente
