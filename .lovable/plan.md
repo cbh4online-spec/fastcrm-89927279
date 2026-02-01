@@ -1,116 +1,161 @@
 
 
-# Plano: Mostrar Formações Disponíveis no Student Journey do Contacto
+# Plano: Redesenho da Secção Student Journey no Contacto
 
-## Objetivo
+## Problema Identificado
 
-Adicionar uma secção que mostre as formações/cursos disponíveis que o aluno ainda não está inscrito, permitindo uma visão completa da oferta formativa.
+A interface actual está fragmentada e confusa:
+1. Card de perfil com 2 botões redundantes (Ver Perfil / Inscrições)
+2. Secção "Jornada do Aluno" vazia (sem inscrições)
+3. "Formações Disponíveis" ocupa muito espaço visual
+4. Não há hierarquia clara nem call-to-action óbvio
 
-## Situação Actual
+## Solução Proposta
 
-- Existem 5 cursos disponíveis: Aromaterapia, Avançada, Básica, Iniciação, Tricologia
-- A Karen ainda não tem inscrições em nenhum curso
-- O componente actual só mostra cursos onde já existe inscrição
+Consolidar tudo num único card organizado em tabs, mostrando claramente:
+- O estado actual do aluno
+- Cursos onde está inscrito vs disponíveis
+- Acção principal clara
 
-## Alterações Necessárias
-
-### 1. Modificar `ContactStudentJourneySection.tsx`
-
-Adicionar:
-- Query para buscar todos os cursos disponíveis usando `useCourses()`
-- Filtrar cursos que o aluno ainda não está inscrito
-- Nova secção visual "Formações Disponíveis" com design distinto
-
-### Estrutura Visual Proposta
+## Nova Estrutura Visual
 
 ```text
-┌──────────────────────────────────────────────────┐
-│ 📚 Formações Disponíveis                         │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ┌────────────────────┐  ┌────────────────────┐  │
-│  │ 📖 Iniciação       │  │ 📖 Básica          │  │
-│  │ Presencial         │  │ Presencial         │  │
-│  │ [+ Inscrever]      │  │ [+ Inscrever]      │  │
-│  └────────────────────┘  └────────────────────┘  │
-│                                                  │
-│  ┌────────────────────┐  ┌────────────────────┐  │
-│  │ 📖 Avançada        │  │ 📖 Aromaterapia    │  │
-│  │ Presencial         │  │ Presencial         │  │
-│  │ [+ Inscrever]      │  │ [+ Inscrever]      │  │
-│  └────────────────────┘  └────────────────────┘  │
-│                                                  │
-│           Ver Todos os Cursos →                  │
-└──────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  [Avatar] Karen Guimarães                      [Badge Lead] │
+│           Lifecycle: Lead • Score: 50/100                   │
+│                                                             │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
+│  │ Minha       │ │ Formações   │ │ Perfil      │            │
+│  │ Jornada (0) │ │ Disponíveis │ │ Completo    │            │
+│  └─────────────┘ └─────────────┘ └─────────────┘            │
+│                                                             │
+│  ══════════════════════════════════════════════             │
+│                                                             │
+│  [TAB: Minha Jornada - se houver inscrições]                │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ ✓ Iniciação          │ Em Progresso  │ 85%         │    │
+│  │ ○ Básica             │ Por Iniciar   │ 0%          │    │
+│  │ ✓ Aromaterapia       │ Concluído     │ 100%        │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  [TAB: Formações Disponíveis]                               │
+│  ┌──────────────────┐ ┌──────────────────┐                  │
+│  │ Avançada         │ │ Tricologia       │                  │
+│  │ Presencial       │ │ Presencial       │                  │
+│  │ [+ Inscrever]    │ │ [+ Inscrever]    │                  │
+│  └──────────────────┘ └──────────────────┘                  │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Alterações Técnicas
 
 ### Ficheiro: `src/components/contacts/sections/ContactStudentJourneySection.tsx`
 
+**1. Remover múltiplos Cards e usar Tabs**
 ```typescript
-// Imports adicionais
-import { useCourses } from "@/hooks/useStudentJourney";
-import { Plus, Library } from "lucide-react";
-
-// Dentro do componente:
-const { courses = [] } = useCourses();
-
-// Filtrar cursos disponíveis (activos e não inscritos)
-const enrolledCourseIds = enrollments.map((e: any) => e.course_id);
-const availableCourses = courses.filter(
-  (course) => course.is_active && !enrolledCourseIds.includes(course.id)
-);
-
-// Nova secção após Jornada do Aluno:
-{availableCourses.length > 0 && (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <Library className="w-4 h-4 text-violet-500" />
-        Formações Disponíveis
-      </CardTitle>
-      <CardDescription>
-        Cursos onde o aluno ainda não está inscrito
-      </CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="grid grid-cols-2 gap-2">
-        {availableCourses.slice(0, 4).map((course) => (
-          <div key={course.id} className="p-3 border rounded-lg">
-            <span className="font-medium text-sm">{course.name}</span>
-            <span className="text-xs text-muted-foreground block">
-              {course.course_type}
-            </span>
-            <Button size="sm" variant="outline" className="mt-2 w-full">
-              <Plus className="w-3 h-3 mr-1" />
-              Inscrever
-            </Button>
-          </div>
-        ))}
-      </div>
-    </CardContent>
-  </Card>
-)}
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 ```
 
-## Funcionalidades
+**2. Novo Layout Consolidado**
+- Header unificado com avatar, nome, stage e score
+- 3 tabs: "Minha Jornada", "Formações Disponíveis", "Perfil Completo"
+- Cada tab tem conteúdo focado e accionável
 
-1. **Mostrar cursos disponíveis** - Lista de cursos activos onde o aluno não está inscrito
-2. **Tipo de curso** - Indicação se é presencial, online, etc.
-3. **Botão de inscrição rápida** - Permite inscrever directamente (futuramente pode abrir modal)
-4. **Link para catálogo** - Ver todos os cursos disponíveis
+**3. Tab "Minha Jornada"**
+- Lista vertical de inscrições com:
+  - Nome do curso
+  - Estado (badge colorido)
+  - Barra de progresso inline
+- Se vazio: mensagem "Ainda não iniciou nenhuma formação"
+
+**4. Tab "Formações Disponíveis"**
+- Grid de cursos disponíveis
+- Cada curso com botão "Inscrever" directo
+- Ao clicar abre o diálogo de inscrição com curso pré-seleccionado
+
+**5. Tab "Perfil Completo"**
+- Link para página de detalhe do perfil SJ
+- Mostra estatísticas resumidas
+- Acções avançadas (editar, follow-up)
+
+## Melhorias de UX
+
+| Antes | Depois |
+|-------|--------|
+| 3 cards separados | 1 card com tabs |
+| Botões redundantes | Navegação por tabs |
+| Jornada vazia confusa | Mensagem clara + CTA |
+| Cursos sem acção directa | Botão "Inscrever" por curso |
+| Informação dispersa | Tudo num só lugar |
+
+## Código Principal
+
+```typescript
+<Card>
+  <CardHeader>
+    {/* Avatar + Nome + Badges */}
+    <div className="flex items-center gap-3">
+      <Avatar />
+      <div>
+        <h3>{profile.full_name}</h3>
+        <span>Lifecycle: {stage} • Score: {score}</span>
+      </div>
+      <Badge>{stageConfig.label}</Badge>
+    </div>
+  </CardHeader>
+  
+  <CardContent>
+    <Tabs defaultValue={enrollments.length > 0 ? "journey" : "available"}>
+      <TabsList className="w-full grid grid-cols-3">
+        <TabsTrigger value="journey">
+          Minha Jornada ({enrollments.length})
+        </TabsTrigger>
+        <TabsTrigger value="available">
+          Disponíveis ({availableCourses.length})
+        </TabsTrigger>
+        <TabsTrigger value="profile">
+          Perfil
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="journey">
+        {/* Lista de inscrições com progresso inline */}
+      </TabsContent>
+      
+      <TabsContent value="available">
+        {/* Grid de cursos com botão inscrever */}
+      </TabsContent>
+      
+      <TabsContent value="profile">
+        {/* Links e estatísticas */}
+      </TabsContent>
+    </Tabs>
+  </CardContent>
+</Card>
+```
+
+## Comportamento das Inscrições
+
+Na tab "Minha Jornada", cada inscrição mostra:
+- Ícone de estado (✓ concluído, → em progresso, ○ por iniciar)
+- Nome do curso
+- Estado como texto colorido
+- Barra de progresso pequena
+- Clicável para ir ao detalhe
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/contacts/sections/ContactStudentJourneySection.tsx` | Adicionar secção de formações disponíveis |
+| `src/components/contacts/sections/ContactStudentJourneySection.tsx` | Redesenho completo com tabs |
 
 ## Resultado Esperado
 
-1. Após a "Jornada do Aluno", aparece secção "Formações Disponíveis"
-2. Mostra até 4 cursos em grid 2x2
-3. Cada curso mostra nome, tipo e botão para inscrever
-4. Se há mais de 4 cursos, mostra link para ver todos
+1. Interface consolidada num único card
+2. Navegação clara por tabs
+3. "Formações Disponíveis" mostra cursos com botão de inscrição por curso
+4. "Minha Jornada" mostra progresso de forma linear e clara
+5. Acesso rápido ao perfil completo
+6. Mensagens claras quando não há dados
 
