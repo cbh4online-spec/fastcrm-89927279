@@ -154,12 +154,12 @@ export function AIAgentForm({
       {/* Persona Selection */}
       <div className="space-y-2">
         <Label>Persona IA</Label>
-        <Select value={personaId} onValueChange={setPersonaId}>
+        <Select value={personaId || "_none"} onValueChange={(v) => setPersonaId(v === "_none" ? "" : v)}>
           <SelectTrigger>
             <SelectValue placeholder="Selecionar persona (opcional)" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Nenhuma persona</SelectItem>
+            <SelectItem value="_none">Nenhuma persona</SelectItem>
             {personas.map(persona => (
               <SelectItem key={persona.id} value={persona.id}>
                 <div className="flex items-center gap-2">
@@ -227,12 +227,12 @@ export function AIAgentForm({
       {/* Flow Selection */}
       <div className="space-y-2">
         <Label>Fluxo Conversacional</Label>
-        <Select value={flowId} onValueChange={setFlowId}>
+        <Select value={flowId || "_none"} onValueChange={(v) => setFlowId(v === "_none" ? "" : v)}>
           <SelectTrigger>
             <SelectValue placeholder="Selecionar fluxo (opcional)" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Nenhum fluxo</SelectItem>
+            <SelectItem value="_none">Nenhum fluxo</SelectItem>
             {flows.map(flow => (
               <SelectItem key={flow.id} value={flow.id}>
                 {flow.name}
