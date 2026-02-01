@@ -280,12 +280,223 @@ export const PHARLISS_UNIVERSAL_TEMPLATE: FlowTemplate = {
     }
   ]
 };
+// Template: Funil Dr. Kraut - Estética Corporal e Facial
+export const DR_KRAUT_TEMPLATE: FlowTemplate = {
+  id: 'dr-kraut-estetica',
+  name: 'Dr. Kraut - Estética Corporal e Facial',
+  description: 'Fluxo de vendas para protocolos de estética corporal e facial Dr. Kraut',
+  category: 'Vendas',
+  icon: Sparkles,
+  defaultGoalType: 'lead_capture',
+  defaultChannels: ['whatsapp', 'instagram', 'widget'],
+  
+  variables: [
+    {
+      name: 'nome',
+      displayName: 'Nome',
+      variableType: 'text',
+      isRequired: true,
+      mapToField: 'lead.name'
+    },
+    {
+      name: 'objetivo_tratamento',
+      displayName: 'Objetivo do Tratamento',
+      variableType: 'choice',
+      isRequired: true,
+      mapToField: 'lead.specialty',
+      choices: ['Redução de volume', 'Firmeza', 'Drenagem', 'Celulite', 'Relaxamento', 'Rejuvenescimento facial', 'Hidratação avançada']
+    },
+    {
+      name: 'zona_foco',
+      displayName: 'Zona de Foco',
+      variableType: 'choice',
+      isRequired: true,
+      choices: ['Rosto', 'Pernas', 'Abdómen', 'Glúteos', 'Corpo inteiro']
+    },
+    {
+      name: 'tempo_necessidade',
+      displayName: 'Tempo da Necessidade',
+      variableType: 'text',
+      isRequired: true
+    },
+    {
+      name: 'intensidade',
+      displayName: 'Intensidade (1-10)',
+      variableType: 'number',
+      isRequired: true
+    },
+    {
+      name: 'interesse_compra',
+      displayName: 'Interesse em Comprar',
+      variableType: 'boolean',
+      isRequired: false
+    }
+  ],
+
+  steps: [
+    // 1. Saudação Dr. Kraut
+    {
+      id: 'drk-step-1-saudacao',
+      stepType: 'message',
+      name: 'Saudação Dr. Kraut',
+      messageContent: 'Olá! Que bom receber o seu contacto. A Dr. Kraut é uma linha profissional de estética corporal e facial com fórmulas de alta performance e protocolos desenvolvidos para resultados visíveis e consistentes. Como posso ajudar hoje na sua rotina ou tratamento estético?',
+      isEntryPoint: true,
+      connectsTo: 'drk-step-2-nome',
+      positionX: 100,
+      positionY: 100
+    },
+    // 2. Recolha Nome
+    {
+      id: 'drk-step-2-nome',
+      stepType: 'question',
+      name: 'Recolha Nome',
+      messageContent: 'Para preparar um atendimento completo e direcionado para si, poderia indicar o seu nome?',
+      variableToCollect: 'nome',
+      connectsTo: 'drk-step-3-agradecimento',
+      positionX: 100,
+      positionY: 220
+    },
+    // 3. Agradecimento
+    {
+      id: 'drk-step-3-agradecimento',
+      stepType: 'message',
+      name: 'Agradecimento',
+      messageContent: 'Obrigado, {nome}! 🙏',
+      connectsTo: 'drk-step-4-objetivo',
+      positionX: 100,
+      positionY: 340
+    },
+    // 4. Objetivo de Tratamento
+    {
+      id: 'drk-step-4-objetivo',
+      stepType: 'question',
+      name: 'Objetivo Tratamento',
+      messageContent: 'Para eu poder recomendar o melhor protocolo, diga-me qual é o seu objetivo principal neste momento?',
+      variableToCollect: 'objetivo_tratamento',
+      quickReplies: ['Redução de volume', 'Firmeza', 'Drenagem', 'Celulite', 'Relaxamento', 'Rejuvenescimento facial', 'Hidratação avançada'],
+      connectsTo: 'drk-step-5-zona',
+      positionX: 100,
+      positionY: 460
+    },
+    // 5. Zona de Foco
+    {
+      id: 'drk-step-5-zona',
+      stepType: 'question',
+      name: 'Zona de Foco',
+      messageContent: 'Em que zona pretende trabalhar?',
+      variableToCollect: 'zona_foco',
+      quickReplies: ['Rosto', 'Pernas', 'Abdómen', 'Glúteos', 'Corpo inteiro'],
+      connectsTo: 'drk-step-6-tempo',
+      positionX: 100,
+      positionY: 580
+    },
+    // 6. Tempo da Necessidade
+    {
+      id: 'drk-step-6-tempo',
+      stepType: 'question',
+      name: 'Tempo Necessidade',
+      messageContent: 'Há quanto tempo sente essa necessidade?',
+      variableToCollect: 'tempo_necessidade',
+      connectsTo: 'drk-step-7-intensidade',
+      positionX: 100,
+      positionY: 700
+    },
+    // 7. Intensidade
+    {
+      id: 'drk-step-7-intensidade',
+      stepType: 'question',
+      name: 'Intensidade',
+      messageContent: 'Numa escala de 1 a 10, qual é a intensidade do problema ou urgência em resolver?',
+      variableToCollect: 'intensidade',
+      connectsTo: 'drk-step-8-analise',
+      positionX: 100,
+      positionY: 820
+    },
+    // 8. Análise e Apresentação do Protocolo
+    {
+      id: 'drk-step-8-analise',
+      stepType: 'message',
+      name: 'Análise Protocolo',
+      messageContent: 'Perfeito, {nome}! ✨ Com base no que descreveu, posso recomendar um protocolo profissional Dr. Kraut adequado para {objetivo_tratamento} na zona de {zona_foco}.\n\nOs nossos protocolos são desenvolvidos para resultados visíveis e consistentes.',
+      connectsTo: 'drk-step-9-interesse',
+      positionX: 100,
+      positionY: 940
+    },
+    // 9. Interesse em Avançar
+    {
+      id: 'drk-step-9-interesse',
+      stepType: 'question',
+      name: 'Interesse Compra',
+      messageContent: 'Gostaria que lhe enviasse informações sobre preços e como avançar com o protocolo recomendado?',
+      variableToCollect: 'interesse_compra',
+      quickReplies: ['Sim, quero saber mais', 'Ainda não'],
+      connectsTo: 'drk-step-10-condicao',
+      positionX: 100,
+      positionY: 1060
+    },
+    // 10. Condição - Verifica Interesse
+    {
+      id: 'drk-step-10-condicao',
+      stepType: 'condition',
+      name: 'Verifica Interesse',
+      conditionField: 'interesse_compra',
+      conditionOperator: 'equals',
+      conditionValue: 'Sim, quero saber mais',
+      conditionTrueConnectsTo: 'drk-step-11-handoff',
+      conditionFalseConnectsTo: 'drk-step-12-followup',
+      positionX: 100,
+      positionY: 1180
+    },
+    // 11. Handoff para Vendas
+    {
+      id: 'drk-step-11-handoff',
+      stepType: 'handoff',
+      name: 'Transferir Vendas',
+      messageContent: 'Vou transferir esta conversa para um especialista da nossa equipa que irá enviar-lhe o link seguro de pagamento e todas as informações do protocolo recomendado.\n\nUm momento, por favor... 🛒',
+      actionType: 'transfer_to_human',
+      actionConfig: { reason: 'Lead qualificado interessado em compra Dr. Kraut' },
+      connectsTo: 'drk-step-13-goal-venda',
+      positionX: 300,
+      positionY: 1300
+    },
+    // 12. Follow-up Agendado
+    {
+      id: 'drk-step-12-followup',
+      stepType: 'message',
+      name: 'Follow-up Agendado',
+      messageContent: 'Sem problema, {nome}! 😊 Fico aqui disponível quando quiser retomar.\n\nContinuarei aqui para ajudar a escolher o melhor protocolo Dr. Kraut para si. Quando quiser avançar, basta enviar mensagem.',
+      connectsTo: 'drk-step-14-goal-nurturing',
+      positionX: -100,
+      positionY: 1300
+    },
+    // 13. Goal - Venda Iniciada
+    {
+      id: 'drk-step-13-goal-venda',
+      stepType: 'goal',
+      name: 'Venda Iniciada',
+      goalName: 'Lead Qualificado para Venda Dr. Kraut',
+      conversionValue: 1,
+      positionX: 300,
+      positionY: 1420
+    },
+    // 14. Goal - Lead Nurturing
+    {
+      id: 'drk-step-14-goal-nurturing',
+      stepType: 'goal',
+      name: 'Lead Nurturing',
+      goalName: 'Lead para Follow-up Dr. Kraut',
+      conversionValue: 0.5,
+      positionX: -100,
+      positionY: 1420
+    }
+  ]
+};
 
 // Lista de todos os templates disponíveis
 export const FLOW_TEMPLATES: FlowTemplate[] = [
-  PHARLISS_UNIVERSAL_TEMPLATE
+  PHARLISS_UNIVERSAL_TEMPLATE,
+  DR_KRAUT_TEMPLATE
 ];
-
 // Componente para mostrar card de template
 interface TemplateCardProps {
   template: FlowTemplate;
