@@ -1,170 +1,197 @@
 
-
-# Plano: Corrigir Bugs de Navegacao no Portal do Cliente
+# Plano: Corrigir Loading Infinito no Portal do Cliente
 
 ## Diagnostico Detalhado
 
-Foram identificados multiplos problemas de logica no ficheiro `ClientLoginPage.tsx` que causam falhas na navegacao apos login.
+Foram identificados multiplos problemas que causam o loading infinito na pagina de login do portal do cliente:
 
-### Problema 1: Condicao de Corrida no useEffect
+### Problema 1: signIn nao define loading=false no sucesso
+
+No hook `useClientAuth`, a funcao `signIn` define `setLoading(true)` no inicio, mas quando o login e bem sucedido, nao chama `setLoading(false)`:
 
 ```text
-Fluxo Actual (ERRADO):
-
-1. isAuthenticated muda para TRUE
-   ↓
-2. checkPasswordChangeRequired() executa
-   ↓
-3. .then() SEMPRE executa (independentemente do resultado)
-   ↓
-4. checkAgain() navega para /dashboard
-   ↓
-5. CONFLITO: Se o passo 2 navegou para /set-password,
-   o passo 4 navega imediatamente para /dashboard
+signIn()
+  ├── setLoading(true)          ← Loading activado
+  ├── signInWithPassword()
+  ├── if (error) 
+  │     └── setLoading(false)   ← Apenas no erro!
+  └── return { error: null }    ← Loading continua TRUE
 ```
 
-O codigo actual no `useEffect` tem esta estrutura problematica:
+O codigo depende do `onAuthStateChange` para definir `loading=false`, mas isso pode ter delays ou falhar.
 
-```typescript
-// PROBLEMA: .then() sempre executa apos checkPasswordChangeRequired
-checkPasswordChangeRequired().then(() => {
-  // Este bloco executa SEMPRE, mesmo que a funcao anterior
-  // tenha navegado para /client/set-password
-  checkAgain();
-});
+### Problema 2: Race condition no fluxo de autenticacao
+
+O fluxo actual tem uma dependencia fragil:
+
+```text
+1. signIn() → loading = true
+2. Supabase auth bem sucedido
+3. Espera onAuthStateChange disparar (pode demorar)
+4. onAuthStateChange → loading = false
+5. Pagina finalmente renderiza
+
+Se o passo 3-4 falhar ou demorar → loading infinito
 ```
 
-### Problema 2: Navegacao Dupla
+### Problema 3: Nao ha timeout de seguranca
 
-O `handleSubmit` navega apos login bem sucedido (linhas 67-71), mas o `useEffect` tambem dispara porque `isAuthenticated` muda para `true`. Isto causa duas tentativas de navegacao.
-
-### Problema 3: Logica de Return Ineficaz
-
-O `return` dentro de `checkPasswordChangeRequired` (linha 27) apenas sai da funcao interna, nao impede a execucao do `.then()`.
+Se a comunicacao com Supabase falhar silenciosamente, nao ha mecanismo de fallback para mostrar a pagina de login.
 
 ## Solucao Proposta
 
-Simplificar a logica de navegacao para evitar condicoes de corrida.
+A correcao sera feita em dois ficheiros:
 
-### Estrategia
+### 1. useClientAuth.ts
 
-1. **Remover a navegacao do `handleSubmit`**: Deixar apenas o `useEffect` tratar da navegacao apos login
-2. **Usar flags de controlo**: Evitar multiplas navegacoes com uma variavel de estado
-3. **Simplificar o useEffect**: Logica mais linear e previsivel
-
-### Codigo Corrigido
+**Alteracao A**: Adicionar `setLoading(false)` apos login bem sucedido
 
 ```typescript
-export default function ClientLoginPage() {
-  const navigate = useNavigate();
-  const { signIn, loading, error, isAuthenticated, user } = useClientAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [localError, setLocalError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const signIn = async (email: string, password: string) => {
+  setLoading(true);
+  setError(null);
+  
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  
+  if (error) {
+    setError(error.message);
+    setLoading(false);
+    return { error };
+  }
+  
+  // O onAuthStateChange ira disparar, mas definimos loading=false
+  // aqui tambem para evitar race conditions
+  setLoading(false);
+  return { error: null };
+};
+```
 
-  // Handle navigation when authenticated - simplified logic
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-    
-    const handleAuthenticatedUser = async () => {
-      try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        
-        if (currentUser?.user_metadata?.requires_password_change) {
-          navigate("/client/set-password", { replace: true });
-        } else {
-          navigate("/client/dashboard", { replace: true });
-        }
-      } catch (error) {
-        console.error("Error checking user status:", error);
-        navigate("/client/dashboard", { replace: true });
-      }
-    };
-    
-    handleAuthenticatedUser();
-  }, [isAuthenticated, user, navigate]);
+**Alteracao B**: Adicionar timeout de seguranca no useEffect
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLocalError(null);
-    setIsSubmitting(true);
+Garantir que o loading nunca fica preso indefinidamente:
 
-    if (!email || !password) {
-      setLocalError("Por favor, preencha todos os campos");
-      setIsSubmitting(false);
-      return;
+```typescript
+useEffect(() => {
+  let isMounted = true;
+  
+  // Timeout de seguranca - se nao resolver em 10 segundos, para o loading
+  const timeout = setTimeout(() => {
+    if (isMounted && loading) {
+      console.warn("Auth timeout - forcing loading to false");
+      setLoading(false);
     }
-
-    const { error: signInError } = await signIn(email, password);
-    
-    if (signInError) {
-      setLocalError("Credenciais invalidas. Verifique o seu email e palavra-passe.");
-      setIsSubmitting(false);
-      return;
-    }
-    
-    // Navegacao sera tratada pelo useEffect quando isAuthenticated mudar
-    // Nao navegar aqui para evitar duplicacao
-    setIsSubmitting(false);
+  }, 10000);
+  
+  // ... resto do codigo existente ...
+  
+  return () => {
+    isMounted = false;
+    clearTimeout(timeout);
+    subscription.unsubscribe();
   };
+}, []);
+```
 
-  // ... resto do componente
+### 2. ClientLoginPage.tsx (Opcional - Melhoria de UX)
+
+Adicionar um timeout local para mostrar mensagem de erro se o loading demorar demasiado:
+
+```typescript
+const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+useEffect(() => {
+  if (loading) {
+    const timer = setTimeout(() => setLoadingTimeout(true), 8000);
+    return () => clearTimeout(timer);
+  }
+  setLoadingTimeout(false);
+}, [loading]);
+
+if (loading) {
+  return (
+    <div className="...">
+      <Loader2 className="..." />
+      {loadingTimeout && (
+        <p className="mt-4 text-muted-foreground">
+          A ligacao esta a demorar. Por favor, atualize a pagina.
+        </p>
+      )}
+    </div>
+  );
 }
 ```
 
-### Alteracoes Chave
+## Ficheiros a Modificar
 
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| Navegacao no handleSubmit | Sim (duplicada) | Nao (delegada ao useEffect) |
-| Logica do useEffect | Complexa com .then() | Simples com async/await |
-| Condicao de corrida | Presente | Eliminada |
-| Return early | Ineficaz | Funcional |
+### useClientAuth.ts
 
-## Ficheiro a Modificar
+| Alteracao | Descricao |
+|-----------|-----------|
+| Linha 100 | Adicionar `setLoading(false)` apos login bem sucedido |
+| Linhas 22-88 | Adicionar timeout de seguranca no useEffect |
 
-### src/pages/client/ClientLoginPage.tsx
+### ClientLoginPage.tsx (Opcional)
 
-**Alteracoes**:
-
-1. **Linhas 21-44**: Substituir o useEffect complexo por versao simplificada
-2. **Linhas 65-71**: Remover navegacao do handleSubmit (deixar useEffect tratar)
+| Alteracao | Descricao |
+|-----------|-----------|
+| Novo estado | Adicionar `loadingTimeout` para mostrar mensagem de erro |
+| Render condicional | Mostrar aviso se loading demorar muito |
 
 ## Fluxo Corrigido
 
 ```text
-Novo Fluxo:
+ANTES:
+signIn() → loading=true → espera onAuthStateChange → (pode nunca chegar)
 
-1. Utilizador submete formulario
-   ↓
-2. signIn() executa
-   ↓
-3. Se sucesso: isAuthenticated muda para TRUE
-   ↓
-4. useEffect dispara (uma unica vez)
-   ↓
-5. Verifica requires_password_change
-   ↓
-6. Navega para destino correcto (apenas uma navegacao)
+DEPOIS:
+signIn() → loading=true → login sucesso → loading=false imediatamente
+                                       ↓
+                          onAuthStateChange tambem define loading=false (redundante mas seguro)
 ```
 
 ## Resultado Esperado
 
-Apos as alteracoes:
-
 | Cenario | Antes | Depois |
 |---------|-------|--------|
-| Login normal | Navegacao dupla/conflitante | Navegacao unica para dashboard |
-| Login com password temporaria | Conflito de rotas | Navega para set-password |
-| Utilizador ja autenticado | Pode ficar preso | Redireciona automaticamente |
-| Refresh na pagina de login | Comportamento indefinido | Redireciona se autenticado |
+| Login bem sucedido | Loading pode ficar preso | Pagina carrega imediatamente |
+| Timeout de comunicacao | Loading infinito | Pagina mostra apos 10s max |
+| Erro de rede | Loading infinito | Mensagem de erro apos timeout |
+| Utilizador ja autenticado | Pode demorar | Redireciona rapidamente |
 
 ## Detalhes Tecnicos
 
-A correcao envolve:
+### Alteracao Principal (useClientAuth.ts linha 100)
 
-1. Simplificar a logica async do useEffect para eliminar o `.then()` problematico
-2. Usar um unico ponto de navegacao (useEffect) em vez de dois (useEffect + handleSubmit)
-3. Adicionar tratamento de erro para casos extremos
+Antes:
+```typescript
+return { error: null };
+```
 
+Depois:
+```typescript
+setLoading(false);
+return { error: null };
+```
+
+### Timeout de Seguranca (useClientAuth.ts)
+
+Adicionar dentro do useEffect existente:
+
+```typescript
+// Safety timeout - never stay in loading state forever
+const loadingTimeout = setTimeout(() => {
+  if (isMounted) {
+    console.warn("Client auth: Loading timeout reached");
+    setLoading(false);
+  }
+}, 10000);
+
+// No return do cleanup:
+return () => {
+  isMounted = false;
+  clearTimeout(loadingTimeout);
+  subscription.unsubscribe();
+};
+```
+
+Esta abordagem resolve o problema de forma robusta sem quebrar o fluxo existente.
