@@ -88,6 +88,50 @@ export function ImportProfilesDialog({
     }
   };
 
+  // Normalize header: remove accents, lowercase, replace symbols with _
+  const normalizeHeader = (header: string): string => {
+    if (!header) return "";
+    return header
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove accents
+      .replace(/[^a-z0-9]/g, "_")      // Replace spaces/symbols with _
+      .replace(/_+/g, "_")             // Collapse multiple underscores
+      .replace(/^_|_$/g, "");          // Trim underscores
+  };
+
+  // Expected field keywords for header detection
+  const EXPECTED_FIELDS = ["nome", "email", "telefone", "phone", "interesse", "origem", "source", "curso"];
+
+  // Find the row containing headers (scans first 10 rows)
+  const findHeaderRow = (sheet: XLSX.WorkSheet): number => {
+    const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
+    const maxScanRows = Math.min(10, range.e.r + 1);
+
+    for (let row = 0; row < maxScanRows; row++) {
+      let matchCount = 0;
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddr = XLSX.utils.encode_cell({ r: row, c: col });
+        const cell = sheet[cellAddr];
+        if (cell && cell.v) {
+          const normalized = normalizeHeader(String(cell.v));
+          if (EXPECTED_FIELDS.some((f) => normalized.includes(f))) {
+            matchCount++;
+          }
+        }
+      }
+      // If we find at least 2 expected fields, it's likely the header row
+      if (matchCount >= 2) {
+        console.log(`[Excel Import] Header row detected at row ${row + 1}`);
+        return row;
+      }
+    }
+    console.log("[Excel Import] No header row detected, defaulting to row 1");
+    return 0; // Default: first row
+  };
+
   const parseFile = async (file: File): Promise<ParsedProfile[]> => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
@@ -95,8 +139,44 @@ export function ImportProfilesDialog({
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json<Record<string, string>>(sheet);
-      return mapToProfiles(json);
+
+      // Detect header row dynamically
+      const headerRow = findHeaderRow(sheet);
+
+      // Convert starting from the correct row (header: 1 gives array of arrays)
+      const json = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+        header: 1,
+        range: headerRow,
+      }) as unknown[][];
+
+      // First row are the headers, rest is data
+      if (json.length < 2) {
+        console.log("[Excel Import] Not enough rows after header detection");
+        return [];
+      }
+
+      const headers = (json[0] as (string | undefined)[]).map((h) => normalizeHeader(h || ""));
+      const dataRows = json.slice(1) as (string | number | undefined)[][];
+
+      console.log("[Excel Import] Headers found:", headers);
+      console.log("[Excel Import] Data rows:", dataRows.length);
+
+      // Map data rows to objects using normalized headers
+      const records = dataRows
+        .filter((row) => row && row.some((cell) => cell !== undefined && cell !== null && cell !== ""))
+        .map((row) => {
+          const obj: Record<string, string> = {};
+          headers.forEach((header, idx) => {
+            if (header && row[idx] !== undefined && row[idx] !== null && row[idx] !== "") {
+              obj[header] = String(row[idx]);
+            }
+          });
+          return obj;
+        })
+        .filter((obj) => Object.keys(obj).length > 0);
+
+      console.log("[Excel Import] Parsed records:", records.length, records[0]);
+      return mapToProfiles(records);
     } else if (ext === "csv") {
       return new Promise((resolve, reject) => {
         Papa.parse<Record<string, string>>(file, {
@@ -113,32 +193,34 @@ export function ImportProfilesDialog({
 
   const mapToProfiles = (data: Record<string, string>[]): ParsedProfile[] => {
     return data.map((row) => {
-      // Flexible column mapping
+      // Normalize all keys in the row for flexible matching
+      const normalizedRow: Record<string, string> = {};
+      Object.entries(row).forEach(([key, value]) => {
+        normalizedRow[normalizeHeader(key)] = value;
+      });
+
       const getName = () =>
-        row.full_name ||
-        row.nome ||
-        row.name ||
-        row.Nome ||
-        row["Nome Completo"] ||
-        `${row.first_name || row.primeiro_nome || ""} ${row.last_name || row.apelido || ""}`.trim();
+        normalizedRow.full_name ||
+        normalizedRow.nome ||
+        normalizedRow.name ||
+        normalizedRow.nome_completo ||
+        `${normalizedRow.primeiro_nome || normalizedRow.first_name || ""} ${normalizedRow.apelido || normalizedRow.last_name || ""}`.trim();
 
       const getEmail = () =>
-        row.email || row.Email || row.EMAIL || row.e_mail || row["E-mail"];
+        normalizedRow.email || normalizedRow.e_mail;
 
       const getPhone = () =>
-        row.phone || row.telefone || row.Phone || row.Telefone || row.telemovel || row.Telemóvel;
+        normalizedRow.phone || normalizedRow.telefone || normalizedRow.telemovel;
 
       const getInterest = () =>
-        row.primary_interest ||
-        row.interesse ||
-        row.curso ||
-        row.formacao ||
-        row.Interesse ||
-        row.Curso ||
-        row["Área de Interesse"];
+        normalizedRow.primary_interest ||
+        normalizedRow.interesse ||
+        normalizedRow.curso ||
+        normalizedRow.formacao ||
+        normalizedRow.area_de_interesse;
 
       const getSource = () =>
-        row.source || row.origem || row.Source || row.Origem || row.canal;
+        normalizedRow.source || normalizedRow.origem || normalizedRow.canal;
 
       return {
         full_name: getName(),
@@ -146,7 +228,7 @@ export function ImportProfilesDialog({
         phone: getPhone(),
         primary_interest: getInterest(),
         source: getSource(),
-        notes: row.notes || row.notas || row.observacoes || row.Notas,
+        notes: normalizedRow.notes || normalizedRow.notas || normalizedRow.observacoes,
         lifecycle_stage: "lead" as LifecycleStage,
       };
     }).filter((p) => p.full_name);
