@@ -100,18 +100,33 @@ Deno.serve(async (req) => {
     await updateProgress('A extrair texto do documento...');
 
     let textContent = '';
+    
+    // Detect file type from extension if mimeType is generic
+    const fileExtension = fileName.toLowerCase().split('.').pop() || '';
+    const isPDF = mimeType === 'application/pdf' || mimeType.includes('pdf') || fileExtension === 'pdf';
+    const isWord = mimeType.includes('word') || mimeType.includes('document') || fileExtension === 'docx' || fileExtension === 'doc';
+    const isText = mimeType === 'text/plain' || fileExtension === 'txt';
+    
+    console.log(`[KNOWLEDGE-TRIGGER] Detecting file type - mimeType: ${mimeType}, extension: ${fileExtension}, isPDF: ${isPDF}, isWord: ${isWord}`);
 
     // Extract text based on mime type
-    if (mimeType === 'text/plain') {
+    if (isText) {
       textContent = await fileData.text();
-    } else if (mimeType === 'application/pdf') {
+    } else if (isPDF) {
+      console.log(`[KNOWLEDGE-TRIGGER] Starting PDF extraction for ${fileName}`);
       textContent = await extractPDFContent(fileData, LOVABLE_API_KEY, updateProgress);
-    } else if (mimeType.includes('word') || mimeType.includes('document')) {
+      console.log(`[KNOWLEDGE-TRIGGER] PDF extraction returned ${textContent.length} characters`);
+    } else if (isWord) {
       const arrayBuffer = await fileData.arrayBuffer();
       textContent = await extractDocxContent(new Uint8Array(arrayBuffer));
+    } else {
+      // Try PDF extraction as fallback for unknown types
+      console.log(`[KNOWLEDGE-TRIGGER] Unknown type, trying PDF extraction as fallback`);
+      textContent = await extractPDFContent(fileData, LOVABLE_API_KEY, updateProgress);
     }
 
     if (!textContent || textContent.length < 10) {
+      console.error(`[KNOWLEDGE-TRIGGER] Text extraction failed - length: ${textContent?.length || 0}`);
       throw new Error('Não foi possível extrair texto do documento');
     }
 
