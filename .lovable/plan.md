@@ -1,162 +1,184 @@
 
-# Plano: Sistema Completo de Autenticacao para Clientes B2B
+# Plano: Corrigir Loading Infinito no Portal do Cliente
 
-## Problema Actual
+## Diagnostico do Problema
 
-O fluxo de convite actual tem duas lacunas criticas:
-
-1. **Sem palavra-passe provisoria**: O email de convite apenas envia um link, mas nao cria credenciais de acesso
-2. **Sem reset de palavra-passe**: A pagina de login nao oferece opcao para recuperar/alterar a palavra-passe
-
-## Solucao Proposta
-
-### Fluxo de Onboarding do Cliente
+O portal do cliente esta bloqueado em loading infinito porque as rotas `/client/*` estao dentro da arvore de providers do CRM principal:
 
 ```text
-1. Admin convida cliente
-       |
-       v
-2. Sistema cria utilizador Auth com password temporaria
-       |
-       v
-3. Email enviado com password temporaria
-       |
-       v
-4. Cliente faz login com password temporaria
-       |
-       v
-5. Sistema detecta primeiro login e redireciona para alteracao de password
-       |
-       v
-6. Cliente define nova password e acede ao portal
+AuthProvider (CRM)
+  └── WorkspaceProvider (CRM)
+      └── ActivityProfileProvider (CRM)
+          └── WorkspaceInstanceProvider (CRM)
+              └── SubscriptionProvider (CRM)
+                  └── ClientLoginPage  ← BLOQUEADO!
 ```
 
-### Alteracoes Necessarias
+Estes providers fazem verificacoes e queries que:
+1. Esperam por autenticacao do utilizador do CRM
+2. Carregam workspaces, subscricoes, perfis
+3. Bloqueiam o render enquanto carregam
 
-#### 1. Nova Edge Function: `create-client-auth-user`
+O cliente B2B NAO precisa de nada disto - tem o seu proprio sistema de autenticacao (`useClientAuth`).
 
-Cria o utilizador no sistema de autenticacao com password temporaria:
+## Solucao
 
-- Recebe: email, nome, workspace_id, client_user_id
-- Gera password temporaria segura (12 caracteres)
-- Cria utilizador Auth via `supabase.auth.admin.createUser`
-- Actualiza `client_users.auth_user_id` com o novo user id
-- Marca utilizador para exigir alteracao de password (metadata)
-- Retorna password temporaria para incluir no email
+Mover as rotas do portal do cliente para FORA dos providers do CRM, mantendo apenas o `CartProvider` que e necessario.
 
-#### 2. Actualizar Edge Function: `send-client-invitation`
+### Estrutura Actual (App.tsx)
 
-Integrar com a nova funcao de criacao de utilizador:
+```text
+<AuthProvider>
+  <WorkspaceProvider>
+    <...outros providers...>
+      <Routes>
+        <Route path="/client/login" ... />  ← dentro dos providers do CRM
+        <Route path="/client/dashboard" ... />
+        ...
+      </Routes>
+    </...>
+  </WorkspaceProvider>
+</AuthProvider>
+```
 
-- Aceitar `temporaryPassword` no payload
-- Actualizar template do email para incluir credenciais:
-  - Email de acesso
-  - Password temporaria
-  - Aviso para alterar password no primeiro acesso
+### Nova Estrutura Proposta
 
-#### 3. Actualizar: `InviteClientDialog.tsx`
+```text
+<Routes>
+  {/* Client Portal Routes - FORA dos providers do CRM */}
+  <Route path="/client/*" element={
+    <CartProvider>
+      <Routes>
+        <Route path="login" element={<ClientLoginPage />} />
+        <Route path="dashboard" element={<ClientDashboardPage />} />
+        ...
+      </Routes>
+    </CartProvider>
+  } />
+  
+  {/* CRM Routes - dentro dos providers */}
+  <Route path="*" element={
+    <AuthProvider>
+      <WorkspaceProvider>
+        ...
+      </WorkspaceProvider>
+    </AuthProvider>
+  } />
+</Routes>
+```
 
-Modificar o fluxo de criacao:
+## Ficheiro a Modificar
 
-- Primeiro criar o utilizador Auth (via nova edge function)
-- Receber a password temporaria
-- Enviar convite com credenciais incluidas
+### App.tsx
 
-#### 4. Nova Pagina: `ClientSetPasswordPage.tsx`
+Reorganizar a estrutura de rotas para:
 
-Pagina para clientes definirem nova password:
+1. Criar um componente `ClientPortalRoutes` que agrupa todas as rotas `/client/*`
+2. Criar um componente `CRMRoutes` que agrupa as rotas do CRM com os providers
+3. No nivel raiz, usar routing condicional baseado no path
 
-- Formulario com: password actual, nova password, confirmar password
-- Validacao de forca da password (minimo 8 caracteres)
-- Apos sucesso, redireciona para dashboard
+### Alteracoes Especificas
 
-#### 5. Actualizar: `ClientLoginPage.tsx`
-
-Adicionar funcionalidades:
-
-- Link "Esqueci-me da palavra-passe"
-- Apos login, verificar se e primeiro acesso (via metadata)
-- Se primeiro acesso, redirecionar para pagina de alteracao de password
-
-#### 6. Nova Pagina: `ClientForgotPasswordPage.tsx`
-
-Pagina de recuperacao de password:
-
-- Formulario apenas com email
-- Envia email de reset via Supabase Auth
-- Mensagem de confirmacao
-
-#### 7. Nova Pagina: `ClientResetPasswordPage.tsx`
-
-Pagina para definir nova password apos reset:
-
-- Valida token do URL
-- Formulario com nova password e confirmacao
-- Apos sucesso, redireciona para login
-
-## Ficheiros a Criar
-
-| Ficheiro | Descricao |
-|----------|-----------|
-| `supabase/functions/create-client-auth-user/index.ts` | Cria utilizador Auth com password temporaria |
-| `src/pages/client/ClientSetPasswordPage.tsx` | Pagina para alterar password (primeiro acesso) |
-| `src/pages/client/ClientForgotPasswordPage.tsx` | Pagina "Esqueci-me da palavra-passe" |
-| `src/pages/client/ClientResetPasswordPage.tsx` | Pagina para definir nova password via link |
-
-## Ficheiros a Modificar
-
-| Ficheiro | Alteracao |
-|----------|-----------|
-| `supabase/functions/send-client-invitation/index.ts` | Incluir password temporaria no email |
-| `src/components/client-users/InviteClientDialog.tsx` | Chamar nova edge function primeiro |
-| `src/components/client-users/ClientUsersList.tsx` | Actualizar reenvio para recriar password |
-| `src/pages/client/ClientLoginPage.tsx` | Adicionar link "Esqueci-me da password" + verificar primeiro acesso |
-| `src/hooks/client-portal/useClientAuth.ts` | Adicionar funcao de reset password |
-| `src/App.tsx` | Adicionar novas rotas do portal |
-
-## Detalhes Tecnicos
-
-### Geracao de Password Temporaria
+**1. Extrair rotas do portal do cliente para componente separado:**
 
 ```typescript
-function generateTemporaryPassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
+// Rotas do Portal do Cliente - SEM providers do CRM
+function ClientPortalRoutes() {
+  return (
+    <CartProvider>
+      <Routes>
+        <Route path="login" element={<ClientLoginPage />} />
+        <Route path="set-password" element={<ClientSetPasswordPage />} />
+        <Route path="forgot-password" element={<ClientForgotPasswordPage />} />
+        <Route path="reset-password" element={<ClientResetPasswordPage />} />
+        <Route path="dashboard" element={<ClientDashboardPage />} />
+        <Route path="catalog" element={<ClientCatalogPage />} />
+        <Route path="cart" element={<ClientCartPage />} />
+        <Route path="checkout" element={<ClientCheckoutPage />} />
+        <Route path="orders" element={<ClientOrdersPage />} />
+        <Route path="orders/:id" element={<ClientOrderDetailPage />} />
+        <Route path="favorites" element={<ClientFavoritesPage />} />
+        <Route path="assistant" element={<ClientAssistantPage />} />
+      </Routes>
+    </CartProvider>
+  );
 }
 ```
 
-### Verificacao de Primeiro Acesso
-
-Usar `user_metadata.requires_password_change: true` para identificar utilizadores que precisam alterar password.
-
-### Novas Rotas
+**2. Manter rotas do CRM com os providers:**
 
 ```typescript
-/client/login              - Login (existente)
-/client/set-password       - Alterar password (primeiro acesso)
-/client/forgot-password    - Solicitar reset
-/client/reset-password     - Definir nova password (via link email)
+// Rotas do CRM - COM providers
+function CRMRoutes() {
+  return (
+    <AuthProvider>
+      <WorkspaceProvider>
+        <ActivityProfileProvider>
+          <WorkspaceInstanceProvider>
+            <SubscriptionProvider>
+              <Routes>
+                {/* Todas as rotas do CRM aqui */}
+              </Routes>
+            </SubscriptionProvider>
+          </WorkspaceInstanceProvider>
+        </ActivityProfileProvider>
+      </WorkspaceProvider>
+    </AuthProvider>
+  );
+}
 ```
 
-### Template de Email Actualizado
+**3. Estrutura raiz com routing condicional:**
 
-O email incluira:
-
+```typescript
+const App = () => (
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <GTMProvider containerId="GTM-WLVH4TJJ">
+            <MetaPixelLoader />
+            <Routes>
+              {/* Portal do Cliente - isolado */}
+              <Route path="/client/*" element={<ClientPortalRoutes />} />
+              
+              {/* Rotas publicas SEO */}
+              <Route path="/keywords/*" element={...} />
+              
+              {/* CRM e restantes rotas */}
+              <Route path="/*" element={<CRMRoutes />} />
+            </Routes>
+            <GDPRBanner />
+          </GTMProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
+);
 ```
-Credenciais de acesso:
-- Email: cliente@email.pt
-- Palavra-passe temporaria: AbCd1234XyZw
 
-IMPORTANTE: Por razoes de seguranca, sera solicitado que altere a sua palavra-passe no primeiro acesso.
-```
+## Resultado Esperado
 
-## Seguranca
+Apos as alteracoes:
 
-- Password temporaria gerada de forma segura (sem caracteres ambiguos)
-- Utilizador obrigado a alterar password no primeiro acesso
-- Edge function `create-client-auth-user` usa service role key
-- Validacao JWT desactivada para funcoes publicas de reset
+| Cenario | Antes | Depois |
+|---------|-------|--------|
+| Acesso a `/client/login` | Loading infinito | Carrega instantaneamente |
+| Login do cliente | Bloqueado | Funciona |
+| Dashboard do cliente | Bloqueado | Funciona |
+| CRM principal | Funciona | Continua a funcionar |
+
+## Beneficios
+
+1. **Performance**: Portal do cliente carrega instantaneamente
+2. **Isolamento**: Sistemas de auth separados (cliente vs CRM)
+3. **Manutencao**: Codigo mais organizado e facil de manter
+4. **Sem regressoes**: CRM continua a funcionar exactamente igual
+
+## Notas Tecnicas
+
+- O `CartProvider` e mantido pois e necessario para o carrinho do cliente
+- O `useClientAuth` hook ja esta preparado para funcionar de forma independente
+- As rotas publicas SEO podem ficar fora de ambos os sistemas de providers
