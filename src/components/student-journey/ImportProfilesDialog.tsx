@@ -14,6 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Upload,
   FileSpreadsheet,
   AlertCircle,
@@ -22,6 +29,13 @@ import {
   Loader2,
   Download,
   GraduationCap,
+  User,
+  Mail,
+  Phone,
+  Globe,
+  FileText,
+  XCircle,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -68,6 +82,29 @@ interface ImportResult {
   errors: string[];
 }
 
+// Column mapping types
+type MappingFieldType = "nome" | "email" | "telefone" | "origem" | "notas" | "curso" | "ignorar";
+
+interface DetectedColumn {
+  originalName: string;
+  normalizedName: string;
+  mappedTo: MappingFieldType;
+  isSelected: boolean;
+  sampleValues: string[];
+  isCourseColumn: boolean;
+}
+
+// Mapping field options
+const MAPPING_FIELDS: { value: MappingFieldType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { value: "nome", label: "Nome", icon: User },
+  { value: "email", label: "Email", icon: Mail },
+  { value: "telefone", label: "Telefone", icon: Phone },
+  { value: "curso", label: "Formação/Curso", icon: GraduationCap },
+  { value: "origem", label: "Origem/Fonte", icon: Globe },
+  { value: "notas", label: "Notas", icon: FileText },
+  { value: "ignorar", label: "Ignorar coluna", icon: XCircle },
+];
+
 // Course column detection patterns
 const COURSE_COLUMN_PATTERNS = [
   "curso",
@@ -80,8 +117,18 @@ const COURSE_COLUMN_PATTERNS = [
   "nivel",
   "nível",
   "workshop",
-  "formação",
 ];
+
+// Field mapping patterns for auto-detection
+const FIELD_PATTERNS: Record<MappingFieldType, string[]> = {
+  nome: ["nome", "name", "full_name", "nome_completo", "primeiro_nome", "first_name", "apelido", "last_name"],
+  email: ["email", "e_mail", "mail", "correio"],
+  telefone: ["telefone", "phone", "telemovel", "mobile", "contacto", "celular"],
+  origem: ["origem", "source", "canal", "proveniencia", "referencia"],
+  notas: ["notas", "notes", "observacoes", "comentarios", "obs"],
+  curso: COURSE_COLUMN_PATTERNS,
+  ignorar: [],
+};
 
 export function ImportProfilesDialog({
   trigger,
@@ -93,7 +140,7 @@ export function ImportProfilesDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<"upload" | "preview" | "importing" | "complete">("upload");
+  const [step, setStep] = useState<"upload" | "mapping" | "preview" | "importing" | "complete">("upload");
   const [parsedData, setParsedData] = useState<ParsedProfile[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [autoMatch, setAutoMatch] = useState(true);
@@ -101,6 +148,11 @@ export function ImportProfilesDialog({
   const [importProgress, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [courses, setCourses] = useState<SJCourse[]>([]);
+
+  // New states for column mapping
+  const [detectedColumns, setDetectedColumns] = useState<DetectedColumn[]>([]);
+  const [rawData, setRawData] = useState<Record<string, string>[]>([]);
+  const [originalHeaders, setOriginalHeaders] = useState<string[]>([]);
 
   // Fetch courses for matching when dialog opens
   useEffect(() => {
@@ -149,6 +201,19 @@ export function ImportProfilesDialog({
       .replace(/[^a-z0-9]/g, "_") // Replace spaces/symbols with _
       .replace(/_+/g, "_") // Collapse multiple underscores
       .replace(/^_|_$/g, ""); // Trim underscores
+  };
+
+  // Auto-detect what field a column maps to based on its name
+  const autoDetectMapping = (header: string): MappingFieldType => {
+    const normalized = normalizeHeader(header);
+    
+    for (const [field, patterns] of Object.entries(FIELD_PATTERNS)) {
+      if (patterns.some((p) => normalized.includes(p))) {
+        return field as MappingFieldType;
+      }
+    }
+    
+    return "ignorar";
   };
 
   // Check if a header name suggests it's a course column
@@ -205,98 +270,26 @@ export function ImportProfilesDialog({
     return null;
   };
 
-  // Detect all columns that contain course values
-  const detectCourseColumns = (
-    headers: string[],
-    sampleRows: Record<string, string>[],
-    coursesList: SJCourse[]
-  ): string[] => {
-    if (coursesList.length === 0) return [];
+  // Check if column has course matches in data
+  const hasCourseMatches = (data: Record<string, string>[], header: string): boolean => {
+    if (courses.length === 0) return false;
+    
+    const nonEmptyValues = data.filter((row) => row[header]?.trim());
+    if (nonEmptyValues.length === 0) return false;
 
-    const courseColumns: string[] = [];
+    const matchCount = nonEmptyValues.filter((row) =>
+      findMatchingCourse(row[header], courses)
+    ).length;
 
-    for (const header of headers) {
-      // First check by column name pattern
-      if (isCourseColumnByName(header)) {
-        // Verify at least one row has a matching course
-        const hasMatch = sampleRows.some((row) => {
-          const value = row[header];
-          if (!value) return false;
-          return findMatchingCourse(value, coursesList) !== null;
-        });
-        if (hasMatch) {
-          courseColumns.push(header);
-          continue;
-        }
-      }
-
-      // Also check columns by content (even if name doesn't match pattern)
-      // Check if at least 20% of non-empty values match courses
-      const nonEmptyValues = sampleRows.filter((row) => row[header]?.trim());
-      if (nonEmptyValues.length === 0) continue;
-
-      const matchCount = nonEmptyValues.filter((row) =>
-        findMatchingCourse(row[header], coursesList)
-      ).length;
-
-      // If 20% or more match, consider it a course column
-      if (matchCount / nonEmptyValues.length >= 0.2) {
-        if (!courseColumns.includes(header)) {
-          courseColumns.push(header);
-        }
-      }
-    }
-
-    console.log("[Excel Import] Detected course columns:", courseColumns);
-    return courseColumns;
+    return matchCount / nonEmptyValues.length >= 0.2;
   };
 
-  // Extract all matched courses from a row
-  const extractMatchedCourses = (
-    normalizedRow: Record<string, string>,
-    courseColumns: string[],
-    coursesList: SJCourse[]
-  ): MatchedCourse[] => {
-    const matchedCourses: MatchedCourse[] = [];
-
-    for (const col of courseColumns) {
-      const value = normalizedRow[col];
-      if (!value?.trim()) continue;
-
-      const match = findMatchingCourse(value, coursesList);
-      if (match) {
-        // Avoid duplicates (same course from different columns)
-        if (!matchedCourses.some((mc) => mc.courseId === match.course.id)) {
-          matchedCourses.push({
-            courseId: match.course.id,
-            courseName: match.course.name,
-            matchType: match.matchType,
-            sourceColumn: col,
-          });
-        }
-      }
-    }
-
-    return matchedCourses;
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const data = await parseFile(file);
-      setParsedData(data);
-      setSelectedRows(new Set(data.map((_, i) => i)));
-      setStep("preview");
-
-      if (autoMatch) {
-        await matchWithContacts(data);
-      }
-    } catch (error) {
-      console.error("Parse error:", error);
-      toast.error("Erro ao processar ficheiro. Verifique o formato.");
-    }
+  // Get sample values from a column
+  const getSampleValues = (data: Record<string, string>[], header: string, count: number = 3): string[] => {
+    return data
+      .map((row) => row[header])
+      .filter((v) => v?.trim())
+      .slice(0, count);
   };
 
   // Expected field keywords for header detection
@@ -329,7 +322,43 @@ export function ImportProfilesDialog({
     return 0; // Default: first row
   };
 
-  const parseFile = async (file: File): Promise<ParsedProfile[]> => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { data, headers } = await extractRawData(file);
+      
+      // Detect and configure columns
+      const columns: DetectedColumn[] = headers.map((header) => {
+        const normalized = normalizeHeader(header);
+        const autoMapping = autoDetectMapping(header);
+        const isCourse = isCourseColumnByName(header) || hasCourseMatches(data, header);
+        
+        return {
+          originalName: header,
+          normalizedName: normalized,
+          mappedTo: isCourse ? "curso" : autoMapping,
+          isSelected: autoMapping !== "ignorar" || isCourse,
+          sampleValues: getSampleValues(data, header, 3),
+          isCourseColumn: isCourse,
+        };
+      });
+
+      setDetectedColumns(columns);
+      setRawData(data);
+      setOriginalHeaders(headers);
+      setStep("mapping");
+      
+      console.log("[Excel Import] Detected columns:", columns);
+    } catch (error) {
+      console.error("Parse error:", error);
+      toast.error("Erro ao processar ficheiro. Verifique o formato.");
+    }
+  };
+
+  // Extract raw data from file (returns data and original headers)
+  const extractRawData = async (file: File): Promise<{ data: Record<string, string>[]; headers: string[] }> => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
     if (ext === "xlsx" || ext === "xls") {
@@ -340,25 +369,24 @@ export function ImportProfilesDialog({
       // Detect header row dynamically
       const headerRow = findHeaderRow(sheet);
 
-      // Convert starting from the correct row (header: 1 gives array of arrays)
+      // Convert starting from the correct row
       const json = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
         header: 1,
         range: headerRow,
       }) as unknown[][];
 
-      // First row are the headers, rest is data
       if (json.length < 2) {
-        console.log("[Excel Import] Not enough rows after header detection");
-        return [];
+        return { data: [], headers: [] };
       }
 
-      const headers = (json[0] as (string | undefined)[]).map((h) => normalizeHeader(h || ""));
+      // Keep original headers
+      const headers = (json[0] as (string | undefined)[])
+        .map((h) => (h ? String(h).trim() : ""))
+        .filter((h) => h);
+      
       const dataRows = json.slice(1) as (string | number | undefined)[][];
 
-      console.log("[Excel Import] Headers found:", headers);
-      console.log("[Excel Import] Data rows:", dataRows.length);
-
-      // Map data rows to objects using normalized headers
+      // Map data rows to objects using original headers
       const records = dataRows
         .filter((row) => row && row.some((cell) => cell !== undefined && cell !== null && cell !== ""))
         .map((row) => {
@@ -372,16 +400,15 @@ export function ImportProfilesDialog({
         })
         .filter((obj) => Object.keys(obj).length > 0);
 
-      console.log("[Excel Import] Parsed records:", records.length, records[0]);
-      return mapToProfiles(records, headers);
+      return { data: records, headers };
     } else if (ext === "csv") {
       return new Promise((resolve, reject) => {
         Papa.parse<Record<string, string>>(file, {
           header: true,
           skipEmptyLines: true,
           complete: (results) => {
-            const headers = results.meta.fields?.map((h) => normalizeHeader(h)) || [];
-            resolve(mapToProfiles(results.data, headers));
+            const headers = results.meta.fields || [];
+            resolve({ data: results.data, headers });
           },
           error: reject,
         });
@@ -391,51 +418,93 @@ export function ImportProfilesDialog({
     throw new Error("Formato não suportado");
   };
 
-  const mapToProfiles = (data: Record<string, string>[], originalHeaders: string[]): ParsedProfile[] => {
-    // Detect course columns before mapping
-    const courseColumns = detectCourseColumns(originalHeaders, data, courses);
+  // Toggle column selection
+  const toggleColumn = (index: number, selected: boolean) => {
+    setDetectedColumns((prev) =>
+      prev.map((col, i) => (i === index ? { ...col, isSelected: selected } : col))
+    );
+  };
 
+  // Update column mapping
+  const updateMapping = (index: number, mappedTo: MappingFieldType) => {
+    setDetectedColumns((prev) =>
+      prev.map((col, i) => (i === index ? { ...col, mappedTo } : col))
+    );
+  };
+
+  // Toggle all columns
+  const toggleAllColumns = (selected: boolean) => {
+    setDetectedColumns((prev) => prev.map((col) => ({ ...col, isSelected: selected })));
+  };
+
+  // Proceed from mapping to preview
+  const proceedToPreview = async () => {
+    const profiles = mapDataWithMapping(rawData, detectedColumns);
+    setParsedData(profiles);
+    setSelectedRows(new Set(profiles.map((_, i) => i)));
+    setStep("preview");
+
+    if (autoMatch && profiles.length > 0) {
+      await matchWithContacts(profiles);
+    }
+  };
+
+  // Map data using user-defined column mapping
+  const mapDataWithMapping = (data: Record<string, string>[], columns: DetectedColumn[]): ParsedProfile[] => {
+    const selectedColumns = columns.filter((c) => c.isSelected);
+    
     return data
       .map((row) => {
-        // Normalize all keys in the row for flexible matching
-        const normalizedRow: Record<string, string> = {};
-        Object.entries(row).forEach(([key, value]) => {
-          normalizedRow[normalizeHeader(key)] = value;
-        });
-
-        const getName = () =>
-          normalizedRow.full_name ||
-          normalizedRow.nome ||
-          normalizedRow.name ||
-          normalizedRow.nome_completo ||
-          `${normalizedRow.primeiro_nome || normalizedRow.first_name || ""} ${normalizedRow.apelido || normalizedRow.last_name || ""}`.trim();
-
-        const getEmail = () => normalizedRow.email || normalizedRow.e_mail;
-
-        const getPhone = () => normalizedRow.phone || normalizedRow.telefone || normalizedRow.telemovel;
-
-        const getInterest = () =>
-          normalizedRow.primary_interest ||
-          normalizedRow.interesse ||
-          normalizedRow.curso ||
-          normalizedRow.formacao ||
-          normalizedRow.area_de_interesse;
-
-        const getSource = () => normalizedRow.source || normalizedRow.origem || normalizedRow.canal;
-
-        // Extract all matched courses from all course columns
-        const matchedCourses = extractMatchedCourses(normalizedRow, courseColumns, courses);
-
-        return {
-          full_name: getName(),
-          email: getEmail(),
-          phone: getPhone(),
-          primary_interest: getInterest(),
-          source: getSource(),
-          notes: normalizedRow.notes || normalizedRow.notas || normalizedRow.observacoes,
+        const profile: ParsedProfile = {
+          full_name: "",
+          matchedCourses: [],
           lifecycle_stage: "lead" as LifecycleStage,
-          matchedCourses,
         };
+
+        for (const col of selectedColumns) {
+          const value = row[col.originalName]?.trim();
+          if (!value) continue;
+
+          switch (col.mappedTo) {
+            case "nome":
+              profile.full_name = profile.full_name ? `${profile.full_name} ${value}` : value;
+              break;
+            case "email":
+              profile.email = value;
+              break;
+            case "telefone":
+              profile.phone = value;
+              break;
+            case "origem":
+              profile.source = value;
+              break;
+            case "notas":
+              profile.notes = profile.notes ? `${profile.notes}; ${value}` : value;
+              break;
+            case "curso":
+              // Try to match with existing courses
+              const match = findMatchingCourse(value, courses);
+              if (match) {
+                // Avoid duplicates
+                if (!profile.matchedCourses.some((mc) => mc.courseId === match.course.id)) {
+                  profile.matchedCourses.push({
+                    courseId: match.course.id,
+                    courseName: match.course.name,
+                    matchType: match.matchType,
+                    sourceColumn: col.originalName,
+                  });
+                }
+              } else {
+                // Store as primary interest if no match
+                profile.primary_interest = profile.primary_interest
+                  ? `${profile.primary_interest}, ${value}`
+                  : value;
+              }
+              break;
+          }
+        }
+
+        return profile;
       })
       .filter((p) => p.full_name);
   };
@@ -606,11 +675,30 @@ export function ImportProfilesDialog({
     setSelectedRows(new Set());
     setImportProgress(0);
     setImportResult(null);
+    setDetectedColumns([]);
+    setRawData([]);
+    setOriginalHeaders([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const goBackToUpload = () => {
+    setStep("upload");
+    setDetectedColumns([]);
+    setRawData([]);
+    setOriginalHeaders([]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const goBackToMapping = () => {
+    setStep("mapping");
+    setParsedData([]);
+    setSelectedRows(new Set());
   };
 
   const matchedCount = parsedData.filter((p) => p.matchedContactId).length;
   const totalCoursesMatched = parsedData.reduce((acc, p) => acc + p.matchedCourses.length, 0);
+  const selectedColumnsCount = detectedColumns.filter((c) => c.isSelected).length;
+  const courseColumnsCount = detectedColumns.filter((c) => c.mappedTo === "curso").length;
 
   return (
     <Dialog
@@ -628,16 +716,35 @@ export function ImportProfilesDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
             Importar Perfis de Alunos
           </DialogTitle>
           <DialogDescription>
-            Importe perfis a partir de ficheiros Excel ou CSV.
+            {step === "upload" && "Importe perfis a partir de ficheiros Excel ou CSV."}
+            {step === "mapping" && "Verifique o mapeamento das colunas e seleccione quais importar."}
+            {step === "preview" && "Reveja os perfis antes de importar."}
+            {step === "importing" && "A processar importação..."}
+            {step === "complete" && "Importação concluída!"}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Step indicator */}
+        {(step === "mapping" || step === "preview") && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground border-b pb-3">
+            <span className={step === "mapping" ? "text-primary font-medium" : ""}>
+              1. Mapear Colunas
+            </span>
+            <ArrowRight className="h-3 w-3" />
+            <span className={step === "preview" ? "text-primary font-medium" : ""}>
+              2. Rever Perfis
+            </span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="text-muted-foreground">3. Importar</span>
+          </div>
+        )}
 
         {step === "upload" && (
           <div className="space-y-4">
@@ -674,6 +781,114 @@ export function ImportProfilesDialog({
               <Download className="h-4 w-4" />
               Descarregar Template
             </Button>
+          </div>
+        )}
+
+        {step === "mapping" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">
+                  {detectedColumns.length} colunas detectadas
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedColumnsCount} seleccionadas
+                  {courseColumnsCount > 0 && ` • ${courseColumnsCount} identificadas como formação`}
+                </p>
+              </div>
+              <Badge variant="outline" className="gap-1">
+                {rawData.length} linhas
+              </Badge>
+            </div>
+
+            <ScrollArea className="h-[350px] border rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 sticky top-0 z-10">
+                  <tr>
+                    <th className="p-2 text-left w-10">
+                      <Checkbox
+                        checked={detectedColumns.every((c) => c.isSelected)}
+                        onCheckedChange={(c) => toggleAllColumns(!!c)}
+                      />
+                    </th>
+                    <th className="p-2 text-left min-w-[150px]">Coluna no Excel</th>
+                    <th className="p-2 text-left min-w-[180px]">Exemplos</th>
+                    <th className="p-2 text-left min-w-[160px]">Mapear para</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detectedColumns.map((col, idx) => {
+                    const FieldIcon = MAPPING_FIELDS.find((f) => f.value === col.mappedTo)?.icon || XCircle;
+                    return (
+                      <tr
+                        key={idx}
+                        className={`border-t hover:bg-muted/30 ${!col.isSelected ? "opacity-50" : ""}`}
+                      >
+                        <td className="p-2">
+                          <Checkbox
+                            checked={col.isSelected}
+                            onCheckedChange={(c) => toggleColumn(idx, !!c)}
+                          />
+                        </td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate max-w-[120px]" title={col.originalName}>
+                              {col.originalName}
+                            </span>
+                            {col.isCourseColumn && (
+                              <Badge variant="secondary" className="text-xs gap-1 shrink-0">
+                                <GraduationCap className="h-3 w-3" />
+                                Formação
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <span
+                            className="text-xs text-muted-foreground block truncate max-w-[170px]"
+                            title={col.sampleValues.join(", ")}
+                          >
+                            {col.sampleValues.length > 0
+                              ? col.sampleValues.join(", ")
+                              : "(vazio)"}
+                          </span>
+                        </td>
+                        <td className="p-2">
+                          <Select
+                            value={col.mappedTo}
+                            onValueChange={(v) => updateMapping(idx, v as MappingFieldType)}
+                          >
+                            <SelectTrigger className="h-8 text-xs w-[140px]">
+                              <div className="flex items-center gap-1.5">
+                                <FieldIcon className="h-3 w-3 shrink-0" />
+                                <SelectValue />
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MAPPING_FIELDS.map((field) => (
+                                <SelectItem key={field.value} value={field.value}>
+                                  <div className="flex items-center gap-2">
+                                    <field.icon className="h-3 w-3" />
+                                    {field.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </ScrollArea>
+
+            <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+              <p>
+                <strong>Dica:</strong> As colunas mapeadas como "Formação/Curso" serão automaticamente
+                associadas a cursos existentes. Múltiplas colunas podem ser mapeadas para o mesmo campo.
+              </p>
+            </div>
           </div>
         )}
 
@@ -843,10 +1058,20 @@ export function ImportProfilesDialog({
               Cancelar
             </Button>
           )}
+          {step === "mapping" && (
+            <>
+              <Button variant="outline" onClick={goBackToUpload}>
+                Voltar
+              </Button>
+              <Button onClick={proceedToPreview} disabled={selectedColumnsCount === 0}>
+                Continuar para Preview
+              </Button>
+            </>
+          )}
           {step === "preview" && (
             <>
-              <Button variant="outline" onClick={resetDialog}>
-                Voltar
+              <Button variant="outline" onClick={goBackToMapping}>
+                Voltar ao Mapeamento
               </Button>
               <Button onClick={handleImport} disabled={selectedRows.size === 0 || isMatching}>
                 Importar {selectedRows.size} perfis
