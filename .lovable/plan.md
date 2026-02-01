@@ -1,139 +1,177 @@
 
-# Plano: Refresh Automático de Dados no Student Journey
+# Plano: Link para Student Journey no Detalhe de Contacto
 
-## Problema Actual
+## Objetivo
 
-Actualmente, quando há alterações nos perfis ou inscrições do Student Journey, os dados só são actualizados se:
-- O utilizador clicar no botão "Atualizar Estados"
-- A página for recarregada
-- Uma mutação explícita invalidar as queries
+Adicionar um link/botão para o Student Journey na página de detalhe do contacto, visível apenas quando:
+1. O módulo "student-journey" está instalado no workspace **OU**
+2. O contacto já tem um perfil associado no Student Journey
 
-## Solução: Realtime com Supabase
+## Análise do Cenário Actual
 
-O projecto já utiliza realtime noutros módulos (CRM Activities, Messages, Meeting Automations). Vamos aplicar o mesmo padrão ao Student Journey.
+### Dados Relevantes
+- A tabela `sj_profiles` tem coluna `contact_id` que liga perfis a contactos CRM
+- O contacto actual (ID: `8a1ed353-...`) já tem um perfil SJ associado
+- Existe o hook `useWorkspaceModules` com função `isModuleInstalled('student-journey')`
 
-## Alterações Necessárias
+### Componente Alvo
+- `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
+- Menu lateral: `src/components/entity/EntitySidebarMenu.tsx`
 
-### 1. Base de Dados - Habilitar Realtime
+## Solução Proposta
 
-Adicionar as tabelas do Student Journey à publicação realtime:
+### Abordagem 1: Adicionar ao Menu Lateral (Recomendada)
 
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.sj_profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.sj_enrollments;
-```
+Adicionar uma nova secção "MÓDULOS" no `EntitySidebarMenu` que mostra links para módulos activos relacionados com a entidade.
 
-### 2. Hook `useStudentJourney.ts` - Adicionar Subscriptions
+**Vantagens:**
+- Consistente com o padrão existente
+- Permite expandir para outros módulos futuramente
 
-**Modificar `useProfiles()`:**
+### Alterações Necessárias
 
-```text
-Adicionar:
-- Import do useEffect
-- Import do useWorkspaceInstance (para workspaceClient)
-- Subscription realtime para INSERT, UPDATE, DELETE na tabela sj_profiles
-- Cleanup da subscription no unmount
-```
+#### 1. Novo Tipo de Secção no Menu
 
-**Estrutura da subscription:**
+Adicionar `'student-journey'` ao tipo `MenuSection` em `src/types/entity.ts`:
 
 ```typescript
-useEffect(() => {
-  if (!currentWorkspace) return;
-
-  const channel = supabase
-    .channel(`sj-profiles-${currentWorkspace.id}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",  // INSERT, UPDATE, DELETE
-        schema: "public",
-        table: "sj_profiles",
-        filter: `workspace_id=eq.${currentWorkspace.id}`,
-      },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
-        queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [currentWorkspace, queryClient]);
+export type MenuSection = 
+  | 'overview' 
+  // ... existing ...
+  | 'orders'
+  | 'student-journey'; // Novo
 ```
 
-**Modificar `useEnrollments()`:**
+#### 2. Novo Hook: `useContactStudentJourneyProfile`
 
-Mesma lógica mas para a tabela `sj_enrollments`:
+Criar hook para verificar se contacto tem perfil SJ:
+
+**Ficheiro:** `src/hooks/useContactStudentJourneyProfile.ts`
 
 ```typescript
-useEffect(() => {
-  if (!currentWorkspace) return;
-
-  const channel = supabase
-    .channel(`sj-enrollments-${currentWorkspace.id}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "sj_enrollments",
-        filter: `workspace_id=eq.${currentWorkspace.id}`,
-      },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ["sj-enrollments"] });
-        queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
-        queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [currentWorkspace, queryClient]);
+export function useContactStudentJourneyProfile(contactId: string | undefined) {
+  const { currentWorkspace } = useWorkspace();
+  
+  return useQuery({
+    queryKey: ["sj-profile-by-contact", contactId],
+    queryFn: async () => {
+      if (!contactId || !currentWorkspace?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("sj_profiles")
+        .select("id, full_name, lifecycle_stage")
+        .eq("contact_id", contactId)
+        .eq("workspace_id", currentWorkspace.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!contactId && !!currentWorkspace?.id,
+  });
+}
 ```
 
-## Fluxo de Actualização
+#### 3. Modificar EntitySidebarMenu
+
+Adicionar secção "MÓDULOS" com entrada para Student Journey:
+
+```typescript
+// Nova secção no MENU_SECTIONS
+{
+  title: 'MÓDULOS',
+  items: [
+    { 
+      id: 'student-journey', 
+      label: 'Student Journey', 
+      icon: GraduationCap, 
+      showFor: ['contact'] 
+    },
+  ],
+}
+```
+
+**Lógica de visibilidade:**
+```typescript
+// isVisible function
+if (sectionId === 'student-journey') {
+  return isModuleInstalled('student-journey') || !!sjProfile;
+}
+```
+
+#### 4. Adicionar Case no renderSectionContent
+
+Em `ENIContactDetailWithSidebar.tsx`:
+
+```typescript
+case 'student-journey':
+  return (
+    <ContactStudentJourneySection 
+      contactId={id!} 
+      contactName={contact.name}
+    />
+  );
+```
+
+#### 5. Criar Componente de Secção
+
+**Ficheiro:** `src/components/contacts/sections/ContactStudentJourneySection.tsx`
+
+Funcionalidades:
+- Se tem perfil: mostrar resumo + link para abrir perfil completo
+- Se não tem: botão para criar perfil vinculado
 
 ```text
-┌──────────────────┐     ┌───────────────────┐     ┌──────────────────┐
-│  Utilizador A    │     │     Backend       │     │  Utilizador B    │
-│  (faz alteração) │     │    (Supabase)     │     │  (vê a lista)    │
-└────────┬─────────┘     └─────────┬─────────┘     └────────┬─────────┘
-         │                         │                        │
-         │ UPDATE sj_profiles      │                        │
-         │─────────────────────────>│                        │
-         │                         │                        │
-         │                         │ postgres_changes event │
-         │                         │───────────────────────>│
-         │                         │                        │
-         │                         │        invalidateQueries
-         │                         │                        │
-         │                         │        Refetch automático
-         │                         │                        │
-         │                         │        Lista actualizada!
+┌────────────────────────────────────────────────────┐
+│ 🎓 Student Journey                                 │
+├────────────────────────────────────────────────────┤
+│                                                    │
+│  ┌──────────────────────────────────────────────┐  │
+│  │ Perfil: Ana Carolina Oliveira Costa         │  │
+│  │ Etapa: Aluno Ativo 🟢                       │  │
+│  │ Score: 75                                    │  │
+│  │                                              │  │
+│  │ [Ver Perfil Completo]  [Gerir Inscrições]   │  │
+│  └──────────────────────────────────────────────┘  │
+│                                                    │
+│  Inscrições Recentes:                              │
+│  • Curso A - 85% concluído                         │
+│  • Curso B - Inscrito                              │
+│                                                    │
+└────────────────────────────────────────────────────┘
 ```
 
-## Ficheiros a Modificar
+## Ficheiros a Criar/Modificar
 
-| Ficheiro | Alterações |
-|----------|------------|
-| Migração SQL | Adicionar tabelas ao supabase_realtime |
-| `src/hooks/useStudentJourney.ts` | Adicionar subscriptions realtime em `useProfiles` e `useEnrollments` |
+| Ficheiro | Ação |
+|----------|------|
+| `src/types/entity.ts` | Adicionar 'student-journey' ao MenuSection |
+| `src/hooks/useContactStudentJourneyProfile.ts` | **Criar** - Hook para buscar perfil SJ do contacto |
+| `src/components/entity/EntitySidebarMenu.tsx` | Adicionar secção MÓDULOS + lógica de visibilidade |
+| `src/components/contacts/sections/ContactStudentJourneySection.tsx` | **Criar** - Secção do Student Journey |
+| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Adicionar case 'student-journey' e imports |
 
-## Benefícios
+## Fluxo de Utilizador
 
-1. **Actualização automática** - Dados são actualizados assim que há alterações
-2. **Multi-utilizador** - Se dois utilizadores estão a ver a mesma lista, ambos vêem as alterações
-3. **Consistência** - KPIs, funil e listas sempre sincronizados
-4. **Padrão existente** - Segue a mesma abordagem já usada noutros módulos do CRM
+```text
+Contacto tem perfil SJ?
+        │
+   ┌────┴────┐
+   │         │
+  SIM       NÃO
+   │         │
+   ▼         ▼
+Mostra:   Mostra:
+- Resumo  - Botão "Criar
+- Link      Perfil SJ"
+  para      (pré-preenchido
+  perfil    com dados do
+            contacto)
+```
 
-## Tabelas a Habilitar
+## Resultado Esperado
 
-| Tabela | Eventos |
-|--------|---------|
-| `sj_profiles` | INSERT, UPDATE, DELETE |
-| `sj_enrollments` | INSERT, UPDATE, DELETE |
+1. No menu lateral do contacto, aparece secção "MÓDULOS" com "Student Journey"
+2. Clicando, mostra resumo do perfil educacional do contacto
+3. Link directo para página de detalhe do perfil em `/dashboard/student-journey/profiles/:profileId`
+4. Se não tem perfil, permite criar um novo vinculado ao contacto
