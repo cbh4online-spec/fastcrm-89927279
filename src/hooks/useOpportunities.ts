@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { trackOpportunityWon } from "@/modules/growth-seo/lib/gtmEvents";
 
 export type OpportunityStatus = "open" | "won" | "lost";
 
@@ -139,6 +140,13 @@ export function useUpdateOpportunity() {
     mutationFn: async (input: UpdateOpportunityInput) => {
       const { id, ...updates } = input;
 
+      // Get current status before update to detect status change
+      const { data: currentOpportunity } = await workspaceClient
+        .from("opportunities")
+        .select("status")
+        .eq("id", id)
+        .single();
+
       const { data, error } = await workspaceClient
         .from("opportunities")
         .update(updates)
@@ -147,11 +155,28 @@ export function useUpdateOpportunity() {
         .single();
 
       if (error) throw error;
-      return data as Opportunity;
+      
+      // Return both current and updated data for onSuccess to determine if status changed
+      return { 
+        ...data as Opportunity, 
+        _previousStatus: currentOpportunity?.status 
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["opportunities", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunity", data.id] });
+      
+      // Track opportunity won in GTM when status changes to 'won'
+      if (data.status === 'won' && data._previousStatus !== 'won') {
+        trackOpportunityWon({
+          opportunity_id: data.id,
+          opportunity_title: data.title,
+          value: data.value || 0,
+          currency: 'EUR',
+          lead_id: data.lead_id || undefined,
+          workspace_id: data.workspace_id,
+        });
+      }
     },
   });
 }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { trackLeadCreated } from "@/modules/growth-seo/lib/gtmEvents";
 
 export type LeadStatus = "new" | "in_progress" | "completed";
 export type LeadSource = "instagram" | "whatsapp" | "email" | "form" | string;
@@ -169,8 +170,17 @@ export function useCreateLead() {
       if (error) throw error;
       return data as Lead;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      
+      // Track lead creation in GTM
+      trackLeadCreated({
+        lead_id: data.id,
+        lead_name: data.name,
+        lead_email: data.email || undefined,
+        lead_source: data.source || undefined,
+        workspace_id: data.workspace_id,
+      });
     },
   });
 }
