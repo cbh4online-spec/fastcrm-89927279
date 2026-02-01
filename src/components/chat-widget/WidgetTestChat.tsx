@@ -141,10 +141,16 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
         setConversationId(data.conversationId);
       }
 
+      // Extract content - handle both string and object responses
+      let responseContent = data.response || data.message || "Desculpe, não consegui processar a sua mensagem.";
+      if (typeof responseContent === 'object' && responseContent !== null) {
+        responseContent = responseContent.content || JSON.stringify(responseContent);
+      }
+
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: data.response || data.message || "Desculpe, não consegui processar a sua mensagem.",
+        content: String(responseContent),
         timestamp: new Date(),
       };
 
