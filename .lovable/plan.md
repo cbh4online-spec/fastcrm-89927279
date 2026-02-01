@@ -1,212 +1,194 @@
 
-# Plano: Pesquisa de Contactos e Auto-Matching no Diálogo "Ligar ao CRM"
+# Plano: Adicionar Nº Cliente a Contactos e Empresas
 
-## Problema Identificado
+## Resumo
 
-O diálogo actual para ligar um perfil Student Journey a um contacto CRM tem limitações:
+Adicionar um campo **"Nº Cliente"** (`client_number`) às tabelas de contactos e empresas, com a seguinte lógica de negócio:
 
-1. Usa um `<Select>` simples que não permite **pesquisar por texto**
-2. Com muitos contactos, é difícil encontrar o correcto
-3. Quando há **match automático** de nome/email, o utilizador tem que localizar manualmente
+- Quando um contacto pertence a uma empresa, o Nº Cliente do contacto **herda automaticamente** o da empresa
+- Quando uma empresa tem contactos, todos partilham o mesmo número
+- O número pode ser definido manualmente ou gerado automaticamente
 
-## Solução Proposta
+## Alterações Necessárias
 
-Substituir o Select simples por um **Combobox com pesquisa** (padrão Command + Popover) e:
-1. Permitir pesquisa por texto (nome, email, telefone)
-2. Manter contactos sugeridos em destaque
-3. Auto-seleccionar automaticamente se houver match exacto de email
+### 1. Base de Dados
 
-## Alterações Técnicas
+Adicionar coluna `client_number` às tabelas `contacts` e `companies`:
 
-### 1. Substituir Select por Command + Popover
+```sql
+-- Adicionar coluna às empresas
+ALTER TABLE public.companies 
+ADD COLUMN client_number TEXT UNIQUE;
 
-Usar o mesmo padrão de `SendEmailFromTemplateDialog.tsx`:
+-- Adicionar coluna aos contactos
+ALTER TABLE public.contacts 
+ADD COLUMN client_number TEXT;
 
-```typescript
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+-- Índice para pesquisa rápida
+CREATE INDEX idx_companies_client_number ON public.companies(client_number);
+CREATE INDEX idx_contacts_client_number ON public.contacts(client_number);
 ```
 
-### 2. Adicionar Estado para Controlar o Popover
+### 2. Lógica de Sincronização
 
-```typescript
-const [searchOpen, setSearchOpen] = useState(false);
+Criar trigger para manter o Nº Cliente sincronizado entre contactos e empresa:
+
+```sql
+-- Função: Sincronizar client_number quando contacto é associado a empresa
+CREATE OR REPLACE FUNCTION sync_contact_client_number()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Se o contacto tem company_id, herda o client_number da empresa
+  IF NEW.company_id IS NOT NULL THEN
+    SELECT client_number INTO NEW.client_number
+    FROM companies WHERE id = NEW.company_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger ao inserir/atualizar contacto
+CREATE TRIGGER trigger_sync_contact_client_number
+BEFORE INSERT OR UPDATE OF company_id ON contacts
+FOR EACH ROW
+EXECUTE FUNCTION sync_contact_client_number();
+
+-- Função: Propagar client_number da empresa para todos os seus contactos
+CREATE OR REPLACE FUNCTION propagate_company_client_number()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.client_number IS DISTINCT FROM OLD.client_number THEN
+    UPDATE contacts 
+    SET client_number = NEW.client_number
+    WHERE company_id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger quando empresa atualiza client_number
+CREATE TRIGGER trigger_propagate_company_client_number
+AFTER UPDATE OF client_number ON companies
+FOR EACH ROW
+EXECUTE FUNCTION propagate_company_client_number();
 ```
 
-### 3. Auto-Matching ao Abrir o Diálogo
+### 3. Interface - Secção de Identificação das Empresas
 
-Quando o diálogo abre, se houver um contacto com **email exacto** ou **nome exacto**, auto-seleccionar:
-
-```typescript
-useEffect(() => {
-  if (open && !selectedContactId) {
-    // Tentar match automático por email
-    const emailMatch = contacts.find(
-      c => profile.email && c.email?.toLowerCase() === profile.email.toLowerCase()
-    );
-    if (emailMatch) {
-      setSelectedContactId(emailMatch.id);
-      setTab("link");
-      return;
-    }
-    
-    // Tentar match por nome exacto
-    const nameMatch = contacts.find(
-      c => c.name.toLowerCase() === profile.full_name.toLowerCase()
-    );
-    if (nameMatch) {
-      setSelectedContactId(nameMatch.id);
-      setTab("link");
-    }
-  }
-}, [open, contacts, profile]);
-```
-
-### 4. Interface com Pesquisa
+Adicionar campo Nº Cliente à `IdentificationSection.tsx`:
 
 ```typescript
-<div className="grid gap-2">
-  <Label>Selecionar Contacto</Label>
-  <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-    <PopoverTrigger asChild>
-      <Button
-        variant="outline"
-        role="combobox"
-        aria-expanded={searchOpen}
-        className="w-full justify-between"
-      >
-        {selectedContact ? (
-          <span className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            {selectedContact.name}
-            {selectedContact.email && (
-              <span className="text-muted-foreground text-xs">
-                ({selectedContact.email})
-              </span>
-            )}
-          </span>
-        ) : (
-          <span className="text-muted-foreground">Pesquisar contacto...</span>
-        )}
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent className="w-[350px] p-0" align="start">
-      <Command>
-        <CommandInput placeholder="Pesquisar por nome, email ou telefone..." />
-        <CommandList>
-          <CommandEmpty>Nenhum contacto encontrado</CommandEmpty>
-          
-          {/* Grupo: Sugeridos */}
-          {suggestedContacts.length > 0 && (
-            <CommandGroup heading="Correspondências Encontradas">
-              {suggestedContacts.map(contact => (
-                <CommandItem
-                  key={contact.id}
-                  value={`${contact.name} ${contact.email || ""} ${contact.phone || ""}`}
-                  onSelect={() => {
-                    setSelectedContactId(contact.id);
-                    setSearchOpen(false);
-                  }}
-                >
-                  <Check className={cn(
-                    "h-4 w-4 mr-2",
-                    selectedContactId === contact.id ? "opacity-100" : "opacity-0"
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium">{contact.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {contact.email || contact.phone}
-                    </div>
-                  </div>
-                  <Badge variant="secondary" className="ml-2">Match</Badge>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-          
-          {/* Grupo: Outros contactos */}
-          <CommandGroup heading="Todos os Contactos">
-            {otherContacts.map(contact => (
-              <CommandItem
-                key={contact.id}
-                value={`${contact.name} ${contact.email || ""} ${contact.phone || ""}`}
-                onSelect={() => {
-                  setSelectedContactId(contact.id);
-                  setSearchOpen(false);
-                }}
-              >
-                <Check className={cn(
-                  "h-4 w-4 mr-2",
-                  selectedContactId === contact.id ? "opacity-100" : "opacity-0"
-                )} />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">{contact.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {contact.email || contact.phone || "—"}
-                  </div>
-                </div>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </Command>
-    </PopoverContent>
-  </Popover>
-</div>
+<InlineEditableField
+  label="Nº Cliente"
+  fieldId="client_number"
+  fieldType="text"
+  value={company.client_number}
+  onChange={(val) => onFieldChange("client_number", val)}
+  icon={<Hash className="w-4 h-4" />}
+  placeholder="Ex: CLI-00001"
+/>
 ```
 
-### 5. Feedback Visual de Auto-Match
+### 4. Interface - Detalhe do Contacto
 
-Quando há auto-match, mostrar um alerta informativo:
+Mostrar Nº Cliente no `ContactDetail.tsx`:
+
+- Se o contacto **tem empresa associada**: mostrar campo como **somente leitura** com indicação de que vem da empresa
+- Se o contacto **não tem empresa**: permitir edição directa
 
 ```typescript
-{selectedContactId && suggestedContacts.some(c => c.id === selectedContactId) && (
-  <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
-    <CheckCircle className="h-4 w-4" />
-    Contacto encontrado automaticamente por correspondência de dados
-  </div>
-)}
+<DetailRow
+  label="Nº Cliente"
+  value={contact.client_number}
+  icon={<Hash />}
+  isEditing={isEditing && !contact.company_id}
+  // Nota visual quando herdado da empresa
+  note={contact.company_id ? "Herdado da empresa" : undefined}
+/>
 ```
 
-## Fluxo de Utilizador Melhorado
+### 5. Diálogos de Criação
+
+Adicionar campo opcional nos diálogos:
+
+- `CreateCompanyDialog.tsx`: Campo de texto para Nº Cliente
+- `CreateContactDialog.tsx`: Campo de texto (desactivado se empresa seleccionada)
+- `EditContactDialog.tsx` / `EditCompanyDialog.tsx`: Mesmo comportamento
+
+### 6. Hooks
+
+Actualizar interfaces nos hooks:
+
+**`useCompanies.ts`**:
+```typescript
+interface Company {
+  // ... campos existentes
+  client_number: string | null;
+}
+
+interface CreateCompanyData {
+  // ... campos existentes
+  client_number?: string;
+}
+```
+
+**`useContacts.ts`**:
+```typescript
+interface Contact {
+  // ... campos existentes  
+  client_number: string | null;
+}
+```
+
+### 7. Tabelas/Listagens
+
+Adicionar coluna "Nº Cliente" às tabelas:
+
+- `SmartContactsTable.tsx`
+- `SmartCompaniesTable.tsx`
+
+## Fluxo de Dados
 
 ```text
-1. Utilizador abre "Ligar ao CRM" para perfil "João Silva" (joao@email.pt)
-   ↓
-2. Sistema detecta que existe contacto "João Silva" com mesmo email
-   ↓
-3. Auto-selecciona o contacto e muda para tab "Ligar Existente"
-   ↓
-4. Mostra mensagem: "Contacto encontrado automaticamente"
-   ↓
-5. Utilizador pode:
-   - Confirmar clicando "Ligar ao Contacto"
-   - Pesquisar outro contacto na caixa de pesquisa
-   - Mudar para tab "Criar Contacto" se preferir
+┌─────────────────────────────────────────────────────────────┐
+│  EMPRESA "Acme Lda"                                         │
+│  client_number: "CLI-00042"                                 │
+└─────────────────┬───────────────────────────────────────────┘
+                  │ (propaga automaticamente)
+                  ▼
+┌─────────────────────────────────────────────────────────────┐
+│  CONTACTO "João Silva"                                      │
+│  company_id: → Acme Lda                                     │
+│  client_number: "CLI-00042" (herdado, read-only)            │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  CONTACTO "Maria Costa" (sem empresa)                       │
+│  company_id: NULL                                           │
+│  client_number: "CLI-00099" (editável directamente)         │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Ficheiro a Modificar
+## Ficheiros a Modificar
 
-| Ficheiro | Alterações |
-|----------|------------|
-| `src/components/student-journey/LinkContactDialog.tsx` | Substituir Select por Command/Popover, adicionar auto-match, adicionar pesquisa |
+| Ficheiro | Alteração |
+|----------|-----------|
+| **Base de dados** | Migração SQL para adicionar colunas e triggers |
+| `src/hooks/useCompanies.ts` | Adicionar `client_number` às interfaces |
+| `src/hooks/useContacts.ts` | Adicionar `client_number` à interface |
+| `src/components/companies/sections/IdentificationSection.tsx` | Adicionar campo Nº Cliente |
+| `src/components/companies/CreateCompanyDialog.tsx` | Adicionar campo no formulário |
+| `src/components/companies/EditCompanyDialog.tsx` | Adicionar campo no formulário |
+| `src/components/contacts/ContactDetail.tsx` | Mostrar Nº Cliente |
+| `src/components/contacts/CreateContactDialog.tsx` | Adicionar campo (condicional) |
+| `src/components/contacts/EditContactDialog.tsx` | Adicionar campo (condicional) |
+| `src/components/contacts/SmartContactsTable.tsx` | Adicionar coluna |
+| `src/components/companies/SmartCompaniesTable.tsx` | Adicionar coluna |
 
 ## Resultado Esperado
 
-1. Caixa de pesquisa permite encontrar contactos rapidamente por texto
-2. Auto-matching selecciona contactos com email/nome coincidente
-3. Contactos sugeridos aparecem em destaque com badge "Match"
-4. Feedback visual claro quando há correspondência automática
-5. Experiência mais rápida e intuitiva para ligar perfis a contactos
+1. Campo "Nº Cliente" visível em empresas e contactos
+2. Quando contacto pertence a empresa, herda automaticamente o número
+3. Alterações no Nº Cliente da empresa propagam para todos os contactos
+4. Contactos sem empresa podem ter Nº Cliente próprio
+5. Campo pesquisável e visível nas listagens
