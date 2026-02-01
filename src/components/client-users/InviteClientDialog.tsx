@@ -185,11 +185,12 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
         country: data.billing_country,
       };
 
+      // First, create the client_users record
       const { data: clientUser, error } = await supabase
         .from("client_users")
         .insert({
           workspace_id: currentWorkspace.id,
-          auth_user_id: null, // Will be set when client accepts invitation
+          auth_user_id: null, // Will be set by edge function
           name: data.name,
           email: data.email,
           phone: data.phone || null,
@@ -207,6 +208,30 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
 
       if (error) throw error;
 
+      // Create auth user with temporary password
+      const { data: authResult, error: authError } = await supabase.functions.invoke(
+        "create-client-auth-user",
+        {
+          body: {
+            email: data.email,
+            name: data.name,
+            workspaceId: currentWorkspace.id,
+            clientUserId: clientUser.id,
+          },
+        }
+      );
+
+      if (authError) {
+        console.error("Erro ao criar utilizador Auth:", authError);
+        throw new Error("Erro ao criar credenciais de acesso");
+      }
+
+      if (!authResult?.success) {
+        throw new Error(authResult?.error || "Erro ao criar credenciais de acesso");
+      }
+
+      const temporaryPassword = authResult.data.temporaryPassword;
+
       // Get workspace name for the email
       const { data: workspace } = await supabase
         .from("workspaces")
@@ -214,7 +239,7 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
         .eq("id", currentWorkspace.id)
         .single();
 
-      // Send invitation email
+      // Send invitation email with temporary password
       const { data: emailResult, error: emailError } = await supabase.functions.invoke(
         "send-client-invitation",
         {
@@ -223,13 +248,13 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
             clientEmail: data.email,
             workspaceName: workspace?.name || "FastCRM",
             portalUrl: `${window.location.origin}/client/login`,
+            temporaryPassword: temporaryPassword,
           },
         }
       );
 
       if (emailError) {
         console.error("Erro ao enviar email de convite:", emailError);
-        // Don't throw - client was created, just log the email error
         toast.warning("Cliente criado, mas houve um problema ao enviar o email de convite.");
       }
 
