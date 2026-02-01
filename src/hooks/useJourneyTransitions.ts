@@ -43,7 +43,9 @@ export function useJourneyTransitions() {
     
     return profiles.map(profile => {
       const profileEnrollments = enrollments.filter(e => e.profile_id === profile.id);
-      const completedEnrollments = profileEnrollments.filter(e => e.status === 'completed');
+      const completedEnrollments = profileEnrollments.filter(e => 
+        e.status === 'completed' || e.progress_percent >= 100
+      );
       const activeEnrollments = profileEnrollments.filter(e => 
         e.status === 'active' || e.status === 'enrolled'
       );
