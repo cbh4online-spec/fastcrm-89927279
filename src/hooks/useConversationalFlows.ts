@@ -11,6 +11,7 @@ import {
   mapStepFromDB,
   mapVariableFromDB
 } from '@/types/conversational-flows';
+import { FlowTemplate } from '@/components/flow-builder/FlowTemplates';
 
 export function useConversationalFlows() {
   const [flows, setFlows] = useState<ConversationalFlow[]>([]);
@@ -445,6 +446,130 @@ export function useConversationalFlows() {
     return updated;
   }, [updateFlow]);
 
+  // Create flow from template
+  const createFlowFromTemplate = useCallback(async (template: FlowTemplate) => {
+    if (!currentWorkspace?.id) return null;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Utilizador não autenticado');
+      return null;
+    }
+
+    setIsSaving(true);
+    try {
+      // 1. Create the flow
+      const { data: flow, error: flowError } = await supabase
+        .from('conversational_flows')
+        .insert({
+          workspace_id: currentWorkspace.id,
+          name: template.name,
+          description: template.description,
+          goal_type: template.defaultGoalType,
+          trigger_channels: template.defaultChannels,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (flowError) throw flowError;
+
+      // 2. Create variables and build mapping (template varName -> DB id)
+      const variableIdMap: Record<string, string> = {};
+      
+      for (let i = 0; i < template.variables.length; i++) {
+        const v = template.variables[i];
+        const { data: variable, error: varError } = await supabase
+          .from('flow_variables')
+          .insert({
+            flow_id: flow.id,
+            name: v.name,
+            display_name: v.displayName,
+            variable_type: v.variableType,
+            is_required: v.isRequired,
+            map_to_field: v.mapToField,
+            validation_pattern: v.validationPattern,
+            validation_message: v.validationMessage,
+            choices: v.choices,
+            position: i
+          })
+          .select()
+          .single();
+
+        if (varError) throw varError;
+        variableIdMap[v.name] = variable.id;
+      }
+
+      // 3. Create steps and build mapping (template stepId -> DB id)
+      const stepIdMap: Record<string, string> = {};
+      
+      for (let i = 0; i < template.steps.length; i++) {
+        const s = template.steps[i];
+        const insertData = {
+          flow_id: flow.id,
+          step_type: s.stepType,
+          name: s.name,
+          message_content: s.messageContent,
+          quick_replies: s.quickReplies,
+          variable_id: s.variableToCollect ? variableIdMap[s.variableToCollect] : null,
+          condition_field: s.conditionField,
+          condition_operator: s.conditionOperator,
+          condition_value: s.conditionValue,
+          goal_name: s.goalName,
+          conversion_value: s.conversionValue,
+          action_type: s.actionType,
+          action_config: s.actionConfig,
+          is_entry_point: s.isEntryPoint || false,
+          position_x: s.positionX,
+          position_y: s.positionY,
+          position: i
+        };
+        
+        const { data: step, error: stepError } = await supabase
+          .from('flow_steps' as 'flow_steps')
+          .insert(insertData as never)
+          .select()
+          .single();
+
+        if (stepError) throw stepError;
+        stepIdMap[s.id] = step.id;
+      }
+
+      // 4. Update step connections (next_step_id, condition_true/false_step_id)
+      for (const s of template.steps) {
+        const updateData: Record<string, string | null> = {};
+        
+        if (s.connectsTo && stepIdMap[s.connectsTo]) {
+          updateData.next_step_id = stepIdMap[s.connectsTo];
+        }
+        if (s.conditionTrueConnectsTo && stepIdMap[s.conditionTrueConnectsTo]) {
+          updateData.condition_true_step_id = stepIdMap[s.conditionTrueConnectsTo];
+        }
+        if (s.conditionFalseConnectsTo && stepIdMap[s.conditionFalseConnectsTo]) {
+          updateData.condition_false_step_id = stepIdMap[s.conditionFalseConnectsTo];
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await supabase
+            .from('flow_steps')
+            .update(updateData)
+            .eq('id', stepIdMap[s.id]);
+        }
+      }
+
+      const mappedFlow = mapFlowFromDB(flow);
+      setFlows(prev => [mappedFlow, ...prev]);
+      toast.success(`Fluxo "${template.name}" criado com ${template.steps.length} passos!`);
+      return mappedFlow;
+    } catch (err) {
+      console.error('Error creating flow from template:', err);
+      toast.error('Erro ao criar fluxo a partir do template');
+      return null;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [currentWorkspace?.id]);
+
   // Load flows on mount
   useEffect(() => {
     loadFlows();
@@ -463,6 +588,7 @@ export function useConversationalFlows() {
     loadFlows,
     loadFlowDetails,
     createFlow,
+    createFlowFromTemplate,
     updateFlow,
     deleteFlow,
     setFlowStatus,

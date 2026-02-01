@@ -7,6 +7,7 @@ import { ConversationalFlow, FlowStatus } from '@/types/conversational-flows';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { FlowTemplate } from './FlowTemplates';
 
 interface FlowBuilderModuleProps {
   personas: Array<{ id: string; name: string; isActive: boolean }>;
@@ -23,6 +24,7 @@ export function FlowBuilderModule({ personas, knowledgeBases }: FlowBuilderModul
     isSaving,
     loadFlowDetails,
     createFlow,
+    createFlowFromTemplate,
     updateFlow,
     deleteFlow,
     setFlowStatus,
@@ -50,6 +52,14 @@ export function FlowBuilderModule({ personas, knowledgeBases }: FlowBuilderModul
     triggerChannels?: string[];
   }) => {
     const flow = await createFlow(data);
+    if (flow) {
+      setShowCreateDialog(false);
+      await loadFlowDetails(flow.id);
+    }
+  };
+
+  const handleCreateFromTemplate = async (template: FlowTemplate) => {
+    const flow = await createFlowFromTemplate(template);
     if (flow) {
       setShowCreateDialog(false);
       await loadFlowDetails(flow.id);
@@ -154,8 +164,12 @@ export function FlowBuilderModule({ personas, knowledgeBases }: FlowBuilderModul
       {/* Create/Edit Dialog */}
       <CreateFlowDialog
         open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
+        onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (!open) setEditingFlow(null);
+        }}
         onSubmit={handleCreateFlow}
+        onSubmitTemplate={handleCreateFromTemplate}
         personas={personas}
         knowledgeBases={knowledgeBases}
         editingFlow={editingFlow}
