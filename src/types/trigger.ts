@@ -45,7 +45,8 @@ export type TriggerJobType =
   | 'workflow-execute'
   | 'batch-process'
   | 'integration-sync'
-  | 'rag-indexing';
+  | 'rag-indexing'
+  | 'knowledge-document';
 
 export type EntityType =
   | 'lead'
@@ -278,6 +279,7 @@ export const DEFAULT_CONCURRENCY_CONFIG: TriggerConcurrencyConfig = {
     'batch-process': 2,
     'integration-sync': 2,
     'rag-indexing': 3,
+    'knowledge-document': 3,
   },
 };
 

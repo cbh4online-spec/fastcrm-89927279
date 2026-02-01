@@ -25,6 +25,7 @@ interface ChunkResult {
 const CHUNK_SIZE = 30000;
 const MAX_TOTAL_CHARS = 100000;
 const MAX_DOWNLOAD_SIZE = 20 * 1024 * 1024; // 20MB - safe limit for edge function memory
+const TRIGGER_THRESHOLD = 20 * 1024 * 1024; // Files larger than 20MB go to Trigger.dev
 
 // Main handler - returns immediately, processes in background
 Deno.serve(async (req) => {
@@ -51,8 +52,75 @@ Deno.serve(async (req) => {
       .from('knowledge_sources')
       .update({ 
         processing_status: 'processing',
-        processing_error: 'A iniciar processamento...'
+        processing_error: 'A verificar tamanho do ficheiro...'
       })
+      .eq('id', sourceId);
+
+    // Get signed URL to check file size
+    const { data: urlData, error: urlError } = await supabase.storage
+      .from('knowledge-documents')
+      .createSignedUrl(filePath, 300);
+
+    if (urlError || !urlData) {
+      throw new Error(`Failed to get file URL: ${urlError?.message}`);
+    }
+
+    // Get file size via HEAD request
+    const headResponse = await fetch(urlData.signedUrl, { method: 'HEAD' });
+    const contentLength = parseInt(headResponse.headers.get('content-length') || '0');
+    const fileSizeMB = contentLength / (1024 * 1024);
+
+    console.log(`[KNOWLEDGE-DOC] File size: ${fileSizeMB.toFixed(2)}MB`);
+
+    // For files > 20MB, delegate to Trigger.dev for full processing
+    if (contentLength > TRIGGER_THRESHOLD) {
+      console.log(`[KNOWLEDGE-DOC] Large file detected. Delegating to Trigger.dev...`);
+      
+      await supabase
+        .from('knowledge_sources')
+        .update({ 
+          processing_status: 'processing',
+          processing_error: `Ficheiro grande (${fileSizeMB.toFixed(1)}MB). A processar via sistema avançado...`
+        })
+        .eq('id', sourceId);
+
+      // Dispatch to Trigger.dev via the trigger-dispatch function
+      const { data: triggerResult, error: triggerError } = await supabase.functions.invoke('knowledge-document-trigger', {
+        body: {
+          workspaceId,
+          inputData: {
+            sourceId,
+            filePath,
+            fileName,
+            mimeType,
+            knowledgeBaseId,
+            fileSize: contentLength
+          }
+        }
+      });
+
+      if (triggerError) {
+        console.error('[KNOWLEDGE-DOC] Trigger dispatch failed:', triggerError);
+        throw new Error(`Failed to dispatch to Trigger.dev: ${triggerError.message}`);
+      }
+
+      console.log(`[KNOWLEDGE-DOC] Dispatched to Trigger.dev`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          sourceId,
+          message: 'Processing delegated to Trigger.dev for large file',
+          delegated: true
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // For smaller files, process directly with background processing
+    await supabase
+      .from('knowledge_sources')
+      .update({ processing_error: 'A iniciar processamento...' })
       .eq('id', sourceId);
 
     // Start background processing with EdgeRuntime.waitUntil
@@ -116,7 +184,7 @@ Deno.serve(async (req) => {
   }
 });
 
-// Background processing function
+// Background processing function for files <= 20MB
 async function processDocumentInBackground(
   sourceId: string,
   filePath: string,
@@ -144,16 +212,9 @@ async function processDocumentInBackground(
       .eq('id', sourceId);
   };
 
-  await updateProgress('A verificar tamanho do ficheiro...');
+  await updateProgress('A descarregar ficheiro...');
 
-  // Get file metadata first to check size
-  const { data: fileList, error: listError } = await supabase.storage
-    .from('knowledge-documents')
-    .list(filePath.split('/').slice(0, -1).join('/'), {
-      search: filePath.split('/').pop()
-    });
-
-  // Get signed URL for range request
+  // Get signed URL for download
   const { data: urlData, error: urlError } = await supabase.storage
     .from('knowledge-documents')
     .createSignedUrl(filePath, 300);
@@ -162,45 +223,13 @@ async function processDocumentInBackground(
     throw new Error(`Failed to get file URL: ${urlError?.message}`);
   }
 
-  // Fetch file with HEAD request to get size
-  const headResponse = await fetch(urlData.signedUrl, { method: 'HEAD' });
-  const contentLength = parseInt(headResponse.headers.get('content-length') || '0');
-  const fileSizeMB = contentLength / (1024 * 1024);
-
-  console.log(`[KNOWLEDGE-DOC] File size: ${fileSizeMB.toFixed(2)}MB`);
-
-  let fileData: Blob;
-  let isPartialDownload = false;
-
-  // Use range request for files > 20MB to stay within memory limits
-  if (contentLength > MAX_DOWNLOAD_SIZE) {
-    isPartialDownload = true;
-    await updateProgress(`Ficheiro grande (${fileSizeMB.toFixed(1)}MB). A processar primeiros 20MB...`);
-    
-    // Download only first 20MB using Range header
-    const rangeResponse = await fetch(urlData.signedUrl, {
-      headers: {
-        'Range': `bytes=0-${MAX_DOWNLOAD_SIZE - 1}`
-      }
-    });
-
-    if (!rangeResponse.ok && rangeResponse.status !== 206) {
-      throw new Error(`Failed to download file: ${rangeResponse.status}`);
-    }
-
-    fileData = await rangeResponse.blob();
-    console.log(`[KNOWLEDGE-DOC] Downloaded partial: ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
-  } else {
-    await updateProgress('A descarregar ficheiro...');
-    
-    // Download full file for smaller files
-    const response = await fetch(urlData.signedUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.status}`);
-    }
-    fileData = await response.blob();
+  // Download file
+  const response = await fetch(urlData.signedUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to download file: ${response.status}`);
   }
 
+  const fileData = await response.blob();
   console.log(`[KNOWLEDGE-DOC] Downloaded: ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
   
   await updateProgress(`Ficheiro obtido. A extrair texto...`);
@@ -264,22 +293,15 @@ async function processDocumentInBackground(
 
   await updateProgress('A guardar resultados...');
 
-  // Add note about partial processing if applicable
-  const partialNote = isPartialDownload 
-    ? `\n\n---\n⚠️ Processado parcialmente: primeiros 20MB de ${fileSizeMB.toFixed(1)}MB` 
-    : '';
-
   // Update source with processed content
   await supabase
     .from('knowledge_sources')
     .update({
       original_content: totalContent.slice(0, 50000),
-      processed_content: mergedResult.processedContent + partialNote,
+      processed_content: mergedResult.processedContent,
       extracted_topics: mergedResult.topics,
       processing_status: 'completed',
-      processing_error: isPartialDownload 
-        ? `Processado parcialmente (20MB de ${fileSizeMB.toFixed(1)}MB)` 
-        : null,
+      processing_error: null,
       last_processed_at: new Date().toISOString()
     })
     .eq('id', sourceId);
@@ -315,17 +337,13 @@ async function processDocumentInBackground(
   }
 
   // Create main article entry
-  const articleTitle = isPartialDownload 
-    ? `${fileName.replace(/\.[^/.]+$/, '')} (parcial)`
-    : fileName.replace(/\.[^/.]+$/, '');
-
   const { error: articleError } = await supabase.from('knowledge_entries').insert({
     knowledge_base_id: knowledgeBaseId,
     source_id: sourceId,
     workspace_id: workspaceId,
     entry_type: 'article',
-    title: articleTitle,
-    content: mergedResult.processedContent + partialNote,
+    title: fileName.replace(/\.[^/.]+$/, ''),
+    content: mergedResult.processedContent,
     summary: mergedResult.summary,
     keywords: mergedResult.topics,
     category: mergedResult.categories?.[0],
@@ -337,7 +355,7 @@ async function processDocumentInBackground(
     console.error('[KNOWLEDGE-DOC] Error inserting article:', articleError);
   }
 
-  console.log(`[KNOWLEDGE-DOC] Successfully processed: ${fileName}${isPartialDownload ? ' (partial)' : ''}`);
+  console.log(`[KNOWLEDGE-DOC] Successfully processed: ${fileName}`);
 }
 
 // PDF extraction using AI vision

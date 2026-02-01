@@ -85,6 +85,19 @@ export type {
   SyncDetails,
 } from './integration-sync';
 
+// Knowledge Document Processing Job
+export {
+  KNOWLEDGE_DOCUMENT_JOB_CONFIG,
+  validateKnowledgeDocumentPayload,
+  createDefaultKnowledgeDocumentResult,
+  createKnowledgeDocumentProgressEvent,
+} from './knowledge-document';
+
+export type {
+  KnowledgeDocumentJobPayload,
+  KnowledgeDocumentJobResult,
+} from './knowledge-document';
+
 // Job configuration registry
 export const JOB_CONFIGS = {
   'ai-analysis': {
@@ -107,17 +120,23 @@ export const JOB_CONFIGS = {
     validator: validateIntegrationSyncPayload,
     resultFactory: createDefaultIntegrationResult,
   },
+  'knowledge-document': {
+    ...KNOWLEDGE_DOCUMENT_JOB_CONFIG,
+    validator: validateKnowledgeDocumentPayload,
+    resultFactory: createDefaultKnowledgeDocumentResult,
+  },
 } as const;
 
-// Import job configs for specific needs
 import { AI_ANALYSIS_JOB_CONFIG } from './ai-analysis';
 import { WORKFLOW_EXECUTE_JOB_CONFIG } from './workflow-execute';
 import { BATCH_PROCESS_JOB_CONFIG } from './batch-process';
 import { INTEGRATION_SYNC_JOB_CONFIG } from './integration-sync';
+import { KNOWLEDGE_DOCUMENT_JOB_CONFIG } from './knowledge-document';
 import { validateAIAnalysisPayload, createDefaultAIAnalysisResult } from './ai-analysis';
 import { validateWorkflowExecutePayload, createDefaultWorkflowResult } from './workflow-execute';
 import { validateBatchProcessPayload, createDefaultBatchResult } from './batch-process';
 import { validateIntegrationSyncPayload, createDefaultIntegrationResult } from './integration-sync';
+import { validateKnowledgeDocumentPayload, createDefaultKnowledgeDocumentResult } from './knowledge-document';
 
 export type JobType = keyof typeof JOB_CONFIGS;
 
