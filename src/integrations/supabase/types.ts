@@ -3130,7 +3130,7 @@ export type Database = {
       }
       client_users: {
         Row: {
-          auth_user_id: string
+          auth_user_id: string | null
           billing_address: Json | null
           business_type: string | null
           company_id: string | null
@@ -3151,7 +3151,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          auth_user_id: string
+          auth_user_id?: string | null
           billing_address?: Json | null
           business_type?: string | null
           company_id?: string | null
@@ -3172,7 +3172,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
-          auth_user_id?: string
+          auth_user_id?: string | null
           billing_address?: Json | null
           business_type?: string | null
           company_id?: string | null
