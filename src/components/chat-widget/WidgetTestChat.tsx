@@ -31,23 +31,70 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [visitorId] = useState(() => `test-${crypto.randomUUID()}`);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Add welcome message on mount
+  // Initialize conversation on mount
   useEffect(() => {
-    if (config.welcome_message) {
-      setMessages([
-        {
-          id: "welcome",
-          role: "assistant",
-          content: config.welcome_message,
-          timestamp: new Date(),
-        },
-      ]);
-    }
-  }, [config.welcome_message]);
+    const initConversation = async () => {
+      setIsInitializing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("chat-widget", {
+          body: {
+            action: "init",
+            widgetId,
+            visitorId,
+          },
+        });
+
+        if (error) throw error;
+
+        if (data.conversationId) {
+          setConversationId(data.conversationId);
+        }
+
+        // Set initial messages from response or use welcome message
+        if (data.messages && data.messages.length > 0) {
+          setMessages(
+            data.messages.map((msg: any) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              timestamp: new Date(msg.created_at),
+            }))
+          );
+        } else if (config.welcome_message) {
+          setMessages([
+            {
+              id: "welcome",
+              role: "assistant",
+              content: config.welcome_message,
+              timestamp: new Date(),
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error("Error initializing chat:", error);
+        // Fallback to welcome message
+        if (config.welcome_message) {
+          setMessages([
+            {
+              id: "welcome",
+              role: "assistant",
+              content: config.welcome_message,
+              timestamp: new Date(),
+            },
+          ]);
+        }
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initConversation();
+  }, [widgetId, visitorId, config.welcome_message]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -57,7 +104,7 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !conversationId) return;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -268,14 +315,14 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={config.placeholder_text || "Escreva a sua mensagem..."}
-              disabled={isLoading}
+              placeholder={isInitializing ? "A inicializar..." : (config.placeholder_text || "Escreva a sua mensagem...")}
+              disabled={isLoading || isInitializing || !conversationId}
               className="flex-1 rounded-full"
             />
             <Button
               size="icon"
               onClick={sendMessage}
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || isInitializing || !conversationId}
               className="rounded-full"
               style={{ backgroundColor: config.primary_color }}
             >
