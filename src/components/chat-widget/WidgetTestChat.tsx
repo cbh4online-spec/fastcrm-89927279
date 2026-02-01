@@ -31,7 +31,8 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [visitorId] = useState(() => `test-${crypto.randomUUID()}`);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Add welcome message on mount
@@ -72,10 +73,12 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
     try {
       const { data, error } = await supabase.functions.invoke("chat-widget", {
         body: {
+          action: "send_message",
           widgetId,
-          sessionId,
+          visitorId,
+          conversationId,
           message: userMessage.content,
-          visitorInfo: {
+          metadata: {
             userAgent: navigator.userAgent,
             language: navigator.language,
             referrer: window.location.href,
@@ -86,10 +89,15 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
 
       if (error) throw error;
 
+      // Store conversation ID for subsequent messages
+      if (data.conversationId && !conversationId) {
+        setConversationId(data.conversationId);
+      }
+
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: data.response || "Desculpe, não consegui processar a sua mensagem.",
+        content: data.response || data.message || "Desculpe, não consegui processar a sua mensagem.",
         timestamp: new Date(),
       };
 
@@ -118,6 +126,7 @@ export function WidgetTestChat({ widgetId, config, onClose }: WidgetTestChatProp
   };
 
   const resetChat = () => {
+    setConversationId(null);
     setMessages([
       {
         id: "welcome",
