@@ -1,46 +1,83 @@
 
 
-# Plano: Corrigir Estados dos Perfis Existentes
+# Plano: Remover Contactos Duplicados com Segurança
 
-## Problema Identificado
+## Resumo da Análise
 
-A importação foi executada **antes** da alteração do código ter sido implementada. Os perfis actualizados às 18:31 continuam com estado "completed" em vez de "active".
+| Métrica | Valor |
+|---------|-------|
+| Grupos de duplicados | 12 |
+| Contactos a remover | 16 |
+| Contactos a manter | 12 (o mais antigo de cada grupo) |
 
-**Dados actuais:**
-- 943 perfis com estado "lead"
-- 65 perfis com estado "completed"  
-- 6 perfis com estado "active"
+## Situação Crítica Detectada
 
-Muitos destes perfis têm inscrições em cursos mas mantêm estados incorrectos.
+Alguns contactos duplicados têm **perfis de alunos com inscrições** que precisam ser migrados antes da remoção:
 
-## Solução
+| Contacto | Perfil Associado | Inscrições | Acção |
+|----------|-----------------|------------|-------|
+| Jaqueline Lopes Correia | Sim (active) | 1 | Migrar perfil para contacto original |
+| Neide Janete Barroso da Costa | Sim (active) | 2 | Migrar perfil para contacto original |
+| Anita Cabeleireiro e Estética | Sim (lead) | 0 | Eliminar perfil órfão |
+| Joana Gonçalves Baselga Elistudio | Sim (lead) | 0 | Eliminar perfil órfão |
 
-Executar uma **actualização directa na base de dados** para corrigir todos os perfis que:
-- Têm pelo menos 1 inscrição (curso)
-- Estado actual diferente de "active"
+## Passos de Execução
 
-## Comando SQL a Executar
+### Passo 1: Migrar perfis com inscrições para contactos originais
 
 ```sql
+-- Migrar perfil da Jaqueline para contacto original
 UPDATE sj_profiles 
-SET lifecycle_stage = 'active'
-WHERE id IN (
-  SELECT DISTINCT p.id 
-  FROM sj_profiles p
-  INNER JOIN sj_enrollments e ON e.profile_id = p.id
-  WHERE p.lifecycle_stage != 'active'
+SET contact_id = 'bc37ed4b-cb51-4d6a-84a7-0cb0b27d2406'
+WHERE id = 'ae257394-7c22-4ef4-8455-f3eac0ef734a';
+
+-- Migrar perfil da Neide para contacto original
+UPDATE sj_profiles 
+SET contact_id = '2be0491d-cb12-465f-95ec-2c8995ad0f9e'
+WHERE id = '9b9bb297-4042-4cf1-9126-e95ed137d01c';
+```
+
+### Passo 2: Eliminar perfis órfãos (sem inscrições)
+
+```sql
+DELETE FROM sj_profiles 
+WHERE contact_id IN (
+  'ceb87802-7b9b-475d-be7c-f244fd3d50ca',
+  '3eedfc4d-c760-4a0d-9522-c6a9643bae5a'
 );
 ```
 
-## Impacto Esperado
+### Passo 3: Remover contactos duplicados
+
+```sql
+WITH duplicates AS (
+  SELECT 
+    LOWER(TRIM(name)) as normalized_name,
+    LOWER(TRIM(COALESCE(email, ''))) as normalized_email,
+    array_agg(id ORDER BY created_at ASC) as contact_ids
+  FROM contacts
+  GROUP BY LOWER(TRIM(name)), LOWER(TRIM(COALESCE(email, '')))
+  HAVING COUNT(*) > 1
+),
+ids_to_delete AS (
+  SELECT unnest(contact_ids[2:]) as id
+  FROM duplicates
+)
+DELETE FROM contacts
+WHERE id IN (SELECT id FROM ids_to_delete);
+```
+
+## Resultado Esperado
 
 | Antes | Depois |
 |-------|--------|
-| 943 leads (muitos com cursos) | Apenas leads SEM cursos |
-| 65 completed | Apenas completed SEM cursos activos |
-| 6 active | Todos com inscrições = active |
+| 16 contactos duplicados | 0 contactos duplicados |
+| Perfis com referências inválidas | Todos os perfis migrados correctamente |
+| Dados de inscrições em risco | Inscrições preservadas |
 
-## Alternativa
+## Segurança
 
-Se preferir, posso adicionar um **botão "Sincronizar Estados"** no painel de administração para permitir esta correcção manual sempre que necessário.
+- As inscrições (3 no total) serão preservadas através da migração dos perfis
+- Apenas contactos verdadeiramente duplicados serão removidos
+- O contacto mais antigo de cada grupo será sempre mantido
 
