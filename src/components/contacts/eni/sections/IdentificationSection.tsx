@@ -67,6 +67,34 @@ export function IdentificationSection({
           required
         />
 
+        {/* Nº Cliente */}
+        {(contact as any).company_id ? (
+          <div className="flex items-start py-3 border-b border-border/50 last:border-0 group">
+            <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
+              <FileText className="h-3.5 w-3.5" />
+              Nº Cliente
+            </div>
+            <div className="flex-1 text-sm flex items-center gap-2">
+              <span className="text-foreground">
+                {(contact as any).client_number || "—"}
+              </span>
+              <span className="text-xs text-muted-foreground italic">
+                (herdado da empresa)
+              </span>
+            </div>
+          </div>
+        ) : (
+          <InlineEditableField
+            label="Nº Cliente"
+            fieldId="client_number"
+            fieldType="text"
+            value={(contact as any).client_number || ''}
+            onChange={(value) => onFieldChange('client_number' as keyof ENIContact, value)}
+            icon={<FileText className="h-3.5 w-3.5" />}
+            placeholder="Ex: CLI-00001"
+          />
+        )}
+
         {/* NIF with lookup */}
         <InlineNifField
           label="NIF"

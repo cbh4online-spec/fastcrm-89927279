@@ -40,6 +40,7 @@ import { EmptyState, SearchEmptyState, TableSkeleton } from "@/components/design
 const CONTACT_COLUMNS: ColumnConfig[] = [
   // Basic Information
   { id: "name", label: "Contacto", category: "basic", defaultVisible: true },
+  { id: "client_number", label: "Nº Cliente", category: "basic", defaultVisible: true },
   { id: "email", label: "Email", category: "basic", defaultVisible: false },
   { id: "phone", label: "Telefone", category: "basic", defaultVisible: false },
   { id: "whatsapp_number", label: "WhatsApp", category: "basic", defaultVisible: false },

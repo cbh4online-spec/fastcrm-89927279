@@ -35,6 +35,15 @@ export function IdentificationSection({ company, onFieldChange, onNifDataReceive
             icon={<Building2 className="w-4 h-4" />}
             required
           />
+          <InlineEditableField
+            label="Nº Cliente"
+            fieldId="client_number"
+            fieldType="text"
+            value={company.client_number}
+            onChange={(val) => onFieldChange("client_number", val)}
+            icon={<Hash className="w-4 h-4" />}
+            placeholder="Ex: CLI-00001"
+          />
           <InlineNifField
             label="NIF"
             value={company.tax_id}
