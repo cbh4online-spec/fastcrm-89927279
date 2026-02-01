@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Palette, MessageCircle, Settings2, Code, RefreshCw } from "lucide-react";
+import { Copy, ExternalLink, Palette, MessageCircle, Settings2, Code, RefreshCw, Play } from "lucide-react";
+import { WidgetTestChat } from "./WidgetTestChat";
 
 interface WidgetConfig {
   id: string;
@@ -41,6 +42,7 @@ export function WidgetConfigPanel() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const [previewKey, setPreviewKey] = useState(0);
+  const [showTestChat, setShowTestChat] = useState(false);
 
   // Fetch widget config
   const { data: widget, isLoading } = useQuery({
@@ -213,6 +215,16 @@ export function WidgetConfigPanel() {
           <Badge variant={formData.is_active ? "default" : "secondary"}>
             {formData.is_active ? "Ativo" : "Inativo"}
           </Badge>
+          {widget?.id && (
+            <Button 
+              variant="outline" 
+              onClick={() => setShowTestChat(true)}
+              className="gap-2"
+            >
+              <Play className="h-4 w-4" />
+              Testar Chat
+            </Button>
+          )}
           <Button onClick={handleSave} disabled={saveMutation.isPending}>
             {saveMutation.isPending ? (
               <RefreshCw className="h-4 w-4 animate-spin mr-2" />
@@ -221,6 +233,24 @@ export function WidgetConfigPanel() {
           </Button>
         </div>
       </div>
+
+      {/* Test Chat Modal */}
+      {showTestChat && widget?.id && (
+        <WidgetTestChat
+          widgetId={widget.id}
+          config={{
+            primary_color: formData.primary_color || "#6366f1",
+            secondary_color: formData.secondary_color || "#f1f5f9",
+            text_color: formData.text_color || "#1e293b",
+            welcome_message: formData.welcome_message || "Olá! Como posso ajudar?",
+            placeholder_text: formData.placeholder_text || "Escreva a sua mensagem...",
+            company_name: formData.company_name || null,
+            avatar_url: formData.avatar_url || null,
+            show_branding: formData.show_branding ?? true,
+          }}
+          onClose={() => setShowTestChat(false)}
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Configuration */}
