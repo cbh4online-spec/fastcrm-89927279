@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import {
   Link2,
   Loader2,
   Download,
+  GraduationCap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -29,6 +30,12 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import { LifecycleStage } from "@/types/studentJourney";
+
+interface SJCourse {
+  id: string;
+  name: string;
+  tags?: string[];
+}
 
 interface ParsedProfile {
   full_name: string;
@@ -39,15 +46,20 @@ interface ParsedProfile {
   source?: string;
   notes?: string;
   lifecycle_stage?: LifecycleStage;
-  // Matching info
+  // Contact matching info
   matchedContactId?: string;
   matchedContactName?: string;
   matchType?: "email" | "phone" | "name";
+  // Course matching info
+  matchedCourseId?: string;
+  matchedCourseName?: string;
+  courseMatchType?: "exact" | "partial" | "keyword" | "tag";
 }
 
 interface ImportResult {
   created: number;
   matched: number;
+  enrollmentsCreated: number;
   errors: string[];
 }
 
@@ -68,13 +80,114 @@ export function ImportProfilesDialog({
   const [isMatching, setIsMatching] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [courses, setCourses] = useState<SJCourse[]>([]);
+
+  // Fetch courses for matching when dialog opens
+  useEffect(() => {
+    const fetchCourses = async () => {
+      if (!currentWorkspace?.id || !open) return;
+      const { data } = await supabase
+        .from("sj_courses")
+        .select("id, name, tags")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("is_active", true);
+      
+      // Map to SJCourse interface, handling JSON tags
+      const mappedCourses: SJCourse[] = (data || []).map((c) => ({
+        id: c.id,
+        name: c.name,
+        tags: Array.isArray(c.tags) ? (c.tags as string[]) : undefined,
+      }));
+      setCourses(mappedCourses);
+    };
+    fetchCourses();
+  }, [currentWorkspace?.id, open]);
+
+  // Normalize name for course matching: remove accents, lowercase, keep spaces
+  const normalizeName = (name: string): string => {
+    if (!name) return "";
+    return name
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove accents
+      .replace(/[^a-z0-9\s]/g, " ")     // Replace symbols with space
+      .replace(/\s+/g, " ")             // Collapse multiple spaces
+      .trim();
+  };
+
+  // Find matching course for an interest
+  const findMatchingCourse = (interest: string, coursesList: SJCourse[]): { course: SJCourse; matchType: "exact" | "partial" | "keyword" | "tag" } | null => {
+    if (!interest || coursesList.length === 0) return null;
+
+    const normalizedInterest = normalizeName(interest);
+    const interestWords = normalizedInterest.split(/\s+/).filter((w) => w.length > 2);
+
+    // 1. Exact match
+    const exactMatch = coursesList.find((c) => normalizeName(c.name) === normalizedInterest);
+    if (exactMatch) return { course: exactMatch, matchType: "exact" };
+
+    // 2. Partial match (name contains interest or vice-versa)
+    const partialMatch = coursesList.find((c) => {
+      const courseName = normalizeName(c.name);
+      return courseName.includes(normalizedInterest) || normalizedInterest.includes(courseName);
+    });
+    if (partialMatch) return { course: partialMatch, matchType: "partial" };
+
+    // 3. Keyword match (50%+ words overlap)
+    if (interestWords.length > 0) {
+      const keywordMatch = coursesList.find((c) => {
+        const courseName = normalizeName(c.name);
+        const courseWords = courseName.split(/\s+/);
+        const matches = interestWords.filter((w) => courseWords.some((cw) => cw.includes(w) || w.includes(cw)));
+        return matches.length >= Math.ceil(interestWords.length * 0.5);
+      });
+      if (keywordMatch) return { course: keywordMatch, matchType: "keyword" };
+    }
+
+    // 4. Tag match
+    const tagMatch = coursesList.find((c) =>
+      c.tags?.some((tag) => {
+        const normalizedTag = normalizeName(tag);
+        return normalizedTag.includes(normalizedInterest) || normalizedInterest.includes(normalizedTag);
+      })
+    );
+    if (tagMatch) return { course: tagMatch, matchType: "tag" };
+
+    return null;
+  };
+
+  // Apply course matching to profiles
+  const matchWithCourses = (profiles: ParsedProfile[], coursesList: SJCourse[]): ParsedProfile[] => {
+    return profiles.map((profile) => {
+      if (!profile.primary_interest) return profile;
+
+      const match = findMatchingCourse(profile.primary_interest, coursesList);
+      if (match) {
+        return {
+          ...profile,
+          matchedCourseId: match.course.id,
+          matchedCourseName: match.course.name,
+          courseMatchType: match.matchType,
+        };
+      }
+      return profile;
+    });
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const data = await parseFile(file);
+      let data = await parseFile(file);
+
+      // Apply course matching
+      if (courses.length > 0) {
+        data = matchWithCourses(data, courses);
+      }
+
       setParsedData(data);
       setSelectedRows(new Set(data.map((_, i) => i)));
       setStep("preview");
@@ -309,13 +422,13 @@ export function ImportProfilesDialog({
     setImportProgress(0);
 
     const toImport = parsedData.filter((_, i) => selectedRows.has(i));
-    const result: ImportResult = { created: 0, matched: 0, errors: [] };
+    const result: ImportResult = { created: 0, matched: 0, enrollmentsCreated: 0, errors: [] };
 
     for (let i = 0; i < toImport.length; i++) {
       const profile = toImport[i];
 
       try {
-        const { error } = await supabase.from("sj_profiles").insert({
+        const { data: createdProfile, error } = await supabase.from("sj_profiles").insert({
           workspace_id: currentWorkspace.id,
           full_name: profile.full_name,
           email: profile.email,
@@ -326,12 +439,28 @@ export function ImportProfilesDialog({
           notes: profile.notes,
           lifecycle_stage: profile.lifecycle_stage || "lead",
           contact_id: profile.matchedContactId,
-        });
+        }).select().single();
 
         if (error) throw error;
 
         result.created++;
         if (profile.matchedContactId) result.matched++;
+
+        // Create enrollment if course was matched
+        if (createdProfile && profile.matchedCourseId) {
+          const { error: enrollError } = await supabase.from("sj_enrollments").insert({
+            workspace_id: currentWorkspace.id,
+            profile_id: createdProfile.id,
+            course_id: profile.matchedCourseId,
+            status: "interested",
+            payment_status: "unpaid",
+            source: "import",
+          });
+
+          if (!enrollError) {
+            result.enrollmentsCreated++;
+          }
+        }
       } catch (err) {
         result.errors.push(`${profile.full_name}: ${err instanceof Error ? err.message : "Erro"}`);
       }
@@ -342,6 +471,7 @@ export function ImportProfilesDialog({
     setImportResult(result);
     setStep("complete");
     queryClient.invalidateQueries({ queryKey: ["sj-profiles"] });
+    queryClient.invalidateQueries({ queryKey: ["sj-enrollments"] });
   };
 
   const downloadTemplate = () => {
@@ -350,9 +480,17 @@ export function ImportProfilesDialog({
         nome: "João Silva",
         email: "joao@exemplo.pt",
         telefone: "912345678",
-        interesse: "Desenvolvimento Web",
+        formacao: "Curso Básico",
         origem: "Website",
-        notas: "Interessado no curso de React",
+        notas: "Interessado na formação básica",
+      },
+      {
+        nome: "Maria Santos",
+        email: "maria@exemplo.pt",
+        telefone: "923456789",
+        formacao: "Formação Avançada",
+        origem: "Indicação",
+        notas: "",
       },
     ];
 
@@ -485,7 +623,7 @@ export function ImportProfilesDialog({
                     </th>
                     <th className="p-2 text-left">Nome</th>
                     <th className="p-2 text-left">Email</th>
-                    <th className="p-2 text-left">Interesse</th>
+                    <th className="p-2 text-left">Formação</th>
                     <th className="p-2 text-left">Match CRM</th>
                   </tr>
                 </thead>
@@ -510,7 +648,21 @@ export function ImportProfilesDialog({
                       <td className="p-2 text-muted-foreground">
                         {profile.email || "-"}
                       </td>
-                      <td className="p-2">{profile.primary_interest || "-"}</td>
+                      <td className="p-2">
+                        {profile.matchedCourseId ? (
+                          <Badge
+                            variant="outline"
+                            className="gap-1 text-xs bg-purple-50 text-purple-700 border-purple-200"
+                          >
+                            <GraduationCap className="h-3 w-3" />
+                            {profile.matchedCourseName}
+                          </Badge>
+                        ) : profile.primary_interest ? (
+                          <span className="text-muted-foreground text-xs">{profile.primary_interest}</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
                       <td className="p-2">
                         {profile.matchedContactId ? (
                           <Badge
@@ -552,12 +704,20 @@ export function ImportProfilesDialog({
               <p className="font-medium text-lg">Importação concluída!</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="bg-muted/50 rounded-lg p-4 text-center">
                 <p className="text-2xl font-bold text-primary">
                   {importResult.created}
                 </p>
                 <p className="text-sm text-muted-foreground">Perfis criados</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-purple-600">
+                  {importResult.enrollmentsCreated}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Inscrições criadas
+                </p>
               </div>
               <div className="bg-muted/50 rounded-lg p-4 text-center">
                 <p className="text-2xl font-bold text-green-600">
