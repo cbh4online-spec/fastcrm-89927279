@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { CreateEnrollmentDialog } from "@/components/student-journey/CreateEnrollmentDialog";
+import { EditEnrollmentDialog } from "@/components/student-journey/EditEnrollmentDialog";
 import { CreateTouchpointDialog } from "@/components/student-journey/CreateTouchpointDialog";
 import { CreateTaskDialog } from "@/components/student-journey/CreateTaskDialog";
 import { ScheduleFollowUpDialog } from "@/components/student-journey/ScheduleFollowUpDialog";
@@ -70,6 +71,8 @@ export default function SJProfileDetail() {
   );
 
   const [enrollmentDialogOpen, setEnrollmentDialogOpen] = useState(false);
+  const [editEnrollmentDialogOpen, setEditEnrollmentDialogOpen] = useState(false);
+  const [editingEnrollment, setEditingEnrollment] = useState<SJEnrollment | null>(null);
   const [touchpointDialogOpen, setTouchpointDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
@@ -334,9 +337,22 @@ export default function SJProfileDetail() {
                                   </p>
                                 )}
                               </div>
-                              <Badge className={cn(statusConfig.bgColor, statusConfig.color, "border-0")}>
-                                {statusConfig.label}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setEditingEnrollment(enrollment);
+                                    setEditEnrollmentDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Badge className={cn(statusConfig.bgColor, statusConfig.color, "border-0")}>
+                                  {statusConfig.label}
+                                </Badge>
+                              </div>
                             </div>
                             <div className="mt-3">
                               <div className="flex items-center justify-between text-sm mb-1">
@@ -498,6 +514,14 @@ export default function SJProfileDetail() {
         open={enrollmentDialogOpen}
         onOpenChange={setEnrollmentDialogOpen}
         profileId={id}
+      />
+      <EditEnrollmentDialog
+        open={editEnrollmentDialogOpen}
+        onOpenChange={(open) => {
+          setEditEnrollmentDialogOpen(open);
+          if (!open) setEditingEnrollment(null);
+        }}
+        enrollment={editingEnrollment}
       />
       <CreateTouchpointDialog
         open={touchpointDialogOpen}
