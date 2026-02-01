@@ -4,6 +4,7 @@ export { SJCopilotDrawer } from "./SJCopilotDrawer";
 export { CreateProfileDialog } from "./CreateProfileDialog";
 export { CreateCohortDialog } from "./CreateCohortDialog";
 export { CreateCourseDialog } from "./CreateCourseDialog";
+export { EditCourseDialog } from "./EditCourseDialog";
 export { CreateEnrollmentDialog } from "./CreateEnrollmentDialog";
 export { CreateTouchpointDialog } from "./CreateTouchpointDialog";
 export { CreateTaskDialog } from "./CreateTaskDialog";

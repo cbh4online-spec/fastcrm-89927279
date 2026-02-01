@@ -38,6 +38,8 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { CreateCourseDialog } from "@/components/student-journey/CreateCourseDialog";
 import { CreateCohortDialog } from "@/components/student-journey/CreateCohortDialog";
+import { EditCourseDialog } from "@/components/student-journey/EditCourseDialog";
+import { SJCourse } from "@/types/studentJourney";
 
 const COURSE_TYPE_LABELS: Record<CourseType, string> = {
   online: "Online",
@@ -54,6 +56,8 @@ export default function SJCourses() {
   const [activeTab, setActiveTab] = useState("courses");
   const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [createCohortOpen, setCreateCohortOpen] = useState(false);
+  const [editCourseOpen, setEditCourseOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<SJCourse | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   // Filter courses
@@ -168,7 +172,13 @@ export default function SJCourses() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCourse(course);
+                                setEditCourseOpen(true);
+                              }}
+                            >
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
@@ -316,6 +326,11 @@ export default function SJCourses() {
         open={createCohortOpen}
         onOpenChange={setCreateCohortOpen}
         defaultCourseId={selectedCourseId || undefined}
+      />
+      <EditCourseDialog
+        open={editCourseOpen}
+        onOpenChange={setEditCourseOpen}
+        course={editingCourse}
       />
     </div>
   );
