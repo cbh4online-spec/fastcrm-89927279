@@ -299,12 +299,15 @@ function BlankFlowForm({
       {activePersonas.length > 0 && (
         <div className="space-y-2">
           <Label>Persona IA</Label>
-          <Select value={personaId} onValueChange={setPersonaId}>
+          <Select 
+            value={personaId || '__none__'} 
+            onValueChange={(val) => setPersonaId(val === '__none__' ? '' : val)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Seleciona persona..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Nenhuma (usa predefinição)</SelectItem>
+              <SelectItem value="__none__">Nenhuma (usa predefinição)</SelectItem>
               {activePersonas.map(p => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}
