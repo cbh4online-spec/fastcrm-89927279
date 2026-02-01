@@ -1,153 +1,188 @@
 
-# Plano: Adicionar Edição de Inscrições (Enrollments)
+# Plano: Corrigir Ações do Menu de Perfis
 
-## Objectivo
+## Problemas Identificados
 
-Permitir editar as inscrições dos alunos directamente na página de detalhe do perfil, incluindo campos como estado, pagamento, progresso, turma e notas.
+No ficheiro `SJProfiles.tsx`, três ações no menu dropdown não têm funcionalidade:
 
-## Campos Editáveis
+| Ação | Problema |
+|------|----------|
+| Nova Inscrição | Sem handler `onClick` |
+| Gerar Mensagem IA | Sem handler `onClick` + requer `courseId` |
+| Marcar Interesse | Sem handler `onClick` |
 
-Com base no tipo `SJEnrollment`, os campos editáveis serão:
+## Solução
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| status | EnrollmentStatus | Interessado, Convidado, Inscrito, Ativo, Concluído, Desistiu |
-| payment_status | PaymentStatus | Por Pagar, Parcial, Pago, Reembolsado |
-| progress_percent | number | Percentagem de progresso (0-100) |
-| cohort_id | string/null | Turma associada (se o curso tiver turmas) |
-| started_at | date/null | Data de início |
-| completed_at | date/null | Data de conclusão |
-| notes | string/null | Notas adicionais |
+### 1. Nova Inscrição
+
+Adicionar estado e handler para abrir o `CreateEnrollmentDialog` já existente:
+
+```text
+Estado necessário:
+- enrollmentDialogOpen: boolean
+- selectedProfileForEnrollment: SJProfile | null
+
+Handler:
+onClick={() => handleNewEnrollment(profile)}
+```
+
+O `CreateEnrollmentDialog` já aceita um `profileId` como prop.
+
+### 2. Gerar Mensagem IA
+
+Criar um novo componente `GenerateMessageForProfileDialog` que permite:
+- Gerar mensagem genérica (sem curso específico)
+- OU seleccionar primeiro um curso para personalizar
+
+Como a versão atual `RecommendationMessageDialog` requer `courseId`, vamos criar uma versão simplificada que:
+1. Permite gerar mensagem sem curso (mensagem de reactivação/contacto)
+2. Opcionalmente permite escolher um curso para personalizar
+
+### 3. Marcar Interesse
+
+Adicionar um diálogo simples para registar o interesse do aluno:
+- Campo de texto para descrever o interesse
+- Adiciona ao array `interests` do perfil
 
 ## Alterações Detalhadas
 
-### 1. Criar EditEnrollmentDialog.tsx
+### Ficheiro: `SJProfiles.tsx`
 
-Novo componente seguindo o padrão do EditCourseDialog:
-
-```text
-┌─────────────────────────────────────────┐
-│          Editar Inscrição               │
-├─────────────────────────────────────────┤
-│ Curso: Marketing Digital (readonly)     │
-│                                         │
-│ Turma:     [Dropdown com turmas]        │
-│                                         │
-│ ┌─────────────┐  ┌─────────────┐       │
-│ │ Estado:     │  │ Pagamento:  │       │
-│ │ [Ativo    ▼]│  │ [Pago     ▼]│       │
-│ └─────────────┘  └─────────────┘       │
-│                                         │
-│ Progresso: [═══════════════] 75%       │
-│            [    Slider     ]            │
-│                                         │
-│ Data Início:    [__/__/____]           │
-│ Data Conclusão: [__/__/____]           │
-│                                         │
-│ Notas:                                  │
-│ ┌─────────────────────────────────┐    │
-│ │                                 │    │
-│ └─────────────────────────────────┘    │
-│                                         │
-│         [Cancelar]  [Guardar]          │
-└─────────────────────────────────────────┘
+**Adicionar estados:**
+```typescript
+const [enrollmentDialogOpen, setEnrollmentDialogOpen] = useState(false);
+const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+const [interestDialogOpen, setInterestDialogOpen] = useState(false);
+const [selectedProfile, setSelectedProfile] = useState<SJProfile | null>(null);
 ```
 
-### 2. Actualizar SJProfileDetail.tsx
-
-Adicionar:
-- Estado para controlar o diálogo de edição
-- Botão de edição em cada card de inscrição
-- Importar e renderizar o EditEnrollmentDialog
-
-### 3. Exportar no index.ts
-
-Adicionar exportação do novo componente
-
-## Código do EditEnrollmentDialog
-
+**Adicionar handlers:**
 ```typescript
-// Estados inicializados com useEffect
-const [status, setStatus] = useState<EnrollmentStatus>("enrolled");
-const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("unpaid");
-const [progressPercent, setProgressPercent] = useState(0);
-const [cohortId, setCohortId] = useState<string | null>(null);
-const [startedAt, setStartedAt] = useState("");
-const [completedAt, setCompletedAt] = useState("");
-const [notes, setNotes] = useState("");
+const handleNewEnrollment = (profile: SJProfile) => {
+  setSelectedProfile(profile);
+  setEnrollmentDialogOpen(true);
+};
 
-// Carregar dados da inscrição
-useEffect(() => {
-  if (enrollment) {
-    setStatus(enrollment.status);
-    setPaymentStatus(enrollment.payment_status);
-    setProgressPercent(enrollment.progress_percent);
-    setCohortId(enrollment.cohort_id);
-    setStartedAt(enrollment.started_at?.split("T")[0] || "");
-    setCompletedAt(enrollment.completed_at?.split("T")[0] || "");
-    setNotes(enrollment.notes || "");
-  }
-}, [enrollment]);
+const handleGenerateMessage = (profile: SJProfile) => {
+  setSelectedProfile(profile);
+  setMessageDialogOpen(true);
+};
 
-// Submit
-const handleSubmit = async () => {
-  await updateEnrollment.mutateAsync({
-    id: enrollment.id,
-    status,
-    payment_status: paymentStatus,
-    progress_percent: progressPercent,
-    cohort_id: cohortId || null,
-    started_at: startedAt ? new Date(startedAt).toISOString() : null,
-    completed_at: completedAt ? new Date(completedAt).toISOString() : null,
-    notes: notes.trim() || null,
-  });
-  onOpenChange(false);
+const handleMarkInterest = (profile: SJProfile) => {
+  setSelectedProfile(profile);
+  setInterestDialogOpen(true);
 };
 ```
 
-## Alteração no Card de Inscrição
-
-Adicionar botão de edição no header de cada inscrição:
-
+**Corrigir DropdownMenuItems:**
 ```typescript
-<div className="flex items-start justify-between">
-  <div>
-    <p className="font-medium">{enrollment.course?.name}</p>
-    {enrollment.cohort && (
-      <p className="text-sm text-muted-foreground">
-        Turma: {enrollment.cohort.name}
-      </p>
-    )}
-  </div>
-  <div className="flex items-center gap-2">
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => {
-        setEditingEnrollment(enrollment);
-        setEditEnrollmentDialogOpen(true);
-      }}
-    >
-      <Edit className="h-4 w-4" />
-    </Button>
-    <Badge className={...}>{statusConfig.label}</Badge>
-  </div>
-</div>
+<DropdownMenuItem onClick={() => handleNewEnrollment(profile)}>
+  <ClipboardList className="h-4 w-4 mr-2" />
+  Nova Inscrição
+</DropdownMenuItem>
+<DropdownMenuItem onClick={() => handleGenerateMessage(profile)}>
+  <MessageSquare className="h-4 w-4 mr-2" />
+  Gerar Mensagem IA
+</DropdownMenuItem>
+<DropdownMenuItem onClick={() => handleMarkInterest(profile)}>
+  <Star className="h-4 w-4 mr-2" />
+  Marcar Interesse
+</DropdownMenuItem>
+```
+
+**Adicionar diálogos no render:**
+```typescript
+<CreateEnrollmentDialog
+  open={enrollmentDialogOpen}
+  onOpenChange={setEnrollmentDialogOpen}
+  profileId={selectedProfile?.id}
+/>
+<GenerateMessageDialog
+  open={messageDialogOpen}
+  onOpenChange={setMessageDialogOpen}
+  profile={selectedProfile}
+/>
+<AddInterestDialog
+  open={interestDialogOpen}
+  onOpenChange={setInterestDialogOpen}
+  profile={selectedProfile}
+/>
+```
+
+### Novo Ficheiro: `GenerateMessageDialog.tsx`
+
+Diálogo para gerar mensagem personalizada (sem requerer curso):
+
+```text
+┌───────────────────────────────────────────┐
+│    Gerar Mensagem para [Nome do Aluno]    │
+├───────────────────────────────────────────┤
+│                                           │
+│ Tipo de mensagem:                         │
+│ ○ Contacto geral                          │
+│ ○ Convite para curso [Dropdown]           │
+│ ○ Reativação                              │
+│ ○ Follow-up                               │
+│                                           │
+│ [Gerar com IA]                            │
+│                                           │
+│ Assunto: ___________________________      │
+│ Mensagem:                                 │
+│ ┌─────────────────────────────────────┐   │
+│ │                                     │   │
+│ │                                     │   │
+│ └─────────────────────────────────────┘   │
+│                                           │
+│ CTA: ___________________________          │
+│                                           │
+│            [Cancelar]  [Copiar]           │
+└───────────────────────────────────────────┘
+```
+
+A edge function `sj-course-recommendations` já suporta `generate_message`, mas podemos adicionar uma nova acção `generate_contact_message` para mensagens sem curso.
+
+### Novo Ficheiro: `AddInterestDialog.tsx`
+
+Diálogo simples para adicionar interesse:
+
+```text
+┌─────────────────────────────────────┐
+│     Marcar Interesse               │
+├─────────────────────────────────────┤
+│ Aluno: [Nome]                       │
+│                                     │
+│ Interesse/Área: ________________    │
+│                                     │
+│ Interesses actuais:                 │
+│ [Tag1] [Tag2] [Tag3]               │
+│                                     │
+│         [Cancelar]  [Adicionar]     │
+└─────────────────────────────────────┘
 ```
 
 ## Ficheiros a Criar/Modificar
 
 | Ficheiro | Acção |
 |----------|-------|
-| src/components/student-journey/EditEnrollmentDialog.tsx | Criar |
-| src/pages/student-journey/SJProfileDetail.tsx | Modificar |
-| src/components/student-journey/index.ts | Modificar |
+| src/pages/student-journey/SJProfiles.tsx | Modificar - adicionar handlers e diálogos |
+| src/components/student-journey/GenerateMessageDialog.tsx | Criar |
+| src/components/student-journey/AddInterestDialog.tsx | Criar |
+| src/components/student-journey/index.ts | Modificar - exportar novos componentes |
 
-## Dependências
+## Edge Function
 
-Utiliza componentes já existentes:
-- Dialog, Button, Input, Label, Textarea
-- Select (para status e payment_status)
-- Slider (para progress_percent)
-- useCohorts hook (para listar turmas do curso)
-- useEnrollments hook (já tem updateEnrollment)
+Adicionar acção `generate_contact_message` que não requer `courseId`:
+
+```typescript
+if (action === "generate_contact_message" && profileId) {
+  // Gera mensagem de contacto/reativação genérica
+}
+```
+
+## Resumo da Implementação
+
+1. Corrigir `onClick` handlers vazios nos 3 menu items
+2. Criar `GenerateMessageDialog` adaptado para uso sem curso obrigatório  
+3. Criar `AddInterestDialog` para registar interesses rapidamente
+4. Adicionar acção na edge function para mensagens genéricas
+5. Importar e usar `CreateEnrollmentDialog` (já existe)
