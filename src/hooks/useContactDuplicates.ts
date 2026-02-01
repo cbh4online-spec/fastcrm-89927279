@@ -5,9 +5,9 @@ import type { Contact } from "./useContacts";
 
 export interface DuplicateMatch {
   contact: Contact;
-  matchType: "email" | "phone" | "name_similarity";
+  matchType: "email" | "phone" | "name_exact" | "name_similarity";
   similarity: number;
-  isBlockingDuplicate: boolean; // Email exact match blocks creation
+  isBlockingDuplicate: boolean; // Email and exact name match block creation
 }
 
 function normalizeString(str: string): string {
@@ -114,15 +114,26 @@ export function useContactDuplicateCheck(
           }
         }
 
-        // Check name similarity (WARNING only - can still create)
+        // Check name match
         if (name && contact.name) {
           const similarity = calculateSimilarity(name, contact.name);
-          if (similarity >= 0.85) {
+          
+          // EXACT name match (BLOCKING - name must be unique)
+          if (similarity === 1) {
+            duplicates.push({
+              contact: contact as Contact,
+              matchType: "name_exact",
+              similarity: 1,
+              isBlockingDuplicate: true, // Exact name duplicates block creation
+            });
+          }
+          // Similar name (>85% but not exact) - WARNING only
+          else if (similarity >= 0.85) {
             duplicates.push({
               contact: contact as Contact,
               matchType: "name_similarity",
               similarity,
-              isBlockingDuplicate: false, // Name duplicates are warnings only
+              isBlockingDuplicate: false, // Similar names are warnings only
             });
           }
         }
