@@ -1,155 +1,337 @@
 
+# Plano: Correcao Completa do Portal do Cliente
 
-# Plano: Corrigir Login do Portal do Cliente
+## Diagnostico Final
 
-## Diagnóstico Completo
+Apos investigacao detalhada, foram identificados os seguintes problemas:
 
-O problema foi identificado através de análise detalhada da base de dados e do código:
+### Problema 1: Race Condition na Inicializacao do useClientAuth
 
-### Situação Actual
-
-```text
-TABELA profiles (CRM)
-├── id: 4fef01e3-0141-4bee-8309-0bac5d4fb6ae
-├── email: jorge.cardoso@digital4ads.pt
-└── role: super_admin
-
-TABELA client_users (Portal Cliente)
-├── auth_user_id: 444ba746-3e86-4283-a363-ad2b27b81dc9 ← ID ERRADO!
-├── email: jorge.cardoso@digital4ads.pt
-└── status: active
-```
-
-### Porque Falha
+O hook `useClientAuth` tem multiplos paths que definem o estado, causando conflitos:
 
 ```text
-1. Utilizador faz login em /client/login
-   ↓
-2. Supabase retorna sessão com user.id = 4fef01e3... (ID do CRM)
-   ↓
-3. useClientAuth procura: client_users WHERE auth_user_id = 4fef01e3...
-   ↓
-4. NÃO ENCONTRA porque client_users tem auth_user_id = 444ba746...
-   ↓
-5. isAuthenticated = !!user && !!clientUser = true && false = FALSE
-   ↓
-6. ClientLayout redireciona para /client/login
-   ↓
-7. LOOP INFINITO
+useEffect inicia
+    ├── getSession().then() → pode definir loading=false
+    ├── onAuthStateChange → pode definir loading=false
+    └── loadingTimeout → pode definir loading=false
+
+Problema: Estes podem executar em ordem incorrecta, deixando clientUser como NULL
 ```
 
-## Soluções Necessárias
+### Problema 2: Logica de hasAuthButNoClient Prematura
 
-### 1. Correcção de Dados (Imediata)
-
-Actualizar o `client_users.auth_user_id` para apontar para o utilizador auth correcto:
-
-```sql
-UPDATE client_users 
-SET auth_user_id = '4fef01e3-0141-4bee-8309-0bac5d4fb6ae'
-WHERE email = 'jorge.cardoso@digital4ads.pt';
-```
-
-### 2. Melhoria do Hook useClientAuth
-
-Adicionar tratamento para quando o utilizador está autenticado mas não tem registo de cliente:
+A condicao `hasAuthButNoClient` pode ser TRUE temporariamente enquanto o `clientUser` ainda esta a ser carregado:
 
 ```typescript
-// Antes de retornar isAuthenticated
-const hasAuthButNoClient = !!user && !clientUser && !loading;
-
-return {
-  // ...
-  isAuthenticated: !!user && !!clientUser,
-  hasAuthButNoClient, // Nova propriedade para UI feedback
-};
+// Esta condicao pode ser TRUE antes do clientUser ser populado
+const hasAuthButNoClient = !!user && !clientUser && !loading && !error;
 ```
 
-### 3. Melhoria da Página de Login
+Quando o utilizador tem sessao activa no CRM:
+1. `getSession()` encontra sessao → `user` e definido imediatamente
+2. `fetchClientUser()` e chamado mas ainda esta a carregar
+3. `loading` e definido como `false` antes do `clientUser` estar pronto
+4. `hasAuthButNoClient = true` → mostra erro "Acesso Nao Autorizado"
 
-Mostrar mensagem clara quando o utilizador está autenticado mas não é cliente:
+### Problema 3: Fluxo de Logout Incompleto
+
+Quando o utilizador clica "Terminar Sessao", o `signOut()` limpa a sessao do CRM tambem, causando problemas se o utilizador tinha dupla identidade.
+
+## Solucao Proposta
+
+### Ficheiro 1: src/hooks/client-portal/useClientAuth.ts
+
+**Alteracoes:**
+
+1. Adicionar estado `clientUserLoading` separado para rastrear especificamente o carregamento do clientUser
+2. Corrigir a logica de `hasAuthButNoClient` para so ser TRUE quando o fetchClientUser terminou
+3. Garantir que o loading so e FALSE quando AMBOS user e clientUser foram verificados
 
 ```typescript
-// No ClientLoginPage
-if (user && !clientUser && !loading) {
+export function useClientAuth(): UseClientAuthReturn {
+  const [user, setUser] = useState<User | null>(null);
+  const [clientUser, setClientUser] = useState<ClientUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [clientUserLoading, setClientUserLoading] = useState(false); // NOVO
+  const [clientUserChecked, setClientUserChecked] = useState(false); // NOVO
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchClientUser = async (userId: string) => {
+    setClientUserLoading(true); // NOVO
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("client_users")
+        .select("*")
+        .eq("auth_user_id", userId)
+        .in("status", ["active", "pending"])
+        .maybeSingle();
+      
+      if (fetchError) {
+        setError("Erro ao carregar perfil de cliente");
+        setClientUser(null);
+      } else {
+        setClientUser(data as ClientUser | null);
+        setError(null);
+      }
+    } catch (err) {
+      setError("Erro ao carregar perfil");
+      setClientUser(null);
+    } finally {
+      setClientUserLoading(false); // NOVO
+      setClientUserChecked(true); // NOVO
+    }
+  };
+
+  // hasAuthButNoClient so e TRUE quando:
+  // 1. Temos user autenticado
+  // 2. NAO temos clientUser
+  // 3. NAO estamos em loading geral
+  // 4. NAO estamos a carregar clientUser
+  // 5. JA verificamos o clientUser (fetchClientUser terminou)
+  // 6. NAO ha erro
+  const hasAuthButNoClient = !!user && !clientUser && !loading && !clientUserLoading && clientUserChecked && !error;
+```
+
+### Ficheiro 2: src/pages/client/ClientLoginPage.tsx
+
+**Alteracoes:**
+
+1. Adicionar verificacao extra para loading do clientUser
+2. Melhorar mensagem de erro para ser mais clara
+
+```typescript
+// Mostrar loading enquanto qualquer parte esta a carregar
+if (loading) {
   return (
-    <Alert variant="destructive">
-      Esta conta não está associada ao portal de clientes.
-      Por favor contacte o suporte.
-    </Alert>
+    <div className="min-h-screen flex flex-col items-center justify-center ...">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="mt-4 text-sm text-muted-foreground">
+        A verificar credenciais...
+      </p>
+      {loadingTimeout && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          A ligacao esta a demorar. Por favor, atualize a pagina.
+        </p>
+      )}
+    </div>
   );
 }
 ```
 
-### 4. Correcção do Edge Function (Prevenção Futura)
+### Ficheiro 3: Interface UseClientAuthReturn
 
-O edge function `create-client-auth-user` já tem lógica para reutilizar utilizadores existentes, mas pode não estar a funcionar correctamente. Verificar se:
-- A busca por utilizador existente funciona
-- O ID correcto é usado ao actualizar client_users
+Adicionar novas propriedades:
 
-## Ficheiros a Modificar
-
-### 1. src/hooks/client-portal/useClientAuth.ts
-
-| Linha | Alteração |
-|-------|-----------|
-| Interface | Adicionar `hasAuthButNoClient: boolean` |
-| Return | Adicionar propriedade para detectar utilizador sem cliente |
-
-### 2. src/pages/client/ClientLoginPage.tsx
-
-| Linha | Alteração |
-|-------|-----------|
-| Novo bloco | Mostrar mensagem de erro quando utilizador não é cliente |
-| UX | Evitar loop infinito mostrando estado claro |
-
-### 3. Dados na Base de Dados
-
-| Tabela | Alteração |
-|--------|-----------|
-| client_users | Corrigir auth_user_id para jorge.cardoso@digital4ads.pt |
+```typescript
+interface UseClientAuthReturn {
+  user: User | null;
+  clientUser: ClientUser | null;
+  loading: boolean;
+  clientUserLoading: boolean; // NOVO
+  error: string | null;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  isAuthenticated: boolean;
+  hasAuthButNoClient: boolean;
+}
+```
 
 ## Fluxo Corrigido
 
 ```text
-CENÁRIO A: Utilizador é cliente válido
-1. Login → Sessão com user.id
-2. Query encontra client_users com auth_user_id = user.id
-3. isAuthenticated = TRUE
-4. Acesso ao portal
+ANTES (PROBLEMATICO):
+1. getSession() → user encontrado
+2. loading = false (ERRO: muito cedo!)
+3. hasAuthButNoClient = true (ERRO!)
+4. Mostra "Acesso Nao Autorizado"
 
-CENÁRIO B: Utilizador autenticado mas NÃO é cliente
-1. Login → Sessão com user.id
-2. Query NÃO encontra client_users
-3. hasAuthButNoClient = TRUE
-4. Mostra mensagem: "Esta conta não está associada ao portal"
-5. NÃO redireciona (evita loop)
-
-CENÁRIO C: Utilizador não autenticado
-1. Mostra formulário de login
+DEPOIS (CORRECTO):
+1. getSession() → user encontrado
+2. fetchClientUser() inicia → clientUserLoading = true
+3. loading permanece true (user existe mas clientUser a carregar)
+4. fetchClientUser() termina → clientUserChecked = true
+5. Se clientUser existe:
+   → isAuthenticated = true
+   → Redireciona para dashboard
+6. Se clientUser NAO existe:
+   → hasAuthButNoClient = true
+   → Mostra mensagem de erro
 ```
 
-## Resultado Esperado
+## Tabela de Alteracoes
 
-Após as alterações:
+| Ficheiro | Alteracao | Motivo |
+|----------|-----------|--------|
+| useClientAuth.ts | Adicionar `clientUserLoading` | Rastrear loading especifico |
+| useClientAuth.ts | Adicionar `clientUserChecked` | Saber quando fetch terminou |
+| useClientAuth.ts | Corrigir `hasAuthButNoClient` | Evitar falsos positivos |
+| useClientAuth.ts | Ajustar `loading` final | So FALSE quando tudo verificado |
+| ClientLoginPage.tsx | Melhorar mensagem loading | Feedback mais claro ao utilizador |
 
-| Cenário | Antes | Depois |
-|---------|-------|--------|
-| Cliente válido | Loop infinito | Acede ao dashboard |
-| Utilizador CRM sem cliente | Loop infinito | Mensagem clara de erro |
-| Utilizador novo | Funciona | Continua a funcionar |
-| Credenciais erradas | Funciona | Continua a funcionar |
+## Bugs Adicionais Detectados
 
-## Detalhes Técnicos
+### Bug 1: Erro 406 nos gdpr_consents
 
-### Hook Actualizado
+```text
+GET /rest/v1/gdpr_consents?select=*&visitor_id=eq.v_hkjp6a3yc2dml3u1pay
+Status: 406 Not Acceptable
+```
+
+Este erro indica que a tabela `gdpr_consents` existe mas o RLS esta a bloquear ou o formato do request esta errado. Requer investigacao separada.
+
+### Bug 2: Warning de forwardRef no React Router
+
+```text
+Warning: Function components cannot be given refs.
+Check the render method of `ClientPortalRoutes`.
+at ClientLoginPage
+```
+
+O componente `ClientLoginPage` esta a ser passado como ref. Precisa de ser wrapped com `React.forwardRef` ou a estrutura de rotas precisa ser ajustada.
+
+### Bug 3: Conflito de Identidade CRM/Cliente
+
+Utilizadores que existem no CRM e no Portal do Cliente (como jorge.cardoso@digital4ads.pt) tem sessao partilhada. Quando acedem ao `/client/login` ja estao autenticados mas com a sessao do CRM activa.
+
+**Solucao recomendada**: Separar as sessoes ou adicionar logica para detectar e tratar este caso.
+
+## Codigo Final Sugerido
+
+### useClientAuth.ts (Refactored)
 
 ```typescript
-export function useClientAuth(): UseClientAuthReturn {
-  // ... estados existentes ...
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import type { ClientUser } from "@/types/client-user";
 
-  // Detectar utilizador auth sem registo de cliente
-  const hasAuthButNoClient = !!user && !clientUser && !loading && !error;
+interface UseClientAuthReturn {
+  user: User | null;
+  clientUser: ClientUser | null;
+  loading: boolean;
+  error: string | null;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  isAuthenticated: boolean;
+  hasAuthButNoClient: boolean;
+}
+
+export function useClientAuth(): UseClientAuthReturn {
+  const [user, setUser] = useState<User | null>(null);
+  const [clientUser, setClientUser] = useState<ClientUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [clientLoading, setClientLoading] = useState(false);
+  const [clientChecked, setClientChecked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchClientUser = useCallback(async (userId: string) => {
+    setClientLoading(true);
+    setClientChecked(false);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("client_users")
+        .select("*")
+        .eq("auth_user_id", userId)
+        .in("status", ["active", "pending"])
+        .maybeSingle();
+      
+      if (fetchError) {
+        console.error("Error fetching client user:", fetchError);
+        setError("Erro ao carregar perfil de cliente");
+        setClientUser(null);
+      } else {
+        setClientUser(data as ClientUser | null);
+        setError(null);
+      }
+    } catch (err) {
+      console.error("Exception fetching client user:", err);
+      setError("Erro ao carregar perfil");
+      setClientUser(null);
+    } finally {
+      setClientLoading(false);
+      setClientChecked(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadingTimeout = setTimeout(() => {
+      if (isMounted && authLoading) {
+        console.warn("Client auth: Loading timeout reached");
+        setAuthLoading(false);
+        setClientChecked(true);
+      }
+    }, 10000);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return;
+        
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchClientUser(session.user.id);
+        } else {
+          setClientUser(null);
+          setClientChecked(true);
+          setError(null);
+        }
+        
+        setAuthLoading(false);
+      }
+    );
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;
+      
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await fetchClientUser(session.user.id);
+      } else {
+        setClientChecked(true);
+      }
+      
+      setAuthLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      clearTimeout(loadingTimeout);
+      subscription.unsubscribe();
+    };
+  }, [fetchClientUser]);
+
+  const signIn = async (email: string, password: string) => {
+    setAuthLoading(true);
+    setError(null);
+    
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+      setError(error.message);
+      setAuthLoading(false);
+      setClientChecked(true);
+      return { error };
+    }
+    
+    return { error: null };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setClientUser(null);
+    setClientChecked(false);
+  };
+
+  // Loading e TRUE se:
+  // - Auth ainda esta a carregar OU
+  // - Temos user mas client ainda esta a carregar
+  const loading = authLoading || (!!user && clientLoading);
+  
+  // hasAuthButNoClient so e TRUE quando TUDO foi verificado
+  const hasAuthButNoClient = !!user && !clientUser && !loading && clientChecked && !error;
 
   return {
     user,
@@ -159,53 +341,18 @@ export function useClientAuth(): UseClientAuthReturn {
     signIn,
     signOut,
     isAuthenticated: !!user && !!clientUser,
-    hasAuthButNoClient, // NOVA PROPRIEDADE
+    hasAuthButNoClient,
   };
 }
 ```
 
-### Página de Login Actualizada
+## Resultado Esperado
 
-```typescript
-export default function ClientLoginPage() {
-  const { signIn, loading, error, isAuthenticated, user, clientUser, hasAuthButNoClient } = useClientAuth();
-  
-  // ... código existente ...
+Apos as correcoes:
 
-  // NOVO: Mostrar erro claro quando utilizador não é cliente
-  if (hasAuthButNoClient) {
-    return (
-      <div className="min-h-screen flex items-center justify-center ...">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <CardTitle>Acesso Não Autorizado</CardTitle>
-            <CardDescription>
-              Esta conta não está registada como cliente do portal.
-              Por favor contacte o administrador.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={signOut} variant="outline" className="w-full">
-              Terminar Sessão
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // ... resto do código ...
-}
-```
-
-### Correcção de Dados SQL
-
-```sql
--- Corrigir o auth_user_id para o utilizador jorge.cardoso@digital4ads.pt
-UPDATE client_users 
-SET auth_user_id = '4fef01e3-0141-4bee-8309-0bac5d4fb6ae'
-WHERE email = 'jorge.cardoso@digital4ads.pt'
-AND auth_user_id = '444ba746-3e86-4283-a363-ad2b27b81dc9';
-```
-
+| Cenario | Antes | Depois |
+|---------|-------|--------|
+| Login cliente valido | Loading infinito ou erro | Acede ao dashboard |
+| Utilizador CRM no portal cliente | Erro "Acesso Nao Autorizado" prematuro | Mensagem correcta apos verificacao |
+| Timeout de rede | Loading infinito | Mensagem de timeout apos 10s |
+| Refresh pagina login | Comportamento inconsistente | Redireciona correctamente |
