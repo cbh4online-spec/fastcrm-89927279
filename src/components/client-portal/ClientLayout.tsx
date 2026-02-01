@@ -33,7 +33,7 @@ const navItems = [
 ];
 
 export function ClientLayout({ children }: ClientLayoutProps) {
-  const { clientUser, loading, signOut, isAuthenticated } = useClientAuth();
+  const { clientUser, loading, signOut, isAuthenticated, hasAuthButNoClient } = useClientAuth();
   const { itemCount } = useCart();
   const { favoriteCount } = useClientFavorites();
   const location = useLocation();
@@ -53,6 +53,8 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     );
   }
 
+  // Redirect to login if not authenticated (either no user or no client record)
+  // The login page handles the hasAuthButNoClient case with a proper error message
   if (!isAuthenticated) {
     return <Navigate to="/client/login" replace />;
   }

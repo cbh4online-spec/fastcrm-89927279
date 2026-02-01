@@ -11,7 +11,7 @@ import { Loader2, Package, AlertCircle } from "lucide-react";
 
 export default function ClientLoginPage() {
   const navigate = useNavigate();
-  const { signIn, loading, error, isAuthenticated, user } = useClientAuth();
+  const { signIn, signOut, loading, error, isAuthenticated, user, hasAuthButNoClient } = useClientAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -81,6 +81,29 @@ export default function ClientLoginPage() {
             A ligação está a demorar. Por favor, atualize a página.
           </p>
         )}
+      </div>
+    );
+  }
+
+  // Show clear error when user is authenticated but not a client
+  if (hasAuthButNoClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <CardTitle className="text-xl">Acesso Não Autorizado</CardTitle>
+            <CardDescription>
+              Esta conta não está registada como cliente do portal.
+              Por favor contacte o administrador para obter acesso.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={signOut} variant="outline" className="w-full">
+              Terminar Sessão
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
