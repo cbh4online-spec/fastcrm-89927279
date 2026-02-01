@@ -253,7 +253,7 @@ serve(async (req) => {
                 workspaceId: widget.workspace_id,
                 conversationId: conversationId,
                 userMessage: message,
-                channel: "webchat",
+                channel: "widget", // Match the trigger_channels in flows
               }),
             }
           );
