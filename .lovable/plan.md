@@ -1,124 +1,152 @@
 
-# Plano: Corrigir Acesso ao Portal Apos Login
 
-## Diagnostico
+# Plano: Corrigir Bugs de Navegacao no Portal do Cliente
 
-O problema foi identificado na logica de autenticacao do cliente B2B:
+## Diagnostico Detalhado
 
-### Situacao Actual
+Foram identificados multiplos problemas de logica no ficheiro `ClientLoginPage.tsx` que causam falhas na navegacao apos login.
 
-| Campo | Valor |
-|-------|-------|
-| `client_users.auth_user_id` | `444ba746-3e86-4283-a363-ad2b27b81dc9` (correcto) |
-| `client_users.status` | `pending` |
-| Query do hook | `WHERE status = 'active'` |
-
-### Conflito de Logica
+### Problema 1: Condicao de Corrida no useEffect
 
 ```text
-1. Edge function cria utilizador Auth
-   └── Define client_users.status = "pending"
-   
-2. Cliente faz login com password temporaria
-   └── Hook procura: WHERE status = "active"
-   └── Resultado: clientUser = null
-   
-3. isAuthenticated = !!user && !!clientUser
-   └── = true && false = FALSE
-   
-4. ClientLayout redireciona para /client/login
-   └── Loop infinito: login → dashboard → login
+Fluxo Actual (ERRADO):
+
+1. isAuthenticated muda para TRUE
+   ↓
+2. checkPasswordChangeRequired() executa
+   ↓
+3. .then() SEMPRE executa (independentemente do resultado)
+   ↓
+4. checkAgain() navega para /dashboard
+   ↓
+5. CONFLITO: Se o passo 2 navegou para /set-password,
+   o passo 4 navega imediatamente para /dashboard
 ```
 
-## Solucao
-
-A correcao requer duas alteracoes:
-
-### 1. Permitir Login com Status "pending"
-
-Modificar o hook `useClientAuth` para aceitar ambos os estados:
+O codigo actual no `useEffect` tem esta estrutura problematica:
 
 ```typescript
-// ANTES
-.eq("status", "active")
-
-// DEPOIS
-.in("status", ["active", "pending"])
+// PROBLEMA: .then() sempre executa apos checkPasswordChangeRequired
+checkPasswordChangeRequired().then(() => {
+  // Este bloco executa SEMPRE, mesmo que a funcao anterior
+  // tenha navegado para /client/set-password
+  checkAgain();
+});
 ```
 
-Isto permite que utilizadores com convite pendente (primeiro acesso) consigam fazer login.
+### Problema 2: Navegacao Dupla
 
-### 2. Activar Utilizador Apos Alterar Password
+O `handleSubmit` navega apos login bem sucedido (linhas 67-71), mas o `useEffect` tambem dispara porque `isAuthenticated` muda para `true`. Isto causa duas tentativas de navegacao.
 
-Na pagina `ClientSetPasswordPage`, apos alterar a password com sucesso, actualizar o status para "active":
+### Problema 3: Logica de Return Ineficaz
+
+O `return` dentro de `checkPasswordChangeRequired` (linha 27) apenas sai da funcao interna, nao impede a execucao do `.then()`.
+
+## Solucao Proposta
+
+Simplificar a logica de navegacao para evitar condicoes de corrida.
+
+### Estrategia
+
+1. **Remover a navegacao do `handleSubmit`**: Deixar apenas o `useEffect` tratar da navegacao apos login
+2. **Usar flags de controlo**: Evitar multiplas navegacoes com uma variavel de estado
+3. **Simplificar o useEffect**: Logica mais linear e previsivel
+
+### Codigo Corrigido
 
 ```typescript
-// Apos supabase.auth.updateUser() com sucesso
-await supabase
-  .from("client_users")
-  .update({ status: "active" })
-  .eq("auth_user_id", user.id);
+export default function ClientLoginPage() {
+  const navigate = useNavigate();
+  const { signIn, loading, error, isAuthenticated, user } = useClientAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle navigation when authenticated - simplified logic
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    
+    const handleAuthenticatedUser = async () => {
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        if (currentUser?.user_metadata?.requires_password_change) {
+          navigate("/client/set-password", { replace: true });
+        } else {
+          navigate("/client/dashboard", { replace: true });
+        }
+      } catch (error) {
+        console.error("Error checking user status:", error);
+        navigate("/client/dashboard", { replace: true });
+      }
+    };
+    
+    handleAuthenticatedUser();
+  }, [isAuthenticated, user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalError(null);
+    setIsSubmitting(true);
+
+    if (!email || !password) {
+      setLocalError("Por favor, preencha todos os campos");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error: signInError } = await signIn(email, password);
+    
+    if (signInError) {
+      setLocalError("Credenciais invalidas. Verifique o seu email e palavra-passe.");
+      setIsSubmitting(false);
+      return;
+    }
+    
+    // Navegacao sera tratada pelo useEffect quando isAuthenticated mudar
+    // Nao navegar aqui para evitar duplicacao
+    setIsSubmitting(false);
+  };
+
+  // ... resto do componente
+}
 ```
+
+### Alteracoes Chave
+
+| Aspecto | Antes | Depois |
+|---------|-------|--------|
+| Navegacao no handleSubmit | Sim (duplicada) | Nao (delegada ao useEffect) |
+| Logica do useEffect | Complexa com .then() | Simples com async/await |
+| Condicao de corrida | Presente | Eliminada |
+| Return early | Ineficaz | Funcional |
+
+## Ficheiro a Modificar
+
+### src/pages/client/ClientLoginPage.tsx
+
+**Alteracoes**:
+
+1. **Linhas 21-44**: Substituir o useEffect complexo por versao simplificada
+2. **Linhas 65-71**: Remover navegacao do handleSubmit (deixar useEffect tratar)
 
 ## Fluxo Corrigido
 
 ```text
-1. Admin convida cliente
-   └── status = "pending"
-   
-2. Cliente faz login (password temporaria)
-   └── Hook encontra cliente (pending OU active)
-   └── isAuthenticated = TRUE
-   └── Detecta requires_password_change
-   └── Redireciona para /client/set-password
-   
-3. Cliente define nova password
-   └── Actualiza password no Auth
-   └── Remove flag requires_password_change
-   └── Actualiza status para "active"
-   
-4. Redireciona para /client/dashboard
-   └── Acesso completo ao portal
-```
+Novo Fluxo:
 
-## Ficheiros a Modificar
-
-### useClientAuth.ts
-
-**Alteracao**: Modificar query para aceitar status "pending" ou "active"
-
-**Linha afectada**: ~31
-
-### ClientSetPasswordPage.tsx
-
-**Alteracao**: Apos alterar password, actualizar status do cliente para "active"
-
-**Linhas afectadas**: ~50-62 (dentro do handleSubmit)
-
-## Detalhes Tecnicos
-
-### Query Actualizada (useClientAuth.ts)
-
-```typescript
-const { data, error: fetchError } = await supabase
-  .from("client_users")
-  .select("*")
-  .eq("auth_user_id", userId)
-  .in("status", ["active", "pending"])  // Aceita ambos
-  .maybeSingle();
-```
-
-### Activacao Apos Password (ClientSetPasswordPage.tsx)
-
-```typescript
-// Apos updateUser com sucesso
-const { data: { user } } = await supabase.auth.getUser();
-if (user) {
-  await supabase
-    .from("client_users")
-    .update({ status: "active" })
-    .eq("auth_user_id", user.id);
-}
+1. Utilizador submete formulario
+   ↓
+2. signIn() executa
+   ↓
+3. Se sucesso: isAuthenticated muda para TRUE
+   ↓
+4. useEffect dispara (uma unica vez)
+   ↓
+5. Verifica requires_password_change
+   ↓
+6. Navega para destino correcto (apenas uma navegacao)
 ```
 
 ## Resultado Esperado
@@ -127,7 +155,16 @@ Apos as alteracoes:
 
 | Cenario | Antes | Depois |
 |---------|-------|--------|
-| Login com status "pending" | Falha (loop) | Funciona |
-| Redireccionamento para set-password | Nao acontece | Funciona |
-| Activacao apos alterar password | Nao existe | Status → "active" |
-| Acesso ao dashboard | Bloqueado | Funciona |
+| Login normal | Navegacao dupla/conflitante | Navegacao unica para dashboard |
+| Login com password temporaria | Conflito de rotas | Navega para set-password |
+| Utilizador ja autenticado | Pode ficar preso | Redireciona automaticamente |
+| Refresh na pagina de login | Comportamento indefinido | Redireciona se autenticado |
+
+## Detalhes Tecnicos
+
+A correcao envolve:
+
+1. Simplificar a logica async do useEffect para eliminar o `.then()` problematico
+2. Usar um unico ponto de navegacao (useEffect) em vez de dois (useEffect + handleSubmit)
+3. Adicionar tratamento de erro para casos extremos
+
