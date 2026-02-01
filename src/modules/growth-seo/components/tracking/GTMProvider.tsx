@@ -27,16 +27,31 @@ export function GTMProvider({ children, containerId }: GTMProviderProps) {
   useEffect(() => {
     if (!containerId) return;
 
-    // Initialize dataLayer
-    window.dataLayer = window.dataLayer || [];
+    // Check if GTM is already loaded
+    const existingScript = document.querySelector(`script[src*="googletagmanager.com/gtm.js?id=${containerId}"]`);
+    if (existingScript) {
+      console.log('[GTM] Already loaded, skipping...');
+      return;
+    }
 
-    // Set initial consent state (consent mode v2)
-    window.dataLayer.push({
-      'gtm.start': new Date().getTime(),
-      event: 'gtm.js',
-    });
+    // Initialize dataLayer using Google's exact implementation
+    (function(w: Window, d: Document, s: string, l: string, i: string) {
+      (w as typeof window).dataLayer = (w as typeof window).dataLayer || [];
+      (w as typeof window).dataLayer.push({
+        'gtm.start': new Date().getTime(),
+        event: 'gtm.js'
+      });
+      const f = d.getElementsByTagName(s)[0];
+      const j = d.createElement(s) as HTMLScriptElement;
+      const dl = l !== 'dataLayer' ? '&l=' + l : '';
+      j.async = true;
+      j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+      f?.parentNode?.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', containerId);
 
-    // Push default consent state
+    console.log('[GTM] Initialized with ID:', containerId);
+
+    // Push default consent state (Consent Mode v2)
     window.dataLayer.push({
       event: 'consent_default',
       analytics_storage: 'denied',
@@ -45,12 +60,6 @@ export function GTMProvider({ children, containerId }: GTMProviderProps) {
       personalization_storage: 'denied',
       security_storage: 'granted',
     });
-
-    // Load GTM script
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtm.js?id=${containerId}`;
-    document.head.appendChild(script);
 
     // Add noscript fallback to body
     const noscript = document.createElement('noscript');
@@ -64,9 +73,6 @@ export function GTMProvider({ children, containerId }: GTMProviderProps) {
     document.body.insertBefore(noscript, document.body.firstChild);
 
     return () => {
-      if (script.parentNode) {
-        document.head.removeChild(script);
-      }
       if (noscript.parentNode) {
         document.body.removeChild(noscript);
       }
