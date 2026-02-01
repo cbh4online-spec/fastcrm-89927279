@@ -77,7 +77,8 @@ export type MenuSection =
   | 'contacts'
   | 'automations'
   | 'credit'
-  | 'orders'; // B2B Order Notes
+  | 'orders'
+  | 'student-journey'; // Student Journey module
 
 export interface MenuItemConfig {
   id: MenuSection;
