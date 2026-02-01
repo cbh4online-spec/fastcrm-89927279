@@ -130,6 +130,149 @@ import {
 
 const queryClient = new QueryClient();
 
+// Client Portal Routes - ISOLATED from CRM providers
+function ClientPortalRoutes() {
+  return (
+    <CartProvider>
+      <Routes>
+        <Route path="login" element={<ClientLoginPage />} />
+        <Route path="set-password" element={<ClientSetPasswordPage />} />
+        <Route path="forgot-password" element={<ClientForgotPasswordPage />} />
+        <Route path="reset-password" element={<ClientResetPasswordPage />} />
+        <Route path="dashboard" element={<ClientDashboardPage />} />
+        <Route path="catalog" element={<ClientCatalogPage />} />
+        <Route path="cart" element={<ClientCartPage />} />
+        <Route path="checkout" element={<ClientCheckoutPage />} />
+        <Route path="orders" element={<ClientOrdersPage />} />
+        <Route path="orders/:id" element={<ClientOrderDetailPage />} />
+        <Route path="favorites" element={<ClientFavoritesPage />} />
+        <Route path="assistant" element={<ClientAssistantPage />} />
+        <Route path="*" element={<Navigate to="/client/login" replace />} />
+      </Routes>
+    </CartProvider>
+  );
+}
+
+// CRM Routes - WITH all CRM providers
+function CRMRoutes() {
+  return (
+    <AuthProvider>
+      <WorkspaceProvider>
+        <ActivityProfileProvider>
+          <WorkspaceInstanceProvider>
+            <SubscriptionProvider>
+              <Routes>
+                {/* SEO Public Routes */}
+                <Route path="/keywords" element={<KeywordsListPage />} />
+                <Route path="/keywords/:slug" element={<KeywordDetailPage />} />
+                <Route path="/templates" element={<TemplatesListPage />} />
+                <Route path="/templates/:slug" element={<TemplateDetailPage />} />
+                <Route path="/tools" element={<ToolsListPage />} />
+                <Route path="/tools/keyword-ideas" element={<KeywordIdeasToolPage />} />
+                <Route path="/tools/:slug" element={<ToolDetailPage />} />
+                <Route path="/categories" element={<CategoriesListPage />} />
+                <Route path="/categories/:slug" element={<CategoryDetailPage />} />
+                <Route path="/compare/:slug" element={<ComparePage />} />
+                <Route path="/blog" element={<BlogListPage />} />
+                <Route path="/blog/:slug" element={<BlogPostPage />} />
+                <Route path="/guides/:slug" element={<GuidePage />} />
+                <Route path="/glossary" element={<GlossaryListPage />} />
+                <Route path="/glossary/:slug" element={<GlossaryTermPage />} />
+                
+                {/* Main Routes */}
+                <Route path="/" element={<MarketingHomepage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard/settings" element={<Settings />} />
+                <Route path="/dashboard/settings/:section" element={<Settings />} />
+                <Route path="/dashboard/leads" element={<Leads />} />
+                <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
+                <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
+                <Route path="/dashboard/prospecting/web-search" element={<WebSearchProspecting />} />
+                <Route path="/dashboard/prospecting/professionals" element={<ProfessionalProspecting />} />
+                <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
+                <Route path="/dashboard/opportunities/:id" element={<OpportunityDetail />} />
+                <Route path="/dashboard/inbox" element={<Inbox />} />
+                <Route path="/dashboard/automations" element={<Automations />} />
+                <Route path="/dashboard/landing-pages" element={<LandingPages />} />
+                <Route path="/dashboard/contacts" element={<Contacts />} />
+                <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
+                <Route path="/dashboard/companies" element={<Companies />} />
+                <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
+                <Route path="/dashboard/ai-suggestions" element={<AISuggestionsHistory />} />
+                <Route path="/dashboard/crm" element={<Crm />} />
+                <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
+                <Route path="/dashboard/proposals" element={<Proposals />} />
+                <Route path="/dashboard/products" element={<Products />} />
+                <Route path="/dashboard/packages" element={<Packages />} />
+                <Route path="/dashboard/imports" element={<Imports />} />
+                <Route path="/dashboard/payments" element={<Payments />} />
+                <Route path="/dashboard/invoices" element={<Invoices />} />
+                <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
+                <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
+                <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
+                <Route path="/dashboard/conversational-engine" element={<ConversationalEngine />} />
+                <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
+                <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
+                <Route path="/dashboard/reports" element={<ReportsOverview />} />
+                <Route path="/dashboard/reports/forecasts" element={<ReportsForecasts />} />
+                <Route path="/dashboard/reports/consumption" element={<ReportsConsumption />} />
+                <Route path="/dashboard/reports/retention" element={<ReportsRetention />} />
+                <Route path="/dashboard/reports/kpis" element={<ReportsKPIs />} />
+                <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
+                <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
+                <Route path="/dashboard/reports/goals" element={<ReportsGoals />} />
+                <Route path="/dashboard/marketplace" element={<Marketplace />} />
+                <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
+                <Route path="/dashboard/scheduling" element={<SchedulingPage />} />
+                <Route path="/dashboard/calendars" element={<Navigate to="/dashboard/scheduling" replace />} />
+                <Route path="/dashboard/meetings" element={<Navigate to="/dashboard/scheduling" replace />} />
+                <Route path="/dashboard/services" element={<Navigate to="/dashboard/scheduling" replace />} />
+                <Route path="/dashboard/availability" element={<Navigate to="/dashboard/scheduling" replace />} />
+                <Route path="/dashboard/feed" element={<FeedPage />} />
+                <Route path="/dashboard/productivity" element={<ProductivityPage />} />
+                <Route path="/dashboard/member" element={<MemberPanelPage />} />
+                <Route path="/dashboard/profile" element={<Profile />} />
+                <Route path="/dashboard/marketing" element={<Marketing />} />
+                <Route path="/dashboard/seo" element={<SEOAdminPage />} />
+                <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
+                <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
+                <Route path="/dashboard/credit" element={<CreditIntermediation />} />
+                <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
+                
+                {/* Order Notes Admin Routes */}
+                <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />
+                <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
+                <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
+                <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
+                
+                {/* Student Journey Module Routes */}
+                <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
+                <Route path="/dashboard/student-journey/activation" element={<SJLayout><SJActivationDashboard /></SJLayout>} />
+                <Route path="/dashboard/student-journey/profiles" element={<SJLayout><SJProfiles /></SJLayout>} />
+                <Route path="/dashboard/student-journey/profiles/:id" element={<SJLayout><SJProfileDetail /></SJLayout>} />
+                <Route path="/dashboard/student-journey/courses" element={<SJLayout><SJCourses /></SJLayout>} />
+                <Route path="/dashboard/student-journey/cohorts" element={<SJLayout><SJCohorts /></SJLayout>} />
+                <Route path="/dashboard/student-journey/cohorts/:id" element={<SJLayout><SJCohortDetail /></SJLayout>} />
+                
+                <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
+                <Route path="/product/:slug" element={<PublicProductSheet />} />
+                <Route path="/p/:slug" element={<PublicProposalPage />} />
+                <Route path="/super-admin" element={<SuperAdmin />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <GDPRBanner />
+            </SubscriptionProvider>
+          </WorkspaceInstanceProvider>
+        </ActivityProfileProvider>
+      </WorkspaceProvider>
+    </AuthProvider>
+  );
+}
+
 const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
@@ -139,135 +282,13 @@ const App = () => (
         <BrowserRouter>
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
-            <AuthProvider>
-              <WorkspaceProvider>
-                <ActivityProfileProvider>
-                  <WorkspaceInstanceProvider>
-                    <SubscriptionProvider>
-                    <Routes>
-                      {/* SEO Public Routes */}
-                      <Route path="/keywords" element={<KeywordsListPage />} />
-                      <Route path="/keywords/:slug" element={<KeywordDetailPage />} />
-                      <Route path="/templates" element={<TemplatesListPage />} />
-                      <Route path="/templates/:slug" element={<TemplateDetailPage />} />
-                      <Route path="/tools" element={<ToolsListPage />} />
-                      <Route path="/tools/keyword-ideas" element={<KeywordIdeasToolPage />} />
-                      <Route path="/tools/:slug" element={<ToolDetailPage />} />
-                      <Route path="/categories" element={<CategoriesListPage />} />
-                      <Route path="/categories/:slug" element={<CategoryDetailPage />} />
-                      <Route path="/compare/:slug" element={<ComparePage />} />
-                      <Route path="/blog" element={<BlogListPage />} />
-                      <Route path="/blog/:slug" element={<BlogPostPage />} />
-                      <Route path="/guides/:slug" element={<GuidePage />} />
-                      <Route path="/glossary" element={<GlossaryListPage />} />
-                      <Route path="/glossary/:slug" element={<GlossaryTermPage />} />
-                      
-                      {/* Client Portal Routes */}
-                      <Route path="/client/login" element={<CartProvider><ClientLoginPage /></CartProvider>} />
-                      <Route path="/client/set-password" element={<CartProvider><ClientSetPasswordPage /></CartProvider>} />
-                      <Route path="/client/forgot-password" element={<CartProvider><ClientForgotPasswordPage /></CartProvider>} />
-                      <Route path="/client/reset-password" element={<CartProvider><ClientResetPasswordPage /></CartProvider>} />
-                      <Route path="/client/dashboard" element={<CartProvider><ClientDashboardPage /></CartProvider>} />
-                      <Route path="/client/catalog" element={<CartProvider><ClientCatalogPage /></CartProvider>} />
-                      <Route path="/client/cart" element={<CartProvider><ClientCartPage /></CartProvider>} />
-                      <Route path="/client/checkout" element={<CartProvider><ClientCheckoutPage /></CartProvider>} />
-                      <Route path="/client/orders" element={<CartProvider><ClientOrdersPage /></CartProvider>} />
-                      <Route path="/client/orders/:id" element={<CartProvider><ClientOrderDetailPage /></CartProvider>} />
-                      <Route path="/client/favorites" element={<CartProvider><ClientFavoritesPage /></CartProvider>} />
-                      <Route path="/client/assistant" element={<CartProvider><ClientAssistantPage /></CartProvider>} />
-                      
-                      {/* Main Routes */}
-                      <Route path="/" element={<MarketingHomepage />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/signup" element={<Signup />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/onboarding" element={<Onboarding />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/dashboard/settings" element={<Settings />} />
-                      <Route path="/dashboard/settings/:section" element={<Settings />} />
-                      <Route path="/dashboard/leads" element={<Leads />} />
-                      <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
-                      <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
-                      <Route path="/dashboard/prospecting/web-search" element={<WebSearchProspecting />} />
-                      <Route path="/dashboard/prospecting/professionals" element={<ProfessionalProspecting />} />
-                      <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
-                      <Route path="/dashboard/opportunities/:id" element={<OpportunityDetail />} />
-                      <Route path="/dashboard/inbox" element={<Inbox />} />
-                      <Route path="/dashboard/automations" element={<Automations />} />
-                      <Route path="/dashboard/landing-pages" element={<LandingPages />} />
-                      <Route path="/dashboard/contacts" element={<Contacts />} />
-                      <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
-                      <Route path="/dashboard/companies" element={<Companies />} />
-                      <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
-                      <Route path="/dashboard/ai-suggestions" element={<AISuggestionsHistory />} />
-                      <Route path="/dashboard/crm" element={<Crm />} />
-                      <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
-                      <Route path="/dashboard/proposals" element={<Proposals />} />
-                      <Route path="/dashboard/products" element={<Products />} />
-                      <Route path="/dashboard/packages" element={<Packages />} />
-                      <Route path="/dashboard/imports" element={<Imports />} />
-                      <Route path="/dashboard/payments" element={<Payments />} />
-                      <Route path="/dashboard/invoices" element={<Invoices />} />
-                      <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
-                      <Route path="/dashboard/knowledge-base" element={<KnowledgeBase />} />
-                      <Route path="/dashboard/ai-profiles" element={<AIProfiles />} />
-                      <Route path="/dashboard/conversational-engine" element={<ConversationalEngine />} />
-                      <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
-                      <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
-                      <Route path="/dashboard/reports" element={<ReportsOverview />} />
-                      <Route path="/dashboard/reports/forecasts" element={<ReportsForecasts />} />
-                      <Route path="/dashboard/reports/consumption" element={<ReportsConsumption />} />
-                      <Route path="/dashboard/reports/retention" element={<ReportsRetention />} />
-                      <Route path="/dashboard/reports/kpis" element={<ReportsKPIs />} />
-                      <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
-                      <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
-                      <Route path="/dashboard/reports/goals" element={<ReportsGoals />} />
-                      <Route path="/dashboard/marketplace" element={<Marketplace />} />
-                      <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
-                      <Route path="/dashboard/scheduling" element={<SchedulingPage />} />
-                      <Route path="/dashboard/calendars" element={<Navigate to="/dashboard/scheduling" replace />} />
-                      <Route path="/dashboard/meetings" element={<Navigate to="/dashboard/scheduling" replace />} />
-                      <Route path="/dashboard/services" element={<Navigate to="/dashboard/scheduling" replace />} />
-                      <Route path="/dashboard/availability" element={<Navigate to="/dashboard/scheduling" replace />} />
-                      <Route path="/dashboard/feed" element={<FeedPage />} />
-                      <Route path="/dashboard/productivity" element={<ProductivityPage />} />
-                      <Route path="/dashboard/member" element={<MemberPanelPage />} />
-                      <Route path="/dashboard/profile" element={<Profile />} />
-                      <Route path="/dashboard/marketing" element={<Marketing />} />
-                      <Route path="/dashboard/seo" element={<SEOAdminPage />} />
-                      <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
-                      <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
-                      <Route path="/dashboard/credit" element={<CreditIntermediation />} />
-                      <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
-                      
-                      {/* Order Notes Admin Routes */}
-                      <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />
-                      <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
-                      <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
-                      <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
-                      
-                      {/* Student Journey Module Routes */}
-                      <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
-                      <Route path="/dashboard/student-journey/activation" element={<SJLayout><SJActivationDashboard /></SJLayout>} />
-                      <Route path="/dashboard/student-journey/profiles" element={<SJLayout><SJProfiles /></SJLayout>} />
-                      <Route path="/dashboard/student-journey/profiles/:id" element={<SJLayout><SJProfileDetail /></SJLayout>} />
-                      <Route path="/dashboard/student-journey/courses" element={<SJLayout><SJCourses /></SJLayout>} />
-                      <Route path="/dashboard/student-journey/cohorts" element={<SJLayout><SJCohorts /></SJLayout>} />
-                      <Route path="/dashboard/student-journey/cohorts/:id" element={<SJLayout><SJCohortDetail /></SJLayout>} />
-                      
-                      <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
-                      <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
-                      <Route path="/product/:slug" element={<PublicProductSheet />} />
-                      <Route path="/p/:slug" element={<PublicProposalPage />} />
-                      <Route path="/super-admin" element={<SuperAdmin />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                    <GDPRBanner />
-                    </SubscriptionProvider>
-                  </WorkspaceInstanceProvider>
-                </ActivityProfileProvider>
-              </WorkspaceProvider>
-            </AuthProvider>
+            <Routes>
+              {/* Client Portal - ISOLATED from CRM providers */}
+              <Route path="/client/*" element={<ClientPortalRoutes />} />
+              
+              {/* CRM and all other routes - WITH CRM providers */}
+              <Route path="/*" element={<CRMRoutes />} />
+            </Routes>
           </GTMProvider>
         </BrowserRouter>
       </TooltipProvider>
