@@ -536,19 +536,19 @@ export function WidgetConfigPanel() {
         </div>
 
         {/* Preview */}
-        <div className="space-y-4">
+        <div className="lg:sticky lg:top-4 space-y-4">
           <Card className="overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <ExternalLink className="h-4 w-4" />
-                Preview
+                Preview do Widget
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="p-4 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 min-h-[450px] flex flex-col items-center justify-center">
               {/* Widget Preview - Full simulation */}
               <div 
                 key={previewKey}
-                className="mx-auto rounded-xl shadow-2xl overflow-hidden border"
+                className="rounded-xl shadow-2xl overflow-hidden border-2 border-white/50"
                 style={{ 
                   width: '320px',
                   maxWidth: '100%',
@@ -557,7 +557,7 @@ export function WidgetConfigPanel() {
                 {/* Header */}
                 <div 
                   className="p-4 flex items-center gap-3"
-                  style={{ backgroundColor: formData.primary_color }}
+                  style={{ backgroundColor: formData.primary_color || '#6366f1' }}
                 >
                   {formData.avatar_url ? (
                     <img 
@@ -583,19 +583,24 @@ export function WidgetConfigPanel() {
 
                 {/* Messages area */}
                 <div 
-                  className="p-4 space-y-3 min-h-[250px]"
-                  style={{ backgroundColor: formData.secondary_color }}
+                  className="p-4 space-y-3"
+                  style={{ 
+                    backgroundColor: formData.secondary_color || '#f1f5f9',
+                    minHeight: '220px'
+                  }}
                 >
                   {/* Welcome message */}
                   <div className="flex gap-2">
-                    <div className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center" style={{ backgroundColor: formData.primary_color }}>
+                    <div 
+                      className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center" 
+                      style={{ backgroundColor: formData.primary_color || '#6366f1' }}
+                    >
                       <MessageCircle className="h-3.5 w-3.5 text-white" />
                     </div>
                     <div 
-                      className="rounded-lg rounded-tl-none p-3 max-w-[85%] shadow-sm"
-                      style={{ backgroundColor: 'white' }}
+                      className="rounded-lg rounded-tl-none p-3 max-w-[85%] shadow-sm bg-white"
                     >
-                      <p className="text-sm" style={{ color: formData.text_color }}>
+                      <p className="text-sm" style={{ color: formData.text_color || '#1e293b' }}>
                         {formData.welcome_message || "Olá! Como posso ajudar?"}
                       </p>
                     </div>
@@ -605,7 +610,7 @@ export function WidgetConfigPanel() {
                   <div className="flex gap-2 justify-end">
                     <div 
                       className="rounded-lg rounded-tr-none p-3 max-w-[85%] shadow-sm"
-                      style={{ backgroundColor: formData.primary_color }}
+                      style={{ backgroundColor: formData.primary_color || '#6366f1' }}
                     >
                       <p className="text-sm text-white">
                         Olá, gostaria de saber mais informações.
@@ -615,14 +620,14 @@ export function WidgetConfigPanel() {
 
                   {/* Sample bot response */}
                   <div className="flex gap-2">
-                    <div className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center" style={{ backgroundColor: formData.primary_color }}>
+                    <div 
+                      className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center" 
+                      style={{ backgroundColor: formData.primary_color || '#6366f1' }}
+                    >
                       <MessageCircle className="h-3.5 w-3.5 text-white" />
                     </div>
-                    <div 
-                      className="rounded-lg rounded-tl-none p-3 max-w-[85%] shadow-sm"
-                      style={{ backgroundColor: 'white' }}
-                    >
-                      <p className="text-sm" style={{ color: formData.text_color }}>
+                    <div className="rounded-lg rounded-tl-none p-3 max-w-[85%] shadow-sm bg-white">
+                      <p className="text-sm" style={{ color: formData.text_color || '#1e293b' }}>
                         Claro! Estou aqui para ajudar. Qual é a sua dúvida? 😊
                       </p>
                     </div>
@@ -632,15 +637,12 @@ export function WidgetConfigPanel() {
                 {/* Input area */}
                 <div className="p-3 border-t bg-white">
                   <div className="flex items-center gap-2">
-                    <div 
-                      className="flex-1 px-3 py-2 rounded-full text-sm border bg-gray-50"
-                      style={{ color: '#9ca3af' }}
-                    >
+                    <div className="flex-1 px-3 py-2 rounded-full text-sm border bg-gray-50 text-gray-400">
                       {formData.placeholder_text || "Escreva a sua mensagem..."}
                     </div>
                     <button 
                       className="p-2 rounded-full" 
-                      style={{ backgroundColor: formData.primary_color }}
+                      style={{ backgroundColor: formData.primary_color || '#6366f1' }}
                     >
                       <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
@@ -659,7 +661,7 @@ export function WidgetConfigPanel() {
 
               {/* Position indicator */}
               <p className="text-center text-xs text-muted-foreground mt-4">
-                Posição: {formData.position === "bottom-right" ? "Canto inferior direito" : "Canto inferior esquerdo"}
+                📍 {formData.position === "bottom-right" ? "Canto inferior direito" : "Canto inferior esquerdo"}
               </p>
             </CardContent>
           </Card>
