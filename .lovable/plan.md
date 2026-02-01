@@ -1,96 +1,87 @@
 
-# Plano: Suportar Documentos Superiores a 60MB na Base de Conhecimento
+# Plano: Corrigir Processamento de Documentos Grandes
 
-## Problema Actual
+## Problema Identificado
 
-| Componente | Limite Actual | Localização |
-|------------|--------------|-------------|
-| Bucket Storage | 10 MB | `storage.buckets.file_size_limit` |
-| Frontend UI | 10 MB | `AddSourcePanel.tsx` linha 34 |
-| Processamento AI | 50.000 chars | `knowledge-document-process/index.ts` linha 122 |
+As Edge Functions do Lovable Cloud têm um limite de memória de **150MB**. Um PDF de 57.88MB, ao ser carregado em memória mais o overhead de processamento, excede este limite.
 
 ## Solução Proposta
 
-### Parte 1: Aumentar Limite do Bucket
+### Opção A: Limite Realista + Streaming Parcial (Recomendada)
 
-Alterar o limite do bucket `knowledge-documents` para 100MB (suficiente para documentos grandes).
+Implementar uma estratégia de **streaming parcial** que:
+1. Limita o download a **20MB** do ficheiro (primeiras páginas)
+2. Processa apenas essa porção
+3. Informa o utilizador que apenas parte foi processada
 
-```sql
-UPDATE storage.buckets 
-SET file_size_limit = 104857600  -- 100MB
-WHERE name = 'knowledge-documents';
-```
+### Opção B: Processamento via Trigger.dev
 
-### Parte 2: Actualizar Frontend
+Para ficheiros >20MB, delegar o processamento para um **Trigger.dev job** que:
+- Não tem os mesmos limites de memória
+- Pode processar ficheiros maiores de forma assíncrona
+- Actualiza o status quando terminar
+
+---
+
+## Alterações (Opção A)
+
+### 1. Edge Function - Download Parcial
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/knowledge-base/AddSourcePanel.tsx` | Aumentar `MAX_FILE_SIZE` para 100MB |
+| `supabase/functions/knowledge-document-process/index.ts` | Implementar range request para baixar apenas os primeiros 20MB |
 
-### Parte 3: Processamento Inteligente para Ficheiros Grandes
-
-Para ficheiros grandes, o processamento actual tem limitacoes:
-
-1. **PDFs grandes**: A API de visao tem limites de tamanho de imagem/payload
-2. **Memoria**: Carregar ficheiros de 60MB+ em memoria pode causar timeouts na edge function
-
-**Estrategia de Chunking:**
-
+**Lógica:**
 ```text
-Ficheiro > 20MB?
-  ├─ SIM → Dividir em chunks de 15MB
-  │        Processar cada chunk separadamente
-  │        Combinar resultados
-  │
-  └─ NÃO → Processar normalmente
+SE fileSize > 20MB:
+  → Baixar apenas primeiros 20MB usando Range header
+  → Extrair texto disponível
+  → Processar normalmente
+  → Guardar nota: "Processado parcialmente (20MB de 57.88MB)"
 ```
 
-### Parte 4: Melhorias na Edge Function
+### 2. Corrigir Status Pendente
 
-| Alteracao | Descricao |
-|-----------|-----------|
-| Aumentar limite de texto | De 50.000 para 100.000 caracteres |
-| Chunked processing | Para PDFs grandes, processar por paginas |
-| Progress tracking | Actualizar status durante processamento longo |
-| Timeout handling | Retry automatico para operacoes longas |
+Actualizar o documento actual para status `failed` com mensagem clara:
+```sql
+UPDATE knowledge_sources 
+SET processing_status = 'failed',
+    processing_error = 'Ficheiro demasiado grande (57.88MB). Limite actual: 20MB para processamento estável.'
+WHERE id = '16b7a9c8-39a4-45e7-9109-7a7ea4359855';
+```
 
-### Ficheiros a Modificar
+### 3. UI - Feedback Claro
 
-| Ficheiro | Alteracao |
+Mostrar mensagem clara quando ficheiro é muito grande:
+- Antes do upload: Aviso se >20MB
+- Durante processamento: Indicador de progresso real
+- Após falha: Mensagem explicativa com opções
+
+---
+
+## Limites Finais Recomendados
+
+| Limite | Valor | Razão |
+|--------|-------|-------|
+| Upload máximo | 100MB | Storage suporta |
+| Processamento completo | 20MB | Limite de memória Edge Function |
+| Processamento parcial | 20MB dos primeiros bytes | Para ficheiros >20MB |
+
+---
+
+## Ficheiros a Modificar
+
+| Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/knowledge-base/AddSourcePanel.tsx` | Limite 100MB + UI feedback para ficheiros grandes |
-| `supabase/functions/knowledge-document-process/index.ts` | Processamento chunked + limites maiores |
-| `src/hooks/useKnowledgeBase.ts` | Progress callback para uploads grandes |
+| `supabase/functions/knowledge-document-process/index.ts` | Range request + limites claros |
+| `src/components/knowledge-base/AddSourcePanel.tsx` | Aviso para ficheiros >20MB |
+| `src/components/knowledge-base/KnowledgeSourcesPanel.tsx` | Melhor feedback de erros |
 
 ---
 
-## Detalhes Tecnicos
+## Alternativa Futura
 
-### Frontend: Upload com Progresso
-
-Para ficheiros grandes, mostrar barra de progresso durante upload.
-
-### Edge Function: Processamento por Chunks
-
-Para PDFs grandes:
-1. Extrair texto por paginas (nao tudo de uma vez)
-2. Processar em batches de 20 paginas
-3. Combinar FAQs e topicos de todos os chunks
-4. Actualizar status a cada batch processado
-
-### Limites Finais
-
-| Componente | Novo Limite |
-|------------|-------------|
-| Upload maximo | 100 MB |
-| Texto processado por batch | 30.000 chars |
-| Paginas por batch (PDF) | 20 |
-| Timeout total | 5 minutos |
-
----
-
-## Notas de Implementacao
-
-1. O Supabase Storage suporta ficheiros ate 5GB (paid tier), portanto 100MB e seguro
-2. Edge functions tem timeout de 150s no plano free - o chunking evita este limite
-3. Ficheiros Word (DOCX) geralmente sao menores, mas o mesmo chunking aplica-se se necessario
+Para suportar ficheiros maiores que 20MB de forma completa, seria necessário:
+1. Usar **Trigger.dev** para processamento heavy
+2. Ou um serviço externo de parsing de PDFs (ex: Google Document AI, AWS Textract)
+3. Ou guardar o PDF e processar páginas individualmente em múltiplas chamadas
