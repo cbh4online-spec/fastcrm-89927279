@@ -822,6 +822,76 @@ export type Database = {
           },
         ]
       }
+      ai_agents: {
+        Row: {
+          channel: string
+          created_at: string | null
+          description: string | null
+          flow_id: string | null
+          id: string
+          is_active: boolean | null
+          knowledge_base_ids: string[] | null
+          name: string
+          persona_id: string | null
+          priority: number | null
+          settings: Json | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string | null
+          description?: string | null
+          flow_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          knowledge_base_ids?: string[] | null
+          name: string
+          persona_id?: string | null
+          priority?: number | null
+          settings?: Json | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string | null
+          description?: string | null
+          flow_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          knowledge_base_ids?: string[] | null
+          name?: string
+          persona_id?: string | null
+          priority?: number | null
+          settings?: Json | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agents_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversational_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_analytics_daily_aggregates: {
         Row: {
           actions_executed: number | null

@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useKnowledgeBase } from '@/hooks/useKnowledgeBase';
+import { useAIChannelAgents } from '@/hooks/useAIChannelAgents';
+import { useConversationalFlows } from '@/hooks/useConversationalFlows';
 import { KnowledgeBaseList } from './KnowledgeBaseList';
 import { PersonaList } from './PersonaList';
 import { AddSourcePanel } from './AddSourcePanel';
@@ -8,6 +10,8 @@ import { AIQueryPanel } from './AIQueryPanel';
 import { KnowledgeMetricsCard } from './KnowledgeMetricsCard';
 import { KnowledgeEntriesPanel } from './KnowledgeEntriesPanel';
 import { KnowledgeSourcesPanel } from './KnowledgeSourcesPanel';
+import { AIAgentList } from '@/components/ai-agents/AIAgentList';
+import { CreateAgentDialog } from '@/components/ai-agents/CreateAgentDialog';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
 import { Button } from '@/components/ui/button';
@@ -15,6 +19,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,19 +37,22 @@ import {
   Workflow,
   Globe,
   Trash2,
-  Edit
+  Edit,
+  Bot
 } from 'lucide-react';
 import { KNOWLEDGE_BASE_TYPES, PERSONA_TYPES, TONE_OPTIONS } from '@/types/knowledge-base';
 import type { KnowledgeEntry, KnowledgeSource } from '@/types/knowledge-base';
+import type { AIChannelAgent, CreateAIAgentData } from '@/types/aiChannelAgents';
 import { toast } from 'sonner';
 import { FlowBuilderModule } from '@/components/flow-builder/FlowBuilderModule';
 import { WidgetConfigPanel } from '@/components/chat-widget/WidgetConfigPanel';
 
-type ActiveTab = "bases" | "personas" | "flows" | "widget" | "query";
+type ActiveTab = "bases" | "personas" | "agents" | "flows" | "widget" | "query";
 
 const pageTabs = [
   { id: "bases", label: "Bases", icon: <BookOpen className="h-4 w-4" /> },
   { id: "personas", label: "Personas", icon: <Users className="h-4 w-4" /> },
+  { id: "agents", label: "Agentes", icon: <Bot className="h-4 w-4" /> },
   { id: "flows", label: "Fluxos", icon: <Workflow className="h-4 w-4" /> },
   { id: "widget", label: "Widget", icon: <Globe className="h-4 w-4" /> },
   { id: "query", label: "Testar IA", icon: <MessageSquare className="h-4 w-4" /> },
@@ -74,6 +82,20 @@ export function KnowledgeBaseModule() {
     refresh
   } = useKnowledgeBase();
 
+  // AI Channel Agents
+  const { 
+    agents, 
+    isLoading: isLoadingAgents, 
+    createAgent, 
+    updateAgent, 
+    deleteAgent, 
+    toggleAgentStatus,
+    refresh: refreshAgents 
+  } = useAIChannelAgents();
+
+  // Conversational Flows
+  const { flows } = useConversationalFlows();
+
   const [activeTab, setActiveTab] = useState<ActiveTab>("bases");
   const [selectedKB, setSelectedKB] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
@@ -84,6 +106,12 @@ export function KnowledgeBaseModule() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [kbDetailTab, setKbDetailTab] = useState<'add' | 'entries' | 'sources'>('entries');
+
+  // AI Agents state
+  const [showAgentDialog, setShowAgentDialog] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AIChannelAgent | null>(null);
+  const [showDeleteAgentConfirm, setShowDeleteAgentConfirm] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<AIChannelAgent | null>(null);
 
   // Knowledge base entries and sources for selected KB
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
@@ -164,9 +192,11 @@ export function KnowledgeBaseModule() {
         ? knowledgeBases.length 
         : tab.id === "personas" 
           ? personas.length 
-          : undefined
+          : tab.id === "agents"
+            ? agents.length
+            : undefined
     }));
-  }, [knowledgeBases.length, personas.length]);
+  }, [knowledgeBases.length, personas.length, agents.length]);
 
   // Quick stats
   const quickStats = useMemo(() => {
@@ -395,7 +425,9 @@ export function KnowledgeBaseModule() {
             ? "Pesquisar bases..." 
             : activeTab === "personas" 
               ? "Pesquisar personas..." 
-              : "Pesquisar..."
+              : activeTab === "agents"
+                ? "Pesquisar agentes..."
+                : "Pesquisar..."
         }
         onSearchChange={setSearchValue}
         showFilters={false}
@@ -411,6 +443,15 @@ export function KnowledgeBaseModule() {
               <Button size="sm" onClick={() => setShowCreatePersona(true)}>
                 <Plus className="h-4 w-4 mr-1" />
                 Nova Persona
+              </Button>
+            )}
+            {activeTab === "agents" && (
+              <Button size="sm" onClick={() => {
+                setSelectedAgent(null);
+                setShowAgentDialog(true);
+              }}>
+                <Plus className="h-4 w-4 mr-1" />
+                Novo Agente
               </Button>
             )}
             <Button
@@ -618,6 +659,28 @@ export function KnowledgeBaseModule() {
           isLoading={isLoading}
           onSelect={handleEditPersona}
           onCreateNew={() => setShowCreatePersona(true)}
+        />
+      )}
+
+      {activeTab === "agents" && (
+        <AIAgentList
+          agents={agents.filter(a => 
+            a.name.toLowerCase().includes(searchValue.toLowerCase())
+          )}
+          isLoading={isLoadingAgents}
+          onEdit={(agent) => {
+            setSelectedAgent(agent);
+            setShowAgentDialog(true);
+          }}
+          onDelete={(agent) => {
+            setAgentToDelete(agent);
+            setShowDeleteAgentConfirm(true);
+          }}
+          onToggleStatus={(agent) => toggleAgentStatus(agent.id)}
+          onCreateNew={() => {
+            setSelectedAgent(null);
+            setShowAgentDialog(true);
+          }}
         />
       )}
 
@@ -841,6 +904,66 @@ export function KnowledgeBaseModule() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Create/Edit Agent Dialog */}
+      <CreateAgentDialog
+        open={showAgentDialog}
+        onOpenChange={(open) => {
+          setShowAgentDialog(open);
+          if (!open) setSelectedAgent(null);
+        }}
+        agent={selectedAgent}
+        personas={personas.map(p => ({ 
+          id: p.id, 
+          name: p.name, 
+          toneOfVoice: p.toneOfVoice 
+        }))}
+        knowledgeBases={knowledgeBases.map(kb => ({ 
+          id: kb.id, 
+          name: kb.name 
+        }))}
+        flows={flows.map(f => ({ 
+          id: f.id, 
+          name: f.name 
+        }))}
+        onSubmit={async (data) => {
+          if (selectedAgent) {
+            await updateAgent(selectedAgent.id, data);
+          } else {
+            await createAgent(data);
+          }
+        }}
+        onDelete={async (agent) => {
+          await deleteAgent(agent.id);
+        }}
+      />
+
+      {/* Delete Agent Confirmation */}
+      <AlertDialog open={showDeleteAgentConfirm} onOpenChange={setShowDeleteAgentConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Agente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O agente "{agentToDelete?.name}" será permanentemente removido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (agentToDelete) {
+                  await deleteAgent(agentToDelete.id);
+                  setAgentToDelete(null);
+                  setShowDeleteAgentConfirm(false);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
