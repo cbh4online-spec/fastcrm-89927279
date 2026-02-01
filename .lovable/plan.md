@@ -1,229 +1,167 @@
 
+# Plano: Integrar Bases de Conhecimento Completas nos Assistentes IA
 
-# Plano: Unificacao do Sistema de IA Conversacional
+## Problema Atual
 
-## Problema Identificado
-
-O sistema atual tem **4 modulos separados** que gerem conceitos sobrepostos:
+O sistema tem **dois módulos separados** que criam fragmentação:
 
 ```text
-SITUACAO ATUAL (Fragmentada)
+SITUAÇÃO ATUAL (Duplicada)
 ┌─────────────────────────────────────────────────────────────────────┐
 │                                                                     │
-│  [Pagina: Perfis de IA]     [Modulo: Bases Conhecimento]           │
-│  └── AIProfilesModule       ├── Personas (tab)                     │
-│      └── ai_personas        │   └── ai_personas (mesma tabela!)    │
-│                             ├── Agentes (tab)                      │
-│                             │   └── ai_agents                      │
-│                             └── Widget (tab)                       │
-│                                                                     │
-│  [Pagina: Motor Conversacional]                                    │
-│  ├── Vibe Profiles (tab)                                           │
-│  ├── Regras de Conversa (tab)                                      │
-│  ├── Objetivos (tab)                                               │
-│  └── Auto-Pilot (tab)                                              │
-│      └── autopilot_config                                          │
+│  [Assistentes IA]              [Bases Conhecimento]                │
+│  /dashboard/ai-assistants      /dashboard/knowledge-base           │
+│  ├── Agentes                   ├── Bases (gestão completa)         │
+│  ├── Personas                  ├── Fluxos                          │
+│  ├── Bases (acesso rápido)  ←──┤ Widget                            │
+│  └── Definições                └── Testar IA                       │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 
-PROBLEMAS:
-1. "Perfis de IA" e "Personas" usam a MESMA tabela (ai_personas)
-2. "Agentes" referenciam Personas, mas estao num modulo diferente
-3. AutoPilot esta isolado no Motor Conversacional
-4. Utilizador precisa navegar 3+ paginas para configurar um bot
+PROBLEMA:
+- Tab "Bases" nos Assistentes IA é apenas link para outro módulo
+- Utilizador tem de navegar entre 2 páginas para configurar IA
+- Sidebar tem 2 entradas quando deveria ter 1
 ```
 
 ---
 
-## Proposta: Modulo Unificado "Assistentes IA"
+## Solução: Módulo Único "Assistentes IA"
 
 ```text
 ARQUITETURA PROPOSTA (Unificada)
 ┌─────────────────────────────────────────────────────────────────────┐
-│  [Nova Pagina: Assistentes IA]                                     │
+│  [Assistentes IA] - /dashboard/ai-assistants                       │
 │                                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │ AGENTES (entidade central)                                  │   │
-│  │ ├── Nome: "Bot WhatsApp Vendas"                            │   │
-│  │ ├── Canal: WhatsApp                                        │   │
-│  │ ├── Persona: Consultor Comercial                           │   │
-│  │ ├── Bases Conhecimento: [Vendas, Produtos]                 │   │
-│  │ ├── Fluxo: "Funil Pharliss"                                │   │
-│  │ └── AutoPilot: (configuracao inline)                       │   │
-│  │     ├── Delay: 8-12s                                       │   │
-│  │     ├── Horario: 09:00-18:00                               │   │
-│  │     └── Max mensagens: 25                                  │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  TABS SECUNDARIAS:                                                  │
-│  ├── Personas (biblioteca de personalidades reutilizaveis)         │
-│  ├── Bases Conhecimento (acesso rapido)                            │
-│  └── Configuracao Global (defaults para todos os agentes)          │
+│  TABS:                                                              │
+│  ├── Agentes      → Bots por canal (WhatsApp, Widget, etc.)       │
+│  ├── Personas     → Biblioteca de personalidades                   │
+│  ├── Bases        → Gestão COMPLETA de bases de conhecimento       │
+│  │   └── Entradas, Fontes, Adicionar conteúdo                     │
+│  ├── Fluxos       → Flow Builder (conversas estruturadas)         │
+│  ├── Widget       → Configuração do chat widget                    │
+│  ├── Testar IA    → Chat de teste com métricas                    │
+│  └── Definições   → Configurações globais                          │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Mudancas Propostas
+## Mudanças Propostas
 
-### 1. Expandir Tabela `ai_agents` (Entidade Central)
+### 1. Expandir AIAssistantsModule
 
-Adicionar campos do AutoPilot diretamente aos agentes:
+Adicionar as tabs que existem no KnowledgeBaseModule:
+- **Bases** → Gestão completa (criar, adicionar fontes, entradas)
+- **Fluxos** → FlowBuilderModule integrado
+- **Widget** → WidgetConfigPanel integrado
+- **Testar IA** → AIQueryPanel + métricas
 
-| Campo Novo | Tipo | Descricao |
-|------------|------|-----------|
-| `autopilot_enabled` | boolean | AutoPilot ativo para este agente |
-| `response_delay_min` | integer | Delay minimo (segundos) |
-| `response_delay_max` | integer | Delay maximo (segundos) |
-| `max_messages_per_conversation` | integer | Limite de mensagens |
-| `respect_working_hours` | boolean | Respeitar horario |
-| `working_hours_start` | time | Inicio do expediente |
-| `working_hours_end` | time | Fim do expediente |
-| `working_days` | integer[] | Dias de trabalho |
-| `out_of_hours_message` | text | Mensagem fora de horas |
+### 2. Atualizar Navegação
 
-### 2. Reorganizar Interface
-
-**Remover/Deprecar:**
-- Pagina "Perfis de IA" (`/dashboard/ai-profiles`) - redundante
-- Tab "Personas" do KnowledgeBaseModule - mover para novo modulo
-- Tab "Agentes" do KnowledgeBaseModule - mover para novo modulo
-- Tab "Auto-Pilot" do Motor Conversacional - integrar nos agentes
-
-**Criar:**
-- Nova pagina `/dashboard/ai-assistants` - modulo unificado
+| Ação | Detalhes |
+|------|----------|
+| Remover | Link "Bases Conhecimento" do Sidebar |
+| Manter | Link "Assistentes IA" como entrada única |
+| Opcional | Manter rota `/dashboard/knowledge-base` como redirect |
 
 ### 3. Nova Estrutura de Tabs
 
 ```text
-[Assistentes IA]
-├── Agentes          → Lista de bots por canal (WhatsApp, IG, Widget, etc.)
-├── Personas         → Biblioteca de personalidades (tom, comportamento)
-├── Bases            → Acesso rapido as bases de conhecimento
-└── Definicoes       → Configuracoes globais (fallback, defaults)
+Assistentes IA (7 tabs)
+├── Agentes     → Lista de bots por canal
+├── Personas    → Biblioteca de personalidades  
+├── Bases       → Gestão completa de KBs (expandido)
+├── Fluxos      → Flow Builder
+├── Widget      → Configuração do widget
+├── Testar IA   → Chat de teste + métricas
+└── Definições  → Configurações globais
 ```
 
 ---
 
-## Fluxo de Configuracao Simplificado
+## Implementação Técnica
 
-```text
-ANTES (5+ cliques, 3 paginas):
-1. Criar Persona em Bases → Personas
-2. Criar Agente em Bases → Agentes
-3. Configurar AutoPilot em Motor Conversacional
-4. Associar Base de Conhecimento
-5. Testar
+### Fase 1: Expandir AIAssistantsModule
 
-DEPOIS (2-3 cliques, 1 pagina):
-1. Criar Agente (seleciona canal, persona, KBs, configura autopilot inline)
-2. Ativar
-3. Testar
-```
+- Adicionar tabs: `flows`, `widget`, `query`
+- Importar componentes do KnowledgeBaseModule:
+  - `FlowBuilderModule`
+  - `WidgetConfigPanel`
+  - `AIQueryPanel`
+  - `KnowledgeMetricsCard`
+- Transformar `KnowledgeBasesTab` de "acesso rápido" para gestão completa
 
----
+### Fase 2: Criar KnowledgeBasesFullTab
 
-## Implementacao Tecnica
+Nova tab com funcionalidade completa:
+- Lista de bases (sidebar)
+- Painel de detalhes (entradas, fontes)
+- Adicionar conteúdo (URL, manual, documento)
+- Criar/editar bases
+- Criar/editar personas (mover lógica existente)
 
-### Fase 1: Migracao de Dados
+### Fase 3: Atualizar Sidebar
 
-```sql
--- Adicionar campos de autopilot aos agentes
-ALTER TABLE ai_agents ADD COLUMN autopilot_enabled BOOLEAN DEFAULT false;
-ALTER TABLE ai_agents ADD COLUMN response_delay_min INTEGER DEFAULT 8;
-ALTER TABLE ai_agents ADD COLUMN response_delay_max INTEGER DEFAULT 12;
-ALTER TABLE ai_agents ADD COLUMN max_messages_per_conversation INTEGER DEFAULT 25;
-ALTER TABLE ai_agents ADD COLUMN max_consecutive_bot_messages INTEGER DEFAULT 3;
-ALTER TABLE ai_agents ADD COLUMN respect_working_hours BOOLEAN DEFAULT false;
-ALTER TABLE ai_agents ADD COLUMN working_hours_start TIME DEFAULT '09:00';
-ALTER TABLE ai_agents ADD COLUMN working_hours_end TIME DEFAULT '18:00';
-ALTER TABLE ai_agents ADD COLUMN working_days INTEGER[] DEFAULT '{1,2,3,4,5}';
-ALTER TABLE ai_agents ADD COLUMN timezone TEXT DEFAULT 'Europe/Lisbon';
-ALTER TABLE ai_agents ADD COLUMN out_of_hours_message TEXT;
-ALTER TABLE ai_agents ADD COLUMN typing_indicator BOOLEAN DEFAULT true;
-ALTER TABLE ai_agents ADD COLUMN sleep_on_human_reply BOOLEAN DEFAULT true;
-```
+- Remover entrada "Bases Conhecimento"
+- Atualizar tooltip de "Assistentes IA" para incluir todas as funcionalidades
 
-### Fase 2: Novos Componentes
+### Fase 4: Redirect (Opcional)
 
-| Ficheiro | Descricao |
-|----------|-----------|
-| `src/pages/AIAssistants.tsx` | Nova pagina unificada |
-| `src/components/ai-assistants/AIAssistantsModule.tsx` | Modulo principal |
-| `src/components/ai-assistants/AgentConfigPanel.tsx` | Painel de configuracao completo |
-| `src/components/ai-assistants/PersonaLibrary.tsx` | Biblioteca de personas |
-| `src/components/ai-assistants/AutopilotSettings.tsx` | Configuracoes inline |
-
-### Fase 3: Atualizacao de Rotas
-
+Manter compatibilidade:
 ```typescript
-// Antes
-/dashboard/ai-profiles     → Remover
-/dashboard/knowledge-base  → Manter (sem tabs Personas/Agentes)
-/dashboard/conversational-engine → Manter (sem tab Auto-Pilot)
-
-// Depois
-/dashboard/ai-assistants   → Nova pagina central
+// Em App.tsx
+<Route path="/dashboard/knowledge-base" element={<Navigate to="/dashboard/ai-assistants?tab=bases" replace />} />
 ```
-
-### Fase 4: Atualizacao de Edge Functions
-
-As funcoes `chat-widget` e `ai-inbox-reply` passam a:
-1. Buscar agente por canal
-2. Ler configuracoes de autopilot diretamente do agente
-3. Carregar persona e KBs associados
 
 ---
 
-## Beneficios
+## Ficheiros a Criar/Modificar
+
+### Novos Ficheiros
+- `src/components/ai-assistants/KnowledgeBasesFullTab.tsx` - Gestão completa de KBs
+- `src/components/ai-assistants/FlowsTab.tsx` - Wrapper para FlowBuilderModule
+- `src/components/ai-assistants/WidgetTab.tsx` - Wrapper para WidgetConfigPanel  
+- `src/components/ai-assistants/TestAITab.tsx` - Chat de teste + métricas
+
+### Ficheiros a Modificar
+- `src/components/ai-assistants/AIAssistantsModule.tsx` - Adicionar novas tabs
+- `src/components/layout/Sidebar.tsx` - Remover link "Bases Conhecimento"
+- `src/App.tsx` - Adicionar redirect de compatibilidade
+
+### Ficheiros a Deprecar
+- `src/pages/KnowledgeBase.tsx` - Substituído por redirect
+- `src/components/knowledge-base/KnowledgeBaseModule.tsx` - Funcionalidade movida
+
+---
+
+## Benefícios
 
 | Antes | Depois |
 |-------|--------|
-| 3 paginas para configurar bot | 1 pagina unificada |
-| Personas duplicadas em 2 locais | Biblioteca centralizada |
-| AutoPilot global (igual para todos) | AutoPilot por agente/canal |
-| Confusao entre Perfis/Personas/Agentes | Hierarquia clara: Agente > Persona |
-
----
-
-## Ficheiros a Criar
-
-- `src/pages/AIAssistants.tsx`
-- `src/components/ai-assistants/AIAssistantsModule.tsx`
-- `src/components/ai-assistants/AgentFullForm.tsx`
-- `src/components/ai-assistants/AgentDetailPanel.tsx`
-- `src/components/ai-assistants/PersonaLibrary.tsx`
-- `src/components/ai-assistants/AutopilotInlineSettings.tsx`
-- `src/hooks/useAIAssistants.ts`
-
-## Ficheiros a Modificar
-
-- `src/components/layout/Sidebar.tsx` - Adicionar link "Assistentes IA"
-- `src/App.tsx` - Adicionar rota `/dashboard/ai-assistants`
-- `src/components/knowledge-base/KnowledgeBaseModule.tsx` - Remover tabs Personas/Agentes
-- `src/components/conversational-engine/ConversationalEngineModule.tsx` - Remover tab Auto-Pilot
-- `supabase/functions/chat-widget/index.ts` - Usar configuracao de agente
-- `supabase/functions/ai-inbox-reply/index.ts` - Usar configuracao de agente
+| 2 páginas separadas | 1 página unificada |
+| 2 entradas no Sidebar | 1 entrada centralizada |
+| Tab "Bases" era apenas link | Tab "Bases" com gestão completa |
+| Navegar entre módulos | Tudo acessível via tabs |
 
 ---
 
 ## Estimativa
 
-- Migracao SQL: ~30 linhas
-- Novos componentes React: ~800 linhas
-- Refactoring de modulos existentes: ~200 linhas
-- Atualizacao edge functions: ~100 linhas
-- **Total: ~1130 linhas de codigo**
+- Novos componentes (tabs wrapper): ~200 linhas
+- Refactoring AIAssistantsModule: ~150 linhas
+- Atualização Sidebar: ~10 linhas
+- Redirect e cleanup: ~20 linhas
+- **Total: ~380 linhas de código**
 
 ---
 
 ## Resultado Final
 
-O utilizador tera:
-1. **Uma unica pagina** para gerir todos os bots/assistentes
-2. **Configuracao completa por canal** (cada WhatsApp pode ter autopilot diferente do Instagram)
-3. **Biblioteca de Personas** reutilizaveis entre agentes
-4. **Zero duplicacao** de conceitos na interface
-5. **Fluxo intuitivo**: Criar Agente → Escolher Canal → Definir Persona → Configurar AutoPilot → Ativar
-
+O utilizador terá:
+1. **Uma única página** para toda a gestão de IA
+2. **Navegação simplificada** no Sidebar (menos clutter)
+3. **Todas as funcionalidades acessíveis** via tabs no mesmo módulo
+4. **Zero duplicação** de conceitos
+5. **Fluxo intuitivo**: Agentes → Personas → Bases → Fluxos → Widget → Testar
