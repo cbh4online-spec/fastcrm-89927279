@@ -1,216 +1,269 @@
 
-# Plano: Suportar Múltiplas Colunas de Cursos na Importação
+# Plano: Adicionar Selecção e Mapeamento de Colunas na Importação
 
 ## Problema Identificado
 
-O ficheiro Excel pode ter **múltiplas colunas** que indicam cursos/formações (ex: "Curso 1", "Curso 2", "Formação Inicial", "Formação Avançada"), mas o sistema actual:
+O diálogo de importação actual salta directamente para o preview dos perfis, sem mostrar ao utilizador:
+1. Quais colunas foram detectadas no ficheiro Excel
+2. Como cada coluna foi mapeada (ou não mapeada)
+3. Opção para corrigir/ajustar o mapeamento manualmente
 
-1. Apenas captura uma coluna para `primary_interest`
-2. Ignora outras colunas que podem conter nomes de cursos
-3. Só cria uma inscrição por perfil (apenas para o primeiro curso encontrado)
+O utilizador quer ver **todas as colunas** do Excel e poder seleccionar quais usar.
 
 ## Solução Proposta
 
-Detectar automaticamente **todas as colunas** que contêm nomes de cursos válidos e criar inscrições para cada uma.
+Adicionar um **novo passo "Mapeamento de Colunas"** entre o upload e o preview:
+
+```text
+Upload → [NOVO] Mapear Colunas → Preview → Importação → Concluído
+```
+
+## Interface do Novo Passo
+
+O novo ecrã mostrará uma tabela com:
+- Todas as colunas detectadas no Excel
+- O campo de destino mapeado automaticamente (ou "Não mapeado")
+- Dropdown para alterar o mapeamento
+- Checkbox para incluir/excluir a coluna
 
 ## Alterações Técnicas
 
-### 1. Detectar Todas as Colunas de Cursos
-
-Antes de mapear perfis, identificar quais colunas do Excel contêm valores que correspondem a cursos:
+### 1. Adicionar Novo Estado para Colunas Detectadas
 
 ```typescript
-// Detectar colunas que são potencialmente cursos
-const detectCourseColumns = (
-  headers: string[], 
-  sampleRows: Record<string, string>[], 
-  coursesList: SJCourse[]
-): string[] => {
-  const courseColumns: string[] = [];
+interface DetectedColumn {
+  originalName: string;           // Nome original no Excel
+  normalizedName: string;         // Nome normalizado
+  mappedTo: string | null;        // Campo de destino (nome, email, etc.)
+  isSelected: boolean;            // Incluir na importação
+  sampleValues: string[];         // 3 primeiros valores para preview
+  isCourseColumn: boolean;        // É coluna de curso/formação
+}
+
+// Novos estados
+const [detectedColumns, setDetectedColumns] = useState<DetectedColumn[]>([]);
+const [rawData, setRawData] = useState<Record<string, string>[]>([]);
+```
+
+### 2. Definir Campos de Destino Disponíveis
+
+```typescript
+const MAPPING_FIELDS = [
+  { value: "nome", label: "Nome", icon: User },
+  { value: "email", label: "Email", icon: Mail },
+  { value: "telefone", label: "Telefone", icon: Phone },
+  { value: "origem", label: "Origem/Fonte", icon: Globe },
+  { value: "notas", label: "Notas", icon: FileText },
+  { value: "curso", label: "Formação/Curso", icon: GraduationCap },
+  { value: "ignorar", label: "Ignorar coluna", icon: XCircle },
+];
+```
+
+### 3. Actualizar o Fluxo de Passos
+
+```typescript
+// Alterar de 4 para 5 passos
+const [step, setStep] = useState<
+  "upload" | "mapping" | "preview" | "importing" | "complete"
+>("upload");
+```
+
+### 4. Detectar Colunas ao Carregar Ficheiro
+
+```typescript
+const handleFileSelect = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  // Extrair colunas e dados brutos
+  const { columns, data } = await extractColumnsAndData(file);
   
-  for (const header of headers) {
-    // Verificar se alguma linha desta coluna faz match com um curso
-    const hasMatch = sampleRows.some(row => {
-      const value = row[header];
-      if (!value) return false;
-      return findMatchingCourse(value, coursesList) !== null;
-    });
-    
-    if (hasMatch) {
-      courseColumns.push(header);
-    }
-  }
+  // Auto-mapear colunas conhecidas
+  const mappedColumns = columns.map(col => ({
+    originalName: col.original,
+    normalizedName: col.normalized,
+    mappedTo: autoDetectMapping(col.normalized),
+    isSelected: true,
+    sampleValues: getSampleValues(data, col.original, 3),
+    isCourseColumn: isCourseColumnByName(col.normalized) || 
+                    hasCourseMatches(data, col.original),
+  }));
   
-  return courseColumns;
+  setDetectedColumns(mappedColumns);
+  setRawData(data);
+  setStep("mapping"); // Ir para novo passo
 };
 ```
 
-### 2. Actualizar Interface ParsedProfile
-
-Suportar múltiplos cursos por perfil:
+### 5. Interface do Passo de Mapeamento
 
 ```typescript
-interface MatchedCourse {
-  courseId: string;
-  courseName: string;
-  matchType: "exact" | "partial" | "keyword" | "tag";
-  sourceColumn: string;  // Nome da coluna de onde veio
-}
+{step === "mapping" && (
+  <div className="space-y-4">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium">
+          {detectedColumns.length} colunas detectadas
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Verifique o mapeamento e seleccione as colunas a importar
+        </p>
+      </div>
+    </div>
 
-interface ParsedProfile {
-  // ... campos existentes ...
-  matchedCourses: MatchedCourse[];  // NOVO: array de cursos
-}
+    <ScrollArea className="h-[350px] border rounded-lg">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/50 sticky top-0">
+          <tr>
+            <th className="p-2 w-8">
+              <Checkbox /> {/* Seleccionar todas */}
+            </th>
+            <th className="p-2 text-left">Coluna no Excel</th>
+            <th className="p-2 text-left">Exemplos</th>
+            <th className="p-2 text-left">Mapear para</th>
+          </tr>
+        </thead>
+        <tbody>
+          {detectedColumns.map((col, idx) => (
+            <tr key={idx} className="border-t">
+              <td className="p-2">
+                <Checkbox 
+                  checked={col.isSelected}
+                  onCheckedChange={(c) => toggleColumn(idx, c)}
+                />
+              </td>
+              <td className="p-2 font-medium">
+                {col.originalName}
+                {col.isCourseColumn && (
+                  <Badge className="ml-2 text-xs">Formação</Badge>
+                )}
+              </td>
+              <td className="p-2 text-xs text-muted-foreground max-w-[150px] truncate">
+                {col.sampleValues.join(", ")}
+              </td>
+              <td className="p-2">
+                <Select 
+                  value={col.mappedTo || "ignorar"} 
+                  onValueChange={(v) => updateMapping(idx, v)}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MAPPING_FIELDS.map(field => (
+                      <SelectItem key={field.value} value={field.value}>
+                        {field.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </ScrollArea>
+
+    <DialogFooter>
+      <Button variant="outline" onClick={resetDialog}>
+        Voltar
+      </Button>
+      <Button onClick={proceedToPreview}>
+        Continuar para Preview
+      </Button>
+    </DialogFooter>
+  </div>
+)}
 ```
 
-### 3. Melhorar mapToProfiles
+### 6. Processar com Mapeamento Manual
 
-Percorrer todas as colunas e extrair cursos:
+Quando o utilizador avança para o preview, usar o mapeamento definido:
 
 ```typescript
-const mapToProfiles = (
-  data: Record<string, string>[], 
-  courseColumns: string[],
-  coursesList: SJCourse[]
-): ParsedProfile[] => {
-  return data.map((row) => {
-    const normalizedRow = normalizeAllKeys(row);
+const proceedToPreview = () => {
+  // Usar apenas colunas seleccionadas com o mapeamento definido
+  const selectedColumns = detectedColumns.filter(c => c.isSelected);
+  
+  // Construir profiles usando o mapeamento manual
+  const profiles = rawData.map(row => {
+    const profile: ParsedProfile = {
+      full_name: "",
+      matchedCourses: [],
+    };
     
-    // Extrair todos os cursos de todas as colunas identificadas
-    const matchedCourses: MatchedCourse[] = [];
-    for (const col of courseColumns) {
-      const value = normalizedRow[col];
+    for (const col of selectedColumns) {
+      const value = row[col.originalName];
       if (!value) continue;
       
-      const match = findMatchingCourse(value, coursesList);
-      if (match) {
-        // Evitar duplicados
-        if (!matchedCourses.some(mc => mc.courseId === match.course.id)) {
-          matchedCourses.push({
-            courseId: match.course.id,
-            courseName: match.course.name,
-            matchType: match.matchType,
-            sourceColumn: col,
-          });
-        }
+      switch (col.mappedTo) {
+        case "nome":
+          profile.full_name = value;
+          break;
+        case "email":
+          profile.email = value;
+          break;
+        case "telefone":
+          profile.phone = value;
+          break;
+        case "curso":
+          // Tentar match com cursos existentes
+          const match = findMatchingCourse(value, courses);
+          if (match) {
+            profile.matchedCourses.push({...});
+          }
+          break;
+        // ... outros campos
       }
     }
     
-    return {
-      full_name: getName(normalizedRow),
-      email: getEmail(normalizedRow),
-      // ...
-      matchedCourses,
-    };
-  });
+    return profile;
+  }).filter(p => p.full_name);
+  
+  setParsedData(profiles);
+  setStep("preview");
 };
 ```
 
-### 4. Actualizar Preview para Mostrar Múltiplos Cursos
-
-```typescript
-<td className="p-2">
-  {profile.matchedCourses.length > 0 ? (
-    <div className="flex flex-wrap gap-1">
-      {profile.matchedCourses.map((mc, i) => (
-        <Badge
-          key={i}
-          variant="outline"
-          className="gap-1 text-xs bg-purple-50 text-purple-700 border-purple-200"
-        >
-          <GraduationCap className="h-3 w-3" />
-          {mc.courseName}
-        </Badge>
-      ))}
-    </div>
-  ) : (
-    <span className="text-muted-foreground text-xs">—</span>
-  )}
-</td>
-```
-
-### 5. Criar Múltiplas Inscrições na Importação
-
-```typescript
-// Dentro de handleImport
-for (const matchedCourse of profile.matchedCourses) {
-  const { error: enrollError } = await supabase.from("sj_enrollments").insert({
-    workspace_id: currentWorkspace.id,
-    profile_id: createdProfile.id,
-    course_id: matchedCourse.courseId,
-    status: "interested",
-    payment_status: "unpaid",
-    source: "import",
-  });
-
-  if (!enrollError) {
-    result.enrollmentsCreated++;
-  }
-}
-```
-
-### 6. Adicionar Colunas Específicas de Curso ao Header Detection
-
-Expandir a lista de keywords para detectar colunas de cursos:
-
-```typescript
-const COURSE_COLUMN_PATTERNS = [
-  "curso", "formacao", "formação", 
-  "course", "training",
-  "modulo", "módulo",
-  "nivel", "nível",
-  "workshop"
-];
-
-// Verificar se o nome da coluna indica um curso
-const isCourseColumn = (header: string): boolean => {
-  const normalized = normalizeHeader(header);
-  return COURSE_COLUMN_PATTERNS.some(p => normalized.includes(p));
-};
-```
-
-## Fluxo Melhorado
+## Fluxo Visual
 
 ```text
-1. Upload do Excel
-   ↓
-2. Detectar headers (existente)
-   ↓
-3. NOVO: Identificar TODAS as colunas que contêm cursos
-   - Por nome da coluna (contém "curso", "formação", etc.)
-   - Por conteúdo (valores fazem match com cursos existentes)
-   ↓
-4. Mapear perfis com array de cursos
-   ↓
-5. Preview mostra todos os cursos por perfil
-   ↓
-6. Importação cria:
-   - 1 Perfil
-   - N Inscrições (uma por curso encontrado)
+┌─────────────────────────────────────────────────────────────┐
+│  Passo 1: Upload                                            │
+│  [Arrastar ficheiro ou clicar para seleccionar]             │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Passo 2: Mapear Colunas (NOVO)                             │
+│                                                             │
+│  ☑ Nome Completo    → [Nome ▼]      "João, Maria..."       │
+│  ☑ E-mail           → [Email ▼]     "joao@..., maria@..."  │
+│  ☑ Contacto         → [Telefone ▼]  "912..., 923..."       │
+│  ☑ Curso Básico     → [Formação ▼]  "Nível 1, Básico..."   │
+│  ☑ Curso Avançado   → [Formação ▼]  "Nível 2, Avançado..." │
+│  ☐ Data Registo     → [Ignorar ▼]   "2024-01, 2024-02..."  │
+│  ☐ ID Interno       → [Ignorar ▼]   "001, 002, 003..."     │
+│                                                             │
+│                           [Voltar] [Continuar para Preview] │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Passo 3: Preview (existente)                               │
+│  Mostra perfis processados com mapeamento do utilizador     │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-## Exemplo Prático
-
-**Ficheiro Excel:**
-| Nome | Curso Principal | Outra Formação | Workshop |
-|------|-----------------|----------------|----------|
-| João Silva | Básica | Avançada | Aromaterapia |
-| Maria Santos | Iniciação | | Tricologia |
-
-**Resultado:**
-- João Silva → 3 inscrições (Básica, Avançada, Aromaterapia)
-- Maria Santos → 2 inscrições (Iniciação, Tricologia)
 
 ## Ficheiro a Modificar
 
-| Ficheiro | Alterações |
-|----------|------------|
-| `src/components/student-journey/ImportProfilesDialog.tsx` | Detecção de múltiplas colunas, array de cursos, múltiplas inscrições |
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/components/student-journey/ImportProfilesDialog.tsx` | Adicionar passo de mapeamento, novos estados, nova UI |
 
 ## Resultado Esperado
 
-1. Todas as colunas do Excel que contêm cursos são detectadas
-2. Preview mostra múltiplos badges por perfil quando há vários cursos
-3. Uma inscrição é criada para cada curso identificado
-4. Estatísticas finais reflectem o total de inscrições (pode ser > perfis)
-5. Nenhuma formação é perdida na importação
+1. Utilizador vê **todas as colunas** do Excel após upload
+2. Sistema mostra **sugestão automática** de mapeamento
+3. Utilizador pode **corrigir mapeamentos** incorrectos
+4. Utilizador pode **desseleccionar** colunas irrelevantes
+5. Preview mostra dados processados com o mapeamento definido
+6. Colunas de curso são automaticamente identificadas e marcadas
