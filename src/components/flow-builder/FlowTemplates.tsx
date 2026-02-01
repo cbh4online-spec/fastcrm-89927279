@@ -492,10 +492,270 @@ export const DR_KRAUT_TEMPLATE: FlowTemplate = {
   ]
 };
 
+// Template: Atendimento Cliente Profissional B2B
+export const ATENDIMENTO_PROFISSIONAL_TEMPLATE: FlowTemplate = {
+  id: 'atendimento-profissional',
+  name: 'Atendimento Cliente Profissional',
+  description: 'Fluxo de qualificação e atendimento para clientes profissionais B2B com recolha completa de dados',
+  category: 'Vendas',
+  icon: Users,
+  defaultGoalType: 'lead_capture',
+  defaultChannels: ['whatsapp', 'instagram', 'widget'],
+  
+  variables: [
+    {
+      name: 'nome',
+      displayName: 'Nome',
+      variableType: 'text',
+      isRequired: true,
+      mapToField: 'lead.name'
+    },
+    {
+      name: 'telefone',
+      displayName: 'Telefone',
+      variableType: 'phone',
+      isRequired: true,
+      mapToField: 'lead.phone'
+    },
+    {
+      name: 'email',
+      displayName: 'Email',
+      variableType: 'email',
+      isRequired: true,
+      mapToField: 'lead.email'
+    },
+    {
+      name: 'e_profissional',
+      displayName: 'É Profissional',
+      variableType: 'boolean',
+      isRequired: true
+    },
+    {
+      name: 'objetivo_principal',
+      displayName: 'Objetivo Principal',
+      variableType: 'choice',
+      isRequired: true,
+      mapToField: 'lead.specialty',
+      choices: ['Melhorar couro cabeludo', 'Melhorar pele ou corpo', 'Fortalecer cabelo', 'Formação profissional', 'Equipamentos']
+    },
+    {
+      name: 'situacao_atual',
+      displayName: 'Situação Atual',
+      variableType: 'text',
+      isRequired: true
+    },
+    {
+      name: 'zona_pais',
+      displayName: 'Zona do País',
+      variableType: 'text',
+      isRequired: true,
+      mapToField: 'lead.city'
+    },
+    {
+      name: 'codigo_postal',
+      displayName: 'Código Postal',
+      variableType: 'text',
+      isRequired: true
+    },
+    {
+      name: 'formacao_atual',
+      displayName: 'Formação Atual',
+      variableType: 'text',
+      isRequired: true
+    },
+    {
+      name: 'experiencia_profissional',
+      displayName: 'Experiência Profissional',
+      variableType: 'text',
+      isRequired: true
+    }
+  ],
+
+  steps: [
+    // 1. Saudação Premium
+    {
+      id: 'prof-step-1-saudacao',
+      stepType: 'message',
+      name: 'Saudação Premium',
+      messageContent: 'Olá! Que alegria imensa receber o seu contacto. O meu nome é Ana da ENsI Pharliss, e estou aqui para acompanhar cada passo consigo, seja na sua formação, evolução profissional ou no cuidado capilar mais avançado. Como posso ajudar hoje?',
+      isEntryPoint: true,
+      connectsTo: 'prof-step-2-nome',
+      positionX: 100,
+      positionY: 100
+    },
+    // 2. Recolha Nome
+    {
+      id: 'prof-step-2-nome',
+      stepType: 'question',
+      name: 'Recolha Nome',
+      messageContent: 'Para preparar um atendimento completo, poderia indicar o seu nome?',
+      variableToCollect: 'nome',
+      connectsTo: 'prof-step-3-telefone',
+      positionX: 100,
+      positionY: 220
+    },
+    // 3. Recolha Telefone
+    {
+      id: 'prof-step-3-telefone',
+      stepType: 'question',
+      name: 'Recolha Telefone',
+      messageContent: 'Qual o seu número de telefone para contacto?',
+      variableToCollect: 'telefone',
+      connectsTo: 'prof-step-4-email',
+      positionX: 100,
+      positionY: 340
+    },
+    // 4. Recolha Email
+    {
+      id: 'prof-step-4-email',
+      stepType: 'question',
+      name: 'Recolha Email',
+      messageContent: 'E o seu email profissional?',
+      variableToCollect: 'email',
+      connectsTo: 'prof-step-5-agradecimento',
+      positionX: 100,
+      positionY: 460
+    },
+    // 5. Agradecimento
+    {
+      id: 'prof-step-5-agradecimento',
+      stepType: 'message',
+      name: 'Agradecimento',
+      messageContent: 'Obrigada, {nome}! 🙏',
+      connectsTo: 'prof-step-6-verifica-prof',
+      positionX: 100,
+      positionY: 580
+    },
+    // 6. Verifica Profissional
+    {
+      id: 'prof-step-6-verifica-prof',
+      stepType: 'question',
+      name: 'Verifica Profissional',
+      messageContent: 'Para direcionar melhor o atendimento, confirma que é profissional da área de beleza/saúde?',
+      variableToCollect: 'e_profissional',
+      quickReplies: ['Sim, sou profissional', 'Não'],
+      connectsTo: 'prof-step-7-condicao',
+      positionX: 100,
+      positionY: 700
+    },
+    // 7. Condição Profissional
+    {
+      id: 'prof-step-7-condicao',
+      stepType: 'condition',
+      name: 'Condição Profissional',
+      conditionField: 'e_profissional',
+      conditionOperator: 'equals',
+      conditionValue: 'Sim, sou profissional',
+      conditionTrueConnectsTo: 'prof-step-8-objetivo',
+      conditionFalseConnectsTo: 'prof-step-15-nao-prof',
+      positionX: 100,
+      positionY: 820
+    },
+    // 8. Objetivo Principal
+    {
+      id: 'prof-step-8-objetivo',
+      stepType: 'question',
+      name: 'Objetivo Principal',
+      messageContent: 'Qual é o seu objetivo principal neste momento?',
+      variableToCollect: 'objetivo_principal',
+      quickReplies: ['Melhorar couro cabeludo', 'Melhorar pele ou corpo', 'Fortalecer cabelo', 'Formação profissional', 'Equipamentos'],
+      connectsTo: 'prof-step-9-situacao',
+      positionX: 300,
+      positionY: 940
+    },
+    // 9. Situação Atual
+    {
+      id: 'prof-step-9-situacao',
+      stepType: 'question',
+      name: 'Situação Atual',
+      messageContent: 'Como está atualmente a situação que pretende resolver?',
+      variableToCollect: 'situacao_atual',
+      connectsTo: 'prof-step-10-zona',
+      positionX: 300,
+      positionY: 1060
+    },
+    // 10. Zona do País
+    {
+      id: 'prof-step-10-zona',
+      stepType: 'question',
+      name: 'Zona do País',
+      messageContent: 'Em que zona do país se encontra? (localidade e código postal)',
+      variableToCollect: 'zona_pais',
+      connectsTo: 'prof-step-11-formacao',
+      positionX: 300,
+      positionY: 1180
+    },
+    // 11. Formação Atual
+    {
+      id: 'prof-step-11-formacao',
+      stepType: 'question',
+      name: 'Formação Atual',
+      messageContent: 'Qual é a sua formação atual na área?',
+      variableToCollect: 'formacao_atual',
+      connectsTo: 'prof-step-12-experiencia',
+      positionX: 300,
+      positionY: 1300
+    },
+    // 12. Experiência Profissional
+    {
+      id: 'prof-step-12-experiencia',
+      stepType: 'question',
+      name: 'Experiência Profissional',
+      messageContent: 'Quantos anos de experiência profissional tem?',
+      variableToCollect: 'experiencia_profissional',
+      connectsTo: 'prof-step-13-analise',
+      positionX: 300,
+      positionY: 1420
+    },
+    // 13. Análise Parceiros
+    {
+      id: 'prof-step-13-analise',
+      stepType: 'message',
+      name: 'Análise Parceiros',
+      messageContent: 'Perfeito, {nome}! ✨ Estou a verificar se existem parceiros Pharliss na sua zona de {zona_pais}.\n\nCom base no seu perfil profissional e objetivos, vou preparar uma recomendação personalizada.',
+      connectsTo: 'prof-step-14-handoff',
+      positionX: 300,
+      positionY: 1540
+    },
+    // 14. Handoff Coordenadora
+    {
+      id: 'prof-step-14-handoff',
+      stepType: 'handoff',
+      name: 'Handoff Coordenadora',
+      messageContent: 'Vou passar o seu processo para a nossa coordenadora responsável que irá analisar o seu perfil e entrar em contacto nas próximas duas horas. 📋',
+      actionType: 'transfer_to_human',
+      actionConfig: { department: 'coordenacao', priority: 'high', reason: 'Lead profissional B2B qualificado' },
+      connectsTo: 'prof-step-16-goal',
+      positionX: 300,
+      positionY: 1660
+    },
+    // 15. Lead Não Profissional
+    {
+      id: 'prof-step-15-nao-prof',
+      stepType: 'message',
+      name: 'Lead Não Profissional',
+      messageContent: 'Os nossos produtos são de uso profissional. Para garantir os melhores resultados, recomendamos que contacte um profissional certificado na sua área.\n\nPosso ajudar a encontrar um parceiro próximo de si? 🔍',
+      positionX: -100,
+      positionY: 940
+    },
+    // 16. Goal - Lead B2B Qualificado
+    {
+      id: 'prof-step-16-goal',
+      stepType: 'goal',
+      name: 'Lead B2B Qualificado',
+      goalName: 'Lead Profissional Qualificado Pharliss',
+      conversionValue: 1,
+      positionX: 300,
+      positionY: 1780
+    }
+  ]
+};
+
 // Lista de todos os templates disponíveis
 export const FLOW_TEMPLATES: FlowTemplate[] = [
   PHARLISS_UNIVERSAL_TEMPLATE,
-  DR_KRAUT_TEMPLATE
+  DR_KRAUT_TEMPLATE,
+  ATENDIMENTO_PROFISSIONAL_TEMPLATE
 ];
 // Componente para mostrar card de template
 interface TemplateCardProps {
