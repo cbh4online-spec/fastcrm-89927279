@@ -405,6 +405,14 @@ export function BulkEnrollmentDialog({
           processingResult.profilesCreated++;
         } else {
           processingResult.profilesExisting++;
+          
+          // Actualizar lifecycle_stage para "active" se tem cursos
+          if (row.courses.length > 0) {
+            await supabase
+              .from("sj_profiles")
+              .update({ lifecycle_stage: "active" })
+              .eq("id", profile.id);
+          }
         }
 
         // 3. Create enrollments for each course marked with "x"
