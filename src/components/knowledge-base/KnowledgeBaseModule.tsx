@@ -30,7 +30,9 @@ import {
   Link as LinkIcon,
   ListChecks,
   Workflow,
-  Globe
+  Globe,
+  Trash2,
+  Edit
 } from 'lucide-react';
 import { KNOWLEDGE_BASE_TYPES, PERSONA_TYPES, TONE_OPTIONS } from '@/types/knowledge-base';
 import type { KnowledgeEntry, KnowledgeSource } from '@/types/knowledge-base';
@@ -65,6 +67,8 @@ export function KnowledgeBaseModule() {
     fetchEntries,
     fetchSources,
     createPersona,
+    updatePersona,
+    deletePersona,
     queryKnowledge,
     semanticSearch,
     refresh
@@ -75,6 +79,8 @@ export function KnowledgeBaseModule() {
   const [searchValue, setSearchValue] = useState("");
   const [showCreateKB, setShowCreateKB] = useState(false);
   const [showCreatePersona, setShowCreatePersona] = useState(false);
+  const [showEditPersona, setShowEditPersona] = useState(false);
+  const [selectedPersona, setSelectedPersona] = useState<typeof personas[0] | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [kbDetailTab, setKbDetailTab] = useState<'add' | 'entries' | 'sources'>('entries');
@@ -220,6 +226,44 @@ export function KnowledgeBaseModule() {
     setPersonaDescription('');
     setPersonaType('atendimento');
     setPersonaTone('empático');
+  };
+
+  const handleEditPersona = (persona: typeof personas[0]) => {
+    setSelectedPersona(persona);
+    setPersonaName(persona.name);
+    setPersonaDescription(persona.description || '');
+    setPersonaType(persona.personaType);
+    setPersonaTone(persona.toneOfVoice);
+    setShowEditPersona(true);
+  };
+
+  const handleUpdatePersona = async () => {
+    if (!selectedPersona || !personaName.trim()) return;
+    
+    await updatePersona(selectedPersona.id, {
+      name: personaName,
+      description: personaDescription,
+      personaType: personaType as any,
+      toneOfVoice: personaTone as any,
+    });
+
+    setShowEditPersona(false);
+    setSelectedPersona(null);
+    setPersonaName('');
+    setPersonaDescription('');
+    setPersonaType('atendimento');
+    setPersonaTone('empático');
+  };
+
+  const handleDeletePersona = async () => {
+    if (!selectedPersona) return;
+    
+    await deletePersona(selectedPersona.id);
+
+    setShowEditPersona(false);
+    setSelectedPersona(null);
+    setPersonaName('');
+    setPersonaDescription('');
   };
 
   const handleAddUrl = async (url: string) => {
@@ -572,6 +616,7 @@ export function KnowledgeBaseModule() {
             p.name.toLowerCase().includes(searchValue.toLowerCase())
           )}
           isLoading={isLoading}
+          onSelect={handleEditPersona}
           onCreateNew={() => setShowCreatePersona(true)}
         />
       )}
@@ -709,6 +754,90 @@ export function KnowledgeBaseModule() {
               <Plus className="h-4 w-4 mr-1" />
               Criar Persona
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Persona Dialog */}
+      <Dialog open={showEditPersona} onOpenChange={(open) => {
+        setShowEditPersona(open);
+        if (!open) {
+          setSelectedPersona(null);
+          setPersonaName('');
+          setPersonaDescription('');
+          setPersonaType('atendimento');
+          setPersonaTone('empático');
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Editar Persona IA
+            </DialogTitle>
+            <DialogDescription>
+              Altera as configurações desta persona.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome</Label>
+              <Input
+                value={personaName}
+                onChange={(e) => setPersonaName(e.target.value)}
+                placeholder="Ex: Consultor de Vendas, Suporte Técnico..."
+              />
+            </div>
+            <div>
+              <Label>Descrição (opcional)</Label>
+              <Textarea
+                value={personaDescription}
+                onChange={(e) => setPersonaDescription(e.target.value)}
+                placeholder="Quando usar esta persona..."
+              />
+            </div>
+            <div>
+              <Label>Tipo de Persona</Label>
+              <Select value={personaType} onValueChange={setPersonaType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PERSONA_TYPES).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Tom de Voz</Label>
+              <Select value={personaTone} onValueChange={setPersonaTone}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TONE_OPTIONS).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleUpdatePersona} className="flex-1" disabled={!personaName.trim()}>
+                <Edit className="h-4 w-4 mr-1" />
+                Guardar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleDeletePersona}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

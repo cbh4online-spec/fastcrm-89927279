@@ -690,6 +690,69 @@ export function useKnowledgeBase() {
     }
   };
 
+  // Update persona
+  const updatePersona = async (personaId: string, data: Partial<AIPersona>) => {
+    if (!currentWorkspace?.id) return null;
+
+    try {
+      const updateData: Record<string, unknown> = {};
+      
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.personaType !== undefined) updateData.persona_type = data.personaType;
+      if (data.toneOfVoice !== undefined) updateData.tone_of_voice = data.toneOfVoice;
+      if (data.technicalDepth !== undefined) updateData.technical_depth = data.technicalDepth;
+      if (data.languageStyle !== undefined) updateData.language_style = data.languageStyle;
+      if (data.systemPrompt !== undefined) updateData.system_prompt = data.systemPrompt;
+      if (data.limitations !== undefined) updateData.limitations = data.limitations;
+      if (data.knowledgeBaseIds !== undefined) updateData.knowledge_base_ids = data.knowledgeBaseIds;
+      if (data.isActive !== undefined) updateData.is_active = data.isActive;
+      
+      updateData.updated_at = new Date().toISOString();
+
+      const { data: persona, error } = await supabase
+        .from('ai_personas')
+        .update(updateData)
+        .eq('id', personaId)
+        .eq('workspace_id', currentWorkspace.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Persona atualizada');
+      await fetchPersonas();
+      return persona;
+    } catch (error) {
+      console.error('Error updating persona:', error);
+      toast.error('Erro ao atualizar persona');
+      return null;
+    }
+  };
+
+  // Delete persona
+  const deletePersona = async (personaId: string) => {
+    if (!currentWorkspace?.id) return false;
+
+    try {
+      const { error } = await supabase
+        .from('ai_personas')
+        .delete()
+        .eq('id', personaId)
+        .eq('workspace_id', currentWorkspace.id);
+
+      if (error) throw error;
+
+      toast.success('Persona eliminada');
+      await fetchPersonas();
+      return true;
+    } catch (error) {
+      console.error('Error deleting persona:', error);
+      toast.error('Erro ao eliminar persona');
+      return false;
+    }
+  };
+
   // Fetch metrics
   const fetchMetrics = useCallback(async () => {
     if (!currentWorkspace?.id) return;
@@ -773,6 +836,8 @@ export function useKnowledgeBase() {
     fetchEntries,
     fetchSources,
     createPersona,
+    updatePersona,
+    deletePersona,
     queryKnowledge,
     semanticSearch,
     generateEmbedding,
