@@ -68,7 +68,7 @@ export function ClientUsersList() {
             clientName: client.name,
             clientEmail: client.email,
             workspaceName: workspace?.name || "FastCRM",
-            portalUrl: `${window.location.origin}/client-portal`,
+            portalUrl: `${window.location.origin}/client/login`,
           },
         }
       );
