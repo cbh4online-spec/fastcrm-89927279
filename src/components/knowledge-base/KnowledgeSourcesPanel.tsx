@@ -137,10 +137,26 @@ export function KnowledgeSourcesPanel({
                           </p>
                         )}
                         
-                        {source.processingError && (
-                          <p className="text-sm text-destructive mt-1">
-                            Erro: {source.processingError}
-                          </p>
+                        {source.processingError && source.processingStatus === 'failed' && (
+                          <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-sm text-destructive border border-red-200 dark:border-red-800">
+                            <p className="font-medium">Erro no processamento:</p>
+                            <p className="text-xs mt-1">{source.processingError}</p>
+                          </div>
+                        )}
+                        
+                        {source.processingError && source.processingStatus === 'completed' && (
+                          <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded text-sm text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700">
+                            <p className="text-xs">{source.processingError}</p>
+                          </div>
+                        )}
+                        
+                        {source.processingStatus === 'processing' && source.processingError && (
+                          <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm text-blue-700 dark:text-blue-400">
+                            <p className="text-xs flex items-center gap-2">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              {source.processingError}
+                            </p>
+                          </div>
                         )}
                         
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
