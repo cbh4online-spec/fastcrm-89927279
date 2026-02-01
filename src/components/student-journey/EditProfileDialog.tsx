@@ -18,8 +18,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProfiles } from "@/hooks/useStudentJourney";
-import { LIFECYCLE_STAGE_CONFIG, DROPOUT_RISK_CONFIG, LifecycleStage, DropoutRisk, ActivationPotential, SJProfile } from "@/types/studentJourney";
+import { DROPOUT_RISK_CONFIG, LifecycleStage, DropoutRisk, ActivationPotential, SJProfile } from "@/types/studentJourney";
 import { Loader2 } from "lucide-react";
+
+// Only stages allowed by the database constraint
+const VALID_DB_LIFECYCLE_STAGES: { value: LifecycleStage; label: string }[] = [
+  { value: "lead", label: "Lead" },
+  { value: "prospect", label: "Prospect" },
+  { value: "enrolled", label: "Inscrito" },
+  { value: "active", label: "Ativo" },
+  { value: "completed", label: "Concluído" },
+  { value: "inactive", label: "Inativo" },
+  { value: "churned", label: "Churned" },
+];
 
 interface EditProfileDialogProps {
   open: boolean;
@@ -90,9 +101,9 @@ export function EditProfileDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(LIFECYCLE_STAGE_CONFIG).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    {config.label}
+                {VALID_DB_LIFECYCLE_STAGES.map((stage) => (
+                  <SelectItem key={stage.value} value={stage.value}>
+                    {stage.label}
                   </SelectItem>
                 ))}
               </SelectContent>
