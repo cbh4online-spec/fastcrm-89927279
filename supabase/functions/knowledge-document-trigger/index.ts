@@ -39,7 +39,18 @@ Deno.serve(async (req) => {
   try {
     const body: JobPayload = await req.json();
     const { workspaceId, inputData } = body;
-    const { sourceId, filePath, fileName, mimeType, knowledgeBaseId, fileSize } = inputData;
+    
+    // Validate required fields with fallbacks
+    const sourceId = inputData?.sourceId;
+    const filePath = inputData?.filePath;
+    const fileName = inputData?.fileName || (filePath ? filePath.split('/').pop() : 'document');
+    const mimeType = inputData?.mimeType || 'application/octet-stream';
+    const knowledgeBaseId = inputData?.knowledgeBaseId;
+    const fileSize = inputData?.fileSize || 0;
+    
+    if (!sourceId || !filePath) {
+      throw new Error('Missing required fields: sourceId, filePath');
+    }
 
     console.log(`[KNOWLEDGE-TRIGGER] Processing large document: ${fileName} (${(fileSize / 1024 / 1024).toFixed(2)}MB)`);
 
