@@ -1,194 +1,149 @@
 
-# Plano: Adicionar Nº Cliente a Contactos e Empresas
+# Plano: Adicionar Mapeamento de "Nº Cliente" na Importação de Perfis
 
-## Resumo
+## Problema Identificado
 
-Adicionar um campo **"Nº Cliente"** (`client_number`) às tabelas de contactos e empresas, com a seguinte lógica de negócio:
+O diálogo de importação de perfis do Student Journey (`ImportProfilesDialog.tsx`) não permite mapear a coluna "Nº Cliente" do ficheiro Excel. Os campos disponíveis são:
+- Nome, Email, Telefone, Formação/Curso, Origem/Fonte, Notas
 
-- Quando um contacto pertence a uma empresa, o Nº Cliente do contacto **herda automaticamente** o da empresa
-- Quando uma empresa tem contactos, todos partilham o mesmo número
-- O número pode ser definido manualmente ou gerado automaticamente
+O campo `client_number` foi recentemente adicionado às tabelas `contacts` e `companies`, mas:
+1. A tabela `sj_profiles` não precisa deste campo (perfis estão ligados a contactos via `contact_id`)
+2. A importação deve permitir usar "Nº Cliente" para matching com contactos existentes
+3. Se não houver match, o `client_number` deve ser guardado no contacto quando este for criado/actualizado
 
-## Alterações Necessárias
+## Alterações Técnicas
 
-### 1. Base de Dados
-
-Adicionar coluna `client_number` às tabelas `contacts` e `companies`:
-
-```sql
--- Adicionar coluna às empresas
-ALTER TABLE public.companies 
-ADD COLUMN client_number TEXT UNIQUE;
-
--- Adicionar coluna aos contactos
-ALTER TABLE public.contacts 
-ADD COLUMN client_number TEXT;
-
--- Índice para pesquisa rápida
-CREATE INDEX idx_companies_client_number ON public.companies(client_number);
-CREATE INDEX idx_contacts_client_number ON public.contacts(client_number);
-```
-
-### 2. Lógica de Sincronização
-
-Criar trigger para manter o Nº Cliente sincronizado entre contactos e empresa:
-
-```sql
--- Função: Sincronizar client_number quando contacto é associado a empresa
-CREATE OR REPLACE FUNCTION sync_contact_client_number()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Se o contacto tem company_id, herda o client_number da empresa
-  IF NEW.company_id IS NOT NULL THEN
-    SELECT client_number INTO NEW.client_number
-    FROM companies WHERE id = NEW.company_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger ao inserir/atualizar contacto
-CREATE TRIGGER trigger_sync_contact_client_number
-BEFORE INSERT OR UPDATE OF company_id ON contacts
-FOR EACH ROW
-EXECUTE FUNCTION sync_contact_client_number();
-
--- Função: Propagar client_number da empresa para todos os seus contactos
-CREATE OR REPLACE FUNCTION propagate_company_client_number()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.client_number IS DISTINCT FROM OLD.client_number THEN
-    UPDATE contacts 
-    SET client_number = NEW.client_number
-    WHERE company_id = NEW.id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger quando empresa atualiza client_number
-CREATE TRIGGER trigger_propagate_company_client_number
-AFTER UPDATE OF client_number ON companies
-FOR EACH ROW
-EXECUTE FUNCTION propagate_company_client_number();
-```
-
-### 3. Interface - Secção de Identificação das Empresas
-
-Adicionar campo Nº Cliente à `IdentificationSection.tsx`:
+### 1. Adicionar "Nº Cliente" aos Tipos de Mapeamento
 
 ```typescript
-<InlineEditableField
-  label="Nº Cliente"
-  fieldId="client_number"
-  fieldType="text"
-  value={company.client_number}
-  onChange={(val) => onFieldChange("client_number", val)}
-  icon={<Hash className="w-4 h-4" />}
-  placeholder="Ex: CLI-00001"
-/>
+// Linha 86 - Adicionar "n_cliente" ao tipo
+type MappingFieldType = "nome" | "email" | "telefone" | "n_cliente" | "origem" | "notas" | "curso" | "ignorar";
+
+// Linhas 98-106 - Adicionar à lista de campos
+const MAPPING_FIELDS = [
+  { value: "nome", label: "Nome", icon: User },
+  { value: "email", label: "Email", icon: Mail },
+  { value: "telefone", label: "Telefone", icon: Phone },
+  { value: "n_cliente", label: "Nº Cliente", icon: Hash },  // NOVO
+  { value: "curso", label: "Formação/Curso", icon: GraduationCap },
+  { value: "origem", label: "Origem/Fonte", icon: Globe },
+  { value: "notas", label: "Notas", icon: FileText },
+  { value: "ignorar", label: "Ignorar coluna", icon: XCircle },
+];
 ```
 
-### 4. Interface - Detalhe do Contacto
-
-Mostrar Nº Cliente no `ContactDetail.tsx`:
-
-- Se o contacto **tem empresa associada**: mostrar campo como **somente leitura** com indicação de que vem da empresa
-- Se o contacto **não tem empresa**: permitir edição directa
+### 2. Adicionar Padrões de Detecção Automática
 
 ```typescript
-<DetailRow
-  label="Nº Cliente"
-  value={contact.client_number}
-  icon={<Hash />}
-  isEditing={isEditing && !contact.company_id}
-  // Nota visual quando herdado da empresa
-  note={contact.company_id ? "Herdado da empresa" : undefined}
-/>
+// Linha 123 - Adicionar padrão para auto-detecção
+const FIELD_PATTERNS: Record<MappingFieldType, string[]> = {
+  // ... existentes
+  n_cliente: ["n_cliente", "cliente", "client", "num_cliente", "numero_cliente", "cliente_numero", "client_number"],
+  // ...
+};
 ```
 
-### 5. Diálogos de Criação
+### 3. Actualizar Interface ParsedProfile
 
-Adicionar campo opcional nos diálogos:
-
-- `CreateCompanyDialog.tsx`: Campo de texto para Nº Cliente
-- `CreateContactDialog.tsx`: Campo de texto (desactivado se empresa seleccionada)
-- `EditContactDialog.tsx` / `EditCompanyDialog.tsx`: Mesmo comportamento
-
-### 6. Hooks
-
-Actualizar interfaces nos hooks:
-
-**`useCompanies.ts`**:
 ```typescript
-interface Company {
-  // ... campos existentes
-  client_number: string | null;
-}
-
-interface CreateCompanyData {
-  // ... campos existentes
-  client_number?: string;
+// Linha 61-76 - Adicionar campo
+interface ParsedProfile {
+  full_name: string;
+  email?: string;
+  phone?: string;
+  client_number?: string;  // NOVO
+  // ... resto
 }
 ```
 
-**`useContacts.ts`**:
+### 4. Processar o Campo no Mapeamento
+
 ```typescript
-interface Contact {
-  // ... campos existentes  
-  client_number: string | null;
+// Linha 468 - No switch de processamento
+case "n_cliente":
+  profile.client_number = value;
+  break;
+```
+
+### 5. Usar Nº Cliente no Matching com Contactos
+
+O matching segue a ordem: **email → telefone → nº cliente → nome**
+
+```typescript
+// Linha 517-576 - Actualizar matchWithContacts
+const { data: contacts } = await supabase
+  .from("contacts")
+  .select("id, name, email, phone, client_number")  // Adicionar client_number
+  .eq("workspace_id", currentWorkspace.id);
+
+// Após match de telefone, antes do nome:
+// Try client_number match
+if (profile.client_number) {
+  const clientMatch = contacts.find(
+    (c) => c.client_number?.toLowerCase() === profile.client_number?.toLowerCase()
+  );
+  if (clientMatch) {
+    return {
+      ...profile,
+      matchedContactId: clientMatch.id,
+      matchedContactName: clientMatch.name,
+      matchType: "client_number" as const,
+    };
+  }
 }
 ```
 
-### 7. Tabelas/Listagens
+### 6. Actualizar Contacto com Nº Cliente na Importação
 
-Adicionar coluna "Nº Cliente" às tabelas:
+```typescript
+// Linha 604 - Após criar o perfil, actualizar contacto se necessário
+if (profile.matchedContactId && profile.client_number) {
+  // Actualizar contacto com o client_number se ainda não tiver
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("client_number")
+    .eq("id", profile.matchedContactId)
+    .single();
+  
+  if (contact && !contact.client_number) {
+    await supabase
+      .from("contacts")
+      .update({ client_number: profile.client_number })
+      .eq("id", profile.matchedContactId);
+  }
+}
+```
 
-- `SmartContactsTable.tsx`
-- `SmartCompaniesTable.tsx`
+### 7. Actualizar Tipo de matchType
 
-## Fluxo de Dados
+```typescript
+// Linha 73 - Adicionar novo tipo de match
+matchType?: "email" | "phone" | "client_number" | "name";
+```
+
+## Fluxo do Utilizador
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│  EMPRESA "Acme Lda"                                         │
-│  client_number: "CLI-00042"                                 │
-└─────────────────┬───────────────────────────────────────────┘
-                  │ (propaga automaticamente)
-                  ▼
-┌─────────────────────────────────────────────────────────────┐
-│  CONTACTO "João Silva"                                      │
-│  company_id: → Acme Lda                                     │
-│  client_number: "CLI-00042" (herdado, read-only)            │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│  CONTACTO "Maria Costa" (sem empresa)                       │
-│  company_id: NULL                                           │
-│  client_number: "CLI-00099" (editável directamente)         │
-└─────────────────────────────────────────────────────────────┘
+1. Utilizador carrega Excel com coluna "Nº Cliente"
+   ↓
+2. Sistema detecta automaticamente e mapeia para "Nº Cliente"
+   ↓
+3. No matching, procura contactos com o mesmo client_number
+   ↓
+4. Se encontrar, liga o perfil ao contacto
+5. Se não encontrar mas ligar a contacto por email/telefone:
+   - Actualiza o client_number desse contacto
 ```
 
-## Ficheiros a Modificar
+## Ficheiro a Modificar
 
-| Ficheiro | Alteração |
+| Ficheiro | Alterações |
 |----------|-----------|
-| **Base de dados** | Migração SQL para adicionar colunas e triggers |
-| `src/hooks/useCompanies.ts` | Adicionar `client_number` às interfaces |
-| `src/hooks/useContacts.ts` | Adicionar `client_number` à interface |
-| `src/components/companies/sections/IdentificationSection.tsx` | Adicionar campo Nº Cliente |
-| `src/components/companies/CreateCompanyDialog.tsx` | Adicionar campo no formulário |
-| `src/components/companies/EditCompanyDialog.tsx` | Adicionar campo no formulário |
-| `src/components/contacts/ContactDetail.tsx` | Mostrar Nº Cliente |
-| `src/components/contacts/CreateContactDialog.tsx` | Adicionar campo (condicional) |
-| `src/components/contacts/EditContactDialog.tsx` | Adicionar campo (condicional) |
-| `src/components/contacts/SmartContactsTable.tsx` | Adicionar coluna |
-| `src/components/companies/SmartCompaniesTable.tsx` | Adicionar coluna |
+| `src/components/student-journey/ImportProfilesDialog.tsx` | Adicionar campo "Nº Cliente" ao mapeamento, matching e processamento |
 
 ## Resultado Esperado
 
-1. Campo "Nº Cliente" visível em empresas e contactos
-2. Quando contacto pertence a empresa, herda automaticamente o número
-3. Alterações no Nº Cliente da empresa propagam para todos os contactos
-4. Contactos sem empresa podem ter Nº Cliente próprio
-5. Campo pesquisável e visível nas listagens
+1. Dropdown de mapeamento mostra opção "Nº Cliente"
+2. Colunas com nomes como "Nº Cliente", "Cliente", "Número Cliente" são auto-detectadas
+3. Matching usa `client_number` como critério (após telefone, antes do nome)
+4. Contactos são actualizados com o `client_number` importado quando aplicável
