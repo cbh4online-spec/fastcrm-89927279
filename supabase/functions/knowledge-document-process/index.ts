@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -23,194 +22,66 @@ interface ChunkResult {
   summary: string;
 }
 
-const CHUNK_SIZE = 30000; // 30k chars per chunk
-const MAX_TOTAL_CHARS = 100000; // 100k chars max total
+const CHUNK_SIZE = 30000;
+const MAX_TOTAL_CHARS = 100000;
 
-serve(async (req) => {
+// Main handler - returns immediately, processes in background
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let sourceId: string | undefined;
+  
   try {
     const body: ProcessRequest = await req.json();
-    const { sourceId, filePath, fileName, mimeType, knowledgeBaseId, workspaceId } = body;
+    sourceId = body.sourceId;
+    const { filePath, fileName, mimeType, knowledgeBaseId, workspaceId } = body;
 
-    console.log(`[KNOWLEDGE-DOC] Processing document: ${fileName}`);
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    console.log(`[KNOWLEDGE-DOC] Received request for: ${fileName}`);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Update status to processing
-    await supabase
-      .from('knowledge_sources')
-      .update({ processing_status: 'processing' })
-      .eq('id', sourceId);
-
-    // Download file from storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('knowledge-documents')
-      .download(filePath);
-
-    if (downloadError || !fileData) {
-      throw new Error(`Failed to download file: ${downloadError?.message}`);
-    }
-
-    const fileSize = fileData.size;
-    console.log(`[KNOWLEDGE-DOC] File size: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
-
-    let textContent = '';
-
-    // Extract text based on mime type
-    if (mimeType === 'text/plain') {
-      textContent = await fileData.text();
-    } else if (mimeType === 'application/pdf') {
-      // For large PDFs, use chunked extraction
-      const base64 = await blobToBase64(fileData);
-      textContent = await extractPDFContent(base64, LOVABLE_API_KEY, fileSize);
-    } else if (mimeType.includes('word') || mimeType.includes('document')) {
-      const arrayBuffer = await fileData.arrayBuffer();
-      textContent = await extractDocxContent(new Uint8Array(arrayBuffer));
-    }
-
-    if (!textContent || textContent.length < 10) {
-      throw new Error('Could not extract text content from document');
-    }
-
-    console.log(`[KNOWLEDGE-DOC] Extracted ${textContent.length} characters`);
-
-    // Get knowledge base type
-    const { data: kb } = await supabase
-      .from('knowledge_bases')
-      .select('type')
-      .eq('id', knowledgeBaseId)
-      .single();
-
-    // Process content in chunks for large documents
-    const totalContent = textContent.slice(0, MAX_TOTAL_CHARS);
-    const chunks = splitIntoChunks(totalContent, CHUNK_SIZE);
-    
-    console.log(`[KNOWLEDGE-DOC] Processing ${chunks.length} chunk(s)`);
-
-    // Update progress
+    // Update status to processing immediately
     await supabase
       .from('knowledge_sources')
       .update({ 
-        processing_error: `A processar: 0/${chunks.length} blocos completos` 
+        processing_status: 'processing',
+        processing_error: 'A iniciar processamento em background...'
       })
       .eq('id', sourceId);
 
-    const allResults: ChunkResult[] = [];
-
-    // Process each chunk
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-      console.log(`[KNOWLEDGE-DOC] Processing chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
-
-      const result = await processChunkWithAI(
-        chunk, 
-        fileName, 
-        kb?.type || 'general', 
-        LOVABLE_API_KEY,
-        i + 1,
-        chunks.length
-      );
-
-      allResults.push(result);
-
-      // Update progress
-      await supabase
-        .from('knowledge_sources')
-        .update({ 
-          processing_error: `A processar: ${i + 1}/${chunks.length} blocos completos` 
-        })
-        .eq('id', sourceId);
-    }
-
-    // Merge results from all chunks
-    const mergedResult = mergeChunkResults(allResults);
-
-    console.log(`[KNOWLEDGE-DOC] Total FAQs extracted: ${mergedResult.faqs.length}`);
-    console.log(`[KNOWLEDGE-DOC] Total topics: ${mergedResult.topics.length}`);
-
-    // Update source with processed content
-    await supabase
-      .from('knowledge_sources')
-      .update({
-        original_content: totalContent.slice(0, 50000),
-        processed_content: mergedResult.processedContent,
-        extracted_topics: mergedResult.topics,
-        processing_status: 'completed',
-        processing_error: null,
-        last_processed_at: new Date().toISOString()
+    // Start background processing with EdgeRuntime.waitUntil
+    // This allows us to return immediately while processing continues
+    (globalThis as any).EdgeRuntime.waitUntil(
+      processDocumentInBackground(
+        sourceId,
+        filePath,
+        fileName,
+        mimeType,
+        knowledgeBaseId,
+        workspaceId
+      ).catch(async (error) => {
+        console.error("[KNOWLEDGE-DOC] Background processing error:", error);
+        await supabase
+          .from('knowledge_sources')
+          .update({
+            processing_status: 'failed',
+            processing_error: error instanceof Error ? error.message : 'Background processing failed'
+          })
+          .eq('id', sourceId);
       })
-      .eq('id', sourceId);
+    );
 
-    // Get user from source
-    const { data: sourceData } = await supabase
-      .from('knowledge_sources')
-      .select('created_by')
-      .eq('id', sourceId)
-      .single();
-
-    // Create entries from FAQs
-    if (mergedResult.faqs && mergedResult.faqs.length > 0) {
-      const entries = mergedResult.faqs.map((faq) => ({
-        knowledge_base_id: knowledgeBaseId,
-        source_id: sourceId,
-        workspace_id: workspaceId,
-        entry_type: 'faq',
-        title: faq.question,
-        question: faq.question,
-        content: faq.answer,
-        summary: faq.answer.slice(0, 200),
-        keywords: mergedResult.topics,
-        category: mergedResult.categories?.[0],
-        status: 'draft',
-        created_by: sourceData?.created_by
-      }));
-
-      const { error: insertError } = await supabase.from('knowledge_entries').insert(entries);
-      if (insertError) {
-        console.error('[KNOWLEDGE-DOC] Error inserting entries:', insertError);
-      }
-    }
-
-    // Create main article entry from processed content
-    const { error: articleError } = await supabase.from('knowledge_entries').insert({
-      knowledge_base_id: knowledgeBaseId,
-      source_id: sourceId,
-      workspace_id: workspaceId,
-      entry_type: 'article',
-      title: fileName.replace(/\.[^/.]+$/, ''),
-      content: mergedResult.processedContent,
-      summary: mergedResult.summary,
-      keywords: mergedResult.topics,
-      category: mergedResult.categories?.[0],
-      status: 'draft',
-      created_by: sourceData?.created_by
-    });
-
-    if (articleError) {
-      console.error('[KNOWLEDGE-DOC] Error inserting article:', articleError);
-    }
-
-    console.log(`[KNOWLEDGE-DOC] Successfully processed: ${fileName}`);
-
+    // Return immediately
     return new Response(
       JSON.stringify({
         success: true,
         sourceId,
-        entriesCreated: (mergedResult.faqs?.length || 0) + 1,
-        topics: mergedResult.topics,
-        summary: mergedResult.summary,
-        chunksProcessed: chunks.length
+        message: 'Processing started in background'
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -218,24 +89,23 @@ serve(async (req) => {
   } catch (error) {
     console.error("[KNOWLEDGE-DOC] Error:", error);
     
-    // Update source with error
-    try {
-      const body = await (error as any).request?.json?.() || {};
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-      
-      if (body.sourceId) {
+    // Update source with error if we have sourceId
+    if (sourceId) {
+      try {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        
         await supabase
           .from('knowledge_sources')
           .update({
             processing_status: 'failed',
             processing_error: error instanceof Error ? error.message : 'Unknown error'
           })
-          .eq('id', body.sourceId);
-      }
-    } catch {}
+          .eq('id', sourceId);
+      } catch {}
+    }
     
     return new Response(
       JSON.stringify({ 
@@ -247,6 +117,246 @@ serve(async (req) => {
   }
 });
 
+// Background processing function
+async function processDocumentInBackground(
+  sourceId: string,
+  filePath: string,
+  fileName: string,
+  mimeType: string,
+  knowledgeBaseId: string,
+  workspaceId: string
+) {
+  console.log(`[KNOWLEDGE-DOC] Starting background processing: ${fileName}`);
+  
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY is not configured");
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  // Update progress
+  const updateProgress = async (message: string) => {
+    await supabase
+      .from('knowledge_sources')
+      .update({ processing_error: message })
+      .eq('id', sourceId);
+  };
+
+  await updateProgress('A descarregar ficheiro...');
+
+  // Download file from storage - use streaming for large files
+  const { data: fileData, error: downloadError } = await supabase.storage
+    .from('knowledge-documents')
+    .download(filePath);
+
+  if (downloadError || !fileData) {
+    throw new Error(`Failed to download file: ${downloadError?.message}`);
+  }
+
+  const fileSize = fileData.size;
+  console.log(`[KNOWLEDGE-DOC] File size: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+
+  await updateProgress(`Ficheiro descarregado (${(fileSize / 1024 / 1024).toFixed(1)}MB). A extrair texto...`);
+
+  let textContent = '';
+
+  // Extract text based on mime type
+  if (mimeType === 'text/plain') {
+    textContent = await fileData.text();
+  } else if (mimeType === 'application/pdf') {
+    // For large PDFs, extract text in smaller batches
+    textContent = await extractPDFContentStreaming(fileData, LOVABLE_API_KEY, fileSize, updateProgress);
+  } else if (mimeType.includes('word') || mimeType.includes('document')) {
+    const arrayBuffer = await fileData.arrayBuffer();
+    textContent = await extractDocxContent(new Uint8Array(arrayBuffer));
+  }
+
+  if (!textContent || textContent.length < 10) {
+    throw new Error('Could not extract text content from document');
+  }
+
+  console.log(`[KNOWLEDGE-DOC] Extracted ${textContent.length} characters`);
+  await updateProgress(`Texto extraído (${textContent.length} caracteres). A processar com IA...`);
+
+  // Get knowledge base type
+  const { data: kb } = await supabase
+    .from('knowledge_bases')
+    .select('type')
+    .eq('id', knowledgeBaseId)
+    .single();
+
+  // Process content in chunks
+  const totalContent = textContent.slice(0, MAX_TOTAL_CHARS);
+  const chunks = splitIntoChunks(totalContent, CHUNK_SIZE);
+  
+  console.log(`[KNOWLEDGE-DOC] Processing ${chunks.length} chunk(s)`);
+
+  const allResults: ChunkResult[] = [];
+
+  // Process each chunk
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    console.log(`[KNOWLEDGE-DOC] Processing chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
+    
+    await updateProgress(`A processar bloco ${i + 1} de ${chunks.length}...`);
+
+    const result = await processChunkWithAI(
+      chunk, 
+      fileName, 
+      kb?.type || 'general', 
+      LOVABLE_API_KEY,
+      i + 1,
+      chunks.length
+    );
+
+    allResults.push(result);
+  }
+
+  // Merge results
+  const mergedResult = mergeChunkResults(allResults);
+
+  console.log(`[KNOWLEDGE-DOC] Total FAQs extracted: ${mergedResult.faqs.length}`);
+  console.log(`[KNOWLEDGE-DOC] Total topics: ${mergedResult.topics.length}`);
+
+  await updateProgress('A guardar resultados...');
+
+  // Update source with processed content
+  await supabase
+    .from('knowledge_sources')
+    .update({
+      original_content: totalContent.slice(0, 50000),
+      processed_content: mergedResult.processedContent,
+      extracted_topics: mergedResult.topics,
+      processing_status: 'completed',
+      processing_error: null,
+      last_processed_at: new Date().toISOString()
+    })
+    .eq('id', sourceId);
+
+  // Get user from source
+  const { data: sourceData } = await supabase
+    .from('knowledge_sources')
+    .select('created_by')
+    .eq('id', sourceId)
+    .single();
+
+  // Create entries from FAQs
+  if (mergedResult.faqs && mergedResult.faqs.length > 0) {
+    const entries = mergedResult.faqs.map((faq) => ({
+      knowledge_base_id: knowledgeBaseId,
+      source_id: sourceId,
+      workspace_id: workspaceId,
+      entry_type: 'faq',
+      title: faq.question,
+      question: faq.question,
+      content: faq.answer,
+      summary: faq.answer.slice(0, 200),
+      keywords: mergedResult.topics,
+      category: mergedResult.categories?.[0],
+      status: 'draft',
+      created_by: sourceData?.created_by
+    }));
+
+    const { error: insertError } = await supabase.from('knowledge_entries').insert(entries);
+    if (insertError) {
+      console.error('[KNOWLEDGE-DOC] Error inserting entries:', insertError);
+    }
+  }
+
+  // Create main article entry
+  const { error: articleError } = await supabase.from('knowledge_entries').insert({
+    knowledge_base_id: knowledgeBaseId,
+    source_id: sourceId,
+    workspace_id: workspaceId,
+    entry_type: 'article',
+    title: fileName.replace(/\.[^/.]+$/, ''),
+    content: mergedResult.processedContent,
+    summary: mergedResult.summary,
+    keywords: mergedResult.topics,
+    category: mergedResult.categories?.[0],
+    status: 'draft',
+    created_by: sourceData?.created_by
+  });
+
+  if (articleError) {
+    console.error('[KNOWLEDGE-DOC] Error inserting article:', articleError);
+  }
+
+  console.log(`[KNOWLEDGE-DOC] Successfully processed: ${fileName}`);
+}
+
+// Streaming PDF extraction for large files
+async function extractPDFContentStreaming(
+  blob: Blob, 
+  apiKey: string, 
+  fileSize: number,
+  updateProgress: (msg: string) => Promise<void>
+): Promise<string> {
+  const isLargePDF = fileSize > 20 * 1024 * 1024;
+  
+  console.log(`[KNOWLEDGE-DOC] PDF extraction - Size: ${(fileSize / 1024 / 1024).toFixed(2)}MB, Large: ${isLargePDF}`);
+
+  // For very large files, we need to be more careful with memory
+  if (isLargePDF) {
+    await updateProgress('PDF grande detectado. A processar em modo optimizado...');
+    
+    // For files over 20MB, extract in portions to avoid memory issues
+    // We'll take first 10MB worth of the file
+    const maxBytes = 10 * 1024 * 1024;
+    const portionBlob = blob.slice(0, maxBytes);
+    const base64 = await blobToBase64(portionBlob);
+    
+    return await extractPDFFromBase64(base64, apiKey);
+  }
+  
+  // For smaller files, process normally
+  const base64 = await blobToBase64(blob);
+  return await extractPDFFromBase64(base64, apiKey);
+}
+
+async function extractPDFFromBase64(base64: string, apiKey: string): Promise<string> {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Extract ALL text content from this PDF document. Include all details, numbers, prices, dates. Return only the text, preserving structure with paragraphs."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:application/pdf;base64,${base64}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 16000
+    }),
+  });
+
+  if (!response.ok) {
+    console.warn(`[KNOWLEDGE-DOC] PDF extraction failed: ${response.status}`);
+    return "PDF document - text extraction requires manual review";
+  }
+
+  const result = await response.json();
+  return result.choices?.[0]?.message?.content || "Could not extract PDF content";
+}
+
 function splitIntoChunks(text: string, chunkSize: number): string[] {
   const chunks: string[] = [];
   let start = 0;
@@ -254,7 +364,6 @@ function splitIntoChunks(text: string, chunkSize: number): string[] {
   while (start < text.length) {
     let end = start + chunkSize;
     
-    // Try to break at paragraph or sentence boundary
     if (end < text.length) {
       const paragraphBreak = text.lastIndexOf('\n\n', end);
       const sentenceBreak = text.lastIndexOf('. ', end);
@@ -346,7 +455,6 @@ Responde em JSON:
 
   if (!response.ok) {
     if (response.status === 429) {
-      // Wait and retry on rate limit
       await new Promise(resolve => setTimeout(resolve, 5000));
       return processChunkWithAI(content, fileName, kbType, apiKey, chunkNum, totalChunks);
     }
@@ -393,7 +501,6 @@ function mergeChunkResults(results: ChunkResult[]): ChunkResult {
       result.categories.forEach(c => allCategories.add(c));
     }
     if (result.faqs) {
-      // Deduplicate FAQs by question similarity
       for (const faq of result.faqs) {
         const isDuplicate = allFaqs.some(existing => 
           similarity(existing.question, faq.question) > 0.85
@@ -453,68 +560,33 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-async function extractPDFContent(base64: string, apiKey: string, fileSize: number): Promise<string> {
-  // For very large PDFs (>20MB), we may need to limit what we send to vision API
-  const isLargePDF = fileSize > 20 * 1024 * 1024;
-  
-  console.log(`[KNOWLEDGE-DOC] PDF extraction - Large PDF: ${isLargePDF}`);
-  
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Extract ALL text content from this PDF document. Include all details, numbers, prices, dates. Return only the text, preserving structure with paragraphs."
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:application/pdf;base64,${base64}`
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 16000
-    }),
-  });
-
-  if (!response.ok) {
-    console.warn(`[KNOWLEDGE-DOC] PDF extraction failed: ${response.status}`);
-    return "PDF document - text extraction requires manual review";
-  }
-
-  const result = await response.json();
-  return result.choices?.[0]?.message?.content || "Could not extract PDF content";
-}
-
 async function extractDocxContent(data: Uint8Array): Promise<string> {
   try {
     const decoder = new TextDecoder('utf-8');
-    const text = decoder.decode(data);
+    const content = decoder.decode(data);
     
-    // DOCX is a ZIP file, try to find text patterns
-    const textMatches = text.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
-    if (textMatches) {
-      return textMatches
+    const xmlMatch = content.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+    if (xmlMatch) {
+      const text = xmlMatch
         .map(match => match.replace(/<[^>]+>/g, ''))
         .join(' ')
         .replace(/\s+/g, ' ')
         .trim();
+      
+      if (text.length > 100) {
+        return text;
+      }
     }
     
-    // Fallback: extract any readable text
-    return text.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_TOTAL_CHARS);
-  } catch {
-    return "Document content - text extraction requires manual review";
+    let text = content
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/[^\x20-\x7E\u00C0-\u024F\u1E00-\u1EFF]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return text || 'Could not extract document content';
+  } catch (error) {
+    console.error('[KNOWLEDGE-DOC] DOCX extraction error:', error);
+    return 'Document extraction failed';
   }
 }
