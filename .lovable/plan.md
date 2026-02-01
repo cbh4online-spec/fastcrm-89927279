@@ -1,178 +1,206 @@
 
-# Plano: Correcao do Loading Infinito no Login do Portal Cliente
 
-## Problema Identificado
+# Plano: Adicionar Pesquisa por Texto na Selecção de Contactos
 
-Apos analise detalhada do fluxo de autenticacao, foi identificado o seguinte problema critico:
+## Objectivo
 
-### Diagnostico
+Substituir o select básico por um componente de pesquisa com autocomplete na tab "Ligar Contacto" do diálogo "Adicionar Perfil" no módulo Student Journey.
 
-O login e bem sucedido (confirmado pelo request POST a `/auth/v1/token` com status 200), mas a query a tabela `client_users` nunca e executada. Isto causa o loading infinito.
+## Situação Actual
+
+O select actual (linha 70 do CreateProfileDialog.tsx) usa um Select simples:
 
 ```text
-Fluxo Actual (BUG):
-1. signIn() e chamado
-   └── setAuthLoading(true)           ← Loading activado
-   
-2. signInWithPassword() retorna sucesso
-   └── Login concluido com sucesso
-   
-3. signIn() retorna { error: null }
-   └── NAO define authLoading=false    ← BUG!
-   
-4. Espera onAuthStateChange disparar...
-   └── Pode nao disparar se sessao ja existia
-   
-5. Loading fica TRUE indefinidamente
-   └── UI mostra spinner para sempre
+┌─────────────────────────────────────────┐
+│ Selecione...                          ▼ │
+└─────────────────────────────────────────┘
+       │
+       └── Lista todos os contactos sem filtro
+           (difícil encontrar quando há muitos)
 ```
 
-### Causa Raiz
+## Solução Proposta
 
-Na funcao `signIn` (linhas 111-127), quando o login e bem sucedido:
-- O codigo NAO chama `setAuthLoading(false)` 
-- Depende 100% do `onAuthStateChange` para resolver o loading
-- Se o `onAuthStateChange` nao dispara (ou dispara antes do signIn completar), o loading nunca termina
+Implementar um Popover + Command com campo de pesquisa, seguindo o padrão já existente no projecto (ClientSearchSelect.tsx):
 
-### Evidencia
+```text
+┌─────────────────────────────────────────┐
+│ 🔍 Pesquisar contacto...                │
+├─────────────────────────────────────────┤
+│ ✓ João Silva (joao@email.com)           │
+│   Maria Santos (maria@email.com)        │
+│   Pedro Costa (pedro@email.com)         │
+│   ...                                   │
+└─────────────────────────────────────────┘
+```
 
-No network logs:
-- POST `/auth/v1/token` → Status 200 (login bem sucedido)
-- NAO existe pedido a `/rest/v1/client_users` (nunca e chamado)
+## Alterações Detalhadas
 
-## Solucao Proposta
+### Ficheiro: src/components/student-journey/CreateProfileDialog.tsx
 
-### Alteracao no useClientAuth.ts
+| Alteração | Descrição |
+|-----------|-----------|
+| Novos imports | Adicionar Command, Popover, Check, ChevronsUpDown, Search, User |
+| Novo estado | Adicionar `contactSearch` e `contactPopoverOpen` |
+| Novo useMemo | Filtrar contactos baseado no texto de pesquisa |
+| Substituir Select | Usar Popover + Command em vez do Select simples |
 
-A funcao `signIn` deve:
-1. Chamar `fetchClientUser` directamente apos login bem sucedido
-2. Definir `authLoading=false` quando tudo estiver completo
-3. NAO depender exclusivamente do `onAuthStateChange`
-
-### Codigo Corrigido
+### Novo Código para a Tab "Ligar Contacto"
 
 ```typescript
-const signIn = async (email: string, password: string) => {
-  setAuthLoading(true);
-  setClientChecked(false);
-  setError(null);
+// Estados adicionais
+const [contactSearch, setContactSearch] = useState("");
+const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
+
+// Filtro de contactos
+const filteredContacts = useMemo(() => {
+  if (!contactSearch.trim()) return contacts;
+  const searchLower = contactSearch.toLowerCase();
+  return contacts.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchLower) ||
+      c.email?.toLowerCase().includes(searchLower) ||
+      c.phone?.includes(searchLower)
+  );
+}, [contacts, contactSearch]);
+
+// Contacto seleccionado
+const selectedContact = contacts.find((c) => c.id === selectedContactId);
+```
+
+### Interface de Pesquisa
+
+```typescript
+<TabsContent value="link" className="space-y-4 mt-4">
+  <p className="text-sm text-muted-foreground">
+    Selecione um contacto existente do CRM.
+  </p>
   
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  
-  if (error) {
-    setError(error.message);
-    setAuthLoading(false);
-    setClientChecked(true);
-    return { error };
-  }
-  
-  // CORRECAO: Se login bem sucedido, buscar clientUser directamente
-  if (data?.user) {
-    setUser(data.user);
-    await fetchClientUser(data.user.id);
-  }
-  
-  setAuthLoading(false);
-  return { error: null };
+  <Popover open={contactPopoverOpen} onOpenChange={setContactPopoverOpen}>
+    <PopoverTrigger asChild>
+      <Button
+        variant="outline"
+        role="combobox"
+        aria-expanded={contactPopoverOpen}
+        className="w-full justify-between"
+      >
+        <div className="flex items-center gap-2 truncate">
+          <User className="h-4 w-4 text-muted-foreground" />
+          {selectedContact ? (
+            <span className="truncate">{selectedContact.name}</span>
+          ) : (
+            <span className="text-muted-foreground">Pesquisar contacto...</span>
+          )}
+        </div>
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+    </PopoverTrigger>
+    
+    <PopoverContent className="w-[350px] p-0" align="start">
+      <Command shouldFilter={false}>
+        <CommandInput
+          placeholder="Pesquisar por nome, email ou telefone..."
+          value={contactSearch}
+          onValueChange={setContactSearch}
+        />
+        <CommandList>
+          {filteredContacts.length === 0 ? (
+            <CommandEmpty>
+              <div className="text-center py-4">
+                <Search className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhum contacto encontrado
+                </p>
+              </div>
+            </CommandEmpty>
+          ) : (
+            <CommandGroup>
+              {filteredContacts.map((contact) => (
+                <CommandItem
+                  key={contact.id}
+                  value={contact.id}
+                  onSelect={() => {
+                    setSelectedContactId(contact.id);
+                    setContactPopoverOpen(false);
+                    setContactSearch("");
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "h-4 w-4 mr-2",
+                      selectedContactId === contact.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{contact.name}</div>
+                    {contact.email && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {contact.email}
+                      </div>
+                    )}
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </Command>
+    </PopoverContent>
+  </Popover>
+</TabsContent>
+```
+
+## Imports Necessários
+
+```typescript
+import { useState, useMemo } from "react";
+import { Check, ChevronsUpDown, Search, User, Link2, UserPlus, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+```
+
+## Reset do Formulário
+
+Actualizar a função `resetForm` para incluir os novos estados:
+
+```typescript
+const resetForm = () => {
+  setFullName("");
+  setEmail("");
+  setPhone("");
+  setStage("lead");
+  setPrimaryInterest("");
+  setSelectedContactId("");
+  setContactSearch("");       // NOVO
+  setContactPopoverOpen(false); // NOVO
+  setTab("new");
 };
 ```
 
-### Fluxo Corrigido
-
-```text
-DEPOIS:
-1. signIn() e chamado
-   └── setAuthLoading(true)
-   
-2. signInWithPassword() retorna sucesso + user data
-   └── Login concluido
-   
-3. signIn() processa o sucesso:
-   ├── setUser(data.user)              ← Define user imediatamente
-   ├── await fetchClientUser(...)      ← Busca client_users
-   └── setAuthLoading(false)           ← Resolve loading
-   
-4. isAuthenticated ou hasAuthButNoClient definidos correctamente
-   └── UI redireciona ou mostra erro apropriado
-```
-
-## Alteracoes Detalhadas
-
-### Ficheiro: src/hooks/client-portal/useClientAuth.ts
-
-| Linha | Alteracao | Descricao |
-|-------|-----------|-----------|
-| 111-127 | Refactoring signIn | Adicionar tratamento directo do resultado do login |
-| 116 | Capturar data | Mudar para `const { data, error }` |
-| 123-126 | Adicionar logica | Chamar fetchClientUser directamente |
-| 127 | Novo | Adicionar `setAuthLoading(false)` antes do return |
-
-### Codigo Completo da Funcao signIn
-
-```typescript
-const signIn = async (email: string, password: string) => {
-  setAuthLoading(true);
-  setClientChecked(false);
-  setError(null);
-  
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({ 
-      email, 
-      password 
-    });
-    
-    if (error) {
-      console.error("Sign in error:", error);
-      setError(error.message);
-      setAuthLoading(false);
-      setClientChecked(true);
-      return { error };
-    }
-    
-    // Login bem sucedido - processar directamente
-    if (data?.user) {
-      console.log("Sign in successful, fetching client user:", data.user.email);
-      setUser(data.user);
-      await fetchClientUser(data.user.id);
-    } else {
-      console.warn("Sign in returned no user data");
-      setClientChecked(true);
-    }
-    
-    setAuthLoading(false);
-    return { error: null };
-  } catch (err) {
-    console.error("Sign in exception:", err);
-    setError("Erro inesperado durante o login");
-    setAuthLoading(false);
-    setClientChecked(true);
-    return { error: err as Error };
-  }
-};
-```
-
-## Beneficios da Correcao
+## Benefícios
 
 | Aspecto | Antes | Depois |
 |---------|-------|--------|
-| Login bem sucedido | Pode ficar em loading infinito | Resolve imediatamente |
-| Dependencia onAuthStateChange | 100% dependente (fragil) | Backup apenas (robusto) |
-| Query client_users | Pode nunca executar | Sempre executa apos login |
-| Tratamento de erros | Pode deixar estados inconsistentes | Sempre limpa estados |
+| Encontrar contacto | Scroll manual na lista | Pesquisa instantânea |
+| Pesquisa por | Apenas nome visível | Nome, email, telefone |
+| UX com muitos contactos | Difícil de usar | Rápido e eficiente |
+| Consistência | Select básico | Mesmo padrão do resto da app |
 
-## Resultado Esperado
+## Dependências
 
-1. Utilizador insere credenciais e clica "Entrar"
-2. Loading aparece (maximo 2-3 segundos)
-3. Se cliente valido: redireciona para dashboard
-4. Se nao e cliente: mostra mensagem "Acesso Nao Autorizado"
-5. Se credenciais invalidas: mostra erro de credenciais
+Não são necessárias novas dependências - todos os componentes já existem no projecto:
+- `@/components/ui/command` (cmdk)
+- `@/components/ui/popover` (@radix-ui/react-popover)
 
-## Testes Recomendados
-
-Apos implementacao, testar:
-1. Login com cliente valido (jorge.cardoso@digital4ads.pt)
-2. Login com utilizador CRM sem registo de cliente
-3. Login com credenciais invalidas
-4. Refresh da pagina apos login
-5. Logout e novo login
