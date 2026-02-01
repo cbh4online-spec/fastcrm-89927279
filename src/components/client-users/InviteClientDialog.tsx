@@ -206,10 +206,37 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
         .single();
 
       if (error) throw error;
+
+      // Get workspace name for the email
+      const { data: workspace } = await supabase
+        .from("workspaces")
+        .select("name")
+        .eq("id", currentWorkspace.id)
+        .single();
+
+      // Send invitation email
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke(
+        "send-client-invitation",
+        {
+          body: {
+            clientName: data.name,
+            clientEmail: data.email,
+            workspaceName: workspace?.name || "FastCRM",
+            portalUrl: `${window.location.origin}/client-portal`,
+          },
+        }
+      );
+
+      if (emailError) {
+        console.error("Erro ao enviar email de convite:", emailError);
+        // Don't throw - client was created, just log the email error
+        toast.warning("Cliente criado, mas houve um problema ao enviar o email de convite.");
+      }
+
       return clientUser;
     },
     onSuccess: () => {
-      toast.success("Cliente criado com sucesso! O convite será enviado por email.");
+      toast.success("Cliente criado e convite enviado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["client-users"] });
       form.reset();
       setOpen(false);
