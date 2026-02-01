@@ -27,7 +27,7 @@ import {
 import { useSJCrmIntegration } from "@/hooks/useSJCrmIntegration";
 import { useContacts } from "@/hooks/useContacts";
 import { SJProfile } from "@/types/studentJourney";
-import { Loader2, UserPlus, Link2, Users, ChevronsUpDown, Check, CheckCircle, User } from "lucide-react";
+import { Loader2, UserPlus, Link2, Users, ChevronsUpDown, Check, CheckCircle, User, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +59,17 @@ export function LinkContactDialog({
   // Filter contacts that are available (not linked to other SJ profiles)
   const availableContacts = contacts.filter((c) => !linkedContactIds?.has(c.id) || c.id === profile.contact_id);
 
+  // Check for matching contacts that are unavailable (already linked to another SJ profile)
+  const unavailableMatchingContacts = contacts.filter((c) => {
+    if (!linkedContactIds?.has(c.id)) return false;
+    if (c.id === profile.contact_id) return false;
+    // Check if this contact would match
+    if (profile.email && c.email?.toLowerCase() === profile.email.toLowerCase()) return true;
+    if (profile.phone && c.phone === profile.phone) return true;
+    if (c.name.toLowerCase() === profile.full_name.toLowerCase()) return true;
+    return false;
+  });
+
   // Filter contacts that could match this profile (from available contacts)
   const suggestedContacts = availableContacts.filter((c) => {
     if (profile.email && c.email?.toLowerCase() === profile.email.toLowerCase()) return true;
@@ -70,11 +81,11 @@ export function LinkContactDialog({
   const otherContacts = availableContacts.filter((c) => !suggestedContacts.includes(c));
   const selectedContact = contacts.find((c) => c.id === selectedContactId);
 
-  // Auto-match when dialog opens
+  // Auto-match when dialog opens - only from available contacts
   useEffect(() => {
-    if (open && !selectedContactId && contacts.length > 0) {
-      // Try exact email match first
-      const emailMatch = contacts.find(
+    if (open && !selectedContactId && availableContacts.length > 0) {
+      // Try exact email match first (from available contacts)
+      const emailMatch = availableContacts.find(
         (c) => profile.email && c.email?.toLowerCase() === profile.email.toLowerCase()
       );
       if (emailMatch) {
@@ -84,8 +95,8 @@ export function LinkContactDialog({
         return;
       }
 
-      // Try exact name match
-      const nameMatch = contacts.find(
+      // Try exact name match (from available contacts)
+      const nameMatch = availableContacts.find(
         (c) => c.name.toLowerCase() === profile.full_name.toLowerCase()
       );
       if (nameMatch) {
@@ -94,7 +105,7 @@ export function LinkContactDialog({
         setAutoMatched(true);
       }
     }
-  }, [open, contacts, profile.email, profile.full_name, selectedContactId]);
+  }, [open, availableContacts, profile.email, profile.full_name, selectedContactId]);
 
   const resetForm = () => {
     setCompany("");
@@ -165,6 +176,28 @@ export function LinkContactDialog({
               )}
             </TabsTrigger>
           </TabsList>
+
+          {/* Warning when matching contacts exist but are unavailable (linked to other SJ profiles) */}
+          {unavailableMatchingContacts.length > 0 && suggestedContacts.length === 0 && (
+            <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 shrink-0 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    Contacto correspondente já ligado
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                    "{unavailableMatchingContacts[0].name}" já está associado a outro perfil Student Journey.
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-500 mt-1">
+                    Pode criar um novo contacto ou selecionar outro existente.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Auto-match prominent banner when on create tab but match exists */}
           {tab === "create" && suggestedContacts.length > 0 && (
