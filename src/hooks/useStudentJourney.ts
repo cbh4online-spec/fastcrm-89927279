@@ -78,6 +78,20 @@ export function useProfiles() {
     mutationFn: async (data: CreateProfileData) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
 
+      // Check if profile already exists for this contact
+      if (data.contact_id) {
+        const { data: existing } = await supabase
+          .from("sj_profiles")
+          .select("id")
+          .eq("workspace_id", currentWorkspace.id)
+          .eq("contact_id", data.contact_id)
+          .maybeSingle();
+
+        if (existing) {
+          throw new Error("Este contacto já possui um perfil no Student Journey");
+        }
+      }
+
       const { data: profile, error } = await supabase
         .from("sj_profiles")
         .insert({
@@ -96,9 +110,13 @@ export function useProfiles() {
       queryClient.invalidateQueries({ queryKey: ["sj-dashboard-metrics"] });
       toast.success("Perfil criado com sucesso");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Error creating profile:", error);
-      toast.error("Erro ao criar perfil");
+      if (error.message.includes("já possui um perfil")) {
+        toast.error(error.message);
+      } else {
+        toast.error("Erro ao criar perfil");
+      }
     },
   });
 
