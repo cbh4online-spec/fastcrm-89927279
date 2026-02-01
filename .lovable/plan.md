@@ -1,46 +1,46 @@
 
 
-# Plano: Actualizar Estado para "Ativo" em Perfis Existentes
+# Plano: Corrigir Estados dos Perfis Existentes
 
 ## Problema Identificado
 
-Actualmente, quando o processo de importação encontra um perfil SJ já existente:
-- **Perfis novos**: são criados com `lifecycle_stage: "active"` ✓
-- **Perfis existentes**: mantêm o estado anterior (lead, prospect, completed, etc.) ✗
+A importação foi executada **antes** da alteração do código ter sido implementada. Os perfis actualizados às 18:31 continuam com estado "completed" em vez de "active".
 
-Os perfis que já estão na base de dados com estados como "lead" ou "completed" não são actualizados para "active" quando recebem inscrições em cursos.
+**Dados actuais:**
+- 943 perfis com estado "lead"
+- 65 perfis com estado "completed"  
+- 6 perfis com estado "active"
+
+Muitos destes perfis têm inscrições em cursos mas mantêm estados incorrectos.
 
 ## Solução
 
-Adicionar uma actualização do `lifecycle_stage` para "active" nos perfis existentes quando são processados e têm cursos associados.
+Executar uma **actualização directa na base de dados** para corrigir todos os perfis que:
+- Têm pelo menos 1 inscrição (curso)
+- Estado actual diferente de "active"
 
-## Alteração Técnica
+## Comando SQL a Executar
 
-No bloco onde encontramos um perfil existente (linha 406-408), adicionar a actualização do estado:
-
-```typescript
-} else {
-  processingResult.profilesExisting++;
-  
-  // Actualizar lifecycle_stage para "active" se tem cursos
-  if (row.courses.length > 0) {
-    await supabase
-      .from("sj_profiles")
-      .update({ lifecycle_stage: "active" })
-      .eq("id", profile.id);
-  }
-}
+```sql
+UPDATE sj_profiles 
+SET lifecycle_stage = 'active'
+WHERE id IN (
+  SELECT DISTINCT p.id 
+  FROM sj_profiles p
+  INNER JOIN sj_enrollments e ON e.profile_id = p.id
+  WHERE p.lifecycle_stage != 'active'
+);
 ```
 
-## Ficheiro a Modificar
+## Impacto Esperado
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/components/student-journey/BulkEnrollmentDialog.tsx` | Adicionar update do lifecycle_stage para perfis existentes |
+| Antes | Depois |
+|-------|--------|
+| 943 leads (muitos com cursos) | Apenas leads SEM cursos |
+| 65 completed | Apenas completed SEM cursos activos |
+| 6 active | Todos com inscrições = active |
 
-## Resultado Esperado
+## Alternativa
 
-1. Perfis novos são criados com `lifecycle_stage: "active"` ✓ (já funciona)
-2. Perfis existentes que estavam como "lead", "prospect", "completed" ou outro estado → passam para "active"
-3. Todos os contactos importados com cursos ficam com estado "Ativo"
+Se preferir, posso adicionar um **botão "Sincronizar Estados"** no painel de administração para permitir esta correcção manual sempre que necessário.
 
