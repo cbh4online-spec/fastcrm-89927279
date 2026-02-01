@@ -149,16 +149,63 @@ export function LinkContactDialog({
               <UserPlus className="h-4 w-4" />
               Criar Contacto
             </TabsTrigger>
-            <TabsTrigger value="link" className="gap-2">
+            <TabsTrigger value="link" className="gap-2 relative">
               <Link2 className="h-4 w-4" />
               Ligar Existente
               {suggestedContacts.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                <Badge 
+                  variant="default" 
+                  className="ml-1 h-5 px-1.5 bg-green-600 hover:bg-green-600 animate-pulse"
+                >
                   {suggestedContacts.length}
                 </Badge>
               )}
             </TabsTrigger>
           </TabsList>
+
+          {/* Auto-match prominent banner when on create tab but match exists */}
+          {tab === "create" && suggestedContacts.length > 0 && (
+            <div 
+              className="mt-4 p-3 rounded-lg bg-green-50 border border-green-200 dark:bg-green-950/30 dark:border-green-800 cursor-pointer hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors"
+              onClick={() => {
+                setTab("link");
+                if (suggestedContacts.length === 1) {
+                  setSelectedContactId(suggestedContacts[0].id);
+                }
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                    Contacto existente encontrado!
+                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    {suggestedContacts.length === 1 
+                      ? `"${suggestedContacts[0].name}" corresponde a este perfil`
+                      : `${suggestedContacts.length} contactos correspondem a este perfil`
+                    }
+                  </p>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-400"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTab("link");
+                    if (suggestedContacts.length === 1) {
+                      setSelectedContactId(suggestedContacts[0].id);
+                    }
+                  }}
+                >
+                  Ligar
+                </Button>
+              </div>
+            </div>
+          )}
 
           <TabsContent value="create" className="space-y-4 mt-4">
             <div className="rounded-lg bg-muted p-3 space-y-1">
