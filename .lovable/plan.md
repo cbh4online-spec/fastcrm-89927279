@@ -1,177 +1,116 @@
 
-# Plano: Link para Student Journey no Detalhe de Contacto
+
+# Plano: Mostrar Formações Disponíveis no Student Journey do Contacto
 
 ## Objetivo
 
-Adicionar um link/botão para o Student Journey na página de detalhe do contacto, visível apenas quando:
-1. O módulo "student-journey" está instalado no workspace **OU**
-2. O contacto já tem um perfil associado no Student Journey
+Adicionar uma secção que mostre as formações/cursos disponíveis que o aluno ainda não está inscrito, permitindo uma visão completa da oferta formativa.
 
-## Análise do Cenário Actual
+## Situação Actual
 
-### Dados Relevantes
-- A tabela `sj_profiles` tem coluna `contact_id` que liga perfis a contactos CRM
-- O contacto actual (ID: `8a1ed353-...`) já tem um perfil SJ associado
-- Existe o hook `useWorkspaceModules` com função `isModuleInstalled('student-journey')`
+- Existem 5 cursos disponíveis: Aromaterapia, Avançada, Básica, Iniciação, Tricologia
+- A Karen ainda não tem inscrições em nenhum curso
+- O componente actual só mostra cursos onde já existe inscrição
 
-### Componente Alvo
-- `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
-- Menu lateral: `src/components/entity/EntitySidebarMenu.tsx`
+## Alterações Necessárias
 
-## Solução Proposta
+### 1. Modificar `ContactStudentJourneySection.tsx`
 
-### Abordagem 1: Adicionar ao Menu Lateral (Recomendada)
+Adicionar:
+- Query para buscar todos os cursos disponíveis usando `useCourses()`
+- Filtrar cursos que o aluno ainda não está inscrito
+- Nova secção visual "Formações Disponíveis" com design distinto
 
-Adicionar uma nova secção "MÓDULOS" no `EntitySidebarMenu` que mostra links para módulos activos relacionados com a entidade.
-
-**Vantagens:**
-- Consistente com o padrão existente
-- Permite expandir para outros módulos futuramente
-
-### Alterações Necessárias
-
-#### 1. Novo Tipo de Secção no Menu
-
-Adicionar `'student-journey'` ao tipo `MenuSection` em `src/types/entity.ts`:
-
-```typescript
-export type MenuSection = 
-  | 'overview' 
-  // ... existing ...
-  | 'orders'
-  | 'student-journey'; // Novo
-```
-
-#### 2. Novo Hook: `useContactStudentJourneyProfile`
-
-Criar hook para verificar se contacto tem perfil SJ:
-
-**Ficheiro:** `src/hooks/useContactStudentJourneyProfile.ts`
-
-```typescript
-export function useContactStudentJourneyProfile(contactId: string | undefined) {
-  const { currentWorkspace } = useWorkspace();
-  
-  return useQuery({
-    queryKey: ["sj-profile-by-contact", contactId],
-    queryFn: async () => {
-      if (!contactId || !currentWorkspace?.id) return null;
-      
-      const { data, error } = await supabase
-        .from("sj_profiles")
-        .select("id, full_name, lifecycle_stage")
-        .eq("contact_id", contactId)
-        .eq("workspace_id", currentWorkspace.id)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!contactId && !!currentWorkspace?.id,
-  });
-}
-```
-
-#### 3. Modificar EntitySidebarMenu
-
-Adicionar secção "MÓDULOS" com entrada para Student Journey:
-
-```typescript
-// Nova secção no MENU_SECTIONS
-{
-  title: 'MÓDULOS',
-  items: [
-    { 
-      id: 'student-journey', 
-      label: 'Student Journey', 
-      icon: GraduationCap, 
-      showFor: ['contact'] 
-    },
-  ],
-}
-```
-
-**Lógica de visibilidade:**
-```typescript
-// isVisible function
-if (sectionId === 'student-journey') {
-  return isModuleInstalled('student-journey') || !!sjProfile;
-}
-```
-
-#### 4. Adicionar Case no renderSectionContent
-
-Em `ENIContactDetailWithSidebar.tsx`:
-
-```typescript
-case 'student-journey':
-  return (
-    <ContactStudentJourneySection 
-      contactId={id!} 
-      contactName={contact.name}
-    />
-  );
-```
-
-#### 5. Criar Componente de Secção
-
-**Ficheiro:** `src/components/contacts/sections/ContactStudentJourneySection.tsx`
-
-Funcionalidades:
-- Se tem perfil: mostrar resumo + link para abrir perfil completo
-- Se não tem: botão para criar perfil vinculado
+### Estrutura Visual Proposta
 
 ```text
-┌────────────────────────────────────────────────────┐
-│ 🎓 Student Journey                                 │
-├────────────────────────────────────────────────────┤
-│                                                    │
-│  ┌──────────────────────────────────────────────┐  │
-│  │ Perfil: Ana Carolina Oliveira Costa         │  │
-│  │ Etapa: Aluno Ativo 🟢                       │  │
-│  │ Score: 75                                    │  │
-│  │                                              │  │
-│  │ [Ver Perfil Completo]  [Gerir Inscrições]   │  │
-│  └──────────────────────────────────────────────┘  │
-│                                                    │
-│  Inscrições Recentes:                              │
-│  • Curso A - 85% concluído                         │
-│  • Curso B - Inscrito                              │
-│                                                    │
-└────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│ 📚 Formações Disponíveis                         │
+├──────────────────────────────────────────────────┤
+│                                                  │
+│  ┌────────────────────┐  ┌────────────────────┐  │
+│  │ 📖 Iniciação       │  │ 📖 Básica          │  │
+│  │ Presencial         │  │ Presencial         │  │
+│  │ [+ Inscrever]      │  │ [+ Inscrever]      │  │
+│  └────────────────────┘  └────────────────────┘  │
+│                                                  │
+│  ┌────────────────────┐  ┌────────────────────┐  │
+│  │ 📖 Avançada        │  │ 📖 Aromaterapia    │  │
+│  │ Presencial         │  │ Presencial         │  │
+│  │ [+ Inscrever]      │  │ [+ Inscrever]      │  │
+│  └────────────────────┘  └────────────────────┘  │
+│                                                  │
+│           Ver Todos os Cursos →                  │
+└──────────────────────────────────────────────────┘
 ```
 
-## Ficheiros a Criar/Modificar
+## Alterações Técnicas
 
-| Ficheiro | Ação |
-|----------|------|
-| `src/types/entity.ts` | Adicionar 'student-journey' ao MenuSection |
-| `src/hooks/useContactStudentJourneyProfile.ts` | **Criar** - Hook para buscar perfil SJ do contacto |
-| `src/components/entity/EntitySidebarMenu.tsx` | Adicionar secção MÓDULOS + lógica de visibilidade |
-| `src/components/contacts/sections/ContactStudentJourneySection.tsx` | **Criar** - Secção do Student Journey |
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Adicionar case 'student-journey' e imports |
+### Ficheiro: `src/components/contacts/sections/ContactStudentJourneySection.tsx`
 
-## Fluxo de Utilizador
+```typescript
+// Imports adicionais
+import { useCourses } from "@/hooks/useStudentJourney";
+import { Plus, Library } from "lucide-react";
 
-```text
-Contacto tem perfil SJ?
-        │
-   ┌────┴────┐
-   │         │
-  SIM       NÃO
-   │         │
-   ▼         ▼
-Mostra:   Mostra:
-- Resumo  - Botão "Criar
-- Link      Perfil SJ"
-  para      (pré-preenchido
-  perfil    com dados do
-            contacto)
+// Dentro do componente:
+const { courses = [] } = useCourses();
+
+// Filtrar cursos disponíveis (activos e não inscritos)
+const enrolledCourseIds = enrollments.map((e: any) => e.course_id);
+const availableCourses = courses.filter(
+  (course) => course.is_active && !enrolledCourseIds.includes(course.id)
+);
+
+// Nova secção após Jornada do Aluno:
+{availableCourses.length > 0 && (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <Library className="w-4 h-4 text-violet-500" />
+        Formações Disponíveis
+      </CardTitle>
+      <CardDescription>
+        Cursos onde o aluno ainda não está inscrito
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="grid grid-cols-2 gap-2">
+        {availableCourses.slice(0, 4).map((course) => (
+          <div key={course.id} className="p-3 border rounded-lg">
+            <span className="font-medium text-sm">{course.name}</span>
+            <span className="text-xs text-muted-foreground block">
+              {course.course_type}
+            </span>
+            <Button size="sm" variant="outline" className="mt-2 w-full">
+              <Plus className="w-3 h-3 mr-1" />
+              Inscrever
+            </Button>
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+)}
 ```
+
+## Funcionalidades
+
+1. **Mostrar cursos disponíveis** - Lista de cursos activos onde o aluno não está inscrito
+2. **Tipo de curso** - Indicação se é presencial, online, etc.
+3. **Botão de inscrição rápida** - Permite inscrever directamente (futuramente pode abrir modal)
+4. **Link para catálogo** - Ver todos os cursos disponíveis
+
+## Ficheiros a Modificar
+
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/components/contacts/sections/ContactStudentJourneySection.tsx` | Adicionar secção de formações disponíveis |
 
 ## Resultado Esperado
 
-1. No menu lateral do contacto, aparece secção "MÓDULOS" com "Student Journey"
-2. Clicando, mostra resumo do perfil educacional do contacto
-3. Link directo para página de detalhe do perfil em `/dashboard/student-journey/profiles/:profileId`
-4. Se não tem perfil, permite criar um novo vinculado ao contacto
+1. Após a "Jornada do Aluno", aparece secção "Formações Disponíveis"
+2. Mostra até 4 cursos em grid 2x2
+3. Cada curso mostra nome, tipo e botão para inscrever
+4. Se há mais de 4 cursos, mostra link para ver todos
+
