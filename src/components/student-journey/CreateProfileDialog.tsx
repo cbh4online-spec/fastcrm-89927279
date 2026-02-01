@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useProfiles, useCourses } from "@/hooks/useStudentJourney";
 import { LIFECYCLE_STAGE_CONFIG, LifecycleStage, PreferredChannel } from "@/types/studentJourney";
 import { useContacts } from "@/hooks/useContacts";
-import { Loader2, Link2, UserPlus } from "lucide-react";
+import { Loader2, Link2, UserPlus, Check, ChevronsUpDown, Search, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface CreateProfileDialogProps {
   open: boolean;
@@ -25,8 +39,33 @@ export function CreateProfileDialog({ open, onOpenChange }: CreateProfileDialogP
   const [stage, setStage] = useState<LifecycleStage>("lead");
   const [primaryInterest, setPrimaryInterest] = useState("");
   const [selectedContactId, setSelectedContactId] = useState("");
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
 
-  const resetForm = () => { setFullName(""); setEmail(""); setPhone(""); setStage("lead"); setPrimaryInterest(""); setSelectedContactId(""); setTab("new"); };
+  const filteredContacts = useMemo(() => {
+    if (!contactSearch.trim()) return contacts;
+    const searchLower = contactSearch.toLowerCase();
+    return contacts.filter(
+      (c) =>
+        c.name.toLowerCase().includes(searchLower) ||
+        c.email?.toLowerCase().includes(searchLower) ||
+        c.phone?.includes(searchLower)
+    );
+  }, [contacts, contactSearch]);
+
+  const selectedContact = contacts.find((c) => c.id === selectedContactId);
+
+  const resetForm = () => {
+    setFullName("");
+    setEmail("");
+    setPhone("");
+    setStage("lead");
+    setPrimaryInterest("");
+    setSelectedContactId("");
+    setContactSearch("");
+    setContactPopoverOpen(false);
+    setTab("new");
+  };
 
   const handleSubmit = async () => {
     if (tab === "new") {
@@ -67,7 +106,76 @@ export function CreateProfileDialog({ open, onOpenChange }: CreateProfileDialogP
           </TabsContent>
           <TabsContent value="link" className="space-y-4 mt-4">
             <p className="text-sm text-muted-foreground">Selecione um contacto existente do CRM.</p>
-            <Select value={selectedContactId} onValueChange={setSelectedContactId}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{contacts.map((c) => <SelectItem key={c.id} value={c.id}>{c.name} {c.email && `(${c.email})`}</SelectItem>)}</SelectContent></Select>
+            <Popover open={contactPopoverOpen} onOpenChange={setContactPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={contactPopoverOpen}
+                  className="w-full justify-between"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    {selectedContact ? (
+                      <span className="truncate">{selectedContact.name}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Pesquisar contacto...</span>
+                    )}
+                  </div>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[350px] p-0" align="start">
+                <Command shouldFilter={false}>
+                  <CommandInput
+                    placeholder="Pesquisar por nome, email ou telefone..."
+                    value={contactSearch}
+                    onValueChange={setContactSearch}
+                  />
+                  <CommandList>
+                    {filteredContacts.length === 0 ? (
+                      <CommandEmpty>
+                        <div className="text-center py-4">
+                          <Search className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            Nenhum contacto encontrado
+                          </p>
+                        </div>
+                      </CommandEmpty>
+                    ) : (
+                      <CommandGroup>
+                        {filteredContacts.map((contact) => (
+                          <CommandItem
+                            key={contact.id}
+                            value={contact.id}
+                            onSelect={() => {
+                              setSelectedContactId(contact.id);
+                              setContactPopoverOpen(false);
+                              setContactSearch("");
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "h-4 w-4 mr-2",
+                                selectedContactId === contact.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">{contact.name}</div>
+                              {contact.email && (
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {contact.email}
+                                </div>
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </TabsContent>
         </Tabs>
         <DialogFooter>
