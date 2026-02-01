@@ -383,14 +383,14 @@ export function BulkEnrollmentDialog({
         let profile = profilesByContactId.get(contact.id);
         
         if (!profile) {
-          // Create new profile
+          // Create new profile - if has courses, set as active
           const { data: newProfile, error: profileError } = await supabase
             .from("sj_profiles")
             .insert({
               workspace_id: currentWorkspace.id,
               full_name: row.name,
               contact_id: contact.id,
-              lifecycle_stage: "completed",
+              lifecycle_stage: "active",
             })
             .select("id, contact_id")
             .single();
