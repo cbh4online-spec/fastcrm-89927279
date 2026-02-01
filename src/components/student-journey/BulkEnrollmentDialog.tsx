@@ -28,6 +28,7 @@ import {
   Loader2,
   GraduationCap,
   User,
+  Download,
   UserPlus,
   ClipboardList,
   X,
@@ -643,11 +644,35 @@ export function BulkEnrollmentDialog({
             {/* Contacts not found */}
             {result.contactsNotFound.length > 0 && (
               <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
-                  <p className="font-medium text-amber-800 dark:text-amber-200">
-                    Contactos não encontrados ({result.contactsNotFound.length})
-                  </p>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      Contactos não encontrados ({result.contactsNotFound.length})
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-amber-700 border-amber-300 hover:bg-amber-100 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-900/40"
+                    onClick={() => {
+                      // Create CSV content
+                      const csvContent = "Nome\n" + result.contactsNotFound.join("\n");
+                      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = `contactos-nao-encontrados-${new Date().toISOString().split('T')[0]}.csv`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                      toast.success("Lista exportada com sucesso");
+                    }}
+                  >
+                    <Download className="h-3 w-3" />
+                    Exportar Lista
+                  </Button>
                 </div>
                 <ScrollArea className="h-[100px]">
                   <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
