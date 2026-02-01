@@ -4,7 +4,9 @@ import { AIAssistantsModule } from "@/components/ai-assistants/AIAssistantsModul
 export default function AIAssistants() {
   return (
     <DashboardLayout>
-      <AIAssistantsModule />
+      <div className="p-4 md:p-6">
+        <AIAssistantsModule />
+      </div>
     </DashboardLayout>
   );
 }
