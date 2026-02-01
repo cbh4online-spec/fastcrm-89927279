@@ -1,269 +1,212 @@
 
-# Plano: Adicionar Selecção e Mapeamento de Colunas na Importação
+# Plano: Pesquisa de Contactos e Auto-Matching no Diálogo "Ligar ao CRM"
 
 ## Problema Identificado
 
-O diálogo de importação actual salta directamente para o preview dos perfis, sem mostrar ao utilizador:
-1. Quais colunas foram detectadas no ficheiro Excel
-2. Como cada coluna foi mapeada (ou não mapeada)
-3. Opção para corrigir/ajustar o mapeamento manualmente
+O diálogo actual para ligar um perfil Student Journey a um contacto CRM tem limitações:
 
-O utilizador quer ver **todas as colunas** do Excel e poder seleccionar quais usar.
+1. Usa um `<Select>` simples que não permite **pesquisar por texto**
+2. Com muitos contactos, é difícil encontrar o correcto
+3. Quando há **match automático** de nome/email, o utilizador tem que localizar manualmente
 
 ## Solução Proposta
 
-Adicionar um **novo passo "Mapeamento de Colunas"** entre o upload e o preview:
-
-```text
-Upload → [NOVO] Mapear Colunas → Preview → Importação → Concluído
-```
-
-## Interface do Novo Passo
-
-O novo ecrã mostrará uma tabela com:
-- Todas as colunas detectadas no Excel
-- O campo de destino mapeado automaticamente (ou "Não mapeado")
-- Dropdown para alterar o mapeamento
-- Checkbox para incluir/excluir a coluna
+Substituir o Select simples por um **Combobox com pesquisa** (padrão Command + Popover) e:
+1. Permitir pesquisa por texto (nome, email, telefone)
+2. Manter contactos sugeridos em destaque
+3. Auto-seleccionar automaticamente se houver match exacto de email
 
 ## Alterações Técnicas
 
-### 1. Adicionar Novo Estado para Colunas Detectadas
+### 1. Substituir Select por Command + Popover
+
+Usar o mesmo padrão de `SendEmailFromTemplateDialog.tsx`:
 
 ```typescript
-interface DetectedColumn {
-  originalName: string;           // Nome original no Excel
-  normalizedName: string;         // Nome normalizado
-  mappedTo: string | null;        // Campo de destino (nome, email, etc.)
-  isSelected: boolean;            // Incluir na importação
-  sampleValues: string[];         // 3 primeiros valores para preview
-  isCourseColumn: boolean;        // É coluna de curso/formação
-}
-
-// Novos estados
-const [detectedColumns, setDetectedColumns] = useState<DetectedColumn[]>([]);
-const [rawData, setRawData] = useState<Record<string, string>[]>([]);
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 ```
 
-### 2. Definir Campos de Destino Disponíveis
+### 2. Adicionar Estado para Controlar o Popover
 
 ```typescript
-const MAPPING_FIELDS = [
-  { value: "nome", label: "Nome", icon: User },
-  { value: "email", label: "Email", icon: Mail },
-  { value: "telefone", label: "Telefone", icon: Phone },
-  { value: "origem", label: "Origem/Fonte", icon: Globe },
-  { value: "notas", label: "Notas", icon: FileText },
-  { value: "curso", label: "Formação/Curso", icon: GraduationCap },
-  { value: "ignorar", label: "Ignorar coluna", icon: XCircle },
-];
+const [searchOpen, setSearchOpen] = useState(false);
 ```
 
-### 3. Actualizar o Fluxo de Passos
+### 3. Auto-Matching ao Abrir o Diálogo
+
+Quando o diálogo abre, se houver um contacto com **email exacto** ou **nome exacto**, auto-seleccionar:
 
 ```typescript
-// Alterar de 4 para 5 passos
-const [step, setStep] = useState<
-  "upload" | "mapping" | "preview" | "importing" | "complete"
->("upload");
+useEffect(() => {
+  if (open && !selectedContactId) {
+    // Tentar match automático por email
+    const emailMatch = contacts.find(
+      c => profile.email && c.email?.toLowerCase() === profile.email.toLowerCase()
+    );
+    if (emailMatch) {
+      setSelectedContactId(emailMatch.id);
+      setTab("link");
+      return;
+    }
+    
+    // Tentar match por nome exacto
+    const nameMatch = contacts.find(
+      c => c.name.toLowerCase() === profile.full_name.toLowerCase()
+    );
+    if (nameMatch) {
+      setSelectedContactId(nameMatch.id);
+      setTab("link");
+    }
+  }
+}, [open, contacts, profile]);
 ```
 
-### 4. Detectar Colunas ao Carregar Ficheiro
+### 4. Interface com Pesquisa
 
 ```typescript
-const handleFileSelect = async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  // Extrair colunas e dados brutos
-  const { columns, data } = await extractColumnsAndData(file);
-  
-  // Auto-mapear colunas conhecidas
-  const mappedColumns = columns.map(col => ({
-    originalName: col.original,
-    normalizedName: col.normalized,
-    mappedTo: autoDetectMapping(col.normalized),
-    isSelected: true,
-    sampleValues: getSampleValues(data, col.original, 3),
-    isCourseColumn: isCourseColumnByName(col.normalized) || 
-                    hasCourseMatches(data, col.original),
-  }));
-  
-  setDetectedColumns(mappedColumns);
-  setRawData(data);
-  setStep("mapping"); // Ir para novo passo
-};
-```
-
-### 5. Interface do Passo de Mapeamento
-
-```typescript
-{step === "mapping" && (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium">
-          {detectedColumns.length} colunas detectadas
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Verifique o mapeamento e seleccione as colunas a importar
-        </p>
-      </div>
-    </div>
-
-    <ScrollArea className="h-[350px] border rounded-lg">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50 sticky top-0">
-          <tr>
-            <th className="p-2 w-8">
-              <Checkbox /> {/* Seleccionar todas */}
-            </th>
-            <th className="p-2 text-left">Coluna no Excel</th>
-            <th className="p-2 text-left">Exemplos</th>
-            <th className="p-2 text-left">Mapear para</th>
-          </tr>
-        </thead>
-        <tbody>
-          {detectedColumns.map((col, idx) => (
-            <tr key={idx} className="border-t">
-              <td className="p-2">
-                <Checkbox 
-                  checked={col.isSelected}
-                  onCheckedChange={(c) => toggleColumn(idx, c)}
-                />
-              </td>
-              <td className="p-2 font-medium">
-                {col.originalName}
-                {col.isCourseColumn && (
-                  <Badge className="ml-2 text-xs">Formação</Badge>
-                )}
-              </td>
-              <td className="p-2 text-xs text-muted-foreground max-w-[150px] truncate">
-                {col.sampleValues.join(", ")}
-              </td>
-              <td className="p-2">
-                <Select 
-                  value={col.mappedTo || "ignorar"} 
-                  onValueChange={(v) => updateMapping(idx, v)}
+<div className="grid gap-2">
+  <Label>Selecionar Contacto</Label>
+  <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+    <PopoverTrigger asChild>
+      <Button
+        variant="outline"
+        role="combobox"
+        aria-expanded={searchOpen}
+        className="w-full justify-between"
+      >
+        {selectedContact ? (
+          <span className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            {selectedContact.name}
+            {selectedContact.email && (
+              <span className="text-muted-foreground text-xs">
+                ({selectedContact.email})
+              </span>
+            )}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">Pesquisar contacto...</span>
+        )}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-[350px] p-0" align="start">
+      <Command>
+        <CommandInput placeholder="Pesquisar por nome, email ou telefone..." />
+        <CommandList>
+          <CommandEmpty>Nenhum contacto encontrado</CommandEmpty>
+          
+          {/* Grupo: Sugeridos */}
+          {suggestedContacts.length > 0 && (
+            <CommandGroup heading="Correspondências Encontradas">
+              {suggestedContacts.map(contact => (
+                <CommandItem
+                  key={contact.id}
+                  value={`${contact.name} ${contact.email || ""} ${contact.phone || ""}`}
+                  onSelect={() => {
+                    setSelectedContactId(contact.id);
+                    setSearchOpen(false);
+                  }}
                 >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MAPPING_FIELDS.map(field => (
-                      <SelectItem key={field.value} value={field.value}>
-                        {field.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </ScrollArea>
+                  <Check className={cn(
+                    "h-4 w-4 mr-2",
+                    selectedContactId === contact.id ? "opacity-100" : "opacity-0"
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">{contact.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {contact.email || contact.phone}
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="ml-2">Match</Badge>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          
+          {/* Grupo: Outros contactos */}
+          <CommandGroup heading="Todos os Contactos">
+            {otherContacts.map(contact => (
+              <CommandItem
+                key={contact.id}
+                value={`${contact.name} ${contact.email || ""} ${contact.phone || ""}`}
+                onSelect={() => {
+                  setSelectedContactId(contact.id);
+                  setSearchOpen(false);
+                }}
+              >
+                <Check className={cn(
+                  "h-4 w-4 mr-2",
+                  selectedContactId === contact.id ? "opacity-100" : "opacity-0"
+                )} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium">{contact.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {contact.email || contact.phone || "—"}
+                  </div>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </Command>
+    </PopoverContent>
+  </Popover>
+</div>
+```
 
-    <DialogFooter>
-      <Button variant="outline" onClick={resetDialog}>
-        Voltar
-      </Button>
-      <Button onClick={proceedToPreview}>
-        Continuar para Preview
-      </Button>
-    </DialogFooter>
+### 5. Feedback Visual de Auto-Match
+
+Quando há auto-match, mostrar um alerta informativo:
+
+```typescript
+{selectedContactId && suggestedContacts.some(c => c.id === selectedContactId) && (
+  <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+    <CheckCircle className="h-4 w-4" />
+    Contacto encontrado automaticamente por correspondência de dados
   </div>
 )}
 ```
 
-### 6. Processar com Mapeamento Manual
-
-Quando o utilizador avança para o preview, usar o mapeamento definido:
-
-```typescript
-const proceedToPreview = () => {
-  // Usar apenas colunas seleccionadas com o mapeamento definido
-  const selectedColumns = detectedColumns.filter(c => c.isSelected);
-  
-  // Construir profiles usando o mapeamento manual
-  const profiles = rawData.map(row => {
-    const profile: ParsedProfile = {
-      full_name: "",
-      matchedCourses: [],
-    };
-    
-    for (const col of selectedColumns) {
-      const value = row[col.originalName];
-      if (!value) continue;
-      
-      switch (col.mappedTo) {
-        case "nome":
-          profile.full_name = value;
-          break;
-        case "email":
-          profile.email = value;
-          break;
-        case "telefone":
-          profile.phone = value;
-          break;
-        case "curso":
-          // Tentar match com cursos existentes
-          const match = findMatchingCourse(value, courses);
-          if (match) {
-            profile.matchedCourses.push({...});
-          }
-          break;
-        // ... outros campos
-      }
-    }
-    
-    return profile;
-  }).filter(p => p.full_name);
-  
-  setParsedData(profiles);
-  setStep("preview");
-};
-```
-
-## Fluxo Visual
+## Fluxo de Utilizador Melhorado
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│  Passo 1: Upload                                            │
-│  [Arrastar ficheiro ou clicar para seleccionar]             │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Passo 2: Mapear Colunas (NOVO)                             │
-│                                                             │
-│  ☑ Nome Completo    → [Nome ▼]      "João, Maria..."       │
-│  ☑ E-mail           → [Email ▼]     "joao@..., maria@..."  │
-│  ☑ Contacto         → [Telefone ▼]  "912..., 923..."       │
-│  ☑ Curso Básico     → [Formação ▼]  "Nível 1, Básico..."   │
-│  ☑ Curso Avançado   → [Formação ▼]  "Nível 2, Avançado..." │
-│  ☐ Data Registo     → [Ignorar ▼]   "2024-01, 2024-02..."  │
-│  ☐ ID Interno       → [Ignorar ▼]   "001, 002, 003..."     │
-│                                                             │
-│                           [Voltar] [Continuar para Preview] │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Passo 3: Preview (existente)                               │
-│  Mostra perfis processados com mapeamento do utilizador     │
-└─────────────────────────────────────────────────────────────┘
+1. Utilizador abre "Ligar ao CRM" para perfil "João Silva" (joao@email.pt)
+   ↓
+2. Sistema detecta que existe contacto "João Silva" com mesmo email
+   ↓
+3. Auto-selecciona o contacto e muda para tab "Ligar Existente"
+   ↓
+4. Mostra mensagem: "Contacto encontrado automaticamente"
+   ↓
+5. Utilizador pode:
+   - Confirmar clicando "Ligar ao Contacto"
+   - Pesquisar outro contacto na caixa de pesquisa
+   - Mudar para tab "Criar Contacto" se preferir
 ```
 
 ## Ficheiro a Modificar
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/components/student-journey/ImportProfilesDialog.tsx` | Adicionar passo de mapeamento, novos estados, nova UI |
+| Ficheiro | Alterações |
+|----------|------------|
+| `src/components/student-journey/LinkContactDialog.tsx` | Substituir Select por Command/Popover, adicionar auto-match, adicionar pesquisa |
 
 ## Resultado Esperado
 
-1. Utilizador vê **todas as colunas** do Excel após upload
-2. Sistema mostra **sugestão automática** de mapeamento
-3. Utilizador pode **corrigir mapeamentos** incorrectos
-4. Utilizador pode **desseleccionar** colunas irrelevantes
-5. Preview mostra dados processados com o mapeamento definido
-6. Colunas de curso são automaticamente identificadas e marcadas
+1. Caixa de pesquisa permite encontrar contactos rapidamente por texto
+2. Auto-matching selecciona contactos com email/nome coincidente
+3. Contactos sugeridos aparecem em destaque com badge "Match"
+4. Feedback visual claro quando há correspondência automática
+5. Experiência mais rápida e intuitiva para ligar perfis a contactos
