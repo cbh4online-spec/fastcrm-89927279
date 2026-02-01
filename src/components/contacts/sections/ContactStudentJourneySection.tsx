@@ -1,13 +1,14 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
-import { useEnrollments } from "@/hooks/useStudentJourney";
+import { useEnrollments, useCourses } from "@/hooks/useStudentJourney";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
-import { GraduationCap, UserPlus, ExternalLink, BookOpen, Target, Trophy, Clock } from "lucide-react";
+import { GraduationCap, UserPlus, ExternalLink, BookOpen, Target, Trophy, Clock, Library, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CreateEnrollmentDialog } from "@/components/student-journey/CreateEnrollmentDialog";
 
 interface ContactStudentJourneySectionProps {
   contactId: string;
@@ -33,8 +34,16 @@ export function ContactStudentJourneySection({
   contactEmail 
 }: ContactStudentJourneySectionProps) {
   const navigate = useNavigate();
+  const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
   const { data: profile, isLoading: isLoadingProfile } = useContactStudentJourneyProfile(contactId);
   const { enrollments = [], isLoading: isLoadingEnrollments } = useEnrollments(profile?.id ? { profileId: profile.id } : {});
+  const { courses = [] } = useCourses();
+
+  // Filter available courses (active and not enrolled)
+  const enrolledCourseIds = enrollments.map((e: any) => e.course_id);
+  const availableCourses = courses.filter(
+    (course) => course.is_active && !enrolledCourseIds.includes(course.id)
+  );
 
   const handleViewProfile = () => {
     if (profile?.id) {
@@ -254,13 +263,66 @@ export function ContactStudentJourneySection({
             )}
           </CardContent>
         </Card>
-      ) : (
-        <Card className="border-dashed">
-          <CardContent className="py-6 text-center">
-            <BookOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Sem inscrições registadas</p>
+      ) : null}
+
+      {/* Available Courses Section */}
+      {profile && availableCourses.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Library className="w-4 h-4 text-violet-500" />
+              Formações Disponíveis
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Cursos onde o aluno ainda não está inscrito
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 gap-2">
+              {availableCourses.slice(0, 4).map((course) => (
+                <div 
+                  key={course.id} 
+                  className="p-3 border rounded-lg bg-violet-50/50 dark:bg-violet-950/20 border-violet-200 dark:border-violet-900"
+                >
+                  <span className="font-medium text-sm text-violet-700 dark:text-violet-300 block truncate">
+                    {course.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground block capitalize">
+                    {course.course_type || "Presencial"}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {availableCourses.length > 0 && (
+              <Button 
+                variant="outline" 
+                className="w-full mt-3 gap-2"
+                onClick={() => setEnrollDialogOpen(true)}
+              >
+                <Plus className="w-4 h-4" />
+                Inscrever em Formação
+              </Button>
+            )}
+            {availableCourses.length > 4 && (
+              <Button 
+                variant="ghost" 
+                className="w-full text-sm mt-1"
+                onClick={() => navigate('/dashboard/student-journey/courses')}
+              >
+                Ver todos os {availableCourses.length} cursos disponíveis
+              </Button>
+            )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Enrollment Dialog */}
+      {profile && (
+        <CreateEnrollmentDialog
+          open={enrollDialogOpen}
+          onOpenChange={setEnrollDialogOpen}
+          profileId={profile.id}
+        />
       )}
     </div>
   );
