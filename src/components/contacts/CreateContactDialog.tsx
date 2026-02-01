@@ -95,16 +95,62 @@ function DuplicateWarning({
   onUseExisting: (id: string) => void; 
   onContinue: () => void;
 }) {
+  // Separate blocking (email) from warning duplicates
+  const blockingDuplicates = duplicates.filter(d => d.isBlockingDuplicate);
+  const warningDuplicates = duplicates.filter(d => !d.isBlockingDuplicate);
+  const hasBlockingDuplicate = blockingDuplicates.length > 0;
+
   return (
-    <Card className="p-3 border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
+    <Card className={cn(
+      "p-3",
+      hasBlockingDuplicate 
+        ? "border-destructive/50 bg-destructive/5 dark:bg-destructive/10" 
+        : "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20"
+    )}>
       <div className="flex items-start gap-2">
-        <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+        <AlertTriangle className={cn(
+          "w-4 h-4 mt-0.5 shrink-0",
+          hasBlockingDuplicate ? "text-destructive" : "text-amber-600"
+        )} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-            Possível duplicado encontrado
+          <p className={cn(
+            "text-sm font-medium",
+            hasBlockingDuplicate 
+              ? "text-destructive dark:text-red-300" 
+              : "text-amber-800 dark:text-amber-200"
+          )}>
+            {hasBlockingDuplicate 
+              ? "Este email já está a ser utilizado" 
+              : "Possível duplicado encontrado"
+            }
           </p>
           <div className="mt-2 space-y-2">
-            {duplicates.slice(0, 2).map((dup) => (
+            {/* Show blocking duplicates first */}
+            {blockingDuplicates.slice(0, 2).map((dup) => (
+              <div 
+                key={dup.contact.id} 
+                className="flex items-center justify-between text-sm"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="truncate">{dup.contact.name}</span>
+                  <Badge variant="destructive" className="text-[10px]">
+                    Email duplicado
+                  </Badge>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 text-xs shrink-0"
+                  onClick={() => onUseExisting(dup.contact.id)}
+                >
+                  Ver contacto
+                  <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </div>
+            ))}
+            {/* Show warning duplicates */}
+            {warningDuplicates.slice(0, 2).map((dup) => (
               <div 
                 key={dup.contact.id} 
                 className="flex items-center justify-between text-sm"
@@ -113,7 +159,7 @@ function DuplicateWarning({
                   <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <span className="truncate">{dup.contact.name}</span>
                   <Badge variant="outline" className="text-[10px]">
-                    {dup.matchType === "email" ? "Email" : dup.matchType === "phone" ? "Telefone" : "Nome similar"}
+                    {dup.matchType === "phone" ? "Telefone" : "Nome similar"}
                   </Badge>
                 </div>
                 <Button 
@@ -128,14 +174,17 @@ function DuplicateWarning({
               </div>
             ))}
           </div>
-          <Button 
-            variant="link" 
-            size="sm" 
-            className="h-auto p-0 mt-2 text-xs text-amber-700 dark:text-amber-300"
-            onClick={onContinue}
-          >
-            Criar mesmo assim
-          </Button>
+          {/* Only show "Criar mesmo assim" if no blocking duplicates */}
+          {!hasBlockingDuplicate && (
+            <Button 
+              variant="link" 
+              size="sm" 
+              className="h-auto p-0 mt-2 text-xs text-amber-700 dark:text-amber-300"
+              onClick={onContinue}
+            >
+              Criar mesmo assim
+            </Button>
+          )}
         </div>
       </div>
     </Card>
@@ -238,8 +287,16 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
       return;
     }
 
-    // Check for duplicates
-    if (duplicates.length > 0 && !dismissedDuplicates) {
+    // Check for blocking duplicates (email)
+    const blockingDuplicates = duplicates.filter(d => d.isBlockingDuplicate);
+    if (blockingDuplicates.length > 0) {
+      toast.error("Este email já está associado a outro contacto");
+      return;
+    }
+
+    // Check for warning duplicates (phone/name)
+    const warningDuplicates = duplicates.filter(d => !d.isBlockingDuplicate);
+    if (warningDuplicates.length > 0 && !dismissedDuplicates) {
       return; // Show duplicate warning
     }
 

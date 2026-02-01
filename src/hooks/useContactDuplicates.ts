@@ -7,6 +7,7 @@ export interface DuplicateMatch {
   contact: Contact;
   matchType: "email" | "phone" | "name_similarity";
   similarity: number;
+  isBlockingDuplicate: boolean; // Email exact match blocks creation
 }
 
 function normalizeString(str: string): string {
@@ -80,7 +81,7 @@ export function useContactDuplicateCheck(
       for (const contact of contacts) {
         if (excludeId && contact.id === excludeId) continue;
 
-        // Check email match
+        // Check email match (BLOCKING - email must be unique)
         if (email && contact.email) {
           const emailLower = email.toLowerCase().trim();
           const contactEmailLower = contact.email.toLowerCase().trim();
@@ -89,12 +90,13 @@ export function useContactDuplicateCheck(
               contact: contact as Contact,
               matchType: "email",
               similarity: 1,
+              isBlockingDuplicate: true, // Email duplicates block creation
             });
             continue;
           }
         }
 
-        // Check phone match
+        // Check phone match (WARNING only - can still create)
         if (phone && contact.phone) {
           const normalizedInput = normalizePhone(phone);
           const normalizedContact = normalizePhone(contact.phone);
@@ -106,12 +108,13 @@ export function useContactDuplicateCheck(
               contact: contact as Contact,
               matchType: "phone",
               similarity: 1,
+              isBlockingDuplicate: false, // Phone duplicates are warnings only
             });
             continue;
           }
         }
 
-        // Check name similarity
+        // Check name similarity (WARNING only - can still create)
         if (name && contact.name) {
           const similarity = calculateSimilarity(name, contact.name);
           if (similarity >= 0.85) {
@@ -119,6 +122,7 @@ export function useContactDuplicateCheck(
               contact: contact as Contact,
               matchType: "name_similarity",
               similarity,
+              isBlockingDuplicate: false, // Name duplicates are warnings only
             });
           }
         }

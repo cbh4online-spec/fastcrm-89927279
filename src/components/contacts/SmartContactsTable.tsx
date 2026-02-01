@@ -4,6 +4,7 @@ import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartConta
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useContacts } from "@/hooks/useContacts";
 import { CreateContactDialog } from "./CreateContactDialog";
+import { DuplicateManagementDialog } from "./DuplicateManagementDialog";
 import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
 import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -30,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Settings2, Archive, Building2, Briefcase } from "lucide-react";
+import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Settings2, Archive, Building2, Briefcase, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 // Design System imports
@@ -309,6 +310,7 @@ export function SmartContactsTable() {
   const [filters, setFilters] = useState<SmartContactsFilters>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -553,6 +555,15 @@ export function SmartContactsTable() {
           }
           rightActions={
             <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsDuplicatesOpen(true)} 
+                className="gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Duplicados
+              </Button>
               <ColumnSelector
                 columns={CONTACT_COLUMNS}
                 visibleColumns={visibleColumns}
@@ -843,6 +854,7 @@ export function SmartContactsTable() {
         )}
 
         <CreateContactDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+        <DuplicateManagementDialog open={isDuplicatesOpen} onOpenChange={setIsDuplicatesOpen} />
       </div>
     </div>
   );
