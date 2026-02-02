@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -119,6 +119,20 @@ export function CreateProposalDialog({
   const createProposal = useCreateProposal();
   const updateProposalItems = useUpdateProposalItems();
   const { isLoading: aiLoading, generateCopy } = useGenerateProposalCopy();
+
+  // Callback estável para atualização de itens do carrinho
+  const handleCartItemsChange = useCallback((items: CartItem[]) => {
+    setCartItems(items);
+    // Auto-update price based on cart total
+    const total = items.reduce((acc, item) => {
+      const basePrice = item.priceOverride ?? item.product.base_price ?? 0;
+      const discountAmount = item.discount ? basePrice * (item.discount / 100) : 0;
+      return acc + (basePrice - discountAmount) * item.quantity;
+    }, 0);
+    if (total > 0) {
+      setPrice(total.toString());
+    }
+  }, []);
 
   // Build variables from opportunity
   const variables: Record<string, string> = {};
@@ -396,18 +410,7 @@ export function CreateProposalDialog({
                 opportunityValue={selectedOpportunity?.value || undefined}
                 leadName={propContactName || selectedOpportunity?.lead?.name}
                 companyName={propCompanyName}
-                onItemsChange={useCallback((items: CartItem[]) => {
-                  setCartItems(items);
-                  // Auto-update price based on cart total
-                  const total = items.reduce((acc, item) => {
-                    const basePrice = item.priceOverride ?? item.product.base_price ?? 0;
-                    const discountAmount = item.discount ? basePrice * (item.discount / 100) : 0;
-                    return acc + (basePrice - discountAmount) * item.quantity;
-                  }, 0);
-                  if (total > 0) {
-                    setPrice(total.toString());
-                  }
-                }, [])}
+                onItemsChange={handleCartItemsChange}
                 initialItems={cartItems}
               />
             </TabsContent>
