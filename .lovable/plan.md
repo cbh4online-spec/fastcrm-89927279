@@ -1,194 +1,166 @@
 
+# Plano: Terminar Desenvolvimento - Secção de Propostas
 
-# Plano: Criar Interface de Modelos de Propostas
+## Situação Actual
 
-## Contexto Actual
+A secção **"Propostas"** mostra "Secção em desenvolvimento" porque:
+- O menu lateral (`EntitySidebarMenu`) inclui "Propostas" correctamente
+- O contador (`useEntityCounts`) já conta propostas para contactos/empresas
+- Falta um componente `EntityProposalsSection` para mostrar as propostas
 
-A página de Propostas (`ProposalsList.tsx`) já tem uma tab "Modelos" definida (linha 93), mas não há conteúdo implementado para esta tab. O sistema de templates já existe na base de dados (`proposal_templates`) e há hooks funcionais (`useProposalTemplates`, `useCreateProposalTemplate`, `useUpdateProposalTemplate`, `useDeleteProposalTemplate`).
-
-| Componente | Estado |
-|------------|--------|
-| Tabela `proposal_templates` | Existe |
-| Hooks CRUD para templates | Existem |
-| Interface de gestão de templates | **Não existe** |
-| Uso de templates na criação | Funciona (mas sem templates criados) |
+| Entidade | Secção Propostas | Estado |
+|----------|------------------|--------|
+| Leads | `ProposalsSection` | Funciona |
+| Contactos | - | Em falta |
+| Empresas | - | Em falta |
 
 ## Objectivo
 
-Criar uma interface completa para gerir Modelos de Propostas, permitindo:
-1. Listar modelos existentes
-2. Criar novos modelos
-3. Editar modelos
-4. Duplicar modelos
-5. Eliminar modelos
-6. Pré-visualizar modelos
+Criar um componente genérico `EntityProposalsSection` que funcione para **contactos** e **empresas**, mostrando:
+- Estatísticas de propostas (publicadas, aceites, valor)
+- Lista de propostas associadas
+- Acções (ver, editar, eliminar)
+- Estado vazio quando não há propostas
 
 ## Arquitectura da Solução
 
-### Estrutura de Ficheiros
+### Estrutura Proposta
 
 ```text
 src/components/proposals/
-├── ProposalsList.tsx              (MODIFICAR - adicionar conteúdo para tab "templates")
-├── ProposalTemplatesList.tsx      (CRIAR - lista de modelos)
-├── ProposalTemplateFormDialog.tsx (CRIAR - criar/editar modelo)
-└── ProposalTemplateCard.tsx       (CRIAR - card do modelo)
+├── EntityProposalsSection.tsx   (CRIAR - componente genérico)
+└── ... (ficheiros existentes)
 ```
+
+### Como as Propostas se Relacionam com Entidades
+
+A tabela `proposals` tem colunas `contact_id` e `company_id` que permitem filtrar propostas por entidade directamente, sem passar por oportunidades.
 
 ## Ficheiros a Criar/Modificar
 
 | Ficheiro | Acção | Descrição |
 |----------|-------|-----------|
-| `src/components/proposals/ProposalTemplateCard.tsx` | **CRIAR** | Card individual de template com preview e acções |
-| `src/components/proposals/ProposalTemplateFormDialog.tsx` | **CRIAR** | Dialog para criar/editar templates |
-| `src/components/proposals/ProposalTemplatesList.tsx` | **CRIAR** | Lista de templates com grid e filtros |
-| `src/components/proposals/ProposalsList.tsx` | **MODIFICAR** | Renderizar conteúdo baseado na tab activa |
+| `src/components/proposals/EntityProposalsSection.tsx` | **CRIAR** | Componente genérico para contactos e empresas |
+| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | **MODIFICAR** | Adicionar case 'proposals' |
+| `src/components/companies/CompanyDetailWithSidebar.tsx` | **MODIFICAR** | Adicionar case 'proposals' |
 
 ## Implementação Detalhada
 
-### 1. ProposalTemplateCard.tsx
+### 1. EntityProposalsSection.tsx
 
-Componente card para exibir cada template:
-
-```text
-┌──────────────────────────────────────────┐
-│  📄 [Nome do Modelo]                 ⋮   │
-│                                          │
-│  Descrição do modelo (2 linhas max)      │
-│                                          │
-│  ┌────────┐ ┌────────┐ ┌────────┐       │
-│  │  text  │ │ offer  │ │  cta   │       │
-│  └────────┘ └────────┘ └────────┘       │
-│                                          │
-│  Criado em 20 Jan 2026                   │
-│                                          │
-│  [Usar Modelo]           [●] Activo      │
-└──────────────────────────────────────────┘
-```
-
-Funcionalidades:
-- Mostrar nome e descrição
-- Badges dos tipos de blocos (text, offer, cta, etc.)
-- Data de criação
-- Toggle de activo/inactivo
-- Menu de acções (Editar, Duplicar, Eliminar)
-
-### 2. ProposalTemplateFormDialog.tsx
-
-Dialog modal para criar/editar templates com:
-
-**Tab 1 - Informação Base:**
-- Nome do template
-- Descrição
-- CTA Text e Cor
-
-**Tab 2 - Blocos de Conteúdo:**
-- Reutilizar `ProposalContentBlocks` existente
-- Adicionar/remover/reordenar blocos
-
-**Tab 3 - Pré-visualização:**
-- Reutilizar `ProposalPreview` existente
-
-### 3. ProposalTemplatesList.tsx
-
-Lista completa com:
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ Modelos de Propostas                             [+ Novo Modelo] │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  📊 Estatísticas                                                 │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐                         │
-│  │ Total: 5 │ │ Activos:4│ │ Usados: 3│                         │
-│  └──────────┘ └──────────┘ └──────────┘                         │
-│                                                                  │
-│  🔍 Pesquisar modelos...                        Ordenar: Recentes│
-│                                                                  │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐    │
-│  │    Template 1   │ │    Template 2   │ │    Template 3   │    │
-│  │                 │ │                 │ │                 │    │
-│  │                 │ │                 │ │                 │    │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-Funcionalidades:
-- Grid de cards (3 colunas desktop, 1 mobile)
-- Barra de pesquisa
-- Ordenação (recentes, mais usados, A-Z)
-- Estado vazio com CTA
-
-### 4. Modificar ProposalsList.tsx
-
-Adicionar renderização condicional baseada no `activeTab`:
+Componente reutilizável baseado na estrutura do `EntityOpportunitiesSection`:
 
 ```typescript
-{activeTab === "proposals" && (
-  // Conteúdo actual da lista de propostas
-)}
-
-{activeTab === "templates" && (
-  <ProposalTemplatesList />
-)}
-
-{activeTab === "analytics" && (
-  // Futuro: dashboard de analytics
-  <div className="p-12 text-center text-muted-foreground">
-    Em breve: Análise de performance de propostas
-  </div>
-)}
+interface EntityProposalsSectionProps {
+  entityType: "contact" | "company";
+  entityId: string;
+  entityName: string;
+}
 ```
 
-## Fluxo de Utilização
+**Funcionalidades:**
+- Query que filtra propostas por `contact_id` ou `company_id`
+- Cards de estatísticas (Publicadas, Aceites, Valor Aceite)
+- Lista de propostas com:
+  - Título e status (badge colorido)
+  - Oportunidade associada (se existir)
+  - Preço e visualizações
+  - Data de criação
+- Estado vazio estilizado
+- Dropdown de acções (Editar, Ver Pública, Eliminar)
+
+**Layout visual:**
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                     GESTÃO DE MODELOS                           │
+│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐             │
+│ │ 📤 3         │ │ ✓ 2          │ │ € 15.000    │             │
+│ │ Publicadas   │ │ Aceites      │ │ Valor Aceite │             │
+│ └──────────────┘ └──────────────┘ └──────────────┘             │
+│                                                                 │
+│ Propostas                          5 propostas  [+ Nova Proposta]│
+│                                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐│
+│ │ Proposta Website Redesign           [Publicada] ...        ││
+│ │ 🎯 Website Development                                     ││
+│ │ € 5.000  👁 12 views  📅 há 2 dias                         ││
+│ └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐│
+│ │ Proposta Manutenção Anual           [Aceite] ...           ││
+│ │ 🎯 Contrato Manutenção                                     ││
+│ │ € 10.000  👁 8 views  📅 há 5 dias                         ││
+│ └─────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
-                              │
-            ┌─────────────────┼─────────────────┐
-            │                 │                 │
-            ▼                 ▼                 ▼
-    ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
-    │ Criar Modelo  │ │ Editar Modelo │ │ Usar em Nova  │
-    │               │ │               │ │   Proposta    │
-    └───────────────┘ └───────────────┘ └───────────────┘
-            │                 │                 │
-            ▼                 ▼                 ▼
-    ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
-    │  Form Dialog  │ │  Form Dialog  │ │CreateProposal │
-    │ - Nome        │ │ - Carregar    │ │ - Select tpl  │
-    │ - Blocos      │ │   dados       │ │ - Aplicar     │
-    │ - CTA         │ │ - Guardar     │ │   blocos      │
-    └───────────────┘ └───────────────┘ └───────────────┘
 ```
 
-## Tipos de Blocos Suportados
+### 2. Modificar ENIContactDetailWithSidebar.tsx
 
-Os templates usam o mesmo sistema de `ContentBlock` das propostas:
+Adicionar o case 'proposals' no `renderSectionContent()`:
 
-| Tipo | Descrição | Conteúdo |
-|------|-----------|----------|
-| `text` | Texto livre | título, corpo |
-| `offer` | Oferta/Preço | título, descrição, features, preço |
-| `testimonials` | Testemunhos | lista de citações |
-| `faq` | Perguntas Frequentes | lista Q&A |
-| `divider` | Separador visual | - |
-| `cta` | Call to Action | texto, estilo |
-| `image` | Imagem | url, alt |
+```typescript
+case 'proposals':
+  return (
+    <EntityProposalsSection
+      entityType="contact"
+      entityId={id!}
+      entityName={contact.name}
+    />
+  );
+```
+
+### 3. Modificar CompanyDetailWithSidebar.tsx
+
+Adicionar o case 'proposals' no `renderSectionContent()`:
+
+```typescript
+case 'proposals':
+  return (
+    <EntityProposalsSection
+      entityType="company"
+      entityId={id!}
+      entityName={company.name}
+    />
+  );
+```
+
+## Lógica de Query
+
+A query irá buscar propostas directamente pelo `contact_id` ou `company_id`:
+
+```typescript
+// Para contactos:
+.from("proposals")
+.select("...")
+.eq("contact_id", entityId)
+
+// Para empresas:
+.from("proposals")
+.select("...")
+.eq("company_id", entityId)
+```
+
+## Status das Propostas
+
+Configuração de cores/ícones (igual ao `ProposalsSection` dos leads):
+
+| Status | Badge | Cor |
+|--------|-------|-----|
+| draft | Rascunho | Cinza |
+| published | Publicada | Azul |
+| accepted | Aceite | Verde |
+| expired | Expirada | Âmbar |
+| rejected | Rejeitada | Vermelho |
 
 ## Resultado Esperado
 
 Após implementação:
 
-1. **Tab "Modelos"** - Interface completa de gestão
-2. **Criação rápida** - Templates pré-configurados para usar em novas propostas
-3. **Reutilização** - Menos tempo a criar propostas repetitivas
-4. **Consistência** - Propostas seguem padrões da empresa
+1. **Contactos** - Clicar em "Propostas" mostra todas as propostas do contacto
+2. **Empresas** - Clicar em "Propostas" mostra todas as propostas da empresa
+3. **Navegação** - Clicar numa proposta abre o detalhe
+4. **Consistência** - Interface idêntica para todas as entidades
 
 ## Complexidade
 
-Média-Alta - Requer 3 novos componentes + modificação de 1 existente. Utiliza hooks e tipos já existentes.
-
+Baixa-Média - Criar 1 componente novo + modificar 2 ficheiros existentes. A lógica segue padrões já estabelecidos no projecto.
