@@ -1,9 +1,13 @@
 import * as React from "react";
+import { useState } from "react";
 import { Package, Plus, Minus } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/product";
 
@@ -78,8 +82,15 @@ function getIcon(productType: string): React.ElementType {
 
 const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
   ({ product, isSelected, quantity = 0, onClick, onIncrement, onDecrement }, ref) => {
+    const [zoomOpen, setZoomOpen] = useState(false);
+    
     const Icon = getIcon(product.product_type);
     const colorClass = productTypeColors[product.product_type] || "bg-muted text-muted-foreground";
+
+    // Get primary image URL
+    const primaryImageUrl = product.images?.length > 0
+      ? product.images[product.primary_image_index ?? 0]
+      : null;
 
     const formatPrice = (price: number | null) => {
       if (!price) return "Sob consulta";
@@ -89,57 +100,141 @@ const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
       }).format(price);
     };
 
-    return (
-      <Card
-        ref={ref}
-        onClick={onClick}
-        className={cn(
-          "p-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/50 relative group",
-          isSelected && "ring-2 ring-primary border-primary bg-primary/5"
-        )}
+    // Thumbnail component
+    const ImageThumbnail = () => (
+      <div 
+        className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 cursor-zoom-in border border-border/50"
+        onClick={(e) => {
+          e.stopPropagation();
+          setZoomOpen(true);
+        }}
       >
-        {isSelected && (
-          <div className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-xs text-primary-foreground font-bold">
-              {quantity > 0 ? quantity : "✓"}
-            </span>
+        {primaryImageUrl ? (
+          <img
+            src={primaryImageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Icon className="h-5 w-5 text-muted-foreground" />
           </div>
         )}
-        
-        <div className="flex flex-col h-full gap-2">
-          {/* Icon and Type */}
-          <div className="flex items-start justify-between">
-            <div className={cn("p-2 rounded-lg", colorClass)}>
-              <Icon className="h-4 w-4" />
-            </div>
-            {product.category && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                {product.category}
-              </Badge>
+      </div>
+    );
+
+    return (
+      <>
+        {/* Dialog for click zoom */}
+        <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
+          <DialogContent className="max-w-md p-2">
+            <AspectRatio ratio={4/3}>
+              {primaryImageUrl ? (
+                <img
+                  src={primaryImageUrl}
+                  alt={product.name}
+                  className="w-full h-full object-contain rounded-lg"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-muted rounded-lg">
+                  <Package className="h-16 w-16 text-muted-foreground" />
+                </div>
+              )}
+            </AspectRatio>
+            <p className="text-center font-medium mt-2">{product.name}</p>
+            {product.sku && (
+              <p className="text-xs text-muted-foreground text-center">SKU: {product.sku}</p>
             )}
-          </div>
+          </DialogContent>
+        </Dialog>
 
-          {/* Name */}
-          <h4 className="font-medium text-sm line-clamp-2 flex-1">
-            {product.name}
-          </h4>
-
-          {/* Price */}
-          <div className="flex items-baseline justify-between mt-auto">
-            <span className="text-lg font-bold text-primary">
-              {formatPrice(product.base_price)}
-            </span>
-            {product.billing_type === "recurring" && (
-              <span className="text-[10px] text-muted-foreground">/mês</span>
-            )}
-          </div>
-
-          {/* Margin indicator */}
-          {product.target_margin_pct && (
-            <div className="text-[10px] text-muted-foreground">
-              Margem: {product.target_margin_pct}%
+        <Card
+          ref={ref}
+          onClick={onClick}
+          className={cn(
+            "p-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/50 relative group",
+            isSelected && "ring-2 ring-primary border-primary bg-primary/5"
+          )}
+        >
+          {isSelected && (
+            <div className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-primary flex items-center justify-center">
+              <span className="text-xs text-primary-foreground font-bold">
+                {quantity > 0 ? quantity : "✓"}
+              </span>
             </div>
           )}
+          
+          <div className="flex gap-3">
+            {/* Image with HoverCard for desktop preview */}
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <div>
+                  <ImageThumbnail />
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent 
+                side="right" 
+                className="w-64 p-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <AspectRatio ratio={4/3}>
+                  {primaryImageUrl ? (
+                    <img
+                      src={primaryImageUrl}
+                      alt={product.name}
+                      className="w-full h-full object-contain rounded"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted rounded">
+                      <Package className="h-12 w-12 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground mt-2">Sem imagem</span>
+                    </div>
+                  )}
+                </AspectRatio>
+                <p className="text-sm font-medium text-center mt-2">{product.name}</p>
+                {product.sku && (
+                  <p className="text-xs text-muted-foreground text-center">SKU: {product.sku}</p>
+                )}
+              </HoverCardContent>
+            </HoverCard>
+
+            {/* Product info */}
+            <div className="flex flex-col flex-1 min-w-0">
+              {/* Type icon and category */}
+              <div className="flex items-start justify-between mb-1">
+                <div className={cn("p-1 rounded", colorClass)}>
+                  <Icon className="h-3 w-3" />
+                </div>
+                {product.category && (
+                  <Badge variant="outline" className="text-[10px] px-1 py-0">
+                    {product.category}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Name */}
+              <h4 className="font-medium text-sm line-clamp-2 flex-1">
+                {product.name}
+              </h4>
+
+              {/* Price */}
+              <div className="flex items-baseline justify-between mt-auto">
+                <span className="text-sm font-bold text-primary">
+                  {formatPrice(product.base_price)}
+                </span>
+                {product.billing_type === "recurring" && (
+                  <span className="text-[10px] text-muted-foreground">/mês</span>
+                )}
+              </div>
+
+              {/* Margin indicator */}
+              {product.target_margin_pct && (
+                <div className="text-[10px] text-muted-foreground">
+                  Margem: {product.target_margin_pct}%
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Quantity controls when selected */}
           {isSelected && (
@@ -174,8 +269,8 @@ const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
               </Button>
             </div>
           )}
-        </div>
-      </Card>
+        </Card>
+      </>
     );
   }
 );
