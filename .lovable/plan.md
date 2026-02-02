@@ -1,56 +1,142 @@
 
-# Plano: Corrigir Relação entre Proposals e Profiles
+# Plano: Corrigir Gravação dos Custos nos Itens de Proposta
 
 ## Problema Identificado
 
-A query falha com erro 400:
-```
-Could not find a relationship between 'proposals' and 'profiles' 
-using the hint 'proposals_assigned_to_fkey'
-```
+Os campos `cost_snapshot` e `operational_cost_snapshot` estão `NULL` na tabela `proposal_items` porque:
 
-A migração anterior criou:
-```sql
-ALTER TABLE proposals ADD COLUMN assigned_to uuid REFERENCES auth.users(id);
-```
+| Local | Estado |
+|-------|--------|
+| Carrinho (ProposalCart) | Calcula custos correctamente de `product.direct_cost` |
+| Criação (CreateProposalDialog) | **Não envia** custos para o hook |
+| Hook (useProposals.updateProposalItems) | **Não inclui** custos no INSERT |
+| Tabela proposal_items | Campos `cost_snapshot` = NULL |
 
-Mas a query tenta fazer join com `profiles`:
-```typescript
-assigned_to_profile:profiles!proposals_assigned_to_fkey(id, full_name, email, avatar_url)
+```text
+┌────────────────────┐     ┌──────────────────────┐     ┌───────────────────┐
+│  CartItem          │ --> │ updateProposalItems  │ --> │ proposal_items    │
+│  ─────────────────│     │  ────────────────────│     │  ─────────────────│
+│  product.          │     │  name                │     │  cost_snapshot    │
+│    direct_cost    │     │  quantity            │     │    = NULL ❌      │
+│    = 39.57        │     │  unit_price          │     │                   │
+│                    │     │  (sem custos!) ❌    │     │                   │
+└────────────────────┘     └──────────────────────┘     └───────────────────┘
 ```
-
-O PostgREST não consegue inferir esta relação porque a FK aponta para `auth.users`, não para `profiles`.
 
 ---
 
 ## Solução
 
-Criar uma nova FK que referencie `profiles(user_id)` directamente. Como `profiles.user_id` tem constraint UNIQUE, pode ser usada como target de uma FK.
+Passar os custos do produto quando os items são salvos, guardando um snapshot do custo no momento da criação.
 
-### Migração SQL
+---
 
-```sql
--- Remove a FK antiga que aponta para auth.users
-ALTER TABLE proposals 
-  DROP CONSTRAINT IF EXISTS proposals_assigned_to_fkey;
+## Alterações Necessárias
 
--- Cria nova FK que aponta para profiles(user_id)
--- Isto permite ao PostgREST fazer o join automaticamente
-ALTER TABLE proposals
-  ADD CONSTRAINT proposals_assigned_to_fkey 
-  FOREIGN KEY (assigned_to) 
-  REFERENCES profiles(user_id) 
-  ON DELETE SET NULL;
+### 1. `src/hooks/useProposals.ts` - Adicionar campos de custo ao tipo de input
+
+Actualizar a interface do `updateProposalItems` para aceitar os campos de custo:
+
+```typescript
+// Antes (linha 550-558)
+items: Array<{
+  id?: string;
+  product_id?: string | null;
+  name: string;
+  description?: string | null;
+  quantity: number;
+  unit_price: number;
+  position: number;
+  is_enabled?: boolean;
+}>
+
+// Depois
+items: Array<{
+  id?: string;
+  product_id?: string | null;
+  name: string;
+  description?: string | null;
+  quantity: number;
+  unit_price: number;
+  position: number;
+  is_enabled?: boolean;
+  cost_snapshot?: number | null;           // NOVO
+  operational_cost_snapshot?: number | null; // NOVO
+}>
 ```
 
-### Por que funciona
+### 2. `src/hooks/useProposals.ts` - Incluir custos no INSERT
 
-| Antes | Depois |
-|-------|--------|
-| `proposals.assigned_to` → `auth.users(id)` | `proposals.assigned_to` → `profiles(user_id)` |
-| PostgREST não consegue inferir relação com `profiles` | PostgREST detecta FK e permite join com hint |
+Actualizar o objecto `insertData` para incluir os snapshots:
 
-O `profiles.user_id` tem constraint `UNIQUE`, permitindo ser usado como target de FK.
+```typescript
+// Antes (linha 572-582)
+const insertData = items.map((item, idx) => ({
+  proposal_id: proposalId,
+  workspace_id: currentWorkspace.id,
+  product_id: item.product_id,
+  name: item.name,
+  description: item.description,
+  quantity: item.quantity,
+  unit_price: item.unit_price,
+  position: item.position ?? idx,
+  is_enabled: item.is_enabled ?? true,
+}));
+
+// Depois
+const insertData = items.map((item, idx) => ({
+  proposal_id: proposalId,
+  workspace_id: currentWorkspace.id,
+  product_id: item.product_id,
+  name: item.name,
+  description: item.description,
+  quantity: item.quantity,
+  unit_price: item.unit_price,
+  position: item.position ?? idx,
+  is_enabled: item.is_enabled ?? true,
+  cost_snapshot: item.cost_snapshot ?? null,                     // NOVO
+  operational_cost_snapshot: item.operational_cost_snapshot ?? null, // NOVO
+}));
+```
+
+### 3. `src/components/proposals/CreateProposalDialog.tsx` - Passar custos do produto
+
+Incluir os custos quando os items são mapeados:
+
+```typescript
+// Antes (linha 262-271)
+items: cartItems.map((item, idx) => ({
+  product_id: item.product.id,
+  name: item.product.name,
+  description: item.product.short_description || null,
+  quantity: item.quantity,
+  unit_price: item.priceOverride ?? item.product.base_price ?? 0,
+  position: idx,
+  is_enabled: true,
+})),
+
+// Depois
+items: cartItems.map((item, idx) => ({
+  product_id: item.product.id,
+  name: item.product.name,
+  description: item.product.short_description || null,
+  quantity: item.quantity,
+  unit_price: item.priceOverride ?? item.product.base_price ?? 0,
+  position: idx,
+  is_enabled: true,
+  cost_snapshot: item.product.direct_cost ?? null,        // NOVO
+  operational_cost_snapshot: item.product.operational_cost ?? null, // NOVO
+})),
+```
+
+### 4. Outros locais que usam `updateProposalItems`
+
+Preciso verificar se há mais locais que chamam esta função:
+
+- `ProposalItemsEditor.tsx` - provável
+- `ProposalDetailDialog.tsx` - possível
+
+Cada local que chama `updateProposalItems` deve incluir os custos.
 
 ---
 
@@ -58,19 +144,33 @@ O `profiles.user_id` tem constraint `UNIQUE`, permitindo ser usado como target d
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| Nova migração SQL | Alterar FK de `auth.users(id)` para `profiles(user_id)` |
+| `src/hooks/useProposals.ts` | Adicionar `cost_snapshot` e `operational_cost_snapshot` ao tipo e INSERT |
+| `src/components/proposals/CreateProposalDialog.tsx` | Passar custos do produto |
+| Outros componentes que usam updateProposalItems | Passar custos do produto |
 
 ---
 
 ## Resultado Esperado
 
-- Query de propostas volta a funcionar
-- Join com `profiles` é feito correctamente
-- Campo `assigned_to_profile` retorna dados do responsável
-- Todas as funcionalidades anteriores mantidas
+| Campo | Antes | Depois |
+|-------|-------|--------|
+| `cost_snapshot` | NULL | 39.57 (valor do produto) |
+| `operational_cost_snapshot` | NULL | 5.00 (valor do produto) |
+| Cálculo de margem | 0€ (incorreto) | Valor correcto |
 
 ---
 
-## Risco
+## Nota sobre Dados Existentes
 
-**Baixo** - A alteração apenas muda o target da FK. Os dados existentes (se houver) continuam válidos porque `profiles.user_id` corresponde aos mesmos IDs de `auth.users(id)`.
+Os itens de proposta já criados continuarão com custos NULL. Se necessário, posso também criar uma migração SQL para preencher retroactivamente os custos a partir dos produtos associados.
+
+---
+
+## Estimativa
+
+| Ficheiro | Linhas |
+|----------|--------|
+| useProposals.ts | ~8 linhas |
+| CreateProposalDialog.tsx | ~2 linhas |
+| Outros componentes | ~4-8 linhas |
+| **Total** | ~15-20 linhas |
