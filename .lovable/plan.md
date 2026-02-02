@@ -1,90 +1,31 @@
 
-# Plano: Correção da Visualização de Tipos de Produto na Lista
+# Plano: Correção da Duplicação de Categorias nos Filtros
 
 ## Problema Identificado
 
-A lista de produtos usa `productTypeLabels[product.product_type]` para mostrar o tipo, mas este objeto está hardcoded em `types/product.ts` com apenas 7 tipos:
+O grupo "Categoria" aparece 3 vezes repetido nos filtros porque o código está a adicionar categorias **fora** do `useMemo`, modificando directamente o array em cada render:
 
 ```typescript
-// Linha 307 de ProductsList.tsx
-<Badge variant="outline">
-  {productTypeLabels[product.product_type]}  // ← Retorna undefined para tipos novos!
-</Badge>
+// Linhas 264-277 - PROBLEMA!
+const validCategories = categories?.filter(...);
+if (validCategories.length > 0) {
+  filterGroups.splice(2, 0, {...});  // ← Modifica o array em CADA render!
+}
 ```
 
-Os tipos hardcoded são:
-- simple, recurring, sessions, composite, formacao, programa, physical
+Como o `useMemo` retorna a mesma referência do array, cada render adiciona mais um grupo de categorias ao mesmo array.
 
-Quando crias um novo tipo como "Serviço" ou "SaaS", o sistema não encontra o label e mostra vazio.
+## Solução
 
-## Solucao
+Mover a lógica das categorias para **dentro** do `useMemo`, garantindo que o array é construído uma única vez e reconstruído apenas quando as dependências mudam.
 
-### Abordagem: Criar Helper com Fallback Dinamico
+### Ficheiro a Modificar
 
-1. Criar uma funcao helper que:
-   - Primeiro procura no objecto local `productTypeLabels` (para compatibilidade)
-   - Se nao encontrar, usa os dados da tabela `product_types`
-   - Como ultimo recurso, capitaliza o codigo do tipo
-
-2. Actualizar `ProductsList.tsx` para usar esta logica dinamica
-
-### Ficheiros a Modificar
-
-| Ficheiro | Alteracao |
+| Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/products/ProductsList.tsx` | Importar `useProductTypes` e usar labels dinamicos |
+| `src/components/products/ProductsList.tsx` | Mover categorias para dentro do useMemo |
 
-### Implementacao
-
-```typescript
-// Linha 69: Adicionar import
-import { useProductTypes } from "@/hooks/useProductSettings";
-
-// Dentro do componente (apos linha 175):
-const { data: productTypesConfig } = useProductTypes();
-
-// Helper para obter label do tipo
-const getProductTypeLabel = (typeCode: string) => {
-  // Primeiro, verificar se existe na config dinamica
-  const dynamicType = productTypesConfig?.find(t => t.code === typeCode);
-  if (dynamicType) return dynamicType.label;
-  
-  // Fallback para labels estaticos (compatibilidade)
-  if (typeCode in productTypeLabels) {
-    return productTypeLabels[typeCode as ProductType];
-  }
-  
-  // Ultimo recurso: capitalizar o codigo
-  return typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
-};
-
-// Linha 307: Actualizar render
-<Badge variant="outline">
-  {getProductTypeLabel(product.product_type)}
-</Badge>
-```
-
-### Mesma Logica para Billing Types
-
-```typescript
-const { data: billingTypesConfig } = useBillingTypes();
-
-const getBillingTypeLabel = (typeCode: string) => {
-  const dynamicType = billingTypesConfig?.find(t => t.code === typeCode);
-  if (dynamicType) return dynamicType.label;
-  if (typeCode in billingTypeLabels) {
-    return billingTypeLabels[typeCode as BillingType];
-  }
-  return typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
-};
-
-// Linha 337: Actualizar render
-return getBillingTypeLabel(product.billing_type);
-```
-
-### Actualizar FilterSidebar
-
-A sidebar de filtros tambem tem tipos hardcoded (linhas 184-192). Precisa ser dinamica:
+### Código Corrigido
 
 ```typescript
 const filterGroups: FilterGroup[] = useMemo(() => {
@@ -92,32 +33,48 @@ const filterGroups: FilterGroup[] = useMemo(() => {
     id: `type_${type.code}`,
     label: type.label,
     icon: <Package className="h-4 w-4" />
-  })) || [];
-  
-  return [
-    {
-      id: "type",
-      label: "Tipo",
-      icon: <Layers className="h-4 w-4" />,
-      defaultOpen: true,
-      items: typeItems,
-    },
-    // ... resto dos grupos
+  })) || [...fallback];
+
+  const billingItems = billingTypesConfig?.filter(t => t.is_active).map(type => ({
+    id: `billing_${type.code}`,
+    label: type.label,
+  })) || [...fallback];
+
+  // Categorias DENTRO do useMemo
+  const validCategories = categories?.filter(
+    (cat): cat is string => typeof cat === "string" && cat.length > 0
+  ) || [];
+
+  const groups: FilterGroup[] = [
+    { id: "type", label: "Tipo", ... },
+    { id: "status", label: "Estado", ... },
   ];
-}, [productTypesConfig]);
+
+  // Adicionar categorias se existirem
+  if (validCategories.length > 0) {
+    groups.push({
+      id: "category",
+      label: "Categoria",
+      icon: <Tag className="h-4 w-4" />,
+      defaultOpen: false,
+      items: validCategories.map((cat) => ({
+        id: `cat_${cat}`,
+        label: cat,
+      })),
+    });
+  }
+
+  groups.push(
+    { id: "billing", label: "Cobrança", ... },
+    { id: "smart", label: "Filtros Inteligentes", ... }
+  );
+
+  return groups;
+}, [productTypesConfig, billingTypesConfig, categories]); // ← Adicionar categories às dependências
 ```
 
-## Beneficios
+## Resultado
 
-- Tipos criados nas configuracoes aparecem imediatamente na lista
-- Compatibilidade total com produtos existentes
-- Filtros da sidebar tambem funcionam com tipos dinamicos
-- Fallback gracioso para tipos desconhecidos
-
-## Testes
-
-Apos implementacao:
-1. Criar novo tipo de produto nas configuracoes (ex: "SaaS")
-2. Criar produto com esse tipo
-3. Verificar que o tipo aparece na lista de produtos
-4. Verificar que aparece nos filtros da sidebar
+- O grupo "Categoria" aparece apenas **uma vez** nos filtros
+- O array é reconstruído apenas quando as configurações ou categorias mudam
+- Mantém a ordem lógica: Tipo → Estado → Categoria → Cobrança → Filtros Inteligentes
