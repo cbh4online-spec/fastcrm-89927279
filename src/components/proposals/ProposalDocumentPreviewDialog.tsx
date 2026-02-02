@@ -92,6 +92,14 @@ export function ProposalDocumentPreviewDialog({
         height: docHeight,
         windowWidth: docWidth,
         windowHeight: docHeight,
+        imageTimeout: 5000,
+        onclone: (clonedDoc) => {
+          // Remove crossOrigin from images in clone to avoid CORS issues
+          const images = clonedDoc.querySelectorAll('img');
+          images.forEach(img => {
+            img.removeAttribute('crossOrigin');
+          });
+        },
       });
       
       // A4 dimensions in mm

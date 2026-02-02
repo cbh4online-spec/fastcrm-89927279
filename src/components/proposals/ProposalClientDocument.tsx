@@ -11,6 +11,7 @@ import {
   Calendar,
   Download,
   Printer,
+  Package,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -259,25 +260,31 @@ export function ProposalClientDocument({
                       <TableCell className="text-gray-500 font-mono text-xs py-2">{index + 1}</TableCell>
                       <TableCell className="py-2">
                         <div className="flex items-start gap-2">
-                          {/* Product Image */}
+                          {/* Product Image with fallback */}
                           {item.image_url ? (
                             <img 
                               src={item.image_url} 
                               alt={item.name}
-                              crossOrigin="anonymous"
                               className={cn(
                                 "w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0",
                                 !isEnabled && "opacity-50"
                               )}
+                              onError={(e) => {
+                                // Hide broken image and show fallback
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling;
+                                if (fallback) fallback.classList.remove('hidden');
+                              }}
                             />
-                          ) : (
-                            <div className={cn(
-                              "w-10 h-10 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center",
-                              !isEnabled && "opacity-50"
-                            )}>
-                              <span className="text-gray-400 text-[10px]">IMG</span>
-                            </div>
-                          )}
+                          ) : null}
+                          {/* Fallback - hidden when image loads successfully */}
+                          <div className={cn(
+                            "w-10 h-10 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center",
+                            !isEnabled && "opacity-50",
+                            item.image_url && "hidden"
+                          )}>
+                            <Package className="h-5 w-5 text-gray-400" />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p className={cn("font-medium text-gray-900 text-sm leading-tight", !isEnabled && "line-through text-gray-500")}>
                               {item.name}
