@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { X, Printer, Download, ArrowLeft, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -284,12 +285,17 @@ export function ProposalDocumentPreviewDialog({
           className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" 
         />
         <DialogPrimitive.Content
+          aria-describedby={undefined}
           className={cn(
             "fixed inset-0 z-50 bg-muted/95 data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "flex flex-col"
           )}
         >
+          {/* Hidden title for accessibility */}
+          <VisuallyHidden.Root>
+            <DialogPrimitive.Title>Pré-visualização da Proposta</DialogPrimitive.Title>
+          </VisuallyHidden.Root>
           {/* Header Bar */}
           <div className="flex-shrink-0 bg-background border-b shadow-sm print:hidden">
             <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto w-full">
