@@ -25,6 +25,7 @@ import Automations from "./pages/Automations";
 import LandingPages from "./pages/LandingPages";
 import PublicLandingPage from "./pages/PublicLandingPage";
 import Proposals from "./pages/Proposals";
+import ProposalDetail from "./pages/ProposalDetail";
 import PublicProposalPage from "./pages/PublicProposalPage";
 import SuperAdmin from "./pages/SuperAdmin";
 import Contacts from "./pages/Contacts";
@@ -207,6 +208,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/crm" element={<Crm />} />
                 <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
                 <Route path="/dashboard/proposals" element={<Proposals />} />
+                <Route path="/dashboard/proposals/:id" element={<ProposalDetail />} />
                 <Route path="/dashboard/products" element={<Products />} />
                 <Route path="/dashboard/packages" element={<Packages />} />
                 <Route path="/dashboard/imports" element={<Imports />} />
