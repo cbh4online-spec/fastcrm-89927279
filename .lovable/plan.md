@@ -1,167 +1,172 @@
 
-# Plano: Integrar Bases de Conhecimento Completas nos Assistentes IA
+# Plano: Corrigir Atualização de Quantidades nas Propostas
 
-## Problema Atual
+## Problema Identificado
 
-O sistema tem **dois módulos separados** que criam fragmentação:
+Quando o utilizador atualiza quantidades nos itens da proposta, a interface não reflete as alterações de forma consistente. O problema ocorre em dois cenários:
 
-```text
-SITUAÇÃO ATUAL (Duplicada)
-┌─────────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│  [Assistentes IA]              [Bases Conhecimento]                │
-│  /dashboard/ai-assistants      /dashboard/knowledge-base           │
-│  ├── Agentes                   ├── Bases (gestão completa)         │
-│  ├── Personas                  ├── Fluxos                          │
-│  ├── Bases (acesso rápido)  ←──┤ Widget                            │
-│  └── Definições                └── Testar IA                       │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-
-PROBLEMA:
-- Tab "Bases" nos Assistentes IA é apenas link para outro módulo
-- Utilizador tem de navegar entre 2 páginas para configurar IA
-- Sidebar tem 2 entradas quando deveria ter 1
-```
-
----
-
-## Solução: Módulo Único "Assistentes IA"
+1. **ProposalItemsEditor** - O estado local atualiza, mas os totais calculados podem não ser sincronizados corretamente com a base de dados
+2. **POSProposalBuilder** - A callback `onItemsChange` recria-se a cada render, causando possíveis problemas de estado
 
 ```text
-ARQUITETURA PROPOSTA (Unificada)
+FLUXO ATUAL (Com Problema)
 ┌─────────────────────────────────────────────────────────────────────┐
-│  [Assistentes IA] - /dashboard/ai-assistants                       │
-│                                                                     │
-│  TABS:                                                              │
-│  ├── Agentes      → Bots por canal (WhatsApp, Widget, etc.)       │
-│  ├── Personas     → Biblioteca de personalidades                   │
-│  ├── Bases        → Gestão COMPLETA de bases de conhecimento       │
-│  │   └── Entradas, Fontes, Adicionar conteúdo                     │
-│  ├── Fluxos       → Flow Builder (conversas estruturadas)         │
-│  ├── Widget       → Configuração do chat widget                    │
-│  ├── Testar IA    → Chat de teste com métricas                    │
-│  └── Definições   → Configurações globais                          │
-│                                                                     │
+│  User atualiza quantidade                                           │
+│       ↓                                                             │
+│  Local state atualiza (items[])                                     │
+│       ↓                                                             │
+│  handleUpdateItem() → setItems() → hasChanges = true               │
+│       ↓                                                             │
+│  UI mostra nova quantidade... MAS:                                 │
+│  - Total pode não recalcular                                       │
+│  - Se guardar falhar, estado local fica dessincronizado            │
+│  - QueryClient não invalida queries corretamente                   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Mudanças Propostas
+## Solução Proposta
 
-### 1. Expandir AIAssistantsModule
+### 1. Forçar Refetch Imediato Após Guardar
 
-Adicionar as tabs que existem no KnowledgeBaseModule:
-- **Bases** → Gestão completa (criar, adicionar fontes, entradas)
-- **Fluxos** → FlowBuilderModule integrado
-- **Widget** → WidgetConfigPanel integrado
-- **Testar IA** → AIQueryPanel + métricas
+Após a mutação `updateItems.mutateAsync()`, garantir que os dados são recarregados imediatamente:
 
-### 2. Atualizar Navegação
-
-| Ação | Detalhes |
-|------|----------|
-| Remover | Link "Bases Conhecimento" do Sidebar |
-| Manter | Link "Assistentes IA" como entrada única |
-| Opcional | Manter rota `/dashboard/knowledge-base` como redirect |
-
-### 3. Nova Estrutura de Tabs
-
-```text
-Assistentes IA (7 tabs)
-├── Agentes     → Lista de bots por canal
-├── Personas    → Biblioteca de personalidades  
-├── Bases       → Gestão completa de KBs (expandido)
-├── Fluxos      → Flow Builder
-├── Widget      → Configuração do widget
-├── Testar IA   → Chat de teste + métricas
-└── Definições  → Configurações globais
-```
-
----
-
-## Implementação Técnica
-
-### Fase 1: Expandir AIAssistantsModule
-
-- Adicionar tabs: `flows`, `widget`, `query`
-- Importar componentes do KnowledgeBaseModule:
-  - `FlowBuilderModule`
-  - `WidgetConfigPanel`
-  - `AIQueryPanel`
-  - `KnowledgeMetricsCard`
-- Transformar `KnowledgeBasesTab` de "acesso rápido" para gestão completa
-
-### Fase 2: Criar KnowledgeBasesFullTab
-
-Nova tab com funcionalidade completa:
-- Lista de bases (sidebar)
-- Painel de detalhes (entradas, fontes)
-- Adicionar conteúdo (URL, manual, documento)
-- Criar/editar bases
-- Criar/editar personas (mover lógica existente)
-
-### Fase 3: Atualizar Sidebar
-
-- Remover entrada "Bases Conhecimento"
-- Atualizar tooltip de "Assistentes IA" para incluir todas as funcionalidades
-
-### Fase 4: Redirect (Opcional)
-
-Manter compatibilidade:
 ```typescript
-// Em App.tsx
-<Route path="/dashboard/knowledge-base" element={<Navigate to="/dashboard/ai-assistants?tab=bases" replace />} />
+// ProposalItemsEditor.tsx
+const handleSave = async () => {
+  try {
+    await updateItems.mutateAsync({ proposalId, items });
+    setHasChanges(false);
+    
+    // CRÍTICO: Forçar refetch imediato
+    await queryClient.refetchQueries({ 
+      queryKey: ["proposal-items", proposalId] 
+    });
+    
+    toast.success("Itens guardados!");
+    onSaved?.();
+  } catch (error) {
+    toast.error("Erro ao guardar");
+  }
+};
+```
+
+### 2. Estabilizar Callback no POSProposalBuilder
+
+Usar `useCallback` para evitar re-criação da função `onItemsChange`:
+
+```typescript
+// CreateProposalDialog.tsx
+const handleCartItemsChange = useCallback((items: CartItem[]) => {
+  setCartItems(items);
+  // Recalcular preço
+  const total = items.reduce((acc, item) => {
+    const basePrice = item.priceOverride ?? item.product.base_price ?? 0;
+    const discountAmount = item.discount ? basePrice * (item.discount / 100) : 0;
+    return acc + (basePrice - discountAmount) * item.quantity;
+  }, 0);
+  if (total > 0) setPrice(total.toString());
+}, []);
+```
+
+### 3. Sincronizar Estado Local com DB
+
+No `ProposalItemsEditor`, garantir que o estado local reflete sempre os dados da query após save:
+
+```typescript
+const handleSave = async () => {
+  try {
+    const result = await updateItems.mutateAsync({...});
+    setHasChanges(false);
+    // Resetar initialized flag para permitir resync
+    setInitializedForProposal(null);
+    onSaved?.();
+  } catch (error) {...}
+};
 ```
 
 ---
 
-## Ficheiros a Criar/Modificar
+## Ficheiros a Modificar
 
-### Novos Ficheiros
-- `src/components/ai-assistants/KnowledgeBasesFullTab.tsx` - Gestão completa de KBs
-- `src/components/ai-assistants/FlowsTab.tsx` - Wrapper para FlowBuilderModule
-- `src/components/ai-assistants/WidgetTab.tsx` - Wrapper para WidgetConfigPanel  
-- `src/components/ai-assistants/TestAITab.tsx` - Chat de teste + métricas
+### 1. `src/components/proposals/ProposalItemsEditor.tsx`
 
-### Ficheiros a Modificar
-- `src/components/ai-assistants/AIAssistantsModule.tsx` - Adicionar novas tabs
-- `src/components/layout/Sidebar.tsx` - Remover link "Bases Conhecimento"
-- `src/App.tsx` - Adicionar redirect de compatibilidade
+- Adicionar `useQueryClient` import
+- Forçar refetch após mutação bem-sucedida
+- Melhorar sincronização de estado local com dados do servidor
 
-### Ficheiros a Deprecar
-- `src/pages/KnowledgeBase.tsx` - Substituído por redirect
-- `src/components/knowledge-base/KnowledgeBaseModule.tsx` - Funcionalidade movida
+### 2. `src/components/proposals/CreateProposalDialog.tsx`
+
+- Envolver `onItemsChange` callback em `useCallback`
+- Evitar re-renders desnecessários do `POSProposalBuilder`
+
+### 3. `src/hooks/useProposals.ts`
+
+- Garantir que `onSuccess` do `useUpdateProposalItems` invalida corretamente as queries
+- Adicionar `await` no refetch para garantir dados frescos
 
 ---
 
-## Benefícios
+## Detalhes Técnicos
 
-| Antes | Depois |
-|-------|--------|
-| 2 páginas separadas | 1 página unificada |
-| 2 entradas no Sidebar | 1 entrada centralizada |
-| Tab "Bases" era apenas link | Tab "Bases" com gestão completa |
-| Navegar entre módulos | Tudo acessível via tabs |
+### Problema no useUpdateProposalItems
+
+O hook atual invalida queries no `onSuccess`, mas não espera pelo refetch:
+
+```typescript
+// ATUAL
+onSuccess: (data) => {
+  queryClient.invalidateQueries({ queryKey: ["proposal-items"] });
+  // Invalida mas não espera pelo refetch
+}
+```
+
+```typescript
+// CORRIGIDO
+onSuccess: async (data) => {
+  await queryClient.invalidateQueries({ 
+    queryKey: ["proposal-items", data.proposalId],
+    refetchType: 'active' 
+  });
+}
+```
+
+### Memoização no CreateProposalDialog
+
+```typescript
+// Antes (recria a cada render)
+onItemsChange={(items) => {
+  setCartItems(items);
+  // ...cálculos
+}}
+
+// Depois (estável)
+const handleCartItemsChange = useCallback((items: CartItem[]) => {
+  setCartItems(items);
+  // ...cálculos
+}, []);
+
+<POSProposalBuilder onItemsChange={handleCartItemsChange} />
+```
+
+---
+
+## Resultado Esperado
+
+Após as correções:
+
+1. Quantidade atualiza imediatamente na UI
+2. Totais recalculam instantaneamente
+3. Dados persistem corretamente na base de dados
+4. Sem dessincronização entre estado local e servidor
+5. Performance melhorada (menos re-renders)
 
 ---
 
 ## Estimativa
 
-- Novos componentes (tabs wrapper): ~200 linhas
-- Refactoring AIAssistantsModule: ~150 linhas
-- Atualização Sidebar: ~10 linhas
-- Redirect e cleanup: ~20 linhas
-- **Total: ~380 linhas de código**
-
----
-
-## Resultado Final
-
-O utilizador terá:
-1. **Uma única página** para toda a gestão de IA
-2. **Navegação simplificada** no Sidebar (menos clutter)
-3. **Todas as funcionalidades acessíveis** via tabs no mesmo módulo
-4. **Zero duplicação** de conceitos
-5. **Fluxo intuitivo**: Agentes → Personas → Bases → Fluxos → Widget → Testar
+- ProposalItemsEditor: ~15 linhas alteradas
+- CreateProposalDialog: ~10 linhas alteradas
+- useProposals hook: ~5 linhas alteradas
+- **Total: ~30 linhas de código**
