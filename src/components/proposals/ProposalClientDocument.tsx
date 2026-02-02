@@ -113,10 +113,14 @@ export function ProposalClientDocument({
     if (standardOption) return standardOption.label;
     
     // Se for valor personalizado, formatar para ser legível
-    // Converter underscores para espaços e capitalizar
-    return value
+    // Converter underscores para espaços e usar capitalização de frase (apenas primeira letra maiúscula)
+    const formatted = value
       .replace(/_/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase());
+      .toLowerCase()
+      .trim();
+    
+    // Capitalizar apenas a primeira letra da frase
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
   };
 
   const paymentLabel = proposal.payment_conditions 
