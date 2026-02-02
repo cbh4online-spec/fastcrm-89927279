@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Search, Package, Grid3X3, Loader2 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductCard } from "./ProductCard";
-import { useProducts, useProductCategories } from "@/hooks/useProducts";
+import { useProducts } from "@/hooks/useProducts";
 import { useProductTypes } from "@/hooks/useProductSettings";
 import type { Product } from "@/types/product";
 import { cn } from "@/lib/utils";
@@ -14,8 +14,10 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface POSProductSelectorProps {
   selectedProductIds: string[];
+  quantities: Record<string, number>;
   onAddProduct: (product: Product) => void;
   onRemoveProduct: (productId: string) => void;
+  onUpdateQuantity: (productId: string, quantity: number) => void;
 }
 
 // Icon mapping for dynamic resolution
@@ -48,8 +50,10 @@ function getIcon(iconName: string): React.ElementType {
 
 export function POSProductSelector({
   selectedProductIds,
+  quantities,
   onAddProduct,
   onRemoveProduct,
+  onUpdateQuantity,
 }: POSProductSelectorProps) {
   const { currentWorkspace } = useWorkspace();
   const [search, setSearch] = useState("");
@@ -65,7 +69,21 @@ export function POSProductSelector({
     search: search || undefined,
   });
 
-  const { data: categories, isLoading: isLoadingCategories } = useProductCategories();
+  // Dynamic categories based on currently loaded products (filtered by type)
+  const availableCategories = useMemo(() => {
+    if (!products) return [];
+    const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
+    return cats.sort() as string[];
+  }, [products]);
+
+  // Reset category filter when type changes
+  const prevTypeFilter = useRef(typeFilter);
+  useEffect(() => {
+    if (prevTypeFilter.current !== typeFilter) {
+      setCategoryFilter("all");
+      prevTypeFilter.current = typeFilter;
+    }
+  }, [typeFilter]);
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
@@ -153,14 +171,14 @@ export function POSProductSelector({
         )}
       </div>
 
-      {/* Category Filters */}
-      {isLoadingCategories ? (
+      {/* Category Filters - Dynamic based on loaded products */}
+      {isLoadingProducts ? (
         <div className="flex gap-1.5 mb-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-6 w-20 rounded-full" />
           ))}
         </div>
-      ) : categories && categories.length > 0 ? (
+      ) : availableCategories.length > 0 ? (
         <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
           <Button
             variant={categoryFilter === "all" ? "secondary" : "ghost"}
@@ -170,7 +188,7 @@ export function POSProductSelector({
           >
             Todas Categorias
           </Button>
-          {categories.map((cat) => (
+          {availableCategories.map((cat) => (
             <Button
               key={cat}
               variant={categoryFilter === cat ? "secondary" : "ghost"}
@@ -202,14 +220,28 @@ export function POSProductSelector({
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pr-4">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                isSelected={selectedProductIds.includes(product.id)}
-                onClick={() => handleProductClick(product)}
-              />
-            ))}
+            {filteredProducts.map((product) => {
+              const isSelected = selectedProductIds.includes(product.id);
+              const currentQty = quantities[product.id] || 0;
+              
+              return (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  isSelected={isSelected}
+                  quantity={currentQty}
+                  onClick={() => handleProductClick(product)}
+                  onIncrement={() => onUpdateQuantity(product.id, currentQty + 1)}
+                  onDecrement={() => {
+                    if (currentQty <= 1) {
+                      onRemoveProduct(product.id);
+                    } else {
+                      onUpdateQuantity(product.id, currentQty - 1);
+                    }
+                  }}
+                />
+              );
+            })}
           </div>
         )}
       </ScrollArea>
