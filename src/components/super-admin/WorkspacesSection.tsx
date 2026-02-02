@@ -51,7 +51,8 @@ import {
   Shield,
   Plus,
   Users,
-  Pencil
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
@@ -113,7 +114,7 @@ export function WorkspacesSection() {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceDetails | null>(null);
   const [actionDialog, setActionDialog] = useState<{
-    type: "suspend" | "reactivate" | "change-plan" | "assign-agency" | "edit-name" | null;
+    type: "suspend" | "reactivate" | "change-plan" | "assign-agency" | "edit-name" | "delete" | null;
     workspace: WorkspaceDetails | null;
   }>({ type: null, workspace: null });
   const [editName, setEditName] = useState("");
@@ -434,6 +435,34 @@ export function WorkspacesSection() {
     },
   });
 
+  const deleteWorkspace = useMutation({
+    mutationFn: async (workspaceId: string) => {
+      // Log the action before deletion
+      await supabase.rpc("log_admin_action", {
+        p_action_type: "workspace_deleted",
+        p_target_type: "workspace",
+        p_target_id: workspaceId,
+        p_workspace_id: null,
+        p_details: {},
+      });
+
+      const { error } = await supabase
+        .from("workspaces")
+        .delete()
+        .eq("id", workspaceId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
+      toast.success("Workspace apagado permanentemente");
+      setActionDialog({ type: null, workspace: null });
+    },
+    onError: (error) => {
+      toast.error("Erro ao apagar workspace: " + error.message);
+    },
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -701,6 +730,17 @@ export function WorkspacesSection() {
                             </DropdownMenuItem>
                           </>
                         )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => setActionDialog({ 
+                            type: "delete", 
+                            workspace: ws 
+                          })}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Apagar workspace
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -1186,6 +1226,56 @@ export function WorkspacesSection() {
               }}
             >
               {updateWorkspaceName.isPending ? "A guardar..." : "Guardar alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Workspace Confirmation Dialog */}
+      <Dialog 
+        open={actionDialog.type === "delete"} 
+        onOpenChange={() => setActionDialog({ type: null, workspace: null })}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Apagar Workspace Permanentemente
+            </DialogTitle>
+            <DialogDescription>
+              <strong className="text-destructive">ATENÇÃO: Esta ação é irreversível!</strong>
+              <br /><br />
+              Tem a certeza que deseja apagar o workspace <strong>"{actionDialog.workspace?.name}"</strong>?
+              <br /><br />
+              <span className="text-sm">
+                Todos os dados associados serão eliminados:
+                <ul className="list-disc ml-5 mt-2 space-y-1">
+                  <li>{actionDialog.workspace?.usage?.leads_count || 0} leads</li>
+                  <li>{actionDialog.workspace?.usage?.contacts_count || 0} contactos</li>
+                  <li>{actionDialog.workspace?.usage?.companies_count || 0} empresas</li>
+                  <li>{actionDialog.workspace?.members_count || 0} membros</li>
+                  <li>Todas as propostas, oportunidades, conversas e ficheiros</li>
+                </ul>
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setActionDialog({ type: null, workspace: null })}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive"
+              disabled={deleteWorkspace.isPending}
+              onClick={() => {
+                if (actionDialog.workspace) {
+                  deleteWorkspace.mutate(actionDialog.workspace.id);
+                }
+              }}
+            >
+              {deleteWorkspace.isPending ? "A apagar..." : "Apagar Permanentemente"}
             </Button>
           </DialogFooter>
         </DialogContent>
