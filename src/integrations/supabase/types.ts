@@ -21548,8 +21548,10 @@ export type Database = {
           parish: string | null
           payment_info: string | null
           phone: string | null
+          primary_color: string | null
           racius_url: string | null
           region: string | null
+          secondary_color: string | null
           signature_name: string | null
           signature_title: string | null
           slug: string
@@ -21588,8 +21590,10 @@ export type Database = {
           parish?: string | null
           payment_info?: string | null
           phone?: string | null
+          primary_color?: string | null
           racius_url?: string | null
           region?: string | null
+          secondary_color?: string | null
           signature_name?: string | null
           signature_title?: string | null
           slug: string
@@ -21628,8 +21632,10 @@ export type Database = {
           parish?: string | null
           payment_info?: string | null
           phone?: string | null
+          primary_color?: string | null
           racius_url?: string | null
           region?: string | null
+          secondary_color?: string | null
           signature_name?: string | null
           signature_title?: string | null
           slug?: string
