@@ -114,6 +114,30 @@ export function ProposalDetailDialog({
   const updateProposal = useUpdateProposal();
   const toggleItem = useToggleProposalItem();
   
+  // Calculate real total from items
+  const calculatedTotal = proposalItems
+    ?.filter(item => item.is_enabled !== false)
+    .reduce((sum, item) => sum + (item.quantity * item.unit_price), 0) || 0;
+  
+  // Use calculated total when items exist, otherwise proposal.price
+  const displayPrice = proposalItems && proposalItems.length > 0 
+    ? calculatedTotal 
+    : proposal?.price;
+  
+  // Auto-sync proposals.price when discrepancy detected
+  useEffect(() => {
+    if (proposalItems && proposalItems.length > 0 && proposal && !updateProposal.isPending) {
+      const storedPrice = proposal.price || 0;
+      // If significant difference (>0.01€), sync silently
+      if (Math.abs(calculatedTotal - storedPrice) > 0.01) {
+        updateProposal.mutate({
+          id: proposalId,
+          price: calculatedTotal,
+        });
+      }
+    }
+  }, [proposalItems, proposal?.price, calculatedTotal, proposalId]);
+  
   // Handle item toggle
   const handleItemToggle = (itemId: string, isEnabled: boolean) => {
     toggleItem.mutate({ itemId, isEnabled, proposalId });
@@ -392,7 +416,7 @@ export function ProposalDetailDialog({
                   <span className="text-xs font-medium uppercase tracking-wide">Valor</span>
                 </div>
                 <p className="font-semibold text-sm text-primary">
-                  {formatCurrency(proposal.price, proposal.currency)}
+                  {formatCurrency(displayPrice ?? null, proposal.currency)}
                 </p>
               </div>
 
