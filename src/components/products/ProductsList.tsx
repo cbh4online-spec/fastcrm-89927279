@@ -286,18 +286,52 @@ export function ProductsList() {
     return groups;
   }, [productTypesConfig, billingTypesConfig, categories]);
 
-  // Filter and search
+  // Filter and search - apply all filters including smart filters and billing
   const filteredProducts = useMemo(() => {
     if (!products) return [];
-    if (!searchValue) return products;
-    const lower = searchValue.toLowerCase();
-    return products.filter(
-      (p) =>
-        p.name?.toLowerCase().includes(lower) ||
-        p.sku?.toLowerCase().includes(lower) ||
-        p.category?.toLowerCase().includes(lower)
-    );
-  }, [products, searchValue]);
+    
+    let result = products;
+    
+    // Apply search filter
+    if (searchValue) {
+      const lower = searchValue.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name?.toLowerCase().includes(lower) ||
+          p.sku?.toLowerCase().includes(lower) ||
+          p.category?.toLowerCase().includes(lower)
+      );
+    }
+    
+    // Apply smart filters (local filtering)
+    if (activeFilterId?.startsWith("smart_")) {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      switch (activeFilterId) {
+        case "smart_recent":
+          result = result.filter((p) => {
+            const updated = new Date(p.updated_at);
+            return updated >= sevenDaysAgo;
+          });
+          break;
+        case "smart_high_price":
+          result = result.filter((p) => (p.base_price || 0) > 100);
+          break;
+        case "smart_low_price":
+          result = result.filter((p) => (p.base_price || 0) < 50);
+          break;
+      }
+    }
+    
+    // Apply billing type filter (local filtering since API doesn't support it)
+    if (activeFilterId?.startsWith("billing_")) {
+      const billingCode = activeFilterId.replace("billing_", "");
+      result = result.filter((p) => p.billing_type === billingCode);
+    }
+    
+    return result;
+  }, [products, searchValue, activeFilterId]);
 
   // Pagination
   const totalProducts = filteredProducts.length;
