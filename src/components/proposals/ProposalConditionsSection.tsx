@@ -12,11 +12,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Calendar, FileText, Clock, Sparkles } from "lucide-react";
-import { PAYMENT_CONDITIONS, VALIDITY_DAYS_OPTIONS, type PaymentConditionValue } from "./proposalConstants";
+import { PAYMENT_CONDITIONS, VALIDITY_DAYS_OPTIONS } from "./proposalConstants";
 import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { SectionAIAssistButton } from "./SectionAIAssistButton";
 import { AISuggestionIndicator } from "@/components/ai/AIConfidenceDisplay";
+import { usePaymentConditions } from "@/hooks/useProductSettings";
 
 export interface ConditionsData {
   paymentConditions: string;
@@ -43,11 +44,29 @@ export function ProposalConditionsSection({
   onGenerateWithAI,
   isGenerating = false,
 }: ProposalConditionsSectionProps) {
+  // Fetch dynamic payment conditions
+  const { data: paymentConditionsConfig } = usePaymentConditions();
+
   // Calculate expiry date
   const expiryDate = useMemo(() => {
     const baseDate = createdAt ? new Date(createdAt) : new Date();
     return addDays(baseDate, data.validityDays);
   }, [createdAt, data.validityDays]);
+
+  // Build dynamic payment options with fallback to static
+  const paymentOptions = useMemo(() => {
+    if (paymentConditionsConfig?.length) {
+      const dynamicOptions = paymentConditionsConfig
+        .filter(c => c.is_active)
+        .sort((a, b) => a.position - b.position)
+        .map(c => ({ value: c.code, label: c.label }));
+      
+      // Add "Personalizado" option at the end
+      return [...dynamicOptions, { value: 'custom', label: 'Personalizado' }];
+    }
+    // Fallback to static constants
+    return PAYMENT_CONDITIONS;
+  }, [paymentConditionsConfig]);
 
   const isCustomPayment = data.paymentConditions === "custom";
 
@@ -62,7 +81,7 @@ export function ProposalConditionsSection({
 
   const getPaymentLabel = (value: string) => {
     if (value === "custom") return data.customPaymentConditions || "Personalizado";
-    return PAYMENT_CONDITIONS.find((p) => p.value === value)?.label || value;
+    return paymentOptions.find((p) => p.value === value)?.label || value;
   };
 
   return (
@@ -107,7 +126,7 @@ export function ProposalConditionsSection({
                 <SelectValue placeholder="Selecionar condição..." />
               </SelectTrigger>
               <SelectContent>
-                {PAYMENT_CONDITIONS.map((condition) => (
+                {paymentOptions.map((condition) => (
                   <SelectItem key={condition.value} value={condition.value}>
                     {condition.label}
                   </SelectItem>

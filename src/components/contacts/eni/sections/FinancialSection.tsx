@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, CreditCard, Clock, AlertCircle, Lock } from "lucide-react";
@@ -5,6 +6,7 @@ import { ENIContact, PAYMENT_CONDITIONS, PAYMENT_METHODS } from "../ENIContactTy
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { useContactPermissions } from "../useContactPermissions";
 import { cn } from "@/lib/utils";
+import { usePaymentConditions, usePaymentMethods } from "@/hooks/useProductSettings";
 
 interface FinancialSectionProps {
   contact: ENIContact;
@@ -17,6 +19,31 @@ export function FinancialSection({
 }: FinancialSectionProps) {
   const { canEdit } = useContactPermissions();
   const canEditFinancial = canEdit('financial');
+  
+  // Fetch dynamic payment conditions and methods
+  const { data: paymentConditionsConfig } = usePaymentConditions();
+  const { data: paymentMethodsConfig } = usePaymentMethods();
+
+  // Build dynamic options with fallback to static
+  const paymentConditionsOptions = useMemo(() => {
+    if (paymentConditionsConfig?.length) {
+      return paymentConditionsConfig
+        .filter(c => c.is_active)
+        .sort((a, b) => a.position - b.position)
+        .map(c => c.label);
+    }
+    return PAYMENT_CONDITIONS;
+  }, [paymentConditionsConfig]);
+
+  const paymentMethodsOptions = useMemo(() => {
+    if (paymentMethodsConfig?.length) {
+      return paymentMethodsConfig
+        .filter(m => m.is_active)
+        .sort((a, b) => a.position - b.position)
+        .map(m => m.label);
+    }
+    return PAYMENT_METHODS;
+  }, [paymentMethodsConfig]);
 
   // If user can't view financial data, show restricted message
   if (!canEditFinancial) {
@@ -70,7 +97,7 @@ export function FinancialSection({
           fieldType="select"
           value={contact.payment_conditions || ''}
           onChange={(value) => onFieldChange('payment_conditions', value)}
-          options={PAYMENT_CONDITIONS}
+          options={paymentConditionsOptions}
           icon={<Clock className="h-3.5 w-3.5" />}
         />
 
@@ -81,7 +108,7 @@ export function FinancialSection({
           fieldType="select"
           value={contact.preferred_payment_method || ''}
           onChange={(value) => onFieldChange('preferred_payment_method', value)}
-          options={PAYMENT_METHODS}
+          options={paymentMethodsOptions}
           icon={<CreditCard className="h-3.5 w-3.5" />}
         />
 
