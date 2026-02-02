@@ -1,126 +1,127 @@
 
 
-# Plano: Corrigir Exibição de Imagens na Proposta
+# Plano: Corrigir Imagens no PDF com Conversão para Data URL
 
 ## Problema Identificado
 
-As imagens dos produtos podem não estar a aparecer correctamente no documento da proposta devido a:
+| Tipo de Imagem | Exemplo URL | Funciona no html2canvas? |
+|----------------|-------------|--------------------------|
+| Supabase Storage | `eumnfkccyvlyoyjchiwe.supabase.co/storage/...` | ✅ Sim (com CORS) |
+| URL Externa | `ajax.systems/api/cdn-img/...` | ❌ Não (CORS bloqueado) |
 
-| Causa | Descrição |
-|-------|-----------|
-| **CORS bloqueado** | `crossOrigin="anonymous"` impede carregamento de imagens sem headers CORS |
-| **Fallback fraco** | Quando não há imagem, mostra apenas "IMG" em texto |
-| **Preview sem imagem** | html2canvas pode falhar ao capturar imagens externas |
+O `html2canvas` não consegue capturar imagens de domínios externos sem headers CORS adequados. As imagens Ajax Systems estão a falhar por esta razão.
 
 ---
 
-## Solução
+## Solução: Converter Imagens para Data URL Antes do PDF
 
-### 1. Remover `crossOrigin="anonymous"` para Preview Normal
+A estratégia é:
+1. **Antes de capturar com html2canvas**, converter todas as imagens `<img>` para Data URLs inline
+2. Usar um canvas temporário para desenhar cada imagem e extrair `toDataURL()`
+3. Se a conversão falhar (CORS), mostrar placeholder em vez de imagem em branco
 
-O atributo `crossOrigin="anonymous"` é necessário apenas para `html2canvas`. No preview visual normal, deve ser removido para evitar bloqueios CORS.
+### Passo a Passo
 
-### 2. Melhorar Fallback de Imagem
-
-Em vez de mostrar "IMG" como texto, usar um ícone de `Package` (produto) para indicar ausência de imagem de forma mais profissional.
-
-### 3. Tratamento de Erro para Imagens
-
-Adicionar `onError` handler que substitui imagens quebradas por placeholder.
-
-### 4. Ajustar html2canvas para Ignorar Imagens com CORS
-
-Na geração de PDF, se imagens falharem, continuar sem elas em vez de bloquear.
+```text
+1. Encontrar todas as <img> no documento
+2. Para cada imagem:
+   a. Criar <img> com crossOrigin="anonymous"
+   b. Tentar carregar a imagem
+   c. Se sucesso: desenhar em canvas → extrair dataURL
+   d. Se falhar: usar placeholder (ícone Package ou imagem genérica)
+3. Substituir src das imagens no clone do documento
+4. Capturar com html2canvas
+```
 
 ---
 
 ## Alterações
 
-### `src/components/proposals/ProposalClientDocument.tsx`
-
-```typescript
-// ANTES:
-{item.image_url ? (
-  <img 
-    src={item.image_url} 
-    alt={item.name}
-    crossOrigin="anonymous" // ← CAUSA PROBLEMA
-    className="w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
-  />
-) : (
-  <div className="w-10 h-10 bg-gray-100 ...">
-    <span className="text-gray-400 text-[10px]">IMG</span>
-  </div>
-)}
-
-// DEPOIS:
-{item.image_url ? (
-  <img 
-    src={item.image_url} 
-    alt={item.name}
-    className="w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
-    onError={(e) => {
-      // Substituir por placeholder se imagem falhar
-      e.currentTarget.style.display = 'none';
-      e.currentTarget.nextElementSibling?.classList.remove('hidden');
-    }}
-  />
-) : null}
-{/* Fallback sempre presente (hidden se imagem OK) */}
-<div className={cn(
-  "w-10 h-10 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center",
-  item.image_url && "hidden" // Escondido se há imagem
-)}>
-  <Package className="h-5 w-5 text-gray-400" />
-</div>
-```
-
-**Alternativa mais simples** - usar apenas o ícone Package como fallback:
-
-```typescript
-{item.image_url ? (
-  <img 
-    src={item.image_url} 
-    alt={item.name}
-    className="w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
-    onError={(e) => {
-      e.currentTarget.src = ''; // Clear broken image
-      e.currentTarget.onerror = null;
-    }}
-  />
-) : (
-  <div className="w-10 h-10 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center">
-    <Package className="h-5 w-5 text-gray-400" />
-  </div>
-)}
-```
-
 ### `src/components/proposals/ProposalDocumentPreviewDialog.tsx`
 
-Melhorar opções do html2canvas para ser mais tolerante com imagens:
+Adicionar função de conversão de imagens:
 
 ```typescript
-const canvas = await html2canvas(documentRef.current, {
-  scale: 2,
-  useCORS: true,
-  allowTaint: true, // Permitir imagens "tainted"
-  backgroundColor: "#ffffff",
-  logging: false,
-  width: docWidth,
-  height: docHeight,
-  windowWidth: docWidth,
-  windowHeight: docHeight,
-  foreignObjectRendering: false, // Desativar para melhor compatibilidade
-  removeContainer: true,
-  imageTimeout: 5000, // Timeout de 5s para imagens
-  ignoreElements: (element) => {
-    // Ignorar elementos que falharam a carregar
-    if (element.tagName === 'IMG' && !(element as HTMLImageElement).complete) {
-      return true;
+// Função para converter imagem para Data URL
+const convertImageToDataUrl = async (imgSrc: string): Promise<string | null> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          resolve(null);
+        }
+      } catch (e) {
+        // CORS ou outro erro
+        resolve(null);
+      }
+    };
+    
+    img.onerror = () => resolve(null);
+    
+    // Adicionar timestamp para evitar cache
+    const url = new URL(imgSrc, window.location.href);
+    if (!imgSrc.startsWith('data:')) {
+      url.searchParams.set('_t', Date.now().toString());
     }
-    return false;
-  },
-});
+    img.src = url.toString();
+    
+    // Timeout de 5 segundos
+    setTimeout(() => resolve(null), 5000);
+  });
+};
+```
+
+Modificar `handleDownload` para converter imagens no clone:
+
+```typescript
+const handleDownload = async () => {
+  // ...existing code...
+  
+  const canvas = await html2canvas(documentRef.current, {
+    // ...existing options...
+    onclone: async (clonedDoc, element) => {
+      // Converter todas as imagens para Data URL
+      const images = element.querySelectorAll('img');
+      
+      await Promise.all(
+        Array.from(images).map(async (img) => {
+          if (img.src && !img.src.startsWith('data:')) {
+            const dataUrl = await convertImageToDataUrl(img.src);
+            if (dataUrl) {
+              img.src = dataUrl;
+            } else {
+              // Imagem falhou - esconder e mostrar placeholder
+              img.style.display = 'none';
+            }
+          }
+        })
+      );
+    },
+  });
+};
+```
+
+### Criar Placeholder Base64 para Fallback
+
+Gerar um placeholder SVG inline como Data URL para quando a imagem falhar:
+
+```typescript
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,' + btoa(`
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <rect width="40" height="40" fill="#f3f4f6" rx="4"/>
+  <path d="M20 12v16M12 20h16" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/>
+</svg>
+`);
 ```
 
 ---
@@ -129,17 +130,31 @@ const canvas = await html2canvas(documentRef.current, {
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `ProposalClientDocument.tsx` | Remover `crossOrigin`, adicionar fallback com ícone Package, handler `onError` |
-| `ProposalDocumentPreviewDialog.tsx` | Melhorar opções html2canvas para tolerância a imagens |
+| `ProposalDocumentPreviewDialog.tsx` | Adicionar `convertImageToDataUrl()`, modificar `onclone` para converter imagens |
+
+---
+
+## Abordagem Alternativa (se a anterior falhar)
+
+Se a conversão para Data URL ainda falhar devido a CORS, podemos usar uma **proxy de imagens** via Edge Function:
+
+```typescript
+// Edge function: proxy-image
+// GET /proxy-image?url=https://ajax.systems/...
+// Faz fetch da imagem no servidor e retorna com headers CORS correctos
+```
+
+Esta seria uma solução mais robusta mas requer backend.
 
 ---
 
 ## Resultado Esperado
 
-1. **Preview normal** - Imagens carregam sem bloqueio CORS
-2. **Fallback elegante** - Ícone de produto em vez de texto "IMG"
-3. **PDF resiliente** - Gera PDF mesmo se algumas imagens falharem
-4. **Erro handling** - Imagens quebradas são substituídas por placeholder
+| Cenário | Antes | Depois |
+|---------|-------|--------|
+| Imagem Supabase | ✅ Pode funcionar | ✅ Funciona (Data URL) |
+| Imagem Externa (ajax.systems) | ❌ Espaço vazio | ✅ Funciona (Data URL) ou placeholder |
+| Imagem com CORS bloqueado | ❌ Falha silenciosa | ✅ Placeholder visível |
 
 ---
 
@@ -147,7 +162,6 @@ const canvas = await html2canvas(documentRef.current, {
 
 | Ficheiro | Linhas |
 |----------|--------|
-| ProposalClientDocument.tsx | ~10 linhas alteradas |
-| ProposalDocumentPreviewDialog.tsx | ~5 linhas alteradas |
-| **Total** | ~15 linhas |
+| ProposalDocumentPreviewDialog.tsx | ~40 linhas adicionadas |
+| **Total** | ~40 linhas |
 
