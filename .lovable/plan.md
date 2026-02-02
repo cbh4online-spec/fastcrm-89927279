@@ -1,179 +1,159 @@
 
 
-# Plano: Corrigir Preservação de Páginas no PDF
+# Plano: Melhorar Secção de Condições de Venda
 
-## Problema Identificado
+## Problemas Identificados
 
-O algoritmo actual de geração de PDF:
-1. **Captura todo o documento como uma única imagem grande**
-2. **Fatia a imagem em intervalos fixos** (altura A4 - margens)
-3. **Ignora as secções lógicas** marcadas com `data-pdf-section`
+1. **Layout em lista vertical** - As condições de pagamento estão apresentadas como bullets verticais (`• Transferência Bancária`, `• Condições: ...`) quando deveriam fluir horizontalmente numa tabela ou formato de "ficha técnica"
 
-Resultado: O conteúdo é cortado arbitrariamente, e a capa aparece junto com o Âmbito na mesma página.
+2. **Falta informação de imposto (IVA)** - Apesar de calcular o IVA nos totais, não há menção explícita da taxa de imposto na secção de condições
 
-## Solução: Captura por Secções
+3. **Falta informação de entrega** - O sistema tem tabela `delivery_modes` (Online, Presencial, Híbrido, etc.) mas esta informação não aparece nas condições
 
-Em vez de capturar o documento inteiro, capturar **cada secção separadamente** usando os atributos `data-pdf-section` já existentes, e adicionar cada secção ao PDF com gestão inteligente de quebras de página.
+## Estrutura Actual vs Pretendida
 
-## Secções Existentes
+| Actual | Pretendido |
+|--------|------------|
+| `• Transferência Bancária` | **Pagamento:** Transferência Bancária • IBAN: PT50... |
+| `IBAN: PT50...` em linha separada | **Condições:** 50% com adjudicação e 50% na entrega |
+| `• Condições: 50_adju...` | **Imposto:** IVA 23% incluído nos valores |
+| Nada sobre entrega | **Entrega:** A definir / Online / Presencial |
 
-```html
-<div data-pdf-section="cover">...</div>      <!-- Página 1 - sempre separada -->
-<div data-pdf-section="scope">...</div>       <!-- Âmbito -->
-<div data-pdf-section="timeline">...</div>    <!-- Cronograma -->
-<div data-pdf-section="references">...</div>  <!-- Referências -->
-<div data-pdf-section="proposal">...</div>    <!-- Proposta e Condições -->
+## Novo Layout: Tabela de Condições
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ CONDIÇÕES DE VENDA                                               │
+├──────────────┬──────────────────────────────────────────────────┤
+│ Pagamento    │ Transferência Bancária                           │
+├──────────────┼──────────────────────────────────────────────────┤
+│ IBAN         │ PT50 XXXX XXXX XXXX XXXX XXXX X                  │
+├──────────────┼──────────────────────────────────────────────────┤
+│ Condições    │ 50% com adjudicação e 50% na entrega             │
+├──────────────┼──────────────────────────────────────────────────┤
+│ Imposto      │ IVA 23% (incluído nos valores apresentados)      │
+├──────────────┼──────────────────────────────────────────────────┤
+│ Entrega      │ Presencial / A combinar com o cliente            │
+├──────────────┼──────────────────────────────────────────────────┤
+│ Validade     │ 30 dias (até 02 de Março de 2026)                │
+└──────────────┴──────────────────────────────────────────────────┘
 ```
 
-## Implementação
-
-### Ficheiro a Modificar
+## Ficheiro a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/ProposalDocumentPreviewDialog.tsx` | Reescrever `handleDownload` com captura por secções |
+| `src/components/proposals/ProposalClientDocument.tsx` | Substituir lista por tabela horizontal de condições |
 
-### Nova Lógica de Geração de PDF
+## Implementação
+
+### Novo Código para Secção de Condições
 
 ```typescript
-const handleDownload = async () => {
-  // 1. Encontrar todas as secções
-  const sections = Array.from(
-    documentRef.current.querySelectorAll('[data-pdf-section]')
-  ) as HTMLElement[];
+{/* Conditions of Sale - Table Format */}
+<div className="bg-gray-50 px-4 md:px-8 py-6 mt-6">
+  <h3 className="text-lg font-semibold text-gray-900 mb-4 uppercase tracking-wide">
+    Condições de Venda
+  </h3>
   
-  // 2. Capturar cada secção individualmente
-  const sectionData = [];
-  for (const section of sections) {
-    const sectionName = section.getAttribute('data-pdf-section');
-    const canvas = await html2canvas(section, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-    });
-    
-    // Calcular altura em mm
-    const widthPx = canvas.width / 2; // scale: 2
-    const heightPx = canvas.height / 2;
-    const scaleFactor = CONTENT_WIDTH_MM / widthPx;
-    const heightMM = heightPx * scaleFactor;
-    
-    sectionData.push({ 
-      canvas, 
-      heightMM, 
-      name: sectionName,
-      forceNewPage: sectionName === 'cover' // Capa sempre em página separada
-    });
-  }
+  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <table className="w-full text-sm">
+      <tbody>
+        {/* Payment Method */}
+        <tr className="border-b border-gray-100">
+          <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+            Pagamento
+          </td>
+          <td className="px-4 py-3 text-gray-600">
+            Transferência Bancária
+          </td>
+        </tr>
+        
+        {/* IBAN */}
+        {companyIban && (
+          <tr className="border-b border-gray-100">
+            <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+              IBAN
+            </td>
+            <td className="px-4 py-3 text-gray-600 font-mono text-xs">
+              {companyIban}
+            </td>
+          </tr>
+        )}
+        
+        {/* Payment Conditions */}
+        {paymentLabel && (
+          <tr className="border-b border-gray-100">
+            <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+              Condições
+            </td>
+            <td className="px-4 py-3 text-gray-600">
+              {paymentLabel}
+            </td>
+          </tr>
+        )}
+        
+        {/* Tax Info */}
+        <tr className="border-b border-gray-100">
+          <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+            Imposto
+          </td>
+          <td className="px-4 py-3 text-gray-600">
+            IVA 23% (incluído nos valores apresentados)
+          </td>
+        </tr>
+        
+        {/* Delivery Info */}
+        <tr className="border-b border-gray-100">
+          <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+            Entrega
+          </td>
+          <td className="px-4 py-3 text-gray-600">
+            A combinar com o cliente
+          </td>
+        </tr>
+        
+        {/* Validity */}
+        {expiryDate && (
+          <tr>
+            <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+              Validade
+            </td>
+            <td className="px-4 py-3 text-gray-600">
+              {proposal.validity_days} dias (até {format(expiryDate, "dd 'de' MMMM 'de' yyyy", { locale: pt })})
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
   
-  // 3. Criar PDF com quebras de página inteligentes
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const MARGIN = 10;
-  const A4_HEIGHT_MM = 297;
-  const CONTENT_WIDTH_MM = 210 - (MARGIN * 2);
-  const PAGE_CONTENT_HEIGHT = A4_HEIGHT_MM - (MARGIN * 2);
-  let currentY = MARGIN;
-  let isFirstSection = true;
-
-  for (const { canvas, heightMM, name, forceNewPage } of sectionData) {
-    const remainingSpace = PAGE_CONTENT_HEIGHT - (currentY - MARGIN);
-    
-    // Forçar nova página para a capa ou se a secção não couber
-    if (!isFirstSection && (forceNewPage || heightMM > remainingSpace)) {
-      pdf.addPage();
-      currentY = MARGIN;
-    }
-    
-    // Se a secção é maior que uma página, precisamos fatiá-la
-    if (heightMM > PAGE_CONTENT_HEIGHT) {
-      // Fatiar a secção em múltiplas páginas
-      let sliceStartMM = 0;
-      while (sliceStartMM < heightMM) {
-        const sliceHeightMM = Math.min(PAGE_CONTENT_HEIGHT, heightMM - sliceStartMM);
-        const sliceStartPx = (sliceStartMM / heightMM) * canvas.height;
-        const sliceHeightPx = (sliceHeightMM / heightMM) * canvas.height;
-        
-        // Criar canvas da fatia
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = sliceHeightPx;
-        const ctx = sliceCanvas.getContext('2d');
-        ctx.drawImage(canvas, 0, sliceStartPx, canvas.width, sliceHeightPx, 
-                      0, 0, canvas.width, sliceHeightPx);
-        
-        if (sliceStartMM > 0) {
-          pdf.addPage();
-        }
-        
-        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG',
-                     MARGIN, MARGIN, CONTENT_WIDTH_MM, sliceHeightMM);
-        
-        sliceStartMM += sliceHeightMM;
-      }
-      currentY = MARGIN + (heightMM % PAGE_CONTENT_HEIGHT);
-    } else {
-      // Secção cabe na página actual
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG',
-                   MARGIN, currentY, CONTENT_WIDTH_MM, heightMM);
-      currentY += heightMM;
-    }
-    
-    // Após a capa, sempre começar nova página
-    if (name === 'cover') {
-      pdf.addPage();
-      currentY = MARGIN;
-    }
-    
-    isFirstSection = false;
-  }
+  {/* Notes - separate if exists */}
+  {proposal.notes && (
+    <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+      <p className="text-xs font-medium text-gray-500 uppercase mb-2">Observações</p>
+      <p className="text-sm text-gray-600">{proposal.notes}</p>
+    </div>
+  )}
   
-  pdf.save(`proposta-${proposal.slug}.pdf`);
-};
+  {/* Signature area remains the same */}
+</div>
 ```
 
-## Comportamento Esperado
+## Resultado Esperado
 
-| Secção | Comportamento |
-|--------|---------------|
-| **cover** | Sempre em página separada (página 1) |
-| **scope** | Começa na página 2, continua se necessário |
-| **timeline** | Começa nova página se não couber, senão continua |
-| **references** | Começa nova página se não couber, senão continua |
-| **proposal** | Começa nova página se não couber, senão continua |
+A secção de Condições de Venda aparecerá como uma tabela limpa e profissional com:
 
-## Diagrama do Fluxo
+- **Pagamento**: Método de pagamento
+- **IBAN**: Dados bancários (se configurado)
+- **Condições**: Prazo/modalidade de pagamento formatado correctamente
+- **Imposto**: Taxa de IVA aplicável
+- **Entrega**: Modo de entrega (genérico por agora)
+- **Validade**: Prazo e data de expiração
 
-```text
-┌─────────────────────────────────────────┐
-│  1. Encontrar secções [data-pdf-section]│
-└────────────────┬────────────────────────┘
-                 ▼
-┌─────────────────────────────────────────┐
-│  2. Para cada secção:                   │
-│     - Capturar com html2canvas          │
-│     - Calcular altura em mm             │
-└────────────────┬────────────────────────┘
-                 ▼
-┌─────────────────────────────────────────┐
-│  3. Para cada secção capturada:         │
-│     - É capa? → Página separada         │
-│     - Cabe na página? → Adicionar       │
-│     - Não cabe? → Nova página           │
-│     - Maior que página? → Fatiar        │
-└────────────────┬────────────────────────┘
-                 ▼
-┌─────────────────────────────────────────┐
-│  4. Guardar PDF                         │
-└─────────────────────────────────────────┘
-```
+Todas as informações fluem horizontalmente numa estrutura de tabela fácil de ler, em vez de uma lista vertical com bullets.
 
-## Resultado Final
+## Complexidade
 
-1. **Página 1**: Capa (sempre sozinha)
-2. **Página 2+**: Âmbito do Projecto
-3. **Página 3+**: Cronograma (se não couber no espaço restante)
-4. **Página 4+**: Referências e Credenciais
-5. **Página 5+**: Proposta e Condições de Venda
-
-As secções serão preservadas como unidades lógicas, sem cortes arbitrários no meio do conteúdo.
+Baixa - Apenas alteração de layout HTML/CSS
 
