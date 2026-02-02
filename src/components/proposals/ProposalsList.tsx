@@ -64,6 +64,7 @@ import { toast } from "sonner";
 import { useProposals, usePublishProposal, useDeleteProposal } from "@/hooks/useProposals";
 import { CreateProposalDialog } from "./CreateProposalDialog";
 import { ProposalDetailDialog } from "./ProposalDetailDialog";
+import { ProposalTemplatesList } from "./ProposalTemplatesList";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
@@ -296,318 +297,347 @@ export function ProposalsList() {
     }).format(value);
   };
 
-  return (
-    <div className="flex h-full -m-6">
-      {/* Filter Sidebar */}
-      <FilterSidebar
-        filterGroups={filterGroups}
-        activeFilterId={activeFilterId}
-        onFilterSelect={handleFilterSelect}
-        onClearFilter={() => {
+  // Render content based on active tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "templates":
+        return <ProposalTemplatesList />;
+      case "analytics":
+        return (
+          <Card className="p-12 text-center">
+            <TrendingUp className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-30" />
+            <h3 className="text-lg font-medium mb-2">Análise de Propostas</h3>
+            <p className="text-sm text-muted-foreground">
+              Em breve: Dashboard de performance e conversão de propostas.
+            </p>
+          </Card>
+        );
+      default:
+        return renderProposalsContent();
+    }
+  };
+
+  const renderProposalsContent = () => (
+    <>
+      {/* Toolbar */}
+      <Toolbar
+        searchValue={searchValue}
+        searchPlaceholder="Pesquisar propostas..."
+        onSearchChange={setSearchValue}
+        showFilters={true}
+        filtersActive={filtersActive}
+        onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
+        onClearFilters={() => {
           setActiveFilterId(undefined);
           setStatusFilter(undefined);
         }}
-        isOpen={showFilterSidebar}
-        onClose={() => setShowFilterSidebar(false)}
+        sortOptions={sortOptions}
+        sortValue={sortValue}
+        onSortChange={setSortValue}
+        leftActions={
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowFilterSidebar(!showFilterSidebar)}
+            className="gap-2"
+          >
+            {showFilterSidebar ? (
+              <PanelLeftClose className="h-4 w-4" />
+            ) : (
+              <PanelLeft className="h-4 w-4" />
+            )}
+          </Button>
+        }
+        rightActions={
+          <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        }
       />
+
+      {/* Bulk Actions */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
+          <span className="text-sm text-muted-foreground">
+            {selectedIds.length} {selectedIds.length === 1 ? "selecionada" : "selecionadas"}
+          </span>
+          <div className="flex-1" />
+          <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBulkDelete}
+            className="gap-2 text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            Eliminar
+          </Button>
+        </div>
+      )}
+
+      {/* Table */}
+      <Card className="flex-1 overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+          </div>
+        ) : !paginatedProposals?.length ? (
+          <div className="p-12 text-center text-muted-foreground">
+            <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
+            <h3 className="text-lg font-medium mb-2">Nenhuma proposta encontrada.</h3>
+            <p className="text-sm mb-4">
+              Crie a primeira proposta para começar a fechar negócios.
+            </p>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Criar primeira proposta
+            </Button>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={
+                      paginatedProposals.length > 0 &&
+                      paginatedProposals.every((p) => selectedIds.includes(p.id))
+                    }
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+                <TableHead>Título</TableHead>
+                <TableHead>Oportunidade</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead>Responsável</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Visualizações</TableHead>
+                <TableHead>Criada em</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedProposals.map((proposal) => (
+                <TableRow 
+                  key={proposal.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setDetailId(proposal.id)}
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.includes(proposal.id)}
+                      onCheckedChange={(checked) =>
+                        handleSelectOne(proposal.id, checked as boolean)
+                      }
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <button 
+                      className="text-left hover:text-primary hover:underline transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailId(proposal.id);
+                      }}
+                    >
+                      {proposal.title}
+                    </button>
+                  </TableCell>
+                  <TableCell>{proposal.opportunity?.title || "-"}</TableCell>
+                  <TableCell>{proposal.opportunity?.lead?.name || "-"}</TableCell>
+                  <TableCell>
+                    {formatCurrency(proposal.price, proposal.currency || "EUR")}
+                  </TableCell>
+                  <TableCell>
+                    {proposal.assigned_to_profile ? (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={proposal.assigned_to_profile.avatar_url || undefined} />
+                          <AvatarFallback className="text-[10px]">
+                            {proposal.assigned_to_profile.full_name?.charAt(0) || proposal.assigned_to_profile.email?.charAt(0) || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm truncate max-w-[100px]" title={proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email || undefined}>
+                          {proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        statusColors[proposal.status] as
+                          | "default"
+                          | "secondary"
+                          | "destructive"
+                      }
+                      className={
+                        proposal.status === "accepted"
+                          ? "bg-green-500 hover:bg-green-600"
+                          : ""
+                      }
+                    >
+                      {statusLabels[proposal.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{proposal.views_count}</TableCell>
+                  <TableCell>
+                    {format(new Date(proposal.created_at), "dd/MM/yyyy", {
+                      locale: pt,
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setDetailId(proposal.id)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver detalhes
+                        </DropdownMenuItem>
+                        {proposal.status === "published" && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                window.open(getPublicUrl(proposal.slug), "_blank")
+                              }
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Abrir página
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleCopyLink(proposal.slug)}
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copiar link
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {proposal.status === "draft" && (
+                          <DropdownMenuItem
+                            onClick={() => handlePublish(proposal.id)}
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Publicar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => setDeleteId(proposal.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
+
+      {/* Pagination */}
+      {totalPages > 0 && (
+        <div className="flex items-center justify-between pt-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Mostrar</span>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(v) => {
+                setPageSize(Number(v));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[70px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">por página</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              Página {currentPage} de {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="flex h-full -m-6">
+      {/* Filter Sidebar - only show for proposals tab */}
+      {activeTab === "proposals" && (
+        <FilterSidebar
+          filterGroups={filterGroups}
+          activeFilterId={activeFilterId}
+          onFilterSelect={handleFilterSelect}
+          onClearFilter={() => {
+            setActiveFilterId(undefined);
+            setStatusFilter(undefined);
+          }}
+          isOpen={showFilterSidebar}
+          onClose={() => setShowFilterSidebar(false)}
+        />
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 p-6">
         {/* Page Header */}
         <PageHeader
           title="Propostas"
-          count={totalProposals}
-          description={`Valor total: ${formatCurrency(totalValue)}`}
+          count={activeTab === "proposals" ? totalProposals : undefined}
+          description={activeTab === "proposals" ? `Valor total: ${formatCurrency(totalValue)}` : undefined}
           tabs={pageTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          actions={[
+          actions={activeTab === "proposals" ? [
             {
               label: "Nova Proposta",
               icon: <Plus className="h-4 w-4" />,
               onClick: () => setCreateOpen(true),
             },
-          ]}
+          ] : undefined}
         />
 
-        {/* Toolbar */}
-        <Toolbar
-          searchValue={searchValue}
-          searchPlaceholder="Pesquisar propostas..."
-          onSearchChange={setSearchValue}
-          showFilters={true}
-          filtersActive={filtersActive}
-          onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
-          onClearFilters={() => {
-            setActiveFilterId(undefined);
-            setStatusFilter(undefined);
-          }}
-          sortOptions={sortOptions}
-          sortValue={sortValue}
-          onSortChange={setSortValue}
-          leftActions={
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFilterSidebar(!showFilterSidebar)}
-              className="gap-2"
-            >
-              {showFilterSidebar ? (
-                <PanelLeftClose className="h-4 w-4" />
-              ) : (
-                <PanelLeft className="h-4 w-4" />
-              )}
-            </Button>
-          }
-          rightActions={
-            <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          }
-        />
-
-        {/* Bulk Actions */}
-        {selectedIds.length > 0 && (
-          <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
-            <span className="text-sm text-muted-foreground">
-              {selectedIds.length} {selectedIds.length === 1 ? "selecionada" : "selecionadas"}
-            </span>
-            <div className="flex-1" />
-            <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
-              <Download className="h-4 w-4" />
-              Exportar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBulkDelete}
-              className="gap-2 text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-              Eliminar
-            </Button>
-          </div>
-        )}
-
-        {/* Table */}
-        <Card className="flex-1 overflow-hidden">
-          {isLoading ? (
-            <div className="p-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-            </div>
-          ) : !paginatedProposals?.length ? (
-            <div className="p-12 text-center text-muted-foreground">
-              <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
-              <h3 className="text-lg font-medium mb-2">Nenhuma proposta encontrada.</h3>
-              <p className="text-sm mb-4">
-                Crie a primeira proposta para começar a fechar negócios.
-              </p>
-              <Button onClick={() => setCreateOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Criar primeira proposta
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={
-                        paginatedProposals.length > 0 &&
-                        paginatedProposals.every((p) => selectedIds.includes(p.id))
-                      }
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Oportunidade</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Visualizações</TableHead>
-                  <TableHead>Criada em</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedProposals.map((proposal) => (
-                  <TableRow 
-                    key={proposal.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setDetailId(proposal.id)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedIds.includes(proposal.id)}
-                        onCheckedChange={(checked) =>
-                          handleSelectOne(proposal.id, checked as boolean)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <button 
-                        className="text-left hover:text-primary hover:underline transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDetailId(proposal.id);
-                        }}
-                      >
-                        {proposal.title}
-                      </button>
-                    </TableCell>
-                    <TableCell>{proposal.opportunity?.title || "-"}</TableCell>
-                    <TableCell>{proposal.opportunity?.lead?.name || "-"}</TableCell>
-                    <TableCell>
-                      {formatCurrency(proposal.price, proposal.currency || "EUR")}
-                    </TableCell>
-                    <TableCell>
-                      {proposal.assigned_to_profile ? (
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={proposal.assigned_to_profile.avatar_url || undefined} />
-                            <AvatarFallback className="text-[10px]">
-                              {proposal.assigned_to_profile.full_name?.charAt(0) || proposal.assigned_to_profile.email?.charAt(0) || "?"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm truncate max-w-[100px]" title={proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email || undefined}>
-                            {proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          statusColors[proposal.status] as
-                            | "default"
-                            | "secondary"
-                            | "destructive"
-                        }
-                        className={
-                          proposal.status === "accepted"
-                            ? "bg-green-500 hover:bg-green-600"
-                            : ""
-                        }
-                      >
-                        {statusLabels[proposal.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{proposal.views_count}</TableCell>
-                    <TableCell>
-                      {format(new Date(proposal.created_at), "dd/MM/yyyy", {
-                        locale: pt,
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setDetailId(proposal.id)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver detalhes
-                          </DropdownMenuItem>
-                          {proposal.status === "published" && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  window.open(getPublicUrl(proposal.slug), "_blank")
-                                }
-                              >
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                Abrir página
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleCopyLink(proposal.slug)}
-                              >
-                                <Copy className="h-4 w-4 mr-2" />
-                                Copiar link
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          {proposal.status === "draft" && (
-                            <DropdownMenuItem
-                              onClick={() => handlePublish(proposal.id)}
-                            >
-                              <Send className="h-4 w-4 mr-2" />
-                              Publicar
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDeleteId(proposal.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </Card>
-
-        {/* Pagination */}
-        {totalPages > 0 && (
-          <div className="flex items-center justify-between pt-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Mostrar</span>
-              <Select
-                value={pageSize.toString()}
-                onValueChange={(v) => {
-                  setPageSize(Number(v));
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[70px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZE_OPTIONS.map((size) => (
-                    <SelectItem key={size} value={size.toString()}>
-                      {size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">por página</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Página {currentPage} de {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Tab Content */}
+        {renderTabContent()}
       </div>
 
       <CreateProposalDialog open={createOpen} onOpenChange={setCreateOpen} />
