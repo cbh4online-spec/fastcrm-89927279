@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,8 +51,13 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
 
   const [items, setItems] = useState<EditableItem[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   // Usar timestamp da query para detectar se é dados frescos vs mesmos dados
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+
+  // Drag-and-drop refs
+  const dragItemRef = useRef<number | null>(null);
+  const dragOverItemRef = useRef<number | null>(null);
 
   // Initialize items from existing data - baseado em timestamp da query
   useEffect(() => {
@@ -123,6 +128,39 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
       ...item,
       position: idx,
     })));
+    setHasChanges(true);
+  };
+
+  // Drag-and-drop handlers
+  const handleDragStart = (index: number) => {
+    dragItemRef.current = index;
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnter = (index: number) => {
+    dragOverItemRef.current = index;
+  };
+
+  const handleDragEnd = () => {
+    if (
+      dragItemRef.current !== null &&
+      dragOverItemRef.current !== null &&
+      dragItemRef.current !== dragOverItemRef.current
+    ) {
+      handleReorderItems(dragItemRef.current, dragOverItemRef.current);
+    }
+    dragItemRef.current = null;
+    dragOverItemRef.current = null;
+    setDraggedIndex(null);
+  };
+
+  const handleReorderItems = (fromIndex: number, toIndex: number) => {
+    setItems((prev) => {
+      const newItems = [...prev];
+      const [removed] = newItems.splice(fromIndex, 1);
+      newItems.splice(toIndex, 0, removed);
+      return newItems.map((item, idx) => ({ ...item, position: idx }));
+    });
     setHasChanges(true);
   };
 
@@ -230,9 +268,23 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
             </div>
           ) : (
             items.map((item, index) => (
-              <Card key={item.id || index} className="p-4">
+              <Card 
+                key={item.id || index} 
+                className={cn(
+                  "p-4 transition-all duration-200",
+                  draggedIndex === index && "opacity-50 scale-95"
+                )}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragEnter={() => handleDragEnter(index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+              >
                 <div className="flex items-start gap-3">
-                  <div className="flex items-center text-muted-foreground cursor-move pt-2">
+                  <div 
+                    className="flex items-center text-muted-foreground cursor-grab active:cursor-grabbing pt-2 hover:text-primary transition-colors"
+                    title="Arraste para reordenar"
+                  >
                     <GripVertical className="h-4 w-4" />
                   </div>
 
