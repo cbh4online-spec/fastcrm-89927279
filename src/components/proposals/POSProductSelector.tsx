@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Package, BookOpen, Users, Briefcase, Wrench, Layers, Grid3X3, List } from "lucide-react";
+import { Search, Package, BookOpen, Users, Briefcase, Wrench, Layers, Grid3X3, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,7 +8,7 @@ import { ProductCard } from "./ProductCard";
 import { useProducts, useProductCategories } from "@/hooks/useProducts";
 import type { Product } from "@/types/product";
 import { cn } from "@/lib/utils";
-
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 interface POSProductSelectorProps {
   selectedProductIds: string[];
   onAddProduct: (product: Product) => void;
@@ -30,17 +30,18 @@ export function POSProductSelector({
   onAddProduct,
   onRemoveProduct,
 }: POSProductSelectorProps) {
+  const { currentWorkspace } = useWorkspace();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const { data: products, isLoading } = useProducts({
+  const { data: products, isLoading: isLoadingProducts } = useProducts({
     status: "active",
     productType: typeFilter !== "all" ? typeFilter : undefined,
     search: search || undefined,
   });
 
-  const { data: categories } = useProductCategories();
+  const { data: categories, isLoading: isLoadingCategories } = useProductCategories();
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
@@ -53,6 +54,16 @@ export function POSProductSelector({
     
     return filtered;
   }, [products, categoryFilter]);
+
+  // Verificar se workspace está disponível
+  if (!currentWorkspace?.id) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-3" />
+        <p className="text-muted-foreground">A carregar produtos...</p>
+      </div>
+    );
+  }
 
   const handleProductClick = (product: Product) => {
     if (selectedProductIds.includes(product.id)) {
@@ -95,7 +106,13 @@ export function POSProductSelector({
       </div>
 
       {/* Category Filters */}
-      {categories && categories.length > 0 && (
+      {isLoadingCategories ? (
+        <div className="flex gap-1.5 mb-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-6 w-20 rounded-full" />
+          ))}
+        </div>
+      ) : categories && categories.length > 0 ? (
         <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
           <Button
             variant={categoryFilter === "all" ? "secondary" : "ghost"}
@@ -117,11 +134,11 @@ export function POSProductSelector({
             </Button>
           ))}
         </div>
-      )}
+      ) : null}
 
       {/* Products Grid */}
       <ScrollArea className="flex-1">
-        {isLoading ? (
+        {isLoadingProducts ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-32 rounded-lg" />
