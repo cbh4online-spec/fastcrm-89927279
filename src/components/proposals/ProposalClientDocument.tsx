@@ -106,8 +106,21 @@ export function ProposalClientDocument({
     ? addDays(createdDate, proposal.validity_days)
     : null;
 
+  // Helper para formatar condições de pagamento personalizadas
+  const formatPaymentCondition = (value: string): string => {
+    // Primeiro, procurar nas opções padrão
+    const standardOption = PAYMENT_CONDITIONS.find(p => p.value === value);
+    if (standardOption) return standardOption.label;
+    
+    // Se for valor personalizado, formatar para ser legível
+    // Converter underscores para espaços e capitalizar
+    return value
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  };
+
   const paymentLabel = proposal.payment_conditions 
-    ? PAYMENT_CONDITIONS.find(p => p.value === proposal.payment_conditions)?.label || proposal.payment_conditions
+    ? formatPaymentCondition(proposal.payment_conditions)
     : null;
   
   // Calculate totals only for enabled items
@@ -164,7 +177,7 @@ export function ProposalClientDocument({
       <Card className="bg-white text-black overflow-hidden shadow-xl print:shadow-none">
         
         {/* ====== 1. CAPA DA PROPOSTA ====== */}
-        <div data-pdf-section="cover" className="min-h-[900px] flex flex-col relative">
+        <div data-pdf-section="cover" className="flex flex-col relative" style={{ minHeight: '1090px' }}>
           {/* Top section with logo and proposal info */}
           <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-12">
             {/* Logo */}
