@@ -217,23 +217,23 @@ export function ProposalClientDocument({
         </div>
 
         {/* Items Table */}
-        <div className="px-4 md:px-8 py-6 overflow-x-auto">
+        <div className="px-4 md:px-8 py-6">
           {allowItemToggle && (
             <p className="text-sm text-gray-500 mb-4">
               💡 Pode desmarcar itens que não pretende incluir na proposta.
             </p>
           )}
-          <Table>
+          <Table className="table-fixed w-full">
             <TableHeader>
               <TableRow className="border-gray-200">
                 {allowItemToggle && (
-                  <TableHead className="w-[5%] text-gray-600">Incluir</TableHead>
+                  <TableHead className="w-[8%] text-gray-600">Incluir</TableHead>
                 )}
-                <TableHead className="w-[5%] text-gray-600">#</TableHead>
-                <TableHead className={cn(allowItemToggle ? "w-[40%]" : "w-[45%]", "text-gray-600")}>Item / Descrição</TableHead>
-                <TableHead className="w-[12%] text-right text-gray-600">Preço</TableHead>
-                <TableHead className="w-[8%] text-center text-gray-600">Qtd.</TableHead>
-                <TableHead className="w-[15%] text-right text-gray-600">Total</TableHead>
+                <TableHead className="w-[6%] text-gray-600">#</TableHead>
+                <TableHead className={cn(allowItemToggle ? "w-[44%]" : "w-[52%]", "text-gray-600")}>Item</TableHead>
+                <TableHead className="w-[14%] text-right text-gray-600">Preço</TableHead>
+                <TableHead className="w-[10%] text-center text-gray-600">Qtd</TableHead>
+                <TableHead className="w-[14%] text-right text-gray-600">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -249,53 +249,54 @@ export function ProposalClientDocument({
                       )}
                     >
                       {allowItemToggle && (
-                        <TableCell>
+                        <TableCell className="py-2">
                           <Switch
                             checked={isEnabled}
                             onCheckedChange={(checked) => onItemToggle?.(item.id, checked)}
                           />
                         </TableCell>
                       )}
-                      <TableCell className="text-gray-500 font-mono text-sm">{index + 1}</TableCell>
-                      <TableCell>
-                        <div className="flex items-start gap-3">
+                      <TableCell className="text-gray-500 font-mono text-xs py-2">{index + 1}</TableCell>
+                      <TableCell className="py-2">
+                        <div className="flex items-start gap-2">
                           {/* Product Image */}
                           {item.image_url ? (
                             <img 
                               src={item.image_url} 
                               alt={item.name}
+                              crossOrigin="anonymous"
                               className={cn(
-                                "w-12 h-12 object-cover rounded border border-gray-200 flex-shrink-0",
+                                "w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0",
                                 !isEnabled && "opacity-50"
                               )}
                             />
                           ) : (
                             <div className={cn(
-                              "w-12 h-12 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center",
+                              "w-10 h-10 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center",
                               !isEnabled && "opacity-50"
                             )}>
-                              <span className="text-gray-400 text-xs">IMG</span>
+                              <span className="text-gray-400 text-[10px]">IMG</span>
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className={cn("font-medium text-gray-900 break-words line-clamp-2 text-sm", !isEnabled && "line-through text-gray-500")}>
+                            <p className={cn("font-medium text-gray-900 text-sm leading-tight", !isEnabled && "line-through text-gray-500")}>
                               {item.name}
                             </p>
                             {item.description && (
-                              <p className={cn("text-xs text-gray-500 mt-0.5 break-words line-clamp-2", !isEnabled && "line-through")}>
+                              <p className={cn("text-xs text-gray-500 mt-0.5 line-clamp-1", !isEnabled && "line-through")}>
                                 {item.description}
                               </p>
                             )}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className={cn("text-right text-gray-700 text-sm", !isEnabled && "line-through text-gray-400")}>
+                      <TableCell className={cn("text-right text-gray-700 text-xs py-2", !isEnabled && "line-through text-gray-400")}>
                         {formatCurrency(item.unit_price, proposal.currency)}
                       </TableCell>
-                      <TableCell className={cn("text-center text-gray-700 text-sm", !isEnabled && "line-through text-gray-400")}>
+                      <TableCell className={cn("text-center text-gray-700 text-xs py-2", !isEnabled && "line-through text-gray-400")}>
                         {item.quantity}
                       </TableCell>
-                      <TableCell className={cn("text-right font-medium text-gray-900 text-sm", !isEnabled && "line-through text-gray-400")}>
+                      <TableCell className={cn("text-right font-medium text-gray-900 text-xs py-2", !isEnabled && "line-through text-gray-400")}>
                         {formatCurrency(item.total_price, proposal.currency)}
                       </TableCell>
                     </TableRow>
