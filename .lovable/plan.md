@@ -1,160 +1,144 @@
 
 
-# Plano: Corrigir Imagens no PDF com Conversão para Data URL
+# Plano: Corrigir Texto Truncado no PDF
 
 ## Problema Identificado
 
-| Tipo de Imagem | Exemplo URL | Funciona no html2canvas? |
-|----------------|-------------|--------------------------|
-| Supabase Storage | `eumnfkccyvlyoyjchiwe.supabase.co/storage/...` | ✅ Sim (com CORS) |
-| URL Externa | `ajax.systems/api/cdn-img/...` | ❌ Não (CORS bloqueado) |
+O texto não aparece completo nas linhas do PDF devido a:
 
-O `html2canvas` não consegue capturar imagens de domínios externos sem headers CORS adequados. As imagens Ajax Systems estão a falhar por esta razão.
-
----
-
-## Solução: Converter Imagens para Data URL Antes do PDF
-
-A estratégia é:
-1. **Antes de capturar com html2canvas**, converter todas as imagens `<img>` para Data URLs inline
-2. Usar um canvas temporário para desenhar cada imagem e extrair `toDataURL()`
-3. Se a conversão falhar (CORS), mostrar placeholder em vez de imagem em branco
-
-### Passo a Passo
-
-```text
-1. Encontrar todas as <img> no documento
-2. Para cada imagem:
-   a. Criar <img> com crossOrigin="anonymous"
-   b. Tentar carregar a imagem
-   c. Se sucesso: desenhar em canvas → extrair dataURL
-   d. Se falhar: usar placeholder (ícone Package ou imagem genérica)
-3. Substituir src das imagens no clone do documento
-4. Capturar com html2canvas
-```
+| Causa | Localização | Impacto |
+|-------|-------------|---------|
+| Componente Table com `overflow-x-auto` e `min-w-max` | `src/components/ui/table.tsx` linha 7-8 | Tabela expande além do container e é cortada |
+| Nome do produto sem quebra de linha | `ProposalClientDocument.tsx` linha 289 | Texto longo é truncado |
+| Descrição com `line-clamp-1` | `ProposalClientDocument.tsx` linha 293 | Apenas 1 linha visível |
+| Larguras de coluna fixas muito estreitas | Colunas com `w-[6%]`, `w-[14%]` etc | Texto não cabe na coluna |
 
 ---
 
-## Alterações
+## Solução
 
-### `src/components/proposals/ProposalDocumentPreviewDialog.tsx`
+### 1. Sobrescrever Estilos da Table para PDF
 
-Adicionar função de conversão de imagens:
+Adicionar classe específica que remove os estilos problemáticos:
 
 ```typescript
-// Função para converter imagem para Data URL
-const convertImageToDataUrl = async (imgSrc: string): Promise<string | null> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
-        } else {
-          resolve(null);
-        }
-      } catch (e) {
-        // CORS ou outro erro
-        resolve(null);
-      }
-    };
-    
-    img.onerror = () => resolve(null);
-    
-    // Adicionar timestamp para evitar cache
-    const url = new URL(imgSrc, window.location.href);
-    if (!imgSrc.startsWith('data:')) {
-      url.searchParams.set('_t', Date.now().toString());
-    }
-    img.src = url.toString();
-    
-    // Timeout de 5 segundos
-    setTimeout(() => resolve(null), 5000);
-  });
-};
+// ProposalClientDocument.tsx
+<Table className="table-fixed w-full [&>div]:overflow-visible">
 ```
 
-Modificar `handleDownload` para converter imagens no clone:
+Ou criar um wrapper sem overflow:
 
 ```typescript
-const handleDownload = async () => {
-  // ...existing code...
-  
-  const canvas = await html2canvas(documentRef.current, {
-    // ...existing options...
-    onclone: async (clonedDoc, element) => {
-      // Converter todas as imagens para Data URL
-      const images = element.querySelectorAll('img');
-      
-      await Promise.all(
-        Array.from(images).map(async (img) => {
-          if (img.src && !img.src.startsWith('data:')) {
-            const dataUrl = await convertImageToDataUrl(img.src);
-            if (dataUrl) {
-              img.src = dataUrl;
-            } else {
-              // Imagem falhou - esconder e mostrar placeholder
-              img.style.display = 'none';
-            }
-          }
-        })
-      );
-    },
-  });
-};
+<div className="[&_.overflow-x-auto]:overflow-visible">
+  <Table className="table-fixed w-full">
 ```
 
-### Criar Placeholder Base64 para Fallback
+### 2. Permitir Quebra de Linha no Nome do Produto
 
-Gerar um placeholder SVG inline como Data URL para quando a imagem falhar:
+Remover truncação e permitir que o texto quebre em múltiplas linhas:
 
 ```typescript
-const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,' + btoa(`
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
-  <rect width="40" height="40" fill="#f3f4f6" rx="4"/>
-  <path d="M20 12v16M12 20h16" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/>
-</svg>
-`);
+// ANTES:
+<p className="font-medium text-gray-900 text-sm leading-tight">
+  {item.name}
+</p>
+
+// DEPOIS:
+<p className="font-medium text-gray-900 text-sm leading-tight break-words">
+  {item.name}
+</p>
+```
+
+### 3. Permitir Mais Linhas na Descrição
+
+Aumentar ou remover `line-clamp`:
+
+```typescript
+// ANTES:
+<p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+  {item.description}
+</p>
+
+// DEPOIS:
+<p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+  {item.description}
+</p>
+```
+
+### 4. Ajustar Larguras das Colunas
+
+Aumentar a coluna de "Item" e reduzir outras:
+
+```typescript
+// ANTES:
+<TableHead className="w-[6%]">#</TableHead>
+<TableHead className={cn(allowItemToggle ? "w-[44%]" : "w-[52%]")}>Item</TableHead>
+<TableHead className="w-[14%] text-right">Preço</TableHead>
+<TableHead className="w-[10%] text-center">Qtd</TableHead>
+<TableHead className="w-[14%] text-right">Total</TableHead>
+
+// DEPOIS:
+<TableHead className="w-[5%]">#</TableHead>
+<TableHead className={cn(allowItemToggle ? "w-[47%]" : "w-[55%]")}>Item</TableHead>
+<TableHead className="w-[13%] text-right">Preço</TableHead>
+<TableHead className="w-[9%] text-center">Qtd</TableHead>
+<TableHead className="w-[13%] text-right">Total</TableHead>
+```
+
+### 5. Remover `min-w-max` da Tabela para Captura PDF
+
+Adicionar estilos inline ou classe de override:
+
+```typescript
+<Table className="table-fixed w-full !min-w-0">
 ```
 
 ---
 
 ## Ficheiros a Modificar
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `ProposalDocumentPreviewDialog.tsx` | Adicionar `convertImageToDataUrl()`, modificar `onclone` para converter imagens |
+### `src/components/proposals/ProposalClientDocument.tsx`
 
----
+| Linha | Alteração |
+|-------|-----------|
+| ~227 | Adicionar `!min-w-0` à Table para remover largura mínima |
+| ~233-237 | Ajustar larguras das colunas para dar mais espaço ao Item |
+| ~289 | Adicionar `break-words` ao nome do produto |
+| ~293 | Mudar `line-clamp-1` para `line-clamp-2` |
 
-## Abordagem Alternativa (se a anterior falhar)
-
-Se a conversão para Data URL ainda falhar devido a CORS, podemos usar uma **proxy de imagens** via Edge Function:
+### Alteração Específica na Tabela
 
 ```typescript
-// Edge function: proxy-image
-// GET /proxy-image?url=https://ajax.systems/...
-// Faz fetch da imagem no servidor e retorna com headers CORS correctos
+// Wrapper para remover overflow que corta conteúdo
+<div className="[&_div.overflow-x-auto]:overflow-visible">
+  <Table className="table-fixed w-full">
+    <TableHeader>
+      <TableRow className="border-gray-200">
+        {allowItemToggle && (
+          <TableHead className="w-[7%] text-gray-600">Incluir</TableHead>
+        )}
+        <TableHead className="w-[5%] text-gray-600">#</TableHead>
+        <TableHead className={cn(allowItemToggle ? "w-[47%]" : "w-[55%]", "text-gray-600")}>Item</TableHead>
+        <TableHead className="w-[13%] text-right text-gray-600">Preço</TableHead>
+        <TableHead className="w-[8%] text-center text-gray-600">Qtd</TableHead>
+        <TableHead className="w-[12%] text-right text-gray-600">Total</TableHead>
+      </TableRow>
+    </TableHeader>
+    {/* ... */}
+  </Table>
+</div>
 ```
-
-Esta seria uma solução mais robusta mas requer backend.
 
 ---
 
 ## Resultado Esperado
 
-| Cenário | Antes | Depois |
-|---------|-------|--------|
-| Imagem Supabase | ✅ Pode funcionar | ✅ Funciona (Data URL) |
-| Imagem Externa (ajax.systems) | ❌ Espaço vazio | ✅ Funciona (Data URL) ou placeholder |
-| Imagem com CORS bloqueado | ❌ Falha silenciosa | ✅ Placeholder visível |
+| Antes | Depois |
+|-------|--------|
+| Texto cortado após poucos caracteres | Texto completo com quebra de linha |
+| Descrição limitada a 1 linha | Descrição com até 2 linhas |
+| Tabela com scroll horizontal | Tabela fixa que cabe no A4 |
+| Nomes truncados | Nomes completos visíveis |
 
 ---
 
@@ -162,6 +146,6 @@ Esta seria uma solução mais robusta mas requer backend.
 
 | Ficheiro | Linhas |
 |----------|--------|
-| ProposalDocumentPreviewDialog.tsx | ~40 linhas adicionadas |
-| **Total** | ~40 linhas |
+| ProposalClientDocument.tsx | ~15 linhas alteradas |
+| **Total** | ~15 linhas |
 
