@@ -1,8 +1,22 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Calendar, 
   Phone, 
@@ -14,12 +28,18 @@ import {
   FileText,
   CreditCard,
   Clock,
+  ExternalLink,
+  MoreHorizontal,
+  Copy,
+  CheckSquare,
+  TrendingUp,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import type { Proposal } from "@/types/proposal";
 import type { PreviewItem } from "./ProposalPreview";
 import { PAYMENT_CONDITIONS } from "./proposalConstants";
+import { QuickTaskDialog } from "@/components/crm/unified/QuickTaskDialog";
 import {
   Table,
   TableBody,
@@ -55,6 +75,9 @@ export function ProposalInternalView({
   onItemToggle,
   onQuantityChange,
 }: ProposalInternalViewProps) {
+  const navigate = useNavigate();
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
+  
   const clientName = proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name;
   const clientEmail = proposal.company?.email || proposal.contact?.email || proposal.opportunity?.lead?.email;
   const clientAddress = proposal.billing_address || proposal.company?.address || proposal.contact?.address;
@@ -83,8 +106,42 @@ export function ProposalInternalView({
   const totalMargin = itemsTotal - totalCost;
   const marginPct = itemsTotal > 0 ? (totalMargin / itemsTotal) * 100 : 0;
 
+  // Navigation and action handlers
+  const handleNavigateToOpportunity = () => {
+    if (proposal.opportunity?.id) {
+      navigate(`/dashboard/opportunities/${proposal.opportunity.id}`);
+    }
+  };
+
+  const handleNavigateToClient = () => {
+    if (proposal.company?.id) {
+      navigate(`/dashboard/companies/${proposal.company.id}`);
+    } else if (proposal.contact?.id) {
+      navigate(`/dashboard/contacts/${proposal.contact.id}`);
+    }
+  };
+
+  const handleSendEmail = () => {
+    if (clientEmail) {
+      window.open(`mailto:${clientEmail}?subject=${encodeURIComponent(`Re: ${proposal.title}`)}`);
+    }
+  };
+
+  const hasClientCRM = !!(proposal.company?.id || proposal.contact?.id);
+  const hasOpportunity = !!proposal.opportunity?.id;
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Quick Task Dialog - uses opportunity as the related entity */}
+      {hasOpportunity && (
+        <QuickTaskDialog
+          open={showTaskDialog}
+          onOpenChange={setShowTaskDialog}
+          relatedId={proposal.opportunity!.id}
+          relatedType="opportunity"
+        />
+      )}
+
       {/* Header Section */}
       <div className="flex items-start justify-between gap-4 bg-card rounded-lg border p-4">
         <div className="flex items-center gap-3">
@@ -107,14 +164,45 @@ export function ProposalInternalView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Phone className="h-4 w-4 mr-2" />
-            Agendar Chamada
-          </Button>
-          <Button variant="outline" size="sm">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Mensagem
-          </Button>
+          {clientEmail && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleSendEmail}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Enviar email para {clientEmail}</TooltipContent>
+            </Tooltip>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {hasOpportunity && (
+                <DropdownMenuItem onClick={handleNavigateToOpportunity}>
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Ver Oportunidade
+                </DropdownMenuItem>
+              )}
+              {hasClientCRM && (
+                <DropdownMenuItem onClick={handleNavigateToClient}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Ver Ficha CRM
+                </DropdownMenuItem>
+              )}
+              {(hasOpportunity || hasClientCRM) && <DropdownMenuSeparator />}
+              {hasOpportunity && (
+                <DropdownMenuItem onClick={() => setShowTaskDialog(true)}>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Criar Tarefa
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
