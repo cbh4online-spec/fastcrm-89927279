@@ -69,6 +69,7 @@ import { EntityOpportunitiesSection } from "@/components/opportunities/EntityOpp
 import { EntityTimelineSection } from "@/components/timeline";
 import { CompanyOrderNotesSection } from "@/components/companies/sections/CompanyOrderNotesSection";
 import { CommercialHistorySection } from "@/components/companies/sections/CommercialHistorySection";
+import { EntityProposalsSection } from "@/components/proposals/EntityProposalsSection";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -320,6 +321,14 @@ export function CompanyDetailWithSidebar() {
       case 'orders':
         return (
           <CompanyOrderNotesSection companyId={id!} />
+        );
+      case 'proposals':
+        return (
+          <EntityProposalsSection
+            entityType="company"
+            entityId={id!}
+            entityName={company.name}
+          />
         );
       default:
         return (
