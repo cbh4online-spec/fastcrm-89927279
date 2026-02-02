@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -6,7 +6,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,20 +26,20 @@ import {
   Pencil,
   Save,
   X,
-  Package,
-  Users,
-  CreditCard,
-  FileSearch,
   TrendingUp,
   UserCheck,
+  FileSearch,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
-import { ProposalPreview } from "./ProposalPreview";
 import { POSProposalItemsEditor } from "./POSProposalItemsEditor";
 import { ProposalClientSection } from "./ProposalClientSection";
 import { ProposalConditionsSection } from "./ProposalConditionsSection";
+import { ProposalScopeSection, type ScopeData } from "./ProposalScopeSection";
+import { ProposalTimelineSection, type TimelineData, type TimelinePhase } from "./ProposalTimelineSection";
+import { ProposalReferencesSection, type ReferencesData } from "./ProposalReferencesSection";
+import { ProposalStepNavigation, PROPOSAL_STEPS } from "./ProposalStepNavigation";
 import { ProposalViewToggle } from "./ProposalViewToggle";
 import { ProposalInternalView } from "./ProposalInternalView";
 import { ProposalClientDocument } from "./ProposalClientDocument";
@@ -58,7 +57,7 @@ import {
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { supabase } from "@/integrations/supabase/client";
-import type { ProposalStatus, ContentBlock } from "@/types/proposal";
+import type { ProposalStatus } from "@/types/proposal";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -68,6 +67,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProposalDetailDialogProps {
   open: boolean;
@@ -83,16 +84,36 @@ const statusConfig: Record<ProposalStatus, { label: string; variant: "default" |
   rejected: { label: "Rejeitada", variant: "destructive" },
 };
 
+const DEFAULT_SCOPE_DATA: ScopeData = {
+  objectives: "",
+  deliverables: [],
+  exclusions: [],
+  assumptions: "",
+};
+
+const DEFAULT_TIMELINE_DATA: TimelineData = {
+  phases: [],
+  startDate: undefined,
+};
+
+const DEFAULT_REFERENCES_DATA: ReferencesData = {
+  projects: [],
+  testimonial: { quote: "", author: "", company: "", role: "" },
+  certifications: [],
+};
+
 export function ProposalDetailDialog({
   open,
   onOpenChange,
   proposalId,
 }: ProposalDetailDialogProps) {
-  const [tab, setTab] = useState<"preview" | "edit" | "items" | "client" | "conditions" | "versions" | "activity">("preview");
+  const isMobile = useIsMobile();
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [currentStep, setCurrentStep] = useState(0);
   const [viewMode, setViewMode] = useState<"internal" | "client">("internal");
-  const [isEditing, setIsEditing] = useState(false);
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   const [workspaceData, setWorkspaceData] = useState<Record<string, unknown> | null>(null);
+  const [activeViewTab, setActiveViewTab] = useState<"preview" | "versions" | "activity">("preview");
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   
@@ -119,6 +140,11 @@ export function ProposalDetailDialog({
     validityDays: 30,
     notes: "",
   });
+
+  // New section states
+  const [scopeData, setScopeData] = useState<ScopeData>(DEFAULT_SCOPE_DATA);
+  const [timelineData, setTimelineData] = useState<TimelineData>(DEFAULT_TIMELINE_DATA);
+  const [referencesData, setReferencesData] = useState<ReferencesData>(DEFAULT_REFERENCES_DATA);
 
   const { data: proposal, isLoading } = useProposal(proposalId);
   const { data: versions } = useProposalVersions(proposalId);
@@ -151,7 +177,6 @@ export function ProposalDetailDialog({
   useEffect(() => {
     if (proposalItems && proposalItems.length > 0 && proposal && !updateProposal.isPending) {
       const storedPrice = proposal.price || 0;
-      // If significant difference (>0.01€), sync silently
       if (Math.abs(calculatedTotal - storedPrice) > 0.01) {
         updateProposal.mutate({
           id: proposalId,
@@ -194,12 +219,34 @@ export function ProposalDetailDialog({
         validityDays: proposal.validity_days || 30,
         notes: proposal.notes || "",
       });
+
+      // Initialize new section data from JSONB columns
+      const proposalAny = proposal as any;
+      if (proposalAny.scope_data && typeof proposalAny.scope_data === 'object') {
+        setScopeData({ ...DEFAULT_SCOPE_DATA, ...proposalAny.scope_data });
+      } else {
+        setScopeData(DEFAULT_SCOPE_DATA);
+      }
+      
+      if (proposalAny.timeline_data && Array.isArray(proposalAny.timeline_data)) {
+        setTimelineData({ phases: proposalAny.timeline_data, startDate: undefined });
+      } else if (proposalAny.timeline_data && typeof proposalAny.timeline_data === 'object') {
+        setTimelineData({ ...DEFAULT_TIMELINE_DATA, ...proposalAny.timeline_data });
+      } else {
+        setTimelineData(DEFAULT_TIMELINE_DATA);
+      }
+      
+      if (proposalAny.references_data && typeof proposalAny.references_data === 'object') {
+        setReferencesData({ ...DEFAULT_REFERENCES_DATA, ...proposalAny.references_data });
+      } else {
+        setReferencesData(DEFAULT_REFERENCES_DATA);
+      }
     }
   };
   
   // Initialize when proposal loads
   useEffect(() => {
-    if (proposal && !isEditing) {
+    if (proposal && mode === "view") {
       initializeEditForm();
     }
   }, [proposal]);
@@ -222,13 +269,13 @@ export function ProposalDetailDialog({
   
   const handleStartEditing = () => {
     initializeEditForm();
-    setTab("edit");
-    setIsEditing(true);
+    setMode("edit");
+    setCurrentStep(0);
   };
   
   const handleCancelEdit = () => {
-    setIsEditing(false);
-    setTab("preview");
+    setMode("view");
+    setCurrentStep(0);
   };
   
   const handleSaveEdit = async () => {
@@ -240,7 +287,8 @@ export function ProposalDetailDialog({
       : conditionsData.paymentConditions;
     
     try {
-      await updateProposal.mutateAsync({
+      // Build update data including new JSONB fields
+      const updateData: any = {
         id: proposal.id,
         title: editTitle,
         price: editPrice ?? undefined,
@@ -256,11 +304,40 @@ export function ProposalDetailDialog({
         validity_days: conditionsData.validityDays,
         notes: conditionsData.notes || undefined,
         createVersion: true,
-      });
-      setIsEditing(false);
-      setTab("preview");
-    } catch (error) {
-      // Error already handled in hook
+      };
+
+      // Save using raw supabase for new JSONB fields
+      const { error } = await supabase
+        .from("proposals")
+        .update({
+          title: editTitle,
+          price: editPrice,
+          cta_text: editCtaText,
+          cta_color: editCtaColor,
+          contact_id: clientData.clientType === "contact" ? clientData.contactId : null,
+          company_id: clientData.clientType === "company" ? clientData.companyId : null,
+          billing_nif: clientData.billingNif || null,
+          billing_address: clientData.billingAddress || null,
+          payment_conditions: paymentConditionsValue || null,
+          validity_days: conditionsData.validityDays,
+          notes: conditionsData.notes || null,
+          scope_data: JSON.parse(JSON.stringify(scopeData)),
+          timeline_data: JSON.parse(JSON.stringify(timelineData.phases)),
+          references_data: JSON.parse(JSON.stringify(referencesData)),
+        })
+        .eq("id", proposal.id);
+
+      if (error) throw error;
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["proposal", proposalId] });
+      
+      toast.success("Proposta atualizada!");
+      setMode("view");
+      setCurrentStep(0);
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar proposta: ${error.message}`);
     }
   };
 
@@ -298,6 +375,24 @@ export function ProposalDetailDialog({
     }).format(value);
   };
 
+  // Completed steps tracking
+  const completedSteps = useMemo(() => {
+    const completed = new Set<number>();
+    // Items - has items
+    if (proposalItems && proposalItems.length > 0) completed.add(0);
+    // Scope - has objectives or deliverables
+    if (scopeData.objectives || scopeData.deliverables.length > 0) completed.add(1);
+    // Timeline - has phases
+    if (timelineData.phases.length > 0) completed.add(2);
+    // Conditions - always has defaults
+    if (conditionsData.paymentConditions) completed.add(3);
+    // References - has projects or testimonial
+    if (referencesData.projects.length > 0 || referencesData.testimonial.quote) completed.add(4);
+    // Client - has client selected
+    if (clientData.contactId || clientData.companyId) completed.add(5);
+    return completed;
+  }, [proposalItems, scopeData, timelineData, conditionsData, referencesData, clientData]);
+
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -314,55 +409,237 @@ export function ProposalDetailDialog({
 
   const statusInfo = statusConfig[proposal.status];
 
+  // Render step content
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // Items
+        return (
+          <div className="h-full">
+            <POSProposalItemsEditor 
+              proposalId={proposalId} 
+              onSaved={async () => {
+                await queryClient.refetchQueries({ 
+                  queryKey: ["proposal", proposalId] 
+                });
+              }}
+            />
+          </div>
+        );
+      case 1: // Scope
+        return (
+          <ScrollArea className="h-full">
+            <div className="max-w-3xl mx-auto p-1">
+              <ProposalScopeSection
+                data={scopeData}
+                onChange={setScopeData}
+                disabled={mode !== "edit"}
+              />
+            </div>
+          </ScrollArea>
+        );
+      case 2: // Timeline
+        return (
+          <ScrollArea className="h-full">
+            <div className="max-w-3xl mx-auto p-1">
+              <ProposalTimelineSection
+                data={timelineData}
+                onChange={setTimelineData}
+                disabled={mode !== "edit"}
+              />
+            </div>
+          </ScrollArea>
+        );
+      case 3: // Conditions
+        return (
+          <ScrollArea className="h-full">
+            <div className="max-w-2xl mx-auto p-1">
+              <ProposalConditionsSection
+                data={conditionsData}
+                onChange={setConditionsData}
+                createdAt={proposal?.created_at}
+                disabled={mode !== "edit"}
+              />
+            </div>
+          </ScrollArea>
+        );
+      case 4: // References
+        return (
+          <ScrollArea className="h-full">
+            <div className="max-w-4xl mx-auto p-1">
+              <ProposalReferencesSection
+                data={referencesData}
+                onChange={setReferencesData}
+                disabled={mode !== "edit"}
+              />
+            </div>
+          </ScrollArea>
+        );
+      case 5: // Client
+        return (
+          <ScrollArea className="h-full">
+            <div className="max-w-2xl mx-auto p-1">
+              <ProposalClientSection
+                data={clientData}
+                onChange={setClientData}
+                disabled={mode !== "edit"}
+              />
+            </div>
+          </ScrollArea>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-        {/* Premium Header */}
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-b">
-          {/* Top Bar with Title and Actions */}
-          <div className="px-6 py-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <FileText className="h-5 w-5 text-primary" />
-                  </div>
-                  <Badge 
-                    variant={statusInfo.variant} 
-                    className={cn("font-medium", statusInfo.className)}
-                  >
-                    {statusInfo.label}
-                  </Badge>
+      <DialogContent className="max-w-7xl h-[95vh] flex flex-col p-0 gap-0 overflow-hidden">
+        {/* Compact Header */}
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-b shrink-0">
+          <div className="px-4 md:px-6 py-3">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left: Title and Status */}
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="p-1.5 rounded-lg bg-primary/10 shrink-0">
+                  <FileText className="h-4 w-4 text-primary" />
                 </div>
-                <h2 className="text-xl font-semibold text-foreground truncate">
-                  {proposal.title}
-                </h2>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base md:text-lg font-semibold text-foreground truncate">
+                      {proposal.title}
+                    </h2>
+                    <Badge 
+                      variant={statusInfo.variant} 
+                      className={cn("font-medium shrink-0", statusInfo.className)}
+                    >
+                      {statusInfo.label}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-0.5">
+                    <span className="flex items-center gap-1">
+                      <Building2 className="h-3 w-3" />
+                      {proposal.opportunity?.title || "-"}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name || "-"}
+                    </span>
+                    <span className="flex items-center gap-1 font-semibold text-primary">
+                      <Euro className="h-3 w-3" />
+                      {formatCurrency(displayPrice ?? null, proposal.currency)}
+                    </span>
+                    {proposalItems && proposalItems.length > 0 && (
+                      <span className={cn(
+                        "flex items-center gap-1",
+                        marginPct >= 30 ? "text-green-600" : "text-red-600"
+                      )}>
+                        <TrendingUp className="h-3 w-3" />
+                        {marginPct.toFixed(0)}% margem
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
               
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {/* Edit Button - always visible for draft/published */}
-                {(proposal.status === "draft" || proposal.status === "published") && !isEditing && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleStartEditing}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                )}
-                
-                {/* Save/Cancel when editing */}
-                {isEditing && (
+              {/* Right: Actions */}
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Account Manager Select */}
+                <Select
+                  value={proposal.assigned_to || "_none"}
+                  onValueChange={handleAssignedToChange}
+                >
+                  <SelectTrigger className="w-auto h-8 text-xs border-muted gap-1 hidden md:flex">
+                    <UserCheck className="h-3.5 w-3.5" />
+                    <SelectValue>
+                      {proposal.assigned_to_profile ? (
+                        <span className="truncate max-w-24">{proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email}</span>
+                      ) : (
+                        "Responsável"
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhum</SelectItem>
+                    {workspaceMembers?.map((member) => (
+                      <SelectItem key={member.user_id} value={member.user_id}>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={member.profile?.avatar_url || undefined} />
+                            <AvatarFallback className="text-[10px]">
+                              {member.profile?.full_name?.charAt(0) || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{member.profile?.full_name || member.profile?.email}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {mode === "view" ? (
+                  <>
+                    {proposalItems && proposalItems.length > 0 && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowDocumentPreview(true)}
+                        className="hidden md:flex"
+                      >
+                        <FileSearch className="h-4 w-4 mr-1" />
+                        Pré-visualizar
+                      </Button>
+                    )}
+                    {(proposal.status === "draft" || proposal.status === "published") && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleStartEditing}
+                      >
+                        <Pencil className="h-4 w-4 mr-1" />
+                        <span className="hidden md:inline">Editar</span>
+                      </Button>
+                    )}
+                    {proposal.status === "draft" && (
+                      <Button 
+                        onClick={handlePublish} 
+                        disabled={publishProposal.isPending}
+                        size="sm"
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        {publishProposal.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-1" />
+                            <span className="hidden md:inline">Publicar</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    {proposal.status === "published" && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(getPublicUrl(proposal.slug), "_blank")}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </>
+                ) : (
                   <>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={handleCancelEdit}
                     >
-                      <X className="h-4 w-4 mr-2" />
-                      Cancelar
+                      <X className="h-4 w-4 mr-1" />
+                      <span className="hidden md:inline">Cancelar</span>
                     </Button>
                     <Button 
                       size="sm" 
@@ -371,287 +648,86 @@ export function ProposalDetailDialog({
                       className="bg-green-600 hover:bg-green-700"
                     >
                       {updateProposal.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Save className="h-4 w-4 mr-2" />
+                        <>
+                          <Save className="h-4 w-4 mr-1" />
+                          <span className="hidden md:inline">Guardar</span>
+                        </>
                       )}
-                      Guardar
                     </Button>
                   </>
                 )}
-                
-                {/* Preview Document Button - always visible when items exist */}
-                {proposalItems && proposalItems.length > 0 && !isEditing && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowDocumentPreview(true)}
-                  >
-                    <FileSearch className="h-4 w-4 mr-2" />
-                    Pré-visualizar
-                  </Button>
-                )}
-                
-                {proposal.status === "draft" && !isEditing && (
-                  <Button 
-                    onClick={handlePublish} 
-                    disabled={publishProposal.isPending}
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    {publishProposal.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
-                    Publicar
-                  </Button>
-                )}
-                {proposal.status === "published" && !isEditing && (
-                  <>
-                    <Button variant="outline" size="sm" onClick={handleCopyLink}>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copiar Link
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        window.open(getPublicUrl(proposal.slug), "_blank")
-                      }
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Abrir
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Info Cards Row */}
-          <div className="px-6 pb-4">
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-              {/* Opportunity */}
-              <div className="bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Building2 className="h-3.5 w-3.5" />
-                  <span className="text-xs font-medium uppercase tracking-wide">Oportunidade</span>
-                </div>
-                <p className="font-medium text-sm truncate">
-                  {proposal.opportunity?.title || "-"}
-                </p>
-              </div>
-
-              {/* Client */}
-              <div className="bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <User className="h-3.5 w-3.5" />
-                  <span className="text-xs font-medium uppercase tracking-wide">Cliente</span>
-                </div>
-                <p className="font-medium text-sm truncate">
-                  {proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name || "-"}
-                </p>
-              </div>
-
-              {/* Value */}
-              <div className="bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Euro className="h-3.5 w-3.5" />
-                  <span className="text-xs font-medium uppercase tracking-wide">Valor</span>
-                </div>
-                <p className="font-semibold text-sm text-primary">
-                  {formatCurrency(displayPrice ?? null, proposal.currency)}
-                </p>
-              </div>
-
-              {/* Cost / Margin - Internal Only */}
-              <div className="bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  <span className="text-xs font-medium uppercase tracking-wide">Custo / Margem</span>
-                </div>
-                {proposalItems && proposalItems.length > 0 ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{formatCurrency(totalCost, proposal.currency)}</span>
-                    <span className={cn(
-                      "font-semibold text-sm",
-                      marginPct >= 30 ? "text-green-600" : "text-red-600"
-                    )}>
-                      +{formatCurrency(totalMargin, proposal.currency)} ({marginPct.toFixed(0)}%)
-                    </span>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">-</p>
-                )}
-              </div>
-
-              {/* Account Manager */}
-              <div className="bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <UserCheck className="h-3.5 w-3.5" />
-                  <span className="text-xs font-medium uppercase tracking-wide">Responsável</span>
-                </div>
-                <Select
-                  value={proposal.assigned_to || "_none"}
-                  onValueChange={handleAssignedToChange}
-                >
-                  <SelectTrigger className="h-7 text-xs border-0 bg-transparent px-0 shadow-none hover:bg-muted/50 -ml-1">
-                    <SelectValue placeholder="Selecionar...">
-                      {proposal.assigned_to_profile ? (
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-5 w-5">
-                            <AvatarImage src={proposal.assigned_to_profile.avatar_url || undefined} />
-                            <AvatarFallback className="text-[10px]">
-                              {proposal.assigned_to_profile.full_name?.charAt(0) || proposal.assigned_to_profile.email?.charAt(0) || "?"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="truncate">{proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">Nenhum</span>
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">
-                      <span className="text-muted-foreground">Nenhum</span>
-                    </SelectItem>
-                    {workspaceMembers?.map((member) => (
-                      <SelectItem key={member.user_id} value={member.user_id}>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-5 w-5">
-                            <AvatarImage src={member.profile?.avatar_url || undefined} />
-                            <AvatarFallback className="text-[10px]">
-                              {member.profile?.full_name?.charAt(0) || member.profile?.email?.charAt(0) || "?"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>{member.profile?.full_name || member.profile?.email || "Sem nome"}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Created Date */}
-              <div className="bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Calendar className="h-3.5 w-3.5" />
-                  <span className="text-xs font-medium uppercase tracking-wide">Criada em</span>
-                </div>
-                <p className="font-medium text-sm">
-                  {format(new Date(proposal.created_at), "dd MMM yyyy", { locale: pt })}
-                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs Section */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <Tabs
-            value={tab}
-            onValueChange={(v) =>
-              setTab(v as "preview" | "edit" | "items" | "client" | "conditions" | "versions" | "activity")
-            }
-            className="flex-1 flex flex-col min-h-0"
-          >
-            <div className="flex items-center justify-between px-6 py-3 border-b bg-muted/30">
-              <TabsList className="bg-transparent p-0 h-auto gap-1 flex-wrap">
-                <TabsTrigger 
-                  value="preview"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Visualização
-                </TabsTrigger>
-                {isEditing && (
-                  <>
-                    <TabsTrigger 
-                      value="edit"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Detalhes
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="items"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
-                    >
-                      <Package className="h-4 w-4 mr-2" />
-                      Itens ({proposalItems?.length || 0})
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="client"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Cliente
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="conditions"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Condições
-                    </TabsTrigger>
-                  </>
-                )}
-                <TabsTrigger 
-                  value="versions"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
-                >
-                  <History className="h-4 w-4 mr-2" />
-                  Versões ({versions?.length || 0})
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="activity"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
-                >
-                  <Activity className="h-4 w-4 mr-2" />
-                  Atividade
-                </TabsTrigger>
-              </TabsList>
-
-              {/* View Mode Toggle */}
-              {tab === "preview" && (
-                <ProposalViewToggle 
-                  viewMode={viewMode} 
-                  onChange={setViewMode} 
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {mode === "edit" ? (
+            // Edit Mode - Step Navigation
+            <div className="flex-1 flex flex-col min-h-0">
+              {/* Step Navigation */}
+              <div className="px-4 md:px-6 py-4 border-b bg-muted/30 shrink-0">
+                <ProposalStepNavigation
+                  currentStep={currentStep}
+                  onStepChange={setCurrentStep}
+                  completedSteps={completedSteps}
                 />
-              )}
-            </div>
+              </div>
 
-            <TabsContent value="preview" className="flex-1 min-h-0 mt-0 p-6 bg-muted/20">
-              <ScrollArea className="h-full">
-                {viewMode === "internal" ? (
-                  <ProposalInternalView
-                    proposal={proposal}
-                    items={proposalItems?.map(item => ({
-                      id: item.id,
-                      name: item.name,
-                      description: item.description,
-                      quantity: item.quantity,
-                      unit_price: item.unit_price,
-                      total_price: item.total_price || (item.quantity * item.unit_price),
-                      is_enabled: item.is_enabled,
-                      cost_snapshot: item.cost_snapshot,
-                      operational_cost_snapshot: item.operational_cost_snapshot,
-                    }))}
-                    onItemToggle={handleItemToggle}
+              {/* Step Content */}
+              <div className="flex-1 min-h-0 p-4 md:p-6 overflow-hidden">
+                {renderStepContent()}
+              </div>
+            </div>
+          ) : (
+            // View Mode - Tabs for Preview/Versions/Activity
+            <Tabs
+              value={activeViewTab}
+              onValueChange={(v) => setActiveViewTab(v as "preview" | "versions" | "activity")}
+              className="flex-1 flex flex-col min-h-0"
+            >
+              <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b bg-muted/30 shrink-0">
+                <TabsList className="bg-transparent p-0 h-auto gap-1">
+                  <TabsTrigger 
+                    value="preview"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Visualização
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="versions"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
+                  >
+                    <History className="h-4 w-4 mr-2" />
+                    Versões ({versions?.length || 0})
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="activity"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5"
+                  >
+                    <Activity className="h-4 w-4 mr-2" />
+                    Atividade
+                  </TabsTrigger>
+                </TabsList>
+
+                {activeViewTab === "preview" && (
+                  <ProposalViewToggle 
+                    viewMode={viewMode} 
+                    onChange={setViewMode} 
                   />
-                ) : (
-                  <ProposalClientDocument
-                    proposal={proposal}
-                    items={proposalItems?.map(item => {
-                      // Get product image
-                      const productImages = item.product?.images;
-                      const primaryIndex = item.product?.primary_image_index ?? 0;
-                      const imageUrl = productImages && productImages.length > 0 
-                        ? productImages[primaryIndex] || productImages[0]
-                        : null;
-                      
-                      return {
+                )}
+              </div>
+
+              <TabsContent value="preview" className="flex-1 min-h-0 mt-0 p-4 md:p-6 bg-muted/20">
+                <ScrollArea className="h-full">
+                  {viewMode === "internal" ? (
+                    <ProposalInternalView
+                      proposal={proposal}
+                      items={proposalItems?.map(item => ({
                         id: item.id,
                         name: item.name,
                         description: item.description,
@@ -659,207 +735,99 @@ export function ProposalDetailDialog({
                         unit_price: item.unit_price,
                         total_price: item.total_price || (item.quantity * item.unit_price),
                         is_enabled: item.is_enabled,
-                        image_url: imageUrl,
-                      };
-                    })}
-                    workspace={workspaceData as Record<string, unknown> & { id: string; name: string }}
-                  />
-                )}
-              </ScrollArea>
-            </TabsContent>
+                        cost_snapshot: item.cost_snapshot,
+                        operational_cost_snapshot: item.operational_cost_snapshot,
+                      }))}
+                      onItemToggle={handleItemToggle}
+                    />
+                  ) : (
+                    <ProposalClientDocument
+                      proposal={proposal}
+                      items={proposalItems?.map(item => {
+                        const productImages = item.product?.images;
+                        const primaryIndex = item.product?.primary_image_index ?? 0;
+                        const imageUrl = productImages && productImages.length > 0 
+                          ? productImages[primaryIndex] || productImages[0]
+                          : null;
+                        
+                        return {
+                          id: item.id,
+                          name: item.name,
+                          description: item.description,
+                          quantity: item.quantity,
+                          unit_price: item.unit_price,
+                          total_price: item.total_price || (item.quantity * item.unit_price),
+                          is_enabled: item.is_enabled,
+                          image_url: imageUrl,
+                        };
+                      })}
+                      workspace={workspaceData as Record<string, unknown> & { id: string; name: string }}
+                    />
+                  )}
+                </ScrollArea>
+              </TabsContent>
 
-            {/* Edit Tab Content */}
-            <TabsContent value="edit" className="flex-1 min-h-0 mt-0 p-6">
-              <ScrollArea className="h-full">
-                <div className="max-w-2xl mx-auto space-y-6">
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Informações da Proposta</h3>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-title">Título da Proposta</Label>
-                        <Input
-                          id="edit-title"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          placeholder="Ex: Proposta de Serviços de Marketing"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-price">Valor (€)</Label>
-                        <Input
-                          id="edit-price"
-                          type="number"
-                          value={editPrice ?? ""}
-                          onChange={(e) => setEditPrice(e.target.value ? parseFloat(e.target.value) : null)}
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Call to Action</h3>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-cta-text">Texto do Botão</Label>
-                        <Input
-                          id="edit-cta-text"
-                          value={editCtaText}
-                          onChange={(e) => setEditCtaText(e.target.value)}
-                          placeholder="Ex: Aceitar Proposta"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-cta-color">Cor do Botão</Label>
-                        <div className="flex gap-3 items-center">
-                          <Input
-                            id="edit-cta-color"
-                            type="color"
-                            value={editCtaColor || "#3b82f6"}
-                            onChange={(e) => setEditCtaColor(e.target.value)}
-                            className="w-16 h-10 p-1 cursor-pointer"
-                          />
-                          <Input
-                            value={editCtaColor || "#3b82f6"}
-                            onChange={(e) => setEditCtaColor(e.target.value)}
-                            placeholder="#3b82f6"
-                            className="flex-1"
-                          />
-                          <div 
-                            className="h-10 px-4 rounded-md flex items-center justify-center text-white font-medium text-sm"
-                            style={{ backgroundColor: editCtaColor || "#3b82f6" }}
-                          >
-                            {editCtaText || "Preview"}
+              <TabsContent value="versions" className="flex-1 min-h-0 mt-0 p-4 md:p-6">
+                <ScrollArea className="h-full">
+                  <div className="space-y-3 max-w-2xl mx-auto">
+                    {versions?.map((version) => (
+                      <Card key={version.id} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Versão {version.version}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {version.change_summary}
+                            </p>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button variant="outline" onClick={handleCancelEdit}>
-                      <X className="h-4 w-4 mr-2" />
-                      Cancelar
-                    </Button>
-                    <Button 
-                      onClick={handleSaveEdit}
-                      disabled={updateProposal.isPending}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {updateProposal.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      Guardar Alterações
-                    </Button>
-                  </div>
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            {/* Items Tab Content - POS Interface */}
-            <TabsContent value="items" className="flex-1 min-h-0 mt-0 p-4">
-              <POSProposalItemsEditor 
-                proposalId={proposalId} 
-                onSaved={async () => {
-                  // Forçar refetch para atualizar o header com novo preço
-                  await queryClient.refetchQueries({ 
-                    queryKey: ["proposal", proposalId] 
-                  });
-                }}
-              />
-            </TabsContent>
-
-            {/* Client Tab Content */}
-            <TabsContent value="client" className="flex-1 min-h-0 mt-0 p-6">
-              <ScrollArea className="h-full">
-                <div className="max-w-2xl mx-auto">
-                  <ProposalClientSection
-                    data={clientData}
-                    onChange={setClientData}
-                    disabled={!isEditing}
-                  />
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            {/* Conditions Tab Content */}
-            <TabsContent value="conditions" className="flex-1 min-h-0 mt-0 p-6">
-              <ScrollArea className="h-full">
-                <div className="max-w-2xl mx-auto">
-                  <ProposalConditionsSection
-                    data={conditionsData}
-                    onChange={setConditionsData}
-                    createdAt={proposal?.created_at}
-                    disabled={!isEditing}
-                  />
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="versions" className="flex-1 min-h-0 mt-0 p-6">
-              <ScrollArea className="h-full">
-                <div className="space-y-3">
-                  {versions?.map((version) => (
-                    <Card key={version.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Versão {version.version}</p>
                           <p className="text-sm text-muted-foreground">
-                            {version.change_summary}
+                            {format(new Date(version.created_at), "dd/MM/yyyy HH:mm", {
+                              locale: pt,
+                            })}
                           </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(version.created_at), "dd/MM/yyyy HH:mm", {
-                            locale: pt,
-                          })}
-                        </p>
-                      </div>
-                    </Card>
-                  ))}
-                  {(!versions || versions.length === 0) && (
-                    <p className="text-center text-muted-foreground py-8">
-                      Nenhuma versão registrada.
-                    </p>
-                  )}
-                </div>
-              </ScrollArea>
-            </TabsContent>
+                      </Card>
+                    ))}
+                    {(!versions || versions.length === 0) && (
+                      <p className="text-center text-muted-foreground py-8">
+                        Nenhuma versão registrada.
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
 
-            <TabsContent value="activity" className="flex-1 min-h-0 mt-0 p-6">
-              <ScrollArea className="h-full">
-                <div className="space-y-3">
-                  {activity?.map((log) => (
-                    <Card key={log.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium capitalize">{log.action}</p>
-                          {log.details && (
-                            <p className="text-sm text-muted-foreground">
-                              {JSON.stringify(log.details)}
-                            </p>
-                          )}
+              <TabsContent value="activity" className="flex-1 min-h-0 mt-0 p-4 md:p-6">
+                <ScrollArea className="h-full">
+                  <div className="space-y-3 max-w-2xl mx-auto">
+                    {activity?.map((log) => (
+                      <Card key={log.id} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium capitalize">{log.action}</p>
+                            {log.details && (
+                              <p className="text-sm text-muted-foreground">
+                                {JSON.stringify(log.details)}
+                              </p>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", {
+                              locale: pt,
+                            })}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", {
-                            locale: pt,
-                          })}
-                        </p>
-                      </div>
-                    </Card>
-                  ))}
-                  {(!activity || activity.length === 0) && (
-                    <p className="text-center text-muted-foreground py-8">
-                      Nenhuma atividade registrada.
-                    </p>
-                  )}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
+                      </Card>
+                    ))}
+                    {(!activity || activity.length === 0) && (
+                      <p className="text-center text-muted-foreground py-8">
+                        Nenhuma atividade registrada.
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </DialogContent>
 
@@ -870,7 +838,6 @@ export function ProposalDetailDialog({
           onOpenChange={setShowDocumentPreview}
           proposal={proposal}
           items={proposalItems.map(item => {
-            // Get product image
             const productImages = item.product?.images;
             const primaryIndex = item.product?.primary_image_index ?? 0;
             const imageUrl = productImages && productImages.length > 0 

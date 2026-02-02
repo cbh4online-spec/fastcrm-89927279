@@ -160,3 +160,47 @@ export interface CreateProposalTemplateInput {
   cta_text?: string;
   cta_color?: string;
 }
+
+// Scope Section Types
+export interface ScopeData {
+  objectives: string;
+  deliverables: string[];
+  exclusions: string[];
+  assumptions: string;
+}
+
+// Timeline Section Types
+export interface TimelinePhase {
+  id: string;
+  type: "phase" | "milestone";
+  title: string;
+  duration?: number;
+  week?: number;
+  description?: string;
+}
+
+export interface TimelineData {
+  phases: TimelinePhase[];
+  startDate?: string;
+}
+
+// References Section Types
+export interface ProjectReference {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+}
+
+export interface Testimonial {
+  quote: string;
+  author: string;
+  company: string;
+  role?: string;
+}
+
+export interface ReferencesData {
+  projects: ProjectReference[];
+  testimonial: Testimonial;
+  certifications: string[];
+}
