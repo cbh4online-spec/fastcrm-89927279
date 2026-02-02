@@ -501,6 +501,8 @@ export interface ProposalItem {
     base_price: number | null;
     direct_cost: number | null;
     operational_cost: number | null;
+    images: string[] | null;
+    primary_image_index: number | null;
   } | null;
 }
 
@@ -514,7 +516,7 @@ export function useProposalItems(proposalId: string | undefined) {
         .from("proposal_items")
         .select(`
           *,
-          product:products(id, name, base_price, direct_cost, operational_cost)
+          product:products(id, name, base_price, direct_cost, operational_cost, images, primary_image_index)
         `)
         .eq("proposal_id", proposalId)
         .order("position", { ascending: true });

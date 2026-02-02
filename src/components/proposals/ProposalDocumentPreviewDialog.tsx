@@ -1,12 +1,13 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X, Printer, Download, ArrowLeft, Eye } from "lucide-react";
+import { X, Printer, Download, ArrowLeft, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProposalClientDocument } from "./ProposalClientDocument";
 import type { Proposal } from "@/types/proposal";
 import type { PreviewItem } from "./ProposalPreview";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface WorkspaceData {
   id: string;
@@ -41,44 +42,98 @@ export function ProposalDocumentPreviewDialog({
   items,
   workspace,
 }: ProposalDocumentPreviewDialogProps) {
+  const documentRef = React.useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  const { toast } = useToast();
+
   const handlePrint = () => {
     window.print();
   };
 
   const handleDownload = async () => {
-    // Dynamic import for PDF generation
-    const { jsPDF } = await import("jspdf");
-    const doc = new jsPDF();
+    if (!documentRef.current) return;
     
-    // Simple PDF with proposal info
-    doc.setFontSize(20);
-    doc.text(`Proposta: ${proposal.title}`, 20, 30);
-    doc.setFontSize(12);
-    doc.text(`Nº: ${proposal.slug.toUpperCase()}`, 20, 45);
-    doc.text(`Cliente: ${proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name || '-'}`, 20, 55);
+    setIsGenerating(true);
     
-    // Items
-    let yPos = 75;
-    doc.setFontSize(14);
-    doc.text("Itens:", 20, yPos);
-    yPos += 10;
-    
-    doc.setFontSize(10);
-    items.filter(i => i.is_enabled !== false).forEach((item, idx) => {
-      doc.text(`${idx + 1}. ${item.name} - ${item.quantity}x ${item.unit_price.toFixed(2)}€ = ${item.total_price.toFixed(2)}€`, 20, yPos);
-      yPos += 8;
-    });
-    
-    // Total
-    const total = items.filter(i => i.is_enabled !== false).reduce((sum, i) => sum + i.total_price, 0);
-    yPos += 10;
-    doc.setFontSize(12);
-    doc.text(`Total (s/IVA): ${total.toFixed(2)}€`, 20, yPos);
-    doc.text(`IVA (23%): ${(total * 0.23).toFixed(2)}€`, 20, yPos + 10);
-    doc.setFontSize(14);
-    doc.text(`Total: ${(total * 1.23).toFixed(2)}€`, 20, yPos + 25);
-    
-    doc.save(`proposta-${proposal.slug}.pdf`);
+    try {
+      // Dynamic imports for PDF generation
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf")
+      ]);
+      
+      // Capture the document as canvas
+      const canvas = await html2canvas(documentRef.current, {
+        scale: 2, // Higher resolution
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+      
+      // A4 dimensions in mm
+      const a4Width = 210;
+      const a4Height = 297;
+      
+      // Calculate dimensions to fit A4
+      const imgWidth = a4Width;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Create PDF
+      const doc = new jsPDF({
+        orientation: imgHeight > a4Height ? "portrait" : "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      
+      // Add pages if content is taller than one page
+      const pageHeight = a4Height - 20; // margins
+      let heightLeft = imgHeight;
+      let position = 10; // top margin
+      
+      // Add image to first page
+      doc.addImage(
+        canvas.toDataURL("image/jpeg", 0.95),
+        "JPEG",
+        10, // left margin
+        position,
+        imgWidth - 20, // width minus margins
+        imgHeight
+      );
+      
+      heightLeft -= pageHeight;
+      
+      // Add additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + 10;
+        doc.addPage();
+        doc.addImage(
+          canvas.toDataURL("image/jpeg", 0.95),
+          "JPEG",
+          10,
+          position,
+          imgWidth - 20,
+          imgHeight
+        );
+        heightLeft -= pageHeight;
+      }
+      
+      doc.save(`proposta-${proposal.slug}.pdf`);
+      
+      toast({
+        title: "PDF gerado",
+        description: "O documento foi exportado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Ocorreu um erro ao exportar o documento.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -95,7 +150,7 @@ export function ProposalDocumentPreviewDialog({
           )}
         >
           {/* Header Bar */}
-          <div className="flex-shrink-0 bg-background border-b shadow-sm">
+          <div className="flex-shrink-0 bg-background border-b shadow-sm print:hidden">
             <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto w-full">
               {/* Left - Back button */}
               <Button 
@@ -127,8 +182,17 @@ export function ProposalDocumentPreviewDialog({
                   <Printer className="h-4 w-4 mr-2" />
                   Imprimir
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleDownload}>
-                  <Download className="h-4 w-4 mr-2" />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleDownload}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
                   PDF
                 </Button>
                 <DialogPrimitive.Close asChild>
@@ -143,24 +207,26 @@ export function ProposalDocumentPreviewDialog({
 
           {/* Document Preview Area */}
           <ScrollArea className="flex-1">
-            <div className="py-8 px-4">
+            <div className="py-8 px-4 print:py-0 print:px-0">
               <div className="max-w-[210mm] mx-auto">
-                {/* Preview indicator banner */}
-                <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                {/* Preview indicator banner - hidden on print */}
+                <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-3 text-center print:hidden">
                   <p className="text-sm text-amber-800">
                     <Eye className="h-4 w-4 inline mr-2" />
                     Esta é uma pré-visualização. O cliente verá exactamente este documento.
                   </p>
                 </div>
 
-                {/* The actual document */}
-                <ProposalClientDocument
-                  proposal={proposal}
-                  items={items}
-                  workspace={workspace}
-                  showActions={false}
-                  allowItemToggle={false}
-                />
+                {/* The actual document - this is what gets captured for PDF */}
+                <div ref={documentRef}>
+                  <ProposalClientDocument
+                    proposal={proposal}
+                    items={items}
+                    workspace={workspace}
+                    showActions={false}
+                    allowItemToggle={false}
+                  />
+                </div>
               </div>
             </div>
           </ScrollArea>
