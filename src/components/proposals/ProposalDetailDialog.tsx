@@ -38,7 +38,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { ProposalPreview } from "./ProposalPreview";
-import { ProposalItemsEditor } from "./ProposalItemsEditor";
+import { POSProposalItemsEditor } from "./POSProposalItemsEditor";
 import { ProposalClientSection } from "./ProposalClientSection";
 import { ProposalConditionsSection } from "./ProposalConditionsSection";
 import { ProposalViewToggle } from "./ProposalViewToggle";
@@ -760,9 +760,9 @@ export function ProposalDetailDialog({
               </ScrollArea>
             </TabsContent>
 
-            {/* Items Tab Content */}
-            <TabsContent value="items" className="flex-1 min-h-0 mt-0 p-6">
-              <ProposalItemsEditor 
+            {/* Items Tab Content - POS Interface */}
+            <TabsContent value="items" className="flex-1 min-h-0 mt-0 p-4">
+              <POSProposalItemsEditor 
                 proposalId={proposalId} 
                 onSaved={async () => {
                   // Forçar refetch para atualizar o header com novo preço
