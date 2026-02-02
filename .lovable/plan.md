@@ -1,119 +1,179 @@
 
 
-# Plano: Corrigir Problemas no Documento de Proposta
+# Plano: Corrigir Preservação de Páginas no PDF
 
-## Problemas Identificados no PDF
+## Problema Identificado
 
-Após analisar o documento PDF gerado, encontrei os seguintes problemas:
+O algoritmo actual de geração de PDF:
+1. **Captura todo o documento como uma única imagem grande**
+2. **Fatia a imagem em intervalos fixos** (altura A4 - margens)
+3. **Ignora as secções lógicas** marcadas com `data-pdf-section`
 
-### 1. Problema de Layout na Página 1 (Capa)
-- A secção "Âmbito do Projecto" está a aparecer na mesma página que a capa
-- A capa deveria ocupar uma página A4 completa, mas está a "encolher" e permite que o conteúdo seguinte apareça ainda na primeira página
-- O footer com "Simples e Divertido" aparece mal posicionado - deveria estar no fundo da capa, mas está a meio
+Resultado: O conteúdo é cortado arbitrariamente, e a capa aparece junto com o Âmbito na mesma página.
 
-### 2. Problema nas Condições de Venda (Página 4)
-- **Condições mostra "50_adju" em vez do valor legível** - O campo `payment_conditions` guarda o valor técnico (`50_adju`) em vez de traduzir para a label legível
-- O valor está a ser mostrado como `50_adju` quando deveria aparecer "50% Adjudicação + 50% Entrega" ou similar
+## Solução: Captura por Secções
 
-### 3. Falta de Quebra de Página Após a Capa
-- O documento não força uma quebra de página após a capa
-- O conteúdo do Âmbito começa logo após a capa na mesma página, quebrando a estrutura pretendida
+Em vez de capturar o documento inteiro, capturar **cada secção separadamente** usando os atributos `data-pdf-section` já existentes, e adicionar cada secção ao PDF com gestão inteligente de quebras de página.
 
-### 4. Falta do IBAN
-- Na secção "Condições de Venda" não aparece o IBAN da empresa
-- Deveria mostrar o IBAN para facilitar o pagamento
+## Secções Existentes
 
-## Solução Proposta
-
-### 1. Corrigir Altura da Capa
-Garantir que a capa ocupa exactamente uma página A4 (1123px a 96 DPI) para forçar quebra de página:
-
-```typescript
-{/* ====== 1. CAPA DA PROPOSTA ====== */}
-<div 
-  data-pdf-section="cover" 
-  className="flex flex-col relative"
-  style={{ minHeight: '1090px' }} // ~A4 page height
->
+```html
+<div data-pdf-section="cover">...</div>      <!-- Página 1 - sempre separada -->
+<div data-pdf-section="scope">...</div>       <!-- Âmbito -->
+<div data-pdf-section="timeline">...</div>    <!-- Cronograma -->
+<div data-pdf-section="references">...</div>  <!-- Referências -->
+<div data-pdf-section="proposal">...</div>    <!-- Proposta e Condições -->
 ```
-
-### 2. Corrigir Tradução de Condições de Pagamento
-O problema é que o código actual procura o valor em `PAYMENT_CONDITIONS` mas o valor armazenado (`50_adju`) não existe nessa lista. Preciso verificar se há uma lista personalizada ou se o valor `custom` está a ser usado incorrectamente.
-
-```typescript
-// Actual - falha porque "50_adju" não está na lista
-const paymentLabel = proposal.payment_conditions 
-  ? PAYMENT_CONDITIONS.find(p => p.value === proposal.payment_conditions)?.label 
-    || proposal.payment_conditions // Cai aqui e mostra "50_adju"
-  : null;
-```
-
-A solução é:
-- Se o valor não for encontrado nas opções padrão, formatá-lo de forma legível
-- Ou verificar se `50_adju` é um valor personalizado que precisa de tratamento especial
-
-### 3. Garantir IBAN Visível
-Verificar se o `companyIban` está a ser passado correctamente e aparece no documento.
-
-## Ficheiros a Modificar
-
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/components/proposals/ProposalClientDocument.tsx` | Corrigir altura da capa; melhorar tratamento de condições de pagamento personalizadas |
 
 ## Implementação
 
-### Alteração 1: Forçar Altura da Capa para Página Completa
+### Ficheiro a Modificar
+
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/components/proposals/ProposalDocumentPreviewDialog.tsx` | Reescrever `handleDownload` com captura por secções |
+
+### Nova Lógica de Geração de PDF
 
 ```typescript
-{/* ====== 1. CAPA DA PROPOSTA ====== */}
-<div 
-  data-pdf-section="cover" 
-  className="flex flex-col relative"
-  style={{ minHeight: '1090px' }} // Força quebra de página A4
->
-```
-
-### Alteração 2: Melhorar Tratamento de Condições de Pagamento
-
-```typescript
-// Helper para formatar condições de pagamento personalizadas
-const formatPaymentCondition = (value: string): string => {
-  // Primeiro, procurar nas opções padrão
-  const standardOption = PAYMENT_CONDITIONS.find(p => p.value === value);
-  if (standardOption) return standardOption.label;
+const handleDownload = async () => {
+  // 1. Encontrar todas as secções
+  const sections = Array.from(
+    documentRef.current.querySelectorAll('[data-pdf-section]')
+  ) as HTMLElement[];
   
-  // Se for valor personalizado, formatar para ser legível
-  // Converter underscores para espaços e capitalizar
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase());
+  // 2. Capturar cada secção individualmente
+  const sectionData = [];
+  for (const section of sections) {
+    const sectionName = section.getAttribute('data-pdf-section');
+    const canvas = await html2canvas(section, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+    });
+    
+    // Calcular altura em mm
+    const widthPx = canvas.width / 2; // scale: 2
+    const heightPx = canvas.height / 2;
+    const scaleFactor = CONTENT_WIDTH_MM / widthPx;
+    const heightMM = heightPx * scaleFactor;
+    
+    sectionData.push({ 
+      canvas, 
+      heightMM, 
+      name: sectionName,
+      forceNewPage: sectionName === 'cover' // Capa sempre em página separada
+    });
+  }
+  
+  // 3. Criar PDF com quebras de página inteligentes
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const MARGIN = 10;
+  const A4_HEIGHT_MM = 297;
+  const CONTENT_WIDTH_MM = 210 - (MARGIN * 2);
+  const PAGE_CONTENT_HEIGHT = A4_HEIGHT_MM - (MARGIN * 2);
+  let currentY = MARGIN;
+  let isFirstSection = true;
+
+  for (const { canvas, heightMM, name, forceNewPage } of sectionData) {
+    const remainingSpace = PAGE_CONTENT_HEIGHT - (currentY - MARGIN);
+    
+    // Forçar nova página para a capa ou se a secção não couber
+    if (!isFirstSection && (forceNewPage || heightMM > remainingSpace)) {
+      pdf.addPage();
+      currentY = MARGIN;
+    }
+    
+    // Se a secção é maior que uma página, precisamos fatiá-la
+    if (heightMM > PAGE_CONTENT_HEIGHT) {
+      // Fatiar a secção em múltiplas páginas
+      let sliceStartMM = 0;
+      while (sliceStartMM < heightMM) {
+        const sliceHeightMM = Math.min(PAGE_CONTENT_HEIGHT, heightMM - sliceStartMM);
+        const sliceStartPx = (sliceStartMM / heightMM) * canvas.height;
+        const sliceHeightPx = (sliceHeightMM / heightMM) * canvas.height;
+        
+        // Criar canvas da fatia
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceHeightPx;
+        const ctx = sliceCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, sliceStartPx, canvas.width, sliceHeightPx, 
+                      0, 0, canvas.width, sliceHeightPx);
+        
+        if (sliceStartMM > 0) {
+          pdf.addPage();
+        }
+        
+        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG',
+                     MARGIN, MARGIN, CONTENT_WIDTH_MM, sliceHeightMM);
+        
+        sliceStartMM += sliceHeightMM;
+      }
+      currentY = MARGIN + (heightMM % PAGE_CONTENT_HEIGHT);
+    } else {
+      // Secção cabe na página actual
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG',
+                   MARGIN, currentY, CONTENT_WIDTH_MM, heightMM);
+      currentY += heightMM;
+    }
+    
+    // Após a capa, sempre começar nova página
+    if (name === 'cover') {
+      pdf.addPage();
+      currentY = MARGIN;
+    }
+    
+    isFirstSection = false;
+  }
+  
+  pdf.save(`proposta-${proposal.slug}.pdf`);
 };
-
-const paymentLabel = proposal.payment_conditions 
-  ? formatPaymentCondition(proposal.payment_conditions)
-  : null;
 ```
 
-### Alteração 3: Assegurar Visibilidade do IBAN
+## Comportamento Esperado
 
-Verificar que o IBAN está a ser exibido correctamente na secção de condições:
+| Secção | Comportamento |
+|--------|---------------|
+| **cover** | Sempre em página separada (página 1) |
+| **scope** | Começa na página 2, continua se necessário |
+| **timeline** | Começa nova página se não couber, senão continua |
+| **references** | Começa nova página se não couber, senão continua |
+| **proposal** | Começa nova página se não couber, senão continua |
 
-```typescript
-{companyIban && (
-  <p className="font-mono text-xs mt-1">
-    <strong>IBAN:</strong> {companyIban}
-  </p>
-)}
+## Diagrama do Fluxo
+
+```text
+┌─────────────────────────────────────────┐
+│  1. Encontrar secções [data-pdf-section]│
+└────────────────┬────────────────────────┘
+                 ▼
+┌─────────────────────────────────────────┐
+│  2. Para cada secção:                   │
+│     - Capturar com html2canvas          │
+│     - Calcular altura em mm             │
+└────────────────┬────────────────────────┘
+                 ▼
+┌─────────────────────────────────────────┐
+│  3. Para cada secção capturada:         │
+│     - É capa? → Página separada         │
+│     - Cabe na página? → Adicionar       │
+│     - Não cabe? → Nova página           │
+│     - Maior que página? → Fatiar        │
+└────────────────┬────────────────────────┘
+                 ▼
+┌─────────────────────────────────────────┐
+│  4. Guardar PDF                         │
+└─────────────────────────────────────────┘
 ```
 
-## Resultado Esperado
+## Resultado Final
 
-1. **Capa em página separada** - A capa ocupará uma página A4 completa, forçando o Âmbito a começar na página 2
-2. **Condições legíveis** - "50_adju" será mostrado como "50 Adju" ou com tratamento personalizado adequado
-3. **IBAN visível** - O IBAN da empresa aparecerá na secção de condições de venda
+1. **Página 1**: Capa (sempre sozinha)
+2. **Página 2+**: Âmbito do Projecto
+3. **Página 3+**: Cronograma (se não couber no espaço restante)
+4. **Página 4+**: Referências e Credenciais
+5. **Página 5+**: Proposta e Condições de Venda
 
-## Complexidade
-
-Baixa - Ajustes de CSS e lógica de formatação simples
+As secções serão preservadas como unidades lógicas, sem cortes arbitrários no meio do conteúdo.
 
