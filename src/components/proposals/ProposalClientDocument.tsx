@@ -29,6 +29,12 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
+// Helper function to truncate text for PDF compatibility (html2canvas doesn't support line-clamp)
+const truncateText = (text: string, maxLength: number): string => {
+  if (!text || text.length <= maxLength) return text;
+  return text.substring(0, maxLength).trim() + '...';
+};
+
 interface WorkspaceData {
   id: string;
   name: string;
@@ -288,12 +294,12 @@ export function ProposalClientDocument({
                             <Package className="h-5 w-5 text-gray-400" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={cn("font-medium text-gray-900 text-sm leading-tight break-words", !isEnabled && "line-through text-gray-500")}>
-                              {item.name}
+                            <p className={cn("font-medium text-gray-900 text-sm leading-tight", !isEnabled && "line-through text-gray-500")}>
+                              {truncateText(item.name, 60)}
                             </p>
                             {item.description && (
-                              <p className={cn("text-xs text-gray-500 mt-0.5 line-clamp-2 break-words", !isEnabled && "line-through")}>
-                                {item.description}
+                              <p className={cn("text-xs text-gray-500 mt-0.5", !isEnabled && "line-through")}>
+                                {truncateText(item.description, 80)}
                               </p>
                             )}
                           </div>
