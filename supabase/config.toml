@@ -171,3 +171,6 @@ verify_jwt = false
 
 [functions.ai-proposal-assistant]
 verify_jwt = false
+
+[functions.elevenlabs-proposal-token]
+verify_jwt = false

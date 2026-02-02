@@ -47,6 +47,7 @@ import { ProposalClientDocument } from "./ProposalClientDocument";
 import { ProposalDocumentPreviewDialog } from "./ProposalDocumentPreviewDialog";
 import { ProposalAIAssistantPanel } from "./ProposalAIAssistantPanel";
 import { AIPreviewDialog, PreviewList } from "./AIPreviewDialog";
+import { VoiceProposalAssistant, type VoiceScopeResult, type VoiceTimelineResult, type VoiceConditionsResult, type VoiceReferencesResult } from "./VoiceProposalAssistant";
 import { PAYMENT_CONDITIONS, type ClientType } from "./proposalConstants";
 import {
   useProposal,
@@ -678,6 +679,74 @@ export function ProposalDetailDialog({
               
               {/* Right: Actions */}
               <div className="flex items-center gap-2 shrink-0">
+                {/* Voice Assistant */}
+                {mode === "edit" && (
+                  <VoiceProposalAssistant
+                    proposalData={{
+                      id: proposalId,
+                      title: proposal?.title || "",
+                      price: displayPrice || 0,
+                      items: proposalItems?.map(i => ({
+                        name: i.name,
+                        quantity: i.quantity,
+                        unit_price: i.unit_price,
+                      })) || [],
+                    }}
+                    onScopeGenerated={(result: VoiceScopeResult) => {
+                      setScopeData({
+                        objectives: result.objectives,
+                        deliverables: result.deliverables,
+                        exclusions: result.exclusions,
+                        assumptions: result.assumptions,
+                        isAIGenerated: true,
+                      });
+                      setCurrentStep(1);
+                      toast.success("Âmbito gerado por voz!");
+                    }}
+                    onTimelineGenerated={(result: VoiceTimelineResult) => {
+                      setTimelineData({
+                        phases: result.phases.map((p, idx) => ({
+                          id: `voice-${idx}`,
+                          type: p.type,
+                          title: p.title,
+                          duration: p.duration,
+                          week: p.week,
+                          description: p.description,
+                        })),
+                        isAIGenerated: true,
+                      });
+                      setCurrentStep(2);
+                      toast.success("Cronograma gerado por voz!");
+                    }}
+                    onConditionsGenerated={(result: VoiceConditionsResult) => {
+                      const isCustom = !PAYMENT_CONDITIONS.some(p => p.value === result.paymentConditions);
+                      setConditionsData({
+                        paymentConditions: isCustom ? "custom" : result.paymentConditions,
+                        customPaymentConditions: isCustom ? result.paymentConditions : "",
+                        validityDays: result.validityDays,
+                        notes: result.notes,
+                        isAIGenerated: true,
+                      });
+                      setCurrentStep(3);
+                      toast.success("Condições geradas por voz!");
+                    }}
+                    onReferencesGenerated={(result: VoiceReferencesResult) => {
+                      setReferencesData({
+                        projects: result.projects.map((p, idx) => ({
+                          id: `voice-${idx}`,
+                          title: p.title,
+                          description: p.description,
+                        })),
+                        testimonial: { ...result.testimonial, role: result.testimonial.role || "" },
+                        certifications: result.certifications,
+                        isAIGenerated: true,
+                      });
+                      setCurrentStep(4);
+                      toast.success("Referências geradas por voz!");
+                    }}
+                  />
+                )}
+
                 {/* Account Manager Select */}
                 <Select
                   value={proposal.assigned_to || "_none"}
