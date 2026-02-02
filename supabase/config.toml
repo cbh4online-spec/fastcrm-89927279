@@ -168,3 +168,6 @@ verify_jwt = false
 
 [functions.marketing-webhook]
 verify_jwt = false
+
+[functions.ai-proposal-assistant]
+verify_jwt = false

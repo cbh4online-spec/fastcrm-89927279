@@ -11,16 +11,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Calendar, FileText, Clock } from "lucide-react";
+import { CreditCard, Calendar, FileText, Clock, Sparkles } from "lucide-react";
 import { PAYMENT_CONDITIONS, VALIDITY_DAYS_OPTIONS, type PaymentConditionValue } from "./proposalConstants";
 import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
+import { SectionAIAssistButton } from "./SectionAIAssistButton";
+import { AISuggestionIndicator } from "@/components/ai/AIConfidenceDisplay";
 
-interface ConditionsData {
+export interface ConditionsData {
   paymentConditions: string;
   customPaymentConditions: string;
   validityDays: number;
   notes: string;
+  isAIGenerated?: boolean;
 }
 
 interface ProposalConditionsSectionProps {
@@ -28,6 +31,8 @@ interface ProposalConditionsSectionProps {
   onChange: (data: ConditionsData) => void;
   createdAt?: string | Date;
   disabled?: boolean;
+  onGenerateWithAI?: () => void;
+  isGenerating?: boolean;
 }
 
 export function ProposalConditionsSection({
@@ -35,6 +40,8 @@ export function ProposalConditionsSection({
   onChange,
   createdAt,
   disabled = false,
+  onGenerateWithAI,
+  isGenerating = false,
 }: ProposalConditionsSectionProps) {
   // Calculate expiry date
   const expiryDate = useMemo(() => {
@@ -60,6 +67,26 @@ export function ProposalConditionsSection({
 
   return (
     <div className="space-y-6">
+      {/* AI Suggest Button */}
+      {onGenerateWithAI && !disabled && (
+        <div className="flex items-center justify-between p-3 rounded-lg border bg-gradient-to-r from-primary/5 to-purple-500/5 border-primary/20">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Sugerir condições de pagamento</span>
+          </div>
+          <SectionAIAssistButton
+            onClick={onGenerateWithAI}
+            isLoading={isGenerating}
+            label="Sugerir com IA"
+            tooltip="A IA irá sugerir condições baseadas no valor e tipo de cliente"
+          />
+        </div>
+      )}
+
+      {/* AI Generated Badge */}
+      {data.isAIGenerated && (
+        <AISuggestionIndicator isAIGenerated={true} />
+      )}
       {/* Payment Conditions */}
       <Card>
         <CardHeader className="pb-3">

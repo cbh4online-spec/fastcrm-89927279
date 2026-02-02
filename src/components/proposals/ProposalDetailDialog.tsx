@@ -29,13 +29,14 @@ import {
   TrendingUp,
   UserCheck,
   FileSearch,
+  Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { POSProposalItemsEditor } from "./POSProposalItemsEditor";
 import { ProposalClientSection } from "./ProposalClientSection";
-import { ProposalConditionsSection } from "./ProposalConditionsSection";
+import { ProposalConditionsSection, type ConditionsData } from "./ProposalConditionsSection";
 import { ProposalScopeSection, type ScopeData } from "./ProposalScopeSection";
 import { ProposalTimelineSection, type TimelineData, type TimelinePhase } from "./ProposalTimelineSection";
 import { ProposalReferencesSection, type ReferencesData } from "./ProposalReferencesSection";
@@ -44,6 +45,8 @@ import { ProposalViewToggle } from "./ProposalViewToggle";
 import { ProposalInternalView } from "./ProposalInternalView";
 import { ProposalClientDocument } from "./ProposalClientDocument";
 import { ProposalDocumentPreviewDialog } from "./ProposalDocumentPreviewDialog";
+import { ProposalAIAssistantPanel } from "./ProposalAIAssistantPanel";
+import { AIPreviewDialog, PreviewList } from "./AIPreviewDialog";
 import { PAYMENT_CONDITIONS, type ClientType } from "./proposalConstants";
 import {
   useProposal,
@@ -54,6 +57,7 @@ import {
   useProposalItems,
   useToggleProposalItem,
 } from "@/hooks/useProposals";
+import { useProposalAI, type ScopeResult, type TimelineResult, type ConditionsResult, type ReferencesResult } from "@/hooks/useProposalAI";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,7 +138,7 @@ export function ProposalDetailDialog({
   });
   
   // Conditions data state
-  const [conditionsData, setConditionsData] = useState({
+  const [conditionsData, setConditionsData] = useState<ConditionsData>({
     paymentConditions: "30_dias",
     customPaymentConditions: "",
     validityDays: 30,
@@ -146,6 +150,16 @@ export function ProposalDetailDialog({
   const [timelineData, setTimelineData] = useState<TimelineData>(DEFAULT_TIMELINE_DATA);
   const [referencesData, setReferencesData] = useState<ReferencesData>(DEFAULT_REFERENCES_DATA);
 
+  // AI Preview dialogs
+  const [showScopePreview, setShowScopePreview] = useState(false);
+  const [showTimelinePreview, setShowTimelinePreview] = useState(false);
+  const [showConditionsPreview, setShowConditionsPreview] = useState(false);
+  const [showReferencesPreview, setShowReferencesPreview] = useState(false);
+  const [pendingScopeResult, setPendingScopeResult] = useState<ScopeResult | null>(null);
+  const [pendingTimelineResult, setPendingTimelineResult] = useState<TimelineResult | null>(null);
+  const [pendingConditionsResult, setPendingConditionsResult] = useState<ConditionsResult | null>(null);
+  const [pendingReferencesResult, setPendingReferencesResult] = useState<ReferencesResult | null>(null);
+
   const { data: proposal, isLoading } = useProposal(proposalId);
   const { data: versions } = useProposalVersions(proposalId);
   const { data: activity } = useProposalActivity(proposalId);
@@ -154,6 +168,18 @@ export function ProposalDetailDialog({
   const publishProposal = usePublishProposal();
   const updateProposal = useUpdateProposal();
   const toggleItem = useToggleProposalItem();
+
+  // AI Hook
+  const {
+    generateScope,
+    generateTimeline,
+    suggestConditions,
+    suggestReferences,
+    isGeneratingScope,
+    isGeneratingTimeline,
+    isSuggestingConditions,
+    isSuggestingReferences,
+  } = useProposalAI();
   
   // Calculate real total from items
   const enabledItems = proposalItems?.filter(item => item.is_enabled !== false) || [];
@@ -433,6 +459,32 @@ export function ProposalDetailDialog({
                 data={scopeData}
                 onChange={setScopeData}
                 disabled={mode !== "edit"}
+                onGenerateWithAI={async () => {
+                  const proposalData = {
+                    id: proposalId,
+                    title: proposal?.title || "",
+                    price: displayPrice || 0,
+                    status: proposal?.status || "draft",
+                    items: proposalItems?.map(i => ({
+                      name: i.name,
+                      quantity: i.quantity,
+                      unit_price: i.unit_price,
+                      description: i.description || undefined,
+                    })) || [],
+                  };
+                  const result = await generateScope(proposalData);
+                  if (result) {
+                    setScopeData({
+                      objectives: result.objectives,
+                      deliverables: result.deliverables,
+                      exclusions: result.exclusions,
+                      assumptions: result.assumptions,
+                      isAIGenerated: true,
+                    });
+                    toast.success("Âmbito gerado com sucesso!");
+                  }
+                }}
+                isGenerating={isGeneratingScope}
               />
             </div>
           </ScrollArea>
@@ -445,6 +497,35 @@ export function ProposalDetailDialog({
                 data={timelineData}
                 onChange={setTimelineData}
                 disabled={mode !== "edit"}
+                onGenerateWithAI={async () => {
+                  const proposalData = {
+                    id: proposalId,
+                    title: proposal?.title || "",
+                    price: displayPrice || 0,
+                    status: proposal?.status || "draft",
+                    items: proposalItems?.map(i => ({
+                      name: i.name,
+                      quantity: i.quantity,
+                      unit_price: i.unit_price,
+                    })) || [],
+                  };
+                  const result = await generateTimeline(proposalData, scopeData);
+                  if (result) {
+                    setTimelineData({
+                      phases: result.phases.map((p, i) => ({
+                        id: `ai-${i}`,
+                        type: p.type,
+                        title: p.title,
+                        duration: p.duration,
+                        week: p.week,
+                        description: p.description,
+                      })),
+                      isAIGenerated: true,
+                    });
+                    toast.success("Cronograma gerado com sucesso!");
+                  }
+                }}
+                isGenerating={isGeneratingTimeline}
               />
             </div>
           </ScrollArea>
@@ -458,6 +539,32 @@ export function ProposalDetailDialog({
                 onChange={setConditionsData}
                 createdAt={proposal?.created_at}
                 disabled={mode !== "edit"}
+                onGenerateWithAI={async () => {
+                  const proposalData = {
+                    id: proposalId,
+                    title: proposal?.title || "",
+                    price: displayPrice || 0,
+                    status: proposal?.status || "draft",
+                    items: proposalItems?.map(i => ({
+                      name: i.name,
+                      quantity: i.quantity,
+                      unit_price: i.unit_price,
+                    })) || [],
+                  };
+                  const result = await suggestConditions(proposalData);
+                  if (result) {
+                    const isCustom = !PAYMENT_CONDITIONS.some(p => p.value === result.paymentConditions);
+                    setConditionsData({
+                      paymentConditions: isCustom ? "custom" : result.paymentConditions,
+                      customPaymentConditions: isCustom ? result.paymentConditions : "",
+                      validityDays: result.validityDays,
+                      notes: result.notes,
+                      isAIGenerated: true,
+                    });
+                    toast.success("Condições sugeridas com sucesso!");
+                  }
+                }}
+                isGenerating={isSuggestingConditions}
               />
             </div>
           </ScrollArea>
@@ -470,6 +577,34 @@ export function ProposalDetailDialog({
                 data={referencesData}
                 onChange={setReferencesData}
                 disabled={mode !== "edit"}
+                onGenerateWithAI={async () => {
+                  const proposalData = {
+                    id: proposalId,
+                    title: proposal?.title || "",
+                    price: displayPrice || 0,
+                    status: proposal?.status || "draft",
+                    items: proposalItems?.map(i => ({
+                      name: i.name,
+                      quantity: i.quantity,
+                      unit_price: i.unit_price,
+                    })) || [],
+                  };
+                  const result = await suggestReferences(proposalData);
+                  if (result) {
+                    setReferencesData({
+                      projects: result.projects.map((p, i) => ({
+                        id: `ai-${i}`,
+                        title: p.title,
+                        description: p.description,
+                      })),
+                      testimonial: result.testimonial,
+                      certifications: result.certifications,
+                      isAIGenerated: true,
+                    });
+                    toast.success("Referências sugeridas com sucesso!");
+                  }
+                }}
+                isGenerating={isSuggestingReferences}
               />
             </div>
           </ScrollArea>
