@@ -1,231 +1,119 @@
 
 
-# Plano: Reorganizar Estrutura do Documento de Proposta
+# Plano: Corrigir Problemas no Documento de Proposta
 
-## Estrutura Actual vs Pretendida
+## Problemas Identificados no PDF
 
-| Ordem Actual | Ordem Pretendida |
-|-------------|------------------|
-| 1. Cabeçalho (logo, empresa, nº proposta) | 1. **Capa da Proposta** (página separada com título e cliente) |
-| 2. Dados do Cliente | 2. **Âmbito do Projecto** (objectivos, entregáveis, exclusões) |
-| 3. Tabela de Itens (produtos/serviços) | 3. **Cronograma** (fases e marcos) |
-| 4. Totais (subtotal, IVA, total) | 4. **Referências e Credenciais** (projectos, testemunho) |
-| 5. Âmbito do Projecto | 5. **Proposta e Condições** (itens, preços, pagamento) |
-| 6. Cronograma | |
-| 7. Referências | |
-| 8. Rodapé (pagamento, assinatura) | |
+Após analisar o documento PDF gerado, encontrei os seguintes problemas:
 
-## Nova Estrutura do Documento
+### 1. Problema de Layout na Página 1 (Capa)
+- A secção "Âmbito do Projecto" está a aparecer na mesma página que a capa
+- A capa deveria ocupar uma página A4 completa, mas está a "encolher" e permite que o conteúdo seguinte apareça ainda na primeira página
+- O footer com "Simples e Divertido" aparece mal posicionado - deveria estar no fundo da capa, mas está a meio
 
-### Página 1: CAPA DA PROPOSTA
-```text
-┌─────────────────────────────────────────────────┐
-│                                                 │
-│              [LOGO DA EMPRESA]                  │
-│                                                 │
-│                  PROPOSTA                       │
-│              Nº PROP-2026-001                   │
-│                                                 │
-│         ─────────────────────────               │
-│                                                 │
-│                 Preparado para:                 │
-│             [NOME DO CLIENTE]                   │
-│              [Morada Cliente]                   │
-│                                                 │
-│                                                 │
-│           Data: 02 de Fevereiro 2026            │
-│         Válido até: 02 de Março 2026            │
-│                                                 │
-│                                                 │
-│         ─────────────────────────               │
-│         [Dados de contacto empresa]             │
-└─────────────────────────────────────────────────┘
+### 2. Problema nas Condições de Venda (Página 4)
+- **Condições mostra "50_adju" em vez do valor legível** - O campo `payment_conditions` guarda o valor técnico (`50_adju`) em vez de traduzir para a label legível
+- O valor está a ser mostrado como `50_adju` quando deveria aparecer "50% Adjudicação + 50% Entrega" ou similar
+
+### 3. Falta de Quebra de Página Após a Capa
+- O documento não força uma quebra de página após a capa
+- O conteúdo do Âmbito começa logo após a capa na mesma página, quebrando a estrutura pretendida
+
+### 4. Falta do IBAN
+- Na secção "Condições de Venda" não aparece o IBAN da empresa
+- Deveria mostrar o IBAN para facilitar o pagamento
+
+## Solução Proposta
+
+### 1. Corrigir Altura da Capa
+Garantir que a capa ocupa exactamente uma página A4 (1123px a 96 DPI) para forçar quebra de página:
+
+```typescript
+{/* ====== 1. CAPA DA PROPOSTA ====== */}
+<div 
+  data-pdf-section="cover" 
+  className="flex flex-col relative"
+  style={{ minHeight: '1090px' }} // ~A4 page height
+>
 ```
 
-### Página 2+: ÂMBITO DO PROJECTO
-```text
-┌─────────────────────────────────────────────────┐
-│ ÂMBITO DO PROJECTO                              │
-├─────────────────────────────────────────────────┤
-│ Objectivos                                       │
-│ [Texto dos objectivos]                           │
-├─────────────────────────────────────────────────┤
-│ ✓ Entregáveis                                    │
-│   • Item 1                                       │
-│   • Item 2                                       │
-├─────────────────────────────────────────────────┤
-│ ✗ Exclusões                                      │
-│   • Item excluído 1                              │
-├─────────────────────────────────────────────────┤
-│ ⚠ Pressupostos                                  │
-│ [Texto dos pressupostos]                         │
-└─────────────────────────────────────────────────┘
+### 2. Corrigir Tradução de Condições de Pagamento
+O problema é que o código actual procura o valor em `PAYMENT_CONDITIONS` mas o valor armazenado (`50_adju`) não existe nessa lista. Preciso verificar se há uma lista personalizada ou se o valor `custom` está a ser usado incorrectamente.
+
+```typescript
+// Actual - falha porque "50_adju" não está na lista
+const paymentLabel = proposal.payment_conditions 
+  ? PAYMENT_CONDITIONS.find(p => p.value === proposal.payment_conditions)?.label 
+    || proposal.payment_conditions // Cai aqui e mostra "50_adju"
+  : null;
 ```
 
-### Página 3+: CRONOGRAMA
-```text
-┌─────────────────────────────────────────────────┐
-│ CRONOGRAMA                                       │
-├─────────────────────────────────────────────────┤
-│ Duração Total: X semanas                         │
-│ Início Previsto: [data]                          │
-├─────────────────────────────────────────────────┤
-│ Semana │ Fase/Marco               │ Duração     │
-│   1    │ • Análise de Requisitos  │ 5 dias      │
-│   2    │ ⚑ Marco: Kickoff         │ -           │
-│   3    │ • Desenvolvimento        │ 10 dias     │
-└─────────────────────────────────────────────────┘
-```
+A solução é:
+- Se o valor não for encontrado nas opções padrão, formatá-lo de forma legível
+- Ou verificar se `50_adju` é um valor personalizado que precisa de tratamento especial
 
-### Página 4+: REFERÊNCIAS E CREDENCIAIS
-```text
-┌─────────────────────────────────────────────────┐
-│ REFERÊNCIAS E CREDENCIAIS                        │
-├─────────────────────────────────────────────────┤
-│ Projectos Similares                              │
-│ ┌───────────┐  ┌───────────┐                    │
-│ │ Projecto A│  │ Projecto B│                    │
-│ │ [descrição]│ │ [descrição]│                   │
-│ └───────────┘  └───────────┘                    │
-├─────────────────────────────────────────────────┤
-│ "Citação do testemunho..."                       │
-│ — Autor, Cargo @ Empresa                         │
-├─────────────────────────────────────────────────┤
-│ Certificações: [Badge] [Badge]                   │
-└─────────────────────────────────────────────────┘
-```
+### 3. Garantir IBAN Visível
+Verificar se o `companyIban` está a ser passado correctamente e aparece no documento.
 
-### Página 5+: PROPOSTA E CONDIÇÕES DE VENDA
-```text
-┌─────────────────────────────────────────────────┐
-│ PROPOSTA                                         │
-├─────────────────────────────────────────────────┤
-│ # │ Item                    │ Preço  │ Qtd │ Total │
-│ 1 │ [Produto/Serviço]       │ €XXX   │  2  │ €XXX  │
-│ 2 │ [Produto/Serviço]       │ €XXX   │  1  │ €XXX  │
-├─────────────────────────────────────────────────┤
-│                          Subtotal:   €X.XXX,XX  │
-│                          IVA (23%):    €XXX,XX  │
-│                          TOTAL:      €X.XXX,XX  │
-├─────────────────────────────────────────────────┤
-│ CONDIÇÕES DE VENDA                               │
-│ • Pagamento: A 30 dias                           │
-│ • IBAN: PT50 XXXX XXXX XXXX                     │
-│ • Notas: [notas adicionais]                      │
-├─────────────────────────────────────────────────┤
-│ Validade: Esta proposta é válida até DD/MM/AAAA │
-├─────────────────────────────────────────────────┤
-│ _____________________                            │
-│ [Nome Assinante]                                 │
-│ [Cargo]                                          │
-└─────────────────────────────────────────────────┘
-```
-
-## Ficheiro a Modificar
+## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/ProposalClientDocument.tsx` | Reorganizar toda a estrutura do documento |
+| `src/components/proposals/ProposalClientDocument.tsx` | Corrigir altura da capa; melhorar tratamento de condições de pagamento personalizadas |
 
-## Implementação Técnica
+## Implementação
 
-### Reorganização das Secções
-
-O componente será reestruturado para renderizar as secções na nova ordem:
-
-1. **Nova Secção: Capa** (`data-pdf-section="cover"`)
-   - Altura mínima de uma página A4 (~1123px)
-   - Logo centrado
-   - Título "PROPOSTA" em destaque
-   - Número da proposta
-   - Dados do cliente (nome, morada)
-   - Datas (criação e validade)
-   - Contacto da empresa no rodapé da capa
-
-2. **Âmbito** (`data-pdf-section="scope"`) - já implementado, mover para 2º lugar
-
-3. **Cronograma** (`data-pdf-section="timeline"`) - já implementado, mover para 3º lugar
-
-4. **Referências** (`data-pdf-section="references"`) - já implementado, mover para 4º lugar
-
-5. **Proposta e Condições** (`data-pdf-section="proposal"`) - combinar:
-   - Título "PROPOSTA"
-   - Tabela de itens (mover de cima)
-   - Totais (subtotal, IVA, total)
-   - Nova subsecção "CONDIÇÕES DE VENDA":
-     - Método de pagamento
-     - Condições de pagamento
-     - IBAN
-     - Notas
-   - Validade
-   - Área de assinatura
-
-### Estrutura de Código Simplificada
+### Alteração 1: Forçar Altura da Capa para Página Completa
 
 ```typescript
-export function ProposalClientDocument(...) {
-  return (
-    <div className="max-w-[210mm] mx-auto">
-      {/* Action Bar (print/download) */}
-      
-      <Card>
-        {/* ====== 1. CAPA DA PROPOSTA ====== */}
-        <div data-pdf-section="cover" className="min-h-[1000px] flex flex-col">
-          {/* Logo centrado */}
-          {/* Título PROPOSTA */}
-          {/* Número da proposta */}
-          {/* Dados do cliente */}
-          {/* Datas */}
-          {/* Contacto empresa (rodapé capa) */}
-        </div>
+{/* ====== 1. CAPA DA PROPOSTA ====== */}
+<div 
+  data-pdf-section="cover" 
+  className="flex flex-col relative"
+  style={{ minHeight: '1090px' }} // Força quebra de página A4
+>
+```
 
-        {/* ====== 2. ÂMBITO DO PROJECTO ====== */}
-        {scopeData && hasContent && (
-          <div data-pdf-section="scope">
-            {/* Objectivos, Entregáveis, Exclusões, Pressupostos */}
-          </div>
-        )}
+### Alteração 2: Melhorar Tratamento de Condições de Pagamento
 
-        {/* ====== 3. CRONOGRAMA ====== */}
-        {timelineData && hasPhases && (
-          <div data-pdf-section="timeline">
-            {/* Tabela de fases e marcos */}
-          </div>
-        )}
+```typescript
+// Helper para formatar condições de pagamento personalizadas
+const formatPaymentCondition = (value: string): string => {
+  // Primeiro, procurar nas opções padrão
+  const standardOption = PAYMENT_CONDITIONS.find(p => p.value === value);
+  if (standardOption) return standardOption.label;
+  
+  // Se for valor personalizado, formatar para ser legível
+  // Converter underscores para espaços e capitalizar
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+};
 
-        {/* ====== 4. REFERÊNCIAS E CREDENCIAIS ====== */}
-        {referencesData && hasReferences && (
-          <div data-pdf-section="references">
-            {/* Projectos, Testemunho, Certificações */}
-          </div>
-        )}
+const paymentLabel = proposal.payment_conditions 
+  ? formatPaymentCondition(proposal.payment_conditions)
+  : null;
+```
 
-        {/* ====== 5. PROPOSTA E CONDIÇÕES DE VENDA ====== */}
-        <div data-pdf-section="proposal">
-          <h2>PROPOSTA</h2>
-          {/* Tabela de itens */}
-          {/* Totais */}
-          
-          <h3>CONDIÇÕES DE VENDA</h3>
-          {/* Método pagamento, IBAN, notas */}
-          {/* Validade */}
-          {/* Assinatura */}
-        </div>
-      </Card>
-    </div>
-  );
-}
+### Alteração 3: Assegurar Visibilidade do IBAN
+
+Verificar que o IBAN está a ser exibido correctamente na secção de condições:
+
+```typescript
+{companyIban && (
+  <p className="font-mono text-xs mt-1">
+    <strong>IBAN:</strong> {companyIban}
+  </p>
+)}
 ```
 
 ## Resultado Esperado
 
-O documento de proposta terá uma estrutura profissional e sequencial:
+1. **Capa em página separada** - A capa ocupará uma página A4 completa, forçando o Âmbito a começar na página 2
+2. **Condições legíveis** - "50_adju" será mostrado como "50 Adju" ou com tratamento personalizado adequado
+3. **IBAN visível** - O IBAN da empresa aparecerá na secção de condições de venda
 
-1. **Capa** - Primeira impressão visual com logo e dados essenciais
-2. **Âmbito** - O que vai ser feito (conteúdo antes do preço)
-3. **Cronograma** - Quando vai ser feito
-4. **Referências** - Credibilidade e casos de sucesso
-5. **Proposta Comercial** - Preços e condições (no final, após demonstrar valor)
+## Complexidade
 
-Esta ordem segue as melhores práticas de propostas comerciais: primeiro mostrar o VALOR, depois apresentar o PREÇO.
+Baixa - Ajustes de CSS e lógica de formatação simples
 
