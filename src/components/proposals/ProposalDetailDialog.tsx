@@ -30,6 +30,7 @@ import {
   Package,
   Users,
   CreditCard,
+  FileSearch,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -41,6 +42,7 @@ import { ProposalConditionsSection } from "./ProposalConditionsSection";
 import { ProposalViewToggle } from "./ProposalViewToggle";
 import { ProposalInternalView } from "./ProposalInternalView";
 import { ProposalClientDocument } from "./ProposalClientDocument";
+import { ProposalDocumentPreviewDialog } from "./ProposalDocumentPreviewDialog";
 import { PAYMENT_CONDITIONS, type ClientType } from "./proposalConstants";
 import {
   useProposal,
@@ -78,6 +80,7 @@ export function ProposalDetailDialog({
   const [tab, setTab] = useState<"preview" | "edit" | "items" | "client" | "conditions" | "versions" | "activity">("preview");
   const [viewMode, setViewMode] = useState<"internal" | "client">("internal");
   const [isEditing, setIsEditing] = useState(false);
+  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   const [workspaceData, setWorkspaceData] = useState<Record<string, unknown> | null>(null);
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
@@ -346,6 +349,18 @@ export function ProposalDetailDialog({
                       Guardar
                     </Button>
                   </>
+                )}
+                
+                {/* Preview Document Button - always visible when items exist */}
+                {proposalItems && proposalItems.length > 0 && !isEditing && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowDocumentPreview(true)}
+                  >
+                    <FileSearch className="h-4 w-4 mr-2" />
+                    Pré-visualizar
+                  </Button>
                 )}
                 
                 {proposal.status === "draft" && !isEditing && (
@@ -737,6 +752,25 @@ export function ProposalDetailDialog({
           </Tabs>
         </div>
       </DialogContent>
+
+      {/* Full-screen Document Preview Dialog */}
+      {proposalItems && (
+        <ProposalDocumentPreviewDialog
+          open={showDocumentPreview}
+          onOpenChange={setShowDocumentPreview}
+          proposal={proposal}
+          items={proposalItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            description: item.description || "",
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.quantity * item.unit_price,
+            is_enabled: item.is_enabled,
+          }))}
+          workspace={workspaceData as any}
+        />
+      )}
     </Dialog>
   );
 }
