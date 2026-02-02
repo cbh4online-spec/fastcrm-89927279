@@ -1,236 +1,304 @@
 
-# Plano: Adicionar Imagem ao ProductCard com Funcionalidade de Zoom
+# Plano: Duplicar Proposta e Ferramentas de Produtividade
 
-## Objectivo
+## Contexto
 
-Adicionar uma miniatura de imagem perceptível em cada card de produto no selector POS, com a possibilidade de fazer zoom/ampliar para confirmar visualmente o produto.
+O sistema de propostas já tem infraestrutura preparada para duplicação (o `ProposalQuickLinks` tem props `onDuplicate` e `onCreateTask`), mas a lógica ainda não está implementada. Vamos adicionar funcionalidades que aceleram o fluxo de trabalho comercial.
 
-## Análise Técnica
+## Funcionalidades a Implementar
 
-### Dados Já Disponíveis
+| Ferramenta | Descrição | Impacto |
+|------------|-----------|---------|
+| **Duplicar Proposta** | Cria cópia completa como rascunho (título, itens, secções) | Alto - Reutilização de propostas |
+| **Criar Tarefa** | Associa follow-up/lembretes à proposta | Médio - Gestão de pipeline |
+| **Alterar Estado** | Mudança rápida de estado (Aceite/Rejeitada) | Alto - Fecho de negócio |
+| **Exportar PDF** | Acesso directo ao PDF do dropdown | Médio - Conveniência |
+| **Arquivar/Desarquivar** | Gestão de propostas antigas | Baixo - Organização |
 
-O hook `useProducts` já carrega todos os campos necessários:
-- `images: string[]` - Array de URLs de imagens
-- `primary_image_index: number | null` - Índice da imagem principal
+## Arquitectura da Duplicação
 
-Não é necessário fazer queries adicionais!
-
-### Componentes Existentes
-
-| Componente | Uso |
-|------------|-----|
-| `HoverCard` | Radix UI - Para mostrar imagem ampliada no hover |
-| `Dialog` | Radix UI - Para modal de zoom em mobile/click |
-| `AspectRatio` | Radix UI - Para manter proporção da imagem |
-
-## Solução Proposta
-
-### Layout do ProductCard Actualizado
+### Fluxo de Dados
 
 ```text
-┌─────────────────────────────────────────┐
-│  ┌──────┐  📦 Categoria              │ ← Badge
-│  │      │                              │
-│  │  📷  │  Nome do Produto           │ ← Imagem + Info
-│  │      │                              │
-│  └──────┘  € 150,00         /hora    │ ← Preço
-│                                        │
-│  [-] 2 [+]                 ✓         │ ← Controlos (se selecionado)
-└─────────────────────────────────────────┘
+┌─────────────────┐
+│ Proposta Original │
+├─────────────────┤
+│ • ID: abc123     │
+│ • Título         │
+│ • Items[]        │
+│ • scope_data     │
+│ • timeline_data  │
+│ • references_data│
+│ • conditions     │
+└────────┬────────┘
+         │ useDuplicateProposal
+         ▼
+┌─────────────────┐
+│ Nova Proposta    │
+├─────────────────┤
+│ • ID: novo       │
+│ • Título (cópia) │
+│ • Status: draft  │
+│ • Items[] (copy) │
+│ • Todas secções  │
+│ • Novo slug      │
+└─────────────────┘
 ```
 
-### Interacção de Zoom
+### Dados a Copiar
 
-**Desktop (hover)**:
-- Ao passar o rato sobre a miniatura, mostra HoverCard com imagem ampliada
-- Animação suave de entrada/saída
+- **Proposta base**: título, currency, cta_text, cta_color, validity_days, payment_conditions, notes
+- **Dados JSONB**: scope_data, timeline_data, references_data
+- **Itens**: proposal_items com product_id, name, description, quantity, unit_price, position, costs
+- **NÃO copiar**: slug (novo), created_at, views_count, status (sempre draft), published_at, accepted_at
 
-**Mobile/Click**:
-- Ao clicar na miniatura, abre Dialog com imagem em tamanho grande
-- Botão de fechar ou clicar fora para sair
+## Implementação Técnica
+
+### 1. Hook `useDuplicateProposal` (useProposals.ts)
+
+```typescript
+export function useDuplicateProposal() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (proposalId: string) => {
+      // 1. Fetch original proposal with items
+      const { data: original } = await supabase
+        .from("proposals")
+        .select("*, proposal_items:proposal_items(*)")
+        .eq("id", proposalId)
+        .single();
+
+      // 2. Generate new slug
+      const slug = generateSlug();
+
+      // 3. Create new proposal as draft
+      const { data: newProposal } = await supabase
+        .from("proposals")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          opportunity_id: original.opportunity_id,
+          slug,
+          title: `${original.title} (cópia)`,
+          content_blocks: original.content_blocks,
+          variables: original.variables,
+          styles: original.styles,
+          cta_text: original.cta_text,
+          cta_color: original.cta_color,
+          price: original.price,
+          currency: original.currency,
+          status: "draft",
+          contact_id: original.contact_id,
+          company_id: original.company_id,
+          payment_conditions: original.payment_conditions,
+          validity_days: original.validity_days,
+          notes: original.notes,
+          billing_address: original.billing_address,
+          billing_nif: original.billing_nif,
+          scope_data: original.scope_data,
+          timeline_data: original.timeline_data,
+          references_data: original.references_data,
+          assigned_to: user?.id,
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      // 4. Copy items
+      if (original.proposal_items?.length > 0) {
+        const itemsToInsert = original.proposal_items.map((item, idx) => ({
+          proposal_id: newProposal.id,
+          workspace_id: currentWorkspace.id,
+          product_id: item.product_id,
+          name: item.name,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          position: idx,
+          is_enabled: item.is_enabled,
+          cost_snapshot: item.cost_snapshot,
+          operational_cost_snapshot: item.operational_cost_snapshot,
+        }));
+        await supabase.from("proposal_items").insert(itemsToInsert);
+      }
+
+      return newProposal;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      toast.success("Proposta duplicada com sucesso!");
+      return data;
+    },
+  });
+}
+```
+
+### 2. Acções no Dropdown (ProposalsList.tsx)
+
+Adicionar ao menu de acções de cada proposta:
+
+```typescript
+<DropdownMenuContent align="end">
+  <DropdownMenuItem onClick={() => setDetailId(proposal.id)}>
+    <Eye className="h-4 w-4 mr-2" />
+    Ver detalhes
+  </DropdownMenuItem>
+  
+  {/* Duplicar */}
+  <DropdownMenuItem onClick={() => handleDuplicate(proposal.id)}>
+    <Copy className="h-4 w-4 mr-2" />
+    Duplicar
+  </DropdownMenuItem>
+  
+  {/* Criar Tarefa */}
+  <DropdownMenuItem onClick={() => handleOpenTaskDialog(proposal)}>
+    <CheckSquare className="h-4 w-4 mr-2" />
+    Criar Tarefa
+  </DropdownMenuItem>
+  
+  {/* Alterar Estado */}
+  <DropdownMenuSub>
+    <DropdownMenuSubTrigger>
+      <ArrowRightLeft className="h-4 w-4 mr-2" />
+      Alterar Estado
+    </DropdownMenuSubTrigger>
+    <DropdownMenuSubContent>
+      <DropdownMenuItem onClick={() => handleStatusChange(proposal.id, "accepted")}>
+        <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+        Marcar como Aceita
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => handleStatusChange(proposal.id, "rejected")}>
+        <XCircle className="h-4 w-4 mr-2 text-red-500" />
+        Marcar como Rejeitada
+      </DropdownMenuItem>
+    </DropdownMenuSubContent>
+  </DropdownMenuSub>
+  
+  {/* Export PDF */}
+  <DropdownMenuItem onClick={() => handleExportPdf(proposal.id)}>
+    <Download className="h-4 w-4 mr-2" />
+    Exportar PDF
+  </DropdownMenuItem>
+  
+  <DropdownMenuSeparator />
+  
+  {/* Existing actions... */}
+</DropdownMenuContent>
+```
+
+### 3. Diálogo de Criação de Tarefa
+
+Reutilizar o componente `CreateTaskDialog` existente, ligando a tarefa à oportunidade associada à proposta:
+
+```typescript
+const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+const [taskProposal, setTaskProposal] = useState<Proposal | null>(null);
+
+const handleOpenTaskDialog = (proposal: Proposal) => {
+  setTaskProposal(proposal);
+  setTaskDialogOpen(true);
+};
+
+const handleCreateTask = async (taskData) => {
+  await createTask.mutateAsync({
+    ...taskData,
+    related_type: "opportunity",
+    related_id: taskProposal?.opportunity_id,
+  });
+  setTaskDialogOpen(false);
+};
+```
+
+### 4. Acções na Página de Detalhe
+
+Adicionar botões de acção rápida ao header do `ProposalDetailDialog`:
+
+```typescript
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="outline" size="sm">
+      <MoreHorizontal className="h-4 w-4" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end">
+    <DropdownMenuItem onClick={handleDuplicate}>
+      <Copy className="h-4 w-4 mr-2" />
+      Duplicar Proposta
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={() => setShowTaskDialog(true)}>
+      <CheckSquare className="h-4 w-4 mr-2" />
+      Criar Tarefa
+    </DropdownMenuItem>
+    {proposal.status === "published" && (
+      <>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => handleStatusChange("accepted")}>
+          <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+          Marcar como Aceita
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleStatusChange("rejected")}>
+          <XCircle className="h-4 w-4 mr-2 text-red-500" />
+          Marcar como Rejeitada
+        </DropdownMenuItem>
+      </>
+    )}
+  </DropdownMenuContent>
+</DropdownMenu>
+```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/ProductCard.tsx` | Adicionar miniatura com HoverCard e Dialog para zoom |
-
-## Implementação Detalhada
-
-### ProductCard.tsx
-
-```typescript
-import { useState } from "react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-
-// ...existing code...
-
-const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
-  ({ product, isSelected, quantity = 0, onClick, onIncrement, onDecrement }, ref) => {
-    const [zoomOpen, setZoomOpen] = useState(false);
-    
-    // Get primary image URL
-    const primaryImageUrl = product.images?.length > 0
-      ? product.images[product.primary_image_index ?? 0]
-      : null;
-
-    const Icon = getIcon(product.product_type);
-    const colorClass = productTypeColors[product.product_type] || "bg-muted text-muted-foreground";
-
-    // Thumbnail component with hover preview
-    const ImageThumbnail = () => (
-      <div 
-        className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 cursor-zoom-in"
-        onClick={(e) => {
-          e.stopPropagation();
-          setZoomOpen(true);
-        }}
-      >
-        {primaryImageUrl ? (
-          <img
-            src={primaryImageUrl}
-            alt={product.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Icon className="h-5 w-5 text-muted-foreground" />
-          </div>
-        )}
-      </div>
-    );
-
-    return (
-      <>
-        {/* Dialog for mobile/click zoom */}
-        <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
-          <DialogContent className="max-w-md p-2">
-            <AspectRatio ratio={4/3}>
-              {primaryImageUrl ? (
-                <img
-                  src={primaryImageUrl}
-                  alt={product.name}
-                  className="w-full h-full object-contain rounded-lg"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted rounded-lg">
-                  <Package className="h-16 w-16 text-muted-foreground" />
-                </div>
-              )}
-            </AspectRatio>
-            <p className="text-center font-medium mt-2">{product.name}</p>
-          </DialogContent>
-        </Dialog>
-
-        <Card ref={ref} onClick={onClick} className={...}>
-          {/* Selection badge */}
-          {isSelected && ...}
-          
-          <div className="flex gap-3">
-            {/* Image with HoverCard for desktop preview */}
-            <HoverCard openDelay={200} closeDelay={100}>
-              <HoverCardTrigger asChild>
-                <div>
-                  <ImageThumbnail />
-                </div>
-              </HoverCardTrigger>
-              <HoverCardContent 
-                side="right" 
-                className="w-64 p-2"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <AspectRatio ratio={4/3}>
-                  {primaryImageUrl ? (
-                    <img
-                      src={primaryImageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-contain rounded"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted rounded">
-                      <Package className="h-12 w-12 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground mt-2">Sem imagem</span>
-                    </div>
-                  )}
-                </AspectRatio>
-                <p className="text-sm font-medium text-center mt-2">{product.name}</p>
-                {product.sku && (
-                  <p className="text-xs text-muted-foreground text-center">SKU: {product.sku}</p>
-                )}
-              </HoverCardContent>
-            </HoverCard>
-
-            {/* Product info */}
-            <div className="flex flex-col flex-1 min-w-0">
-              {/* Category badge */}
-              <div className="flex items-start justify-between mb-1">
-                <div className={cn("p-1 rounded", colorClass)}>
-                  <Icon className="h-3 w-3" />
-                </div>
-                {product.category && (
-                  <Badge variant="outline" className="text-[10px] px-1 py-0">
-                    {product.category}
-                  </Badge>
-                )}
-              </div>
-
-              {/* Name */}
-              <h4 className="font-medium text-sm line-clamp-2">
-                {product.name}
-              </h4>
-
-              {/* Price */}
-              <div className="flex items-baseline justify-between mt-auto">
-                <span className="text-sm font-bold text-primary">
-                  {formatPrice(product.base_price)}
-                </span>
-                {product.billing_type === "recurring" && (
-                  <span className="text-[10px] text-muted-foreground">/mês</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Quantity controls */}
-          {isSelected && (
-            <div className="flex items-center justify-center gap-1 mt-2 pt-2 border-t">
-              ...
-            </div>
-          )}
-        </Card>
-      </>
-    );
-  }
-);
-```
+| `src/hooks/useProposals.ts` | Adicionar `useDuplicateProposal` hook |
+| `src/components/proposals/ProposalsList.tsx` | Adicionar acções ao dropdown: duplicar, tarefa, estado, PDF |
+| `src/components/proposals/ProposalDetailDialog.tsx` | Adicionar menu de acções rápidas no header |
 
 ## Fluxo de UX
 
-**Desktop:**
-1. Utilizador vê miniatura de 48x48px no card
-2. Ao passar o rato (hover), aparece HoverCard à direita com imagem 256px
-3. Ao clicar na miniatura, abre Dialog fullscreen para zoom máximo
+### Duplicar da Listagem
 
-**Mobile:**
-1. Utilizador vê miniatura de 48x48px no card
-2. Ao tocar na miniatura, abre Dialog com imagem grande
-3. Toca fora para fechar
+```text
+1. Utilizador clica "..." na linha da proposta
+2. Selecciona "Duplicar"
+3. Sistema cria cópia como rascunho
+4. Toast: "Proposta duplicada com sucesso!"
+5. Nova proposta aparece na listagem
+6. (Opcional) Abrir automaticamente para edição
+```
 
-**Sem Imagem:**
-1. Mostra ícone do tipo de produto como fallback
-2. HoverCard mostra "Sem imagem" com ícone
-3. Dialog mostra ícone grande centrado
+### Criar Tarefa da Proposta
+
+```text
+1. Utilizador clica "Criar Tarefa" no menu
+2. Abre diálogo com:
+   - Título pré-preenchido: "Follow-up: [Nome Proposta]"
+   - Data: +3 dias (configurável)
+   - Prioridade
+3. Tarefa criada ligada à oportunidade
+4. Toast: "Tarefa criada!"
+```
+
+### Alterar Estado Rapidamente
+
+```text
+1. Utilizador clica "Alterar Estado" > "Marcar como Aceita"
+2. Confirmação opcional
+3. Estado actualizado
+4. Toast: "Proposta marcada como aceita!"
+5. Tracking GTM disparado se aceite
+```
 
 ## Benefícios
 
-1. **Identificação Visual** - Confirmar produto rapidamente pela imagem
-2. **Zoom Flexível** - Hover para preview, click para fullscreen
-3. **Performance** - Usa dados já carregados, sem queries extra
-4. **Fallback Elegante** - Ícone do tipo quando não há imagem
-5. **Responsive** - Funciona em desktop e mobile
+1. **Reutilização** - Propostas semelhantes podem ser criadas em segundos
+2. **Produtividade** - Menos cliques para acções frequentes
+3. **Rastreabilidade** - Tarefas de follow-up não se perdem
+4. **Fecho Rápido** - Alterar estado sem entrar no detalhe
+5. **Consistência** - Segue padrões existentes no projeto (B2B orders)
 
 ## Complexidade
 
-Baixa - Modificar apenas 1 ficheiro com componentes já existentes.
+Média - 3 ficheiros com lógica nova mas seguindo padrões estabelecidos.
