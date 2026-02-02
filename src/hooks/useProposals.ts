@@ -555,6 +555,8 @@ export function useUpdateProposalItems() {
         unit_price: number;
         position: number;
         is_enabled?: boolean;
+        cost_snapshot?: number | null;
+        operational_cost_snapshot?: number | null;
       }>;
     }) => {
       if (!currentWorkspace?.id) throw new Error("No workspace selected");
@@ -579,6 +581,8 @@ export function useUpdateProposalItems() {
           unit_price: item.unit_price,
           position: item.position ?? idx,
           is_enabled: item.is_enabled ?? true,
+          cost_snapshot: item.cost_snapshot ?? null,
+          operational_cost_snapshot: item.operational_cost_snapshot ?? null,
         }));
 
         const { error: insertError } = await supabase
