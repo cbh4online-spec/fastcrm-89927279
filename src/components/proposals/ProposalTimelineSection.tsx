@@ -21,8 +21,11 @@ import {
   GripVertical,
   ChevronDown,
   ChevronUp,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SectionAIAssistButton } from "./SectionAIAssistButton";
+import { AISuggestionIndicator } from "@/components/ai/AIConfidenceDisplay";
 
 export interface TimelinePhase {
   id: string;
@@ -36,12 +39,15 @@ export interface TimelinePhase {
 export interface TimelineData {
   phases: TimelinePhase[];
   startDate?: string;
+  isAIGenerated?: boolean;
 }
 
 interface ProposalTimelineSectionProps {
   data: TimelineData;
   onChange: (data: TimelineData) => void;
   disabled?: boolean;
+  onGenerateWithAI?: () => void;
+  isGenerating?: boolean;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -50,6 +56,8 @@ export function ProposalTimelineSection({
   data,
   onChange,
   disabled = false,
+  onGenerateWithAI,
+  isGenerating = false,
 }: ProposalTimelineSectionProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -137,6 +145,26 @@ export function ProposalTimelineSection({
 
   return (
     <div className="space-y-6">
+      {/* AI Generate Button */}
+      {onGenerateWithAI && !disabled && (
+        <div className="flex items-center justify-between p-3 rounded-lg border bg-gradient-to-r from-primary/5 to-purple-500/5 border-primary/20">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Gerar cronograma automaticamente</span>
+          </div>
+          <SectionAIAssistButton
+            onClick={onGenerateWithAI}
+            isLoading={isGenerating}
+            label="Gerar com IA"
+            tooltip="A IA irá estimar fases e marcos baseado nos itens e âmbito"
+          />
+        </div>
+      )}
+
+      {/* AI Generated Badge */}
+      {data.isAIGenerated && (
+        <AISuggestionIndicator isAIGenerated={true} />
+      )}
       {/* Summary Card */}
       <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
         <CardContent className="pt-6">

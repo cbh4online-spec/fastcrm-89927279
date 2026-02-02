@@ -167,6 +167,7 @@ export interface ScopeData {
   deliverables: string[];
   exclusions: string[];
   assumptions: string;
+  isAIGenerated?: boolean;
 }
 
 // Timeline Section Types
@@ -182,6 +183,7 @@ export interface TimelinePhase {
 export interface TimelineData {
   phases: TimelinePhase[];
   startDate?: string;
+  isAIGenerated?: boolean;
 }
 
 // References Section Types
@@ -203,4 +205,14 @@ export interface ReferencesData {
   projects: ProjectReference[];
   testimonial: Testimonial;
   certifications: string[];
+  isAIGenerated?: boolean;
+}
+
+// Conditions Section Types
+export interface ConditionsData {
+  paymentConditions: string;
+  customPaymentConditions: string;
+  validityDays: number;
+  notes: string;
+  isAIGenerated?: boolean;
 }

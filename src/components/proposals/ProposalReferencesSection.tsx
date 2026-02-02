@@ -14,8 +14,11 @@ import {
   Image as ImageIcon,
   Medal,
   Star,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SectionAIAssistButton } from "./SectionAIAssistButton";
+import { AISuggestionIndicator } from "@/components/ai/AIConfidenceDisplay";
 
 export interface ProjectReference {
   id: string;
@@ -35,12 +38,15 @@ export interface ReferencesData {
   projects: ProjectReference[];
   testimonial: Testimonial;
   certifications: string[];
+  isAIGenerated?: boolean;
 }
 
 interface ProposalReferencesSectionProps {
   data: ReferencesData;
   onChange: (data: ReferencesData) => void;
   disabled?: boolean;
+  onGenerateWithAI?: () => void;
+  isGenerating?: boolean;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -49,6 +55,8 @@ export function ProposalReferencesSection({
   data,
   onChange,
   disabled = false,
+  onGenerateWithAI,
+  isGenerating = false,
 }: ProposalReferencesSectionProps) {
   const [newCertification, setNewCertification] = useState("");
 
@@ -105,6 +113,26 @@ export function ProposalReferencesSection({
 
   return (
     <div className="space-y-6">
+      {/* AI Generate Button */}
+      {onGenerateWithAI && !disabled && (
+        <div className="flex items-center justify-between p-3 rounded-lg border bg-gradient-to-r from-primary/5 to-purple-500/5 border-primary/20">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Sugerir referências relevantes</span>
+          </div>
+          <SectionAIAssistButton
+            onClick={onGenerateWithAI}
+            isLoading={isGenerating}
+            label="Sugerir com IA"
+            tooltip="A IA irá sugerir projectos, testemunhos e certificações relevantes"
+          />
+        </div>
+      )}
+
+      {/* AI Generated Badge */}
+      {data.isAIGenerated && (
+        <AISuggestionIndicator isAIGenerated={true} />
+      )}
       {/* Projects */}
       <Card>
         <CardHeader className="pb-3">

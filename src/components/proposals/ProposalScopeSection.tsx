@@ -5,26 +5,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Target, Plus, X, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Target, Plus, X, CheckCircle2, XCircle, AlertCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SectionAIAssistButton } from "./SectionAIAssistButton";
+import { AISuggestionIndicator } from "@/components/ai/AIConfidenceDisplay";
 
 export interface ScopeData {
   objectives: string;
   deliverables: string[];
   exclusions: string[];
   assumptions: string;
+  isAIGenerated?: boolean;
 }
 
 interface ProposalScopeSectionProps {
   data: ScopeData;
   onChange: (data: ScopeData) => void;
   disabled?: boolean;
+  onGenerateWithAI?: () => void;
+  isGenerating?: boolean;
 }
 
 export function ProposalScopeSection({
   data,
   onChange,
   disabled = false,
+  onGenerateWithAI,
+  isGenerating = false,
 }: ProposalScopeSectionProps) {
   const [newDeliverable, setNewDeliverable] = useState("");
   const [newExclusion, setNewExclusion] = useState("");
@@ -73,6 +80,27 @@ export function ProposalScopeSection({
 
   return (
     <div className="space-y-6">
+      {/* AI Generate Button */}
+      {onGenerateWithAI && !disabled && (
+        <div className="flex items-center justify-between p-3 rounded-lg border bg-gradient-to-r from-primary/5 to-purple-500/5 border-primary/20">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Gerar âmbito automaticamente</span>
+          </div>
+          <SectionAIAssistButton
+            onClick={onGenerateWithAI}
+            isLoading={isGenerating}
+            label="Gerar com IA"
+            tooltip="A IA irá analisar os itens da proposta e gerar o âmbito do projecto"
+          />
+        </div>
+      )}
+
+      {/* AI Generated Badge */}
+      {data.isAIGenerated && (
+        <AISuggestionIndicator isAIGenerated={true} />
+      )}
+
       {/* Objectives */}
       <Card>
         <CardHeader className="pb-3">
