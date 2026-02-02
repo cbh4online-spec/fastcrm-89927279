@@ -55,7 +55,7 @@ export default function PublicProposalPage() {
         .from("proposal_items")
         .select("*")
         .eq("proposal_id", data.id)
-        .order("order", { ascending: true });
+        .order("position", { ascending: true });
       if (itemsData) {
         setItems(itemsData.map(item => ({
           id: item.id,
@@ -203,6 +203,16 @@ export default function PublicProposalPage() {
     );
   }
 
+  // Extract JSONB data from proposal
+  const proposalAny = proposal as any;
+  const scopeData = proposalAny.scope_data || undefined;
+  const timelineData = proposalAny.timeline_data 
+    ? (Array.isArray(proposalAny.timeline_data) 
+        ? { phases: proposalAny.timeline_data, startDate: undefined }
+        : proposalAny.timeline_data)
+    : undefined;
+  const referencesData = proposalAny.references_data || undefined;
+
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4">
       <ProposalClientDocument
@@ -212,6 +222,9 @@ export default function PublicProposalPage() {
         showActions={false}
         allowItemToggle={true}
         onItemToggle={handleItemToggle}
+        scopeData={scopeData}
+        timelineData={timelineData}
+        referencesData={referencesData}
       />
       
       {/* Accept CTA Button */}
