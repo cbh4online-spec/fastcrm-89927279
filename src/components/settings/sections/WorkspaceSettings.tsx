@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useWorkspace, WorkspaceRole } from "@/contexts/WorkspaceContext";
 import { useWorkspaceMembers, WorkspaceMember } from "@/hooks/useWorkspaceMembers";
+import { useWorkspaceSettings } from "@/hooks/useWorkspaceSettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { SettingsSection, SettingsItem } from "../SettingsSection";
@@ -47,6 +48,8 @@ import {
   Loader2,
   LayoutGrid,
   UserCheck,
+  ImagePlus,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -80,8 +83,17 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { data: members = [], isLoading: membersLoading, refetch: refetchMembers } = useWorkspaceMembers();
+  const { 
+    updateWorkspaceInfo, 
+    uploadLogo, 
+    updateBranding, 
+    fetchWorkspaceDetails,
+    isUpdating,
+    isUploading,
+  } = useWorkspaceSettings();
   const queryClient = useQueryClient();
   const hasSearch = searchQuery.trim().length > 0;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Dialog states
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -90,7 +102,17 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const [deleteMemberDialogOpen, setDeleteMemberDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<WorkspaceMember | null>(null);
 
-  // Form states
+  // Form states - workspace info
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceSlug, setWorkspaceSlug] = useState("");
+  
+  // Form states - branding
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [primaryColor, setPrimaryColor] = useState("#6366f1");
+  const [secondaryColor, setSecondaryColor] = useState("#8b5cf6");
+  const [brandingChanged, setBrandingChanged] = useState(false);
+
+  // Form states - members
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<WorkspaceRole>("agent");
   const [manualName, setManualName] = useState("");
@@ -98,6 +120,29 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const [manualRole, setManualRole] = useState<WorkspaceRole>("agent");
   const [editRole, setEditRole] = useState<WorkspaceRole>("agent");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load workspace details
+  useEffect(() => {
+    const loadDetails = async () => {
+      if (currentWorkspace) {
+        setWorkspaceName(currentWorkspace.name);
+        setWorkspaceSlug(currentWorkspace.slug);
+        
+        const details = await fetchWorkspaceDetails();
+        if (details) {
+          setLogoUrl(details.logo_url);
+          setPrimaryColor(details.primary_color || "#6366f1");
+          setSecondaryColor(details.secondary_color || "#8b5cf6");
+        }
+      }
+    };
+    loadDetails();
+  }, [currentWorkspace?.id]);
+
+  // Track branding changes
+  useEffect(() => {
+    setBrandingChanged(false);
+  }, [currentWorkspace?.id]);
 
   const shouldShow = (sectionId: string) => {
     if (!hasSearch || !matchedSections) return true;
@@ -248,6 +293,37 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
     setDeleteMemberDialogOpen(true);
   };
 
+  // Workspace info handlers
+  const handleSaveWorkspaceInfo = async () => {
+    await updateWorkspaceInfo({
+      name: workspaceName,
+      slug: workspaceSlug,
+    });
+  };
+
+  // Branding handlers
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const newLogoUrl = await uploadLogo(file);
+    if (newLogoUrl) {
+      setLogoUrl(newLogoUrl);
+      setBrandingChanged(true);
+    }
+  };
+
+  const handleSaveBranding = async () => {
+    const success = await updateBranding({
+      logo_url: logoUrl,
+      primary_color: primaryColor,
+      secondary_color: secondaryColor,
+    });
+    if (success) {
+      setBrandingChanged(false);
+    }
+  };
+
   if (!hasVisibleSections && hasSearch) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -271,7 +347,8 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 <Label htmlFor="workspaceName">Nome do Workspace</Label>
                 <Input
                   id="workspaceName"
-                  defaultValue={currentWorkspace?.name}
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -282,13 +359,26 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                   </span>
                   <Input
                     id="workspaceSlug"
-                    defaultValue={currentWorkspace?.slug}
+                    value={workspaceSlug}
+                    onChange={(e) => setWorkspaceSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                     className="rounded-l-none"
                   />
                 </div>
               </div>
             </div>
-            <Button>Guardar alterações</Button>
+            <Button 
+              onClick={handleSaveWorkspaceInfo}
+              disabled={isUpdating || !workspaceName.trim() || !workspaceSlug.trim()}
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  A guardar...
+                </>
+              ) : (
+                "Guardar alterações"
+              )}
+            </Button>
           </div>
         </SettingsSection>
       )}
@@ -416,16 +506,149 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
           description="Personalizar cores e logótipo"
           icon={<Palette className="h-5 w-5" />}
         >
-          <SettingsItem
-            title="Logótipo"
-            description="Carregar o logótipo da sua empresa"
-            action={<Button variant="outline">Carregar</Button>}
-          />
-          <SettingsItem
-            title="Cores da marca"
-            description="Definir as cores primária e secundária"
-            action={<Button variant="outline">Configurar</Button>}
-          />
+          <div className="space-y-6">
+            {/* Logo Upload */}
+            <div className="flex items-start gap-6">
+              <div 
+                className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {isUploading ? (
+                  <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                ) : logoUrl ? (
+                  <img 
+                    src={logoUrl} 
+                    alt="Logo" 
+                    className="w-full h-full object-contain p-2" 
+                  />
+                ) : (
+                  <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label>Logótipo da Empresa</Label>
+                <div className="flex gap-2">
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        A carregar...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Carregar Imagem
+                      </>
+                    )}
+                  </Button>
+                  {logoUrl && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        setLogoUrl(null);
+                        setBrandingChanged(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  PNG, JPG, SVG ou WebP. Máximo 2MB.
+                </p>
+              </div>
+            </div>
+
+            {/* Color Pickers */}
+            <div className="space-y-4">
+              <Label>Cores da Marca</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="primaryColor" className="text-sm font-normal text-muted-foreground">
+                    Cor Primária
+                  </Label>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <input
+                        type="color"
+                        id="primaryColor"
+                        value={primaryColor}
+                        onChange={(e) => {
+                          setPrimaryColor(e.target.value);
+                          setBrandingChanged(true);
+                        }}
+                        className="w-12 h-10 rounded-md border border-input cursor-pointer"
+                      />
+                    </div>
+                    <Input
+                      value={primaryColor}
+                      onChange={(e) => {
+                        setPrimaryColor(e.target.value);
+                        setBrandingChanged(true);
+                      }}
+                      className="flex-1 font-mono text-sm"
+                      placeholder="#6366f1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="secondaryColor" className="text-sm font-normal text-muted-foreground">
+                    Cor Secundária
+                  </Label>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <input
+                        type="color"
+                        id="secondaryColor"
+                        value={secondaryColor}
+                        onChange={(e) => {
+                          setSecondaryColor(e.target.value);
+                          setBrandingChanged(true);
+                        }}
+                        className="w-12 h-10 rounded-md border border-input cursor-pointer"
+                      />
+                    </div>
+                    <Input
+                      value={secondaryColor}
+                      onChange={(e) => {
+                        setSecondaryColor(e.target.value);
+                        setBrandingChanged(true);
+                      }}
+                      className="flex-1 font-mono text-sm"
+                      placeholder="#8b5cf6"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <Button 
+              onClick={handleSaveBranding}
+              disabled={isUpdating || !brandingChanged}
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  A guardar...
+                </>
+              ) : (
+                "Guardar Aparência"
+              )}
+            </Button>
+          </div>
         </SettingsSection>
       )}
 
