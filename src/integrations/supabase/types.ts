@@ -3304,6 +3304,8 @@ export type Database = {
           credit_limit: number | null
           email: string
           id: string
+          invite_expires_at: string | null
+          invite_token: string | null
           name: string
           notes: string | null
           payment_terms: string | null
@@ -3325,6 +3327,8 @@ export type Database = {
           credit_limit?: number | null
           email: string
           id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
           name: string
           notes?: string | null
           payment_terms?: string | null
@@ -3346,6 +3350,8 @@ export type Database = {
           credit_limit?: number | null
           email?: string
           id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
           name?: string
           notes?: string | null
           payment_terms?: string | null

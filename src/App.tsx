@@ -65,6 +65,7 @@ import ClientAssistantPage from "./pages/client/ClientAssistantPage";
 import ClientSetPasswordPage from "./pages/client/ClientSetPasswordPage";
 import ClientForgotPasswordPage from "./pages/client/ClientForgotPasswordPage";
 import ClientResetPasswordPage from "./pages/client/ClientResetPasswordPage";
+import ClientInvitePage from "./pages/client/ClientInvitePage";
 // Admin Order Notes
 import OrderNotesPage from "./pages/OrderNotesPage";
 import OrderNoteDetailPage from "./pages/OrderNoteDetailPage";
@@ -138,6 +139,7 @@ function ClientPortalRoutes() {
     <CartProvider>
       <Routes>
         <Route path="login" element={<ClientLoginPage />} />
+        <Route path="invite/:token" element={<ClientInvitePage />} />
         <Route path="set-password" element={<ClientSetPasswordPage />} />
         <Route path="forgot-password" element={<ClientForgotPasswordPage />} />
         <Route path="reset-password" element={<ClientResetPasswordPage />} />

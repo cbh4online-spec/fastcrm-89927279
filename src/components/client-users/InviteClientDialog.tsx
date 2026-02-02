@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { UserPlus, Loader2, Link } from "lucide-react";
 import { toast } from "sonner";
+import { InviteLinkDialog } from "./InviteLinkDialog";
 
 const inviteClientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -81,8 +82,21 @@ interface InviteClientDialogProps {
   onSuccess?: () => void;
 }
 
+interface InviteData {
+  clientName: string;
+  clientEmail: string;
+  inviteUrl: string;
+  temporaryPassword: string;
+  clientUserId: string;
+  workspaceName: string;
+}
+
 export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogProps) {
   const [open, setOpen] = useState(false);
+  const [showInviteLinkDialog, setShowInviteLinkDialog] = useState(false);
+  const [inviteData, setInviteData] = useState<InviteData | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
@@ -174,9 +188,49 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
     }
   };
 
+  // Function to send email invitation
+  const sendEmailInvitation = async () => {
+    if (!inviteData || !currentWorkspace?.id) return;
+    
+    setEmailSending(true);
+    try {
+      const { error: emailError } = await supabase.functions.invoke(
+        "send-client-invitation",
+        {
+          body: {
+            clientName: inviteData.clientName,
+            clientEmail: inviteData.clientEmail,
+            workspaceName: inviteData.workspaceName,
+            workspaceId: currentWorkspace.id,
+            portalUrl: inviteData.inviteUrl,
+            temporaryPassword: inviteData.temporaryPassword,
+          },
+        }
+      );
+
+      if (emailError) {
+        console.error("Erro ao enviar email de convite:", emailError);
+        toast.error("Erro ao enviar email de convite.");
+      } else {
+        setEmailSent(true);
+        toast.success("Email de convite enviado com sucesso!");
+      }
+    } catch (err) {
+      console.error("Exception sending email:", err);
+      toast.error("Erro ao enviar email.");
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   const createClientMutation = useMutation({
     mutationFn: async (data: InviteClientFormData) => {
       if (!currentWorkspace?.id) throw new Error("Workspace não encontrado");
+
+      // Generate invite token
+      const inviteToken = crypto.randomUUID();
+      const inviteExpiresAt = new Date();
+      inviteExpiresAt.setDate(inviteExpiresAt.getDate() + 7); // 7 days
 
       const billingAddress = {
         street: data.billing_street,
@@ -185,12 +239,12 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
         country: data.billing_country,
       };
 
-      // First, create the client_users record
+      // First, create the client_users record with invite token
       const { data: clientUser, error } = await supabase
         .from("client_users")
         .insert({
           workspace_id: currentWorkspace.id,
-          auth_user_id: null, // Will be set by edge function
+          auth_user_id: null, // Will be set by edge function or on activation
           name: data.name,
           email: data.email,
           phone: data.phone || null,
@@ -202,6 +256,8 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
           notes: data.notes || null,
           billing_address: JSON.parse(JSON.stringify(billingAddress)),
           status: "pending",
+          invite_token: inviteToken,
+          invite_expires_at: inviteExpiresAt.toISOString(),
         })
         .select()
         .single();
@@ -232,40 +288,40 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
 
       const temporaryPassword = authResult.data.temporaryPassword;
 
-      // Get workspace name for the email
+      // Get workspace name
       const { data: workspace } = await supabase
         .from("workspaces")
         .select("name")
         .eq("id", currentWorkspace.id)
         .single();
 
-      // Send invitation email with temporary password
-      const { data: emailResult, error: emailError } = await supabase.functions.invoke(
-        "send-client-invitation",
-        {
-          body: {
-            clientName: data.name,
-            clientEmail: data.email,
-            workspaceName: workspace?.name || "FastCRM",
-            workspaceId: currentWorkspace.id,
-            portalUrl: "https://fastcrm.metodopare.ai/client/login",
-            temporaryPassword: temporaryPassword,
-          },
-        }
-      );
-
-      if (emailError) {
-        console.error("Erro ao enviar email de convite:", emailError);
-        toast.warning("Cliente criado, mas houve um problema ao enviar o email de convite.");
-      }
-
-      return clientUser;
+      return {
+        client: clientUser,
+        inviteToken,
+        temporaryPassword,
+        workspaceName: workspace?.name || "FastCRM",
+      };
     },
-    onSuccess: () => {
-      toast.success("Cliente criado e convite enviado com sucesso!");
+    onSuccess: (result) => {
+      // Build invite URL
+      const inviteUrl = `https://fastcrm.metodopare.ai/client/invite/${result.inviteToken}`;
+      
+      // Set invite data and show the sharing dialog
+      setInviteData({
+        clientName: result.client.name,
+        clientEmail: result.client.email,
+        inviteUrl,
+        temporaryPassword: result.temporaryPassword,
+        clientUserId: result.client.id,
+        workspaceName: result.workspaceName,
+      });
+      
+      setEmailSent(false);
+      setShowInviteLinkDialog(true);
+      setOpen(false); // Close the form dialog
+      
       queryClient.invalidateQueries({ queryKey: ["client-users"] });
       form.reset();
-      setOpen(false);
       onSuccess?.();
     },
     onError: (error) => {
@@ -278,6 +334,7 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
@@ -577,5 +634,21 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Invite Link Dialog - shows after client creation */}
+    {inviteData && (
+      <InviteLinkDialog
+        open={showInviteLinkDialog}
+        onOpenChange={setShowInviteLinkDialog}
+        clientName={inviteData.clientName}
+        clientEmail={inviteData.clientEmail}
+        inviteUrl={inviteData.inviteUrl}
+        temporaryPassword={inviteData.temporaryPassword}
+        onSendEmail={sendEmailInvitation}
+        emailSending={emailSending}
+        emailSent={emailSent}
+      />
+    )}
+    </>
   );
 }
