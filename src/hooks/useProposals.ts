@@ -13,6 +13,7 @@ import type {
   UpdateProposalInput,
   CreateProposalTemplateInput,
   ContentBlock,
+  ProposalStatus,
 } from "@/types/proposal";
 
 // Generate unique slug
@@ -672,6 +673,167 @@ export function useToggleProposalItem() {
     },
     onError: (error) => {
       toast.error(`Erro ao atualizar item: ${error.message}`);
+    },
+  });
+}
+
+// ============ Duplicate Proposal ============
+
+export function useDuplicateProposal() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (proposalId: string) => {
+      if (!currentWorkspace?.id) throw new Error("No workspace selected");
+
+      // 1. Fetch original proposal with items
+      const { data: original, error: fetchError } = await supabase
+        .from("proposals")
+        .select("*")
+        .eq("id", proposalId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!original) throw new Error("Proposal not found");
+
+      // 2. Fetch proposal items separately
+      const { data: originalItems, error: itemsError } = await supabase
+        .from("proposal_items")
+        .select("*")
+        .eq("proposal_id", proposalId)
+        .order("position", { ascending: true });
+
+      if (itemsError) throw itemsError;
+
+      // 3. Generate new slug
+      const slug = generateSlug();
+
+      // 4. Create new proposal as draft
+      const { data: newProposal, error: insertError } = await supabase
+        .from("proposals")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          opportunity_id: original.opportunity_id,
+          template_id: original.template_id,
+          slug,
+          title: `${original.title} (cópia)`,
+          content_blocks: original.content_blocks,
+          variables: original.variables,
+          styles: original.styles,
+          cta_text: original.cta_text,
+          cta_color: original.cta_color,
+          price: original.price,
+          currency: original.currency,
+          status: "draft",
+          contact_id: original.contact_id,
+          company_id: original.company_id,
+          payment_conditions: original.payment_conditions,
+          validity_days: original.validity_days,
+          notes: original.notes,
+          billing_address: original.billing_address,
+          billing_nif: original.billing_nif,
+          scope_data: original.scope_data,
+          timeline_data: original.timeline_data,
+          references_data: original.references_data,
+          assigned_to: user?.id,
+          created_by: user?.id,
+        } as never)
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      if (!newProposal) throw new Error("Failed to create proposal");
+
+      // 5. Copy items
+      if (originalItems && originalItems.length > 0) {
+        const itemsToInsert = originalItems.map((item, idx) => ({
+          proposal_id: (newProposal as any).id,
+          workspace_id: currentWorkspace.id,
+          product_id: item.product_id,
+          name: item.name,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          position: idx,
+          is_enabled: item.is_enabled,
+          cost_snapshot: item.cost_snapshot,
+          operational_cost_snapshot: item.operational_cost_snapshot,
+        }));
+
+        const { error: itemsInsertError } = await supabase
+          .from("proposal_items")
+          .insert(itemsToInsert as never[]);
+
+        if (itemsInsertError) throw itemsInsertError;
+      }
+
+      return newProposal as unknown as Proposal;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      toast.success("Proposta duplicada com sucesso!");
+      return data;
+    },
+    onError: (error) => {
+      toast.error(`Erro ao duplicar proposta: ${error.message}`);
+    },
+  });
+}
+
+// ============ Quick Status Change ============
+
+export function useQuickStatusChange() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: ProposalStatus }) => {
+      const updateData: Record<string, unknown> = {
+        status,
+      };
+      
+      // Set accepted_at when marking as accepted
+      if (status === "accepted") {
+        updateData.accepted_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from("proposals")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { proposal: data as unknown as Proposal, newStatus: status };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["proposal", data.proposal.id] });
+      
+      const statusLabels: Record<string, string> = {
+        accepted: "aceita",
+        rejected: "rejeitada",
+        draft: "rascunho",
+        published: "publicada",
+      };
+      toast.success(`Proposta marcada como ${statusLabels[data.newStatus] || data.newStatus}!`);
+      
+      // Track accepted in GTM
+      if (data.newStatus === "accepted") {
+        trackProposalAccepted({
+          proposal_id: data.proposal.id,
+          proposal_title: data.proposal.title,
+          value: data.proposal.price || 0,
+          currency: data.proposal.currency || "EUR",
+          opportunity_id: data.proposal.opportunity_id || undefined,
+          workspace_id: data.proposal.workspace_id,
+        });
+      }
+    },
+    onError: (error) => {
+      toast.error(`Erro ao alterar estado: ${error.message}`);
     },
   });
 }
