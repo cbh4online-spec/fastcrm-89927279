@@ -2246,6 +2246,62 @@ export type Database = {
           },
         ]
       }
+      billing_frequencies: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          interval_days: number
+          is_active: boolean | null
+          is_system: boolean | null
+          label: string
+          position: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          interval_days: number
+          is_active?: boolean | null
+          is_system?: boolean | null
+          label: string
+          position?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          interval_days?: number
+          is_active?: boolean | null
+          is_system?: boolean | null
+          label?: string
+          position?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_frequencies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_types: {
         Row: {
           code: string
@@ -4156,6 +4212,65 @@ export type Database = {
           },
           {
             foreignKeyName: "consumption_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consumption_models: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          is_trackable: boolean | null
+          label: string
+          position: number | null
+          unit_name: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          is_trackable?: boolean | null
+          label: string
+          position?: number | null
+          unit_name?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          is_trackable?: boolean | null
+          label?: string
+          position?: number | null
+          unit_name?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_models_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6520,6 +6635,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dashboard_layouts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_modes: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          label: string
+          position: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          label: string
+          position?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          label?: string
+          position?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_modes_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -13539,6 +13707,118 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "order_workflows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_conditions: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string | null
+          days: number | null
+          description: string | null
+          discount_pct: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          label: string
+          position: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string | null
+          days?: number | null
+          description?: string | null
+          discount_pct?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          label: string
+          position?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          days?: number | null
+          description?: string | null
+          discount_pct?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          label?: string
+          position?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_conditions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_methods: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          label: string
+          position: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          label: string
+          position?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          label?: string
+          position?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
