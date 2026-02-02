@@ -222,7 +222,12 @@ export function ProductsList() {
       { id: "billing_recurring", label: "Recorrente" },
     ];
 
-    return [
+    // Build category items dynamically (inside useMemo to prevent duplication)
+    const validCategories = categories?.filter(
+      (cat): cat is string => typeof cat === "string" && cat.length > 0
+    ) || [];
+
+    const groups: FilterGroup[] = [
       {
         id: "type",
         label: "Tipo",
@@ -240,6 +245,24 @@ export function ProductsList() {
           { id: "status_archived", label: "Arquivados" },
         ],
       },
+    ];
+
+    // Add categories if they exist
+    if (validCategories.length > 0) {
+      groups.push({
+        id: "category",
+        label: "Categoria",
+        icon: <Tag className="h-4 w-4" />,
+        defaultOpen: false,
+        items: validCategories.map((cat) => ({
+          id: `cat_${cat}`,
+          label: cat,
+        })),
+      });
+    }
+
+    // Add remaining groups
+    groups.push(
       {
         id: "billing",
         label: "Cobrança",
@@ -257,24 +280,11 @@ export function ProductsList() {
           { id: "smart_high_price", label: "Preço alto (>100€)" },
           { id: "smart_low_price", label: "Preço baixo (<50€)" },
         ],
-      },
-    ];
-  }, [productTypesConfig, billingTypesConfig]);
+      }
+    );
 
-  // Add category filter group if categories exist
-  const validCategories = categories?.filter((cat): cat is string => typeof cat === "string" && cat.length > 0) || [];
-  if (validCategories.length > 0) {
-    filterGroups.splice(2, 0, {
-      id: "category",
-      label: "Categoria",
-      icon: <Tag className="h-4 w-4" />,
-      defaultOpen: false,
-      items: validCategories.map((cat) => ({
-        id: `cat_${cat}`,
-        label: cat,
-      })),
-    });
-  }
+    return groups;
+  }, [productTypesConfig, billingTypesConfig, categories]);
 
   // Filter and search
   const filteredProducts = useMemo(() => {
