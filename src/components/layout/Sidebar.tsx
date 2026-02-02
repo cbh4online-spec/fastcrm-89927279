@@ -6,6 +6,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
 import {
   LayoutDashboard,
@@ -453,9 +454,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             {/* Header - Nexus Brand */}
             <div className="flex items-center justify-between h-16 px-4 border-b border-white/5">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow-lg shadow-primary/25">
-                  <Building2 className="w-5 h-5 text-white" />
-                </div>
+                <WorkspaceLogo
+                  logoUrl={currentWorkspace?.logo_url}
+                  workspaceName={currentWorkspace?.name}
+                  size="lg"
+                  variant="sidebar"
+                />
                 <div>
                   <span className="font-bold text-white text-sm">FastCRM</span>
                 </div>

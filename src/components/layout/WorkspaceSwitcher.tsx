@@ -20,8 +20,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Plus, Check, Building2, Loader2, Shield } from "lucide-react";
+import { ChevronDown, Plus, Check, Loader2, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 
 export function WorkspaceSwitcher() {
   const { 
@@ -65,17 +66,17 @@ export function WorkspaceSwitcher() {
       className="flex items-center justify-between"
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-          workspace.isAgencyManaged 
-            ? "bg-amber-500/10" 
-            : "bg-primary/10"
-        }`}>
-          {workspace.isAgencyManaged ? (
+        {workspace.isAgencyManaged ? (
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
             <Shield className="w-4 h-4 text-amber-500" />
-          ) : (
-            <Building2 className="w-4 h-4 text-primary" />
-          )}
-        </div>
+          </div>
+        ) : (
+          <WorkspaceLogo
+            logoUrl={workspace.logo_url}
+            workspaceName={workspace.name}
+            size="md"
+          />
+        )}
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{workspace.name}</p>
           <p className="text-xs text-muted-foreground capitalize">
@@ -98,17 +99,18 @@ export function WorkspaceSwitcher() {
             className="w-full justify-between h-auto py-2 px-3 bg-sidebar-accent hover:bg-sidebar-accent/80"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                currentWorkspace?.isAgencyManaged 
-                  ? "bg-amber-500/20" 
-                  : "bg-sidebar-primary/20"
-              }`}>
-                {currentWorkspace?.isAgencyManaged ? (
+              {currentWorkspace?.isAgencyManaged ? (
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
                   <Shield className="w-4 h-4 text-amber-500" />
-                ) : (
-                  <Building2 className="w-4 h-4 text-sidebar-primary" />
-                )}
-              </div>
+                </div>
+              ) : (
+                <WorkspaceLogo
+                  logoUrl={currentWorkspace?.logo_url}
+                  workspaceName={currentWorkspace?.name}
+                  size="md"
+                  variant="sidebar"
+                />
+              )}
               <div className="text-left min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-sidebar-foreground truncate">

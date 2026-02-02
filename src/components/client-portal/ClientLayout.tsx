@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation, Navigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -18,9 +18,16 @@ import { useCart } from "@/contexts/CartContext";
 import { useClientFavorites } from "@/hooks/client-portal/useClientFavorites";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 
 interface ClientLayoutProps {
   children: ReactNode;
+}
+
+interface WorkspaceBranding {
+  name: string;
+  logo_url: string | null;
 }
 
 const navItems = [
@@ -37,6 +44,26 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const { itemCount } = useCart();
   const { favoriteCount } = useClientFavorites();
   const location = useLocation();
+  const [workspaceBranding, setWorkspaceBranding] = useState<WorkspaceBranding | null>(null);
+  
+  // Fetch workspace branding based on client's workspace
+  useEffect(() => {
+    async function fetchWorkspaceBranding() {
+      if (!clientUser?.workspace_id) return;
+      
+      const { data } = await supabase
+        .from("workspaces")
+        .select("name, logo_url")
+        .eq("id", clientUser.workspace_id)
+        .single();
+      
+      if (data) {
+        setWorkspaceBranding(data);
+      }
+    }
+    
+    fetchWorkspaceBranding();
+  }, [clientUser?.workspace_id]);
   
   const getBadgeCount = (badgeType?: "cart" | "favorites") => {
     if (badgeType === "cart") return itemCount;
@@ -59,6 +86,8 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     return <Navigate to="/client/login" replace />;
   }
 
+  const portalName = workspaceBranding?.name ? `Portal ${workspaceBranding.name}` : "Portal Cliente";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
@@ -66,10 +95,13 @@ export function ClientLayout({ children }: ClientLayoutProps) {
         <div className="container flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/client/dashboard" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">FC</span>
-            </div>
-            <span className="font-semibold text-lg hidden sm:inline">Portal Cliente</span>
+            <WorkspaceLogo
+              logoUrl={workspaceBranding?.logo_url}
+              workspaceName={workspaceBranding?.name}
+              size="md"
+              variant="portal"
+            />
+            <span className="font-semibold text-lg hidden sm:inline">{portalName}</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -167,7 +199,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
       {/* Footer */}
       <footer className="border-t py-6 mt-auto">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} FastCRM - Portal de Cliente Profissional</p>
+          <p>© {new Date().getFullYear()} {workspaceBranding?.name || "FastCRM"} - Portal de Cliente Profissional</p>
         </div>
       </footer>
     </div>

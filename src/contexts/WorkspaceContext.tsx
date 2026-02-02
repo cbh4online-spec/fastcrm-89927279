@@ -11,6 +11,7 @@ export interface Workspace {
   role: WorkspaceRole;
   created_at: string;
   isAgencyManaged?: boolean;
+  logo_url?: string | null;
 }
 
 interface WorkspaceContextType {
@@ -55,7 +56,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         // Super admin: fetch ALL workspaces
         const { data: allWorkspaces, error: wsError } = await supabase
           .from("workspaces")
-          .select("id, name, slug, created_at")
+          .select("id, name, slug, created_at, logo_url")
           .order("name");
 
         if (wsError) throw wsError;
@@ -77,6 +78,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           created_at: ws.created_at,
           role: ownMembershipMap.get(ws.id) || ("agency" as WorkspaceRole),
           isAgencyManaged: !ownMembershipMap.has(ws.id),
+          logo_url: ws.logo_url,
         }));
       } else {
         // Normal user: fetch only workspaces where they are members
@@ -99,6 +101,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             role: item.role as WorkspaceRole,
             created_at: (item.workspace as any).created_at,
             isAgencyManaged: false,
+            logo_url: (item.workspace as any).logo_url,
           }));
 
         // Check if user is part of an agency workspace (has agency plan)
@@ -111,7 +114,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (userAgencyWorkspaceIds.length > 0) {
           const { data: managedWorkspaces } = await supabase
             .from("workspaces")
-            .select("id, name, slug, created_at, managed_by_workspace_id")
+            .select("id, name, slug, created_at, managed_by_workspace_id, logo_url")
             .in("managed_by_workspace_id", userAgencyWorkspaceIds);
 
           managedByAgencyList = (managedWorkspaces || []).map((ws) => ({
@@ -121,6 +124,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             created_at: ws.created_at,
             role: "agency" as WorkspaceRole,
             isAgencyManaged: true,
+            logo_url: ws.logo_url,
           }));
         }
 
