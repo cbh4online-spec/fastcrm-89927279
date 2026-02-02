@@ -16016,6 +16016,8 @@ export type Database = {
           payment_status: string | null
           price: number | null
           published_at: string | null
+          references_data: Json | null
+          scope_data: Json | null
           slug: string
           status: string
           stripe_checkout_session_id: string | null
@@ -16023,6 +16025,7 @@ export type Database = {
           stripe_price_id: string | null
           styles: Json | null
           template_id: string | null
+          timeline_data: Json | null
           title: string
           updated_at: string
           validity_days: number | null
@@ -16052,6 +16055,8 @@ export type Database = {
           payment_status?: string | null
           price?: number | null
           published_at?: string | null
+          references_data?: Json | null
+          scope_data?: Json | null
           slug: string
           status?: string
           stripe_checkout_session_id?: string | null
@@ -16059,6 +16064,7 @@ export type Database = {
           stripe_price_id?: string | null
           styles?: Json | null
           template_id?: string | null
+          timeline_data?: Json | null
           title: string
           updated_at?: string
           validity_days?: number | null
@@ -16088,6 +16094,8 @@ export type Database = {
           payment_status?: string | null
           price?: number | null
           published_at?: string | null
+          references_data?: Json | null
+          scope_data?: Json | null
           slug?: string
           status?: string
           stripe_checkout_session_id?: string | null
@@ -16095,6 +16103,7 @@ export type Database = {
           stripe_price_id?: string | null
           styles?: Json | null
           template_id?: string | null
+          timeline_data?: Json | null
           title?: string
           updated_at?: string
           validity_days?: number | null
