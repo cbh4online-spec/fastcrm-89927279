@@ -1,184 +1,239 @@
 
-# Plano: Activar Funcionalidades de Workspace & Equipa
+# Plano: Aplicar Logótipo do Workspace em Toda a Aplicação
 
-## Análise da Situação Actual
+## Objectivo
+Substituir os ícones genéricos (Building2, "FC") pelo logótipo personalizado do workspace em todos os locais relevantes, criando uma experiência de marca consistente e profissional.
 
-Após explorar o código, identifiquei o que está **implementado** vs **faltando**:
+## Análise Actual
 
-| Funcionalidade | Estado Actual | O que Falta |
-|----------------|---------------|-------------|
-| Informação do Workspace | Formulário estático | Botão "Guardar" não funciona |
-| Utilizadores | Funcional | OK |
-| Cargos & Permissões | Informativo | OK (só leitura) |
-| Upload de Logótipo | Botão inactivo | Upload para bucket "company-logos" |
-| Cores da Marca | Botão inactivo | Campos de cor + colunas na BD |
-| Layout do CRM | Funcional | OK |
-| Portal de Clientes B2B | Funcional | OK |
+### Locais que Usam Ícones Genéricos (a substituir)
 
-## Alterações Necessárias
+| Local | Componente | Ícone Actual | Prioridade |
+|-------|------------|--------------|------------|
+| Sidebar Header | `Sidebar.tsx` | Building2 + "FastCRM" | Alta |
+| Workspace Switcher | `WorkspaceSwitcher.tsx` | Building2/Shield | Alta |
+| Portal Cliente Header | `ClientLayout.tsx` | "FC" badge | Alta |
+| Portal Cliente Footer | `ClientLayout.tsx` | Texto "FastCRM" | Média |
 
-### 1. Adicionar Colunas de Cores à Tabela `workspaces`
-A tabela já tem `logo_url`, mas faltam colunas para as cores da marca.
+### Locais que Já Usam logo_url (OK)
+- Propostas comerciais (`ProposalClientDocument.tsx`) - Já usa `workspace.logo_url`
+- Configurações de Fatura (`useInvoiceSettings.ts`) - Já tem `company_logo_url`
 
-**Migração SQL:**
-```sql
-ALTER TABLE workspaces 
-ADD COLUMN IF NOT EXISTS primary_color TEXT DEFAULT '#6366f1',
-ADD COLUMN IF NOT EXISTS secondary_color TEXT DEFAULT '#8b5cf6';
-```
+## Arquitectura da Solução
 
-### 2. Criar Hook `useWorkspaceSettings`
-Novo hook para gerir upload de logo e cores do workspace.
+### 1. Expandir WorkspaceContext para Incluir logo_url
 
-**Ficheiro:** `src/hooks/useWorkspaceSettings.ts`
+O `WorkspaceContext` actual não inclui `logo_url`. Precisamos expandir a interface e fetch para incluir esta informação.
 
 ```typescript
-// Funções principais:
-- uploadWorkspaceLogo(file: File) → string (URL)
-- saveWorkspaceSettings({ name, slug, primary_color, secondary_color, logo_url })
-- Usar bucket "company-logos" existente
-```
-
-### 3. Actualizar WorkspaceSettings.tsx
-
-**Secção "Informação do Workspace":**
-- Converter inputs em estado controlado
-- Botão "Guardar alterações" funcional (actualiza nome e slug)
-
-**Secção "Marca & Aparência":**
-- Substituir botões estáticos por componentes funcionais:
-  - Upload de logo (usando supabase storage)
-  - Pré-visualização do logo actual
-  - Color pickers para cores primária e secundária
-
-### Estrutura do Componente de Branding
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ MARCA & APARÊNCIA                                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────┐    ┌────────────────────────────────────────┐ │
-│  │              │    │ Logótipo                               │ │
-│  │   [LOGO]     │    │ Arraste uma imagem ou clique para     │ │
-│  │              │    │ selecionar                             │ │
-│  │              │    │ Formatos: PNG, JPG, SVG (máx. 2MB)     │ │
-│  └──────────────┘    └────────────────────────────────────────┘ │
-│                                                                  │
-│  Cores da Marca                                                  │
-│  ┌─────────────────────────┐ ┌─────────────────────────────┐   │
-│  │ [■] Cor Primária        │ │ [■] Cor Secundária          │   │
-│  │     #6366f1             │ │     #8b5cf6                 │   │
-│  └─────────────────────────┘ └─────────────────────────────┘   │
-│                                                                  │
-│                                    [Guardar Aparência]          │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Ficheiros a Criar/Modificar
-
-| Ficheiro | Acção | Descrição |
-|----------|-------|-----------|
-| `src/hooks/useWorkspaceSettings.ts` | **Criar** | Hook para gestão de definições do workspace |
-| `src/components/settings/sections/WorkspaceSettings.tsx` | **Modificar** | Tornar formulários funcionais |
-| Migração SQL | **Executar** | Adicionar colunas primary_color e secondary_color |
-
-## Implementação Detalhada
-
-### Hook useWorkspaceSettings
-
-```typescript
-export function useWorkspaceSettings() {
-  const { currentWorkspace, refreshWorkspaces } = useWorkspace();
-  
-  // 1. Actualizar nome/slug
-  const updateWorkspaceInfo = async (name: string, slug: string) => {
-    await supabase.from("workspaces").update({ name, slug })
-      .eq("id", currentWorkspace.id);
-    refreshWorkspaces();
-  };
-  
-  // 2. Upload de logo
-  const uploadLogo = async (file: File): Promise<string> => {
-    const path = `${currentWorkspace.id}/logo.${ext}`;
-    await supabase.storage.from("company-logos").upload(path, file, { upsert: true });
-    return getPublicUrl(path);
-  };
-  
-  // 3. Actualizar branding
-  const updateBranding = async (logo_url, primary_color, secondary_color) => {
-    await supabase.from("workspaces").update({
-      logo_url, primary_color, secondary_color
-    }).eq("id", currentWorkspace.id);
-  };
-  
-  return { updateWorkspaceInfo, uploadLogo, updateBranding };
+// WorkspaceContext.tsx
+export interface Workspace {
+  id: string;
+  name: string;
+  slug: string;
+  role: WorkspaceRole;
+  created_at: string;
+  isAgencyManaged?: boolean;
+  logo_url?: string | null;  // NOVO
 }
 ```
 
-### WorkspaceSettings - Secção Branding Funcional
+### 2. Criar Componente WorkspaceLogo Reutilizável
+
+Componente inteligente que mostra o logo do workspace ou fallback para ícone/iniciais.
+
+```typescript
+// src/components/workspace/WorkspaceLogo.tsx
+interface WorkspaceLogoProps {
+  logoUrl?: string | null;
+  workspaceName: string;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+  variant?: "default" | "sidebar" | "portal";
+}
+
+// Renderiza:
+// - Imagem se logo_url existir
+// - Iniciais do workspace como fallback
+// - Ícone Building2 se não houver nome
+```
+
+### 3. Aplicar em Cada Local
+
+#### Sidebar Header (Alta Prioridade)
+```
+┌─────────────────────────────────────┐
+│ [LOGO] Nome do Workspace            │
+│                      ← substituir   │
+│ Building2 + "FastCRM" por logo      │
+└─────────────────────────────────────┘
+```
+
+#### Workspace Switcher (Alta Prioridade)
+```
+┌──────────────────────────────────────┐
+│ [LOGO] Empresa XYZ           ▼      │
+│        owner                        │
+└──────────────────────────────────────┘
+```
+
+#### Portal Cliente (Alta Prioridade)
+```
+┌──────────────────────────────────────┐
+│ [LOGO] Portal Cliente    [Nav...]   │
+│   ↑ substituir "FC" badge           │
+└──────────────────────────────────────┘
+```
+
+## Ficheiros a Modificar
+
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/contexts/WorkspaceContext.tsx` | Adicionar `logo_url` à interface e fetch |
+| `src/components/workspace/WorkspaceLogo.tsx` | **CRIAR** - Componente reutilizável |
+| `src/components/layout/Sidebar.tsx` | Usar WorkspaceLogo no header |
+| `src/components/layout/WorkspaceSwitcher.tsx` | Usar WorkspaceLogo nos items |
+| `src/components/client-portal/ClientLayout.tsx` | Mostrar logo do workspace do cliente |
+
+## Implementação Detalhada
+
+### Passo 1: Expandir WorkspaceContext
+
+Modificar o fetch para incluir `logo_url`:
+
+```sql
+.select("id, name, slug, created_at, logo_url")
+```
+
+E mapear nos objectos Workspace.
+
+### Passo 2: Criar WorkspaceLogo Component
 
 ```tsx
-{/* Branding Section */}
-<SettingsSection title="Marca & Aparência" icon={<Palette />}>
-  <div className="space-y-6">
-    {/* Logo Upload */}
-    <div className="flex items-start gap-6">
-      <div className="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center bg-muted">
-        {logoUrl ? (
-          <img src={logoUrl} className="w-full h-full object-contain" />
-        ) : (
-          <ImagePlus className="w-8 h-8 text-muted-foreground" />
-        )}
-      </div>
-      <div className="flex-1">
-        <Label>Logótipo</Label>
-        <Input type="file" accept="image/*" onChange={handleLogoUpload} />
-        <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Máximo 2MB.</p>
-      </div>
+export function WorkspaceLogo({ 
+  logoUrl, 
+  workspaceName, 
+  size = "md",
+  variant = "default" 
+}: WorkspaceLogoProps) {
+  const sizeClasses = {
+    sm: "w-6 h-6",
+    md: "w-8 h-8", 
+    lg: "w-10 h-10"
+  };
+  
+  const initials = workspaceName
+    ?.split(" ")
+    .map(w => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "WS";
+
+  if (logoUrl) {
+    return (
+      <img 
+        src={logoUrl} 
+        alt={workspaceName}
+        className={cn(sizeClasses[size], "rounded-lg object-contain")}
+      />
+    );
+  }
+
+  // Fallback: Iniciais com cor do gradient
+  return (
+    <div className={cn(
+      sizeClasses[size],
+      "rounded-lg flex items-center justify-center",
+      variant === "sidebar" 
+        ? "bg-gradient-to-br from-primary to-violet-600"
+        : "bg-primary/10"
+    )}>
+      <span className={cn(
+        "font-bold",
+        variant === "sidebar" ? "text-white" : "text-primary",
+        size === "sm" ? "text-[10px]" : "text-xs"
+      )}>
+        {initials}
+      </span>
     </div>
-    
-    {/* Color Pickers */}
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <Label>Cor Primária</Label>
-        <div className="flex gap-2">
-          <Input type="color" value={primaryColor} onChange={...} />
-          <Input value={primaryColor} onChange={...} />
-        </div>
-      </div>
-      <div>
-        <Label>Cor Secundária</Label>
-        <div className="flex gap-2">
-          <Input type="color" value={secondaryColor} onChange={...} />
-          <Input value={secondaryColor} onChange={...} />
-        </div>
-      </div>
-    </div>
-    
-    <Button onClick={handleSaveBranding}>Guardar Aparência</Button>
-  </div>
-</SettingsSection>
+  );
+}
+```
+
+### Passo 3: Actualizar Sidebar
+
+No header da Sidebar, substituir:
+
+```tsx
+// ANTES
+<div className="w-9 h-9 rounded-xl bg-gradient-to-br...">
+  <Building2 className="w-5 h-5 text-white" />
+</div>
+<span>FastCRM</span>
+
+// DEPOIS
+<WorkspaceLogo 
+  logoUrl={currentWorkspace?.logo_url}
+  workspaceName={currentWorkspace?.name || "FastCRM"}
+  size="md"
+  variant="sidebar"
+/>
+<span>{currentWorkspace?.name || "FastCRM"}</span>
+```
+
+### Passo 4: Actualizar WorkspaceSwitcher
+
+Em cada item do dropdown e no trigger:
+
+```tsx
+<WorkspaceLogo 
+  logoUrl={workspace.logo_url}
+  workspaceName={workspace.name}
+  size="sm"
+/>
+```
+
+### Passo 5: Portal Cliente
+
+O Portal Cliente precisa carregar o logo do workspace associado ao cliente. Modificar `ClientLayout.tsx` para:
+
+```tsx
+// Carregar workspace_logo via hook existente ou query
+<WorkspaceLogo 
+  logoUrl={workspaceLogo}
+  workspaceName={workspaceName || "Portal"}
+  size="md"
+/>
+```
+
+## Comportamento de Fallback
+
+```text
+┌─────────────────────────────────────────────────────┐
+│ Prioridade de Renderização:                         │
+│                                                     │
+│ 1. logo_url existe → Mostrar imagem                 │
+│ 2. Nome existe → Mostrar iniciais (ex: "MP")        │
+│ 3. Nenhum → Mostrar ícone Building2                 │
+└─────────────────────────────────────────────────────┘
 ```
 
 ## Resultado Esperado
 
-Após a implementação:
+Após implementação:
 
-1. **Informação do Workspace** - Botão "Guardar" actualiza nome e URL
-2. **Logótipo** - Upload funcional para o bucket "company-logos"
-3. **Cores da Marca** - Color pickers que guardam na BD
-4. O logo/cores ficarão disponíveis para uso em:
-   - Propostas comerciais (já usa `workspace.logo_url`)
-   - Emails de convite para portal
-   - Documentos PDF exportados
+1. **Sidebar** - Mostra logo do workspace actual (ou iniciais como fallback)
+2. **Workspace Switcher** - Cada workspace mostra o seu logo na lista
+3. **Portal Cliente** - Mostra o logo do workspace/empresa do cliente
+4. **Consistência** - Todos os locais usam o mesmo componente `WorkspaceLogo`
+
+## Benefícios
+
+- **Identidade de Marca**: Cada workspace tem a sua marca visível
+- **Profissionalismo**: Clientes vêem o logo da empresa em vez de ícones genéricos
+- **Consistência**: Um único componente para toda a aplicação
+- **Fallback Elegante**: Iniciais coloridas quando não há logo
 
 ## Complexidade
 
-Média - Requer migração de BD + novo hook + refactor do componente existente
-
-## Dependências
-
-- Bucket `company-logos` já existe no storage
-- Tabela `workspaces` já tem coluna `logo_url`
-- Apenas faltam as colunas de cores
+Média - Requer modificar context, criar componente e actualizar 4 ficheiros
