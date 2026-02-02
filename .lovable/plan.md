@@ -1,80 +1,109 @@
 
-# Plano: Correção da Duplicação de Categorias nos Filtros
+
+# Plano: Actualizar Condições de Pagamento para Usar Dados Dinâmicos
 
 ## Problema Identificado
 
-O grupo "Categoria" aparece 3 vezes repetido nos filtros porque o código está a adicionar categorias **fora** do `useMemo`, modificando directamente o array em cada render:
+Existem 3 locais onde as condições de pagamento estão hardcoded em vez de usar a tabela dinâmica `payment_conditions`:
+
+| Ficheiro | Problema |
+|----------|----------|
+| `src/components/proposals/ProposalConditionsSection.tsx` | Importa `PAYMENT_CONDITIONS` de `proposalConstants.ts` |
+| `src/components/companies/sections/FinancialSection.tsx` | Define `PAYMENT_CONDITIONS` localmente |
+| `src/components/contacts/eni/sections/FinancialSection.tsx` | Importa `PAYMENT_CONDITIONS` de `ENIContactTypes.ts` |
+
+Já existe o hook `usePaymentConditions` e `usePaymentMethods` em `src/hooks/useProductSettings.ts` que busca os dados da base de dados.
+
+## Solucao
+
+Actualizar os 3 componentes para usar os hooks dinamicos com fallback para os valores estaticos (compatibilidade).
+
+### 1. ProposalConditionsSection.tsx
 
 ```typescript
-// Linhas 264-277 - PROBLEMA!
-const validCategories = categories?.filter(...);
-if (validCategories.length > 0) {
-  filterGroups.splice(2, 0, {...});  // ← Modifica o array em CADA render!
-}
-```
+// Adicionar import
+import { usePaymentConditions, PaymentConditionConfig } from "@/hooks/useProductSettings";
 
-Como o `useMemo` retorna a mesma referência do array, cada render adiciona mais um grupo de categorias ao mesmo array.
+// Dentro do componente
+const { data: paymentConditionsConfig } = usePaymentConditions();
 
-## Solução
-
-Mover a lógica das categorias para **dentro** do `useMemo`, garantindo que o array é construído uma única vez e reconstruído apenas quando as dependências mudam.
-
-### Ficheiro a Modificar
-
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/components/products/ProductsList.tsx` | Mover categorias para dentro do useMemo |
-
-### Código Corrigido
-
-```typescript
-const filterGroups: FilterGroup[] = useMemo(() => {
-  const typeItems = productTypesConfig?.filter(t => t.is_active).map(type => ({
-    id: `type_${type.code}`,
-    label: type.label,
-    icon: <Package className="h-4 w-4" />
-  })) || [...fallback];
-
-  const billingItems = billingTypesConfig?.filter(t => t.is_active).map(type => ({
-    id: `billing_${type.code}`,
-    label: type.label,
-  })) || [...fallback];
-
-  // Categorias DENTRO do useMemo
-  const validCategories = categories?.filter(
-    (cat): cat is string => typeof cat === "string" && cat.length > 0
-  ) || [];
-
-  const groups: FilterGroup[] = [
-    { id: "type", label: "Tipo", ... },
-    { id: "status", label: "Estado", ... },
-  ];
-
-  // Adicionar categorias se existirem
-  if (validCategories.length > 0) {
-    groups.push({
-      id: "category",
-      label: "Categoria",
-      icon: <Tag className="h-4 w-4" />,
-      defaultOpen: false,
-      items: validCategories.map((cat) => ({
-        id: `cat_${cat}`,
-        label: cat,
-      })),
-    });
+// Criar lista combinada (dinamica + custom)
+const paymentOptions = useMemo(() => {
+  if (paymentConditionsConfig?.length) {
+    const dynamicOptions = paymentConditionsConfig
+      .filter(c => c.is_active)
+      .sort((a, b) => a.position - b.position)
+      .map(c => ({ value: c.code, label: c.label }));
+    
+    // Adicionar opcao "Personalizado" no final
+    return [...dynamicOptions, { value: 'custom', label: 'Personalizado' }];
   }
+  // Fallback para estatico
+  return PAYMENT_CONDITIONS;
+}, [paymentConditionsConfig]);
 
-  groups.push(
-    { id: "billing", label: "Cobrança", ... },
-    { id: "smart", label: "Filtros Inteligentes", ... }
-  );
-
-  return groups;
-}, [productTypesConfig, billingTypesConfig, categories]); // ← Adicionar categories às dependências
+// No render, usar paymentOptions em vez de PAYMENT_CONDITIONS
+{paymentOptions.map((condition) => (
+  <SelectItem key={condition.value} value={condition.value}>
+    {condition.label}
+  </SelectItem>
+))}
 ```
 
-## Resultado
+### 2. FinancialSection.tsx (Empresas)
 
-- O grupo "Categoria" aparece apenas **uma vez** nos filtros
-- O array é reconstruído apenas quando as configurações ou categorias mudam
-- Mantém a ordem lógica: Tipo → Estado → Categoria → Cobrança → Filtros Inteligentes
+```typescript
+// Adicionar imports
+import { usePaymentConditions, usePaymentMethods } from "@/hooks/useProductSettings";
+
+// Dentro do componente
+const { data: paymentConditionsConfig } = usePaymentConditions();
+const { data: paymentMethodsConfig } = usePaymentMethods();
+
+// Criar listas dinamicas
+const paymentConditionsOptions = useMemo(() => {
+  if (paymentConditionsConfig?.length) {
+    return paymentConditionsConfig
+      .filter(c => c.is_active)
+      .sort((a, b) => a.position - b.position)
+      .map(c => c.label);
+  }
+  return PAYMENT_CONDITIONS; // fallback estatico
+}, [paymentConditionsConfig]);
+
+const paymentMethodsOptions = useMemo(() => {
+  if (paymentMethodsConfig?.length) {
+    return paymentMethodsConfig
+      .filter(m => m.is_active)
+      .sort((a, b) => a.position - b.position)
+      .map(m => m.label);
+  }
+  return PAYMENT_METHODS; // fallback estatico
+}, [paymentMethodsConfig]);
+```
+
+### 3. FinancialSection.tsx (Contactos ENI)
+
+Mesma abordagem do ponto 2.
+
+## Ficheiros a Modificar
+
+| Ficheiro | Alteracao |
+|----------|-----------|
+| `src/components/proposals/ProposalConditionsSection.tsx` | Usar `usePaymentConditions` |
+| `src/components/companies/sections/FinancialSection.tsx` | Usar `usePaymentConditions` e `usePaymentMethods` |
+| `src/components/contacts/eni/sections/FinancialSection.tsx` | Usar `usePaymentConditions` e `usePaymentMethods` |
+
+## Beneficios
+
+- Novas condicoes criadas nas configuracoes aparecem imediatamente em propostas/empresas/contactos
+- Compatibilidade total com dados existentes (fallback para valores estaticos)
+- Consistencia em toda a aplicacao
+
+## Testes
+
+1. Criar nova condicao de pagamento nas configuracoes (ex: "120 dias")
+2. Abrir uma proposta e verificar que a nova condicao aparece no dropdown
+3. Abrir uma empresa e verificar que a nova condicao aparece
+4. Abrir um contacto ENI e verificar que a nova condicao aparece
+
