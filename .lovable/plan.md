@@ -1,146 +1,125 @@
 
-# Plano: Corrigir Visualização de Todos os Itens e Atualização do Valor Total
+# Plano: Adicionar Drag-and-Drop para Reordenar Itens da Proposta
 
-## Problemas Identificados
+## Objetivo
 
-### Problema 1: Nem Todos os Itens São Visíveis
-O `ScrollArea` no `ProposalItemsEditor.tsx` tem altura fixa de `h-[400px]` (linha 223). Cada item ocupa aproximadamente 150-180px (nome + quantidade + descrição + badge), então 4 itens podem ocupar ~600-720px, ultrapassando os 400px disponíveis.
+Permitir que o utilizador arraste os itens da proposta para mudar a ordem, facilitando a organização e apresentação ao cliente.
 
-O problema é que o scroll pode não estar a funcionar corretamente devido à estrutura CSS do container pai.
+## Abordagem Técnica
 
-### Problema 2: Valor no Header Não Atualiza
-O header mostra `proposal.price` (linha 393), que é obtido da query `useProposal(proposalId)`. Este valor só atualiza quando:
-1. Os itens são **guardados** na base de dados
-2. A query `["proposal", proposalId]` é invalidada
+O projeto já utiliza **drag-and-drop nativo HTML5** no componente `EmailCanvas.tsx`. Vamos reutilizar o mesmo padrão - é leve, sem dependências externas, e já está comprovado no projeto.
 
-Atualmente, quando se alteram quantidades **localmente**, o total no **footer** do editor atualiza (`calculateTotal()`), mas o header mostra o valor **antigo** porque ainda não foi guardado.
+---
 
-### Problema 3: Após Guardar, o Header Não Refresca
-O hook `useUpdateProposalItems` invalida as queries corretas (linhas 597-605):
-- `["proposal-items", proposalId]`
-- `["proposal", proposalId]`
-- `["proposals"]`
+## Implementação
 
-No entanto, o `ProposalDetailDialog` não está a reagir ao refresh porque o callback `onSaved` está vazio:
+### Adicionar ao ProposalItemsEditor.tsx
+
+#### 1. Novos refs para tracking do drag
+
 ```typescript
-<ProposalItemsEditor 
-  proposalId={proposalId} 
-  onSaved={() => {
-    // Optionally switch back to preview after save
-  }}
-/>
+const dragItemRef = useRef<number | null>(null);
+const dragOverItemRef = useRef<number | null>(null);
+const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+```
+
+#### 2. Handlers de drag-and-drop
+
+```typescript
+const handleDragStart = (index: number) => {
+  dragItemRef.current = index;
+  setDraggedIndex(index);
+};
+
+const handleDragEnter = (index: number) => {
+  dragOverItemRef.current = index;
+};
+
+const handleDragEnd = () => {
+  if (
+    dragItemRef.current !== null && 
+    dragOverItemRef.current !== null &&
+    dragItemRef.current !== dragOverItemRef.current
+  ) {
+    handleReorderItems(dragItemRef.current, dragOverItemRef.current);
+  }
+  dragItemRef.current = null;
+  dragOverItemRef.current = null;
+  setDraggedIndex(null);
+};
+
+const handleReorderItems = (fromIndex: number, toIndex: number) => {
+  setItems((prev) => {
+    const newItems = [...prev];
+    const [removed] = newItems.splice(fromIndex, 1);
+    newItems.splice(toIndex, 0, removed);
+    // Atualizar posições
+    return newItems.map((item, idx) => ({ ...item, position: idx }));
+  });
+  setHasChanges(true);
+};
+```
+
+#### 3. Atributos no Card de cada item
+
+```typescript
+<Card 
+  key={item.id || index} 
+  className={cn(
+    "p-4 transition-all duration-200",
+    draggedIndex === index && "opacity-50 scale-95"
+  )}
+  draggable
+  onDragStart={() => handleDragStart(index)}
+  onDragEnter={() => handleDragEnter(index)}
+  onDragEnd={handleDragEnd}
+  onDragOver={(e) => e.preventDefault()}
+>
+```
+
+#### 4. Melhorar feedback visual do GripVertical
+
+```typescript
+<div 
+  className="flex items-center text-muted-foreground cursor-grab active:cursor-grabbing pt-2 hover:text-primary transition-colors"
+  title="Arraste para reordenar"
+>
+  <GripVertical className="h-4 w-4" />
+</div>
 ```
 
 ---
 
-## Soluções Propostas
+## Ficheiro a Modificar
 
-### 1. Aumentar Altura do ScrollArea e Melhorar Estrutura
-Mudar de altura fixa para altura dinâmica usando `flex-1`:
+### `src/components/proposals/ProposalItemsEditor.tsx`
 
-```typescript
-// ProposalItemsEditor.tsx
-// De: <ScrollArea className="h-[400px]">
-// Para:
-<ScrollArea className="flex-1 min-h-0">
-```
+| Alteração | Linhas |
+|-----------|--------|
+| Adicionar imports (`useRef`) | ~1 linha |
+| Adicionar refs para drag tracking | ~3 linhas |
+| Adicionar estado `draggedIndex` | ~1 linha |
+| Adicionar handlers de drag | ~25 linhas |
+| Atributos `draggable` no Card | ~6 linhas |
+| Feedback visual no GripVertical | ~2 linhas |
 
-E garantir que o container pai use flexbox corretamente.
-
-### 2. Mostrar Total Calculado Localmente no Editor (Já Existe)
-O footer já mostra `calculateTotal()` que é calculado em tempo real. Isto já funciona. 
-
-O problema é que o utilizador pode estar a olhar para o header (759,70€) e não para o footer do editor.
-
-### 3. Forçar Refetch da Proposta Após Guardar Itens
-Adicionar refetch explícito no callback `onSaved`:
-
-```typescript
-// ProposalDetailDialog.tsx
-<ProposalItemsEditor 
-  proposalId={proposalId} 
-  onSaved={async () => {
-    // Forçar refetch da proposta para atualizar o header
-    await queryClient.refetchQueries({ 
-      queryKey: ["proposal", proposalId] 
-    });
-  }}
-/>
-```
-
-### 4. Mostrar Indicador Visual de "Valor Pendente"
-Quando há alterações não guardadas, mostrar no editor que o total ainda não foi sincronizado:
-
-```typescript
-{hasChanges && (
-  <p className="text-xs text-amber-600">
-    (total será atualizado após guardar)
-  </p>
-)}
-```
+**Total estimado: ~38 linhas adicionadas**
 
 ---
 
-## Ficheiros a Modificar
+## Comportamento Final
 
-### 1. `src/components/proposals/ProposalItemsEditor.tsx`
-- Mudar `h-[400px]` para altura dinâmica com flexbox
-- Adicionar indicador visual quando há alterações não guardadas
-
-### 2. `src/components/proposals/ProposalDetailDialog.tsx`
-- Implementar callback `onSaved` para forçar refetch da proposta
-- Adicionar `useQueryClient` import
-
----
-
-## Alterações Técnicas
-
-### ProposalItemsEditor.tsx
-
-```typescript
-// Linha 185-186: Container principal
-return (
-  <div className="flex flex-col h-full space-y-4">
-
-// Linha 223: ScrollArea - usar flex-1 em vez de altura fixa
-<ScrollArea className="flex-1 min-h-[200px]">
-```
-
-### ProposalDetailDialog.tsx
-
-```typescript
-// Adicionar import
-import { useQueryClient } from "@tanstack/react-query";
-
-// No componente, adicionar:
-const queryClient = useQueryClient();
-
-// Atualizar callback onSaved (linha 614-619):
-<ProposalItemsEditor 
-  proposalId={proposalId} 
-  onSaved={async () => {
-    // Forçar refetch para atualizar o header com novo preço
-    await queryClient.refetchQueries({ 
-      queryKey: ["proposal", proposalId] 
-    });
-  }}
-/>
-```
+1. **Cursor "grab"** - O ícone GripVertical mostra cursor de agarrar
+2. **Arrastar** - O item fica semi-transparente enquanto é arrastado
+3. **Soltar** - O item é inserido na nova posição
+4. **Posições actualizadas** - Os campos `position` são recalculados
+5. **Flag de alterações** - `hasChanges` fica `true` para indicar que precisa guardar
 
 ---
 
 ## Resultado Esperado
 
-Após as correções:
-
-1. **Todos os 4 itens serão visíveis** - O scroll funcionará corretamente
-2. **O valor no header atualiza após guardar** - O refetch forçado sincroniza o preço
-3. **Feedback visual claro** - O utilizador sabe quando tem alterações pendentes
-
----
-
-## Estimativa
-
-- ProposalItemsEditor.tsx: ~5 linhas alteradas
-- ProposalDetailDialog.tsx: ~10 linhas alteradas
-- **Total: ~15 linhas de alteração**
+- Arrastar qualquer item sobre outro muda a ordem
+- Feedback visual claro durante o drag
+- A nova ordem é guardada quando clica "Guardar Itens"
+- A ordem persiste na base de dados via campo `position`
