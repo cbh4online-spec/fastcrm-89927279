@@ -15996,6 +15996,7 @@ export type Database = {
       proposals: {
         Row: {
           accepted_at: string | null
+          assigned_to: string | null
           billing_address: string | null
           billing_nif: string | null
           company_id: string | null
@@ -16031,6 +16032,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          assigned_to?: string | null
           billing_address?: string | null
           billing_nif?: string | null
           company_id?: string | null
@@ -16066,6 +16068,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          assigned_to?: string | null
           billing_address?: string | null
           billing_nif?: string | null
           company_id?: string | null

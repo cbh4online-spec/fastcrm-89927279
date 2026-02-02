@@ -33,7 +33,11 @@ import { cn } from "@/lib/utils";
 
 interface ProposalInternalViewProps {
   proposal: Proposal;
-  items?: (PreviewItem & { is_enabled?: boolean })[];
+  items?: (PreviewItem & { 
+    is_enabled?: boolean;
+    cost_snapshot?: number | null;
+    operational_cost_snapshot?: number | null;
+  })[];
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onQuantityChange?: (itemId: string, quantity: number) => void;
 }
@@ -69,6 +73,15 @@ export function ProposalInternalView({
   const enabledItems = items.filter(item => item.is_enabled !== false);
   const itemsTotal = enabledItems.reduce((sum, item) => sum + item.total_price, 0);
   const disabledCount = items.length - enabledItems.length;
+  
+  // Calculate total cost and margin
+  const totalCost = enabledItems.reduce((sum, item) => {
+    const directCost = item.cost_snapshot ?? 0;
+    const opCost = item.operational_cost_snapshot ?? 0;
+    return sum + ((directCost + opCost) * item.quantity);
+  }, 0);
+  const totalMargin = itemsTotal - totalCost;
+  const marginPct = itemsTotal > 0 ? (totalMargin / itemsTotal) * 100 : 0;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -185,12 +198,20 @@ export function ProposalInternalView({
                 <TableHead>Item</TableHead>
                 <TableHead className="w-20 text-center">Qtd.</TableHead>
                 <TableHead className="w-28 text-right">Preço</TableHead>
+                <TableHead className="w-24 text-right">Custo</TableHead>
+                <TableHead className="w-28 text-right">Margem</TableHead>
                 <TableHead className="w-28 text-right">Subtotal</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((item) => {
                 const isEnabled = item.is_enabled !== false;
+                const itemDirectCost = item.cost_snapshot ?? 0;
+                const itemOpCost = item.operational_cost_snapshot ?? 0;
+                const itemCost = (itemDirectCost + itemOpCost) * item.quantity;
+                const itemMargin = item.total_price - itemCost;
+                const itemMarginPct = item.total_price > 0 ? (itemMargin / item.total_price) * 100 : 0;
+                
                 return (
                   <TableRow 
                     key={item.id} 
@@ -235,6 +256,16 @@ export function ProposalInternalView({
                     <TableCell className={cn("text-right whitespace-nowrap", !isEnabled && "line-through text-muted-foreground")}>
                       {formatCurrency(item.unit_price, proposal.currency)}
                     </TableCell>
+                    <TableCell className={cn("text-right text-muted-foreground whitespace-nowrap", !isEnabled && "line-through")}>
+                      {formatCurrency(itemCost, proposal.currency)}
+                    </TableCell>
+                    <TableCell className={cn(
+                      "text-right font-medium whitespace-nowrap",
+                      !isEnabled && "line-through text-muted-foreground",
+                      isEnabled && itemMarginPct >= 30 ? "text-green-600" : isEnabled && "text-red-600"
+                    )}>
+                      {formatCurrency(itemMargin, proposal.currency)} ({itemMarginPct.toFixed(0)}%)
+                    </TableCell>
                     <TableCell className={cn("text-right font-medium whitespace-nowrap", !isEnabled && "line-through text-muted-foreground")}>
                       {formatCurrency(item.total_price, proposal.currency)}
                     </TableCell>
@@ -246,6 +277,15 @@ export function ProposalInternalView({
               <TableRow>
                 <TableCell colSpan={4} className="text-right font-semibold">
                   TOTAL {disabledCount > 0 && <span className="text-xs text-muted-foreground font-normal">(itens activos)</span>}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground font-medium">
+                  {formatCurrency(totalCost, proposal.currency)}
+                </TableCell>
+                <TableCell className={cn(
+                  "text-right font-semibold",
+                  marginPct >= 30 ? "text-green-600" : "text-red-600"
+                )}>
+                  {formatCurrency(totalMargin, proposal.currency)} ({marginPct.toFixed(0)}%)
                 </TableCell>
                 <TableCell className="text-right font-bold text-primary text-lg">
                   {formatCurrency(itemsTotal, proposal.currency)}

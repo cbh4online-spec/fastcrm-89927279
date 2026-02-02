@@ -58,6 +58,14 @@ export interface Proposal {
   notes: string | null;
   billing_address: string | null;
   billing_nif: string | null;
+  // Account manager
+  assigned_to: string | null;
+  assigned_to_profile?: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    avatar_url: string | null;
+  } | null;
   opportunity?: {
     id: string;
     title: string;
@@ -140,6 +148,8 @@ export interface UpdateProposalInput {
   notes?: string;
   billing_address?: string;
   billing_nif?: string;
+  // Account manager
+  assigned_to?: string | null;
 }
 
 export interface CreateProposalTemplateInput {

@@ -31,6 +31,8 @@ import {
   Users,
   CreditCard,
   FileSearch,
+  TrendingUp,
+  UserCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -54,9 +56,18 @@ import {
   useToggleProposalItem,
 } from "@/hooks/useProposals";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProposalStatus, ContentBlock } from "@/types/proposal";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ProposalDetailDialogProps {
   open: boolean;
@@ -113,14 +124,23 @@ export function ProposalDetailDialog({
   const { data: versions } = useProposalVersions(proposalId);
   const { data: activity } = useProposalActivity(proposalId);
   const { data: proposalItems } = useProposalItems(proposalId);
+  const { data: workspaceMembers } = useWorkspaceMembers();
   const publishProposal = usePublishProposal();
   const updateProposal = useUpdateProposal();
   const toggleItem = useToggleProposalItem();
   
   // Calculate real total from items
-  const calculatedTotal = proposalItems
-    ?.filter(item => item.is_enabled !== false)
-    .reduce((sum, item) => sum + (item.quantity * item.unit_price), 0) || 0;
+  const enabledItems = proposalItems?.filter(item => item.is_enabled !== false) || [];
+  const calculatedTotal = enabledItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+  
+  // Calculate costs and margin from enabled items
+  const totalCost = enabledItems.reduce((sum, item) => {
+    const directCost = item.cost_snapshot ?? 0;
+    const opCost = item.operational_cost_snapshot ?? 0;
+    return sum + ((directCost + opCost) * item.quantity);
+  }, 0);
+  const totalMargin = calculatedTotal - totalCost;
+  const marginPct = calculatedTotal > 0 ? (totalMargin / calculatedTotal) * 100 : 0;
   
   // Use calculated total when items exist, otherwise proposal.price
   const displayPrice = proposalItems && proposalItems.length > 0 
@@ -258,6 +278,15 @@ export function ProposalDetailDialog({
   const handlePublish = async () => {
     if (proposal) {
       await publishProposal.mutateAsync(proposal.id);
+    }
+  };
+  
+  const handleAssignedToChange = async (userId: string) => {
+    if (proposal) {
+      await updateProposal.mutateAsync({
+        id: proposal.id,
+        assigned_to: userId === "_none" ? null : userId,
+      });
     }
   };
 
@@ -401,7 +430,7 @@ export function ProposalDetailDialog({
 
           {/* Info Cards Row */}
           <div className="px-6 pb-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
               {/* Opportunity */}
               <div className="bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50">
                 <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -433,6 +462,75 @@ export function ProposalDetailDialog({
                 <p className="font-semibold text-sm text-primary">
                   {formatCurrency(displayPrice ?? null, proposal.currency)}
                 </p>
+              </div>
+
+              {/* Cost / Margin - Internal Only */}
+              <div className="bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50">
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium uppercase tracking-wide">Custo / Margem</span>
+                </div>
+                {proposalItems && proposalItems.length > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{formatCurrency(totalCost, proposal.currency)}</span>
+                    <span className={cn(
+                      "font-semibold text-sm",
+                      marginPct >= 30 ? "text-green-600" : "text-red-600"
+                    )}>
+                      +{formatCurrency(totalMargin, proposal.currency)} ({marginPct.toFixed(0)}%)
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">-</p>
+                )}
+              </div>
+
+              {/* Account Manager */}
+              <div className="bg-card/50 backdrop-blur-sm rounded-lg p-3 border border-border/50">
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <UserCheck className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium uppercase tracking-wide">Responsável</span>
+                </div>
+                <Select
+                  value={proposal.assigned_to || "_none"}
+                  onValueChange={handleAssignedToChange}
+                >
+                  <SelectTrigger className="h-7 text-xs border-0 bg-transparent px-0 shadow-none hover:bg-muted/50 -ml-1">
+                    <SelectValue placeholder="Selecionar...">
+                      {proposal.assigned_to_profile ? (
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={proposal.assigned_to_profile.avatar_url || undefined} />
+                            <AvatarFallback className="text-[10px]">
+                              {proposal.assigned_to_profile.full_name?.charAt(0) || proposal.assigned_to_profile.email?.charAt(0) || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="truncate">{proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Nenhum</span>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">
+                      <span className="text-muted-foreground">Nenhum</span>
+                    </SelectItem>
+                    {workspaceMembers?.map((member) => (
+                      <SelectItem key={member.user_id} value={member.user_id}>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={member.profile?.avatar_url || undefined} />
+                            <AvatarFallback className="text-[10px]">
+                              {member.profile?.full_name?.charAt(0) || member.profile?.email?.charAt(0) || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{member.profile?.full_name || member.profile?.email || "Sem nome"}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Created Date */}
@@ -537,6 +635,8 @@ export function ProposalDetailDialog({
                       unit_price: item.unit_price,
                       total_price: item.total_price || (item.quantity * item.unit_price),
                       is_enabled: item.is_enabled,
+                      cost_snapshot: item.cost_snapshot,
+                      operational_cost_snapshot: item.operational_cost_snapshot,
                     }))}
                     onItemToggle={handleItemToggle}
                   />

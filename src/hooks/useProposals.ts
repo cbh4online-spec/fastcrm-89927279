@@ -164,7 +164,10 @@ export function useProposals(opportunityId?: string) {
             lead:leads(id, name, email)
           ),
           contact:contacts(id, name, email, tax_id, address),
-          company:companies(id, name, email, tax_id, address)
+          company:companies(id, name, email, tax_id, address),
+          assigned_to_profile:profiles!proposals_assigned_to_fkey(
+            id, full_name, email, avatar_url
+          )
         `)
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
@@ -201,7 +204,10 @@ export function useProposal(id: string | undefined) {
             lead:leads(id, name, email)
           ),
           contact:contacts(id, name, email, tax_id, address),
-          company:companies(id, name, email, tax_id, address)
+          company:companies(id, name, email, tax_id, address),
+          assigned_to_profile:profiles!proposals_assigned_to_fkey(
+            id, full_name, email, avatar_url
+          )
         `)
         .eq("id", id)
         .single();
@@ -313,6 +319,8 @@ export function useUpdateProposal() {
       if (input.notes !== undefined) updateData.notes = input.notes;
       if (input.billing_address !== undefined) updateData.billing_address = input.billing_address;
       if (input.billing_nif !== undefined) updateData.billing_nif = input.billing_nif;
+      // Account manager
+      if (input.assigned_to !== undefined) updateData.assigned_to = input.assigned_to;
 
       const { data, error } = await supabase
         .from("proposals")
