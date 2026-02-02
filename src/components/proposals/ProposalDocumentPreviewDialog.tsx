@@ -146,129 +146,185 @@ export function ProposalDocumentPreviewDialog({
     setIsGenerating(true);
     
     try {
-      // 1. Wait for all images to load
-      const images = documentRef.current.querySelectorAll('img');
-      await Promise.all(
-        Array.from(images).map(img => 
-          img.complete ? Promise.resolve() : 
-          new Promise(resolve => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          })
-        )
-      );
-      
-      // 2. Give extra time for rendering
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       // Dynamic imports for PDF generation
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
         import("html2canvas"),
         import("jspdf")
       ]);
-      
-      // Get actual dimensions
-      const docWidth = documentRef.current.scrollWidth;
-      const docHeight = documentRef.current.scrollHeight;
-      
-      // Capture the document as canvas with full dimensions
-      const canvas = await html2canvas(documentRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        width: docWidth,
-        height: docHeight,
-        windowWidth: docWidth,
-        windowHeight: docHeight,
-        imageTimeout: 10000,
-        onclone: async (clonedDoc, element) => {
-          // Convert all images to Data URLs to avoid CORS issues
-          const images = element.querySelectorAll('img');
-          
-          await Promise.all(
-            Array.from(images).map(async (img) => {
-              const src = img.getAttribute('src');
-              if (src && !src.startsWith('data:')) {
-                const dataUrl = await convertImageToDataUrl(src);
-                if (dataUrl) {
-                  img.src = dataUrl;
-                } else {
-                  // Image failed - use placeholder
-                  img.src = PLACEHOLDER_IMAGE;
-                }
-              }
-              // Remove crossOrigin attribute
-              img.removeAttribute('crossOrigin');
-            })
-          );
-        },
-      });
-      
+
       // A4 dimensions in mm
-      const a4Width = 210;
-      const a4Height = 297;
-      const margin = 10;
-      const contentWidth = a4Width - (margin * 2);
-      
-      // Calculate dimensions to fit A4 width
-      const imgWidth = contentWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      // Create PDF
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-      
-      // Calculate how many pages we need
-      const pageContentHeight = a4Height - (margin * 2);
-      const totalPages = Math.ceil(imgHeight / pageContentHeight);
-      
-      // Create a temporary canvas for each page slice
-      for (let page = 0; page < totalPages; page++) {
-        if (page > 0) {
-          doc.addPage();
-        }
-        
-        // Calculate the slice of the original canvas for this page
-        const sourceY = (page * pageContentHeight * canvas.width) / imgWidth;
-        const sourceHeight = Math.min(
-          (pageContentHeight * canvas.width) / imgWidth,
-          canvas.height - sourceY
-        );
-        
-        // Create a temporary canvas for this page slice
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = sourceHeight;
-        const ctx = pageCanvas.getContext('2d');
-        
-        if (ctx) {
-          ctx.drawImage(
-            canvas,
-            0, sourceY,
-            canvas.width, sourceHeight,
-            0, 0,
-            canvas.width, sourceHeight
-          );
-          
-          const sliceHeight = (sourceHeight * imgWidth) / canvas.width;
-          doc.addImage(
-            pageCanvas.toDataURL("image/jpeg", 0.95),
-            "JPEG",
-            margin,
-            margin,
-            imgWidth,
-            sliceHeight
-          );
-        }
+      const A4_WIDTH_MM = 210;
+      const A4_HEIGHT_MM = 297;
+      const MARGIN = 10;
+      const CONTENT_WIDTH_MM = A4_WIDTH_MM - (MARGIN * 2);
+      const PAGE_CONTENT_HEIGHT = A4_HEIGHT_MM - (MARGIN * 2);
+
+      // 1. Find all sections marked with data-pdf-section
+      const sections = Array.from(
+        documentRef.current.querySelectorAll('[data-pdf-section]')
+      ) as HTMLElement[];
+
+      if (sections.length === 0) {
+        throw new Error('No sections found for PDF generation');
       }
-      
-      doc.save(`proposta-${proposal.slug}.pdf`);
-      
+
+      // 2. Capture each section individually
+      interface SectionData {
+        canvas: HTMLCanvasElement;
+        heightMM: number;
+        name: string | null;
+        forceNewPage: boolean;
+      }
+
+      const sectionData: SectionData[] = [];
+
+      for (const section of sections) {
+        const sectionName = section.getAttribute('data-pdf-section');
+
+        // Wait for images in this section to load
+        const images = section.querySelectorAll('img');
+        await Promise.all(
+          Array.from(images).map(img =>
+            img.complete ? Promise.resolve() :
+              new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+              })
+          )
+        );
+
+        const canvas = await html2canvas(section, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          imageTimeout: 10000,
+          onclone: async (_clonedDoc, element) => {
+            // Convert all images to Data URLs to avoid CORS issues
+            const clonedImages = element.querySelectorAll('img');
+
+            await Promise.all(
+              Array.from(clonedImages).map(async (img) => {
+                const src = img.getAttribute('src');
+                if (src && !src.startsWith('data:')) {
+                  const dataUrl = await convertImageToDataUrl(src);
+                  if (dataUrl) {
+                    img.src = dataUrl;
+                  } else {
+                    img.src = PLACEHOLDER_IMAGE;
+                  }
+                }
+                img.removeAttribute('crossOrigin');
+              })
+            );
+          },
+        });
+
+        // Calculate height in mm based on scale and content width
+        const widthPx = canvas.width / 2; // scale: 2
+        const heightPx = canvas.height / 2;
+        const scaleFactor = CONTENT_WIDTH_MM / widthPx;
+        const heightMM = heightPx * scaleFactor;
+
+        sectionData.push({
+          canvas,
+          heightMM,
+          name: sectionName,
+          forceNewPage: sectionName === 'cover', // Cover always on separate page
+        });
+      }
+
+      // 3. Create PDF with intelligent page breaks
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      let currentY = MARGIN;
+      let isFirstSection = true;
+
+      for (const { canvas, heightMM, name, forceNewPage } of sectionData) {
+        const remainingSpace = PAGE_CONTENT_HEIGHT - (currentY - MARGIN);
+
+        // Force new page after cover or if section doesn't fit
+        if (!isFirstSection && (forceNewPage || heightMM > remainingSpace)) {
+          pdf.addPage();
+          currentY = MARGIN;
+        }
+
+        // If section is larger than a page, we need to slice it
+        if (heightMM > PAGE_CONTENT_HEIGHT) {
+          let sliceStartMM = 0;
+          let isFirstSlice = true;
+
+          while (sliceStartMM < heightMM) {
+            const sliceHeightMM = Math.min(PAGE_CONTENT_HEIGHT, heightMM - sliceStartMM);
+            const sliceStartPx = (sliceStartMM / heightMM) * canvas.height;
+            const sliceHeightPx = (sliceHeightMM / heightMM) * canvas.height;
+
+            // Create canvas for this slice
+            const sliceCanvas = document.createElement('canvas');
+            sliceCanvas.width = canvas.width;
+            sliceCanvas.height = Math.ceil(sliceHeightPx);
+            const ctx = sliceCanvas.getContext('2d');
+
+            if (ctx) {
+              ctx.drawImage(
+                canvas,
+                0, sliceStartPx,
+                canvas.width, sliceHeightPx,
+                0, 0,
+                canvas.width, sliceHeightPx
+              );
+
+              if (!isFirstSlice) {
+                pdf.addPage();
+                currentY = MARGIN;
+              }
+
+              pdf.addImage(
+                sliceCanvas.toDataURL('image/jpeg', 0.95),
+                'JPEG',
+                MARGIN,
+                MARGIN,
+                CONTENT_WIDTH_MM,
+                sliceHeightMM
+              );
+            }
+
+            sliceStartMM += sliceHeightMM;
+            isFirstSlice = false;
+          }
+
+          // Set currentY for next section
+          const lastSliceHeight = heightMM % PAGE_CONTENT_HEIGHT;
+          currentY = MARGIN + (lastSliceHeight > 0 ? lastSliceHeight : PAGE_CONTENT_HEIGHT);
+        } else {
+          // Section fits on current page
+          pdf.addImage(
+            canvas.toDataURL('image/jpeg', 0.95),
+            'JPEG',
+            MARGIN,
+            currentY,
+            CONTENT_WIDTH_MM,
+            heightMM
+          );
+          currentY += heightMM;
+        }
+
+        // After cover, always start new page
+        if (name === 'cover') {
+          pdf.addPage();
+          currentY = MARGIN;
+        }
+
+        isFirstSection = false;
+      }
+
+      pdf.save(`proposta-${proposal.slug}.pdf`);
+
       toast({
         title: "PDF gerado",
         description: "O documento foi exportado com sucesso.",
