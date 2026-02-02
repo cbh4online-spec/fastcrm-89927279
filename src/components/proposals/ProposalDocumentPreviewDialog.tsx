@@ -231,7 +231,8 @@ export function ProposalDocumentPreviewDialog({
           canvas,
           heightMM,
           name: sectionName,
-          forceNewPage: sectionName === 'cover', // Cover always on separate page
+          // Cover and conditions always on separate page
+          forceNewPage: sectionName === 'cover' || sectionName === 'conditions',
         });
       }
 

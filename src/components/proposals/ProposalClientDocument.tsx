@@ -628,13 +628,19 @@ export function ProposalClientDocument({
               </div>
             )}
           </div>
+        </div>
 
-          {/* Conditions of Sale - Table Format */}
-          <div className="bg-gray-50 px-4 md:px-8 py-6 mt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 uppercase tracking-wide">
+        {/* ====== 6. CONDIÇÕES DE VENDA (Página Separada) ====== */}
+        <div data-pdf-section="conditions" className="border-t">
+          {/* Section Header */}
+          <div className="px-4 md:px-8 pt-8 pb-4">
+            <h2 className="text-xl font-bold text-gray-900 uppercase tracking-wide">
               Condições de Venda
-            </h3>
-            
+            </h2>
+          </div>
+
+          {/* Conditions Content */}
+          <div className="bg-gray-50 px-4 md:px-8 py-6">
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <table className="w-full text-sm">
                 <tbody>
