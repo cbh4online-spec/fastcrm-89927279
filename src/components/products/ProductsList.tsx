@@ -67,6 +67,7 @@ import {
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useProducts, useProductCategories, useArchiveProduct, useDeleteProduct } from "@/hooks/useProducts";
+import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
 import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductDetailDialog } from "./ProductDetailDialog";
 import { BatchSKUImportDialog } from "./BatchSKUImportDialog";
@@ -82,6 +83,8 @@ import {
   productStatusLabels,
   billingTypeLabels,
   type Product,
+  type ProductType,
+  type BillingType,
 } from "@/types/product";
 import { toast } from "sonner";
 
@@ -170,61 +173,93 @@ export function ProductsList() {
   });
 
   const { data: categories } = useProductCategories();
+  const { data: productTypesConfig } = useProductTypes();
+  const { data: billingTypesConfig } = useBillingTypes();
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
 
-  // Filter groups for sidebar
-  const filterGroups: FilterGroup[] = [
-    {
-      id: "type",
-      label: "Tipo",
-      icon: <Layers className="h-4 w-4" />,
-      defaultOpen: true,
-      items: [
-        { id: "type_simple", label: "Simples", icon: <Package className="h-4 w-4" /> },
-        { id: "type_recurring", label: "Recorrente", icon: <Repeat className="h-4 w-4" /> },
-        { id: "type_composite", label: "Bundle", icon: <FileBox className="h-4 w-4" /> },
-        { id: "type_sessions", label: "Sessões", icon: <Clock className="h-4 w-4" /> },
-        { id: "type_formacao", label: "Formação", icon: <GraduationCap className="h-4 w-4" /> },
-        { id: "type_programa", label: "Programa / Pack", icon: <Boxes className="h-4 w-4" /> },
-        { id: "type_physical", label: "Produto Físico", icon: <Box className="h-4 w-4" /> },
-      ],
-    },
-    {
-      id: "status",
-      label: "Estado",
-      icon: <Tag className="h-4 w-4" />,
-      defaultOpen: true,
-      items: [
-        { id: "status_active", label: "Ativos" },
-        { id: "status_archived", label: "Arquivados" },
-      ],
-    },
-    {
-      id: "billing",
-      label: "Cobrança",
-      icon: <CircleDollarSign className="h-4 w-4" />,
-      defaultOpen: false,
-      items: [
-        { id: "billing_one_time", label: "Único" },
-        { id: "billing_monthly", label: "Mensal" },
-        { id: "billing_quarterly", label: "Trimestral" },
-        { id: "billing_yearly", label: "Anual" },
-      ],
-    },
-    {
-      id: "smart",
-      label: "Filtros Inteligentes",
-      icon: <Calendar className="h-4 w-4" />,
-      defaultOpen: false,
-      items: [
-        { id: "smart_recent", label: "Atualizados recentemente" },
-        { id: "smart_high_price", label: "Preço alto (>100€)" },
-        { id: "smart_low_price", label: "Preço baixo (<50€)" },
-      ],
-    },
-  ];
+  // Helper para obter label do tipo de produto
+  const getProductTypeLabel = (typeCode: string) => {
+    const dynamicType = productTypesConfig?.find(t => t.code === typeCode);
+    if (dynamicType) return dynamicType.label;
+    if (typeCode in productTypeLabels) {
+      return productTypeLabels[typeCode as ProductType];
+    }
+    return typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
+  };
+
+  // Helper para obter label do tipo de cobrança
+  const getBillingTypeLabel = (typeCode: string) => {
+    const dynamicType = billingTypesConfig?.find(t => t.code === typeCode);
+    if (dynamicType) return dynamicType.label;
+    if (typeCode in billingTypeLabels) {
+      return billingTypeLabels[typeCode as BillingType];
+    }
+    return typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
+  };
+
+  // Filter groups for sidebar - dynamic from config
+  const filterGroups: FilterGroup[] = useMemo(() => {
+    // Build type items dynamically from productTypesConfig
+    const typeItems = productTypesConfig?.filter(t => t.is_active).map(type => ({
+      id: `type_${type.code}`,
+      label: type.label,
+      icon: <Package className="h-4 w-4" />
+    })) || [
+      // Fallback static items if config not loaded
+      { id: "type_simple", label: "Simples", icon: <Package className="h-4 w-4" /> },
+      { id: "type_recurring", label: "Recorrente", icon: <Repeat className="h-4 w-4" /> },
+      { id: "type_composite", label: "Bundle", icon: <FileBox className="h-4 w-4" /> },
+    ];
+
+    // Build billing items dynamically from billingTypesConfig
+    const billingItems = billingTypesConfig?.filter(t => t.is_active).map(type => ({
+      id: `billing_${type.code}`,
+      label: type.label,
+    })) || [
+      { id: "billing_one_time", label: "Único" },
+      { id: "billing_recurring", label: "Recorrente" },
+    ];
+
+    return [
+      {
+        id: "type",
+        label: "Tipo",
+        icon: <Layers className="h-4 w-4" />,
+        defaultOpen: true,
+        items: typeItems,
+      },
+      {
+        id: "status",
+        label: "Estado",
+        icon: <Tag className="h-4 w-4" />,
+        defaultOpen: true,
+        items: [
+          { id: "status_active", label: "Ativos" },
+          { id: "status_archived", label: "Arquivados" },
+        ],
+      },
+      {
+        id: "billing",
+        label: "Cobrança",
+        icon: <CircleDollarSign className="h-4 w-4" />,
+        defaultOpen: false,
+        items: billingItems,
+      },
+      {
+        id: "smart",
+        label: "Filtros Inteligentes",
+        icon: <Calendar className="h-4 w-4" />,
+        defaultOpen: false,
+        items: [
+          { id: "smart_recent", label: "Atualizados recentemente" },
+          { id: "smart_high_price", label: "Preço alto (>100€)" },
+          { id: "smart_low_price", label: "Preço baixo (<50€)" },
+        ],
+      },
+    ];
+  }, [productTypesConfig, billingTypesConfig]);
 
   // Add category filter group if categories exist
   const validCategories = categories?.filter((cat): cat is string => typeof cat === "string" && cat.length > 0) || [];
@@ -304,7 +339,7 @@ export function ProductsList() {
       case "product_type":
         return (
           <Badge variant="outline">
-            {productTypeLabels[product.product_type]}
+            {getProductTypeLabel(product.product_type)}
           </Badge>
         );
       case "category":
@@ -334,7 +369,7 @@ export function ProductsList() {
         }
         return "-";
       case "billing_type":
-        return billingTypeLabels[product.billing_type];
+        return getBillingTypeLabel(product.billing_type);
       case "billing_frequency":
         return product.billing_frequency || "-";
       case "status":
@@ -443,10 +478,10 @@ export function ProductsList() {
       ...selected.map((p) =>
         [
           p.name,
-          productTypeLabels[p.product_type],
+          getProductTypeLabel(p.product_type),
           p.category || "",
           p.base_price,
-          billingTypeLabels[p.billing_type],
+          getBillingTypeLabel(p.billing_type),
           productStatusLabels[p.status],
         ].join(",")
       ),
