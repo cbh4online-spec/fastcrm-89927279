@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -10,6 +11,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Eye,
   Send,
@@ -112,6 +118,7 @@ export function ProposalDetailDialog({
   onOpenChange,
   proposalId,
 }: ProposalDetailDialogProps) {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [currentStep, setCurrentStep] = useState(0);
@@ -652,14 +659,44 @@ export function ProposalDetailDialog({
                     </Badge>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <Building2 className="h-3 w-3" />
-                      {proposal.opportunity?.title || "-"}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      {proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name || "-"}
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span 
+                          className={cn(
+                            "flex items-center gap-1",
+                            proposal.opportunity?.id && "cursor-pointer hover:text-primary transition-colors"
+                          )}
+                          onClick={() => proposal.opportunity?.id && navigate(`/dashboard/opportunities/${proposal.opportunity.id}`)}
+                        >
+                          <Building2 className="h-3 w-3" />
+                          {proposal.opportunity?.title || "-"}
+                          {proposal.opportunity?.id && <ExternalLink className="h-2.5 w-2.5 opacity-60" />}
+                        </span>
+                      </TooltipTrigger>
+                      {proposal.opportunity?.id && <TooltipContent>Ver Oportunidade</TooltipContent>}
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span 
+                          className={cn(
+                            "flex items-center gap-1",
+                            (proposal.company?.id || proposal.contact?.id) && "cursor-pointer hover:text-primary transition-colors"
+                          )}
+                          onClick={() => {
+                            if (proposal.company?.id) {
+                              navigate(`/dashboard/companies/${proposal.company.id}`);
+                            } else if (proposal.contact?.id) {
+                              navigate(`/dashboard/contacts/${proposal.contact.id}`);
+                            }
+                          }}
+                        >
+                          <User className="h-3 w-3" />
+                          {proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name || "-"}
+                          {(proposal.company?.id || proposal.contact?.id) && <ExternalLink className="h-2.5 w-2.5 opacity-60" />}
+                        </span>
+                      </TooltipTrigger>
+                      {(proposal.company?.id || proposal.contact?.id) && <TooltipContent>Ver Ficha CRM</TooltipContent>}
+                    </Tooltip>
                     <span className="flex items-center gap-1 font-semibold text-primary">
                       <Euro className="h-3 w-3" />
                       {formatCurrency(displayPrice ?? null, proposal.currency)}
