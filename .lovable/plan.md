@@ -1,125 +1,113 @@
 
-# Plano: Adicionar Drag-and-Drop para Reordenar Itens da Proposta
+# Plano: Corrigir Sincronização do Valor Total no Header
 
-## Objetivo
+## Problema Identificado
 
-Permitir que o utilizador arraste os itens da proposta para mudar a ordem, facilitando a organização e apresentação ao cliente.
+Após análise da base de dados e código:
 
-## Abordagem Técnica
+| Origem | Valor |
+|--------|-------|
+| `proposals.price` (header) | 759,70€ |
+| Soma dos `proposal_items` (real) | 2138,10€ |
 
-O projeto já utiliza **drag-and-drop nativo HTML5** no componente `EmailCanvas.tsx`. Vamos reutilizar o mesmo padrão - é leve, sem dependências externas, e já está comprovado no projeto.
+Os itens já estão guardados com as quantidades correctas na base de dados, mas o campo `proposals.price` ficou desatualizado porque os itens foram provavelmente modificados antes de existir a lógica de recálculo automático, ou foram importados directamente.
 
 ---
 
-## Implementação
+## Solução
 
-### Adicionar ao ProposalItemsEditor.tsx
+### 1. Mostrar Total Calculado em Tempo Real no Header
 
-#### 1. Novos refs para tracking do drag
+Em vez de confiar apenas em `proposal.price`, calcular o total a partir dos `proposalItems` que já são carregados (linha 112):
 
 ```typescript
-const dragItemRef = useRef<number | null>(null);
-const dragOverItemRef = useRef<number | null>(null);
-const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+// ProposalDetailDialog.tsx
+
+// Calcular total real dos itens
+const calculatedTotal = proposalItems
+  ?.filter(item => item.is_enabled !== false)
+  .reduce((sum, item) => sum + (item.quantity * item.unit_price), 0) || 0;
+
+// Usar calculatedTotal quando diferente, senão proposal.price
+const displayPrice = proposalItems && proposalItems.length > 0 
+  ? calculatedTotal 
+  : proposal.price;
 ```
 
-#### 2. Handlers de drag-and-drop
+### 2. Atualizar Header para Usar o Valor Calculado
 
 ```typescript
-const handleDragStart = (index: number) => {
-  dragItemRef.current = index;
-  setDraggedIndex(index);
-};
+// Linha ~395: Trocar proposal.price por displayPrice
+<p className="font-semibold text-sm text-primary">
+  {formatCurrency(displayPrice, proposal.currency)}
+</p>
+```
 
-const handleDragEnter = (index: number) => {
-  dragOverItemRef.current = index;
-};
+### 3. Sincronizar BD Automaticamente (Opcional mas Recomendado)
 
-const handleDragEnd = () => {
-  if (
-    dragItemRef.current !== null && 
-    dragOverItemRef.current !== null &&
-    dragItemRef.current !== dragOverItemRef.current
-  ) {
-    handleReorderItems(dragItemRef.current, dragOverItemRef.current);
+Adicionar um efeito que detecta discrepância e atualiza a BD automaticamente:
+
+```typescript
+// Sincronizar proposals.price quando detectar discrepância
+useEffect(() => {
+  if (proposalItems && proposalItems.length > 0 && proposal) {
+    const calculated = proposalItems
+      .filter(item => item.is_enabled !== false)
+      .reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+    
+    // Se há diferença significativa (>0.01€), sincronizar
+    if (Math.abs(calculated - (proposal.price || 0)) > 0.01) {
+      // Atualizar proposals.price na BD silenciosamente
+      updateProposal.mutate({
+        id: proposalId,
+        price: calculated
+      });
+    }
   }
-  dragItemRef.current = null;
-  dragOverItemRef.current = null;
-  setDraggedIndex(null);
-};
-
-const handleReorderItems = (fromIndex: number, toIndex: number) => {
-  setItems((prev) => {
-    const newItems = [...prev];
-    const [removed] = newItems.splice(fromIndex, 1);
-    newItems.splice(toIndex, 0, removed);
-    // Atualizar posições
-    return newItems.map((item, idx) => ({ ...item, position: idx }));
-  });
-  setHasChanges(true);
-};
-```
-
-#### 3. Atributos no Card de cada item
-
-```typescript
-<Card 
-  key={item.id || index} 
-  className={cn(
-    "p-4 transition-all duration-200",
-    draggedIndex === index && "opacity-50 scale-95"
-  )}
-  draggable
-  onDragStart={() => handleDragStart(index)}
-  onDragEnter={() => handleDragEnter(index)}
-  onDragEnd={handleDragEnd}
-  onDragOver={(e) => e.preventDefault()}
->
-```
-
-#### 4. Melhorar feedback visual do GripVertical
-
-```typescript
-<div 
-  className="flex items-center text-muted-foreground cursor-grab active:cursor-grabbing pt-2 hover:text-primary transition-colors"
-  title="Arraste para reordenar"
->
-  <GripVertical className="h-4 w-4" />
-</div>
+}, [proposalItems, proposal?.price]);
 ```
 
 ---
 
-## Ficheiro a Modificar
+## Ficheiros a Modificar
 
-### `src/components/proposals/ProposalItemsEditor.tsx`
+### `src/components/proposals/ProposalDetailDialog.tsx`
 
-| Alteração | Linhas |
-|-----------|--------|
-| Adicionar imports (`useRef`) | ~1 linha |
-| Adicionar refs para drag tracking | ~3 linhas |
-| Adicionar estado `draggedIndex` | ~1 linha |
-| Adicionar handlers de drag | ~25 linhas |
-| Atributos `draggable` no Card | ~6 linhas |
-| Feedback visual no GripVertical | ~2 linhas |
-
-**Total estimado: ~38 linhas adicionadas**
+| Alteração | Descrição |
+|-----------|-----------|
+| Adicionar cálculo `calculatedTotal` | Soma os itens enabled |
+| Criar variável `displayPrice` | Prioriza total calculado |
+| Atualizar header | Usar `displayPrice` em vez de `proposal.price` |
+| useEffect de sincronização | Atualiza BD quando há discrepância |
 
 ---
 
-## Comportamento Final
+## Fluxo Corrigido
 
-1. **Cursor "grab"** - O ícone GripVertical mostra cursor de agarrar
-2. **Arrastar** - O item fica semi-transparente enquanto é arrastado
-3. **Soltar** - O item é inserido na nova posição
-4. **Posições actualizadas** - Os campos `position` são recalculados
-5. **Flag de alterações** - `hasChanges` fica `true` para indicar que precisa guardar
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│  1. Dialog abre                                                     │
+│  2. useProposal carrega proposal (price: 759.70)                   │
+│  3. useProposalItems carrega itens (soma: 2138.10)                 │
+│  4. calculatedTotal = 2138.10                                       │
+│  5. displayPrice = calculatedTotal (prioridade)                    │
+│  6. Header mostra 2138.10€ ✓                                       │
+│  7. useEffect detecta discrepância                                  │
+│  8. Atualiza proposals.price = 2138.10 na BD ✓                     │
+│  9. Próxima vez, ambos os valores estarão sincronizados            │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Resultado Esperado
 
-- Arrastar qualquer item sobre outro muda a ordem
-- Feedback visual claro durante o drag
-- A nova ordem é guardada quando clica "Guardar Itens"
-- A ordem persiste na base de dados via campo `position`
+1. **Imediato**: Header mostra sempre o valor correcto baseado nos itens
+2. **Persistente**: A BD é sincronizada automaticamente quando há discrepância
+3. **Robusto**: Funciona mesmo para propostas criadas antes desta lógica
+
+---
+
+## Estimativa
+
+- ProposalDetailDialog.tsx: ~20 linhas alteradas/adicionadas
