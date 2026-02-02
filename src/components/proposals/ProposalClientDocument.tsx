@@ -12,10 +12,18 @@ import {
   Download,
   Printer,
   Package,
+  Target,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Clock,
+  Flag,
+  Quote,
+  Award,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
-import type { Proposal } from "@/types/proposal";
+import type { Proposal, ScopeData, TimelineData, ReferencesData } from "@/types/proposal";
 import type { PreviewItem } from "./ProposalPreview";
 import { PAYMENT_CONDITIONS } from "./proposalConstants";
 import {
@@ -62,6 +70,10 @@ interface ProposalClientDocumentProps {
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onPrint?: () => void;
   onDownload?: () => void;
+  // New props for additional sections
+  scopeData?: ScopeData;
+  timelineData?: TimelineData;
+  referencesData?: ReferencesData;
 }
 
 function formatCurrency(value: number, currency: string = "EUR"): string {
@@ -80,6 +92,9 @@ export function ProposalClientDocument({
   onItemToggle,
   onPrint,
   onDownload,
+  scopeData,
+  timelineData,
+  referencesData,
 }: ProposalClientDocumentProps) {
   const clientName = proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name;
   const clientEmail = proposal.company?.email || proposal.contact?.email || proposal.opportunity?.lead?.email;
@@ -354,6 +369,233 @@ export function ProposalClientDocument({
             </div>
           )}
         </div>
+
+        {/* ============ SCOPE SECTION ============ */}
+        {scopeData && (scopeData.objectives || scopeData.deliverables?.length > 0 || scopeData.exclusions?.length > 0 || scopeData.assumptions) && (
+          <div data-pdf-section="scope" className="px-4 md:px-8 py-6 border-t">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Âmbito do Projecto
+            </h3>
+            
+            <div className="space-y-5">
+              {/* Objectives */}
+              {scopeData.objectives && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Objectivos</h4>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">
+                    {scopeData.objectives}
+                  </p>
+                </div>
+              )}
+
+              {/* Deliverables */}
+              {scopeData.deliverables && scopeData.deliverables.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    Entregáveis
+                  </h4>
+                  <ul className="text-sm text-gray-600 space-y-1.5 ml-1">
+                    {scopeData.deliverables.map((item, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">•</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Exclusions */}
+              {scopeData.exclusions && scopeData.exclusions.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <XCircle className="h-4 w-4 text-red-500" />
+                    Exclusões
+                  </h4>
+                  <ul className="text-sm text-gray-600 space-y-1.5 ml-1">
+                    {scopeData.exclusions.map((item, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <span className="text-red-500 mt-0.5">•</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Assumptions */}
+              {scopeData.assumptions && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Pressupostos
+                  </h4>
+                  <p className="text-sm text-amber-700 whitespace-pre-wrap">
+                    {scopeData.assumptions}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ============ TIMELINE SECTION ============ */}
+        {timelineData && timelineData.phases && timelineData.phases.length > 0 && (
+          <div data-pdf-section="timeline" className="px-4 md:px-8 py-6 border-t">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Cronograma
+            </h3>
+
+            {/* Total Duration */}
+            {(() => {
+              const totalWeeks = timelineData.phases.reduce((sum, phase) => {
+                if (phase.type === 'phase' && phase.duration) {
+                  return sum + Math.ceil(phase.duration / 7);
+                }
+                return sum;
+              }, 0);
+              return totalWeeks > 0 ? (
+                <div className="mb-4 bg-primary/5 border border-primary/20 rounded-lg p-3 inline-block">
+                  <span className="text-sm font-medium text-primary">
+                    Duração Total: {totalWeeks} semana{totalWeeks > 1 ? 's' : ''}
+                  </span>
+                </div>
+              ) : null;
+            })()}
+
+            {/* Timeline Table */}
+            <div className="[&_div.overflow-x-auto]:overflow-visible [&_table]:!min-w-0">
+              <Table className="table-fixed w-full">
+                <TableHeader>
+                  <TableRow className="border-gray-200">
+                    <TableHead className="w-[15%] text-gray-600">Semana</TableHead>
+                    <TableHead className="w-[55%] text-gray-600">Fase/Marco</TableHead>
+                    <TableHead className="w-[30%] text-gray-600">Duração</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {timelineData.phases.map((phase, index) => (
+                    <TableRow key={phase.id || index} className="border-gray-100">
+                      <TableCell className="text-gray-500 font-mono text-xs py-2">
+                        {phase.week || index + 1}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <div className="flex items-center gap-2">
+                          {phase.type === 'milestone' ? (
+                            <Flag className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                          ) : (
+                            <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
+                          )}
+                          <div>
+                            <p className={cn(
+                              "font-medium text-sm",
+                              phase.type === 'milestone' ? "text-amber-700" : "text-gray-900"
+                            )}>
+                              {phase.type === 'milestone' ? `Marco: ${phase.title}` : phase.title}
+                            </p>
+                            {phase.description && (
+                              <p className="text-xs text-gray-500 mt-0.5">{phase.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-600 text-xs py-2">
+                        {phase.type === 'milestone' ? '-' : 
+                          phase.duration ? `${phase.duration} dia${phase.duration > 1 ? 's' : ''}` : '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+
+        {/* ============ REFERENCES SECTION ============ */}
+        {referencesData && (
+          (referencesData.projects?.length > 0 || 
+           referencesData.testimonial?.quote || 
+           referencesData.certifications?.length > 0)
+        ) && (
+          <div data-pdf-section="references" className="px-4 md:px-8 py-6 border-t">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary" />
+              Referências e Credenciais
+            </h3>
+
+            <div className="space-y-6">
+              {/* Similar Projects */}
+              {referencesData.projects && referencesData.projects.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Projectos Similares</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {referencesData.projects.map((project, index) => (
+                      <div 
+                        key={project.id || index} 
+                        className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                      >
+                        <h5 className="font-medium text-gray-900 text-sm mb-1">
+                          {project.title}
+                        </h5>
+                        <p className="text-xs text-gray-600">
+                          {project.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Testimonial */}
+              {referencesData.testimonial && referencesData.testimonial.quote && (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-5">
+                  <div className="flex gap-3">
+                    <Quote className="h-6 w-6 text-primary/50 flex-shrink-0 mt-1" />
+                    <div>
+                      <p className="text-gray-700 italic text-sm leading-relaxed mb-3">
+                        "{referencesData.testimonial.quote}"
+                      </p>
+                      <div className="text-sm">
+                        <p className="font-semibold text-gray-900">
+                          {referencesData.testimonial.author}
+                        </p>
+                        {(referencesData.testimonial.role || referencesData.testimonial.company) && (
+                          <p className="text-gray-500 text-xs">
+                            {[referencesData.testimonial.role, referencesData.testimonial.company]
+                              .filter(Boolean)
+                              .join(' @ ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Certifications */}
+              {referencesData.certifications && referencesData.certifications.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Certificações</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {referencesData.certifications.map((cert, index) => (
+                      <Badge 
+                        key={index} 
+                        variant="outline" 
+                        className="text-xs bg-white border-gray-300 text-gray-700"
+                      >
+                        <Award className="h-3 w-3 mr-1" />
+                        {cert}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div data-pdf-section="footer" className="bg-gray-50 px-4 md:px-8 py-6 border-t mt-4">

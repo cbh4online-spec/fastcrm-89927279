@@ -1060,6 +1060,9 @@ export function ProposalDetailDialog({
             };
           })}
           workspace={workspaceData as any}
+          scopeData={scopeData}
+          timelineData={timelineData}
+          referencesData={referencesData}
         />
       )}
     </Dialog>

@@ -5,7 +5,7 @@ import { X, Printer, Download, ArrowLeft, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProposalClientDocument } from "./ProposalClientDocument";
-import type { Proposal } from "@/types/proposal";
+import type { Proposal, ScopeData, TimelineData, ReferencesData } from "@/types/proposal";
 import type { PreviewItem } from "./ProposalPreview";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -90,6 +90,10 @@ interface ProposalDocumentPreviewDialogProps {
   proposal: Proposal;
   items: (PreviewItem & { is_enabled?: boolean })[];
   workspace: WorkspaceData | null;
+  // New props for additional sections
+  scopeData?: ScopeData;
+  timelineData?: TimelineData;
+  referencesData?: ReferencesData;
 }
 
 // A4 dimensions at 96 DPI
@@ -101,6 +105,9 @@ export function ProposalDocumentPreviewDialog({
   proposal,
   items,
   workspace,
+  scopeData,
+  timelineData,
+  referencesData,
 }: ProposalDocumentPreviewDialogProps) {
   const documentRef = React.useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -386,6 +393,9 @@ export function ProposalDocumentPreviewDialog({
                       workspace={workspace}
                       showActions={false}
                       allowItemToggle={false}
+                      scopeData={scopeData}
+                      timelineData={timelineData}
+                      referencesData={referencesData}
                     />
                   </div>
                   
