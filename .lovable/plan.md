@@ -1,191 +1,202 @@
 
-# Plano: Corrigir Interface de Itens da Proposta
+# Plano: Corrigir Filtros de Produtos no POS da Proposta
 
-## Problemas Identificados
+## Problema Identificado
 
-Após análise dos logs, network requests e código, foram identificados os seguintes problemas:
+Os filtros de tipo de produto (Serviços, Formações, Programas, etc.) e os filtros de categoria **não estão a funcionar** porque:
 
-| Problema | Causa | Impacto |
-|----------|-------|---------|
-| Produtos não aparecem | A query de produtos pode não estar a executar devido ao workspace não estar disponível no momento da montagem | Não é possível adicionar produtos |
-| Warning de Badge ref | O componente Badge não implementa forwardRef | Warning na consola (não bloqueia funcionalidade) |
-| Categorias podem não aparecer | Depende da query de produtos funcionar primeiro | Filtros não funcionais |
+| Componente | Problema |
+|------------|----------|
+| Filtros de Tipo | Usam códigos hardcoded incorrectos (`service`, `training`) que não existem na base de dados |
+| Filtros de Categoria | O componente `ProductCard` está a causar warning de ref que pode afetar o scroll |
 
-## Análise Técnica
+### Códigos na Base de Dados vs. Códigos no UI
 
-### 1. Query de Produtos Não Executada
+| Na BD (product_types) | No POSProductSelector | Match? |
+|-----------------------|----------------------|--------|
+| `simple` | - | N/A |
+| `recurring` | - | N/A |
+| `sessions` | - | N/A |
+| `composite` | - | N/A |
+| `formacao` | `training` | **Não** |
+| `programa` | `program` | **Não** |
+| `physical` | `physical` | Sim |
+| `servico` (alguns produtos) | `service` | **Não** |
+| - | `consulting` | **Não existe** |
+| - | `digital` | **Não existe** |
 
-No `useProducts` hook (linha 78):
-```typescript
-enabled: !!currentWorkspace?.id
-```
+### Arquitectura Correcta
 
-Se o `currentWorkspace` não estiver disponível quando o componente monta, a query não executa. Isto pode acontecer porque:
-- O `POSProposalItemsEditor` está dentro de um Dialog que monta antes do contexto estar pronto
-- A navegação directa para `/dashboard/proposals/:id` pode não ter o workspace carregado
+O `ProductsList.tsx` já usa **`useProductTypes()`** para obter os tipos de produto configuráveis dinamicamente da tabela `product_types`. O `POSProductSelector` deve seguir o mesmo padrão.
 
-### 2. Badge Sem forwardRef
+## Solução
 
-O componente `Badge` (linha 25-27 de badge.tsx):
-```typescript
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
-}
-```
+### 1. Usar Configuração Dinâmica
 
-Não usa `forwardRef`, causando o warning quando usado em contextos que passam refs (como dentro de Tooltips ou ScrollArea).
-
-### 3. Filtros de Categoria
-
-Os botões de categoria funcionam correctamente (`onClick={() => setCategoryFilter(cat)}`), mas só aparecem se a query `useProductCategories` retornar dados. Esta query também depende do workspace.
-
-## Solução Proposta
-
-### Fase 1: Corrigir Badge Component
-
-Adicionar `forwardRef` ao componente Badge para eliminar o warning e garantir compatibilidade com todos os contextos:
+Substituir os filtros hardcoded por tipos carregados dinamicamente do hook `useProductTypes()`:
 
 ```typescript
-const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
-  ({ className, variant, ...props }, ref) => {
-    return <div ref={ref} className={cn(badgeVariants({ variant }), className)} {...props} />;
-  }
-);
-Badge.displayName = "Badge";
+// Antes (incorrecto - hardcoded)
+const productTypeFilters = [
+  { value: "service", label: "Serviços", icon: Briefcase },
+  ...
+];
+
+// Depois (correcto - dinâmico)
+const { data: productTypesConfig } = useProductTypes();
+// Usar productTypesConfig para renderizar os filtros
 ```
 
-### Fase 2: Garantir Disponibilidade do Workspace
+### 2. Mapear Ícones Dinamicamente
 
-O `POSProposalItemsEditor` já usa `useProducts` que depende do workspace. Precisamos garantir que:
-1. O componente espera pelo workspace antes de renderizar
-2. Adicionar estado de loading enquanto o workspace não está disponível
+Criar mapeamento de ícones baseado no campo `icon` da configuração:
 
-No `POSProductSelector`, adicionar verificação:
 ```typescript
-const { currentWorkspace } = useWorkspace();
-
-// Se não há workspace, mostrar loading ou estado vazio adequado
-if (!currentWorkspace?.id) {
-  return <LoadingState />;
-}
+const iconMap: Record<string, React.ElementType> = {
+  Package: Package,
+  Repeat: Repeat,
+  Clock: Clock,
+  Layers: Layers,
+  GraduationCap: BookOpen, // ou criar import
+  Boxes: Users,
+  Box: Package,
+};
 ```
 
-### Fase 3: Melhorar Feedback Visual
+### 3. Melhorar Feedback Visual
 
-Adicionar indicadores visuais claros quando:
-- Produtos estão a carregar
-- Não há categorias disponíveis
-- Filtros estão activos
+- Mostrar skeletons enquanto os tipos carregam
+- Indicar visualmente o filtro activo
+- Manter scroll horizontal funcional nas categorias
+
+### 4. Corrigir ProductCard (forwardRef)
+
+Adicionar `forwardRef` ao `ProductCard` para eliminar o warning quando usado dentro do ScrollArea.
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/ui/badge.tsx` | Adicionar `forwardRef` |
-| `src/components/proposals/POSProductSelector.tsx` | Adicionar verificação de workspace e melhorar loading states |
-| `src/components/proposals/ProductCard.tsx` | Remover ref implícito do Badge (se necessário) |
+| `src/components/proposals/POSProductSelector.tsx` | Usar `useProductTypes()` em vez de tipos hardcoded |
+| `src/components/proposals/ProductCard.tsx` | Adicionar `forwardRef` |
 
 ## Implementação Detalhada
 
-### 1. Badge com forwardRef
+### POSProductSelector.tsx
 
 ```typescript
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
-
-const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-  {
-    variants: {
-      variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
-);
-
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
-
-const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
-  ({ className, variant, ...props }, ref) => {
-    return <div ref={ref} className={cn(badgeVariants({ variant }), className)} {...props} />;
-  }
-);
-Badge.displayName = "Badge";
-
-export { Badge, badgeVariants };
-```
-
-### 2. POSProductSelector com Verificação de Workspace
-
-Adicionar importação e verificação:
-
-```typescript
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useProductTypes } from "@/hooks/useProductSettings";
+import * as LucideIcons from "lucide-react";
 
 export function POSProductSelector({ ... }) {
   const { currentWorkspace } = useWorkspace();
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-
-  const { data: products, isLoading: isLoadingProducts } = useProducts({
-    status: "active",
-    productType: typeFilter !== "all" ? typeFilter : undefined,
-    search: search || undefined,
-  });
-
-  const { data: categories, isLoading: isLoadingCategories } = useProductCategories();
-
-  // Verificar se workspace está disponível
-  if (!currentWorkspace?.id) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-3" />
-        <p className="text-muted-foreground">A carregar...</p>
+  const { data: productTypesConfig, isLoading: isLoadingTypes } = useProductTypes();
+  
+  // ... restante do código
+  
+  // Mapeamento de ícones dinâmico
+  const getIcon = (iconName: string) => {
+    const icons: Record<string, React.ElementType> = {
+      Package: LucideIcons.Package,
+      Repeat: LucideIcons.Repeat,
+      Clock: LucideIcons.Clock,
+      Layers: LucideIcons.Layers,
+      GraduationCap: LucideIcons.GraduationCap,
+      Boxes: LucideIcons.Boxes,
+      Box: LucideIcons.Box,
+      // ... outros ícones necessários
+    };
+    return icons[iconName] || LucideIcons.Package;
+  };
+  
+  return (
+    <div className="flex flex-col h-full">
+      {/* Type Filters - Dinâmico */}
+      <div className="flex gap-1.5 mb-3 flex-wrap">
+        <Button
+          variant={typeFilter === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setTypeFilter("all")}
+        >
+          <Grid3X3 className="h-3 w-3" />
+          Todos
+        </Button>
+        
+        {isLoadingTypes ? (
+          // Skeleton para loading
+          Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-7 w-20" />
+          ))
+        ) : (
+          productTypesConfig?.filter(t => t.is_active).map((type) => {
+            const Icon = getIcon(type.icon);
+            return (
+              <Button
+                key={type.id}
+                variant={typeFilter === type.code ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTypeFilter(type.code)}
+              >
+                <Icon className="h-3 w-3" />
+                {type.label}
+              </Button>
+            );
+          })
+        )}
       </div>
-    );
-  }
-
-  // ... resto do componente
+      
+      {/* ... resto do componente */}
+    </div>
+  );
 }
 ```
 
-### 3. Melhorar Feedback de Categorias
-
-Se as categorias estão a carregar ou vazias:
+### ProductCard.tsx
 
 ```typescript
-{/* Category Filters */}
-{isLoadingCategories ? (
-  <div className="flex gap-1.5 mb-4">
-    {Array.from({ length: 4 }).map((_, i) => (
-      <Skeleton key={i} className="h-6 w-20 rounded-full" />
-    ))}
-  </div>
-) : categories && categories.length > 0 ? (
-  <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
-    {/* ... botões de categoria ... */}
-  </div>
-) : null}
+import * as React from "react";
+
+const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
+  ({ product, isSelected, onClick }, ref) => {
+    // ... implementação existente
+    return (
+      <Card ref={ref} onClick={onClick} className={...}>
+        ...
+      </Card>
+    );
+  }
+);
+ProductCard.displayName = "ProductCard";
+
+export { ProductCard };
 ```
 
-## Resultado Esperado
+## Fluxo Resultante
 
-Após implementação:
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ 🔍 Pesquisar produtos...                                       │
+├─────────────────────────────────────────────────────────────────┤
+│ [Todos] [Simples] [Recorrente] [Sessões] [Bundle] [Formação]   │
+│                  [Programa] [Produto Físico] [Dia] [Hora] ...  │
+│                                                                 │
+│ Carregados dinamicamente da tabela product_types!              │
+├─────────────────────────────────────────────────────────────────┤
+│ [Todas Categorias] [Serviços Técnicos] [Manutenção] [...]      │
+│                                                                 │
+│ Filtram correctamente os produtos!                             │
+├─────────────────────────────────────────────────────────────────┤
+│                        Produtos Grid                            │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-1. **Sem warnings na consola** - Badge suporta refs correctamente
-2. **Produtos aparecem** - Verificação explícita do workspace antes de renderizar
-3. **Categorias funcionais** - Feedback visual durante loading
-4. **Quantidades editáveis** - Os controlos de quantidade já funcionam no ProposalCart/POSProposalItemsEditor
+## Benefícios
+
+1. **Consistência** - Usa a mesma fonte de dados que o `ProductsList`
+2. **Configurável** - Novos tipos adicionados no admin aparecem automaticamente
+3. **Sem Erros** - Códigos corretos que existem na BD
+4. **UX Melhorada** - Loading states e feedback visual
 
 ## Complexidade
 
-Baixa - Modificar 2-3 ficheiros com alterações pequenas e focadas.
+Baixa - Modificar 2 ficheiros seguindo padrões já existentes no projecto.
