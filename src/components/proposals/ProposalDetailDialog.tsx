@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +80,7 @@ export function ProposalDetailDialog({
   const [isEditing, setIsEditing] = useState(false);
   const [workspaceData, setWorkspaceData] = useState<Record<string, unknown> | null>(null);
   const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
   
   // Edit form state
   const [editTitle, setEditTitle] = useState("");
@@ -613,8 +615,11 @@ export function ProposalDetailDialog({
             <TabsContent value="items" className="flex-1 min-h-0 mt-0 p-6">
               <ProposalItemsEditor 
                 proposalId={proposalId} 
-                onSaved={() => {
-                  // Optionally switch back to preview after save
+                onSaved={async () => {
+                  // Forçar refetch para atualizar o header com novo preço
+                  await queryClient.refetchQueries({ 
+                    queryKey: ["proposal", proposalId] 
+                  });
                 }}
               />
             </TabsContent>

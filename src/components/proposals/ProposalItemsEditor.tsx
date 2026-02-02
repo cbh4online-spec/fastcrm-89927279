@@ -183,7 +183,7 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full space-y-4">
       {/* Add Product Quick Select */}
       <Card className="p-4">
         <div className="flex items-center gap-3">
@@ -220,7 +220,7 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
       </Card>
 
       {/* Items List */}
-      <ScrollArea className="h-[400px]">
+      <ScrollArea className="flex-1 min-h-[200px] max-h-[500px]">
         <div className="space-y-2 pr-4">
           {items.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -328,6 +328,9 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
           <p className="text-sm text-muted-foreground">Total da Proposta</p>
           <p className="text-2xl font-bold text-primary">{formatPrice(calculateTotal())}</p>
           <p className="text-xs text-muted-foreground">{items.length} item(ns)</p>
+          {hasChanges && (
+            <p className="text-xs text-amber-600">(total será atualizado após guardar)</p>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
