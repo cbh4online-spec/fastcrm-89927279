@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -144,6 +144,28 @@ export function POSProposalItemsEditor({ proposalId, onSaved }: POSProposalItems
     })));
     setHasChanges(true);
   };
+
+  const handleUpdateQuantityByProductId = (productId: string, quantity: number) => {
+    if (quantity < 1) {
+      handleRemoveProduct(productId);
+      return;
+    }
+    setItems(prev => prev.map(item => 
+      item.product_id === productId ? { ...item, quantity } : item
+    ));
+    setHasChanges(true);
+  };
+
+  // Quantities map for POSProductSelector
+  const quantities = useMemo(() => {
+    const map: Record<string, number> = {};
+    items.forEach(item => {
+      if (item.product_id) {
+        map[item.product_id] = item.quantity;
+      }
+    });
+    return map;
+  }, [items]);
 
   const handleRemoveItem = (index: number) => {
     setItems(prev => prev.filter((_, i) => i !== index).map((item, idx) => ({
@@ -298,8 +320,10 @@ export function POSProposalItemsEditor({ proposalId, onSaved }: POSProposalItems
       <div className="order-2 lg:order-1 lg:col-span-7 flex flex-col min-h-0 lg:h-full">
         <POSProductSelector
           selectedProductIds={getSelectedProductIds()}
+          quantities={quantities}
           onAddProduct={handleAddProduct}
           onRemoveProduct={handleRemoveProduct}
+          onUpdateQuantity={handleUpdateQuantityByProductId}
         />
       </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { POSProductSelector } from "./POSProductSelector";
 import { ProposalCart, CartItem } from "./ProposalCart";
 import { AIProductSuggestions } from "./AIProductSuggestions";
@@ -88,14 +88,25 @@ export function POSProposalBuilder({
     clearCart();
   };
 
+  // Create quantities map for the selector
+  const quantities = useMemo(() => {
+    const map: Record<string, number> = {};
+    items.forEach(item => {
+      map[item.product.id] = item.quantity;
+    });
+    return map;
+  }, [items]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full min-h-[500px]">
       {/* Product Selector - Main Area */}
       <div className="lg:col-span-6 flex flex-col min-h-0">
         <POSProductSelector
           selectedProductIds={getSelectedProductIds()}
+          quantities={quantities}
           onAddProduct={handleAddProduct}
           onRemoveProduct={handleRemoveProduct}
+          onUpdateQuantity={handleUpdateQuantity}
         />
       </div>
 

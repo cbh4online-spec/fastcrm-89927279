@@ -1,15 +1,19 @@
 import * as React from "react";
-import { Package } from "lucide-react";
+import { Package, Plus, Minus } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/product";
 
 interface ProductCardProps {
   product: Product;
   isSelected?: boolean;
+  quantity?: number;
   onClick: () => void;
+  onIncrement?: () => void;
+  onDecrement?: () => void;
 }
 
 // Icon mapping for dynamic product types
@@ -73,7 +77,7 @@ function getIcon(productType: string): React.ElementType {
 }
 
 const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
-  ({ product, isSelected, onClick }, ref) => {
+  ({ product, isSelected, quantity = 0, onClick, onIncrement, onDecrement }, ref) => {
     const Icon = getIcon(product.product_type);
     const colorClass = productTypeColors[product.product_type] || "bg-muted text-muted-foreground";
 
@@ -95,8 +99,10 @@ const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
         )}
       >
         {isSelected && (
-          <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-xs text-primary-foreground font-bold">✓</span>
+          <div className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-primary flex items-center justify-center">
+            <span className="text-xs text-primary-foreground font-bold">
+              {quantity > 0 ? quantity : "✓"}
+            </span>
           </div>
         )}
         
@@ -132,6 +138,40 @@ const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
           {product.target_margin_pct && (
             <div className="text-[10px] text-muted-foreground">
               Margem: {product.target_margin_pct}%
+            </div>
+          )}
+
+          {/* Quantity controls when selected */}
+          {isSelected && (
+            <div 
+              className="flex items-center justify-center gap-1 mt-2 pt-2 border-t"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-6 w-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDecrement?.();
+                }}
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <span className="w-8 text-center text-sm font-medium">
+                {quantity}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-6 w-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onIncrement?.();
+                }}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
             </div>
           )}
         </div>
