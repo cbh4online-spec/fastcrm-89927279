@@ -592,9 +592,16 @@ export function useUpdateProposalItems() {
 
       return { proposalId, itemsCount: items.length, totalPrice };
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["proposal-items", data.proposalId] });
-      queryClient.invalidateQueries({ queryKey: ["proposal", data.proposalId] });
+    onSuccess: async (data) => {
+      // Forçar invalidação e esperar refetch para sincronização completa
+      await queryClient.invalidateQueries({ 
+        queryKey: ["proposal-items", data.proposalId],
+        refetchType: 'active'
+      });
+      await queryClient.invalidateQueries({ 
+        queryKey: ["proposal", data.proposalId],
+        refetchType: 'active'
+      });
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       toast.success("Itens da proposta atualizados!");
     },

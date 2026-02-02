@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -396,7 +396,7 @@ export function CreateProposalDialog({
                 opportunityValue={selectedOpportunity?.value || undefined}
                 leadName={propContactName || selectedOpportunity?.lead?.name}
                 companyName={propCompanyName}
-                onItemsChange={(items) => {
+                onItemsChange={useCallback((items: CartItem[]) => {
                   setCartItems(items);
                   // Auto-update price based on cart total
                   const total = items.reduce((acc, item) => {
@@ -407,7 +407,7 @@ export function CreateProposalDialog({
                   if (total > 0) {
                     setPrice(total.toString());
                   }
-                }}
+                }, [])}
                 initialItems={cartItems}
               />
             </TabsContent>

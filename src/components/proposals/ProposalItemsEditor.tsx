@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -43,6 +44,7 @@ interface ProposalItemsEditorProps {
 }
 
 export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditorProps) {
+  const queryClient = useQueryClient();
   const { data: existingItems, isLoading: loadingItems } = useProposalItems(proposalId);
   const { data: products } = useProducts({ status: "active" });
   const updateItems = useUpdateProposalItems();
@@ -146,7 +148,15 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
         items: items.filter((item) => item.name.trim() !== ""),
       });
       setHasChanges(false);
-      // Keep local state - it's already correct after save
+      
+      // CRÍTICO: Forçar refetch imediato para garantir sincronização
+      await queryClient.refetchQueries({ 
+        queryKey: ["proposal-items", proposalId] 
+      });
+      
+      // Resetar flag para permitir resync com dados frescos
+      setInitializedForProposal(null);
+      
       toast.success("Itens guardados com sucesso!");
       onSaved?.();
     } catch (error) {
