@@ -1,10 +1,13 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, Clock, CreditCard, Banknote } from "lucide-react";
 import { Company } from "@/hooks/useCompanies";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
+import { usePaymentConditions, usePaymentMethods } from "@/hooks/useProductSettings";
 
-const PAYMENT_CONDITIONS = [
+// Fallback static values for backwards compatibility
+const FALLBACK_PAYMENT_CONDITIONS = [
   'Pronto Pagamento',
   '15 dias',
   '30 dias',
@@ -13,7 +16,7 @@ const PAYMENT_CONDITIONS = [
   '90 dias',
 ];
 
-const PAYMENT_METHODS = [
+const FALLBACK_PAYMENT_METHODS = [
   'Transferência Bancária',
   'Multibanco',
   'MB Way',
@@ -29,6 +32,30 @@ interface FinancialSectionProps {
 }
 
 export function FinancialSection({ company, onFieldChange }: FinancialSectionProps) {
+  // Fetch dynamic payment conditions and methods
+  const { data: paymentConditionsConfig } = usePaymentConditions();
+  const { data: paymentMethodsConfig } = usePaymentMethods();
+
+  // Build dynamic options with fallback to static
+  const paymentConditionsOptions = useMemo(() => {
+    if (paymentConditionsConfig?.length) {
+      return paymentConditionsConfig
+        .filter(c => c.is_active)
+        .sort((a, b) => a.position - b.position)
+        .map(c => c.label);
+    }
+    return FALLBACK_PAYMENT_CONDITIONS;
+  }, [paymentConditionsConfig]);
+
+  const paymentMethodsOptions = useMemo(() => {
+    if (paymentMethodsConfig?.length) {
+      return paymentMethodsConfig
+        .filter(m => m.is_active)
+        .sort((a, b) => a.position - b.position)
+        .map(m => m.label);
+    }
+    return FALLBACK_PAYMENT_METHODS;
+  }, [paymentMethodsConfig]);
   return (
     <Card className="border-purple-500/20 bg-gradient-to-br from-purple-50/50 to-card dark:from-purple-950/20">
       <CardHeader className="pb-3">
@@ -56,7 +83,7 @@ export function FinancialSection({ company, onFieldChange }: FinancialSectionPro
           fieldType="select"
           value={company.payment_conditions || ''}
           onChange={(value) => onFieldChange('payment_conditions', value)}
-          options={PAYMENT_CONDITIONS}
+          options={paymentConditionsOptions}
           icon={<Clock className="h-3.5 w-3.5" />}
         />
         <InlineEditableField
@@ -65,7 +92,7 @@ export function FinancialSection({ company, onFieldChange }: FinancialSectionPro
           fieldType="select"
           value={company.preferred_payment_method || ''}
           onChange={(value) => onFieldChange('preferred_payment_method', value)}
-          options={PAYMENT_METHODS}
+          options={paymentMethodsOptions}
           icon={<CreditCard className="h-3.5 w-3.5" />}
         />
         <InlineEditableField
