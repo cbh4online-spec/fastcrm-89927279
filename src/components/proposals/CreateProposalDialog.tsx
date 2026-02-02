@@ -267,6 +267,8 @@ export function CreateProposalDialog({
           unit_price: item.priceOverride ?? item.product.base_price ?? 0,
           position: idx,
           is_enabled: true,
+          cost_snapshot: item.product.direct_cost ?? null,
+          operational_cost_snapshot: item.product.operational_cost ?? null,
         })),
       });
     }

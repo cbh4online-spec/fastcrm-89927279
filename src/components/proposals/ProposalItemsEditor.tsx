@@ -36,6 +36,8 @@ interface EditableItem {
   unit_price: number;
   position: number;
   is_enabled?: boolean;
+  cost_snapshot?: number | null;
+  operational_cost_snapshot?: number | null;
 }
 
 interface ProposalItemsEditorProps {
@@ -81,6 +83,8 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
         unit_price: item.unit_price,
         position: item.position ?? idx,
         is_enabled: item.is_enabled ?? true,
+        cost_snapshot: item.cost_snapshot ?? null,
+        operational_cost_snapshot: item.operational_cost_snapshot ?? null,
       }));
       
       setItems(mappedItems);
@@ -118,6 +122,8 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
         quantity: 1,
         unit_price: product.base_price ?? 0,
         position: prev.length,
+        cost_snapshot: product.direct_cost ?? null,
+        operational_cost_snapshot: product.operational_cost ?? null,
       },
     ]);
     setHasChanges(true);
