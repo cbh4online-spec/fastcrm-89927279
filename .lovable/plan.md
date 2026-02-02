@@ -1,264 +1,437 @@
 
-# Plano: Redesenho Completo do Editor de Propostas
+# Plano: Implementar Assistente IA para Propostas Comerciais
 
 ## Visão Geral
 
-Transformar o dialog de edição de propostas numa experiência imersiva estilo wizard/stepper com secções dedicadas e navegação intuitiva. O objectivo é criar uma interface premium, responsiva e fácil de usar.
+Criar um sistema de assistência IA completo para propostas comerciais que ajude em:
+- **Avaliação e Probabilidades**: Análise de viabilidade da proposta com score de sucesso
+- **Construção do Âmbito**: Sugestões de objectivos, entregáveis e exclusões
+- **Cronograma**: Geração de fases e marcos baseados no tipo de projecto
+- **Condições e Termos**: Recomendações de pagamento e validade
+- **Referências**: Sugestões de casos de sucesso relevantes
 
-## Nova Arquitectura de Secções
-
-| # | Secção | Descrição | Ícone |
-|---|--------|-----------|-------|
-| 1 | **Itens** | Interface POS para selecção de produtos | ShoppingCart |
-| 2 | **Âmbito** | Descrição do projecto, objectivos e entregáveis | Target |
-| 3 | **Cronograma** | Timeline de entregas e marcos | CalendarDays |
-| 4 | **Condições** | Pagamento, validade e termos | FileCheck |
-| 5 | **Referências** | Casos de sucesso e testemunhos | Award |
-| 6 | **Cliente** | Dados de facturação e contacto | Users |
-
----
-
-## Componentes a Criar
-
-### 1. ProposalScopeSection.tsx (Novo)
-Secção para definir o âmbito do projecto:
-- Objectivos principais (texto rico)
-- Entregáveis esperados (lista editável)
-- Exclusões (o que não está incluído)
-- Pressupostos do projecto
+## Arquitectura da Solução
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│ ÂMBITO DO PROJECTO                                      │
-├─────────────────────────────────────────────────────────┤
-│ Objectivos                                              │
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │ [Textarea expandível com os objectivos...]        │ │
-│ └─────────────────────────────────────────────────────┘ │
-│                                                         │
-│ Entregáveis        ┌────────────────────────────────┐   │
-│ + Adicionar        │ • Design do website           │   │
-│                    │ • 5 páginas responsivas       │   │
-│                    │ • Integração com CRM          │   │
-│                    └────────────────────────────────┘   │
-│                                                         │
-│ Exclusões          ┌────────────────────────────────┐   │
-│ + Adicionar        │ • Hospedagem                  │   │
-│                    │ • Conteúdo fotográfico        │   │
-│                    └────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 2. ProposalTimelineSection.tsx (Novo)
-Cronograma visual com marcos e datas:
-- Visualização tipo timeline vertical
-- Fases do projecto com datas
-- Marcos (milestones) importantes
-- Duração estimada total
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│ CRONOGRAMA                              Duração: 45 dias│
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│   ○─────── Fase 1: Descoberta ─────────── 7 dias       │
-│   │        Levantamento de requisitos                   │
-│   │                                                     │
-│   ○─────── Fase 2: Design ─────────────── 14 dias      │
-│   │        Wireframes e protótipos                      │
-│   │                                                     │
-│   ●─────── Marco: Aprovação Design ────── Semana 3     │
-│   │                                                     │
-│   ○─────── Fase 3: Desenvolvimento ────── 21 dias      │
-│   │        Implementação e testes                       │
-│   │                                                     │
-│   ●─────── Entrega Final ──────────────── Semana 6     │
-│                                                         │
-│   [+ Adicionar Fase]   [+ Adicionar Marco]              │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 3. ProposalReferencesSection.tsx (Novo)
-Casos de sucesso e credibilidade:
-- Selecção de projectos anteriores
-- Testemunhos de clientes
-- Certificações e prémios
-- Logos de clientes
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│ REFERÊNCIAS E CASOS DE SUCESSO                          │
-├─────────────────────────────────────────────────────────┤
-│ Projectos Similares                                     │
-│ ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
-│ │ Imagem   │ │ Imagem   │ │ Imagem   │                 │
-│ │ Projeto1 │ │ Projeto2 │ │ Projeto3 │                 │
-│ └──────────┘ └──────────┘ └──────────┘                 │
-│                                                         │
-│ Testemunho                                              │
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │ "Excelente trabalho..."                             │ │
-│ │ — João Silva, CEO da Empresa X                      │ │
-│ └─────────────────────────────────────────────────────┘ │
-│                                                         │
-│ Certificações                                           │
-│ [Google Partner] [Meta Business] [ISO 9001]             │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                      INTERFACE DO UTILIZADOR                         │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │ Painel IA Flutuante (Colapsável)                             │  │
+│  │ ┌─────────────────────────────────────────────────────────┐  │  │
+│  │ │ Análise de Proposta                                     │  │  │
+│  │ │ ├── Score de Sucesso (0-100%)                           │  │  │
+│  │ │ ├── Probabilidade de Fecho                              │  │  │
+│  │ │ ├── Factores Positivos/Negativos                        │  │  │
+│  │ │ └── Próximas Acções Recomendadas                        │  │  │
+│  │ └─────────────────────────────────────────────────────────┘  │  │
+│  │ ┌─────────────────────────────────────────────────────────┐  │  │
+│  │ │ Assistente por Secção                                   │  │  │
+│  │ │ ├── [Gerar Âmbito] baseado nos itens                    │  │  │
+│  │ │ ├── [Gerar Cronograma] estimativas automáticas          │  │  │
+│  │ │ ├── [Sugerir Condições] baseado no perfil               │  │  │
+│  │ │ └── [Sugerir Referências] projectos similares           │  │  │
+│  │ └─────────────────────────────────────────────────────────┘  │  │
+│  │ ┌─────────────────────────────────────────────────────────┐  │  │
+│  │ │ Copilot (Perguntas Livres)                              │  │  │
+│  │ │ "Como posso melhorar esta proposta?"                    │  │  │
+│  │ └─────────────────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Layout Responsivo - Navegação por Steps
+## Edge Function: ai-proposal-assistant
 
-### Desktop (lg+)
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ Header: Título da Proposta + Status + Acções                         │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌─ Steps Horizontais ────────────────────────────────────────────┐  │
-│  │ ① Itens  ② Âmbito  ③ Cronograma  ④ Condições  ⑤ Refs  ⑥ Cliente │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │                                                                │  │
-│  │                     Conteúdo da Secção                         │  │
-│  │                     (altura flexível)                          │  │
-│  │                                                                │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │ [Anterior]                                           [Próximo] │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
+Nova edge function centralizada para todas as operações de IA em propostas.
+
+### Modos de Operação
+
+| Modo | Descrição | Input | Output |
+|------|-----------|-------|--------|
+| `analyze` | Análise completa da proposta | proposalData, items, opportunity | score, probabilidade, factores, acções |
+| `generate_scope` | Gerar âmbito do projecto | items, opportunity, context | objectives, deliverables, exclusions |
+| `generate_timeline` | Gerar cronograma | items, scopeData, complexity | phases, milestones, duração |
+| `suggest_conditions` | Sugerir condições | proposalValue, clientType, history | payment, validity, terms |
+| `suggest_references` | Sugerir referências | industry, projectType, items | projects, testimonial, certs |
+| `copilot` | Perguntas livres | question, proposalContext | response, suggestions |
+
+### Estrutura do Request
+
+```typescript
+interface ProposalAssistantRequest {
+  mode: "analyze" | "generate_scope" | "generate_timeline" | 
+        "suggest_conditions" | "suggest_references" | "copilot";
+  
+  proposalData: {
+    id: string;
+    title: string;
+    price: number;
+    status: string;
+    items: Array<{
+      name: string;
+      quantity: number;
+      unit_price: number;
+      description?: string;
+      category?: string;
+    }>;
+  };
+  
+  opportunityData?: {
+    title: string;
+    value: number;
+    stage: string;
+    lead?: { name: string; company?: string };
+  };
+  
+  clientData?: {
+    name: string;
+    type: "contact" | "company";
+    industry?: string;
+    previousProposals?: number;
+  };
+  
+  existingData?: {
+    scope?: ScopeData;
+    timeline?: TimelineData;
+    conditions?: ConditionsData;
+    references?: ReferencesData;
+  };
+  
+  question?: string;
+}
 ```
 
-### Mobile (sm)
-```text
-┌────────────────────────┐
-│ Header Compacto        │
-├────────────────────────┤
-│ ┌────────────────────┐ │
-│ │ Step 2/6: Âmbito   │ │
-│ │ [●●○○○○]           │ │
-│ └────────────────────┘ │
-│                        │
-│ ┌────────────────────┐ │
-│ │                    │ │
-│ │    Conteúdo        │ │
-│ │    (scroll)        │ │
-│ │                    │ │
-│ └────────────────────┘ │
-│                        │
-│ [←]              [→]   │
-└────────────────────────┘
+### Respostas por Modo
+
+#### Modo `analyze`
+```typescript
+interface AnalysisResult {
+  successScore: number; // 0-100
+  closeProbability: number; // 0-100
+  confidence: number; // 0-1
+  
+  positiveFactors: Array<{
+    factor: string;
+    impact: "high" | "medium" | "low";
+    description: string;
+  }>;
+  
+  riskFactors: Array<{
+    factor: string;
+    severity: "high" | "medium" | "low";
+    mitigation: string;
+  }>;
+  
+  recommendations: Array<{
+    action: string;
+    priority: "now" | "soon" | "later";
+    expectedImpact: string;
+  }>;
+  
+  missingElements: string[];
+  strengthAreas: string[];
+  summary: string;
+}
+```
+
+#### Modo `generate_scope`
+```typescript
+interface ScopeResult {
+  objectives: string;
+  deliverables: string[];
+  exclusions: string[];
+  assumptions: string;
+  confidence: number;
+  reasoning: string;
+}
+```
+
+#### Modo `generate_timeline`
+```typescript
+interface TimelineResult {
+  phases: Array<{
+    type: "phase" | "milestone";
+    title: string;
+    duration?: number;
+    week?: number;
+    description: string;
+  }>;
+  totalDuration: number;
+  confidence: number;
+  reasoning: string;
+}
 ```
 
 ---
 
-## Alterações aos Componentes Existentes
+## Componentes Frontend
 
-### POSProposalItemsEditor.tsx
-- Melhorar responsividade: stack vertical em mobile
-- Grelha 6 colunas (selector) + 6 colunas (cart) em desktop
-- Stack completo em mobile com cart no topo
+### 1. ProposalAIAssistantPanel.tsx (Novo)
+
+Painel flutuante/colapsável com todas as funcionalidades de IA:
+
+```text
+┌────────────────────────────────────────────┐
+│ Assistente IA                    [−]       │
+├────────────────────────────────────────────┤
+│ ┌────────────────────────────────────────┐ │
+│ │ Score de Sucesso                       │ │
+│ │ ████████████░░░░░░░░  72%              │ │
+│ │ Probabilidade de Fecho: 65%            │ │
+│ └────────────────────────────────────────┘ │
+│                                            │
+│ ┌────────────────────────────────────────┐ │
+│ │ Acções Rápidas                         │ │
+│ │ [Gerar Âmbito] [Gerar Timeline]        │ │
+│ │ [Sugerir Condições] [Ver Análise]      │ │
+│ └────────────────────────────────────────┘ │
+│                                            │
+│ ┌────────────────────────────────────────┐ │
+│ │ Pergunte à IA...                       │ │
+│ │ [                              ] [→]   │ │
+│ └────────────────────────────────────────┘ │
+└────────────────────────────────────────────┘
+```
+
+### 2. ProposalAnalysisSheet.tsx (Novo)
+
+Sheet lateral com análise detalhada:
+- Tabs: Visão Geral | Factores | Recomendações
+- Gráficos de score e probabilidade
+- Lista de factores positivos/negativos
+- Próximas acções com prioridade
+
+### 3. SectionAIAssistButton.tsx (Novo)
+
+Botão contextual para cada secção:
+- Ícone sparkles ao lado do título da secção
+- Tooltip explicativo
+- Loading state durante geração
+- Preview antes de aplicar
+
+### 4. useProposalAI.ts (Novo Hook)
+
+```typescript
+export function useProposalAI() {
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const analyzeProposal = (proposalData, opportunityData, clientData) => {...}
+  const generateScope = (items, opportunity) => {...}
+  const generateTimeline = (items, scopeData) => {...}
+  const suggestConditions = (proposalValue, clientType) => {...}
+  const suggestReferences = (industry, projectType) => {...}
+  const askCopilot = (question, context) => {...}
+  
+  return { 
+    isLoading, 
+    analyzeProposal, 
+    generateScope, 
+    generateTimeline,
+    suggestConditions,
+    suggestReferences,
+    askCopilot
+  };
+}
+```
+
+---
+
+## Integração com Secções Existentes
+
+### ProposalScopeSection.tsx
+Adicionar botão no header:
+```text
+┌─────────────────────────────────────────────────────────┐
+│ ÂMBITO DO PROJECTO                    [Gerar com IA ✨] │
+├─────────────────────────────────────────────────────────┤
+```
+
+Quando clicado:
+1. Chama `generateScope` com itens da proposta
+2. Mostra preview num modal
+3. Utilizador pode aceitar/editar/cancelar
+4. Campos preenchidos têm badge "Sugerido por IA"
+
+### ProposalTimelineSection.tsx
+Adicionar botão no header:
+```text
+┌─────────────────────────────────────────────────────────┐
+│ CRONOGRAMA                            [Gerar com IA ✨] │
+├─────────────────────────────────────────────────────────┤
+```
+
+Lógica:
+1. Analisa itens e âmbito
+2. Estima duração por categoria de produto/serviço
+3. Sugere fases e marcos
+4. Calcula duração total
 
 ### ProposalConditionsSection.tsx
-- Já existe, apenas reorganizar layout
-- Manter funcionalidade actual
+Adicionar botão no header:
+```text
+┌─────────────────────────────────────────────────────────┐
+│ CONDIÇÕES DE PAGAMENTO                [Sugerir IA ✨]   │
+├─────────────────────────────────────────────────────────┤
+```
 
-### ProposalClientSection.tsx
-- Já existe, manter como está
+Análise de:
+- Valor da proposta (maiores valores = prazos mais longos)
+- Tipo de cliente (empresa vs pessoa singular)
+- Histórico de pagamentos (se disponível)
+- Práticas do sector
+
+### ProposalReferencesSection.tsx
+Adicionar botão:
+```text
+┌─────────────────────────────────────────────────────────┐
+│ REFERÊNCIAS                           [Sugerir IA ✨]   │
+├─────────────────────────────────────────────────────────┤
+```
+
+Sugere:
+- Projectos similares do workspace
+- Testemunhos relevantes
+- Certificações aplicáveis ao tipo de projecto
 
 ---
 
-## Migração de Base de Dados
+## Ficheiros a Criar
 
-Adicionar colunas JSONB para os novos dados:
+| Ficheiro | Descrição |
+|----------|-----------|
+| `supabase/functions/ai-proposal-assistant/index.ts` | Edge function principal |
+| `src/hooks/useProposalAI.ts` | Hook centralizado para IA |
+| `src/components/proposals/ProposalAIAssistantPanel.tsx` | Painel flutuante |
+| `src/components/proposals/ProposalAnalysisSheet.tsx` | Sheet de análise detalhada |
+| `src/components/proposals/SectionAIAssistButton.tsx` | Botão reutilizável |
+| `src/components/proposals/AIPreviewDialog.tsx` | Dialog de preview |
 
-```sql
-ALTER TABLE proposals
-ADD COLUMN IF NOT EXISTS scope_data JSONB DEFAULT '{}',
-ADD COLUMN IF NOT EXISTS timeline_data JSONB DEFAULT '[]',
-ADD COLUMN IF NOT EXISTS references_data JSONB DEFAULT '{}';
-```
+## Ficheiros a Modificar
 
-Estrutura dos dados:
-```json
-// scope_data
-{
-  "objectives": "Texto dos objectivos...",
-  "deliverables": ["Item 1", "Item 2"],
-  "exclusions": ["Item 1", "Item 2"],
-  "assumptions": "Pressupostos..."
-}
-
-// timeline_data
-[
-  { "type": "phase", "title": "Descoberta", "duration": 7, "description": "..." },
-  { "type": "milestone", "title": "Aprovação", "week": 3 }
-]
-
-// references_data
-{
-  "projects": [{ "title": "...", "image": "...", "description": "..." }],
-  "testimonial": { "quote": "...", "author": "...", "company": "..." },
-  "certifications": ["Google Partner", "ISO 9001"]
-}
-```
+| Ficheiro | Alteração |
+|----------|-----------|
+| `ProposalDetailDialog.tsx` | Adicionar painel IA na sidebar |
+| `ProposalScopeSection.tsx` | Adicionar botão de geração IA |
+| `ProposalTimelineSection.tsx` | Adicionar botão de geração IA |
+| `ProposalConditionsSection.tsx` | Adicionar botão de sugestão IA |
+| `ProposalReferencesSection.tsx` | Adicionar botão de sugestão IA |
 
 ---
 
-## Ficheiros a Criar/Modificar
+## Fluxo de Utilização
 
-| Ficheiro | Acção | Descrição |
-|----------|-------|-----------|
-| `ProposalScopeSection.tsx` | Criar | Nova secção de âmbito |
-| `ProposalTimelineSection.tsx` | Criar | Nova secção de cronograma |
-| `ProposalReferencesSection.tsx` | Criar | Nova secção de referências |
-| `ProposalStepNavigation.tsx` | Criar | Navegação por steps responsiva |
-| `ProposalDetailDialog.tsx` | Modificar | Integrar nova navegação e secções |
-| `POSProposalItemsEditor.tsx` | Modificar | Melhorar responsividade |
-| `useProposals.ts` | Modificar | Suporte para novos campos |
-| `src/types/proposal.ts` | Modificar | Novos tipos para dados |
-| Migração SQL | Criar | Adicionar colunas scope_data, timeline_data, references_data |
+```text
+1. Utilizador abre proposta
+          │
+          ▼
+2. Painel IA carrega automaticamente
+   análise básica (score rápido)
+          │
+          ▼
+3. Em cada secção, pode clicar
+   "Gerar com IA" para assistência
+          │
+          ├── Âmbito: gera objectivos e entregáveis
+          ├── Timeline: estima fases e duração
+          ├── Condições: sugere pagamento e validade
+          └── Referências: sugere casos similares
+          │
+          ▼
+4. Preview do conteúdo gerado
+   ├── [Aceitar] → Aplica aos campos
+   ├── [Editar] → Abre para modificação
+   └── [Cancelar] → Descarta
+          │
+          ▼
+5. Campos com conteúdo IA têm
+   badge visual "Sugerido por IA"
+          │
+          ▼
+6. A qualquer momento, pode usar
+   o Copilot para perguntas livres
+```
 
 ---
 
 ## Detalhes Técnicos
 
-### Gestão de Estado
-O dialog principal mantém o estado de todas as secções:
+### Contexto para a IA
+
+A edge function receberá contexto rico:
+
 ```typescript
-const [scopeData, setScopeData] = useState<ScopeData>({ ... });
-const [timelineData, setTimelineData] = useState<TimelinePhase[]>([]);
-const [referencesData, setReferencesData] = useState<ReferencesData>({ ... });
+const context = {
+  // Dados da proposta
+  proposal: {
+    title, price, status, currency,
+    items: items.map(i => ({
+      name: i.product_name,
+      category: i.product?.category,
+      description: i.product?.description,
+      quantity: i.quantity,
+      price: i.unit_price
+    }))
+  },
+  
+  // Oportunidade associada
+  opportunity: {
+    title, value, stage,
+    lead: { name, company, industry },
+    daysOpen
+  },
+  
+  // Cliente (se seleccionado)
+  client: {
+    name, type, industry,
+    previousDeals, averagePaymentDays
+  },
+  
+  // Dados já preenchidos
+  existing: {
+    scope: scopeData,
+    timeline: timelineData,
+    conditions: conditionsData
+  }
+};
 ```
 
-### Navegação Fluida
-- Indicador de progresso visual (dots ou barra)
-- Navegação por teclado (setas esquerda/direita)
-- Swipe em mobile
-- Botões Anterior/Próximo contextua
+### Modelo IA
 
-### Validação por Secção
-- Validação antes de avançar
-- Indicador visual de secções completas/incompletas
-- Guardar rascunho automático
+Usar `google/gemini-3-flash-preview` via Lovable AI Gateway:
+- Rápido e económico
+- Bom para tarefas estruturadas
+- Suporta function calling
+
+### Cache e Performance
+
+- Análise básica: cache 5 minutos
+- Sugestões por secção: sem cache (dependem de contexto)
+- Copilot: sem cache (perguntas únicas)
+
+---
+
+## Componentes UI Reutilizáveis
+
+Usar componentes existentes de `src/components/ai/`:
+- `ConfidenceScore` - Indicador visual de confiança
+- `AISuggestionIndicator` - Badge "Sugerido por IA"
+- `SuggestionExplanation` - Explicação do raciocínio
 
 ---
 
 ## Estimativa de Esforço
 
-| Componente | Linhas estimadas |
-|------------|------------------|
-| ProposalScopeSection.tsx | ~200 |
-| ProposalTimelineSection.tsx | ~280 |
-| ProposalReferencesSection.tsx | ~220 |
-| ProposalStepNavigation.tsx | ~150 |
-| Modificações ProposalDetailDialog.tsx | ~200 |
-| Modificações POSProposalItemsEditor.tsx | ~80 |
-| Modificações types/hooks | ~60 |
-| Migração SQL | ~20 |
-| **Total** | ~1200 linhas |
+| Componente | Complexidade | Linhas |
+|------------|--------------|--------|
+| Edge Function ai-proposal-assistant | Alta | ~400 |
+| Hook useProposalAI | Média | ~200 |
+| ProposalAIAssistantPanel | Alta | ~350 |
+| ProposalAnalysisSheet | Média | ~250 |
+| SectionAIAssistButton | Baixa | ~80 |
+| AIPreviewDialog | Média | ~150 |
+| Modificações às 4 secções | Média | ~200 |
+| **Total** | | ~1630 |
