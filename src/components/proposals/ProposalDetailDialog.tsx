@@ -543,15 +543,25 @@ export function ProposalDetailDialog({
                 ) : (
                   <ProposalClientDocument
                     proposal={proposal}
-                    items={proposalItems?.map(item => ({
-                      id: item.id,
-                      name: item.name,
-                      description: item.description,
-                      quantity: item.quantity,
-                      unit_price: item.unit_price,
-                      total_price: item.total_price || (item.quantity * item.unit_price),
-                      is_enabled: item.is_enabled,
-                    }))}
+                    items={proposalItems?.map(item => {
+                      // Get product image
+                      const productImages = item.product?.images;
+                      const primaryIndex = item.product?.primary_image_index ?? 0;
+                      const imageUrl = productImages && productImages.length > 0 
+                        ? productImages[primaryIndex] || productImages[0]
+                        : null;
+                      
+                      return {
+                        id: item.id,
+                        name: item.name,
+                        description: item.description,
+                        quantity: item.quantity,
+                        unit_price: item.unit_price,
+                        total_price: item.total_price || (item.quantity * item.unit_price),
+                        is_enabled: item.is_enabled,
+                        image_url: imageUrl,
+                      };
+                    })}
                     workspace={workspaceData as Record<string, unknown> & { id: string; name: string }}
                   />
                 )}
@@ -759,15 +769,25 @@ export function ProposalDetailDialog({
           open={showDocumentPreview}
           onOpenChange={setShowDocumentPreview}
           proposal={proposal}
-          items={proposalItems.map(item => ({
-            id: item.id,
-            name: item.name,
-            description: item.description || "",
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.quantity * item.unit_price,
-            is_enabled: item.is_enabled,
-          }))}
+          items={proposalItems.map(item => {
+            // Get product image
+            const productImages = item.product?.images;
+            const primaryIndex = item.product?.primary_image_index ?? 0;
+            const imageUrl = productImages && productImages.length > 0 
+              ? productImages[primaryIndex] || productImages[0]
+              : null;
+            
+            return {
+              id: item.id,
+              name: item.name,
+              description: item.description || "",
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              total_price: item.quantity * item.unit_price,
+              is_enabled: item.is_enabled,
+              image_url: imageUrl,
+            };
+          })}
           workspace={workspaceData as any}
         />
       )}

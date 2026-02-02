@@ -230,10 +230,10 @@ export function ProposalClientDocument({
                   <TableHead className="w-[5%] text-gray-600">Incluir</TableHead>
                 )}
                 <TableHead className="w-[5%] text-gray-600">#</TableHead>
-                <TableHead className={cn(allowItemToggle ? "w-[45%]" : "w-[50%]", "text-gray-600")}>Item / Descrição</TableHead>
-                <TableHead className="w-[15%] text-right text-gray-600">Preço</TableHead>
-                <TableHead className="w-[10%] text-center text-gray-600">Qtd.</TableHead>
-                <TableHead className="w-[20%] text-right text-gray-600">Total</TableHead>
+                <TableHead className={cn(allowItemToggle ? "w-[40%]" : "w-[45%]", "text-gray-600")}>Item / Descrição</TableHead>
+                <TableHead className="w-[12%] text-right text-gray-600">Preço</TableHead>
+                <TableHead className="w-[8%] text-center text-gray-600">Qtd.</TableHead>
+                <TableHead className="w-[15%] text-right text-gray-600">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -256,24 +256,46 @@ export function ProposalClientDocument({
                           />
                         </TableCell>
                       )}
-                      <TableCell className="text-gray-500 font-mono">{index + 1}</TableCell>
-                      <TableCell className="max-w-[200px]">
-                        <p className={cn("font-medium text-gray-900 break-words line-clamp-2", !isEnabled && "line-through text-gray-500")}>
-                          {item.name}
-                        </p>
-                        {item.description && (
-                          <p className={cn("text-sm text-gray-500 mt-0.5 break-words line-clamp-2", !isEnabled && "line-through")}>
-                            {item.description}
-                          </p>
-                        )}
+                      <TableCell className="text-gray-500 font-mono text-sm">{index + 1}</TableCell>
+                      <TableCell>
+                        <div className="flex items-start gap-3">
+                          {/* Product Image */}
+                          {item.image_url ? (
+                            <img 
+                              src={item.image_url} 
+                              alt={item.name}
+                              className={cn(
+                                "w-12 h-12 object-cover rounded border border-gray-200 flex-shrink-0",
+                                !isEnabled && "opacity-50"
+                              )}
+                            />
+                          ) : (
+                            <div className={cn(
+                              "w-12 h-12 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center",
+                              !isEnabled && "opacity-50"
+                            )}>
+                              <span className="text-gray-400 text-xs">IMG</span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className={cn("font-medium text-gray-900 break-words line-clamp-2 text-sm", !isEnabled && "line-through text-gray-500")}>
+                              {item.name}
+                            </p>
+                            {item.description && (
+                              <p className={cn("text-xs text-gray-500 mt-0.5 break-words line-clamp-2", !isEnabled && "line-through")}>
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell className={cn("text-right text-gray-700", !isEnabled && "line-through text-gray-400")}>
+                      <TableCell className={cn("text-right text-gray-700 text-sm", !isEnabled && "line-through text-gray-400")}>
                         {formatCurrency(item.unit_price, proposal.currency)}
                       </TableCell>
-                      <TableCell className={cn("text-center text-gray-700", !isEnabled && "line-through text-gray-400")}>
+                      <TableCell className={cn("text-center text-gray-700 text-sm", !isEnabled && "line-through text-gray-400")}>
                         {item.quantity}
                       </TableCell>
-                      <TableCell className={cn("text-right font-medium text-gray-900", !isEnabled && "line-through text-gray-400")}>
+                      <TableCell className={cn("text-right font-medium text-gray-900 text-sm", !isEnabled && "line-through text-gray-400")}>
                         {formatCurrency(item.total_price, proposal.currency)}
                       </TableCell>
                     </TableRow>

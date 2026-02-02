@@ -30,6 +30,7 @@ export interface PreviewItem {
   quantity: number;
   unit_price: number;
   total_price: number;
+  image_url?: string | null;
 }
 
 interface ProposalPreviewProps {
