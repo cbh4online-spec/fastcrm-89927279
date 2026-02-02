@@ -1,77 +1,264 @@
 
+# Plano: Redesenho Completo do Editor de Propostas
 
-# Plano: Preencher Custos nos Itens de Proposta Existentes
+## Visão Geral
 
-## Problema Identificado
+Transformar o dialog de edição de propostas numa experiência imersiva estilo wizard/stepper com secções dedicadas e navegação intuitiva. O objectivo é criar uma interface premium, responsiva e fácil de usar.
 
-A query à base de dados mostra claramente o problema:
+## Nova Arquitectura de Secções
 
-| Campo | Valor nos Items |
-|-------|-----------------|
-| `cost_snapshot` | NULL |
-| `operational_cost_snapshot` | NULL |
-| `direct_cost` (produto) | 350.00, 49.13, 39.57, etc. |
+| # | Secção | Descrição | Ícone |
+|---|--------|-----------|-------|
+| 1 | **Itens** | Interface POS para selecção de produtos | ShoppingCart |
+| 2 | **Âmbito** | Descrição do projecto, objectivos e entregáveis | Target |
+| 3 | **Cronograma** | Timeline de entregas e marcos | CalendarDays |
+| 4 | **Condições** | Pagamento, validade e termos | FileCheck |
+| 5 | **Referências** | Casos de sucesso e testemunhos | Award |
+| 6 | **Cliente** | Dados de facturação e contacto | Users |
 
-Os 5 itens de proposta existentes foram criados **antes** das alterações para gravar os custos. Por isso, embora os produtos tenham custos definidos, os campos de snapshot estão vazios.
+---
 
-O código de cálculo está correcto:
-```typescript
-const directCost = item.cost_snapshot ?? 0;  // → 0 porque é NULL
-const opCost = item.operational_cost_snapshot ?? 0;  // → 0 porque é NULL
-// Resultado: itemCost = 0, logo margem = 100%
+## Componentes a Criar
+
+### 1. ProposalScopeSection.tsx (Novo)
+Secção para definir o âmbito do projecto:
+- Objectivos principais (texto rico)
+- Entregáveis esperados (lista editável)
+- Exclusões (o que não está incluído)
+- Pressupostos do projecto
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ ÂMBITO DO PROJECTO                                      │
+├─────────────────────────────────────────────────────────┤
+│ Objectivos                                              │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ [Textarea expandível com os objectivos...]        │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ Entregáveis        ┌────────────────────────────────┐   │
+│ + Adicionar        │ • Design do website           │   │
+│                    │ • 5 páginas responsivas       │   │
+│                    │ • Integração com CRM          │   │
+│                    └────────────────────────────────┘   │
+│                                                         │
+│ Exclusões          ┌────────────────────────────────┐   │
+│ + Adicionar        │ • Hospedagem                  │   │
+│                    │ • Conteúdo fotográfico        │   │
+│                    └────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 2. ProposalTimelineSection.tsx (Novo)
+Cronograma visual com marcos e datas:
+- Visualização tipo timeline vertical
+- Fases do projecto com datas
+- Marcos (milestones) importantes
+- Duração estimada total
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ CRONOGRAMA                              Duração: 45 dias│
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│   ○─────── Fase 1: Descoberta ─────────── 7 dias       │
+│   │        Levantamento de requisitos                   │
+│   │                                                     │
+│   ○─────── Fase 2: Design ─────────────── 14 dias      │
+│   │        Wireframes e protótipos                      │
+│   │                                                     │
+│   ●─────── Marco: Aprovação Design ────── Semana 3     │
+│   │                                                     │
+│   ○─────── Fase 3: Desenvolvimento ────── 21 dias      │
+│   │        Implementação e testes                       │
+│   │                                                     │
+│   ●─────── Entrega Final ──────────────── Semana 6     │
+│                                                         │
+│   [+ Adicionar Fase]   [+ Adicionar Marco]              │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 3. ProposalReferencesSection.tsx (Novo)
+Casos de sucesso e credibilidade:
+- Selecção de projectos anteriores
+- Testemunhos de clientes
+- Certificações e prémios
+- Logos de clientes
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ REFERÊNCIAS E CASOS DE SUCESSO                          │
+├─────────────────────────────────────────────────────────┤
+│ Projectos Similares                                     │
+│ ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
+│ │ Imagem   │ │ Imagem   │ │ Imagem   │                 │
+│ │ Projeto1 │ │ Projeto2 │ │ Projeto3 │                 │
+│ └──────────┘ └──────────┘ └──────────┘                 │
+│                                                         │
+│ Testemunho                                              │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ "Excelente trabalho..."                             │ │
+│ │ — João Silva, CEO da Empresa X                      │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ Certificações                                           │
+│ [Google Partner] [Meta Business] [ISO 9001]             │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Solução
+## Layout Responsivo - Navegação por Steps
 
-Executar uma migração SQL para preencher retroactivamente os custos a partir dos produtos associados.
+### Desktop (lg+)
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│ Header: Título da Proposta + Status + Acções                         │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌─ Steps Horizontais ────────────────────────────────────────────┐  │
+│  │ ① Itens  ② Âmbito  ③ Cronograma  ④ Condições  ⑤ Refs  ⑥ Cliente │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │                                                                │  │
+│  │                     Conteúdo da Secção                         │  │
+│  │                     (altura flexível)                          │  │
+│  │                                                                │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │ [Anterior]                                           [Próximo] │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
 
-### Migração SQL
+### Mobile (sm)
+```text
+┌────────────────────────┐
+│ Header Compacto        │
+├────────────────────────┤
+│ ┌────────────────────┐ │
+│ │ Step 2/6: Âmbito   │ │
+│ │ [●●○○○○]           │ │
+│ └────────────────────┘ │
+│                        │
+│ ┌────────────────────┐ │
+│ │                    │ │
+│ │    Conteúdo        │ │
+│ │    (scroll)        │ │
+│ │                    │ │
+│ └────────────────────┘ │
+│                        │
+│ [←]              [→]   │
+└────────────────────────┘
+```
+
+---
+
+## Alterações aos Componentes Existentes
+
+### POSProposalItemsEditor.tsx
+- Melhorar responsividade: stack vertical em mobile
+- Grelha 6 colunas (selector) + 6 colunas (cart) em desktop
+- Stack completo em mobile com cart no topo
+
+### ProposalConditionsSection.tsx
+- Já existe, apenas reorganizar layout
+- Manter funcionalidade actual
+
+### ProposalClientSection.tsx
+- Já existe, manter como está
+
+---
+
+## Migração de Base de Dados
+
+Adicionar colunas JSONB para os novos dados:
 
 ```sql
--- Preencher cost_snapshot e operational_cost_snapshot 
--- a partir dos custos actuais do produto
-UPDATE proposal_items pi
-SET 
-  cost_snapshot = pr.direct_cost,
-  operational_cost_snapshot = pr.operational_cost
-FROM products pr
-WHERE pi.product_id = pr.id
-  AND pi.cost_snapshot IS NULL;
+ALTER TABLE proposals
+ADD COLUMN IF NOT EXISTS scope_data JSONB DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS timeline_data JSONB DEFAULT '[]',
+ADD COLUMN IF NOT EXISTS references_data JSONB DEFAULT '{}';
+```
+
+Estrutura dos dados:
+```json
+// scope_data
+{
+  "objectives": "Texto dos objectivos...",
+  "deliverables": ["Item 1", "Item 2"],
+  "exclusions": ["Item 1", "Item 2"],
+  "assumptions": "Pressupostos..."
+}
+
+// timeline_data
+[
+  { "type": "phase", "title": "Descoberta", "duration": 7, "description": "..." },
+  { "type": "milestone", "title": "Aprovação", "week": 3 }
+]
+
+// references_data
+{
+  "projects": [{ "title": "...", "image": "...", "description": "..." }],
+  "testimonial": { "quote": "...", "author": "...", "company": "..." },
+  "certifications": ["Google Partner", "ISO 9001"]
+}
 ```
 
 ---
 
-## O que isto resolve
+## Ficheiros a Criar/Modificar
 
-| Antes | Depois |
-|-------|--------|
-| `cost_snapshot = NULL` | `cost_snapshot = 350.00` (do produto) |
-| `operational_cost_snapshot = NULL` | `operational_cost_snapshot = 5.00` (do produto) |
-| Margem calculada = 100% ❌ | Margem calculada = valor real ✓ |
-
----
-
-## Resultado Esperado
-
-Após a migração, a proposta "Proposta Comercial" irá mostrar:
-
-- **Custo real** calculado a partir dos custos dos produtos
-- **Margem correcta** (valor e percentagem reais)
-- Colunas "Custo" e "Margem" na tabela de itens com valores preenchidos
+| Ficheiro | Acção | Descrição |
+|----------|-------|-----------|
+| `ProposalScopeSection.tsx` | Criar | Nova secção de âmbito |
+| `ProposalTimelineSection.tsx` | Criar | Nova secção de cronograma |
+| `ProposalReferencesSection.tsx` | Criar | Nova secção de referências |
+| `ProposalStepNavigation.tsx` | Criar | Navegação por steps responsiva |
+| `ProposalDetailDialog.tsx` | Modificar | Integrar nova navegação e secções |
+| `POSProposalItemsEditor.tsx` | Modificar | Melhorar responsividade |
+| `useProposals.ts` | Modificar | Suporte para novos campos |
+| `src/types/proposal.ts` | Modificar | Novos tipos para dados |
+| Migração SQL | Criar | Adicionar colunas scope_data, timeline_data, references_data |
 
 ---
 
-## Ficheiros a Modificar
+## Detalhes Técnicos
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| Nova migração SQL | UPDATE para preencher custos em falta |
+### Gestão de Estado
+O dialog principal mantém o estado de todas as secções:
+```typescript
+const [scopeData, setScopeData] = useState<ScopeData>({ ... });
+const [timelineData, setTimelineData] = useState<TimelinePhase[]>([]);
+const [referencesData, setReferencesData] = useState<ReferencesData>({ ... });
+```
+
+### Navegação Fluida
+- Indicador de progresso visual (dots ou barra)
+- Navegação por teclado (setas esquerda/direita)
+- Swipe em mobile
+- Botões Anterior/Próximo contextua
+
+### Validação por Secção
+- Validação antes de avançar
+- Indicador visual de secções completas/incompletas
+- Guardar rascunho automático
 
 ---
 
-## Nota
+## Estimativa de Esforço
 
-Esta é uma operação única de "backfill". As novas propostas criadas após as alterações anteriores já irão gravar os custos automaticamente através do `CreateProposalDialog.tsx` e `ProposalItemsEditor.tsx`.
-
+| Componente | Linhas estimadas |
+|------------|------------------|
+| ProposalScopeSection.tsx | ~200 |
+| ProposalTimelineSection.tsx | ~280 |
+| ProposalReferencesSection.tsx | ~220 |
+| ProposalStepNavigation.tsx | ~150 |
+| Modificações ProposalDetailDialog.tsx | ~200 |
+| Modificações POSProposalItemsEditor.tsx | ~80 |
+| Modificações types/hooks | ~60 |
+| Migração SQL | ~20 |
+| **Total** | ~1200 linhas |
