@@ -1,200 +1,191 @@
 
-# Plano: Adicionar Links Úteis e Funcionalidades ao Detalhe de Proposta
+# Plano: Corrigir Interface de Itens da Proposta
 
-## Situação Actual
+## Problemas Identificados
 
-O `ProposalDetailDialog` e `ProposalInternalView` mostram informações do cliente, mas **não têm links clicáveis** para:
-- Abrir a ficha CRM do contacto/empresa
-- Navegar para a oportunidade associada
-- Acções rápidas relevantes (email, chamada, WhatsApp)
+Após análise dos logs, network requests e código, foram identificados os seguintes problemas:
 
-Os dados já existem na proposta:
-- `proposal.contact` → Contacto associado
-- `proposal.company` → Empresa associada  
-- `proposal.opportunity` → Oportunidade associada
-- `proposal.opportunity.lead` → Lead da oportunidade
+| Problema | Causa | Impacto |
+|----------|-------|---------|
+| Produtos não aparecem | A query de produtos pode não estar a executar devido ao workspace não estar disponível no momento da montagem | Não é possível adicionar produtos |
+| Warning de Badge ref | O componente Badge não implementa forwardRef | Warning na consola (não bloqueia funcionalidade) |
+| Categorias podem não aparecer | Depende da query de produtos funcionar primeiro | Filtros não funcionais |
 
-## Objectivo
+## Análise Técnica
 
-Adicionar **links de navegação rápida** e **acções contextuais** para:
-1. Abrir ficha CRM do cliente (contacto ou empresa)
-2. Navegar para a oportunidade associada
-3. Abrir ficha do lead (se existir)
-4. Acções rápidas: enviar email, fazer chamada, enviar WhatsApp
-5. Duplicar proposta
-6. Criar tarefa relacionada
+### 1. Query de Produtos Não Executada
 
-## Implementação
-
-### 1. ProposalDetailDialog - Header Melhorado
-
-Adicionar tooltips e links clicáveis no header:
-
-```text
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│ 📄 Proposta Website Redesign                              [Publicada]            │
-│                                                                                  │
-│ 🎯 Website Development [→]  👤 Empresa ABC [→]  € 5.000  📊 45% margem          │
-│     ↑ clicável                 ↑ clicável                                        │
-└──────────────────────────────────────────────────────────────────────────────────┘
-```
-
-Transformar os elementos info em links:
-- **Oportunidade** → Link para `/dashboard/opportunities/:id`
-- **Cliente** → Link para `/dashboard/contacts/:id` ou `/dashboard/companies/:id`
-
-### 2. ProposalInternalView - Cards com Links
-
-Adicionar botões de navegação nos cards de informação:
-
-```text
-┌─────────────────────────────────────────┐
-│ Cliente                                 │
-│                                         │
-│ 🏢 Empresa ABC                          │
-│ info@empresaabc.pt                      │
-│ NIF: 123456789                          │
-│                                         │
-│ [📧 Email] [📞 Ligar] [💬 WhatsApp]     │
-│ [↗ Abrir Ficha CRM]                     │
-└─────────────────────────────────────────┘
-```
-
-### 3. Novo Componente: ProposalQuickLinks
-
-Criar um componente reutilizável para os links de navegação:
-
+No `useProducts` hook (linha 78):
 ```typescript
-interface ProposalQuickLinksProps {
-  proposal: Proposal;
-  variant?: "compact" | "full";
+enabled: !!currentWorkspace?.id
+```
+
+Se o `currentWorkspace` não estiver disponível quando o componente monta, a query não executa. Isto pode acontecer porque:
+- O `POSProposalItemsEditor` está dentro de um Dialog que monta antes do contexto estar pronto
+- A navegação directa para `/dashboard/proposals/:id` pode não ter o workspace carregado
+
+### 2. Badge Sem forwardRef
+
+O componente `Badge` (linha 25-27 de badge.tsx):
+```typescript
+function Badge({ className, variant, ...props }: BadgeProps) {
+  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 ```
 
-Este componente renderiza:
-- Link para oportunidade (se existir)
-- Link para contacto (se existir)
-- Link para empresa (se existir)
-- Link para lead (se existir via oportunidade)
+Não usa `forwardRef`, causando o warning quando usado em contextos que passam refs (como dentro de Tooltips ou ScrollArea).
 
-### 4. Acções Rápidas
+### 3. Filtros de Categoria
 
-Adicionar menu dropdown com acções:
+Os botões de categoria funcionam correctamente (`onClick={() => setCategoryFilter(cat)}`), mas só aparecem se a query `useProductCategories` retornar dados. Esta query também depende do workspace.
 
-| Acção | Funcionalidade |
-|-------|----------------|
-| 📧 Enviar Email | `mailto:` com email do cliente |
-| 📞 Ligar | `tel:` se tiver telefone |
-| 💬 WhatsApp | Link wa.me se tiver telemóvel |
-| ↗ Ver Ficha CRM | Navega para contacto/empresa |
-| 📋 Duplicar | Cria nova proposta com mesmos dados |
-| ✅ Criar Tarefa | Abre dialog de criar tarefa |
+## Solução Proposta
+
+### Fase 1: Corrigir Badge Component
+
+Adicionar `forwardRef` ao componente Badge para eliminar o warning e garantir compatibilidade com todos os contextos:
+
+```typescript
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  ({ className, variant, ...props }, ref) => {
+    return <div ref={ref} className={cn(badgeVariants({ variant }), className)} {...props} />;
+  }
+);
+Badge.displayName = "Badge";
+```
+
+### Fase 2: Garantir Disponibilidade do Workspace
+
+O `POSProposalItemsEditor` já usa `useProducts` que depende do workspace. Precisamos garantir que:
+1. O componente espera pelo workspace antes de renderizar
+2. Adicionar estado de loading enquanto o workspace não está disponível
+
+No `POSProductSelector`, adicionar verificação:
+```typescript
+const { currentWorkspace } = useWorkspace();
+
+// Se não há workspace, mostrar loading ou estado vazio adequado
+if (!currentWorkspace?.id) {
+  return <LoadingState />;
+}
+```
+
+### Fase 3: Melhorar Feedback Visual
+
+Adicionar indicadores visuais claros quando:
+- Produtos estão a carregar
+- Não há categorias disponíveis
+- Filtros estão activos
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/ProposalDetailDialog.tsx` | Adicionar links clicáveis no header |
-| `src/components/proposals/ProposalInternalView.tsx` | Adicionar cards com acções e links CRM |
-| `src/components/proposals/ProposalQuickLinks.tsx` | **CRIAR** - Componente de links rápidos |
+| `src/components/ui/badge.tsx` | Adicionar `forwardRef` |
+| `src/components/proposals/POSProductSelector.tsx` | Adicionar verificação de workspace e melhorar loading states |
+| `src/components/proposals/ProductCard.tsx` | Remover ref implícito do Badge (se necessário) |
 
-## Detalhes de Implementação
+## Implementação Detalhada
 
-### Header com Links (ProposalDetailDialog)
-
-Modificar as linhas ~654-661 para ter links clicáveis:
+### 1. Badge com forwardRef
 
 ```typescript
-<span 
-  className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
-  onClick={() => proposal.opportunity?.id && navigate(`/dashboard/opportunities/${proposal.opportunity.id}`)}
->
-  <Building2 className="h-3 w-3" />
-  {proposal.opportunity?.title || "-"}
-  <ExternalLink className="h-2.5 w-2.5 opacity-60" />
-</span>
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
-<span 
-  className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
-  onClick={() => handleNavigateToClient()}
->
-  <User className="h-3 w-3" />
-  {clientName || "-"}
-  <ExternalLink className="h-2.5 w-2.5 opacity-60" />
-</span>
-```
+const badgeVariants = cva(
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        outline: "text-foreground",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  },
+);
 
-### Cards de Cliente com Acções (ProposalInternalView)
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
 
-Substituir os botões genéricos por acções funcionais:
-
-```typescript
-// Funções de navegação e acções
-const handleOpenCRM = () => {
-  if (proposal.company?.id) {
-    navigate(`/dashboard/companies/${proposal.company.id}`);
-  } else if (proposal.contact?.id) {
-    navigate(`/dashboard/contacts/${proposal.contact.id}`);
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  ({ className, variant, ...props }, ref) => {
+    return <div ref={ref} className={cn(badgeVariants({ variant }), className)} {...props} />;
   }
-};
+);
+Badge.displayName = "Badge";
 
-const handleSendEmail = () => {
-  if (clientEmail) {
-    window.open(`mailto:${clientEmail}?subject=${encodeURIComponent(`Re: ${proposal.title}`)}`);
-  }
-};
+export { Badge, badgeVariants };
 ```
 
-### Dropdown de Mais Acções
+### 2. POSProductSelector com Verificação de Workspace
 
-Adicionar um `DropdownMenu` com acções adicionais:
+Adicionar importação e verificação:
 
 ```typescript
-<DropdownMenu>
-  <DropdownMenuTrigger asChild>
-    <Button variant="outline" size="sm">
-      <MoreHorizontal className="h-4 w-4" />
-    </Button>
-  </DropdownMenuTrigger>
-  <DropdownMenuContent align="end">
-    <DropdownMenuItem onClick={handleOpenCRM}>
-      <ExternalLink className="h-4 w-4 mr-2" />
-      Ver Ficha CRM
-    </DropdownMenuItem>
-    <DropdownMenuItem onClick={handleViewOpportunity}>
-      <TrendingUp className="h-4 w-4 mr-2" />
-      Ver Oportunidade
-    </DropdownMenuItem>
-    <DropdownMenuSeparator />
-    <DropdownMenuItem onClick={handleDuplicate}>
-      <Copy className="h-4 w-4 mr-2" />
-      Duplicar Proposta
-    </DropdownMenuItem>
-    <DropdownMenuItem onClick={handleCreateTask}>
-      <CheckSquare className="h-4 w-4 mr-2" />
-      Criar Tarefa
-    </DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+
+export function POSProductSelector({ ... }) {
+  const { currentWorkspace } = useWorkspace();
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const { data: products, isLoading: isLoadingProducts } = useProducts({
+    status: "active",
+    productType: typeFilter !== "all" ? typeFilter : undefined,
+    search: search || undefined,
+  });
+
+  const { data: categories, isLoading: isLoadingCategories } = useProductCategories();
+
+  // Verificar se workspace está disponível
+  if (!currentWorkspace?.id) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-3" />
+        <p className="text-muted-foreground">A carregar...</p>
+      </div>
+    );
+  }
+
+  // ... resto do componente
+}
 ```
 
-## Fluxo de Navegação
+### 3. Melhorar Feedback de Categorias
 
-```text
-Proposta
-├── [Oportunidade] → /dashboard/opportunities/:opportunityId
-├── [Contacto] → /dashboard/contacts/:contactId
-├── [Empresa] → /dashboard/companies/:companyId
-└── [Lead] → /dashboard/crm/leads/:leadId
+Se as categorias estão a carregar ou vazias:
+
+```typescript
+{/* Category Filters */}
+{isLoadingCategories ? (
+  <div className="flex gap-1.5 mb-4">
+    {Array.from({ length: 4 }).map((_, i) => (
+      <Skeleton key={i} className="h-6 w-20 rounded-full" />
+    ))}
+  </div>
+) : categories && categories.length > 0 ? (
+  <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
+    {/* ... botões de categoria ... */}
+  </div>
+) : null}
 ```
 
 ## Resultado Esperado
 
-1. **Links no Header** - Clicar no nome do cliente ou oportunidade abre a ficha respectiva
-2. **Acções Funcionais** - Botões "Agendar Chamada" e "Mensagem" abrem modais/links reais
-3. **Dropdown de Acções** - Mais opções como duplicar, criar tarefa
-4. **Cards Melhorados** - Link "Ver Ficha CRM" em cada card de cliente
+Após implementação:
+
+1. **Sem warnings na consola** - Badge suporta refs correctamente
+2. **Produtos aparecem** - Verificação explícita do workspace antes de renderizar
+3. **Categorias funcionais** - Feedback visual durante loading
+4. **Quantidades editáveis** - Os controlos de quantidade já funcionam no ProposalCart/POSProposalItemsEditor
 
 ## Complexidade
 
-Baixa-Média - Modificar 2 ficheiros existentes + criar 1 componente pequeno. Utiliza `useNavigate` do React Router.
+Baixa - Modificar 2-3 ficheiros com alterações pequenas e focadas.
