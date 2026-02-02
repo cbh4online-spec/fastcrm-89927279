@@ -1,166 +1,200 @@
 
-# Plano: Terminar Desenvolvimento - Secção de Propostas
+# Plano: Adicionar Links Úteis e Funcionalidades ao Detalhe de Proposta
 
 ## Situação Actual
 
-A secção **"Propostas"** mostra "Secção em desenvolvimento" porque:
-- O menu lateral (`EntitySidebarMenu`) inclui "Propostas" correctamente
-- O contador (`useEntityCounts`) já conta propostas para contactos/empresas
-- Falta um componente `EntityProposalsSection` para mostrar as propostas
+O `ProposalDetailDialog` e `ProposalInternalView` mostram informações do cliente, mas **não têm links clicáveis** para:
+- Abrir a ficha CRM do contacto/empresa
+- Navegar para a oportunidade associada
+- Acções rápidas relevantes (email, chamada, WhatsApp)
 
-| Entidade | Secção Propostas | Estado |
-|----------|------------------|--------|
-| Leads | `ProposalsSection` | Funciona |
-| Contactos | - | Em falta |
-| Empresas | - | Em falta |
+Os dados já existem na proposta:
+- `proposal.contact` → Contacto associado
+- `proposal.company` → Empresa associada  
+- `proposal.opportunity` → Oportunidade associada
+- `proposal.opportunity.lead` → Lead da oportunidade
 
 ## Objectivo
 
-Criar um componente genérico `EntityProposalsSection` que funcione para **contactos** e **empresas**, mostrando:
-- Estatísticas de propostas (publicadas, aceites, valor)
-- Lista de propostas associadas
-- Acções (ver, editar, eliminar)
-- Estado vazio quando não há propostas
+Adicionar **links de navegação rápida** e **acções contextuais** para:
+1. Abrir ficha CRM do cliente (contacto ou empresa)
+2. Navegar para a oportunidade associada
+3. Abrir ficha do lead (se existir)
+4. Acções rápidas: enviar email, fazer chamada, enviar WhatsApp
+5. Duplicar proposta
+6. Criar tarefa relacionada
 
-## Arquitectura da Solução
+## Implementação
 
-### Estrutura Proposta
+### 1. ProposalDetailDialog - Header Melhorado
+
+Adicionar tooltips e links clicáveis no header:
 
 ```text
-src/components/proposals/
-├── EntityProposalsSection.tsx   (CRIAR - componente genérico)
-└── ... (ficheiros existentes)
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│ 📄 Proposta Website Redesign                              [Publicada]            │
+│                                                                                  │
+│ 🎯 Website Development [→]  👤 Empresa ABC [→]  € 5.000  📊 45% margem          │
+│     ↑ clicável                 ↑ clicável                                        │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Como as Propostas se Relacionam com Entidades
+Transformar os elementos info em links:
+- **Oportunidade** → Link para `/dashboard/opportunities/:id`
+- **Cliente** → Link para `/dashboard/contacts/:id` ou `/dashboard/companies/:id`
 
-A tabela `proposals` tem colunas `contact_id` e `company_id` que permitem filtrar propostas por entidade directamente, sem passar por oportunidades.
+### 2. ProposalInternalView - Cards com Links
 
-## Ficheiros a Criar/Modificar
+Adicionar botões de navegação nos cards de informação:
 
-| Ficheiro | Acção | Descrição |
-|----------|-------|-----------|
-| `src/components/proposals/EntityProposalsSection.tsx` | **CRIAR** | Componente genérico para contactos e empresas |
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | **MODIFICAR** | Adicionar case 'proposals' |
-| `src/components/companies/CompanyDetailWithSidebar.tsx` | **MODIFICAR** | Adicionar case 'proposals' |
+```text
+┌─────────────────────────────────────────┐
+│ Cliente                                 │
+│                                         │
+│ 🏢 Empresa ABC                          │
+│ info@empresaabc.pt                      │
+│ NIF: 123456789                          │
+│                                         │
+│ [📧 Email] [📞 Ligar] [💬 WhatsApp]     │
+│ [↗ Abrir Ficha CRM]                     │
+└─────────────────────────────────────────┘
+```
 
-## Implementação Detalhada
+### 3. Novo Componente: ProposalQuickLinks
 
-### 1. EntityProposalsSection.tsx
-
-Componente reutilizável baseado na estrutura do `EntityOpportunitiesSection`:
+Criar um componente reutilizável para os links de navegação:
 
 ```typescript
-interface EntityProposalsSectionProps {
-  entityType: "contact" | "company";
-  entityId: string;
-  entityName: string;
+interface ProposalQuickLinksProps {
+  proposal: Proposal;
+  variant?: "compact" | "full";
 }
 ```
 
-**Funcionalidades:**
-- Query que filtra propostas por `contact_id` ou `company_id`
-- Cards de estatísticas (Publicadas, Aceites, Valor Aceite)
-- Lista de propostas com:
-  - Título e status (badge colorido)
-  - Oportunidade associada (se existir)
-  - Preço e visualizações
-  - Data de criação
-- Estado vazio estilizado
-- Dropdown de acções (Editar, Ver Pública, Eliminar)
+Este componente renderiza:
+- Link para oportunidade (se existir)
+- Link para contacto (se existir)
+- Link para empresa (se existir)
+- Link para lead (se existir via oportunidade)
 
-**Layout visual:**
+### 4. Acções Rápidas
+
+Adicionar menu dropdown com acções:
+
+| Acção | Funcionalidade |
+|-------|----------------|
+| 📧 Enviar Email | `mailto:` com email do cliente |
+| 📞 Ligar | `tel:` se tiver telefone |
+| 💬 WhatsApp | Link wa.me se tiver telemóvel |
+| ↗ Ver Ficha CRM | Navega para contacto/empresa |
+| 📋 Duplicar | Cria nova proposta com mesmos dados |
+| ✅ Criar Tarefa | Abre dialog de criar tarefa |
+
+## Ficheiros a Modificar
+
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/components/proposals/ProposalDetailDialog.tsx` | Adicionar links clicáveis no header |
+| `src/components/proposals/ProposalInternalView.tsx` | Adicionar cards com acções e links CRM |
+| `src/components/proposals/ProposalQuickLinks.tsx` | **CRIAR** - Componente de links rápidos |
+
+## Detalhes de Implementação
+
+### Header com Links (ProposalDetailDialog)
+
+Modificar as linhas ~654-661 para ter links clicáveis:
+
+```typescript
+<span 
+  className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
+  onClick={() => proposal.opportunity?.id && navigate(`/dashboard/opportunities/${proposal.opportunity.id}`)}
+>
+  <Building2 className="h-3 w-3" />
+  {proposal.opportunity?.title || "-"}
+  <ExternalLink className="h-2.5 w-2.5 opacity-60" />
+</span>
+
+<span 
+  className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"
+  onClick={() => handleNavigateToClient()}
+>
+  <User className="h-3 w-3" />
+  {clientName || "-"}
+  <ExternalLink className="h-2.5 w-2.5 opacity-60" />
+</span>
+```
+
+### Cards de Cliente com Acções (ProposalInternalView)
+
+Substituir os botões genéricos por acções funcionais:
+
+```typescript
+// Funções de navegação e acções
+const handleOpenCRM = () => {
+  if (proposal.company?.id) {
+    navigate(`/dashboard/companies/${proposal.company.id}`);
+  } else if (proposal.contact?.id) {
+    navigate(`/dashboard/contacts/${proposal.contact.id}`);
+  }
+};
+
+const handleSendEmail = () => {
+  if (clientEmail) {
+    window.open(`mailto:${clientEmail}?subject=${encodeURIComponent(`Re: ${proposal.title}`)}`);
+  }
+};
+```
+
+### Dropdown de Mais Acções
+
+Adicionar um `DropdownMenu` com acções adicionais:
+
+```typescript
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="outline" size="sm">
+      <MoreHorizontal className="h-4 w-4" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end">
+    <DropdownMenuItem onClick={handleOpenCRM}>
+      <ExternalLink className="h-4 w-4 mr-2" />
+      Ver Ficha CRM
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={handleViewOpportunity}>
+      <TrendingUp className="h-4 w-4 mr-2" />
+      Ver Oportunidade
+    </DropdownMenuItem>
+    <DropdownMenuSeparator />
+    <DropdownMenuItem onClick={handleDuplicate}>
+      <Copy className="h-4 w-4 mr-2" />
+      Duplicar Proposta
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={handleCreateTask}>
+      <CheckSquare className="h-4 w-4 mr-2" />
+      Criar Tarefa
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+## Fluxo de Navegação
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐             │
-│ │ 📤 3         │ │ ✓ 2          │ │ € 15.000    │             │
-│ │ Publicadas   │ │ Aceites      │ │ Valor Aceite │             │
-│ └──────────────┘ └──────────────┘ └──────────────┘             │
-│                                                                 │
-│ Propostas                          5 propostas  [+ Nova Proposta]│
-│                                                                 │
-│ ┌─────────────────────────────────────────────────────────────┐│
-│ │ Proposta Website Redesign           [Publicada] ...        ││
-│ │ 🎯 Website Development                                     ││
-│ │ € 5.000  👁 12 views  📅 há 2 dias                         ││
-│ └─────────────────────────────────────────────────────────────┘│
-│                                                                 │
-│ ┌─────────────────────────────────────────────────────────────┐│
-│ │ Proposta Manutenção Anual           [Aceite] ...           ││
-│ │ 🎯 Contrato Manutenção                                     ││
-│ │ € 10.000  👁 8 views  📅 há 5 dias                         ││
-│ └─────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
+Proposta
+├── [Oportunidade] → /dashboard/opportunities/:opportunityId
+├── [Contacto] → /dashboard/contacts/:contactId
+├── [Empresa] → /dashboard/companies/:companyId
+└── [Lead] → /dashboard/crm/leads/:leadId
 ```
-
-### 2. Modificar ENIContactDetailWithSidebar.tsx
-
-Adicionar o case 'proposals' no `renderSectionContent()`:
-
-```typescript
-case 'proposals':
-  return (
-    <EntityProposalsSection
-      entityType="contact"
-      entityId={id!}
-      entityName={contact.name}
-    />
-  );
-```
-
-### 3. Modificar CompanyDetailWithSidebar.tsx
-
-Adicionar o case 'proposals' no `renderSectionContent()`:
-
-```typescript
-case 'proposals':
-  return (
-    <EntityProposalsSection
-      entityType="company"
-      entityId={id!}
-      entityName={company.name}
-    />
-  );
-```
-
-## Lógica de Query
-
-A query irá buscar propostas directamente pelo `contact_id` ou `company_id`:
-
-```typescript
-// Para contactos:
-.from("proposals")
-.select("...")
-.eq("contact_id", entityId)
-
-// Para empresas:
-.from("proposals")
-.select("...")
-.eq("company_id", entityId)
-```
-
-## Status das Propostas
-
-Configuração de cores/ícones (igual ao `ProposalsSection` dos leads):
-
-| Status | Badge | Cor |
-|--------|-------|-----|
-| draft | Rascunho | Cinza |
-| published | Publicada | Azul |
-| accepted | Aceite | Verde |
-| expired | Expirada | Âmbar |
-| rejected | Rejeitada | Vermelho |
 
 ## Resultado Esperado
 
-Após implementação:
-
-1. **Contactos** - Clicar em "Propostas" mostra todas as propostas do contacto
-2. **Empresas** - Clicar em "Propostas" mostra todas as propostas da empresa
-3. **Navegação** - Clicar numa proposta abre o detalhe
-4. **Consistência** - Interface idêntica para todas as entidades
+1. **Links no Header** - Clicar no nome do cliente ou oportunidade abre a ficha respectiva
+2. **Acções Funcionais** - Botões "Agendar Chamada" e "Mensagem" abrem modais/links reais
+3. **Dropdown de Acções** - Mais opções como duplicar, criar tarefa
+4. **Cards Melhorados** - Link "Ver Ficha CRM" em cada card de cliente
 
 ## Complexidade
 
-Baixa-Média - Criar 1 componente novo + modificar 2 ficheiros existentes. A lógica segue padrões já estabelecidos no projecto.
+Baixa-Média - Modificar 2 ficheiros existentes + criar 1 componente pequeno. Utiliza `useNavigate` do React Router.
