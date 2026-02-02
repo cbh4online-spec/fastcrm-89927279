@@ -1,76 +1,123 @@
 
-# Plano: Correção da Lista de Tipos de Produto no Diálogo de Criação/Edição
+# Plano: Correção da Visualização de Tipos de Produto na Lista
 
 ## Problema Identificado
 
-Os tipos de produto criados nas configurações estão guardados corretamente na base de dados (tabela `product_types`), mas o diálogo de criação/edição de produtos usa valores **hardcoded** em vez de carregar da base de dados.
-
-## Causa Raiz
-
-O ficheiro `CreateProductDialog.tsx` tem opções fixas nos selectores:
-
-```text
-Linhas 628-646: Tipos de Produto
-┌──────────────────────────────────────────┐
-│ <SelectItem value="simple">Simples       │
-│ <SelectItem value="formacao">Formação    │  ← HARDCODED
-│ <SelectItem value="sessions">Sessões     │
-│ ...                                      │
-└──────────────────────────────────────────┘
-
-Linhas 656-657: Tipos de Cobrança  
-┌──────────────────────────────────────────┐
-│ <SelectItem value="one-off">Único        │  ← HARDCODED
-│ <SelectItem value="recurring">Recorrente │
-└──────────────────────────────────────────┘
-```
-
-## Solução
-
-### 1. Atualizar CreateProductDialog.tsx
-
-Importar e usar os hooks dinâmicos:
+A lista de produtos usa `productTypeLabels[product.product_type]` para mostrar o tipo, mas este objeto está hardcoded em `types/product.ts` com apenas 7 tipos:
 
 ```typescript
-import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
-
-// Dentro do componente:
-const { data: productTypesConfig } = useProductTypes();
-const { data: billingTypesConfig } = useBillingTypes();
+// Linha 307 de ProductsList.tsx
+<Badge variant="outline">
+  {productTypeLabels[product.product_type]}  // ← Retorna undefined para tipos novos!
+</Badge>
 ```
 
-Substituir os selectores hardcoded por mapeamento dinâmico:
+Os tipos hardcoded são:
+- simple, recurring, sessions, composite, formacao, programa, physical
 
-```typescript
-// Antes (hardcoded)
-<SelectItem value="simple">Simples</SelectItem>
+Quando crias um novo tipo como "Serviço" ou "SaaS", o sistema não encontra o label e mostra vazio.
 
-// Depois (dinâmico)
-{productTypesConfig?.filter(t => t.is_active).map(type => (
-  <SelectItem key={type.id} value={type.code}>
-    {type.label}
-  </SelectItem>
-))}
-```
+## Solucao
 
-### 2. Ficheiros a Modificar
+### Abordagem: Criar Helper com Fallback Dinamico
 
-| Ficheiro | Alteração |
+1. Criar uma funcao helper que:
+   - Primeiro procura no objecto local `productTypeLabels` (para compatibilidade)
+   - Se nao encontrar, usa os dados da tabela `product_types`
+   - Como ultimo recurso, capitaliza o codigo do tipo
+
+2. Actualizar `ProductsList.tsx` para usar esta logica dinamica
+
+### Ficheiros a Modificar
+
+| Ficheiro | Alteracao |
 |----------|-----------|
-| `src/components/products/CreateProductDialog.tsx` | Usar `useProductTypes()` e `useBillingTypes()` nos selects |
+| `src/components/products/ProductsList.tsx` | Importar `useProductTypes` e usar labels dinamicos |
 
-### 3. Considerações de Compatibilidade
+### Implementacao
 
-- Manter o tipo `ProductType` em `types/product.ts` como union type mas flexível
-- Os produtos existentes continuarão a funcionar porque os códigos (`simple`, `recurring`, etc.) são os mesmos
-- Novos tipos criados aparecerão automaticamente nos selects
+```typescript
+// Linha 69: Adicionar import
+import { useProductTypes } from "@/hooks/useProductSettings";
 
-## Benefícios
+// Dentro do componente (apos linha 175):
+const { data: productTypesConfig } = useProductTypes();
 
-- Tipos de produto criados nas configurações aparecem imediatamente
-- Sistema totalmente dinâmico e personalizável por workspace
-- Retrocompatível com dados existentes
+// Helper para obter label do tipo
+const getProductTypeLabel = (typeCode: string) => {
+  // Primeiro, verificar se existe na config dinamica
+  const dynamicType = productTypesConfig?.find(t => t.code === typeCode);
+  if (dynamicType) return dynamicType.label;
+  
+  // Fallback para labels estaticos (compatibilidade)
+  if (typeCode in productTypeLabels) {
+    return productTypeLabels[typeCode as ProductType];
+  }
+  
+  // Ultimo recurso: capitalizar o codigo
+  return typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
+};
 
-## Notas Técnicas
+// Linha 307: Actualizar render
+<Badge variant="outline">
+  {getProductTypeLabel(product.product_type)}
+</Badge>
+```
 
-O hook `useProductTypes()` já faz seeding automático de valores default quando o workspace não tem tipos configurados, garantindo que nunca haverá uma lista vazia.
+### Mesma Logica para Billing Types
+
+```typescript
+const { data: billingTypesConfig } = useBillingTypes();
+
+const getBillingTypeLabel = (typeCode: string) => {
+  const dynamicType = billingTypesConfig?.find(t => t.code === typeCode);
+  if (dynamicType) return dynamicType.label;
+  if (typeCode in billingTypeLabels) {
+    return billingTypeLabels[typeCode as BillingType];
+  }
+  return typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
+};
+
+// Linha 337: Actualizar render
+return getBillingTypeLabel(product.billing_type);
+```
+
+### Actualizar FilterSidebar
+
+A sidebar de filtros tambem tem tipos hardcoded (linhas 184-192). Precisa ser dinamica:
+
+```typescript
+const filterGroups: FilterGroup[] = useMemo(() => {
+  const typeItems = productTypesConfig?.filter(t => t.is_active).map(type => ({
+    id: `type_${type.code}`,
+    label: type.label,
+    icon: <Package className="h-4 w-4" />
+  })) || [];
+  
+  return [
+    {
+      id: "type",
+      label: "Tipo",
+      icon: <Layers className="h-4 w-4" />,
+      defaultOpen: true,
+      items: typeItems,
+    },
+    // ... resto dos grupos
+  ];
+}, [productTypesConfig]);
+```
+
+## Beneficios
+
+- Tipos criados nas configuracoes aparecem imediatamente na lista
+- Compatibilidade total com produtos existentes
+- Filtros da sidebar tambem funcionam com tipos dinamicos
+- Fallback gracioso para tipos desconhecidos
+
+## Testes
+
+Apos implementacao:
+1. Criar novo tipo de produto nas configuracoes (ex: "SaaS")
+2. Criar produto com esse tipo
+3. Verificar que o tipo aparece na lista de produtos
+4. Verificar que aparece nos filtros da sidebar
