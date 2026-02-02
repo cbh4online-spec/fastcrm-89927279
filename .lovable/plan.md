@@ -1,202 +1,255 @@
 
-# Plano: Corrigir Filtros de Produtos no POS da Proposta
+# Plano: Corrigir Filtros de Categoria e Adicionar Controlo de Quantidade
 
-## Problema Identificado
+## Problemas Identificados
 
-Os filtros de tipo de produto (Serviços, Formações, Programas, etc.) e os filtros de categoria **não estão a funcionar** porque:
-
-| Componente | Problema |
-|------------|----------|
-| Filtros de Tipo | Usam códigos hardcoded incorrectos (`service`, `training`) que não existem na base de dados |
-| Filtros de Categoria | O componente `ProductCard` está a causar warning de ref que pode afetar o scroll |
-
-### Códigos na Base de Dados vs. Códigos no UI
-
-| Na BD (product_types) | No POSProductSelector | Match? |
-|-----------------------|----------------------|--------|
-| `simple` | - | N/A |
-| `recurring` | - | N/A |
-| `sessions` | - | N/A |
-| `composite` | - | N/A |
-| `formacao` | `training` | **Não** |
-| `programa` | `program` | **Não** |
-| `physical` | `physical` | Sim |
-| `servico` (alguns produtos) | `service` | **Não** |
-| - | `consulting` | **Não existe** |
-| - | `digital` | **Não existe** |
-
-### Arquitectura Correcta
-
-O `ProductsList.tsx` já usa **`useProductTypes()`** para obter os tipos de produto configuráveis dinamicamente da tabela `product_types`. O `POSProductSelector` deve seguir o mesmo padrão.
+| Problema | Descrição | Localização |
+|----------|-----------|-------------|
+| **Categorias não funcionam** | O filtro "Todas Categorias" busca categorias de todos os produtos, não das actualmente visíveis | `POSProductSelector.tsx` linha 68-80 |
+| **Sem controlo de quantidade** | Clicar num produto adiciona com qty=1; não há forma de adicionar múltiplas unidades directamente | `POSProductSelector.tsx` linha 92-98 |
 
 ## Solução
 
-### 1. Usar Configuração Dinâmica
+### 1. Categorias Dinâmicas Baseadas no Tipo Filtrado
 
-Substituir os filtros hardcoded por tipos carregados dinamicamente do hook `useProductTypes()`:
-
+Actualmente:
 ```typescript
-// Antes (incorrecto - hardcoded)
-const productTypeFilters = [
-  { value: "service", label: "Serviços", icon: Briefcase },
-  ...
-];
-
-// Depois (correcto - dinâmico)
-const { data: productTypesConfig } = useProductTypes();
-// Usar productTypesConfig para renderizar os filtros
+// Busca categorias de TODOS os produtos do workspace
+const { data: categories } = useProductCategories();
 ```
 
-### 2. Mapear Ícones Dinamicamente
-
-Criar mapeamento de ícones baseado no campo `icon` da configuração:
-
+A solução é extrair as categorias dos produtos já filtrados por tipo:
 ```typescript
-const iconMap: Record<string, React.ElementType> = {
-  Package: Package,
-  Repeat: Repeat,
-  Clock: Clock,
-  Layers: Layers,
-  GraduationCap: BookOpen, // ou criar import
-  Boxes: Users,
-  Box: Package,
-};
+// Categorias extraídas dos produtos actualmente carregados
+const availableCategories = useMemo(() => {
+  if (!products) return [];
+  const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
+  return cats.sort() as string[];
+}, [products]);
 ```
 
-### 3. Melhorar Feedback Visual
+### 2. Adicionar Controlo de Quantidade no ProductCard
 
-- Mostrar skeletons enquanto os tipos carregam
-- Indicar visualmente o filtro activo
-- Manter scroll horizontal funcional nas categorias
+Modificar o `ProductCard` para incluir botões +/- visíveis quando o produto está seleccionado:
 
-### 4. Corrigir ProductCard (forwardRef)
+```text
+┌─────────────────────────────┐
+│ 📦  [Serviços Técnicos]     │
+│                             │
+│ Consultoria IT              │
+│                             │
+│ € 150,00         /hora      │
+│                             │
+│  [-] 2 [+]        ✓         │  ← Novo: controlos de quantidade
+└─────────────────────────────┘
+```
 
-Adicionar `forwardRef` ao `ProductCard` para eliminar o warning quando usado dentro do ScrollArea.
+### 3. Estrutura de Dados
+
+Para suportar quantidade no selector, precisamos passar a quantidade actual e callbacks:
+
+```typescript
+interface POSProductSelectorProps {
+  selectedProductIds: string[];
+  quantities: Map<string, number>; // NOVO
+  onAddProduct: (product: Product) => void;
+  onRemoveProduct: (productId: string) => void;
+  onUpdateQuantity: (productId: string, quantity: number) => void; // NOVO
+}
+```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/POSProductSelector.tsx` | Usar `useProductTypes()` em vez de tipos hardcoded |
-| `src/components/proposals/ProductCard.tsx` | Adicionar `forwardRef` |
+| `src/components/proposals/POSProductSelector.tsx` | Usar categorias dinâmicas; passar quantidade ao ProductCard |
+| `src/components/proposals/ProductCard.tsx` | Adicionar controlos de +/- quando seleccionado |
+| `src/components/proposals/POSProposalBuilder.tsx` | Passar quantidades e handler ao selector |
 
 ## Implementação Detalhada
 
 ### POSProductSelector.tsx
 
 ```typescript
-import { useProductTypes } from "@/hooks/useProductSettings";
-import * as LucideIcons from "lucide-react";
+interface POSProductSelectorProps {
+  selectedProductIds: string[];
+  quantities: Record<string, number>; // Novo
+  onAddProduct: (product: Product) => void;
+  onRemoveProduct: (productId: string) => void;
+  onUpdateQuantity: (productId: string, quantity: number) => void; // Novo
+}
 
-export function POSProductSelector({ ... }) {
-  const { currentWorkspace } = useWorkspace();
-  const { data: productTypesConfig, isLoading: isLoadingTypes } = useProductTypes();
+export function POSProductSelector({
+  selectedProductIds,
+  quantities,
+  onAddProduct,
+  onRemoveProduct,
+  onUpdateQuantity,
+}: POSProductSelectorProps) {
+  // ...existing code...
+
+  // Categorias baseadas nos produtos filtrados por tipo (não usar useProductCategories)
+  const availableCategories = useMemo(() => {
+    if (!products) return [];
+    const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
+    return cats.sort() as string[];
+  }, [products]);
+
+  // Resetar filtro de categoria quando o tipo muda
+  useEffect(() => {
+    setCategoryFilter("all");
+  }, [typeFilter]);
+
+  // ...render...
   
-  // ... restante do código
-  
-  // Mapeamento de ícones dinâmico
-  const getIcon = (iconName: string) => {
-    const icons: Record<string, React.ElementType> = {
-      Package: LucideIcons.Package,
-      Repeat: LucideIcons.Repeat,
-      Clock: LucideIcons.Clock,
-      Layers: LucideIcons.Layers,
-      GraduationCap: LucideIcons.GraduationCap,
-      Boxes: LucideIcons.Boxes,
-      Box: LucideIcons.Box,
-      // ... outros ícones necessários
-    };
-    return icons[iconName] || LucideIcons.Package;
-  };
-  
-  return (
-    <div className="flex flex-col h-full">
-      {/* Type Filters - Dinâmico */}
-      <div className="flex gap-1.5 mb-3 flex-wrap">
-        <Button
-          variant={typeFilter === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setTypeFilter("all")}
-        >
-          <Grid3X3 className="h-3 w-3" />
-          Todos
-        </Button>
-        
-        {isLoadingTypes ? (
-          // Skeleton para loading
-          Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-7 w-20" />
-          ))
-        ) : (
-          productTypesConfig?.filter(t => t.is_active).map((type) => {
-            const Icon = getIcon(type.icon);
-            return (
-              <Button
-                key={type.id}
-                variant={typeFilter === type.code ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTypeFilter(type.code)}
-              >
-                <Icon className="h-3 w-3" />
-                {type.label}
-              </Button>
-            );
-          })
-        )}
-      </div>
-      
-      {/* ... resto do componente */}
-    </div>
-  );
+  // Passar dados ao ProductCard
+  <ProductCard
+    key={product.id}
+    product={product}
+    isSelected={selectedProductIds.includes(product.id)}
+    quantity={quantities[product.id] || 0}
+    onClick={() => handleProductClick(product)}
+    onIncrement={() => onUpdateQuantity(product.id, (quantities[product.id] || 1) + 1)}
+    onDecrement={() => {
+      const currentQty = quantities[product.id] || 1;
+      if (currentQty <= 1) {
+        onRemoveProduct(product.id);
+      } else {
+        onUpdateQuantity(product.id, currentQty - 1);
+      }
+    }}
+  />
 }
 ```
 
 ### ProductCard.tsx
 
 ```typescript
-import * as React from "react";
+interface ProductCardProps {
+  product: Product;
+  isSelected?: boolean;
+  quantity?: number; // Novo
+  onClick: () => void;
+  onIncrement?: () => void; // Novo
+  onDecrement?: () => void; // Novo
+}
 
 const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
-  ({ product, isSelected, onClick }, ref) => {
-    // ... implementação existente
+  ({ product, isSelected, quantity = 0, onClick, onIncrement, onDecrement }, ref) => {
+    // ...existing code...
+
     return (
-      <Card ref={ref} onClick={onClick} className={...}>
-        ...
+      <Card ref={ref} ...>
+        {/* Indicador de selecção com quantidade */}
+        {isSelected && (
+          <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+            <span className="text-xs text-primary-foreground font-bold">
+              {quantity > 0 ? quantity : "✓"}
+            </span>
+          </div>
+        )}
+        
+        {/* ...existing content... */}
+
+        {/* Controlos de quantidade quando seleccionado */}
+        {isSelected && (
+          <div 
+            className="flex items-center justify-center gap-1 mt-2 pt-2 border-t"
+            onClick={(e) => e.stopPropagation()} // Prevenir toggle de selecção
+          >
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDecrement?.();
+              }}
+            >
+              <Minus className="h-3 w-3" />
+            </Button>
+            <span className="w-8 text-center text-sm font-medium">
+              {quantity}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                onIncrement?.();
+              }}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
       </Card>
     );
   }
 );
-ProductCard.displayName = "ProductCard";
-
-export { ProductCard };
 ```
 
-## Fluxo Resultante
+### POSProposalBuilder.tsx
+
+```typescript
+export function POSProposalBuilder({ ... }) {
+  // ...existing code...
+
+  // Criar mapa de quantidades para o selector
+  const quantities = useMemo(() => {
+    const map: Record<string, number> = {};
+    items.forEach(item => {
+      map[item.product.id] = item.quantity;
+    });
+    return map;
+  }, [items]);
+
+  return (
+    <div className="grid ...">
+      <POSProductSelector
+        selectedProductIds={getSelectedProductIds()}
+        quantities={quantities} // Novo
+        onAddProduct={handleAddProduct}
+        onRemoveProduct={handleRemoveProduct}
+        onUpdateQuantity={handleUpdateQuantity} // Novo
+      />
+      {/* ...rest... */}
+    </div>
+  );
+}
+```
+
+## Fluxo de UX Melhorado
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│ 🔍 Pesquisar produtos...                                       │
-├─────────────────────────────────────────────────────────────────┤
-│ [Todos] [Simples] [Recorrente] [Sessões] [Bundle] [Formação]   │
-│                  [Programa] [Produto Físico] [Dia] [Hora] ...  │
-│                                                                 │
-│ Carregados dinamicamente da tabela product_types!              │
-├─────────────────────────────────────────────────────────────────┤
-│ [Todas Categorias] [Serviços Técnicos] [Manutenção] [...]      │
-│                                                                 │
-│ Filtram correctamente os produtos!                             │
-├─────────────────────────────────────────────────────────────────┤
-│                        Produtos Grid                            │
-└─────────────────────────────────────────────────────────────────┘
+1. Utilizador selecciona "Formação" no filtro de tipos
+   → Produtos filtrados mostram apenas formações
+   → Categorias actualizam automaticamente para mostrar só categorias de formações
+   → Filtro de categoria reset para "Todas"
+
+2. Utilizador clica num produto
+   → Produto adicionado ao carrinho com qty=1
+   → Card mostra controlos de +/-
+   → Badge mostra "1"
+
+3. Utilizador clica [+] no card
+   → Quantidade incrementada para 2
+   → Badge actualiza para "2"
+   → Carrinho sincronizado automaticamente
+
+4. Utilizador clica [-] quando qty=1
+   → Produto removido do carrinho
+   → Card volta ao estado não-seleccionado
 ```
 
 ## Benefícios
 
-1. **Consistência** - Usa a mesma fonte de dados que o `ProductsList`
-2. **Configurável** - Novos tipos adicionados no admin aparecem automaticamente
-3. **Sem Erros** - Códigos corretos que existem na BD
-4. **UX Melhorada** - Loading states e feedback visual
+1. **Categorias Funcionais** - Filtram apenas o que é relevante para o tipo actual
+2. **Gestão Rápida** - Adicionar/remover quantidades sem ir ao carrinho
+3. **Feedback Visual** - Badge mostra quantidade, não apenas ✓
+4. **Consistência** - Mesmo modelo de dados entre selector e carrinho
 
 ## Complexidade
 
-Baixa - Modificar 2 ficheiros seguindo padrões já existentes no projecto.
+Média - Modificar 3 ficheiros com novas props e lógica de estado.
