@@ -34,13 +34,27 @@ export function POSProposalBuilder({
     setItems,
   } = useProposalCart();
 
-  const initializedRef = useRef(false);
+  // Usar ref para rastrear o hash dos items já inicializados
+  const lastInitializedItemsRef = useRef<string | null>(null);
 
-  // Initialize with existing items only once
+  // Initialize with existing items - verificar por conteúdo, não apenas flag booleana
   useEffect(() => {
-    if (initialItems && initialItems.length > 0 && !initializedRef.current) {
+    if (!initialItems || initialItems.length === 0) return;
+    
+    // Criar hash simples dos items para comparação
+    const itemsHash = JSON.stringify(
+      initialItems.map(i => ({ 
+        id: i.product.id, 
+        qty: i.quantity,
+        price: i.priceOverride,
+        discount: i.discount 
+      }))
+    );
+    
+    // Só inicializar se for diferente do que já inicializamos
+    if (lastInitializedItemsRef.current !== itemsHash) {
       setItems(initialItems);
-      initializedRef.current = true;
+      lastInitializedItemsRef.current = itemsHash;
     }
   }, [initialItems, setItems]);
 

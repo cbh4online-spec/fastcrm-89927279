@@ -45,29 +45,25 @@ interface ProposalItemsEditorProps {
 
 export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditorProps) {
   const queryClient = useQueryClient();
-  const { data: existingItems, isLoading: loadingItems } = useProposalItems(proposalId);
+  const { data: existingItems, isLoading: loadingItems, dataUpdatedAt } = useProposalItems(proposalId);
   const { data: products } = useProducts({ status: "active" });
   const updateItems = useUpdateProposalItems();
 
   const [items, setItems] = useState<EditableItem[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
-  const [initializedForProposal, setInitializedForProposal] = useState<string | null>(null);
+  // Usar timestamp da query para detectar se é dados frescos vs mesmos dados
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
-  // Initialize items from existing data - only once per proposalId
+  // Initialize items from existing data - baseado em timestamp da query
   useEffect(() => {
-    console.log("[ProposalItemsEditor] Init check:", {
-      loadingItems,
-      initializedForProposal,
-      proposalId,
-      existingItemsCount: existingItems?.length,
-      existingItems: existingItems?.map(i => ({ id: i.id, name: i.name })),
-    });
-
-    // Skip if still loading or if already initialized for this proposal
-    if (loadingItems || initializedForProposal === proposalId) {
-      console.log("[ProposalItemsEditor] Skipping init - loading:", loadingItems, "already initialized:", initializedForProposal === proposalId);
-      return;
-    }
+    // Skip if loading
+    if (loadingItems) return;
+    
+    // Skip if we've already synced this exact data
+    if (lastSyncedAt === dataUpdatedAt) return;
+    
+    // CRÍTICO: Se temos alterações locais não guardadas, não sobrescrever
+    if (hasChanges) return;
 
     // If we have data (even empty array), initialize
     if (existingItems !== undefined) {
@@ -82,12 +78,10 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
         is_enabled: item.is_enabled ?? true,
       }));
       
-      console.log("[ProposalItemsEditor] Initializing with", mappedItems.length, "items:", mappedItems.map(i => i.name));
       setItems(mappedItems);
-      setHasChanges(false);
-      setInitializedForProposal(proposalId);
+      setLastSyncedAt(dataUpdatedAt);
     }
-  }, [existingItems, loadingItems, proposalId, initializedForProposal]);
+  }, [existingItems, loadingItems, dataUpdatedAt, lastSyncedAt, hasChanges]);
 
   const formatPrice = (price: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
@@ -134,9 +128,21 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
 
   const handleUpdateItem = (index: number, field: keyof EditableItem, value: string | number) => {
     setItems((prev) =>
-      prev.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      )
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        
+        // Validação específica por campo
+        if (field === "quantity") {
+          const qty = typeof value === "number" ? value : parseInt(String(value), 10);
+          return { ...item, quantity: isNaN(qty) || qty < 1 ? 1 : qty };
+        }
+        if (field === "unit_price") {
+          const price = typeof value === "number" ? value : parseFloat(String(value));
+          return { ...item, unit_price: isNaN(price) ? 0 : price };
+        }
+        
+        return { ...item, [field]: value };
+      })
     );
     setHasChanges(true);
   };
@@ -154,8 +160,8 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
         queryKey: ["proposal-items", proposalId] 
       });
       
-      // NÃO resetar initializedForProposal - o estado local já está correto
-      // Resetar causaria race condition com dados antigos do cache
+      // Resetar lastSyncedAt para permitir sync com dados frescos após save
+      setLastSyncedAt(null);
       
       toast.success("Itens guardados com sucesso!");
       onSaved?.();
