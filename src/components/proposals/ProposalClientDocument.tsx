@@ -629,39 +629,97 @@ export function ProposalClientDocument({
             )}
           </div>
 
-          {/* Conditions of Sale */}
+          {/* Conditions of Sale - Table Format */}
           <div className="bg-gray-50 px-4 md:px-8 py-6 mt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 uppercase tracking-wide">
               Condições de Venda
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {/* Payment Info */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Métodos de Pagamento</h4>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>• Transferência Bancária</p>
-                  {companyIban && <p className="font-mono text-xs ml-3">IBAN: {companyIban}</p>}
-                  {paymentLabel && <p>• Condições: {paymentLabel}</p>}
-                  {workspace?.payment_info && <p className="mt-2">{workspace.payment_info}</p>}
-                </div>
-              </div>
-
-              {/* Notes */}
-              {proposal.notes && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Notas</h4>
-                  <p className="text-sm text-gray-600">{proposal.notes}</p>
-                </div>
-              )}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <table className="w-full text-sm">
+                <tbody>
+                  {/* Payment Method */}
+                  <tr className="border-b border-gray-100">
+                    <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+                      Pagamento
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      Transferência Bancária
+                    </td>
+                  </tr>
+                  
+                  {/* IBAN */}
+                  {companyIban && (
+                    <tr className="border-b border-gray-100">
+                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+                        IBAN
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 font-mono text-xs">
+                        {companyIban}
+                      </td>
+                    </tr>
+                  )}
+                  
+                  {/* Payment Conditions */}
+                  {paymentLabel && (
+                    <tr className="border-b border-gray-100">
+                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+                        Condições
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {paymentLabel}
+                      </td>
+                    </tr>
+                  )}
+                  
+                  {/* Tax Info */}
+                  <tr className="border-b border-gray-100">
+                    <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+                      Imposto
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      IVA 23% (incluído nos valores apresentados)
+                    </td>
+                  </tr>
+                  
+                  {/* Delivery Info */}
+                  <tr className="border-b border-gray-100">
+                    <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+                      Entrega
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      A combinar com o cliente
+                    </td>
+                  </tr>
+                  
+                  {/* Validity */}
+                  {expiryDate && (
+                    <tr>
+                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
+                        Validade
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {proposal.validity_days} dias (até {format(expiryDate, "dd 'de' MMMM 'de' yyyy", { locale: pt })})
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-
-            {/* Validity Note */}
-            {expiryDate && (
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600">
-                  <strong>Validade:</strong> Esta proposta é válida até {format(expiryDate, "dd 'de' MMMM 'de' yyyy", { locale: pt })}.
-                </p>
+            
+            {/* Notes - separate if exists */}
+            {proposal.notes && (
+              <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                <p className="text-xs font-medium text-gray-500 uppercase mb-2">Observações</p>
+                <p className="text-sm text-gray-600">{proposal.notes}</p>
+              </div>
+            )}
+            
+            {/* Additional payment info from workspace */}
+            {workspace?.payment_info && (
+              <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                <p className="text-xs font-medium text-gray-500 uppercase mb-2">Informação Adicional</p>
+                <p className="text-sm text-gray-600">{workspace.payment_info}</p>
               </div>
             )}
 
