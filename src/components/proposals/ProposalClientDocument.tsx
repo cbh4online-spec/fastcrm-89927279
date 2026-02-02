@@ -133,7 +133,7 @@ export function ProposalClientDocument({
       {/* Document Card */}
       <Card className="bg-white text-black overflow-hidden shadow-xl print:shadow-none">
         {/* Header with Logo and Company Info */}
-        <div className="flex flex-col md:flex-row">
+        <div data-pdf-section="header" className="flex flex-col md:flex-row">
           {/* Left Sidebar with Company Info */}
           <div className="w-full md:w-56 bg-primary p-4 md:p-6 text-primary-foreground flex-shrink-0 print:bg-primary print:text-primary-foreground">
             {/* Logo */}
@@ -224,7 +224,7 @@ export function ProposalClientDocument({
         </div>
 
         {/* Items Table */}
-        <div className="px-4 md:px-8 py-6">
+        <div data-pdf-section="items" className="px-4 md:px-8 py-6">
           {allowItemToggle && (
             <p className="text-sm text-gray-500 mb-4">
               💡 Pode desmarcar itens que não pretende incluir na proposta.
@@ -356,7 +356,7 @@ export function ProposalClientDocument({
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-4 md:px-8 py-6 border-t mt-4">
+        <div data-pdf-section="footer" className="bg-gray-50 px-4 md:px-8 py-6 border-t mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {/* Payment Info */}
             <div>

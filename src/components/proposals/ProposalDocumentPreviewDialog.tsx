@@ -91,6 +91,9 @@ interface ProposalDocumentPreviewDialogProps {
   workspace: WorkspaceData | null;
 }
 
+// A4 dimensions at 96 DPI
+const A4_HEIGHT_PX = 1123;
+
 export function ProposalDocumentPreviewDialog({
   open,
   onOpenChange,
@@ -100,7 +103,30 @@ export function ProposalDocumentPreviewDialog({
 }: ProposalDocumentPreviewDialogProps) {
   const documentRef = React.useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [pageCount, setPageCount] = React.useState(1);
   const { toast } = useToast();
+
+  // Calculate page count based on document height
+  React.useEffect(() => {
+    const calculatePages = () => {
+      if (documentRef.current && open) {
+        // Small delay to ensure content is rendered
+        setTimeout(() => {
+          if (documentRef.current) {
+            const docHeight = documentRef.current.scrollHeight;
+            const pages = Math.ceil(docHeight / A4_HEIGHT_PX);
+            setPageCount(Math.max(1, pages));
+          }
+        }, 100);
+      }
+    };
+
+    calculatePages();
+    
+    // Recalculate when window resizes
+    window.addEventListener('resize', calculatePages);
+    return () => window.removeEventListener('resize', calculatePages);
+  }, [open, proposal, items]);
 
   const handlePrint = () => {
     window.print();
@@ -332,19 +358,50 @@ export function ProposalDocumentPreviewDialog({
                   </p>
                 </div>
 
+                {/* Page counter indicator */}
+                {pageCount > 1 && (
+                  <div className="mb-4 text-center print:hidden">
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                      📄 Documento com {pageCount} página{pageCount > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+
                 {/* The actual document - this is what gets captured for PDF */}
-                <div 
-                  ref={documentRef} 
-                  className="bg-white"
-                  style={{ width: '794px', margin: '0 auto' }}
-                >
-                  <ProposalClientDocument
-                    proposal={proposal}
-                    items={items}
-                    workspace={workspace}
-                    showActions={false}
-                    allowItemToggle={false}
-                  />
+                <div className="relative">
+                  <div 
+                    ref={documentRef} 
+                    className="bg-white shadow-lg"
+                    style={{ width: '794px', margin: '0 auto' }}
+                  >
+                    <ProposalClientDocument
+                      proposal={proposal}
+                      items={items}
+                      workspace={workspace}
+                      showActions={false}
+                      allowItemToggle={false}
+                    />
+                  </div>
+                  
+                  {/* Page break indicators */}
+                  {pageCount > 1 && Array.from({ length: pageCount - 1 }).map((_, i) => (
+                    <div 
+                      key={i}
+                      className="absolute left-0 right-0 flex items-center justify-center pointer-events-none print:hidden"
+                      style={{ 
+                        top: `${(i + 1) * A4_HEIGHT_PX}px`,
+                        transform: 'translateY(-50%)'
+                      }}
+                    >
+                      <div className="flex items-center gap-3 bg-amber-100 border border-amber-300 rounded-full px-4 py-1.5 shadow-sm">
+                        <div className="h-px w-8 bg-amber-400" />
+                        <span className="text-xs font-medium text-amber-700">
+                          Página {i + 2}
+                        </span>
+                        <div className="h-px w-8 bg-amber-400" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
