@@ -22,6 +22,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -57,14 +61,19 @@ import {
   Calendar,
   TrendingUp,
   UserCheck,
+  CheckSquare,
+  ArrowRightLeft,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
-import { useProposals, usePublishProposal, useDeleteProposal } from "@/hooks/useProposals";
+import { useProposals, usePublishProposal, useDeleteProposal, useDuplicateProposal, useQuickStatusChange } from "@/hooks/useProposals";
 import { CreateProposalDialog } from "./CreateProposalDialog";
 import { ProposalDetailDialog } from "./ProposalDetailDialog";
 import { ProposalTemplatesList } from "./ProposalTemplatesList";
+import { ProposalTaskDialog } from "./ProposalTaskDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
@@ -157,6 +166,8 @@ export function ProposalsList() {
   const [createOpen, setCreateOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskProposal, setTaskProposal] = useState<Proposal | null>(null);
 
   // New state for reorganized UI
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -172,6 +183,8 @@ export function ProposalsList() {
   const { data: proposals, isLoading, refetch } = useProposals();
   const publishProposal = usePublishProposal();
   const deleteProposal = useDeleteProposal();
+  const duplicateProposal = useDuplicateProposal();
+  const quickStatusChange = useQuickStatusChange();
 
   // Filter and search
   const filteredProposals = useMemo(() => {
@@ -230,6 +243,22 @@ export function ProposalsList() {
       await deleteProposal.mutateAsync(deleteId);
       setDeleteId(null);
     }
+  };
+
+  const handleDuplicate = async (proposalId: string) => {
+    const newProposal = await duplicateProposal.mutateAsync(proposalId);
+    if (newProposal) {
+      setDetailId(newProposal.id);
+    }
+  };
+
+  const handleStatusChange = async (proposalId: string, status: ProposalStatus) => {
+    await quickStatusChange.mutateAsync({ id: proposalId, status });
+  };
+
+  const handleOpenTaskDialog = (proposal: Proposal) => {
+    setTaskProposal(proposal);
+    setTaskDialogOpen(true);
   };
 
   const handleFilterSelect = (filterId: string) => {
@@ -503,8 +532,78 @@ export function ProposalsList() {
                           <Eye className="h-4 w-4 mr-2" />
                           Ver detalhes
                         </DropdownMenuItem>
+                        
+                        {/* Duplicar */}
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDuplicate(proposal.id);
+                          }}
+                          disabled={duplicateProposal.isPending}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicar
+                        </DropdownMenuItem>
+                        
+                        {/* Criar Tarefa */}
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenTaskDialog(proposal);
+                          }}
+                        >
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Criar Tarefa
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuSeparator />
+                        
+                        {/* Alterar Estado */}
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                            Alterar Estado
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {proposal.status !== "accepted" && (
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(proposal.id, "accepted");
+                                }}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+                                Marcar como Aceita
+                              </DropdownMenuItem>
+                            )}
+                            {proposal.status !== "rejected" && (
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(proposal.id, "rejected");
+                                }}
+                              >
+                                <XCircle className="h-4 w-4 mr-2 text-red-500" />
+                                Marcar como Rejeitada
+                              </DropdownMenuItem>
+                            )}
+                            {proposal.status !== "draft" && (
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(proposal.id, "draft");
+                                }}
+                              >
+                                <FileClock className="h-4 w-4 mr-2" />
+                                Voltar a Rascunho
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                        
                         {proposal.status === "published" && (
                           <>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() =>
                                 window.open(getPublicUrl(proposal.slug), "_blank")
@@ -529,6 +628,9 @@ export function ProposalsList() {
                             Publicar
                           </DropdownMenuItem>
                         )}
+                        
+                        <DropdownMenuSeparator />
+                        
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => setDeleteId(proposal.id)}
@@ -649,6 +751,12 @@ export function ProposalsList() {
           proposalId={detailId}
         />
       )}
+
+      <ProposalTaskDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        proposal={taskProposal}
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
