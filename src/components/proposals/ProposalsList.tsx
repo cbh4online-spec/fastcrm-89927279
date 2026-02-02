@@ -56,6 +56,7 @@ import {
   CircleDollarSign,
   Calendar,
   TrendingUp,
+  UserCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -66,6 +67,7 @@ import { ProposalDetailDialog } from "./ProposalDetailDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Proposal, ProposalStatus } from "@/types/proposal";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -422,6 +424,7 @@ export function ProposalsList() {
                   <TableHead>Oportunidade</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Valor</TableHead>
+                  <TableHead>Responsável</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Visualizações</TableHead>
                   <TableHead>Criada em</TableHead>
@@ -458,6 +461,23 @@ export function ProposalsList() {
                     <TableCell>{proposal.opportunity?.lead?.name || "-"}</TableCell>
                     <TableCell>
                       {formatCurrency(proposal.price, proposal.currency || "EUR")}
+                    </TableCell>
+                    <TableCell>
+                      {proposal.assigned_to_profile ? (
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={proposal.assigned_to_profile.avatar_url || undefined} />
+                            <AvatarFallback className="text-[10px]">
+                              {proposal.assigned_to_profile.full_name?.charAt(0) || proposal.assigned_to_profile.email?.charAt(0) || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm truncate max-w-[100px]" title={proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email || undefined}>
+                            {proposal.assigned_to_profile.full_name || proposal.assigned_to_profile.email}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge
