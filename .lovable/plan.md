@@ -1,255 +1,236 @@
 
-# Plano: Corrigir Filtros de Categoria e Adicionar Controlo de Quantidade
+# Plano: Adicionar Imagem ao ProductCard com Funcionalidade de Zoom
 
-## Problemas Identificados
+## Objectivo
 
-| Problema | Descrição | Localização |
-|----------|-----------|-------------|
-| **Categorias não funcionam** | O filtro "Todas Categorias" busca categorias de todos os produtos, não das actualmente visíveis | `POSProductSelector.tsx` linha 68-80 |
-| **Sem controlo de quantidade** | Clicar num produto adiciona com qty=1; não há forma de adicionar múltiplas unidades directamente | `POSProductSelector.tsx` linha 92-98 |
+Adicionar uma miniatura de imagem perceptível em cada card de produto no selector POS, com a possibilidade de fazer zoom/ampliar para confirmar visualmente o produto.
 
-## Solução
+## Análise Técnica
 
-### 1. Categorias Dinâmicas Baseadas no Tipo Filtrado
+### Dados Já Disponíveis
 
-Actualmente:
-```typescript
-// Busca categorias de TODOS os produtos do workspace
-const { data: categories } = useProductCategories();
-```
+O hook `useProducts` já carrega todos os campos necessários:
+- `images: string[]` - Array de URLs de imagens
+- `primary_image_index: number | null` - Índice da imagem principal
 
-A solução é extrair as categorias dos produtos já filtrados por tipo:
-```typescript
-// Categorias extraídas dos produtos actualmente carregados
-const availableCategories = useMemo(() => {
-  if (!products) return [];
-  const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
-  return cats.sort() as string[];
-}, [products]);
-```
+Não é necessário fazer queries adicionais!
 
-### 2. Adicionar Controlo de Quantidade no ProductCard
+### Componentes Existentes
 
-Modificar o `ProductCard` para incluir botões +/- visíveis quando o produto está seleccionado:
+| Componente | Uso |
+|------------|-----|
+| `HoverCard` | Radix UI - Para mostrar imagem ampliada no hover |
+| `Dialog` | Radix UI - Para modal de zoom em mobile/click |
+| `AspectRatio` | Radix UI - Para manter proporção da imagem |
+
+## Solução Proposta
+
+### Layout do ProductCard Actualizado
 
 ```text
-┌─────────────────────────────┐
-│ 📦  [Serviços Técnicos]     │
-│                             │
-│ Consultoria IT              │
-│                             │
-│ € 150,00         /hora      │
-│                             │
-│  [-] 2 [+]        ✓         │  ← Novo: controlos de quantidade
-└─────────────────────────────┘
+┌─────────────────────────────────────────┐
+│  ┌──────┐  📦 Categoria              │ ← Badge
+│  │      │                              │
+│  │  📷  │  Nome do Produto           │ ← Imagem + Info
+│  │      │                              │
+│  └──────┘  € 150,00         /hora    │ ← Preço
+│                                        │
+│  [-] 2 [+]                 ✓         │ ← Controlos (se selecionado)
+└─────────────────────────────────────────┘
 ```
 
-### 3. Estrutura de Dados
+### Interacção de Zoom
 
-Para suportar quantidade no selector, precisamos passar a quantidade actual e callbacks:
+**Desktop (hover)**:
+- Ao passar o rato sobre a miniatura, mostra HoverCard com imagem ampliada
+- Animação suave de entrada/saída
 
-```typescript
-interface POSProductSelectorProps {
-  selectedProductIds: string[];
-  quantities: Map<string, number>; // NOVO
-  onAddProduct: (product: Product) => void;
-  onRemoveProduct: (productId: string) => void;
-  onUpdateQuantity: (productId: string, quantity: number) => void; // NOVO
-}
-```
+**Mobile/Click**:
+- Ao clicar na miniatura, abre Dialog com imagem em tamanho grande
+- Botão de fechar ou clicar fora para sair
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/POSProductSelector.tsx` | Usar categorias dinâmicas; passar quantidade ao ProductCard |
-| `src/components/proposals/ProductCard.tsx` | Adicionar controlos de +/- quando seleccionado |
-| `src/components/proposals/POSProposalBuilder.tsx` | Passar quantidades e handler ao selector |
+| `src/components/proposals/ProductCard.tsx` | Adicionar miniatura com HoverCard e Dialog para zoom |
 
 ## Implementação Detalhada
-
-### POSProductSelector.tsx
-
-```typescript
-interface POSProductSelectorProps {
-  selectedProductIds: string[];
-  quantities: Record<string, number>; // Novo
-  onAddProduct: (product: Product) => void;
-  onRemoveProduct: (productId: string) => void;
-  onUpdateQuantity: (productId: string, quantity: number) => void; // Novo
-}
-
-export function POSProductSelector({
-  selectedProductIds,
-  quantities,
-  onAddProduct,
-  onRemoveProduct,
-  onUpdateQuantity,
-}: POSProductSelectorProps) {
-  // ...existing code...
-
-  // Categorias baseadas nos produtos filtrados por tipo (não usar useProductCategories)
-  const availableCategories = useMemo(() => {
-    if (!products) return [];
-    const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
-    return cats.sort() as string[];
-  }, [products]);
-
-  // Resetar filtro de categoria quando o tipo muda
-  useEffect(() => {
-    setCategoryFilter("all");
-  }, [typeFilter]);
-
-  // ...render...
-  
-  // Passar dados ao ProductCard
-  <ProductCard
-    key={product.id}
-    product={product}
-    isSelected={selectedProductIds.includes(product.id)}
-    quantity={quantities[product.id] || 0}
-    onClick={() => handleProductClick(product)}
-    onIncrement={() => onUpdateQuantity(product.id, (quantities[product.id] || 1) + 1)}
-    onDecrement={() => {
-      const currentQty = quantities[product.id] || 1;
-      if (currentQty <= 1) {
-        onRemoveProduct(product.id);
-      } else {
-        onUpdateQuantity(product.id, currentQty - 1);
-      }
-    }}
-  />
-}
-```
 
 ### ProductCard.tsx
 
 ```typescript
-interface ProductCardProps {
-  product: Product;
-  isSelected?: boolean;
-  quantity?: number; // Novo
-  onClick: () => void;
-  onIncrement?: () => void; // Novo
-  onDecrement?: () => void; // Novo
-}
+import { useState } from "react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+
+// ...existing code...
 
 const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
   ({ product, isSelected, quantity = 0, onClick, onIncrement, onDecrement }, ref) => {
-    // ...existing code...
+    const [zoomOpen, setZoomOpen] = useState(false);
+    
+    // Get primary image URL
+    const primaryImageUrl = product.images?.length > 0
+      ? product.images[product.primary_image_index ?? 0]
+      : null;
+
+    const Icon = getIcon(product.product_type);
+    const colorClass = productTypeColors[product.product_type] || "bg-muted text-muted-foreground";
+
+    // Thumbnail component with hover preview
+    const ImageThumbnail = () => (
+      <div 
+        className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 cursor-zoom-in"
+        onClick={(e) => {
+          e.stopPropagation();
+          setZoomOpen(true);
+        }}
+      >
+        {primaryImageUrl ? (
+          <img
+            src={primaryImageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Icon className="h-5 w-5 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+    );
 
     return (
-      <Card ref={ref} ...>
-        {/* Indicador de selecção com quantidade */}
-        {isSelected && (
-          <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-xs text-primary-foreground font-bold">
-              {quantity > 0 ? quantity : "✓"}
-            </span>
-          </div>
-        )}
-        
-        {/* ...existing content... */}
+      <>
+        {/* Dialog for mobile/click zoom */}
+        <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
+          <DialogContent className="max-w-md p-2">
+            <AspectRatio ratio={4/3}>
+              {primaryImageUrl ? (
+                <img
+                  src={primaryImageUrl}
+                  alt={product.name}
+                  className="w-full h-full object-contain rounded-lg"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-muted rounded-lg">
+                  <Package className="h-16 w-16 text-muted-foreground" />
+                </div>
+              )}
+            </AspectRatio>
+            <p className="text-center font-medium mt-2">{product.name}</p>
+          </DialogContent>
+        </Dialog>
 
-        {/* Controlos de quantidade quando seleccionado */}
-        {isSelected && (
-          <div 
-            className="flex items-center justify-center gap-1 mt-2 pt-2 border-t"
-            onClick={(e) => e.stopPropagation()} // Prevenir toggle de selecção
-          >
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-6 w-6"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDecrement?.();
-              }}
-            >
-              <Minus className="h-3 w-3" />
-            </Button>
-            <span className="w-8 text-center text-sm font-medium">
-              {quantity}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-6 w-6"
-              onClick={(e) => {
-                e.stopPropagation();
-                onIncrement?.();
-              }}
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
+        <Card ref={ref} onClick={onClick} className={...}>
+          {/* Selection badge */}
+          {isSelected && ...}
+          
+          <div className="flex gap-3">
+            {/* Image with HoverCard for desktop preview */}
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <div>
+                  <ImageThumbnail />
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent 
+                side="right" 
+                className="w-64 p-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <AspectRatio ratio={4/3}>
+                  {primaryImageUrl ? (
+                    <img
+                      src={primaryImageUrl}
+                      alt={product.name}
+                      className="w-full h-full object-contain rounded"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted rounded">
+                      <Package className="h-12 w-12 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground mt-2">Sem imagem</span>
+                    </div>
+                  )}
+                </AspectRatio>
+                <p className="text-sm font-medium text-center mt-2">{product.name}</p>
+                {product.sku && (
+                  <p className="text-xs text-muted-foreground text-center">SKU: {product.sku}</p>
+                )}
+              </HoverCardContent>
+            </HoverCard>
+
+            {/* Product info */}
+            <div className="flex flex-col flex-1 min-w-0">
+              {/* Category badge */}
+              <div className="flex items-start justify-between mb-1">
+                <div className={cn("p-1 rounded", colorClass)}>
+                  <Icon className="h-3 w-3" />
+                </div>
+                {product.category && (
+                  <Badge variant="outline" className="text-[10px] px-1 py-0">
+                    {product.category}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Name */}
+              <h4 className="font-medium text-sm line-clamp-2">
+                {product.name}
+              </h4>
+
+              {/* Price */}
+              <div className="flex items-baseline justify-between mt-auto">
+                <span className="text-sm font-bold text-primary">
+                  {formatPrice(product.base_price)}
+                </span>
+                {product.billing_type === "recurring" && (
+                  <span className="text-[10px] text-muted-foreground">/mês</span>
+                )}
+              </div>
+            </div>
           </div>
-        )}
-      </Card>
+
+          {/* Quantity controls */}
+          {isSelected && (
+            <div className="flex items-center justify-center gap-1 mt-2 pt-2 border-t">
+              ...
+            </div>
+          )}
+        </Card>
+      </>
     );
   }
 );
 ```
 
-### POSProposalBuilder.tsx
+## Fluxo de UX
 
-```typescript
-export function POSProposalBuilder({ ... }) {
-  // ...existing code...
+**Desktop:**
+1. Utilizador vê miniatura de 48x48px no card
+2. Ao passar o rato (hover), aparece HoverCard à direita com imagem 256px
+3. Ao clicar na miniatura, abre Dialog fullscreen para zoom máximo
 
-  // Criar mapa de quantidades para o selector
-  const quantities = useMemo(() => {
-    const map: Record<string, number> = {};
-    items.forEach(item => {
-      map[item.product.id] = item.quantity;
-    });
-    return map;
-  }, [items]);
+**Mobile:**
+1. Utilizador vê miniatura de 48x48px no card
+2. Ao tocar na miniatura, abre Dialog com imagem grande
+3. Toca fora para fechar
 
-  return (
-    <div className="grid ...">
-      <POSProductSelector
-        selectedProductIds={getSelectedProductIds()}
-        quantities={quantities} // Novo
-        onAddProduct={handleAddProduct}
-        onRemoveProduct={handleRemoveProduct}
-        onUpdateQuantity={handleUpdateQuantity} // Novo
-      />
-      {/* ...rest... */}
-    </div>
-  );
-}
-```
-
-## Fluxo de UX Melhorado
-
-```text
-1. Utilizador selecciona "Formação" no filtro de tipos
-   → Produtos filtrados mostram apenas formações
-   → Categorias actualizam automaticamente para mostrar só categorias de formações
-   → Filtro de categoria reset para "Todas"
-
-2. Utilizador clica num produto
-   → Produto adicionado ao carrinho com qty=1
-   → Card mostra controlos de +/-
-   → Badge mostra "1"
-
-3. Utilizador clica [+] no card
-   → Quantidade incrementada para 2
-   → Badge actualiza para "2"
-   → Carrinho sincronizado automaticamente
-
-4. Utilizador clica [-] quando qty=1
-   → Produto removido do carrinho
-   → Card volta ao estado não-seleccionado
-```
+**Sem Imagem:**
+1. Mostra ícone do tipo de produto como fallback
+2. HoverCard mostra "Sem imagem" com ícone
+3. Dialog mostra ícone grande centrado
 
 ## Benefícios
 
-1. **Categorias Funcionais** - Filtram apenas o que é relevante para o tipo actual
-2. **Gestão Rápida** - Adicionar/remover quantidades sem ir ao carrinho
-3. **Feedback Visual** - Badge mostra quantidade, não apenas ✓
-4. **Consistência** - Mesmo modelo de dados entre selector e carrinho
+1. **Identificação Visual** - Confirmar produto rapidamente pela imagem
+2. **Zoom Flexível** - Hover para preview, click para fullscreen
+3. **Performance** - Usa dados já carregados, sem queries extra
+4. **Fallback Elegante** - Ícone do tipo quando não há imagem
+5. **Responsive** - Funciona em desktop e mobile
 
 ## Complexidade
 
-Média - Modificar 3 ficheiros com novas props e lógica de estado.
+Baixa - Modificar apenas 1 ficheiro com componentes já existentes.
