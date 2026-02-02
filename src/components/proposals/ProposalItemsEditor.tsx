@@ -149,13 +149,13 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
       });
       setHasChanges(false);
       
-      // CRÍTICO: Forçar refetch imediato para garantir sincronização
+      // Forçar refetch imediato para sincronizar cache
       await queryClient.refetchQueries({ 
         queryKey: ["proposal-items", proposalId] 
       });
       
-      // Resetar flag para permitir resync com dados frescos
-      setInitializedForProposal(null);
+      // NÃO resetar initializedForProposal - o estado local já está correto
+      // Resetar causaria race condition com dados antigos do cache
       
       toast.success("Itens guardados com sucesso!");
       onSaved?.();
