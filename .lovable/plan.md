@@ -1,159 +1,107 @@
 
 
-# Plano: Melhorar Secção de Condições de Venda
+# Plano: Ajustes no Documento PDF da Proposta
 
 ## Problemas Identificados
 
-1. **Layout em lista vertical** - As condições de pagamento estão apresentadas como bullets verticais (`• Transferência Bancária`, `• Condições: ...`) quando deveriam fluir horizontalmente numa tabela ou formato de "ficha técnica"
+### 1. Página 5 (Proposta e Condições) - OK
+A secção de "Condições de Venda" já está em formato de tabela horizontal e inclui:
+- Pagamento: Transferência Bancária
+- Condições: 50% com a adjudicação (sinal) e 50% após a conclusão da instalação e testes
+- Imposto: IVA 23% (incluído nos valores apresentados)
+- Entrega: A combinar com o cliente
+- Validade: 15 dias (até 05 de fevereiro de 2026)
 
-2. **Falta informação de imposto (IVA)** - Apesar de calcular o IVA nos totais, não há menção explícita da taxa de imposto na secção de condições
+**Esta secção está bem formatada!**
 
-3. **Falta informação de entrega** - O sistema tem tabela `delivery_modes` (Online, Presencial, Híbrido, etc.) mas esta informação não aparece nas condições
+### 2. Página 6 - Página Extra Indesejada
+O problema principal: existe uma **página 6 quase vazia** que contém apenas:
+- Um fragmento de fundo cinzento
+- "Data: ___/___/______"
 
-## Estrutura Actual vs Pretendida
+Isto acontece porque a secção de assinatura está a ser cortada no algoritmo de fatiamento do PDF, criando uma página extra desnecessária.
 
-| Actual | Pretendido |
-|--------|------------|
-| `• Transferência Bancária` | **Pagamento:** Transferência Bancária • IBAN: PT50... |
-| `IBAN: PT50...` em linha separada | **Condições:** 50% com adjudicação e 50% na entrega |
-| `• Condições: 50_adju...` | **Imposto:** IVA 23% incluído nos valores |
-| Nada sobre entrega | **Entrega:** A definir / Online / Presencial |
+### 3. Falta o IBAN na Tabela de Condições
+Na página 5, a tabela de Condições de Venda não mostra o IBAN. Isto pode significar que:
+- O workspace não tem IBAN configurado
+- Ou há um problema na renderização
 
-## Novo Layout: Tabela de Condições
+## Solução Proposta
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ CONDIÇÕES DE VENDA                                               │
-├──────────────┬──────────────────────────────────────────────────┤
-│ Pagamento    │ Transferência Bancária                           │
-├──────────────┼──────────────────────────────────────────────────┤
-│ IBAN         │ PT50 XXXX XXXX XXXX XXXX XXXX X                  │
-├──────────────┼──────────────────────────────────────────────────┤
-│ Condições    │ 50% com adjudicação e 50% na entrega             │
-├──────────────┼──────────────────────────────────────────────────┤
-│ Imposto      │ IVA 23% (incluído nos valores apresentados)      │
-├──────────────┼──────────────────────────────────────────────────┤
-│ Entrega      │ Presencial / A combinar com o cliente            │
-├──────────────┼──────────────────────────────────────────────────┤
-│ Validade     │ 30 dias (até 02 de Março de 2026)                │
-└──────────────┴──────────────────────────────────────────────────┘
-```
+### Problema Principal: Página 6 Extra
 
-## Ficheiro a Modificar
+O algoritmo de geração de PDF em `ProposalDocumentPreviewDialog.tsx` está a fatiar a secção "proposal" em múltiplas páginas, e a última fatia (área de assinatura) cria uma página quase vazia.
+
+**Solução:** Garantir que a área de assinatura fique sempre na mesma página que as condições de venda, ajustando a altura da secção para que caiba numa única página ou melhorando o algoritmo de fatiamento.
+
+### Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/ProposalClientDocument.tsx` | Substituir lista por tabela horizontal de condições |
+| `src/components/proposals/ProposalClientDocument.tsx` | Compactar área de assinatura para evitar quebra de página |
+| `src/components/proposals/ProposalDocumentPreviewDialog.tsx` | Ajustar algoritmo de fatiamento para não criar páginas quase vazias |
 
 ## Implementação
 
-### Novo Código para Secção de Condições
+### Alteração 1: Compactar Área de Assinatura
+
+Reduzir o espaço vertical na secção de assinatura para evitar que ultrapasse a margem da página:
 
 ```typescript
-{/* Conditions of Sale - Table Format */}
-<div className="bg-gray-50 px-4 md:px-8 py-6 mt-6">
-  <h3 className="text-lg font-semibold text-gray-900 mb-4 uppercase tracking-wide">
-    Condições de Venda
-  </h3>
-  
-  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-    <table className="w-full text-sm">
-      <tbody>
-        {/* Payment Method */}
-        <tr className="border-b border-gray-100">
-          <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
-            Pagamento
-          </td>
-          <td className="px-4 py-3 text-gray-600">
-            Transferência Bancária
-          </td>
-        </tr>
-        
-        {/* IBAN */}
-        {companyIban && (
-          <tr className="border-b border-gray-100">
-            <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
-              IBAN
-            </td>
-            <td className="px-4 py-3 text-gray-600 font-mono text-xs">
-              {companyIban}
-            </td>
-          </tr>
-        )}
-        
-        {/* Payment Conditions */}
-        {paymentLabel && (
-          <tr className="border-b border-gray-100">
-            <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
-              Condições
-            </td>
-            <td className="px-4 py-3 text-gray-600">
-              {paymentLabel}
-            </td>
-          </tr>
-        )}
-        
-        {/* Tax Info */}
-        <tr className="border-b border-gray-100">
-          <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
-            Imposto
-          </td>
-          <td className="px-4 py-3 text-gray-600">
-            IVA 23% (incluído nos valores apresentados)
-          </td>
-        </tr>
-        
-        {/* Delivery Info */}
-        <tr className="border-b border-gray-100">
-          <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
-            Entrega
-          </td>
-          <td className="px-4 py-3 text-gray-600">
-            A combinar com o cliente
-          </td>
-        </tr>
-        
-        {/* Validity */}
-        {expiryDate && (
-          <tr>
-            <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-40">
-              Validade
-            </td>
-            <td className="px-4 py-3 text-gray-600">
-              {proposal.validity_days} dias (até {format(expiryDate, "dd 'de' MMMM 'de' yyyy", { locale: pt })})
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-  
-  {/* Notes - separate if exists */}
-  {proposal.notes && (
-    <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
-      <p className="text-xs font-medium text-gray-500 uppercase mb-2">Observações</p>
-      <p className="text-sm text-gray-600">{proposal.notes}</p>
+{/* Signature - mais compacto */}
+<div className="mt-6 pt-4 border-t border-gray-200">
+  <div className="flex flex-col md:flex-row md:justify-between gap-4">
+    {/* Client Signature */}
+    <div>
+      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">
+        Aceite do Cliente
+      </p>
+      <div className="w-40 h-12 border-b-2 border-gray-300 mb-1"></div>
+      <p className="text-xs text-gray-600">Data: ___/___/______</p>
     </div>
-  )}
-  
-  {/* Signature area remains the same */}
+
+    {/* Company Signature */}
+    <div className="text-right">
+      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">
+        Assinatura
+      </p>
+      <div className="inline-block text-left">
+        <div className="w-40 h-12 border-b-2 border-gray-300 mb-1"></div>
+        {signatureName && (
+          <p className="font-medium text-gray-900 text-sm">{signatureName}</p>
+        )}
+        {signatureTitle && (
+          <p className="text-xs text-gray-500">{signatureTitle}</p>
+        )}
+      </div>
+    </div>
+  </div>
 </div>
+```
+
+### Alteração 2: Evitar Páginas com Pouco Conteúdo
+
+No algoritmo de fatiamento do PDF, adicionar lógica para não criar uma página se a fatia restante for muito pequena (menos de 80px de conteúdo real):
+
+```typescript
+// Ao fatiar secções grandes, verificar se a fatia final é muito pequena
+const remainingHeight = heightMM - sliceStartMM;
+const MIN_SLICE_HEIGHT_MM = 30; // ~80px, evitar páginas quase vazias
+
+// Se o restante for menor que o mínimo, incluir na página anterior
+if (remainingHeight < MIN_SLICE_HEIGHT_MM && sliceStartMM > 0) {
+  // Não criar nova página, terminar aqui
+  break;
+}
 ```
 
 ## Resultado Esperado
 
-A secção de Condições de Venda aparecerá como uma tabela limpa e profissional com:
-
-- **Pagamento**: Método de pagamento
-- **IBAN**: Dados bancários (se configurado)
-- **Condições**: Prazo/modalidade de pagamento formatado correctamente
-- **Imposto**: Taxa de IVA aplicável
-- **Entrega**: Modo de entrega (genérico por agora)
-- **Validade**: Prazo e data de expiração
-
-Todas as informações fluem horizontalmente numa estrutura de tabela fácil de ler, em vez de uma lista vertical com bullets.
+1. **5 páginas apenas** (em vez de 6)
+2. A área de assinatura ficará na mesma página que as condições de venda
+3. Sem páginas quase vazias no final do documento
 
 ## Complexidade
 
-Baixa - Apenas alteração de layout HTML/CSS
+Baixa - Ajustes de espaçamento CSS e refinamento do algoritmo de fatiamento
 
