@@ -1,113 +1,142 @@
 
-# Plano: Corrigir Sincronização do Valor Total no Header
+# Plano: Adicionar Preview Full-Screen do Documento Final
 
-## Problema Identificado
+## Contexto Actual
 
-Após análise da base de dados e código:
+O sistema já tem:
+- **ProposalViewToggle** com modos "Gestão" e "Documento"
+- **ProposalClientDocument** - o documento formatado para o cliente
+- Botões de "Imprimir" e "Download PDF" no documento
 
-| Origem | Valor |
-|--------|-------|
-| `proposals.price` (header) | 759,70€ |
-| Soma dos `proposal_items` (real) | 2138,10€ |
-
-Os itens já estão guardados com as quantidades correctas na base de dados, mas o campo `proposals.price` ficou desatualizado porque os itens foram provavelmente modificados antes de existir a lógica de recálculo automático, ou foram importados directamente.
+O que falta é um **botão de preview dedicado** que abre o documento em ecrã cheio, simulando exactamente o que o cliente vai ver antes de enviar.
 
 ---
 
-## Solução
+## Solução Proposta
 
-### 1. Mostrar Total Calculado em Tempo Real no Header
+### Criar um Dialog Full-Screen de Preview
 
-Em vez de confiar apenas em `proposal.price`, calcular o total a partir dos `proposalItems` que já são carregados (linha 112):
-
-```typescript
-// ProposalDetailDialog.tsx
-
-// Calcular total real dos itens
-const calculatedTotal = proposalItems
-  ?.filter(item => item.is_enabled !== false)
-  .reduce((sum, item) => sum + (item.quantity * item.unit_price), 0) || 0;
-
-// Usar calculatedTotal quando diferente, senão proposal.price
-const displayPrice = proposalItems && proposalItems.length > 0 
-  ? calculatedTotal 
-  : proposal.price;
-```
-
-### 2. Atualizar Header para Usar o Valor Calculado
-
-```typescript
-// Linha ~395: Trocar proposal.price por displayPrice
-<p className="font-semibold text-sm text-primary">
-  {formatCurrency(displayPrice, proposal.currency)}
-</p>
-```
-
-### 3. Sincronizar BD Automaticamente (Opcional mas Recomendado)
-
-Adicionar um efeito que detecta discrepância e atualiza a BD automaticamente:
-
-```typescript
-// Sincronizar proposals.price quando detectar discrepância
-useEffect(() => {
-  if (proposalItems && proposalItems.length > 0 && proposal) {
-    const calculated = proposalItems
-      .filter(item => item.is_enabled !== false)
-      .reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-    
-    // Se há diferença significativa (>0.01€), sincronizar
-    if (Math.abs(calculated - (proposal.price || 0)) > 0.01) {
-      // Atualizar proposals.price na BD silenciosamente
-      updateProposal.mutate({
-        id: proposalId,
-        price: calculated
-      });
-    }
-  }
-}, [proposalItems, proposal?.price]);
-```
+Um novo botão "Pré-visualizar Documento" que abre um dialog a ocupar o ecrã inteiro, mostrando o `ProposalClientDocument` sem distrações - exactamente como o cliente irá ver.
 
 ---
 
-## Ficheiros a Modificar
+## Implementação
 
-### `src/components/proposals/ProposalDetailDialog.tsx`
+### 1. Criar Componente `ProposalDocumentPreviewDialog.tsx`
+
+Novo componente que:
+- Abre em full-screen (ocupa toda a janela)
+- Mostra o `ProposalClientDocument` centrado
+- Inclui botões de acção: Imprimir, Download PDF, Fechar
+- Background neutro para simular contexto do cliente
+- Indicador "Pré-visualização - Assim ficará para o cliente"
+
+```text
+Estrutura:
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  ← Fechar                     Pré-visualização do Documento         🖨 📄 ❌ │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│                     ┌────────────────────────────────────┐                   │
+│                     │                                    │                   │
+│                     │    [ProposalClientDocument]        │                   │
+│                     │                                    │                   │
+│                     │    - Logo + Info Empresa           │                   │
+│                     │    - Dados Cliente                 │                   │
+│                     │    - Tabela de Itens               │                   │
+│                     │    - Totais + IVA                  │                   │
+│                     │    - Condições de Pagamento        │                   │
+│                     │    - Assinatura                    │                   │
+│                     │                                    │                   │
+│                     └────────────────────────────────────┘                   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2. Adicionar Botão no `ProposalDetailDialog.tsx`
+
+Na barra de acções do header (junto a "Publicar"), adicionar:
+
+```typescript
+<Button 
+  variant="outline" 
+  onClick={() => setShowDocumentPreview(true)}
+>
+  <FileSearch className="h-4 w-4 mr-2" />
+  Pré-visualizar Documento
+</Button>
+```
+
+O botão fica visível:
+- Sempre que há itens na proposta
+- Independentemente do status (draft, published, etc.)
+
+---
+
+## Ficheiros a Criar/Modificar
+
+### Novo Ficheiro: `src/components/proposals/ProposalDocumentPreviewDialog.tsx`
+
+| Elemento | Descrição |
+|----------|-----------|
+| Dialog full-screen | Usa `DialogPrimitive.Content` com `className="fixed inset-0"` |
+| Header fixo | Título + botões de acção (Imprimir, Download, Fechar) |
+| ScrollArea | Área scrollable com o documento centrado |
+| ProposalClientDocument | Renderizado com `showActions={false}` |
+| Background | Cinza neutro para simular contexto web |
+
+```typescript
+// Estrutura do componente
+interface ProposalDocumentPreviewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  proposal: Proposal;
+  items: PreviewItem[];
+  workspace: WorkspaceData | null;
+}
+```
+
+### Modificar: `src/components/proposals/ProposalDetailDialog.tsx`
 
 | Alteração | Descrição |
 |-----------|-----------|
-| Adicionar cálculo `calculatedTotal` | Soma os itens enabled |
-| Criar variável `displayPrice` | Prioriza total calculado |
-| Atualizar header | Usar `displayPrice` em vez de `proposal.price` |
-| useEffect de sincronização | Atualiza BD quando há discrepância |
+| Novo estado | `showDocumentPreview: boolean` |
+| Novo import | `ProposalDocumentPreviewDialog`, `FileSearch` icon |
+| Botão no header | "Pré-visualizar Documento" junto aos outros botões |
+| Renderizar dialog | `<ProposalDocumentPreviewDialog ... />` no final |
 
 ---
 
-## Fluxo Corrigido
+## Funcionalidades do Preview
+
+1. **Visualização exacta** - O documento aparece exactamente como o cliente verá
+2. **Sem distracções** - Full-screen remove elementos da interface de gestão
+3. **Acções rápidas**:
+   - **Imprimir** - Abre diálogo de impressão do browser
+   - **Download PDF** - Gera e descarrega PDF
+   - **Fechar** - Volta ao diálogo de detalhes
+4. **Indicador visual** - Banner a indicar "Esta é uma pré-visualização"
+
+---
+
+## Fluxo de Utilização
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  1. Dialog abre                                                     │
-│  2. useProposal carrega proposal (price: 759.70)                   │
-│  3. useProposalItems carrega itens (soma: 2138.10)                 │
-│  4. calculatedTotal = 2138.10                                       │
-│  5. displayPrice = calculatedTotal (prioridade)                    │
-│  6. Header mostra 2138.10€ ✓                                       │
-│  7. useEffect detecta discrepância                                  │
-│  8. Atualiza proposals.price = 2138.10 na BD ✓                     │
-│  9. Próxima vez, ambos os valores estarão sincronizados            │
-└─────────────────────────────────────────────────────────────────────┘
+1. Utilizador abre proposta → ProposalDetailDialog
+2. Clica "Pré-visualizar Documento"
+3. Abre ProposalDocumentPreviewDialog (full-screen)
+4. Vê exactamente como o cliente receberá
+5. Pode imprimir/download ou fechar
+6. Ao fechar, volta ao ProposalDetailDialog
+7. Se satisfeito, clica "Publicar" para enviar
 ```
-
----
-
-## Resultado Esperado
-
-1. **Imediato**: Header mostra sempre o valor correcto baseado nos itens
-2. **Persistente**: A BD é sincronizada automaticamente quando há discrepância
-3. **Robusto**: Funciona mesmo para propostas criadas antes desta lógica
 
 ---
 
 ## Estimativa
 
-- ProposalDetailDialog.tsx: ~20 linhas alteradas/adicionadas
+| Ficheiro | Linhas |
+|----------|--------|
+| ProposalDocumentPreviewDialog.tsx (novo) | ~120 linhas |
+| ProposalDetailDialog.tsx (modificar) | ~15 linhas |
+| **Total** | ~135 linhas |
