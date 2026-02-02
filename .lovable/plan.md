@@ -1,26 +1,45 @@
 
-# Plano: Corrigir Atualização de Quantidades nas Propostas
+
+# Plano: Corrigir Atualização de Quantidades nas Propostas (Problema Persistente)
 
 ## Problema Identificado
 
-Quando o utilizador atualiza quantidades nos itens da proposta, a interface não reflete as alterações de forma consistente. O problema ocorre em dois cenários:
+Após as correções anteriores, o problema persiste. A análise revela **dois problemas críticos** que impedem as quantidades de serem atualizadas corretamente:
 
-1. **ProposalItemsEditor** - O estado local atualiza, mas os totais calculados podem não ser sincronizados corretamente com a base de dados
-2. **POSProposalBuilder** - A callback `onItemsChange` recria-se a cada render, causando possíveis problemas de estado
+### Problema 1: Hook `useCallback` usado incorretamente no JSX
+
+No `CreateProposalDialog.tsx` (linha 399), o `useCallback` está a ser chamado **diretamente dentro do JSX**, violando as regras dos hooks do React:
+
+```typescript
+// ERRADO - Hook dentro do JSX!
+<POSProposalBuilder
+  onItemsChange={useCallback((items: CartItem[]) => {
+    setCartItems(items);
+    // ...
+  }, [])}
+/>
+```
+
+Os hooks devem ser declarados no **corpo do componente**, não dentro de retornos JSX ou callbacks.
+
+### Problema 2: Race Condition no ProposalItemsEditor
+
+Após guardar, o fluxo atual é:
+1. `handleSave()` - Guarda os items
+2. `setInitializedForProposal(null)` - Reseta a flag
+3. O `useEffect` dispara imediatamente
+4. **MAS** o refetch ainda pode estar em progresso → sobrescreve com dados antigos
 
 ```text
-FLUXO ATUAL (Com Problema)
+FLUXO COM RACE CONDITION
 ┌─────────────────────────────────────────────────────────────────────┐
-│  User atualiza quantidade                                           │
-│       ↓                                                             │
-│  Local state atualiza (items[])                                     │
-│       ↓                                                             │
-│  handleUpdateItem() → setItems() → hasChanges = true               │
-│       ↓                                                             │
-│  UI mostra nova quantidade... MAS:                                 │
-│  - Total pode não recalcular                                       │
-│  - Se guardar falhar, estado local fica dessincronizado            │
-│  - QueryClient não invalida queries corretamente                   │
+│  1. handleSave() → updateItems.mutateAsync()                        │
+│  2. setHasChanges(false)                                           │
+│  3. await refetchQueries()                                          │
+│  4. setInitializedForProposal(null) ← PROBLEMA AQUI                │
+│  5. useEffect dispara porque initializedForProposal mudou          │
+│  6. existingItems ainda pode ter dados ANTIGOS do cache            │
+│  7. setItems(dadosAntigos) ← SOBRESCREVE AS ALTERAÇÕES!            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -28,145 +47,135 @@ FLUXO ATUAL (Com Problema)
 
 ## Solução Proposta
 
-### 1. Forçar Refetch Imediato Após Guardar
+### 1. Corrigir CreateProposalDialog.tsx
 
-Após a mutação `updateItems.mutateAsync()`, garantir que os dados são recarregados imediatamente:
-
-```typescript
-// ProposalItemsEditor.tsx
-const handleSave = async () => {
-  try {
-    await updateItems.mutateAsync({ proposalId, items });
-    setHasChanges(false);
-    
-    // CRÍTICO: Forçar refetch imediato
-    await queryClient.refetchQueries({ 
-      queryKey: ["proposal-items", proposalId] 
-    });
-    
-    toast.success("Itens guardados!");
-    onSaved?.();
-  } catch (error) {
-    toast.error("Erro ao guardar");
-  }
-};
-```
-
-### 2. Estabilizar Callback no POSProposalBuilder
-
-Usar `useCallback` para evitar re-criação da função `onItemsChange`:
+Mover o `useCallback` para o corpo do componente:
 
 ```typescript
-// CreateProposalDialog.tsx
+// CORRETO - Hook no corpo do componente
 const handleCartItemsChange = useCallback((items: CartItem[]) => {
   setCartItems(items);
-  // Recalcular preço
   const total = items.reduce((acc, item) => {
     const basePrice = item.priceOverride ?? item.product.base_price ?? 0;
     const discountAmount = item.discount ? basePrice * (item.discount / 100) : 0;
     return acc + (basePrice - discountAmount) * item.quantity;
   }, 0);
-  if (total > 0) setPrice(total.toString());
+  if (total > 0) {
+    setPrice(total.toString());
+  }
 }, []);
+
+// No JSX - usar a referência estável
+<POSProposalBuilder
+  onItemsChange={handleCartItemsChange}
+/>
 ```
 
-### 3. Sincronizar Estado Local com DB
+### 2. Corrigir ProposalItemsEditor.tsx
 
-No `ProposalItemsEditor`, garantir que o estado local reflete sempre os dados da query após save:
+Remover o reset da flag `initializedForProposal` após guardar. O refetch já sincroniza os dados, não precisamos re-inicializar:
 
 ```typescript
 const handleSave = async () => {
   try {
-    const result = await updateItems.mutateAsync({...});
+    await updateItems.mutateAsync({
+      proposalId,
+      items: items.filter((item) => item.name.trim() !== ""),
+    });
     setHasChanges(false);
-    // Resetar initialized flag para permitir resync
-    setInitializedForProposal(null);
+    
+    // Forçar refetch e ESPERAR pelos dados frescos
+    await queryClient.refetchQueries({ 
+      queryKey: ["proposal-items", proposalId] 
+    });
+    
+    // NÃO resetar initializedForProposal - evita race condition
+    // O estado local já está correto após save
+    
+    toast.success("Itens guardados com sucesso!");
     onSaved?.();
-  } catch (error) {...}
+  } catch (error) {
+    toast.error("Erro ao guardar itens");
+  }
 };
+```
+
+### 3. Adicionar Sincronização Controlada
+
+Permitir resync apenas quando os dados do servidor forem definitivamente diferentes (nova abertura do diálogo):
+
+```typescript
+// Resetar a flag quando o proposalId muda (novo diálogo aberto)
+useEffect(() => {
+  if (proposalId !== initializedForProposal) {
+    // Apenas marcar como não-inicializado para novo proposalId
+    // A inicialização ocorrerá no próximo effect
+  }
+}, [proposalId]);
+
+// Inicialização - apenas quando dados chegam E não está inicializado
+useEffect(() => {
+  if (loadingItems || initializedForProposal === proposalId) {
+    return;
+  }
+  
+  if (existingItems !== undefined) {
+    const mappedItems = existingItems.map((item, idx) => ({...}));
+    setItems(mappedItems);
+    setHasChanges(false);
+    setInitializedForProposal(proposalId);
+  }
+}, [existingItems, loadingItems, proposalId, initializedForProposal]);
 ```
 
 ---
 
 ## Ficheiros a Modificar
 
-### 1. `src/components/proposals/ProposalItemsEditor.tsx`
+### 1. `src/components/proposals/CreateProposalDialog.tsx`
+- Mover `useCallback` do JSX para o corpo do componente (correção crítica)
+- Garantir referência estável para `onItemsChange`
 
-- Adicionar `useQueryClient` import
-- Forçar refetch após mutação bem-sucedida
-- Melhorar sincronização de estado local com dados do servidor
-
-### 2. `src/components/proposals/CreateProposalDialog.tsx`
-
-- Envolver `onItemsChange` callback em `useCallback`
-- Evitar re-renders desnecessários do `POSProposalBuilder`
-
-### 3. `src/hooks/useProposals.ts`
-
-- Garantir que `onSuccess` do `useUpdateProposalItems` invalida corretamente as queries
-- Adicionar `await` no refetch para garantir dados frescos
+### 2. `src/components/proposals/ProposalItemsEditor.tsx`
+- **Remover** `setInitializedForProposal(null)` do `handleSave`
+- Manter o estado local após save (já está correto)
+- A sincronização com servidor ocorre apenas na abertura inicial
 
 ---
 
 ## Detalhes Técnicos
 
-### Problema no useUpdateProposalItems
+### Porque Resetar a Flag Causa Problemas
 
-O hook atual invalida queries no `onSuccess`, mas não espera pelo refetch:
+O problema é uma race condition:
 
-```typescript
-// ATUAL
-onSuccess: (data) => {
-  queryClient.invalidateQueries({ queryKey: ["proposal-items"] });
-  // Invalida mas não espera pelo refetch
-}
-```
+1. Após `setInitializedForProposal(null)`, o React agenda um re-render
+2. O `useEffect` com `[existingItems, loadingItems, proposalId, initializedForProposal]` dispara
+3. `existingItems` pode ainda conter dados do cache anterior
+4. O effect sobrescreve `items` com dados desatualizados
 
-```typescript
-// CORRIGIDO
-onSuccess: async (data) => {
-  await queryClient.invalidateQueries({ 
-    queryKey: ["proposal-items", data.proposalId],
-    refetchType: 'active' 
-  });
-}
-```
+### Solução Correta
 
-### Memoização no CreateProposalDialog
-
-```typescript
-// Antes (recria a cada render)
-onItemsChange={(items) => {
-  setCartItems(items);
-  // ...cálculos
-}}
-
-// Depois (estável)
-const handleCartItemsChange = useCallback((items: CartItem[]) => {
-  setCartItems(items);
-  // ...cálculos
-}, []);
-
-<POSProposalBuilder onItemsChange={handleCartItemsChange} />
-```
+Não resetar a flag após save. O estado local já reflete as alterações corretas. Só precisamos re-inicializar quando:
+- O diálogo abre com um **novo** `proposalId`
+- O utilizador fecha e reabre o diálogo
 
 ---
 
 ## Resultado Esperado
 
 Após as correções:
-
-1. Quantidade atualiza imediatamente na UI
+1. Quantidades atualizam imediatamente na UI
 2. Totais recalculam instantaneamente
-3. Dados persistem corretamente na base de dados
-4. Sem dessincronização entre estado local e servidor
-5. Performance melhorada (menos re-renders)
+3. Ao clicar "Guardar", os dados persistem corretamente
+4. Sem race conditions ou sobrescrita de dados
+5. Callbacks estáveis evitam re-renders desnecessários
 
 ---
 
 ## Estimativa
 
-- ProposalItemsEditor: ~15 linhas alteradas
-- CreateProposalDialog: ~10 linhas alteradas
-- useProposals hook: ~5 linhas alteradas
-- **Total: ~30 linhas de código**
+- CreateProposalDialog: ~10 linhas movidas
+- ProposalItemsEditor: ~5 linhas removidas/ajustadas
+- **Total: ~15 linhas de alteração**
+
