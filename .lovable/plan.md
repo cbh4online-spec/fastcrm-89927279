@@ -1,197 +1,145 @@
 
-# Plano: Corrigir Preview e Exportação PDF do Documento
 
-## Problemas Identificados (do PDF exportado)
+# Plano: Corrigir Exibição de Imagens na Proposta
 
-| Problema | Causa |
-|----------|-------|
-| Nome dos produtos não aparece no PDF | Tabela tem `overflow-x-auto` e `html2canvas` não captura todo o conteúdo |
-| Imagens dos produtos em falta | Imagens CORS ou layout cortado |
-| Layout desconfigurado | Documento mais largo que A4, colunas truncadas |
-| Preview não responsivo | Falta de estilos específicos para captura PDF |
+## Problema Identificado
+
+As imagens dos produtos podem não estar a aparecer correctamente no documento da proposta devido a:
+
+| Causa | Descrição |
+|-------|-----------|
+| **CORS bloqueado** | `crossOrigin="anonymous"` impede carregamento de imagens sem headers CORS |
+| **Fallback fraco** | Quando não há imagem, mostra apenas "IMG" em texto |
+| **Preview sem imagem** | html2canvas pode falhar ao capturar imagens externas |
 
 ---
 
-## Solução Completa
+## Solução
 
-### 1. Restruturar a Tabela para Caber em A4
+### 1. Remover `crossOrigin="anonymous"` para Preview Normal
 
-A tabela actual tem demasiadas colunas estreitas. Simplificar para layout mais compacto:
+O atributo `crossOrigin="anonymous"` é necessário apenas para `html2canvas`. No preview visual normal, deve ser removido para evitar bloqueios CORS.
 
-```text
-ANTES (6 colunas, cortadas):
-│ # │ Incluir │ Item/Descrição │ Preço │ Qtd │ Total │
+### 2. Melhorar Fallback de Imagem
 
-DEPOIS (layout empilhado, cabe em A4):
-│ # │ Imagem + Item │ Preço Unitário x Qtd = Total │
-```
+Em vez de mostrar "IMG" como texto, usar um ícone de `Package` (produto) para indicar ausência de imagem de forma mais profissional.
 
-Ou manter colunas mas remover `overflow-x-auto` e garantir que cabem:
+### 3. Tratamento de Erro para Imagens
 
-```typescript
-// ProposalClientDocument.tsx - Remover overflow que corta conteúdo
-<div className="px-4 md:px-8 py-6"> {/* SEM overflow-x-auto */}
-  <Table className="table-fixed w-full"> {/* table-fixed para larguras fixas */}
-```
+Adicionar `onError` handler que substitui imagens quebradas por placeholder.
 
-### 2. Garantir Que Imagens Carregam Antes do html2canvas
+### 4. Ajustar html2canvas para Ignorar Imagens com CORS
 
-```typescript
-// ProposalDocumentPreviewDialog.tsx
-const handleDownload = async () => {
-  if (!documentRef.current) return;
-  setIsGenerating(true);
-  
-  try {
-    // 1. Esperar que todas as imagens carreguem
-    const images = documentRef.current.querySelectorAll('img');
-    await Promise.all(
-      Array.from(images).map(img => 
-        img.complete ? Promise.resolve() : 
-        new Promise(resolve => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        })
-      )
-    );
-    
-    // 2. Dar tempo extra para renderização
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // 3. Capturar com opções melhoradas
-    const canvas = await html2canvas(documentRef.current, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-      windowWidth: documentRef.current.scrollWidth, // Captura toda a largura
-      windowHeight: documentRef.current.scrollHeight, // Captura toda a altura
-    });
-    // ... resto do código
-  }
-};
-```
+Na geração de PDF, se imagens falharem, continuar sem elas em vez de bloquear.
 
-### 3. Ajustar Layout da Tabela para A4
+---
+
+## Alterações
+
+### `src/components/proposals/ProposalClientDocument.tsx`
 
 ```typescript
-// ProposalClientDocument.tsx - Tabela simplificada
-<Table>
-  <TableHeader>
-    <TableRow>
-      <TableHead className="w-[8%]">#</TableHead>
-      <TableHead className="w-[50%]">Item</TableHead>
-      <TableHead className="w-[14%] text-right">Preço</TableHead>
-      <TableHead className="w-[12%] text-center">Qtd</TableHead>
-      <TableHead className="w-[16%] text-right">Total</TableHead>
-    </TableRow>
-  </TableHeader>
-  <TableBody>
-    {items.map((item, index) => (
-      <TableRow key={item.id}>
-        <TableCell>{index + 1}</TableCell>
-        <TableCell>
-          <div className="flex items-start gap-2">
-            {item.image_url && (
-              <img 
-                src={item.image_url} 
-                alt=""
-                className="w-10 h-10 object-cover rounded flex-shrink-0"
-                crossOrigin="anonymous" // Para CORS
-              />
-            )}
-            <div className="min-w-0">
-              <p className="font-medium text-sm truncate">{item.name}</p>
-              {item.description && (
-                <p className="text-xs text-gray-500 truncate">{item.description}</p>
-              )}
-            </div>
-          </div>
-        </TableCell>
-        <TableCell className="text-right text-sm">
-          {formatCurrency(item.unit_price)}
-        </TableCell>
-        <TableCell className="text-center text-sm">{item.quantity}</TableCell>
-        <TableCell className="text-right font-medium">
-          {formatCurrency(item.total_price)}
-        </TableCell>
-      </TableRow>
-    ))}
-  </TableBody>
-</Table>
-```
+// ANTES:
+{item.image_url ? (
+  <img 
+    src={item.image_url} 
+    alt={item.name}
+    crossOrigin="anonymous" // ← CAUSA PROBLEMA
+    className="w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
+  />
+) : (
+  <div className="w-10 h-10 bg-gray-100 ...">
+    <span className="text-gray-400 text-[10px]">IMG</span>
+  </div>
+)}
 
-### 4. Criar Wrapper Específico para PDF
-
-Um container com largura fixa para garantir captura consistente:
-
-```typescript
-// No ref do documento
-<div 
-  ref={documentRef}
-  className="bg-white"
-  style={{ width: '794px' }} // Largura A4 em pixels
->
-  <ProposalClientDocument ... />
+// DEPOIS:
+{item.image_url ? (
+  <img 
+    src={item.image_url} 
+    alt={item.name}
+    className="w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
+    onError={(e) => {
+      // Substituir por placeholder se imagem falhar
+      e.currentTarget.style.display = 'none';
+      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+    }}
+  />
+) : null}
+{/* Fallback sempre presente (hidden se imagem OK) */}
+<div className={cn(
+  "w-10 h-10 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center",
+  item.image_url && "hidden" // Escondido se há imagem
+)}>
+  <Package className="h-5 w-5 text-gray-400" />
 </div>
+```
+
+**Alternativa mais simples** - usar apenas o ícone Package como fallback:
+
+```typescript
+{item.image_url ? (
+  <img 
+    src={item.image_url} 
+    alt={item.name}
+    className="w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
+    onError={(e) => {
+      e.currentTarget.src = ''; // Clear broken image
+      e.currentTarget.onerror = null;
+    }}
+  />
+) : (
+  <div className="w-10 h-10 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center">
+    <Package className="h-5 w-5 text-gray-400" />
+  </div>
+)}
+```
+
+### `src/components/proposals/ProposalDocumentPreviewDialog.tsx`
+
+Melhorar opções do html2canvas para ser mais tolerante com imagens:
+
+```typescript
+const canvas = await html2canvas(documentRef.current, {
+  scale: 2,
+  useCORS: true,
+  allowTaint: true, // Permitir imagens "tainted"
+  backgroundColor: "#ffffff",
+  logging: false,
+  width: docWidth,
+  height: docHeight,
+  windowWidth: docWidth,
+  windowHeight: docHeight,
+  foreignObjectRendering: false, // Desativar para melhor compatibilidade
+  removeContainer: true,
+  imageTimeout: 5000, // Timeout de 5s para imagens
+  ignoreElements: (element) => {
+    // Ignorar elementos que falharam a carregar
+    if (element.tagName === 'IMG' && !(element as HTMLImageElement).complete) {
+      return true;
+    }
+    return false;
+  },
+});
 ```
 
 ---
 
 ## Ficheiros a Modificar
 
-### `src/components/proposals/ProposalClientDocument.tsx`
-
-| Alteração | Descrição |
-|-----------|-----------|
-| Remover `overflow-x-auto` | Impede corte da tabela no PDF |
-| Usar `table-fixed` | Larguras consistentes |
-| Simplificar colunas | 5 colunas essenciais |
-| Adicionar `crossOrigin="anonymous"` | Permite captura de imagens |
-| Reduzir tamanhos de imagem | `w-10 h-10` em vez de `w-12 h-12` |
-
-### `src/components/proposals/ProposalDocumentPreviewDialog.tsx`
-
-| Alteração | Descrição |
-|-----------|-----------|
-| Esperar imagens carregarem | Loop com Promise.all sobre `<img>` |
-| Container com largura fixa | `style={{ width: '794px' }}` |
-| windowWidth/windowHeight no html2canvas | Captura scroll completo |
+| Ficheiro | Alteração |
+|----------|-----------|
+| `ProposalClientDocument.tsx` | Remover `crossOrigin`, adicionar fallback com ícone Package, handler `onError` |
+| `ProposalDocumentPreviewDialog.tsx` | Melhorar opções html2canvas para tolerância a imagens |
 
 ---
 
-## Estrutura Visual Corrigida
+## Resultado Esperado
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│  [Logo] │  Proposta Nº XXX          │ [Badge: Rascunho]     │
-│ Empresa │  Data: 21 de Janeiro      │                       │
-│         ├────────────────────────────────────────────────────┤
-│         │  PROPOSTA PARA                                     │
-│         │  Cliente: Rick Varandas                           │
-│         │  Email: rick@...                                   │
-├─────────┴────────────────────────────────────────────────────┤
-│  #  │ [IMG] Item/Descrição        │  Preço  │ Qtd │  Total  │
-├─────┼──────────────────────────────┼─────────┼─────┼─────────┤
-│  1  │ [📷] Produto 1               │ 550,00€ │  1  │ 550,00€ │
-│     │      Descrição curta         │         │     │         │
-├─────┼──────────────────────────────┼─────────┼─────┼─────────┤
-│  2  │ [📷] Produto 2               │  79,90€ │  4  │ 319,60€ │
-│     │      Outra descrição         │         │     │         │
-├─────┴──────────────────────────────┴─────────┴─────┴─────────┤
-│                                        Subtotal:   2138,10€  │
-│                                        IVA (23%):   491,76€  │
-│                                        ─────────────────────  │
-│                                        TOTAL:      2629,86€  │
-├──────────────────────────────────────────────────────────────┤
-│ Métodos de Pagamento          │              [Assinatura]    │
-│ • Transferência Bancária      │               ____________   │
-│ • Condições: Pronto Pagamento │               Nome, Título   │
-├──────────────────────────────────────────────────────────────┤
-│      Esta proposta é válida até 20 de Fevereiro de 2026.     │
-└──────────────────────────────────────────────────────────────┘
-```
+1. **Preview normal** - Imagens carregam sem bloqueio CORS
+2. **Fallback elegante** - Ícone de produto em vez de texto "IMG"
+3. **PDF resiliente** - Gera PDF mesmo se algumas imagens falharem
+4. **Erro handling** - Imagens quebradas são substituídas por placeholder
 
 ---
 
@@ -199,6 +147,7 @@ Um container com largura fixa para garantir captura consistente:
 
 | Ficheiro | Linhas |
 |----------|--------|
-| ProposalClientDocument.tsx | ~30 linhas alteradas |
-| ProposalDocumentPreviewDialog.tsx | ~25 linhas adicionadas |
-| **Total** | ~55 linhas |
+| ProposalClientDocument.tsx | ~10 linhas alteradas |
+| ProposalDocumentPreviewDialog.tsx | ~5 linhas alteradas |
+| **Total** | ~15 linhas |
+
