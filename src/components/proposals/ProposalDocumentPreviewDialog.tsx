@@ -9,6 +9,62 @@ import type { PreviewItem } from "./ProposalPreview";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
+// Placeholder SVG as Data URL for failed images
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,' + btoa(`
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <rect width="40" height="40" fill="#f3f4f6" rx="4"/>
+  <rect x="8" y="12" width="24" height="16" fill="#e5e7eb" rx="2"/>
+  <path d="M14 22l4-4 3 3 5-5 6 6" stroke="#9ca3af" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="16" cy="17" r="2" fill="#9ca3af"/>
+</svg>
+`);
+
+// Function to convert image URL to Data URL
+const convertImageToDataUrl = (imgSrc: string): Promise<string | null> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    const timeoutId = setTimeout(() => {
+      resolve(null);
+    }, 5000);
+    
+    img.onload = () => {
+      clearTimeout(timeoutId);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || 40;
+        canvas.height = img.naturalHeight || 40;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          resolve(null);
+        }
+      } catch (e) {
+        // CORS or other error
+        console.warn('Failed to convert image to data URL:', imgSrc, e);
+        resolve(null);
+      }
+    };
+    
+    img.onerror = () => {
+      clearTimeout(timeoutId);
+      resolve(null);
+    };
+    
+    // Add cache buster
+    try {
+      const url = new URL(imgSrc, window.location.href);
+      url.searchParams.set('_t', Date.now().toString());
+      img.src = url.toString();
+    } catch {
+      img.src = imgSrc;
+    }
+  });
+};
+
 interface WorkspaceData {
   id: string;
   name: string;
@@ -92,13 +148,27 @@ export function ProposalDocumentPreviewDialog({
         height: docHeight,
         windowWidth: docWidth,
         windowHeight: docHeight,
-        imageTimeout: 5000,
-        onclone: (clonedDoc) => {
-          // Remove crossOrigin from images in clone to avoid CORS issues
-          const images = clonedDoc.querySelectorAll('img');
-          images.forEach(img => {
-            img.removeAttribute('crossOrigin');
-          });
+        imageTimeout: 10000,
+        onclone: async (clonedDoc, element) => {
+          // Convert all images to Data URLs to avoid CORS issues
+          const images = element.querySelectorAll('img');
+          
+          await Promise.all(
+            Array.from(images).map(async (img) => {
+              const src = img.getAttribute('src');
+              if (src && !src.startsWith('data:')) {
+                const dataUrl = await convertImageToDataUrl(src);
+                if (dataUrl) {
+                  img.src = dataUrl;
+                } else {
+                  // Image failed - use placeholder
+                  img.src = PLACEHOLDER_IMAGE;
+                }
+              }
+              // Remove crossOrigin attribute
+              img.removeAttribute('crossOrigin');
+            })
+          );
         },
       });
       
