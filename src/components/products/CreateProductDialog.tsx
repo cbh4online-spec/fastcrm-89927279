@@ -48,6 +48,7 @@ import { ProductSpecificationsEditor } from "./ProductSpecificationsEditor";
 import { ProductVideoSearch } from "./ProductVideoSearch";
 import { ProductImage360Viewer } from "./ProductImage360Viewer";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
+import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
 
 const DRAFT_STORAGE_KEY = "product-form-draft";
 
@@ -135,6 +136,8 @@ export function CreateProductDialog({
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const { data: existingCategories } = useProductCategoriesList();
+  const { data: productTypesConfig } = useProductTypes();
+  const { data: billingTypesConfig } = useBillingTypes();
 
   const isEditing = !!product;
   const isLoading = createProduct.isPending || updateProduct.isPending;
@@ -625,23 +628,18 @@ export function CreateProductDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="simple">Simples</SelectItem>
-                      <SelectItem value="formacao">Formação</SelectItem>
-                      <SelectItem value="sessions">Sessões</SelectItem>
-                      <SelectItem value="physical">Produto Físico</SelectItem>
-                      <SelectItem value="programa">
-                        <span className="flex items-center gap-2">
-                          <Layers className="h-4 w-4" />
-                          Programa / Pack
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="recurring">Recorrente</SelectItem>
-                      <SelectItem value="composite">
-                        <span className="flex items-center gap-2">
-                          <Layers className="h-4 w-4" />
-                          Bundle / Composto
-                        </span>
-                      </SelectItem>
+                      {productTypesConfig?.filter(t => t.is_active).map(type => (
+                        <SelectItem key={type.id} value={type.code}>
+                          {type.code === 'composite' || type.code === 'programa' ? (
+                            <span className="flex items-center gap-2">
+                              <Layers className="h-4 w-4" />
+                              {type.label}
+                            </span>
+                          ) : (
+                            type.label
+                          )}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -653,8 +651,11 @@ export function CreateProductDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="one-off">Único</SelectItem>
-                      <SelectItem value="recurring">Recorrente</SelectItem>
+                      {billingTypesConfig?.filter(t => t.is_active).map(type => (
+                        <SelectItem key={type.id} value={type.code}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
