@@ -224,19 +224,21 @@ export function ProposalClientDocument({
               💡 Pode desmarcar itens que não pretende incluir na proposta.
             </p>
           )}
-          <Table className="table-fixed w-full">
-            <TableHeader>
-              <TableRow className="border-gray-200">
-                {allowItemToggle && (
-                  <TableHead className="w-[8%] text-gray-600">Incluir</TableHead>
-                )}
-                <TableHead className="w-[6%] text-gray-600">#</TableHead>
-                <TableHead className={cn(allowItemToggle ? "w-[44%]" : "w-[52%]", "text-gray-600")}>Item</TableHead>
-                <TableHead className="w-[14%] text-right text-gray-600">Preço</TableHead>
-                <TableHead className="w-[10%] text-center text-gray-600">Qtd</TableHead>
-                <TableHead className="w-[14%] text-right text-gray-600">Total</TableHead>
-              </TableRow>
-            </TableHeader>
+          {/* Wrapper to override Table overflow for PDF capture */}
+          <div className="[&_div.overflow-x-auto]:overflow-visible [&_table]:!min-w-0">
+            <Table className="table-fixed w-full">
+              <TableHeader>
+                <TableRow className="border-gray-200">
+                  {allowItemToggle && (
+                    <TableHead className="w-[7%] text-gray-600">Incluir</TableHead>
+                  )}
+                  <TableHead className="w-[5%] text-gray-600">#</TableHead>
+                  <TableHead className={cn(allowItemToggle ? "w-[47%]" : "w-[55%]", "text-gray-600")}>Item</TableHead>
+                  <TableHead className="w-[13%] text-right text-gray-600">Preço</TableHead>
+                  <TableHead className="w-[8%] text-center text-gray-600">Qtd</TableHead>
+                  <TableHead className="w-[12%] text-right text-gray-600">Total</TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
               {items.length > 0 ? (
                 items.map((item, index) => {
@@ -286,11 +288,11 @@ export function ProposalClientDocument({
                             <Package className="h-5 w-5 text-gray-400" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={cn("font-medium text-gray-900 text-sm leading-tight", !isEnabled && "line-through text-gray-500")}>
+                            <p className={cn("font-medium text-gray-900 text-sm leading-tight break-words", !isEnabled && "line-through text-gray-500")}>
                               {item.name}
                             </p>
                             {item.description && (
-                              <p className={cn("text-xs text-gray-500 mt-0.5 line-clamp-1", !isEnabled && "line-through")}>
+                              <p className={cn("text-xs text-gray-500 mt-0.5 line-clamp-2 break-words", !isEnabled && "line-through")}>
                                 {item.description}
                               </p>
                             )}
@@ -321,8 +323,9 @@ export function ProposalClientDocument({
                   </TableCell>
                 </TableRow>
               )}
-            </TableBody>
-          </Table>
+              </TableBody>
+            </Table>
+          </div>
 
           {/* Totals */}
           {items.length > 0 && (
