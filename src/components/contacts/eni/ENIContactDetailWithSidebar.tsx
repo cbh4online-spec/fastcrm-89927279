@@ -44,6 +44,7 @@ import { EntityAutomationSection } from "@/components/automations/EntityAutomati
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 import { EntityOpportunitiesSection } from "@/components/opportunities/EntityOpportunitiesSection";
 import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/components/EntityCreditProposalsSection";
+import { EntityProposalsSection } from "@/components/proposals/EntityProposalsSection";
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
@@ -359,6 +360,14 @@ export function ENIContactDetailWithSidebar() {
             contactId={id!} 
             contactName={contact.name}
             contactEmail={contact.email}
+          />
+        );
+      case 'proposals':
+        return (
+          <EntityProposalsSection
+            entityType="contact"
+            entityId={id!}
+            entityName={contact.name}
           />
         );
       default:
