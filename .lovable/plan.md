@@ -1,142 +1,161 @@
 
-# Plano: Adicionar Preview Full-Screen do Documento Final
+# Plano: Tornar o Documento da Proposta Responsivo e com Margens A4
 
-## Contexto Actual
+## Problema Identificado
 
-O sistema já tem:
-- **ProposalViewToggle** com modos "Gestão" e "Documento"
-- **ProposalClientDocument** - o documento formatado para o cliente
-- Botões de "Imprimir" e "Download PDF" no documento
+O documento actual tem problemas de layout:
 
-O que falta é um **botão de preview dedicado** que abre o documento em ecrã cheio, simulando exactamente o que o cliente vai ver antes de enviar.
-
----
-
-## Solução Proposta
-
-### Criar um Dialog Full-Screen de Preview
-
-Um novo botão "Pré-visualizar Documento" que abre um dialog a ocupar o ecrã inteiro, mostrando o `ProposalClientDocument` sem distrações - exactamente como o cliente irá ver.
+| Problema | Causa |
+|----------|-------|
+| Texto cortado | Células da tabela sem `overflow` / `text-wrap` |
+| Sidebar muito larga | `w-64` (256px) fixo não escala |
+| Largura excessiva | `max-w-4xl` (896px) > A4 (794px) |
+| Não responsivo | Layout side-by-side não adapta a mobile |
 
 ---
 
-## Implementação
+## Solução
 
-### 1. Criar Componente `ProposalDocumentPreviewDialog.tsx`
-
-Novo componente que:
-- Abre em full-screen (ocupa toda a janela)
-- Mostra o `ProposalClientDocument` centrado
-- Inclui botões de acção: Imprimir, Download PDF, Fechar
-- Background neutro para simular contexto do cliente
-- Indicador "Pré-visualização - Assim ficará para o cliente"
-
-```text
-Estrutura:
-┌──────────────────────────────────────────────────────────────────────────────┐
-│  ← Fechar                     Pré-visualização do Documento         🖨 📄 ❌ │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│                     ┌────────────────────────────────────┐                   │
-│                     │                                    │                   │
-│                     │    [ProposalClientDocument]        │                   │
-│                     │                                    │                   │
-│                     │    - Logo + Info Empresa           │                   │
-│                     │    - Dados Cliente                 │                   │
-│                     │    - Tabela de Itens               │                   │
-│                     │    - Totais + IVA                  │                   │
-│                     │    - Condições de Pagamento        │                   │
-│                     │    - Assinatura                    │                   │
-│                     │                                    │                   │
-│                     └────────────────────────────────────┘                   │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 2. Adicionar Botão no `ProposalDetailDialog.tsx`
-
-Na barra de acções do header (junto a "Publicar"), adicionar:
+### 1. Corrigir Largura para Padrão A4
 
 ```typescript
-<Button 
-  variant="outline" 
-  onClick={() => setShowDocumentPreview(true)}
->
-  <FileSearch className="h-4 w-4 mr-2" />
-  Pré-visualizar Documento
-</Button>
+// Trocar max-w-4xl por largura A4 (210mm = ~794px ≈ max-w-[210mm])
+<div className="max-w-[210mm] mx-auto">
 ```
 
-O botão fica visível:
-- Sempre que há itens na proposta
-- Independentemente do status (draft, published, etc.)
+### 2. Layout Responsivo para Header
 
----
-
-## Ficheiros a Criar/Modificar
-
-### Novo Ficheiro: `src/components/proposals/ProposalDocumentPreviewDialog.tsx`
-
-| Elemento | Descrição |
-|----------|-----------|
-| Dialog full-screen | Usa `DialogPrimitive.Content` com `className="fixed inset-0"` |
-| Header fixo | Título + botões de acção (Imprimir, Download, Fechar) |
-| ScrollArea | Área scrollable com o documento centrado |
-| ProposalClientDocument | Renderizado com `showActions={false}` |
-| Background | Cinza neutro para simular contexto web |
+Tornar o layout do header (logo + info empresa) responsivo:
 
 ```typescript
-// Estrutura do componente
-interface ProposalDocumentPreviewDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  proposal: Proposal;
-  items: PreviewItem[];
-  workspace: WorkspaceData | null;
+// De: flex horizontal fixo
+<div className="flex">
+  <div className="w-64 bg-primary ...">  {/* Sidebar fixa */}
+  <div className="flex-1 p-8">           {/* Conteúdo */}
+
+// Para: responsivo com stack em mobile
+<div className="flex flex-col md:flex-row">
+  <div className="w-full md:w-56 bg-primary ...">  {/* Sidebar adapta */}
+  <div className="flex-1 p-4 md:p-8">               {/* Padding adapta */}
+```
+
+### 3. Corrigir Overflow na Tabela
+
+Adicionar estilos para evitar corte de texto:
+
+```typescript
+// Células de descrição com word-wrap
+<TableCell className="max-w-[200px] break-words">
+  <p className="font-medium text-gray-900 line-clamp-2">
+    {item.name}
+  </p>
+  <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
+    {item.description}
+  </p>
+</TableCell>
+```
+
+### 4. Footer Responsivo
+
+```typescript
+// Grid 2 colunas → stack em mobile
+<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+```
+
+### 5. Adicionar Estilos de Print para A4
+
+```css
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 ```
 
-### Modificar: `src/components/proposals/ProposalDetailDialog.tsx`
+---
+
+## Ficheiros a Modificar
+
+### `src/components/proposals/ProposalClientDocument.tsx`
 
 | Alteração | Descrição |
 |-----------|-----------|
-| Novo estado | `showDocumentPreview: boolean` |
-| Novo import | `ProposalDocumentPreviewDialog`, `FileSearch` icon |
-| Botão no header | "Pré-visualizar Documento" junto aos outros botões |
-| Renderizar dialog | `<ProposalDocumentPreviewDialog ... />` no final |
+| Container principal | `max-w-4xl` → `max-w-[210mm]` |
+| Header sidebar | `w-64` → `w-full md:w-56` + `flex flex-col md:flex-row` |
+| Padding | `p-8` → `p-4 md:p-8` |
+| Células tabela | Adicionar `max-w-[200px] break-words` e `line-clamp-2` |
+| Footer grid | `grid-cols-2` → `grid-cols-1 md:grid-cols-2` |
+
+### `src/components/proposals/ProposalDocumentPreviewDialog.tsx`
+
+| Alteração | Descrição |
+|-----------|-----------|
+| Container interno | `max-w-4xl` → `max-w-[210mm]` para consistência |
+
+### `src/App.css` (ou novo ficheiro de print styles)
+
+| Alteração | Descrição |
+|-----------|-----------|
+| Print media query | Adicionar `@page { size: A4; margin: 10mm }` |
+| Print colors | Forçar cores com `-webkit-print-color-adjust: exact` |
 
 ---
 
-## Funcionalidades do Preview
+## Resultado Esperado
 
-1. **Visualização exacta** - O documento aparece exactamente como o cliente verá
-2. **Sem distracções** - Full-screen remove elementos da interface de gestão
-3. **Acções rápidas**:
-   - **Imprimir** - Abre diálogo de impressão do browser
-   - **Download PDF** - Gera e descarrega PDF
-   - **Fechar** - Volta ao diálogo de detalhes
-4. **Indicador visual** - Banner a indicar "Esta é uma pré-visualização"
-
----
-
-## Fluxo de Utilização
+### Antes vs Depois
 
 ```text
-1. Utilizador abre proposta → ProposalDetailDialog
-2. Clica "Pré-visualizar Documento"
-3. Abre ProposalDocumentPreviewDialog (full-screen)
-4. Vê exactamente como o cliente receberá
-5. Pode imprimir/download ou fechar
-6. Ao fechar, volta ao ProposalDetailDialog
-7. Se satisfeito, clica "Publicar" para enviar
+ANTES:
+┌──────────────────────────────────────────────────────────────────┐
+│ [Sidebar 256px]  │  Conteúdo a transbordar para fora do ecrã... │
+│                  │  Texto cortado sem wrap, impossível ler...   │
+└──────────────────────────────────────────────────────────────────┘
+
+DEPOIS (Desktop):
+┌────────────────────────────────────────────────────┐
+│ [Sidebar 224px] │ Conteúdo bem enquadrado         │
+│                 │ Texto com wrap adequado          │
+│                 │ Margens A4 respeitadas           │
+└────────────────────────────────────────────────────┘
+
+DEPOIS (Mobile):
+┌─────────────────────────────┐
+│ [Sidebar - Full Width]      │
+│ Logo + Info Empresa         │
+├─────────────────────────────┤
+│ Proposta                    │
+│ Cliente Info                │
+├─────────────────────────────┤
+│ Itens (scroll horizontal)   │
+└─────────────────────────────┘
 ```
+
+---
+
+## Dimensões A4 de Referência
+
+| Formato | mm | px (96 DPI) |
+|---------|-----|-------------|
+| A4 Width | 210mm | 794px |
+| A4 Height | 297mm | 1123px |
+| Margens típicas | 10-20mm | 38-76px |
+
+Usar `max-w-[210mm]` garante que o documento respeita a largura A4.
 
 ---
 
 ## Estimativa
 
-| Ficheiro | Linhas |
-|----------|--------|
-| ProposalDocumentPreviewDialog.tsx (novo) | ~120 linhas |
-| ProposalDetailDialog.tsx (modificar) | ~15 linhas |
-| **Total** | ~135 linhas |
+| Ficheiro | Linhas alteradas |
+|----------|------------------|
+| ProposalClientDocument.tsx | ~20 linhas |
+| ProposalDocumentPreviewDialog.tsx | ~2 linhas |
+| App.css (print styles) | ~15 linhas |
+| **Total** | ~37 linhas |
