@@ -56,66 +56,103 @@ export function ProposalDocumentPreviewDialog({
     setIsGenerating(true);
     
     try {
+      // 1. Wait for all images to load
+      const images = documentRef.current.querySelectorAll('img');
+      await Promise.all(
+        Array.from(images).map(img => 
+          img.complete ? Promise.resolve() : 
+          new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          })
+        )
+      );
+      
+      // 2. Give extra time for rendering
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       // Dynamic imports for PDF generation
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
         import("html2canvas"),
         import("jspdf")
       ]);
       
-      // Capture the document as canvas
+      // Get actual dimensions
+      const docWidth = documentRef.current.scrollWidth;
+      const docHeight = documentRef.current.scrollHeight;
+      
+      // Capture the document as canvas with full dimensions
       const canvas = await html2canvas(documentRef.current, {
-        scale: 2, // Higher resolution
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
+        width: docWidth,
+        height: docHeight,
+        windowWidth: docWidth,
+        windowHeight: docHeight,
       });
       
       // A4 dimensions in mm
       const a4Width = 210;
       const a4Height = 297;
+      const margin = 10;
+      const contentWidth = a4Width - (margin * 2);
       
-      // Calculate dimensions to fit A4
-      const imgWidth = a4Width;
+      // Calculate dimensions to fit A4 width
+      const imgWidth = contentWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       // Create PDF
       const doc = new jsPDF({
-        orientation: imgHeight > a4Height ? "portrait" : "portrait",
+        orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
       
-      // Add pages if content is taller than one page
-      const pageHeight = a4Height - 20; // margins
-      let heightLeft = imgHeight;
-      let position = 10; // top margin
+      // Calculate how many pages we need
+      const pageContentHeight = a4Height - (margin * 2);
+      const totalPages = Math.ceil(imgHeight / pageContentHeight);
       
-      // Add image to first page
-      doc.addImage(
-        canvas.toDataURL("image/jpeg", 0.95),
-        "JPEG",
-        10, // left margin
-        position,
-        imgWidth - 20, // width minus margins
-        imgHeight
-      );
-      
-      heightLeft -= pageHeight;
-      
-      // Add additional pages if needed
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + 10;
-        doc.addPage();
-        doc.addImage(
-          canvas.toDataURL("image/jpeg", 0.95),
-          "JPEG",
-          10,
-          position,
-          imgWidth - 20,
-          imgHeight
+      // Create a temporary canvas for each page slice
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) {
+          doc.addPage();
+        }
+        
+        // Calculate the slice of the original canvas for this page
+        const sourceY = (page * pageContentHeight * canvas.width) / imgWidth;
+        const sourceHeight = Math.min(
+          (pageContentHeight * canvas.width) / imgWidth,
+          canvas.height - sourceY
         );
-        heightLeft -= pageHeight;
+        
+        // Create a temporary canvas for this page slice
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceHeight;
+        const ctx = pageCanvas.getContext('2d');
+        
+        if (ctx) {
+          ctx.drawImage(
+            canvas,
+            0, sourceY,
+            canvas.width, sourceHeight,
+            0, 0,
+            canvas.width, sourceHeight
+          );
+          
+          const sliceHeight = (sourceHeight * imgWidth) / canvas.width;
+          doc.addImage(
+            pageCanvas.toDataURL("image/jpeg", 0.95),
+            "JPEG",
+            margin,
+            margin,
+            imgWidth,
+            sliceHeight
+          );
+        }
       }
       
       doc.save(`proposta-${proposal.slug}.pdf`);
@@ -218,7 +255,11 @@ export function ProposalDocumentPreviewDialog({
                 </div>
 
                 {/* The actual document - this is what gets captured for PDF */}
-                <div ref={documentRef}>
+                <div 
+                  ref={documentRef} 
+                  className="bg-white"
+                  style={{ width: '794px', margin: '0 auto' }}
+                >
                   <ProposalClientDocument
                     proposal={proposal}
                     items={items}
