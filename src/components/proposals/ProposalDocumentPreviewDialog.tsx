@@ -258,9 +258,17 @@ export function ProposalDocumentPreviewDialog({
         if (heightMM > PAGE_CONTENT_HEIGHT) {
           let sliceStartMM = 0;
           let isFirstSlice = true;
+          const MIN_SLICE_HEIGHT_MM = 30; // ~80px, evitar páginas quase vazias
 
           while (sliceStartMM < heightMM) {
-            const sliceHeightMM = Math.min(PAGE_CONTENT_HEIGHT, heightMM - sliceStartMM);
+            const remainingHeight = heightMM - sliceStartMM;
+            
+            // Se o restante for menor que o mínimo e não é a primeira fatia, não criar nova página
+            if (remainingHeight < MIN_SLICE_HEIGHT_MM && !isFirstSlice) {
+              break;
+            }
+            
+            const sliceHeightMM = Math.min(PAGE_CONTENT_HEIGHT, remainingHeight);
             const sliceStartPx = (sliceStartMM / heightMM) * canvas.height;
             const sliceHeightPx = (sliceHeightMM / heightMM) * canvas.height;
 
