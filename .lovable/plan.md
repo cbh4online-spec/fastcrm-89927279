@@ -1,107 +1,115 @@
 
 
-# Plano: Ajustes no Documento PDF da Proposta
+# Plano: Separar Condições de Venda em Página Própria
 
-## Problemas Identificados
+## Situação Actual
 
-### 1. Página 5 (Proposta e Condições) - OK
-A secção de "Condições de Venda" já está em formato de tabela horizontal e inclui:
-- Pagamento: Transferência Bancária
-- Condições: 50% com a adjudicação (sinal) e 50% após a conclusão da instalação e testes
-- Imposto: IVA 23% (incluído nos valores apresentados)
-- Entrega: A combinar com o cliente
-- Validade: 15 dias (até 05 de fevereiro de 2026)
+A secção `data-pdf-section="proposal"` contém:
+1. Tabela de itens da proposta
+2. Totais (Subtotal, IVA, Total)
+3. Condições de Venda (tabela com Pagamento, IBAN, Condições, Imposto, Entrega, Validade)
+4. Observações
+5. Área de assinatura
 
-**Esta secção está bem formatada!**
+Tudo isto está num único bloco, o que significa que as condições de venda podem aparecer na mesma página que a tabela de itens.
 
-### 2. Página 6 - Página Extra Indesejada
-O problema principal: existe uma **página 6 quase vazia** que contém apenas:
-- Um fragmento de fundo cinzento
-- "Data: ___/___/______"
+## Solução
 
-Isto acontece porque a secção de assinatura está a ser cortada no algoritmo de fatiamento do PDF, criando uma página extra desnecessária.
+Criar uma nova secção `data-pdf-section="conditions"` que contém as Condições de Venda, observações e área de assinatura. O algoritmo de PDF já reconhece secções separadas e pode forçar quebras de página.
 
-### 3. Falta o IBAN na Tabela de Condições
-Na página 5, a tabela de Condições de Venda não mostra o IBAN. Isto pode significar que:
-- O workspace não tem IBAN configurado
-- Ou há um problema na renderização
+## Estrutura Pretendida
 
-## Solução Proposta
+```text
+┌─────────────────────────────────────────┐
+│ Secção "proposal"                       │
+│   - Título: "Proposta"                  │
+│   - Tabela de itens                     │
+│   - Totais (Subtotal, IVA, Total)       │
+└─────────────────────────────────────────┘
+            ↓ Quebra de página ↓
+┌─────────────────────────────────────────┐
+│ Secção "conditions"                     │
+│   - Título: "Condições de Venda"        │
+│   - Tabela de condições                 │
+│   - Observações                         │
+│   - Área de assinatura                  │
+└─────────────────────────────────────────┘
+```
 
-### Problema Principal: Página 6 Extra
-
-O algoritmo de geração de PDF em `ProposalDocumentPreviewDialog.tsx` está a fatiar a secção "proposal" em múltiplas páginas, e a última fatia (área de assinatura) cria uma página quase vazia.
-
-**Solução:** Garantir que a área de assinatura fique sempre na mesma página que as condições de venda, ajustando a altura da secção para que caiba numa única página ou melhorando o algoritmo de fatiamento.
-
-### Ficheiros a Modificar
+## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/ProposalClientDocument.tsx` | Compactar área de assinatura para evitar quebra de página |
-| `src/components/proposals/ProposalDocumentPreviewDialog.tsx` | Ajustar algoritmo de fatiamento para não criar páginas quase vazias |
+| `src/components/proposals/ProposalClientDocument.tsx` | Separar "Condições de Venda" numa nova `div` com `data-pdf-section="conditions"` |
+| `src/components/proposals/ProposalDocumentPreviewDialog.tsx` | Adicionar `conditions` à lista de secções que forçam nova página |
 
 ## Implementação
 
-### Alteração 1: Compactar Área de Assinatura
+### Alteração 1: Dividir Secção no ProposalClientDocument.tsx
 
-Reduzir o espaço vertical na secção de assinatura para evitar que ultrapasse a margem da página:
+Fechar a secção "proposal" após os totais e abrir uma nova secção "conditions":
 
 ```typescript
-{/* Signature - mais compacto */}
-<div className="mt-6 pt-4 border-t border-gray-200">
-  <div className="flex flex-col md:flex-row md:justify-between gap-4">
-    {/* Client Signature */}
-    <div>
-      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">
-        Aceite do Cliente
-      </p>
-      <div className="w-40 h-12 border-b-2 border-gray-300 mb-1"></div>
-      <p className="text-xs text-gray-600">Data: ___/___/______</p>
-    </div>
+{/* ====== 5. PROPOSTA ====== */}
+<div data-pdf-section="proposal" className="border-t">
+  {/* Section Header */}
+  <div className="px-4 md:px-8 pt-8 pb-4">
+    <h2 className="text-xl font-bold text-gray-900 uppercase tracking-wide">
+      Proposta
+    </h2>
+  </div>
 
-    {/* Company Signature */}
-    <div className="text-right">
-      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">
-        Assinatura
-      </p>
-      <div className="inline-block text-left">
-        <div className="w-40 h-12 border-b-2 border-gray-300 mb-1"></div>
-        {signatureName && (
-          <p className="font-medium text-gray-900 text-sm">{signatureName}</p>
-        )}
-        {signatureTitle && (
-          <p className="text-xs text-gray-500">{signatureTitle}</p>
-        )}
-      </div>
-    </div>
+  {/* Items Table */}
+  {/* ... tabela de itens ... */}
+
+  {/* Totals */}
+  {/* ... subtotal, IVA, total ... */}
+</div>
+
+{/* ====== 6. CONDIÇÕES DE VENDA ====== */}
+<div data-pdf-section="conditions" className="border-t">
+  {/* Section Header */}
+  <div className="px-4 md:px-8 pt-8 pb-4">
+    <h2 className="text-xl font-bold text-gray-900 uppercase tracking-wide">
+      Condições de Venda
+    </h2>
+  </div>
+  
+  {/* Conditions table, notes, signature */}
+  <div className="bg-gray-50 px-4 md:px-8 py-6">
+    {/* Tabela de condições */}
+    {/* Observações */}
+    {/* Área de assinatura */}
   </div>
 </div>
 ```
 
-### Alteração 2: Evitar Páginas com Pouco Conteúdo
+### Alteração 2: Forçar Nova Página no PDF
 
-No algoritmo de fatiamento do PDF, adicionar lógica para não criar uma página se a fatia restante for muito pequena (menos de 80px de conteúdo real):
+No `ProposalDocumentPreviewDialog.tsx`, adicionar `conditions` à lista de secções que forçam nova página:
 
 ```typescript
-// Ao fatiar secções grandes, verificar se a fatia final é muito pequena
-const remainingHeight = heightMM - sliceStartMM;
-const MIN_SLICE_HEIGHT_MM = 30; // ~80px, evitar páginas quase vazias
-
-// Se o restante for menor que o mínimo, incluir na página anterior
-if (remainingHeight < MIN_SLICE_HEIGHT_MM && sliceStartMM > 0) {
-  // Não criar nova página, terminar aqui
-  break;
-}
+sectionData.push({ 
+  canvas, 
+  heightMM, 
+  name: sectionName,
+  // Capa e condições sempre em página separada
+  forceNewPage: sectionName === 'cover' || sectionName === 'conditions'
+});
 ```
 
 ## Resultado Esperado
 
-1. **5 páginas apenas** (em vez de 6)
-2. A área de assinatura ficará na mesma página que as condições de venda
-3. Sem páginas quase vazias no final do documento
+| Página | Conteúdo |
+|--------|----------|
+| 1 | Capa |
+| 2-3 | Âmbito do Projecto |
+| 3-4 | Cronograma |
+| 4 | Referências |
+| 5 | Proposta (tabela de itens + totais) |
+| **6** | **Condições de Venda + Assinatura** (página separada) |
 
 ## Complexidade
 
-Baixa - Ajustes de espaçamento CSS e refinamento do algoritmo de fatiamento
+Baixa - Apenas reorganização de elementos HTML e ajuste no algoritmo de PDF
 
