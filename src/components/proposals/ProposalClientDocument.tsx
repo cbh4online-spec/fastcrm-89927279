@@ -723,30 +723,30 @@ export function ProposalClientDocument({
               </div>
             )}
 
-            {/* Signature */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="flex flex-col md:flex-row md:justify-between gap-8">
+            {/* Signature - compacto para evitar página extra */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="flex flex-col md:flex-row md:justify-between gap-4">
                 {/* Client Signature */}
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-medium">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">
                     Aceite do Cliente
                   </p>
-                  <div className="w-48 h-16 border-b-2 border-gray-300 mb-2"></div>
-                  <p className="text-sm text-gray-600">Data: ___/___/______</p>
+                  <div className="w-40 h-12 border-b-2 border-gray-300 mb-1"></div>
+                  <p className="text-xs text-gray-600">Data: ___/___/______</p>
                 </div>
 
                 {/* Company Signature */}
                 <div className="text-right">
-                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-medium">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">
                     Assinatura
                   </p>
                   <div className="inline-block text-left">
-                    <div className="w-48 h-16 border-b-2 border-gray-300 mb-2"></div>
+                    <div className="w-40 h-12 border-b-2 border-gray-300 mb-1"></div>
                     {signatureName && (
-                      <p className="font-semibold text-gray-900">{signatureName}</p>
+                      <p className="font-medium text-gray-900 text-sm">{signatureName}</p>
                     )}
                     {signatureTitle && (
-                      <p className="text-sm text-gray-500">{signatureTitle}</p>
+                      <p className="text-xs text-gray-500">{signatureTitle}</p>
                     )}
                   </div>
                 </div>
