@@ -144,7 +144,7 @@ export function ProposalDocumentPreviewDialog({
           {/* Document Preview Area */}
           <ScrollArea className="flex-1">
             <div className="py-8 px-4">
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-[210mm] mx-auto">
                 {/* Preview indicator banner */}
                 <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
                   <p className="text-sm text-amber-800">

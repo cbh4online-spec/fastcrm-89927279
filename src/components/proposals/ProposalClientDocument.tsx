@@ -108,7 +108,7 @@ export function ProposalClientDocument({
   const signatureTitle = workspace?.signature_title;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-[210mm] mx-auto">
       {/* Action Bar */}
       {showActions && (
         <div className="flex items-center justify-end gap-2 mb-4">
@@ -126,9 +126,9 @@ export function ProposalClientDocument({
       {/* Document Card */}
       <Card className="bg-white text-black overflow-hidden shadow-xl print:shadow-none">
         {/* Header with Logo and Company Info */}
-        <div className="flex">
+        <div className="flex flex-col md:flex-row">
           {/* Left Sidebar with Company Info */}
-          <div className="w-64 bg-primary p-6 text-primary-foreground flex-shrink-0 print:bg-primary print:text-primary-foreground">
+          <div className="w-full md:w-56 bg-primary p-4 md:p-6 text-primary-foreground flex-shrink-0 print:bg-primary print:text-primary-foreground">
             {/* Logo */}
             <div className="mb-6">
               {workspace?.logo_url ? (
@@ -184,7 +184,7 @@ export function ProposalClientDocument({
           </div>
 
           {/* Right Side - Document Header */}
-          <div className="flex-1 p-8">
+          <div className="flex-1 p-4 md:p-8">
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-1">Proposta</h1>
@@ -217,7 +217,7 @@ export function ProposalClientDocument({
         </div>
 
         {/* Items Table */}
-        <div className="px-8 py-6">
+        <div className="px-4 md:px-8 py-6 overflow-x-auto">
           {allowItemToggle && (
             <p className="text-sm text-gray-500 mb-4">
               💡 Pode desmarcar itens que não pretende incluir na proposta.
@@ -257,12 +257,12 @@ export function ProposalClientDocument({
                         </TableCell>
                       )}
                       <TableCell className="text-gray-500 font-mono">{index + 1}</TableCell>
-                      <TableCell>
-                        <p className={cn("font-medium text-gray-900", !isEnabled && "line-through text-gray-500")}>
+                      <TableCell className="max-w-[200px]">
+                        <p className={cn("font-medium text-gray-900 break-words line-clamp-2", !isEnabled && "line-through text-gray-500")}>
                           {item.name}
                         </p>
                         {item.description && (
-                          <p className={cn("text-sm text-gray-500 mt-0.5", !isEnabled && "line-through")}>
+                          <p className={cn("text-sm text-gray-500 mt-0.5 break-words line-clamp-2", !isEnabled && "line-through")}>
                             {item.description}
                           </p>
                         )}
@@ -317,8 +317,8 @@ export function ProposalClientDocument({
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-8 py-6 border-t mt-4">
-          <div className="grid grid-cols-2 gap-8">
+        <div className="bg-gray-50 px-4 md:px-8 py-6 border-t mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {/* Payment Info */}
             <div>
               <h4 className="text-sm font-semibold text-gray-900 mb-3">Métodos de Pagamento</h4>
