@@ -61,18 +61,14 @@ export function SmartAlertsPopover({ className }: SmartAlertsPopoverProps) {
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
-          className={cn("relative gap-2", className)}
+          size="icon"
+          className={cn("relative", className)}
         >
-          <Bell className={cn("w-4 h-4", unreadCount > 0 && "text-amber-500")} />
-          <span className="hidden sm:inline">Alertas</span>
+          <Bell className={cn("h-5 w-5", unreadCount > 0 && "text-amber-500")} />
           {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
-            >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full">
+              <span className="sr-only">{unreadCount} alertas não lidos</span>
+            </span>
           )}
         </Button>
       </PopoverTrigger>
