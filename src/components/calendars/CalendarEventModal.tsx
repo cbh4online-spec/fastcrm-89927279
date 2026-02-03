@@ -114,17 +114,49 @@ export function CalendarEventModal({
         },
   });
 
-  // Update entityValue when event changes
+  // Reset form when modal opens or event changes
   useEffect(() => {
-    if (event) {
-      setEntityValue({
-        contactId: event.contact_id || null,
-        companyId: event.company_id || null,
-      });
-    } else {
-      setEntityValue({ contactId: null, companyId: null });
+    if (open) {
+      if (event) {
+        form.reset({
+          calendar_id: event.calendar_id,
+          title: event.title,
+          description: event.description || '',
+          start_date: new Date(event.start_time),
+          start_time: format(new Date(event.start_time), 'HH:mm'),
+          end_date: new Date(event.end_time),
+          end_time: format(new Date(event.end_time), 'HH:mm'),
+          all_day: event.all_day,
+          location: event.location || '',
+          meeting_url: event.meeting_url || '',
+          status: event.status,
+          contact_id: event.contact_id || null,
+          company_id: event.company_id || null,
+        });
+        setEntityValue({
+          contactId: event.contact_id || null,
+          companyId: event.company_id || null,
+        });
+      } else {
+        form.reset({
+          calendar_id: calendars[0]?.id || '',
+          title: '',
+          description: '',
+          start_date: defaultDate,
+          start_time: format(defaultDate, 'HH:mm'),
+          end_date: defaultDate,
+          end_time: format(new Date(defaultDate.getTime() + 60 * 60 * 1000), 'HH:mm'),
+          all_day: false,
+          location: '',
+          meeting_url: '',
+          status: 'confirmed',
+          contact_id: null,
+          company_id: null,
+        });
+        setEntityValue({ contactId: null, companyId: null });
+      }
     }
-  }, [event]);
+  }, [open, event, calendars, defaultDate, form]);
 
   const handleSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);
