@@ -1,85 +1,128 @@
 
-# Plano: Corrigir Reuniões - Sincronização e Linking com Clientes
 
-## Estado: ✅ IMPLEMENTADO
+# Plano: Corrigir Formulário de Reuniões que Aparece Sempre como "Novo"
 
-## Problemas Identificados
+## Problema Identificado
 
-### Problema 1: Reunião de hoje não aparece na lista
+Quando o utilizador clica numa reunião existente para editar, o formulário aparece sempre vazio como se fosse uma nova reunião. Este comportamento ocorre porque:
 
-A reunião "Reunião Mafalda Jacinto" foi criada no sistema de **Agenda** (tabela `calendar_events`), mas o utilizador está a procurar na aba **Reuniões** (tabela `meetings`).
+### Causa Raiz
 
-| Sistema | Tabela | Onde se cria | Estado actual |
-|---------|--------|--------------|---------------|
-| Agenda/Calendário | `calendar_events` | CalendarEventModal | ✅ Reunião existe aqui |
-| Reuniões | `meetings` | MeetingCreateModal | ❌ Tabela vazia |
+O componente `MeetingCreateModal` usa `useForm` com `defaultValues` que é calculado **apenas uma vez** durante a montagem do componente. Quando a prop `meeting` muda de `null` para um objeto de reunião existente, o React Hook Form **não reactualiza automaticamente** os valores do formulário.
 
-**Causa**: Os dois sistemas não estão sincronizados.
+```text
+┌────────────────────────────────────────────────────────────────┐
+│  Fluxo Actual (com problema)                                   │
+├────────────────────────────────────────────────────────────────┤
+│  1. MeetingsDashboard monta MeetingCreateModal                 │
+│     → meeting = null (formulário inicializado como vazio)      │
+│                                                                │
+│  2. Utilizador clica numa reunião existente                    │
+│     → setSelectedMeeting(reuniaoExistente)                     │
+│     → setShowCreateModal(true)                                 │
+│                                                                │
+│  3. Modal abre com meeting = reuniaoExistente                  │
+│     → MAS o form já foi inicializado com valores vazios!       │
+│     → useForm NÃO reactualiza defaultValues após montagem     │
+│                                                                │
+│  Resultado: Formulário aparece vazio (como "novo")             │
+└────────────────────────────────────────────────────────────────┘
+```
 
-### Problema 2: Formulário não linka com cliente
+## Solucao
 
-Ambos os formulários (`CalendarEventModal` e `MeetingCreateModal`) não têm campos visíveis para selecionar o contacto ou empresa associada, apesar de:
-- A interface (`CreateEventData`, `CreateMeetingData`) suportar `contact_id`, `company_id`
-- As tabelas terem esses campos
+Adicionar um `useEffect` que chame `form.reset()` com os novos valores sempre que a prop `meeting` ou o estado `open` mude.
 
-## Solução Implementada
+### Codigo a Alterar
 
-### ✅ Parte A: Hook useEntitySearch
+No ficheiro `src/components/meetings/MeetingCreateModal.tsx`:
 
-Criado `src/hooks/useEntitySearch.ts`:
-- Pesquisa de contactos e empresas
-- Métodos: `search()`, `searchContacts()`, `searchCompanies()`
-- Métodos auxiliares: `getContactById()`, `getCompanyById()`
+```typescript
+// Adicionar useEffect para resetar o formulário quando meeting muda
+useEffect(() => {
+  if (open) {
+    if (meeting) {
+      // Editar reunião existente - preencher com dados
+      form.reset({
+        title: meeting.title,
+        description: meeting.description || '',
+        category: meeting.category,
+        mode: meeting.mode,
+        meeting_type_id: meeting.meeting_type_id || undefined,
+        start_date: new Date(meeting.start_time),
+        start_time: format(new Date(meeting.start_time), 'HH:mm'),
+        duration: Math.round(
+          (new Date(meeting.end_time).getTime() - 
+           new Date(meeting.start_time).getTime()) / 60000
+        ),
+        location: meeting.location || '',
+        meeting_url: meeting.meeting_url || '',
+        phone_number: meeting.phone_number || '',
+        contact_id: meeting.contact_id || undefined,
+        company_id: meeting.company_id || undefined,
+        internal_notes: meeting.internal_notes || '',
+      });
+      setEntityValue({
+        contactId: meeting.contact_id || null,
+        companyId: meeting.company_id || null,
+      });
+    } else {
+      // Nova reunião - limpar formulário
+      form.reset({
+        title: '',
+        description: '',
+        category: 'client',
+        mode: 'online',
+        start_date: defaultDate,
+        start_time: format(defaultDate, 'HH:mm'),
+        duration: 60,
+        location: '',
+        meeting_url: '',
+        phone_number: '',
+        internal_notes: '',
+      });
+      setEntityValue({ contactId: null, companyId: null });
+    }
+  }
+}, [open, meeting, defaultDate, form]);
+```
 
-### ✅ Parte B: Componente EntityPicker
+### Fluxo Corrigido
 
-Criado `src/components/common/EntityPicker.tsx`:
-- Selector reutilizável para contactos/empresas
-- Pesquisa em tempo real com debounce
-- Mostra avatar, nome, email/empresa
-- Separação visual entre contactos e empresas
+```text
+┌────────────────────────────────────────────────────────────────┐
+│  Fluxo Após Correcção                                          │
+├────────────────────────────────────────────────────────────────┤
+│  1. Utilizador clica numa reunião existente                    │
+│     → setSelectedMeeting(reuniaoExistente)                     │
+│     → setShowCreateModal(true)                                 │
+│                                                                │
+│  2. Modal abre (open = true, meeting = reuniaoExistente)       │
+│                                                                │
+│  3. useEffect detecta mudança em [open, meeting]               │
+│     → form.reset(valoresDaReuniaoExistente)                   │
+│     → setEntityValue(contacto/empresa da reunião)              │
+│                                                                │
+│  Resultado: Formulário mostra dados da reunião existente       │
+└────────────────────────────────────────────────────────────────┘
+```
 
-### ✅ Parte C: Integração no CalendarEventModal
+## Nota Adicional
 
-Modificado `src/components/calendars/CalendarEventModal.tsx`:
-- Adicionado campo "Cliente/Contacto" após o título
-- Passa `contact_id` e `company_id` para o backend
+O problema secundário mencionado anteriormente (reunião no calendário não aparece na aba Reuniões) é expectável porque:
+- **Agenda/Calendário** usa a tabela `calendar_events`
+- **Reuniões** usa a tabela `meetings`
+- São sistemas separados
 
-### ✅ Parte D: Integração no MeetingCreateModal
+Esta correcção foca-se no problema do formulário. A sincronização entre sistemas seria uma funcionalidade adicional.
 
-Modificado `src/components/meetings/MeetingCreateModal.tsx`:
-- Campo "Cliente/Participante" visível para reuniões do tipo "Cliente" ou "Híbrida"
-- Passa `contact_id` e `company_id` para o backend
+## Ficheiros a Modificar
 
-## Ficheiros Criados/Modificados
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/components/meetings/MeetingCreateModal.tsx` | Adicionar useEffect para resetar formulário quando `meeting` ou `open` mudam |
 
-| Ficheiro | Acção | Estado |
-|----------|-------|--------|
-| `src/hooks/useEntitySearch.ts` | Criado | ✅ |
-| `src/components/common/EntityPicker.tsx` | Criado | ✅ |
-| `src/components/calendars/CalendarEventModal.tsx` | Modificado | ✅ |
-| `src/components/meetings/MeetingCreateModal.tsx` | Modificado | ✅ |
+## Complexidade
 
-## Fluxo UX Implementado
+Baixa - Apenas uma alteração num ficheiro para adicionar o useEffect de reset.
 
-### Criar Evento com Cliente (Agenda)
-
-1. Utilizador abre "Novo Evento" na Agenda
-2. Preenche título
-3. Clica em "Cliente/Contacto"
-4. Pesquisa e selecciona o contacto
-5. Preenche data/hora
-6. Guarda → Evento criado com `contact_id` ou `company_id`
-
-### Criar Reunião com Cliente (Reuniões)
-
-1. Utilizador abre "Nova Reunião"
-2. Selecciona categoria "Cliente" ou "Híbrida"
-3. Campo "Cliente/Participante" aparece
-4. Pesquisa e selecciona contacto/empresa
-5. Preenche restantes campos
-6. Guarda → Reunião criada com cliente associado
-
-## Nota sobre Sincronização
-
-Os dois sistemas (Agenda e Reuniões) continuam independentes. Para ver a reunião na lista de Reuniões, deve ser criada através do formulário de Reuniões (`/dashboard/meetings`).
