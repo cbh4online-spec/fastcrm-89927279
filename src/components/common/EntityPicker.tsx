@@ -9,16 +9,17 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { Check, ChevronDown, X, Search, Loader2, User, Building2 } from 'lucide-react';
+import { Check, ChevronDown, X, Search, Loader2, User, Building2, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEntitySearch, SearchableEntity } from '@/hooks/useEntitySearch';
 
 interface EntityPickerProps {
-  value: { contactId?: string | null; companyId?: string | null };
-  onChange: (value: { contactId?: string | null; companyId?: string | null }) => void;
+  value: { contactId?: string | null; companyId?: string | null; leadId?: string | null };
+  onChange: (value: { contactId?: string | null; companyId?: string | null; leadId?: string | null }) => void;
   placeholder?: string;
   showCompanies?: boolean;
   showContacts?: boolean;
+  showLeads?: boolean;
   label?: string;
   className?: string;
 }
@@ -29,6 +30,7 @@ export function EntityPicker({
   placeholder = 'Pesquisar cliente...',
   showCompanies = true,
   showContacts = true,
+  showLeads = true,
   label,
   className,
 }: EntityPickerProps) {
@@ -41,7 +43,8 @@ export function EntityPicker({
     isLoading, 
     search, 
     getContactById, 
-    getCompanyById 
+    getCompanyById,
+    getLeadById,
   } = useEntitySearch();
 
   // Load initial entity if value is set
@@ -53,10 +56,13 @@ export function EntityPicker({
       } else if (value.companyId && !selectedEntity) {
         const company = await getCompanyById(value.companyId);
         if (company) setSelectedEntity(company);
+      } else if (value.leadId && !selectedEntity) {
+        const lead = await getLeadById(value.leadId);
+        if (lead) setSelectedEntity(lead);
       }
     };
     loadInitialEntity();
-  }, [value.contactId, value.companyId, getContactById, getCompanyById, selectedEntity]);
+  }, [value.contactId, value.companyId, value.leadId, getContactById, getCompanyById, getLeadById, selectedEntity]);
 
   // Search when query changes
   useEffect(() => {
@@ -77,16 +83,19 @@ export function EntityPicker({
     return entities.filter(entity => {
       if (entity.type === 'contact' && !showContacts) return false;
       if (entity.type === 'company' && !showCompanies) return false;
+      if (entity.type === 'lead' && !showLeads) return false;
       return true;
     });
-  }, [entities, showContacts, showCompanies]);
+  }, [entities, showContacts, showCompanies, showLeads]);
 
   const handleSelect = (entity: SearchableEntity) => {
     setSelectedEntity(entity);
     if (entity.type === 'contact') {
-      onChange({ contactId: entity.id, companyId: null });
+      onChange({ contactId: entity.id, companyId: null, leadId: null });
+    } else if (entity.type === 'company') {
+      onChange({ contactId: null, companyId: entity.id, leadId: null });
     } else {
-      onChange({ contactId: null, companyId: entity.id });
+      onChange({ contactId: null, companyId: null, leadId: entity.id });
     }
     setOpen(false);
     setSearchQuery('');
@@ -95,7 +104,7 @@ export function EntityPicker({
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedEntity(null);
-    onChange({ contactId: null, companyId: null });
+    onChange({ contactId: null, companyId: null, leadId: null });
   };
 
   const getInitials = (name: string) => {
@@ -105,6 +114,14 @@ export function EntityPicker({
       .join('')
       .substring(0, 2)
       .toUpperCase();
+  };
+
+  const getEntityTypeLabel = (type: 'contact' | 'company' | 'lead') => {
+    switch (type) {
+      case 'contact': return 'Contacto';
+      case 'company': return 'Empresa';
+      case 'lead': return 'Lead';
+    }
   };
 
   return (
@@ -130,14 +147,16 @@ export function EntityPicker({
                   <AvatarFallback className="text-xs">
                     {selectedEntity.type === 'contact' ? (
                       <User className="h-3 w-3" />
-                    ) : (
+                    ) : selectedEntity.type === 'company' ? (
                       <Building2 className="h-3 w-3" />
+                    ) : (
+                      <UserPlus className="h-3 w-3" />
                     )}
                   </AvatarFallback>
                 </Avatar>
                 <span className="truncate">{selectedEntity.name}</span>
                 <Badge variant="secondary" className="text-xs">
-                  {selectedEntity.type === 'contact' ? 'Contacto' : 'Empresa'}
+                  {getEntityTypeLabel(selectedEntity.type)}
                 </Badge>
               </div>
             ) : (
@@ -159,7 +178,7 @@ export function EntityPicker({
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Pesquisar contactos e empresas..."
+                placeholder="Pesquisar contactos, empresas e leads..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 h-9"
@@ -174,7 +193,7 @@ export function EntityPicker({
               </div>
             ) : filteredEntities.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                {searchQuery ? 'Nenhum resultado encontrado' : 'Sem contactos ou empresas'}
+                {searchQuery ? 'Nenhum resultado encontrado' : 'Sem contactos, empresas ou leads'}
               </div>
             ) : (
               <div className="p-1">
@@ -214,6 +233,24 @@ export function EntityPicker({
                       ))}
                   </>
                 )}
+                {showLeads && filteredEntities.some(e => e.type === 'lead') && (
+                  <>
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground mt-2">
+                      Leads
+                    </div>
+                    {filteredEntities
+                      .filter(e => e.type === 'lead')
+                      .map(entity => (
+                        <EntityItem
+                          key={entity.id}
+                          entity={entity}
+                          isSelected={selectedEntity?.id === entity.id}
+                          onSelect={handleSelect}
+                          getInitials={getInitials}
+                        />
+                      ))}
+                  </>
+                )}
               </div>
             )}
           </ScrollArea>
@@ -225,7 +262,7 @@ export function EntityPicker({
                 className="w-full text-muted-foreground"
                 onClick={() => {
                   setSelectedEntity(null);
-                  onChange({ contactId: null, companyId: null });
+                  onChange({ contactId: null, companyId: null, leadId: null });
                   setOpen(false);
                 }}
               >
@@ -261,8 +298,10 @@ function EntityItem({ entity, isSelected, onSelect, getInitials }: EntityItemPro
         <AvatarFallback className="text-xs bg-muted">
           {entity.type === 'contact' ? (
             <User className="h-4 w-4" />
-          ) : (
+          ) : entity.type === 'company' ? (
             <Building2 className="h-4 w-4" />
+          ) : (
+            <UserPlus className="h-4 w-4" />
           )}
         </AvatarFallback>
       </Avatar>

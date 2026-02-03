@@ -65,6 +65,7 @@ const meetingSchema = z.object({
   phone_number: z.string().optional(),
   contact_id: z.string().optional(),
   company_id: z.string().optional(),
+  lead_id: z.string().optional(),
   internal_notes: z.string().optional(),
 });
 
@@ -101,9 +102,10 @@ export function MeetingCreateModal({
   onSubmit,
 }: MeetingCreateModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null }>({
+  const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null; leadId?: string | null }>({
     contactId: null,
     companyId: null,
+    leadId: null,
   });
 
   const form = useForm<MeetingFormData>({
@@ -167,6 +169,7 @@ export function MeetingCreateModal({
         setEntityValue({
           contactId: meeting.contact_id || null,
           companyId: meeting.company_id || null,
+          leadId: meeting.lead_id || null,
         });
       } else {
         // New meeting - reset to defaults
@@ -183,7 +186,7 @@ export function MeetingCreateModal({
           phone_number: '',
           internal_notes: '',
         });
-        setEntityValue({ contactId: null, companyId: null });
+        setEntityValue({ contactId: null, companyId: null, leadId: null });
       }
     }
   }, [open, meeting, defaultDate, form]);
@@ -212,10 +215,11 @@ export function MeetingCreateModal({
         phone_number: data.phone_number,
         contact_id: entityValue.contactId || undefined,
         company_id: entityValue.companyId || undefined,
+        lead_id: entityValue.leadId || undefined,
         internal_notes: data.internal_notes,
       });
       form.reset();
-      setEntityValue({ contactId: null, companyId: null });
+      setEntityValue({ contactId: null, companyId: null, leadId: null });
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
