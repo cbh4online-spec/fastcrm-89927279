@@ -1,80 +1,112 @@
 
-# Plano: Corrigir Edição de Reuniões (Criava Nova em Vez de Atualizar)
 
-## Problema Identificado
+# Plano: Adicionar Possibilidade de Apagar Eventos
 
-Quando o utilizador tenta editar uma reunião existente, o sistema cria uma nova reunião em vez de atualizar a existente.
+## Situacao Atual
 
-### Causa Raiz
+A funcionalidade de apagar eventos **ja esta parcialmente implementada**:
+- O hook `useCalendarEvents` tem a funcao `deleteEvent`
+- O modal `CalendarEventModal` tem o botao "Eliminar" no footer
+- A funcao `handleDeleteEvent` esta definida e passada ao modal
 
-No ficheiro `MeetingsDashboard.tsx`:
+No entanto, **existe um bug** que impede o correto funcionamento:
 
-1. A funcao `updateMeeting` do hook `useMeetings` **nao esta a ser importada** na desestruturacao (linha 125-136)
-2. A funcao `handleCreateMeeting` **sempre chama `createMeeting`**, mesmo quando existe um `selectedMeeting` indicando que e uma edicao
+### Bug Identificado
 
-```text
-Estado Atual:
-+-------------------+     +------------------+     +------------------+
-| Clique em Editar  | --> | selectedMeeting  | --> | handleCreateMeeting |
-|                   |     | definido         |     | chama createMeeting |
-+-------------------+     +------------------+     +------------------+
-                                                            |
-                                                            v
-                                                  CRIA NOVA REUNIAO (ERRO!)
+O formulario do `CalendarEventModal` nao recarrega os dados quando um evento e selecionado para edicao. Isto acontece porque:
+
+| O que deveria acontecer | O que acontece atualmente |
+|-------------------------|---------------------------|
+| Ao abrir o modal com um evento, os dados devem ser preenchidos | Os dados do evento nao carregam corretamente |
+| O botao "Eliminar" deve aparecer | Como o formulario nao reconhece o evento, pode haver comportamento inconsistente |
+
+**Causa Raiz:** O `useForm` usa `defaultValues` que sao calculados apenas na montagem inicial do componente. Quando o `event` muda (de null para um evento existente), o formulario nao e atualizado.
+
+### Comparacao com Implementacao Correta
+
+O `CalendarCreateModal.tsx` tem o pattern correto:
+
+```typescript
+useEffect(() => {
+  if (open) {
+    if (calendar) {
+      form.reset({ /* dados do calendario */ });
+    } else {
+      form.reset({ /* valores default */ });
+    }
+  }
+}, [open, calendar, form]);
 ```
 
-```text
-Estado Correto:
-+-------------------+     +------------------+     +--------------------+
-| Clique em Editar  | --> | selectedMeeting  | --> | handleSubmitMeeting |
-|                   |     | definido         |     | verifica se existe  |
-+-------------------+     +------------------+     +--------------------+
-                                                            |
-                                           +----------------+----------------+
-                                           |                                 |
-                                           v                                 v
-                                  selectedMeeting?               selectedMeeting null?
-                                  updateMeeting(id)              createMeeting()
-```
+O `CalendarEventModal.tsx` **nao tem** este `useEffect`.
 
 ## Solucao
 
-### 1. Importar `updateMeeting` do hook
+Adicionar um `useEffect` ao `CalendarEventModal` para fazer `form.reset()` quando o modal abre ou o evento muda.
 
-Adicionar `updateMeeting` a desestruturacao do hook `useMeetings`.
-
-### 2. Atualizar a logica de submit
-
-Renomear e modificar a funcao para verificar se e uma criacao ou edicao:
+### Codigo a Adicionar
 
 ```typescript
-const handleSubmitMeeting = async (data: CreateMeetingData) => {
-  if (selectedMeeting) {
-    // E uma edicao - usar updateMeeting
-    await updateMeeting(selectedMeeting.id, data);
-  } else {
-    // E uma criacao - usar createMeeting
-    await createMeeting(data);
+// Adicionar apos linha 127, antes do handleSubmit
+useEffect(() => {
+  if (open) {
+    if (event) {
+      form.reset({
+        calendar_id: event.calendar_id,
+        title: event.title,
+        description: event.description || '',
+        start_date: new Date(event.start_time),
+        start_time: format(new Date(event.start_time), 'HH:mm'),
+        end_date: new Date(event.end_time),
+        end_time: format(new Date(event.end_time), 'HH:mm'),
+        all_day: event.all_day,
+        location: event.location || '',
+        meeting_url: event.meeting_url || '',
+        status: event.status,
+        contact_id: event.contact_id || null,
+        company_id: event.company_id || null,
+      });
+      setEntityValue({
+        contactId: event.contact_id || null,
+        companyId: event.company_id || null,
+      });
+    } else {
+      form.reset({
+        calendar_id: calendars[0]?.id || '',
+        title: '',
+        description: '',
+        start_date: defaultDate,
+        start_time: format(defaultDate, 'HH:mm'),
+        end_date: defaultDate,
+        end_time: format(new Date(defaultDate.getTime() + 60 * 60 * 1000), 'HH:mm'),
+        all_day: false,
+        location: '',
+        meeting_url: '',
+        status: 'confirmed',
+        contact_id: null,
+        company_id: null,
+      });
+      setEntityValue({ contactId: null, companyId: null });
+    }
   }
-  setSelectedMeeting(null);
-  setShowCreateModal(false);
-};
+}, [open, event, calendars, defaultDate, form]);
 ```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteracao |
 |----------|-----------|
-| `src/components/meetings/MeetingsDashboard.tsx` | Importar `updateMeeting` e modificar `handleCreateMeeting` para distinguir entre criar e editar |
+| `src/components/calendars/CalendarEventModal.tsx` | Adicionar `useEffect` para resetar o formulario quando o modal abre |
 
 ## Complexidade
 
-Baixa - Apenas alteracoes de logica no frontend.
+Baixa - Apenas adicao de um useEffect.
 
 ## Resultado Esperado
 
 Apos a correcao:
-1. Ao clicar numa reuniao existente e guardar, os dados serao **atualizados**
-2. Ao clicar em "Nova Reuniao", sera **criada** uma nova reuniao
-3. O modal mostrara o titulo correto ("Editar Reuniao" vs "Nova Reuniao") - ja funciona
-4. O historico CRM registara corretamente as atualizacoes
+1. Ao clicar num evento no calendario, o modal abre com todos os dados preenchidos
+2. O botao "Eliminar" aparece no rodape do modal (a esquerda)
+3. Ao clicar em "Eliminar", o evento e removido da base de dados
+4. Ao criar um novo evento, o formulario aparece vazio
+
