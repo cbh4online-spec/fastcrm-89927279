@@ -60,6 +60,7 @@ import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { OpportunitiesSection } from "@/components/leads/sections/OpportunitiesSection";
 import { ProposalsSection } from "@/components/leads/sections/ProposalsSection";
 import { EntityTimelineSection } from "@/components/timeline";
+import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -296,6 +297,16 @@ export function LeadDetailWithSidebar() {
             entityType="lead"
             entityId={id!}
             entityName={lead.name}
+          />
+        );
+      case 'scheduling':
+        return (
+          <EntitySchedulingSection
+            entityType="lead"
+            entityId={id!}
+            entityName={lead.name}
+            entityEmail={lead.email}
+            entityPhone={lead.phone}
           />
         );
       default:

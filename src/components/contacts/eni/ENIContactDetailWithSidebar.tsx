@@ -52,6 +52,7 @@ import { EntityTimelineSection } from "@/components/timeline";
 import { ContactOrderNotesSection } from "@/components/contacts/sections/ContactOrderNotesSection";
 import { ContactStudentJourneySection } from "@/components/contacts/sections/ContactStudentJourneySection";
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
+import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Proprietário",
@@ -368,6 +369,16 @@ export function ENIContactDetailWithSidebar() {
             entityType="contact"
             entityId={id!}
             entityName={contact.name}
+          />
+        );
+      case 'scheduling':
+        return (
+          <EntitySchedulingSection
+            entityType="contact"
+            entityId={id!}
+            entityName={contact.name}
+            entityEmail={contact.email}
+            entityPhone={contact.phone}
           />
         );
       default:

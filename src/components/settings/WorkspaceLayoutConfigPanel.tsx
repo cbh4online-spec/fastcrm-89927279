@@ -31,6 +31,7 @@ const SECTION_LABELS: Record<MenuSection, string> = {
   'automations': 'Automações',
   'credit': 'Propostas de Crédito',
   'orders': 'Encomendas B2B',
+  'scheduling': 'Agendamentos',
   'student-journey': 'Student Journey',
 };
 
