@@ -6195,6 +6195,8 @@ export type Database = {
         Row: {
           activity_type: string
           automation_rule_id: string | null
+          company_id: string | null
+          contact_id: string | null
           conversation_id: string | null
           created_at: string
           description: string | null
@@ -6211,6 +6213,8 @@ export type Database = {
         Insert: {
           activity_type: string
           automation_rule_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
           conversation_id?: string | null
           created_at?: string
           description?: string | null
@@ -6227,6 +6231,8 @@ export type Database = {
         Update: {
           activity_type?: string
           automation_rule_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
           conversation_id?: string | null
           created_at?: string
           description?: string | null
@@ -6246,6 +6252,20 @@ export type Database = {
             columns: ["automation_rule_id"]
             isOneToOne: false
             referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {
