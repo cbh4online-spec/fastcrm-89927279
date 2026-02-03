@@ -128,6 +128,7 @@ export function MeetingsDashboard() {
     meetingsByStatus,
     isLoading,
     createMeeting,
+    updateMeeting,
     updateMeetingStatus,
     updateMeetingOutcome,
     createFollowUpTask,
@@ -218,8 +219,15 @@ export function MeetingsDashboard() {
   const goToToday = () => setCurrentDate(new Date());
 
   // Handlers
-  const handleCreateMeeting = async (data: CreateMeetingData) => {
-    await createMeeting(data);
+  const handleSubmitMeeting = async (data: CreateMeetingData) => {
+    if (selectedMeeting) {
+      // Edit existing meeting
+      await updateMeeting(selectedMeeting.id, data);
+    } else {
+      // Create new meeting
+      await createMeeting(data);
+    }
+    setSelectedMeeting(null);
     setShowCreateModal(false);
   };
 
@@ -670,7 +678,7 @@ export function MeetingsDashboard() {
         onOpenChange={setShowCreateModal}
         meetingTypes={meetingTypes}
         meeting={selectedMeeting}
-        onSubmit={handleCreateMeeting}
+        onSubmit={handleSubmitMeeting}
       />
 
       {/* Outcome Modal */}
