@@ -139,6 +139,13 @@ const SECTION_CONFIG: Record<MenuSection, {
     description: 'Nenhuma encomenda B2B associada.',
     suggestion: 'As encomendas aparecerão quando houver clientes B2B com encomendas.',
   },
+  scheduling: {
+    icon: Activity,
+    title: 'Sem agendamentos',
+    description: 'Nenhum agendamento associado.',
+    suggestion: 'Cria uma reunião ou evento para acompanhamento.',
+    actionLabel: 'Agendar Reunião',
+  },
   'student-journey': {
     icon: GraduationCap,
     title: 'Sem perfil Student Journey',

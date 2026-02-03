@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   TrendingUp,
   GraduationCap,
+  CalendarCheck,
 } from 'lucide-react';
 import { EntityType, MenuSection } from '@/types/entity';
 import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
@@ -38,6 +39,7 @@ interface EntitySidebarMenuProps {
     contacts?: number;
     credit?: number;
     orders?: number;
+    scheduling?: number;
   };
   hasStudentJourneyProfile?: boolean;
 }
@@ -75,6 +77,7 @@ const MENU_SECTIONS: {
     items: [
       { id: 'opportunities', label: 'Oportunidades', icon: Target, showFor: ['lead', 'contact', 'company'] },
       { id: 'proposals', label: 'Propostas', icon: FileText, showFor: ['lead', 'contact', 'company'] },
+      { id: 'scheduling', label: 'Agendamentos', icon: CalendarCheck, showFor: ['lead', 'contact', 'company'] },
       { id: 'history', label: 'Histórico Comercial', icon: TrendingUp, showFor: ['contact', 'company'] },
       { id: 'credit', label: 'Crédito', icon: Landmark, showFor: ['lead', 'contact', 'company'] },
       { id: 'payments', label: 'Pagamentos', icon: CreditCard, showFor: ['contact', 'company'] },
@@ -116,6 +119,7 @@ export function EntitySidebarMenu({
       case 'contacts': return counts.contacts;
       case 'credit': return counts.credit;
       case 'orders': return counts.orders;
+      case 'scheduling': return counts.scheduling;
       default: return undefined;
     }
   };

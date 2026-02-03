@@ -8,6 +8,7 @@ export interface EntityCounts {
   proposals: number;
   contacts: number;
   orders: number;
+  scheduling: number;
 }
 
 type EntityType = 'lead' | 'contact' | 'company';
@@ -17,7 +18,7 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
     queryKey: ['entity-counts', entityType, entityId],
     queryFn: async (): Promise<EntityCounts> => {
       if (!entityId) {
-        return { messages: 0, tasks: 0, opportunities: 0, proposals: 0, contacts: 0, orders: 0 };
+        return { messages: 0, tasks: 0, opportunities: 0, proposals: 0, contacts: 0, orders: 0, scheduling: 0 };
       }
 
       let tasksCount = 0;
@@ -84,6 +85,25 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
         }
       }
 
+      // Count scheduling (meetings) - via meetings table
+      let schedulingCount = 0;
+      const meetingColumn = entityType === 'lead' ? 'lead_id' 
+        : entityType === 'contact' ? 'contact_id' 
+        : 'company_id';
+      
+      const meetingsResult = await supabase
+        .from('meetings')
+        .select('id')
+        .eq(meetingColumn, entityId);
+      schedulingCount = meetingsResult.data?.length || 0;
+
+      // Also count calendar_events
+      const calendarEventsResult = await supabase
+        .from('calendar_events')
+        .select('id')
+        .eq(meetingColumn, entityId);
+      schedulingCount += calendarEventsResult.data?.length || 0;
+
       return {
         messages: 0,
         tasks: tasksCount,
@@ -91,6 +111,7 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
         proposals: proposalsCount,
         contacts: contactsCount,
         orders: ordersCount,
+        scheduling: schedulingCount,
       };
     },
     enabled: !!entityId,
