@@ -1,165 +1,90 @@
 
 
-# Plano: Unificar Visualização de Reuniões - Combinar Agenda e Reuniões
+# Plano: Corrigir Erro "violates check constraint" ao Criar Reuniões
 
 ## Problema Identificado
 
-O sistema tem **duas tabelas separadas** para gerir eventos/reuniões:
+Existe um **trigger** na base de dados (`log_meeting_to_crm`) que é disparado automaticamente quando uma reunião é criada ou atualizada. Este trigger tenta inserir registos na tabela `crm_activities` com tipos de atividade relacionados a reuniões.
 
-| Sistema | Tabela | Usado em | Estado |
-|---------|--------|----------|--------|
-| Agenda | `calendar_events` | `/dashboard/calendars`, aba "Agenda" | ✅ Tem a reunião "Reunião Mafalda Jacinto" |
-| Reuniões | `meetings` | Aba "Reuniões" | ❌ Vazia |
+**O conflito:**
 
-**Resultado**: A reunião criada na Agenda não aparece na aba "Reuniões" porque são sistemas independentes.
+| Trigger usa estes valores | Check constraint permite |
+|---------------------------|-------------------------|
+| `meeting_scheduled` | `message_sent`, `message_received`, `status_changed` |
+| `meeting_confirmed` | `stage_changed`, `opportunity_created`, `opportunity_updated` |
+| `meeting_completed` | `opportunity_won`, `opportunity_lost`, `lead_created` |
+| `meeting_cancelled` | `lead_updated`, `lead_contacted`, `task_created` |
+| `meeting_no_show` | `task_completed`, `note_added`, `tag_added` |
+| `meeting_outcome` | `tag_removed`, `assigned`, `automation_triggered` |
+| | `proposal_sent`, `proposal_viewed`, `proposal_accepted` |
+| | `followup_scheduled`, `followup_completed`, `custom` |
 
-## Opções de Solução
+Como se pode ver, **nenhum** dos tipos de atividade de reunião está permitido pelo check constraint.
 
-### Opção A: Mostrar calendar_events na aba Reuniões (Recomendado)
-Modificar o dashboard de Reuniões para também consultar eventos do calendário que sejam do tipo "reunião".
+## Solucao
 
-**Vantagens**:
-- Sem alteração na base de dados
-- Implementação rápida
-- Utilizador vê todas as reuniões num só local
+Atualizar o check constraint para incluir os tipos de atividade de reunião.
 
-**Desvantagens**:
-- Dados vêm de duas fontes (complexidade de gestão)
+### SQL de Migração
 
-### Opção B: Sincronização automática entre tabelas
-Quando um evento é criado na Agenda, criar automaticamente uma entrada na tabela `meetings`.
+```sql
+-- Drop the existing check constraint
+ALTER TABLE public.crm_activities 
+DROP CONSTRAINT IF EXISTS crm_activities_activity_type_check;
 
-**Vantagens**:
-- Dados consistentes
-- Funcionalidades específicas de reuniões (outcome, follow-up) disponíveis
-
-**Desvantagens**:
-- Duplicação de dados
-- Precisa de trigger ou lógica adicional
-
-### Opção C: Migrar para tabela única
-Usar apenas a tabela `meetings` para tudo, removendo dependência de `calendar_events`.
-
-**Desvantagens**:
-- Grande refactoring
-- Perde funcionalidades específicas de calendário
-
-## Solução Proposta: Opção A
-
-Modificar o `useMeetings` hook para também buscar eventos de `calendar_events` e apresentá-los de forma unificada na aba Reuniões.
-
-### Implementação Técnica
-
-#### 1. Criar função de mapeamento
-
-```typescript
-// Mapear calendar_events para o formato Meeting
-function mapCalendarEventToMeeting(event: CalendarEvent): Meeting {
-  return {
-    id: event.id,
-    workspace_id: event.workspace_id,
-    title: event.title,
-    description: event.description,
-    category: 'client', // Default para eventos de calendário
-    mode: event.meeting_url ? 'online' : 'in_person',
-    start_time: event.start_time,
-    end_time: event.end_time,
-    location: event.location,
-    meeting_url: event.meeting_url,
-    status: event.status === 'confirmed' ? 'confirmed' : 'pending',
-    contact_id: event.contact_id,
-    company_id: event.company_id,
-    // ... outros campos com valores default
-    source: 'calendar_event', // Identificar origem
-  };
-}
-```
-
-#### 2. Modificar useMeetings hook
-
-```typescript
-const fetchMeetings = useCallback(async () => {
-  // Buscar da tabela meetings
-  const { data: meetingsData } = await supabase
-    .from('meetings')
-    .select('*, contact:contacts(...), company:companies(...)')
-    .eq('workspace_id', currentWorkspace.id);
-
-  // Buscar da tabela calendar_events
-  const { data: eventsData } = await supabase
-    .from('calendar_events')
-    .select('*, calendar:calendars(...)')
-    .eq('workspace_id', currentWorkspace.id);
-
-  // Combinar ambos
-  const combined = [
-    ...(meetingsData || []),
-    ...(eventsData || []).map(mapCalendarEventToMeeting),
-  ];
-
-  // Ordenar por data
-  combined.sort((a, b) => 
-    new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-  );
-
-  setMeetings(combined);
-}, [...]);
-```
-
-#### 3. Adicionar indicador visual de origem
-
-No `MeetingCard.tsx`, mostrar badge indicando se é "Reunião" ou "Evento de Calendário" para o utilizador saber onde editar.
-
-### Fluxo Após Implementação
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Utilizador abre aba "Reuniões"                                 │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  useMeetings hook                                               │
-│  ├── SELECT * FROM meetings WHERE workspace_id = ...           │
-│  └── SELECT * FROM calendar_events WHERE workspace_id = ...    │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Combinar + Ordenar por data                                    │
-│  ├── meetings[]                                                │
-│  └── calendar_events[] → mapeados para formato Meeting        │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Dashboard mostra TODAS as reuniões:                           │
-│  ✅ "Reunião Mafalda Jacinto" (de calendar_events)             │
-│  ✅ Reuniões criadas via MeetingCreateModal (de meetings)      │
-└─────────────────────────────────────────────────────────────────┘
+-- Create new check constraint with meeting activity types added
+ALTER TABLE public.crm_activities 
+ADD CONSTRAINT crm_activities_activity_type_check 
+CHECK (activity_type = ANY (ARRAY[
+  -- Existing types
+  'message_sent'::text, 
+  'message_received'::text, 
+  'status_changed'::text, 
+  'stage_changed'::text, 
+  'opportunity_created'::text, 
+  'opportunity_updated'::text, 
+  'opportunity_won'::text, 
+  'opportunity_lost'::text, 
+  'lead_created'::text, 
+  'lead_updated'::text, 
+  'lead_contacted'::text, 
+  'task_created'::text, 
+  'task_completed'::text, 
+  'note_added'::text, 
+  'tag_added'::text, 
+  'tag_removed'::text, 
+  'assigned'::text, 
+  'automation_triggered'::text, 
+  'proposal_sent'::text, 
+  'proposal_viewed'::text, 
+  'proposal_accepted'::text, 
+  'followup_scheduled'::text, 
+  'followup_completed'::text, 
+  'custom'::text,
+  -- New meeting types
+  'meeting_scheduled'::text,
+  'meeting_confirmed'::text,
+  'meeting_completed'::text,
+  'meeting_cancelled'::text,
+  'meeting_no_show'::text,
+  'meeting_outcome'::text
+]));
 ```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/hooks/useMeetings.ts` | Adicionar query a `calendar_events` e combinar resultados |
-| `src/hooks/useCalendars.ts` | Reutilizar tipo `CalendarEvent` |
-| `src/components/meetings/MeetingCard.tsx` | Adicionar badge de origem |
-
-## Considerações
-
-1. **Edição**: Quando o utilizador clicar para editar uma reunião vinda de `calendar_events`, abrir o `CalendarEventModal` em vez do `MeetingCreateModal`
-
-2. **Funcionalidades limitadas**: Eventos de calendário não terão acesso a funcionalidades específicas de reuniões como "Registar Outcome" ou "Follow-up" (a menos que sejam migrados)
-
-3. **Filtros**: Adicionar filtro opcional "Origem: Reuniões | Eventos | Todos"
+| Nova migração SQL | Atualizar check constraint para incluir tipos de atividade de reunião |
 
 ## Complexidade
 
-Média - Requer:
-- Modificação do hook de reuniões
-- Função de mapeamento de tipos
-- Lógica condicional para edição
-- Badge visual de origem
+Baixa - Apenas uma migração de base de dados.
+
+## Resultado Esperado
+
+Após a migração:
+1. O trigger `log_meeting_to_crm` conseguirá inserir registos com tipos de atividade de reunião
+2. A criação de reuniões funcionará sem erros
+3. O histórico de atividades CRM incluirá eventos de reuniões
 
