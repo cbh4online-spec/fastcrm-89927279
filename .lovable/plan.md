@@ -1,112 +1,84 @@
 
 
-# Plano: Adicionar Possibilidade de Apagar Eventos
+# Plano: Substituir Alertas Demo por Alertas Reais no Sininho
 
-## Situacao Atual
+## Problema Identificado
 
-A funcionalidade de apagar eventos **ja esta parcialmente implementada**:
-- O hook `useCalendarEvents` tem a funcao `deleteEvent`
-- O modal `CalendarEventModal` tem o botao "Eliminar" no footer
-- A funcao `handleDeleteEvent` esta definida e passada ao modal
+O sininho de notificações no header (`TopBar`) mostra sempre alertas de demonstração hardcoded em vez de usar os alertas reais da base de dados.
 
-No entanto, **existe um bug** que impede o correto funcionamento:
+### Situação Atual
 
-### Bug Identificado
+| Componente | Localização | Fonte de Dados |
+|------------|-------------|----------------|
+| `NotificationsDropdown` | TopBar (header global) | Dados demo hardcoded |
+| `SmartAlertsPopover` | InboxView | Base de dados real |
 
-O formulario do `CalendarEventModal` nao recarrega os dados quando um evento e selecionado para edicao. Isto acontece porque:
+O sistema de alertas inteligentes (`inbox_smart_alerts`) já está implementado e funcional, com hooks para CRUD (`useSmartAlerts`, `useDismissAlert`, `useMarkAlertRead`, etc.).
 
-| O que deveria acontecer | O que acontece atualmente |
-|-------------------------|---------------------------|
-| Ao abrir o modal com um evento, os dados devem ser preenchidos | Os dados do evento nao carregam corretamente |
-| O botao "Eliminar" deve aparecer | Como o formulario nao reconhece o evento, pode haver comportamento inconsistente |
+### Alertas Demo vs Alertas Reais
 
-**Causa Raiz:** O `useForm` usa `defaultValues` que sao calculados apenas na montagem inicial do componente. Quando o `event` muda (de null para um evento existente), o formulario nao e atualizado.
+```text
+NotificationsDropdown (ATUAL):
++------------------+
+| demoNotifications|  <- Array estático
+|   - João Silva   |     definido no código
+|   - Proposta #123|
+|   - Maria...     |
++------------------+
 
-### Comparacao com Implementacao Correta
-
-O `CalendarCreateModal.tsx` tem o pattern correto:
-
-```typescript
-useEffect(() => {
-  if (open) {
-    if (calendar) {
-      form.reset({ /* dados do calendario */ });
-    } else {
-      form.reset({ /* valores default */ });
-    }
-  }
-}, [open, calendar, form]);
+SmartAlertsPopover (REAL):
++------------------+
+| useSmartAlerts() |  <- Query à base de dados
+|   - inbox_smart_ |     com hooks para
+|     alerts table |     marcar lido/descartar
++------------------+
 ```
 
-O `CalendarEventModal.tsx` **nao tem** este `useEffect`.
+## Solução Proposta
 
-## Solucao
+Substituir o `NotificationsDropdown` pelo `SmartAlertsPopover` no `TopBar`, fazendo ajustes visuais mínimos para manter a consistência com o design do header.
 
-Adicionar um `useEffect` ao `CalendarEventModal` para fazer `form.reset()` quando o modal abre ou o evento muda.
+### Alterações Necessárias
 
-### Codigo a Adicionar
+**1. Ficheiro: `src/components/layout/TopBar.tsx`**
+
+Substituir a importação e uso do `NotificationsDropdown` pelo `SmartAlertsPopover`:
 
 ```typescript
-// Adicionar apos linha 127, antes do handleSubmit
-useEffect(() => {
-  if (open) {
-    if (event) {
-      form.reset({
-        calendar_id: event.calendar_id,
-        title: event.title,
-        description: event.description || '',
-        start_date: new Date(event.start_time),
-        start_time: format(new Date(event.start_time), 'HH:mm'),
-        end_date: new Date(event.end_time),
-        end_time: format(new Date(event.end_time), 'HH:mm'),
-        all_day: event.all_day,
-        location: event.location || '',
-        meeting_url: event.meeting_url || '',
-        status: event.status,
-        contact_id: event.contact_id || null,
-        company_id: event.company_id || null,
-      });
-      setEntityValue({
-        contactId: event.contact_id || null,
-        companyId: event.company_id || null,
-      });
-    } else {
-      form.reset({
-        calendar_id: calendars[0]?.id || '',
-        title: '',
-        description: '',
-        start_date: defaultDate,
-        start_time: format(defaultDate, 'HH:mm'),
-        end_date: defaultDate,
-        end_time: format(new Date(defaultDate.getTime() + 60 * 60 * 1000), 'HH:mm'),
-        all_day: false,
-        location: '',
-        meeting_url: '',
-        status: 'confirmed',
-        contact_id: null,
-        company_id: null,
-      });
-      setEntityValue({ contactId: null, companyId: null });
-    }
-  }
-}, [open, event, calendars, defaultDate, form]);
+// Antes
+import { NotificationsDropdown } from "./NotificationsDropdown";
+// ...
+<NotificationsDropdown />
+
+// Depois
+import { SmartAlertsPopover } from "@/components/inbox/SmartAlertsPopover";
+// ...
+<SmartAlertsPopover />
 ```
+
+**2. Ficheiro: `src/components/inbox/SmartAlertsPopover.tsx`** (ajustes opcionais)
+
+Pequenas alterações para melhor integração no header:
+- Variante visual mais compacta para o header
+- Remover texto "Alertas" no header (só ícone)
 
 ## Ficheiros a Modificar
 
-| Ficheiro | Alteracao |
+| Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/calendars/CalendarEventModal.tsx` | Adicionar `useEffect` para resetar o formulario quando o modal abre |
-
-## Complexidade
-
-Baixa - Apenas adicao de um useEffect.
+| `src/components/layout/TopBar.tsx` | Substituir `NotificationsDropdown` por `SmartAlertsPopover` |
+| `src/components/inbox/SmartAlertsPopover.tsx` | Ajustar estilo do botão para modo compacto (opcional) |
 
 ## Resultado Esperado
 
-Apos a correcao:
-1. Ao clicar num evento no calendario, o modal abre com todos os dados preenchidos
-2. O botao "Eliminar" aparece no rodape do modal (a esquerda)
-3. Ao clicar em "Eliminar", o evento e removido da base de dados
-4. Ao criar um novo evento, o formulario aparece vazio
+Após a alteração:
+1. O sininho no header mostra alertas reais da base de dados
+2. Clicar num alerta marca-o como lido e navega para a ação
+3. Alertas podem ser descartados individualmente
+4. O badge mostra a contagem real de alertas não lidos
+5. Quando não há alertas, mostra "Tudo em dia!"
+
+## Complexidade
+
+Baixa - Principalmente substituição de imports e ajuste de props.
 
