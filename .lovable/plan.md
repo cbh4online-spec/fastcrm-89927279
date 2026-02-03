@@ -1,147 +1,156 @@
 
-# Plano: Corrigir Vista Pública de Propostas - Políticas RLS
+# Plano: Corrigir Reuniões - Sincronização e Linking com Clientes
 
-## Problema Identificado
+## Problemas Identificados
 
-A página pública de propostas (`/p/:slug`) não consegue carregar os dados relacionados devido a **políticas RLS** que bloqueiam o acesso para utilizadores não autenticados:
+### Problema 1: Reunião de hoje não aparece na lista
 
-| Tabela | Política Pública | Status |
-|--------|------------------|--------|
-| `proposals` | ✅ `Public can view published proposals by slug` | OK |
-| `workspaces` | ❌ Apenas membros autenticados | **BLOQUEADO** |
-| `contacts` | ❌ Apenas membros autenticados | **BLOQUEADO** |
-| `companies` | ❌ Apenas membros autenticados | **BLOQUEADO** |
-| `proposal_items` | ❌ Apenas membros autenticados | **BLOQUEADO** |
+A reunião "Reunião Mafalda Jacinto" foi criada no sistema de **Agenda** (tabela `calendar_events`), mas o utilizador está a procurar na aba **Reuniões** (tabela `meetings`).
 
-### Dados Afetados na Vista Pública
+| Sistema | Tabela | Onde se cria | Estado actual |
+|---------|--------|--------------|---------------|
+| Agenda/Calendário | `calendar_events` | CalendarEventModal | ✅ Reunião existe aqui |
+| Reuniões | `meetings` | MeetingCreateModal | ❌ Tabela vazia |
 
-- **Logo da empresa** - vem de `workspaces.logo_url` → mostra letra genérica
-- **Nome do cliente** - vem de `contacts.name` ou `companies.name` → mostra "Cliente"
-- **Itens da proposta** - vem de `proposal_items` → tabela vazia
-- **Dados do workspace** (email, telefone, IBAN) → não aparecem
+**Causa**: Os dois sistemas não estão sincronizados.
 
-## Solução: Novas Políticas RLS para Acesso Público
+### Problema 2: Formulário não linka com cliente
 
-Criar políticas que permitem leitura pública apenas quando os dados estão **associados a uma proposta publicada**.
+Ambos os formulários (`CalendarEventModal` e `MeetingCreateModal`) não têm campos visíveis para selecionar o contacto ou empresa associada, apesar de:
+- A interface (`CreateEventData`, `CreateMeetingData`) suportar `contact_id`, `company_id`
+- As tabelas terem esses campos
 
-### Migração SQL
+## Solução Proposta
 
-```sql
--- 1. Workspaces: Permitir leitura pública para propostas publicadas
-CREATE POLICY "Public can view workspace for published proposals"
-ON public.workspaces
-FOR SELECT
-TO anon, authenticated
-USING (
-  id IN (
-    SELECT workspace_id FROM public.proposals 
-    WHERE status = 'published'
-  )
-);
+### Parte A: Adicionar Selector de Cliente ao Formulário de Eventos (Agenda)
 
--- 2. Contacts: Permitir leitura pública para propostas publicadas
-CREATE POLICY "Public can view contact for published proposals"
-ON public.contacts
-FOR SELECT
-TO anon, authenticated
-USING (
-  id IN (
-    SELECT contact_id FROM public.proposals 
-    WHERE status = 'published' AND contact_id IS NOT NULL
-  )
-);
+Modificar `CalendarEventModal.tsx` para incluir um campo de pesquisa de contactos/empresas.
 
--- 3. Companies: Permitir leitura pública para propostas publicadas
-CREATE POLICY "Public can view company for published proposals"
-ON public.companies
-FOR SELECT
-TO anon, authenticated
-USING (
-  id IN (
-    SELECT company_id FROM public.proposals 
-    WHERE status = 'published' AND company_id IS NOT NULL
-  )
-);
+### Parte B: Adicionar Selector de Cliente ao Formulário de Reuniões
 
--- 4. Proposal Items: Permitir leitura pública para propostas publicadas
-CREATE POLICY "Public can view items of published proposals"
-ON public.proposal_items
-FOR SELECT
-TO anon, authenticated
-USING (
-  proposal_id IN (
-    SELECT id FROM public.proposals 
-    WHERE status = 'published'
-  )
-);
+Modificar `MeetingCreateModal.tsx` para incluir campos de selecção de contacto/empresa.
+
+### Parte C: Sincronização opcional entre sistemas
+
+Quando um evento de calendário do tipo "reunião" é criado, pode-se opcionalmente criar também na tabela `meetings` para aparecer em ambos os locais.
+
+## Implementação Técnica
+
+### 1. Componente EntityPicker reutilizável
+
+```typescript
+// src/components/common/EntityPicker.tsx
+// Componente para pesquisar e selecionar contactos, empresas ou leads
 ```
 
-## Diagrama de Acesso
+### 2. Actualização do CalendarEventModal
 
 ```text
-┌───────────────────────────────────────────────────────────────┐
-│  Utilizador Anónimo acede /p/ixnmwmy1u75i                    │
-└───────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌───────────────────────────────────────────────────────────────┐
-│  SELECT * FROM proposals WHERE slug = 'xyz' AND status = 'published'
-│  ✅ Policy: "Public can view published proposals by slug"    │
-└───────────────────────────────────────────────────────────────┘
-                               │
-         ┌─────────────────────┴─────────────────────┐
-         ▼                                           ▼
-┌─────────────────────┐                   ┌─────────────────────┐
-│  JOIN workspaces    │                   │  JOIN contacts      │
-│  ✅ NOVA POLICY     │                   │  ✅ NOVA POLICY     │
-│  (linked to pub     │                   │  (linked to pub     │
-│   proposal)         │                   │   proposal)         │
-└─────────────────────┘                   └─────────────────────┘
-                               │
-                               ▼
-┌───────────────────────────────────────────────────────────────┐
-│  SELECT * FROM proposal_items WHERE proposal_id = ...        │
-│  ✅ NOVA POLICY: "Public can view items of published..."     │
-└───────────────────────────────────────────────────────────────┘
+Adicionar após o campo "Título":
+
+┌─────────────────────────────────────┐
+│ 🔍 Cliente/Contacto                 │
+│ [Pesquisar contacto ou empresa...] ▼│
+└─────────────────────────────────────┘
+
+O selector:
+- Pesquisa na tabela contacts e companies
+- Mostra avatar/ícone, nome, email/empresa
+- Ao seleccionar, preenche contact_id ou company_id
 ```
 
-## Resultado Esperado
+### 3. Actualização do MeetingCreateModal
 
-Após a migração, a página pública mostrará:
+Adicionar secção visível quando `category = 'client'` ou `category = 'hybrid'`:
 
-1. **Logo do workspace** em vez da letra genérica "E"
-2. **Nome do cliente** "Jorge Cardoso" em vez de "Cliente"
-3. **7 itens da proposta** com preços e descrições
-4. **Secções de Âmbito, Cronograma e Referências** (já passadas via props)
-5. **Dados de pagamento** (IBAN, condições) do workspace
+```text
+┌─────────────────────────────────────┐
+│ 👤 Participante                     │
+│ [Pesquisar contacto...           ] ▼│
+└─────────────────────────────────────┘
 
-## Segurança
+┌─────────────────────────────────────┐
+│ 🏢 Empresa (opcional)               │
+│ [Pesquisar empresa...            ] ▼│
+└─────────────────────────────────────┘
+```
 
-As novas políticas são **somente leitura (SELECT)** e limitadas a:
-- Apenas dados vinculados a propostas com `status = 'published'`
-- Utilizadores anónimos só veem dados expostos intencionalmente pelo workspace
+### 4. Hook para pesquisa de entidades
 
-### Dados Expostos (intencional)
+```typescript
+// src/hooks/useEntitySearch.ts
+export function useEntitySearch() {
+  const searchEntities = async (query: string) => {
+    const [contacts, companies] = await Promise.all([
+      supabase.from('contacts').select('id, name, email, avatar_url')
+        .ilike('name', `%${query}%`).limit(10),
+      supabase.from('companies').select('id, name, logo_url')
+        .ilike('name', `%${query}%`).limit(10),
+    ]);
+    
+    return {
+      contacts: contacts.data || [],
+      companies: companies.data || [],
+    };
+  };
+  
+  return { searchEntities };
+}
+```
 
-| Campo | Visível | Racional |
-|-------|---------|----------|
-| `workspace.name` | ✅ | Branding da empresa |
-| `workspace.logo_url` | ✅ | Visual do documento |
-| `workspace.phone/email` | ✅ | Contacto comercial |
-| `contact.name` | ✅ | Destinatário do documento |
-| `proposal_items.*` | ✅ | Conteúdo da proposta |
+## Ficheiros a Criar/Modificar
 
-### Dados NÃO Expostos
+| Ficheiro | Acção | Descrição |
+|----------|-------|-----------|
+| `src/components/common/EntityPicker.tsx` | Criar | Componente de pesquisa de clientes |
+| `src/hooks/useEntitySearch.ts` | Criar | Hook para pesquisa de contactos/empresas |
+| `src/components/calendars/CalendarEventModal.tsx` | Modificar | Adicionar campo de cliente |
+| `src/components/meetings/MeetingCreateModal.tsx` | Modificar | Adicionar campos de cliente/empresa |
 
-- `proposal_items.cost_snapshot` - custos internos (não aparecem no template público)
-- Outras propostas (draft/rejected) do mesmo workspace
+## Fluxo UX Após Implementação
 
-## Ficheiros a Modificar
+### Criar Evento com Cliente
 
-| Ficheiro | Acção |
-|----------|-------|
-| Nova migração SQL | Adicionar 4 políticas RLS públicas |
+```text
+1. Utilizador abre "Novo Evento" na Agenda
+2. Preenche título: "Reunião Mafalda Jacinto"
+3. Clica em "Cliente/Contacto"
+4. Pesquisa "Mafalda"
+5. Selecciona o contacto da lista
+6. Preenche data/hora
+7. Guarda
+
+→ Evento criado com contact_id preenchido
+→ Aparece na agenda com badge do cliente
+```
+
+### Criar Reunião com Cliente
+
+```text
+1. Utilizador abre "Nova Reunião" na aba Reuniões
+2. Selecciona categoria "Cliente"
+3. Preenche título
+4. No campo "Participante", pesquisa contacto
+5. Opcionalmente adiciona empresa
+6. Define data/hora/modo
+7. Guarda
+
+→ Reunião criada na tabela meetings
+→ Aparece na lista de reuniões com cliente associado
+```
+
+## Benefícios
+
+1. **Visualização clara** - Ver cliente associado na reunião/evento
+2. **Contexto** - Acesso rápido ao perfil do cliente
+3. **Timeline** - Reunião aparece no histórico do cliente
+4. **Relatórios** - Métricas por cliente/empresa
+5. **Consistência** - Mesmo padrão em ambos os sistemas
 
 ## Complexidade
 
-Baixa - Apenas 1 migração SQL com 4 políticas.
+Média - Requer:
+- Novo componente de pesquisa
+- Novo hook de pesquisa
+- Modificação de 2 formulários existentes
+- Sem alterações na base de dados (campos já existem)
