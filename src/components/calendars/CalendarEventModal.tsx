@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,8 +31,9 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin, Video, Trash2 } from 'lucide-react';
+import { CalendarIcon, MapPin, Video, Trash2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EntityPicker } from '@/components/common/EntityPicker';
 import type { Calendar as CalendarType, CalendarEvent, CreateEventData } from '@/hooks/useCalendars';
 
 const eventSchema = z.object({
@@ -47,6 +48,8 @@ const eventSchema = z.object({
   location: z.string().optional(),
   meeting_url: z.string().optional(),
   status: z.enum(['tentative', 'confirmed', 'cancelled']).default('confirmed'),
+  contact_id: z.string().optional().nullable(),
+  company_id: z.string().optional().nullable(),
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -71,6 +74,10 @@ export function CalendarEventModal({
   onDelete,
 }: CalendarEventModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null }>({
+    contactId: null,
+    companyId: null,
+  });
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -87,6 +94,8 @@ export function CalendarEventModal({
           location: event.location || '',
           meeting_url: event.meeting_url || '',
           status: event.status,
+          contact_id: event.contact_id || null,
+          company_id: event.company_id || null,
         }
       : {
           calendar_id: calendars[0]?.id || '',
@@ -100,8 +109,22 @@ export function CalendarEventModal({
           location: '',
           meeting_url: '',
           status: 'confirmed',
+          contact_id: null,
+          company_id: null,
         },
   });
+
+  // Update entityValue when event changes
+  useEffect(() => {
+    if (event) {
+      setEntityValue({
+        contactId: event.contact_id || null,
+        companyId: event.company_id || null,
+      });
+    } else {
+      setEntityValue({ contactId: null, companyId: null });
+    }
+  }, [event]);
 
   const handleSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);
@@ -125,8 +148,11 @@ export function CalendarEventModal({
         location: data.location,
         meeting_url: data.meeting_url,
         status: data.status,
+        contact_id: entityValue.contactId || undefined,
+        company_id: entityValue.companyId || undefined,
       });
       form.reset();
+      setEntityValue({ contactId: null, companyId: null });
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
@@ -195,6 +221,19 @@ export function CalendarEventModal({
                 </FormItem>
               )}
             />
+
+            {/* Entity Picker for Contact/Company */}
+            <div className="space-y-2">
+              <FormLabel className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                Cliente/Contacto
+              </FormLabel>
+              <EntityPicker
+                value={entityValue}
+                onChange={setEntityValue}
+                placeholder="Associar a contacto ou empresa..."
+              />
+            </div>
 
             <FormField
               control={form.control}

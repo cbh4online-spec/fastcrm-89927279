@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,11 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { 
   CalendarIcon, 
   Video, 
@@ -45,6 +42,7 @@ import {
   Link2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EntityPicker } from '@/components/common/EntityPicker';
 import type { 
   Meeting, 
   MeetingType, 
@@ -103,6 +101,10 @@ export function MeetingCreateModal({
   onSubmit,
 }: MeetingCreateModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null }>({
+    contactId: null,
+    companyId: null,
+  });
 
   const form = useForm<MeetingFormData>({
     resolver: zodResolver(meetingSchema),
@@ -138,6 +140,18 @@ export function MeetingCreateModal({
         },
   });
 
+  // Update entityValue when meeting changes
+  useEffect(() => {
+    if (meeting) {
+      setEntityValue({
+        contactId: meeting.contact_id || null,
+        companyId: meeting.company_id || null,
+      });
+    } else {
+      setEntityValue({ contactId: null, companyId: null });
+    }
+  }, [meeting]);
+
   const selectedCategory = form.watch('category');
   const selectedMode = form.watch('mode');
 
@@ -160,11 +174,12 @@ export function MeetingCreateModal({
         location: data.location,
         meeting_url: data.meeting_url,
         phone_number: data.phone_number,
-        contact_id: data.contact_id,
-        company_id: data.company_id,
+        contact_id: entityValue.contactId || undefined,
+        company_id: entityValue.companyId || undefined,
         internal_notes: data.internal_notes,
       });
       form.reset();
+      setEntityValue({ contactId: null, companyId: null });
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
@@ -256,6 +271,21 @@ export function MeetingCreateModal({
                 </FormItem>
               )}
             />
+
+            {/* Entity Picker for Contact/Company - only for client and hybrid meetings */}
+            {(selectedCategory === 'client' || selectedCategory === 'hybrid') && (
+              <div className="space-y-2">
+                <FormLabel className="flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  Cliente/Participante
+                </FormLabel>
+                <EntityPicker
+                  value={entityValue}
+                  onChange={setEntityValue}
+                  placeholder="Associar a contacto ou empresa..."
+                />
+              </div>
+            )}
 
             {/* Date and Time */}
             <div className="grid grid-cols-3 gap-4">
