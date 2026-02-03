@@ -140,17 +140,53 @@ export function MeetingCreateModal({
         },
   });
 
-  // Update entityValue when meeting changes
+  // Reset form when modal opens with different meeting data
   useEffect(() => {
-    if (meeting) {
-      setEntityValue({
-        contactId: meeting.contact_id || null,
-        companyId: meeting.company_id || null,
-      });
-    } else {
-      setEntityValue({ contactId: null, companyId: null });
+    if (open) {
+      if (meeting) {
+        // Editing existing meeting - populate with data
+        form.reset({
+          title: meeting.title,
+          description: meeting.description || '',
+          category: meeting.category,
+          mode: meeting.mode,
+          meeting_type_id: meeting.meeting_type_id || undefined,
+          start_date: new Date(meeting.start_time),
+          start_time: format(new Date(meeting.start_time), 'HH:mm'),
+          duration: Math.round(
+            (new Date(meeting.end_time).getTime() - 
+             new Date(meeting.start_time).getTime()) / 60000
+          ),
+          location: meeting.location || '',
+          meeting_url: meeting.meeting_url || '',
+          phone_number: meeting.phone_number || '',
+          contact_id: meeting.contact_id || undefined,
+          company_id: meeting.company_id || undefined,
+          internal_notes: meeting.internal_notes || '',
+        });
+        setEntityValue({
+          contactId: meeting.contact_id || null,
+          companyId: meeting.company_id || null,
+        });
+      } else {
+        // New meeting - reset to defaults
+        form.reset({
+          title: '',
+          description: '',
+          category: 'client',
+          mode: 'online',
+          start_date: defaultDate,
+          start_time: format(defaultDate, 'HH:mm'),
+          duration: 60,
+          location: '',
+          meeting_url: '',
+          phone_number: '',
+          internal_notes: '',
+        });
+        setEntityValue({ contactId: null, companyId: null });
+      }
     }
-  }, [meeting]);
+  }, [open, meeting, defaultDate, form]);
 
   const selectedCategory = form.watch('category');
   const selectedMode = form.watch('mode');
