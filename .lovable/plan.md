@@ -1,128 +1,165 @@
 
 
-# Plano: Corrigir Formulário de Reuniões que Aparece Sempre como "Novo"
+# Plano: Unificar Visualização de Reuniões - Combinar Agenda e Reuniões
 
 ## Problema Identificado
 
-Quando o utilizador clica numa reunião existente para editar, o formulário aparece sempre vazio como se fosse uma nova reunião. Este comportamento ocorre porque:
+O sistema tem **duas tabelas separadas** para gerir eventos/reuniões:
 
-### Causa Raiz
+| Sistema | Tabela | Usado em | Estado |
+|---------|--------|----------|--------|
+| Agenda | `calendar_events` | `/dashboard/calendars`, aba "Agenda" | ✅ Tem a reunião "Reunião Mafalda Jacinto" |
+| Reuniões | `meetings` | Aba "Reuniões" | ❌ Vazia |
 
-O componente `MeetingCreateModal` usa `useForm` com `defaultValues` que é calculado **apenas uma vez** durante a montagem do componente. Quando a prop `meeting` muda de `null` para um objeto de reunião existente, o React Hook Form **não reactualiza automaticamente** os valores do formulário.
+**Resultado**: A reunião criada na Agenda não aparece na aba "Reuniões" porque são sistemas independentes.
 
-```text
-┌────────────────────────────────────────────────────────────────┐
-│  Fluxo Actual (com problema)                                   │
-├────────────────────────────────────────────────────────────────┤
-│  1. MeetingsDashboard monta MeetingCreateModal                 │
-│     → meeting = null (formulário inicializado como vazio)      │
-│                                                                │
-│  2. Utilizador clica numa reunião existente                    │
-│     → setSelectedMeeting(reuniaoExistente)                     │
-│     → setShowCreateModal(true)                                 │
-│                                                                │
-│  3. Modal abre com meeting = reuniaoExistente                  │
-│     → MAS o form já foi inicializado com valores vazios!       │
-│     → useForm NÃO reactualiza defaultValues após montagem     │
-│                                                                │
-│  Resultado: Formulário aparece vazio (como "novo")             │
-└────────────────────────────────────────────────────────────────┘
-```
+## Opções de Solução
 
-## Solucao
+### Opção A: Mostrar calendar_events na aba Reuniões (Recomendado)
+Modificar o dashboard de Reuniões para também consultar eventos do calendário que sejam do tipo "reunião".
 
-Adicionar um `useEffect` que chame `form.reset()` com os novos valores sempre que a prop `meeting` ou o estado `open` mude.
+**Vantagens**:
+- Sem alteração na base de dados
+- Implementação rápida
+- Utilizador vê todas as reuniões num só local
 
-### Codigo a Alterar
+**Desvantagens**:
+- Dados vêm de duas fontes (complexidade de gestão)
 
-No ficheiro `src/components/meetings/MeetingCreateModal.tsx`:
+### Opção B: Sincronização automática entre tabelas
+Quando um evento é criado na Agenda, criar automaticamente uma entrada na tabela `meetings`.
+
+**Vantagens**:
+- Dados consistentes
+- Funcionalidades específicas de reuniões (outcome, follow-up) disponíveis
+
+**Desvantagens**:
+- Duplicação de dados
+- Precisa de trigger ou lógica adicional
+
+### Opção C: Migrar para tabela única
+Usar apenas a tabela `meetings` para tudo, removendo dependência de `calendar_events`.
+
+**Desvantagens**:
+- Grande refactoring
+- Perde funcionalidades específicas de calendário
+
+## Solução Proposta: Opção A
+
+Modificar o `useMeetings` hook para também buscar eventos de `calendar_events` e apresentá-los de forma unificada na aba Reuniões.
+
+### Implementação Técnica
+
+#### 1. Criar função de mapeamento
 
 ```typescript
-// Adicionar useEffect para resetar o formulário quando meeting muda
-useEffect(() => {
-  if (open) {
-    if (meeting) {
-      // Editar reunião existente - preencher com dados
-      form.reset({
-        title: meeting.title,
-        description: meeting.description || '',
-        category: meeting.category,
-        mode: meeting.mode,
-        meeting_type_id: meeting.meeting_type_id || undefined,
-        start_date: new Date(meeting.start_time),
-        start_time: format(new Date(meeting.start_time), 'HH:mm'),
-        duration: Math.round(
-          (new Date(meeting.end_time).getTime() - 
-           new Date(meeting.start_time).getTime()) / 60000
-        ),
-        location: meeting.location || '',
-        meeting_url: meeting.meeting_url || '',
-        phone_number: meeting.phone_number || '',
-        contact_id: meeting.contact_id || undefined,
-        company_id: meeting.company_id || undefined,
-        internal_notes: meeting.internal_notes || '',
-      });
-      setEntityValue({
-        contactId: meeting.contact_id || null,
-        companyId: meeting.company_id || null,
-      });
-    } else {
-      // Nova reunião - limpar formulário
-      form.reset({
-        title: '',
-        description: '',
-        category: 'client',
-        mode: 'online',
-        start_date: defaultDate,
-        start_time: format(defaultDate, 'HH:mm'),
-        duration: 60,
-        location: '',
-        meeting_url: '',
-        phone_number: '',
-        internal_notes: '',
-      });
-      setEntityValue({ contactId: null, companyId: null });
-    }
-  }
-}, [open, meeting, defaultDate, form]);
+// Mapear calendar_events para o formato Meeting
+function mapCalendarEventToMeeting(event: CalendarEvent): Meeting {
+  return {
+    id: event.id,
+    workspace_id: event.workspace_id,
+    title: event.title,
+    description: event.description,
+    category: 'client', // Default para eventos de calendário
+    mode: event.meeting_url ? 'online' : 'in_person',
+    start_time: event.start_time,
+    end_time: event.end_time,
+    location: event.location,
+    meeting_url: event.meeting_url,
+    status: event.status === 'confirmed' ? 'confirmed' : 'pending',
+    contact_id: event.contact_id,
+    company_id: event.company_id,
+    // ... outros campos com valores default
+    source: 'calendar_event', // Identificar origem
+  };
+}
 ```
 
-### Fluxo Corrigido
+#### 2. Modificar useMeetings hook
+
+```typescript
+const fetchMeetings = useCallback(async () => {
+  // Buscar da tabela meetings
+  const { data: meetingsData } = await supabase
+    .from('meetings')
+    .select('*, contact:contacts(...), company:companies(...)')
+    .eq('workspace_id', currentWorkspace.id);
+
+  // Buscar da tabela calendar_events
+  const { data: eventsData } = await supabase
+    .from('calendar_events')
+    .select('*, calendar:calendars(...)')
+    .eq('workspace_id', currentWorkspace.id);
+
+  // Combinar ambos
+  const combined = [
+    ...(meetingsData || []),
+    ...(eventsData || []).map(mapCalendarEventToMeeting),
+  ];
+
+  // Ordenar por data
+  combined.sort((a, b) => 
+    new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+  );
+
+  setMeetings(combined);
+}, [...]);
+```
+
+#### 3. Adicionar indicador visual de origem
+
+No `MeetingCard.tsx`, mostrar badge indicando se é "Reunião" ou "Evento de Calendário" para o utilizador saber onde editar.
+
+### Fluxo Após Implementação
 
 ```text
-┌────────────────────────────────────────────────────────────────┐
-│  Fluxo Após Correcção                                          │
-├────────────────────────────────────────────────────────────────┤
-│  1. Utilizador clica numa reunião existente                    │
-│     → setSelectedMeeting(reuniaoExistente)                     │
-│     → setShowCreateModal(true)                                 │
-│                                                                │
-│  2. Modal abre (open = true, meeting = reuniaoExistente)       │
-│                                                                │
-│  3. useEffect detecta mudança em [open, meeting]               │
-│     → form.reset(valoresDaReuniaoExistente)                   │
-│     → setEntityValue(contacto/empresa da reunião)              │
-│                                                                │
-│  Resultado: Formulário mostra dados da reunião existente       │
-└────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  Utilizador abre aba "Reuniões"                                 │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  useMeetings hook                                               │
+│  ├── SELECT * FROM meetings WHERE workspace_id = ...           │
+│  └── SELECT * FROM calendar_events WHERE workspace_id = ...    │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Combinar + Ordenar por data                                    │
+│  ├── meetings[]                                                │
+│  └── calendar_events[] → mapeados para formato Meeting        │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Dashboard mostra TODAS as reuniões:                           │
+│  ✅ "Reunião Mafalda Jacinto" (de calendar_events)             │
+│  ✅ Reuniões criadas via MeetingCreateModal (de meetings)      │
+└─────────────────────────────────────────────────────────────────┘
 ```
-
-## Nota Adicional
-
-O problema secundário mencionado anteriormente (reunião no calendário não aparece na aba Reuniões) é expectável porque:
-- **Agenda/Calendário** usa a tabela `calendar_events`
-- **Reuniões** usa a tabela `meetings`
-- São sistemas separados
-
-Esta correcção foca-se no problema do formulário. A sincronização entre sistemas seria uma funcionalidade adicional.
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/meetings/MeetingCreateModal.tsx` | Adicionar useEffect para resetar formulário quando `meeting` ou `open` mudam |
+| `src/hooks/useMeetings.ts` | Adicionar query a `calendar_events` e combinar resultados |
+| `src/hooks/useCalendars.ts` | Reutilizar tipo `CalendarEvent` |
+| `src/components/meetings/MeetingCard.tsx` | Adicionar badge de origem |
+
+## Considerações
+
+1. **Edição**: Quando o utilizador clicar para editar uma reunião vinda de `calendar_events`, abrir o `CalendarEventModal` em vez do `MeetingCreateModal`
+
+2. **Funcionalidades limitadas**: Eventos de calendário não terão acesso a funcionalidades específicas de reuniões como "Registar Outcome" ou "Follow-up" (a menos que sejam migrados)
+
+3. **Filtros**: Adicionar filtro opcional "Origem: Reuniões | Eventos | Todos"
 
 ## Complexidade
 
-Baixa - Apenas uma alteração num ficheiro para adicionar o useEffect de reset.
+Média - Requer:
+- Modificação do hook de reuniões
+- Função de mapeamento de tipos
+- Lógica condicional para edição
+- Badge visual de origem
 
