@@ -7,7 +7,7 @@ export interface SearchableEntity {
   name: string;
   email?: string | null;
   phone?: string | null;
-  type: 'contact' | 'company';
+  type: 'contact' | 'company' | 'lead';
   avatar_url?: string | null;
   company?: string | null;
   website?: string | null;
@@ -17,12 +17,15 @@ interface UseEntitySearchResult {
   entities: SearchableEntity[];
   contacts: SearchableEntity[];
   companies: SearchableEntity[];
+  leads: SearchableEntity[];
   isLoading: boolean;
   search: (query: string) => Promise<void>;
   searchContacts: (query: string) => Promise<SearchableEntity[]>;
   searchCompanies: (query: string) => Promise<SearchableEntity[]>;
+  searchLeads: (query: string) => Promise<SearchableEntity[]>;
   getContactById: (id: string) => Promise<SearchableEntity | null>;
   getCompanyById: (id: string) => Promise<SearchableEntity | null>;
+  getLeadById: (id: string) => Promise<SearchableEntity | null>;
 }
 
 export function useEntitySearch(): UseEntitySearchResult {
@@ -30,6 +33,7 @@ export function useEntitySearch(): UseEntitySearchResult {
   const [entities, setEntities] = useState<SearchableEntity[]>([]);
   const [contacts, setContacts] = useState<SearchableEntity[]>([]);
   const [companies, setCompanies] = useState<SearchableEntity[]>([]);
+  const [leads, setLeads] = useState<SearchableEntity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const search = useCallback(async (query: string) => {
@@ -39,7 +43,7 @@ export function useEntitySearch(): UseEntitySearchResult {
     try {
       const searchTerm = query ? `%${query}%` : '%';
       
-      const [contactsResult, companiesResult] = await Promise.all([
+      const [contactsResult, companiesResult, leadsResult] = await Promise.all([
         supabase
           .from('contacts')
           .select('id, name, email, phone, avatar_url, company')
@@ -52,6 +56,13 @@ export function useEntitySearch(): UseEntitySearchResult {
           .select('id, name, website, avatar_url, phone')
           .eq('workspace_id', currentWorkspace.id)
           .ilike('name', searchTerm)
+          .order('name')
+          .limit(20),
+        supabase
+          .from('leads')
+          .select('id, name, email, phone')
+          .eq('workspace_id', currentWorkspace.id)
+          .or(`name.ilike.${searchTerm},email.ilike.${searchTerm}`)
           .order('name')
           .limit(20),
       ]);
@@ -75,9 +86,19 @@ export function useEntitySearch(): UseEntitySearchResult {
         phone: c.phone,
       }));
 
+      const mappedLeads: SearchableEntity[] = (leadsResult.data || []).map(l => ({
+        id: l.id,
+        name: l.name,
+        email: l.email,
+        phone: l.phone,
+        type: 'lead' as const,
+        avatar_url: null,
+      }));
+
       setContacts(mappedContacts);
       setCompanies(mappedCompanies);
-      setEntities([...mappedContacts, ...mappedCompanies]);
+      setLeads(mappedLeads);
+      setEntities([...mappedContacts, ...mappedCompanies, ...mappedLeads]);
     } finally {
       setIsLoading(false);
     }
@@ -130,6 +151,29 @@ export function useEntitySearch(): UseEntitySearchResult {
     }));
   }, [currentWorkspace?.id]);
 
+  const searchLeads = useCallback(async (query: string): Promise<SearchableEntity[]> => {
+    if (!currentWorkspace?.id) return [];
+    
+    const searchTerm = query ? `%${query}%` : '%';
+    
+    const { data } = await supabase
+      .from('leads')
+      .select('id, name, email, phone')
+      .eq('workspace_id', currentWorkspace.id)
+      .or(`name.ilike.${searchTerm},email.ilike.${searchTerm}`)
+      .order('name')
+      .limit(20);
+
+    return (data || []).map(l => ({
+      id: l.id,
+      name: l.name,
+      email: l.email,
+      phone: l.phone,
+      type: 'lead' as const,
+      avatar_url: null,
+    }));
+  }, [currentWorkspace?.id]);
+
   const getContactById = useCallback(async (id: string): Promise<SearchableEntity | null> => {
     if (!id) return null;
     
@@ -173,15 +217,39 @@ export function useEntitySearch(): UseEntitySearchResult {
     };
   }, []);
 
+  const getLeadById = useCallback(async (id: string): Promise<SearchableEntity | null> => {
+    if (!id) return null;
+    
+    const { data } = await supabase
+      .from('leads')
+      .select('id, name, email, phone')
+      .eq('id', id)
+      .single();
+
+    if (!data) return null;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      type: 'lead',
+      avatar_url: null,
+    };
+  }, []);
+
   return {
     entities,
     contacts,
     companies,
+    leads,
     isLoading,
     search,
     searchContacts,
     searchCompanies,
+    searchLeads,
     getContactById,
     getCompanyById,
+    getLeadById,
   };
 }
