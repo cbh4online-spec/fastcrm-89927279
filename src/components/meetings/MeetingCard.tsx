@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import type { Meeting, MeetingStatus, MeetingCategory, MeetingMode, MeetingOutcome } from '@/hooks/useMeetings';
+import type { Meeting, MeetingStatus, MeetingCategory, MeetingMode, MeetingOutcome, MeetingSource } from '@/hooks/useMeetings';
 
 interface MeetingCardProps {
   meeting: Meeting;
@@ -64,6 +64,11 @@ const modeConfig: Record<MeetingMode, { label: string; icon: typeof Video }> = {
   in_person: { label: 'Presencial', icon: MapPin },
   phone: { label: 'Telefone', icon: Phone },
   whatsapp: { label: 'WhatsApp', icon: MessageCircle },
+};
+
+const sourceConfig: Record<MeetingSource, { label: string; color: string }> = {
+  meeting: { label: 'Reunião', color: 'bg-primary/10 text-primary' },
+  calendar_event: { label: 'Agenda', color: 'bg-orange-500/10 text-orange-600' },
 };
 
 export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare, onNoShow }: MeetingCardProps) {
@@ -310,7 +315,7 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegis
         </span>
       </div>
 
-      {/* Category badge */}
+      {/* Category badge and source indicator */}
       <div className="flex items-center gap-2 mb-3">
         <Badge variant="outline">
           <CategoryIcon className={cn("h-3 w-3 mr-1", categoryInfo.color)} />
@@ -319,6 +324,10 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegis
         {meeting.meeting_type && (
           <Badge variant="secondary">{meeting.meeting_type.name}</Badge>
         )}
+        {/* Source indicator */}
+        <Badge className={cn("text-xs", sourceConfig[meeting.source].color)} variant="outline">
+          {sourceConfig[meeting.source].label}
+        </Badge>
       </div>
 
       {/* Client info (for client/hybrid meetings) */}

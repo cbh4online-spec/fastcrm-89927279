@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import type { CalendarEvent } from './useCalendars';
 
 export type MeetingCategory = 'client' | 'internal' | 'hybrid';
 export type MeetingMode = 'online' | 'in_person' | 'phone' | 'whatsapp';
@@ -47,6 +48,8 @@ export interface MeetingType {
   created_at: string;
 }
 
+export type MeetingSource = 'meeting' | 'calendar_event';
+
 export interface Meeting {
   id: string;
   workspace_id: string;
@@ -85,7 +88,7 @@ export interface Meeting {
   crm_activity_id: string | null;
   // Joined data for notes
   notes?: MeetingNote[];
-  source: string;
+  source: MeetingSource;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -94,6 +97,57 @@ export interface Meeting {
   contact?: { id: string; name: string; email: string | null };
   company?: { id: string; name: string };
   attendees?: MeetingAttendee[];
+}
+
+// Helper function to map CalendarEvent to Meeting format
+function mapCalendarEventToMeeting(event: CalendarEvent): Meeting {
+  const statusMap: Record<string, MeetingStatus> = {
+    confirmed: 'confirmed',
+    tentative: 'pending',
+    cancelled: 'cancelled',
+  };
+
+  return {
+    id: event.id,
+    workspace_id: event.workspace_id,
+    calendar_id: event.calendar_id,
+    meeting_type_id: null,
+    title: event.title,
+    description: event.description,
+    category: 'client',
+    mode: event.meeting_url ? 'online' : 'in_person',
+    start_time: event.start_time,
+    end_time: event.end_time,
+    timezone: 'Europe/Lisbon',
+    buffer_before: 0,
+    buffer_after: 0,
+    location: event.location,
+    meeting_url: event.meeting_url,
+    meeting_provider: null,
+    phone_number: null,
+    status: statusMap[event.status] || 'pending',
+    cancelled_at: null,
+    cancellation_reason: null,
+    confirmed_at: null,
+    completed_at: null,
+    contact_id: event.contact_id,
+    company_id: event.company_id,
+    lead_id: event.lead_id,
+    opportunity_id: event.opportunity_id,
+    internal_notes: null,
+    client_notes: null,
+    outcome: null,
+    outcome_notes: null,
+    next_steps: null,
+    follow_up_required: false,
+    follow_up_date: null,
+    follow_up_task_id: null,
+    crm_activity_id: null,
+    source: 'calendar_event',
+    created_by: event.created_by,
+    created_at: event.created_at,
+    updated_at: event.updated_at,
+  };
 }
 
 export interface MeetingAttendee {
@@ -152,7 +206,8 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
     setError(null);
     
     try {
-      let query = supabase
+      // Fetch from meetings table
+      let meetingsQuery = supabase
         .from('meetings')
         .select(`
           *,
@@ -163,16 +218,56 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
         .eq('workspace_id', currentWorkspace.id)
         .order('start_time', { ascending: true });
 
+      // Fetch from calendar_events table
+      let eventsQuery = supabase
+        .from('calendar_events')
+        .select(`
+          *,
+          calendar:calendars(id, name, color),
+          contact:contacts(id, name, email),
+          company:companies(id, name)
+        `)
+        .eq('workspace_id', currentWorkspace.id)
+        .order('start_time', { ascending: true });
+
       if (dateRange) {
-        query = query
+        meetingsQuery = meetingsQuery
+          .gte('start_time', dateRange.start.toISOString())
+          .lte('end_time', dateRange.end.toISOString());
+        eventsQuery = eventsQuery
           .gte('start_time', dateRange.start.toISOString())
           .lte('end_time', dateRange.end.toISOString());
       }
 
-      const { data, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
+      const [meetingsResult, eventsResult] = await Promise.all([
+        meetingsQuery,
+        eventsQuery,
+      ]);
+
+      if (meetingsResult.error) throw meetingsResult.error;
+      if (eventsResult.error) throw eventsResult.error;
+
+      // Map meetings with source
+      const meetingsWithSource = (meetingsResult.data || []).map(m => ({
+        ...(m as unknown as Meeting),
+        source: 'meeting' as MeetingSource,
+      }));
+
+      // Map calendar events to meeting format
+      const eventsAsMeetings = (eventsResult.data || []).map(event => {
+        const mapped = mapCalendarEventToMeeting(event as unknown as CalendarEvent);
+        // Add contact/company from joined data
+        if (event.contact) mapped.contact = event.contact as { id: string; name: string; email: string | null };
+        if (event.company) mapped.company = event.company as { id: string; name: string };
+        return mapped;
+      });
+
+      // Combine and sort by start_time
+      const combined = [...meetingsWithSource, ...eventsAsMeetings].sort(
+        (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      );
       
-      setMeetings(data as unknown as Meeting[] || []);
+      setMeetings(combined);
     } catch (err) {
       console.error('Error fetching meetings:', err);
       setError('Erro ao carregar reuniões');
