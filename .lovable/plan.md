@@ -1,84 +1,127 @@
 
 
-# Plano: Substituir Alertas Demo por Alertas Reais no Sininho
+# Plano: Adicionar Secao de Agendamentos nas Entidades CRM
 
-## Problema Identificado
+## Resumo
 
-O sininho de notificações no header (`TopBar`) mostra sempre alertas de demonstração hardcoded em vez de usar os alertas reais da base de dados.
+Criar uma nova seccao "Agendamentos" nas paginas de detalhe de Contactos, Leads e Empresas, permitindo visualizar e criar reunioes/eventos diretamente a partir de cada entidade.
 
-### Situação Atual
-
-| Componente | Localização | Fonte de Dados |
-|------------|-------------|----------------|
-| `NotificationsDropdown` | TopBar (header global) | Dados demo hardcoded |
-| `SmartAlertsPopover` | InboxView | Base de dados real |
-
-O sistema de alertas inteligentes (`inbox_smart_alerts`) já está implementado e funcional, com hooks para CRUD (`useSmartAlerts`, `useDismissAlert`, `useMarkAlertRead`, etc.).
-
-### Alertas Demo vs Alertas Reais
+## Arquitetura da Solucao
 
 ```text
-NotificationsDropdown (ATUAL):
-+------------------+
-| demoNotifications|  <- Array estático
-|   - João Silva   |     definido no código
-|   - Proposta #123|
-|   - Maria...     |
-+------------------+
-
-SmartAlertsPopover (REAL):
-+------------------+
-| useSmartAlerts() |  <- Query à base de dados
-|   - inbox_smart_ |     com hooks para
-|     alerts table |     marcar lido/descartar
-+------------------+
++----------------------------------+
+|  EntityDetailWithSidebar         |
+|  (Contact/Lead/Company)          |
++----------------------------------+
+          |
+          v
++----------------------------------+
+|  EntitySidebarMenu               |
+|  + Nova opcao "Agendamentos"     |
++----------------------------------+
+          |
+          v
++----------------------------------+
+|  EntitySchedulingSection (NOVO)  |
+|  - Lista reunioes da entidade    |
+|  - Botao criar nova reuniao      |
+|  - Reutiliza MeetingCreateModal  |
++----------------------------------+
 ```
 
-## Solução Proposta
+## Ficheiros a Criar
 
-Substituir o `NotificationsDropdown` pelo `SmartAlertsPopover` no `TopBar`, fazendo ajustes visuais mínimos para manter a consistência com o design do header.
-
-### Alterações Necessárias
-
-**1. Ficheiro: `src/components/layout/TopBar.tsx`**
-
-Substituir a importação e uso do `NotificationsDropdown` pelo `SmartAlertsPopover`:
-
-```typescript
-// Antes
-import { NotificationsDropdown } from "./NotificationsDropdown";
-// ...
-<NotificationsDropdown />
-
-// Depois
-import { SmartAlertsPopover } from "@/components/inbox/SmartAlertsPopover";
-// ...
-<SmartAlertsPopover />
-```
-
-**2. Ficheiro: `src/components/inbox/SmartAlertsPopover.tsx`** (ajustes opcionais)
-
-Pequenas alterações para melhor integração no header:
-- Variante visual mais compacta para o header
-- Remover texto "Alertas" no header (só ícone)
+| Ficheiro | Descricao |
+|----------|-----------|
+| `src/components/scheduling/EntitySchedulingSection.tsx` | Componente que lista reunioes/eventos de uma entidade e permite criar novos |
 
 ## Ficheiros a Modificar
 
-| Ficheiro | Alteração |
+| Ficheiro | Alteracao |
 |----------|-----------|
-| `src/components/layout/TopBar.tsx` | Substituir `NotificationsDropdown` por `SmartAlertsPopover` |
-| `src/components/inbox/SmartAlertsPopover.tsx` | Ajustar estilo do botão para modo compacto (opcional) |
+| `src/types/entity.ts` | Adicionar 'scheduling' ao tipo MenuSection |
+| `src/components/entity/EntitySidebarMenu.tsx` | Adicionar item "Agendamentos" ao menu lateral |
+| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Adicionar case 'scheduling' no renderSectionContent |
+| `src/components/crm/LeadDetailWithSidebar.tsx` | Adicionar case 'scheduling' no renderSectionContent |
+| `src/components/companies/CompanyDetailWithSidebar.tsx` | Adicionar case 'scheduling' no renderSectionContent |
+| `src/hooks/useEntityCounts.ts` | Adicionar contagem de reunioes ao retorno (se existir) |
 
-## Resultado Esperado
+## Detalhes Tecnicos
 
-Após a alteração:
-1. O sininho no header mostra alertas reais da base de dados
-2. Clicar num alerta marca-o como lido e navega para a ação
-3. Alertas podem ser descartados individualmente
-4. O badge mostra a contagem real de alertas não lidos
-5. Quando não há alertas, mostra "Tudo em dia!"
+### 1. Novo Componente EntitySchedulingSection
+
+```typescript
+interface EntitySchedulingSectionProps {
+  entityType: 'lead' | 'contact' | 'company';
+  entityId: string;
+  entityName: string;
+  entityEmail?: string;
+  entityPhone?: string;
+}
+```
+
+**Funcionalidades:**
+- Lista de reunioes filtradas por `contact_id`, `company_id` ou `lead_id`
+- Botao "Agendar Reuniao" que abre o MeetingCreateModal
+- Pre-preenche automaticamente o cliente/empresa no modal
+- Mostra reunioes futuras e passadas com separadores
+- Estados visuais por status (pendente, confirmado, concluido, etc.)
+
+### 2. Atualizacao do MenuSection
+
+Adicionar ao tipo:
+```typescript
+export type MenuSection = 
+  | 'overview' 
+  | ...
+  | 'scheduling' // NOVO
+  | 'student-journey';
+```
+
+### 3. Novo Item no Menu Lateral
+
+```typescript
+{
+  id: 'scheduling',
+  label: 'Agendamentos',
+  icon: CalendarCheck,
+  showFor: ['lead', 'contact', 'company']
+}
+```
+
+### 4. Hook para Reunioes da Entidade
+
+Criar ou adaptar hook `useEntityMeetings`:
+```typescript
+function useEntityMeetings(
+  entityType: 'lead' | 'contact' | 'company',
+  entityId: string
+) {
+  // Filtra meetings onde:
+  // - contact_id = entityId (se entityType === 'contact')
+  // - company_id = entityId (se entityType === 'company')
+  // - lead_id = entityId (se entityType === 'lead')
+}
+```
+
+## Fluxo de Usuario
+
+1. Utilizador abre detalhe de um Contacto/Lead/Empresa
+2. Clica em "Agendamentos" no menu lateral
+3. Ve lista de reunioes associadas a esta entidade
+4. Clica em "Agendar Reuniao"
+5. Modal abre com entidade ja pre-selecionada
+6. Cria a reuniao
+7. Nova reuniao aparece na lista
+
+## Integracao com Sistema Existente
+
+- Reutiliza `MeetingCreateModal` existente
+- Reutiliza `MeetingCard` para exibir reunioes
+- Usa hook `useMeetings` com filtros por entidade
+- Respeita permissoes e workspace atual
 
 ## Complexidade
 
-Baixa - Principalmente substituição de imports e ajuste de props.
+Media - Envolve criar novo componente e modificar varios ficheiros, mas reutiliza componentes existentes.
 
