@@ -93,7 +93,7 @@ export function ClientUsersList() {
             clientEmail: client.email,
             workspaceName: workspace?.name || "FastCRM",
             workspaceId: client.workspace_id,
-            portalUrl: "https://fastcrm.metodopare.ai/client/login",
+            portalUrl: `${window.location.origin}/client/login`,
             temporaryPassword: temporaryPassword,
           },
         }
