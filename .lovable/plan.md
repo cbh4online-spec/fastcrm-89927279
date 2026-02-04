@@ -1,140 +1,228 @@
 
-# Plano: Resolver Documentos Presos em "A Processar"
 
-## Problema
+# Plano: Multi-Selecção e Ordenação na Lista de Perfis
 
-O documento "TRICOLOGIA.pdf" está preso em estado "processing" há 3 dias (desde 1 de Fevereiro). Isto acontece porque:
+## Funcionalidades a Implementar
 
-1. O processamento falhou silenciosamente (timeout ou limite de memória da Edge Function)
-2. O status nunca foi actualizado para "failed"
-3. A interface não permite reprocessar documentos em estado "processing"
+### 1. Multi-Selecção de Perfis
+Permitir seleccionar vários perfis em simultâneo para executar acções em massa como apagar.
 
-## Solução
+### 2. Ordenação por Colunas
+Permitir ordenar a tabela por nome, estado, score, cursos, etc.
 
-Implementar três correções:
+## Alterações Técnicas
 
-### 1. Permitir Reprocessar/Cancelar Documentos em "processing"
+### Ficheiro: `src/pages/student-journey/SJProfiles.tsx`
 
-Actualmente, o menu de acções só aparece para status `failed`, `pending` ou `completed`. Precisamos adicionar a opção de "Cancelar" ou "Forçar Reprocessamento" para documentos em `processing`.
+#### A. Estado para Multi-Selecção
 
-**Ficheiro: `src/components/knowledge-base/KnowledgeSourcesPanel.tsx`**
-
-Alterar a condição da linha 183:
-```typescript
-// Antes (não inclui 'processing')
-{(source.processingStatus === 'failed' || source.processingStatus === 'pending' || source.processingStatus === 'completed') && onReprocess && (
-
-// Depois (inclui 'processing')
-{onReprocess && (
-```
-
-Adicionar opção específica para cancelar processamento preso:
-```typescript
-{source.processingStatus === 'processing' && onReprocess && (
-  <DropdownMenuItem onClick={() => onReprocess(source.id)}>
-    <XCircle className="h-4 w-4 mr-2" />
-    Cancelar e Reprocessar
-  </DropdownMenuItem>
-)}
-```
-
-### 2. Detectar Documentos Presos (Stale) e Marcá-los
-
-Adicionar lógica para detectar documentos em "processing" há mais de 30 minutos e mostrá-los visualmente como "presos".
-
-**Ficheiro: `src/components/knowledge-base/KnowledgeSourcesPanel.tsx`**
+Adicionar estado para gerir os perfis seleccionados:
 
 ```typescript
-// Verificar se o processamento está preso (mais de 30 minutos)
-const isStale = source.processingStatus === 'processing' && 
-  new Date().getTime() - new Date(source.updatedAt).getTime() > 30 * 60 * 1000;
+const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-{isStale && (
-  <Badge variant="outline" className="bg-amber-50 text-amber-600 text-xs">
-    <AlertTriangle className="h-3 w-3 mr-1" />
-    Possível bloqueio
-  </Badge>
-)}
-```
+// Helpers
+const toggleSelect = (id: string) => {
+  setSelectedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+};
 
-### 3. Forçar Reset do Status ao Reprocessar
-
-**Ficheiro: `src/components/knowledge-base/KnowledgeBaseModule.tsx`**
-
-Na função `onReprocess`, garantir que o status é resetado para "pending" antes de chamar a edge function:
-
-```typescript
-onReprocess={async (sourceId) => {
-  const source = sources.find(s => s.id === sourceId);
-  if (source) {
-    toast.info('A reprocessar fonte...');
-    
-    // Primeiro resetar para pending (em vez de processing)
-    await supabase
-      .from('knowledge_sources')
-      .update({ 
-        processing_status: 'pending', // Mudou de 'processing'
-        processing_error: null,
-        last_processed_at: null 
-      })
-      .eq('id', sourceId);
-    
-    // Depois actualizar para processing e chamar a função
-    await supabase
-      .from('knowledge_sources')
-      .update({ processing_status: 'processing' })
-      .eq('id', sourceId);
-    
-    // ... resto do código
+const toggleSelectAll = () => {
+  if (selectedIds.size === filteredProfiles.length) {
+    setSelectedIds(new Set());
+  } else {
+    setSelectedIds(new Set(filteredProfiles.map(p => p.id)));
   }
-}}
+};
+
+const clearSelection = () => setSelectedIds(new Set());
 ```
 
-### 4. Corrigir Edge Function para Marcar Erros Correctamente
-
-**Ficheiro: `supabase/functions/knowledge-document-process/index.ts`**
-
-Adicionar timeout handler e garantir que erros de timeout são capturados:
+#### B. Estado para Ordenação
 
 ```typescript
-// No início do processamento background
-const timeout = setTimeout(async () => {
-  await supabase
-    .from('knowledge_sources')
-    .update({
-      processing_status: 'failed',
-      processing_error: 'Processamento excedeu o tempo limite (timeout)'
-    })
-    .eq('id', sourceId);
-}, 140000); // 140 segundos (antes do limite de 150s)
+type SortField = 'name' | 'state' | 'score' | 'courses' | 'created';
+type SortDirection = 'asc' | 'desc';
 
-// No final do processamento
-clearTimeout(timeout);
+const [sortField, setSortField] = useState<SortField>('name');
+const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+const handleSort = (field: SortField) => {
+  if (sortField === field) {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  } else {
+    setSortField(field);
+    setSortDirection('asc');
+  }
+};
+```
+
+#### C. Lógica de Ordenação
+
+```typescript
+const sortedProfiles = useMemo(() => {
+  return [...filteredProfiles].sort((a, b) => {
+    let comparison = 0;
+    switch (sortField) {
+      case 'name':
+        comparison = a.full_name.localeCompare(b.full_name);
+        break;
+      case 'state':
+        comparison = a.lifecycle_stage.localeCompare(b.lifecycle_stage);
+        break;
+      case 'score':
+        comparison = (a.activationScore || 0) - (b.activationScore || 0);
+        break;
+      case 'courses':
+        comparison = (a.completedCourses || 0) - (b.completedCourses || 0);
+        break;
+      case 'created':
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
+    }
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+}, [filteredProfiles, sortField, sortDirection]);
+```
+
+#### D. Acção de Apagar em Massa
+
+```typescript
+const handleBulkDelete = async () => {
+  if (selectedIds.size === 0) return;
+  
+  const confirmed = confirm(
+    `Tem a certeza que deseja remover ${selectedIds.size} perfil(is)?`
+  );
+  
+  if (confirmed) {
+    for (const id of selectedIds) {
+      await deleteProfile.mutateAsync(id);
+    }
+    clearSelection();
+  }
+};
+```
+
+#### E. Interface - Barra de Acções em Massa
+
+Quando há perfis seleccionados, mostrar uma barra de acções:
+
+```typescript
+{selectedIds.size > 0 && (
+  <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+    <span className="text-sm font-medium">
+      {selectedIds.size} perfil(is) seleccionado(s)
+    </span>
+    <div className="flex items-center gap-2">
+      <Button variant="ghost" size="sm" onClick={clearSelection}>
+        Cancelar
+      </Button>
+      <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+        <Trash2 className="h-4 w-4 mr-2" />
+        Apagar Seleccionados
+      </Button>
+    </div>
+  </div>
+)}
+```
+
+#### F. Interface - Cabeçalhos Ordenáveis
+
+```typescript
+<TableHeader>
+  <TableRow>
+    <TableHead className="w-12">
+      <Checkbox
+        checked={selectedIds.size === filteredProfiles.length && filteredProfiles.length > 0}
+        onCheckedChange={toggleSelectAll}
+      />
+    </TableHead>
+    <TableHead 
+      className="cursor-pointer hover:bg-muted/50"
+      onClick={() => handleSort('name')}
+    >
+      <div className="flex items-center gap-1">
+        Nome
+        {sortField === 'name' && (
+          sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+        )}
+      </div>
+    </TableHead>
+    <TableHead 
+      className="cursor-pointer hover:bg-muted/50"
+      onClick={() => handleSort('state')}
+    >
+      <div className="flex items-center gap-1">
+        Estado
+        {sortField === 'state' && (...)}
+      </div>
+    </TableHead>
+    {/* Repetir para Score, Cursos, etc. */}
+  </TableRow>
+</TableHeader>
+```
+
+#### G. Interface - Checkbox por Linha
+
+```typescript
+<TableRow key={profile.id} className={cn(selectedIds.has(profile.id) && "bg-primary/5")}>
+  <TableCell>
+    <Checkbox
+      checked={selectedIds.has(profile.id)}
+      onCheckedChange={() => toggleSelect(profile.id)}
+    />
+  </TableCell>
+  {/* ... resto das células */}
+</TableRow>
+```
+
+## Layout Visual
+
+```text
+╔══════════════════════════════════════════════════════════════════════════╗
+║ Perfis de Alunos                                    [Importar] [+ Novo]  ║
+║ 45 de 120 perfis                                                         ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║ [Pesquisar...]                      [Potencial ▾] [Tempo ▾] [Área ▾]     ║
+║ [Todos] [Lead] [Prospect] [Inscrito] [Ativo] [Concluído] [Inativo]       ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║  ┌─────────────────────────────────────────────────────────────────────┐ ║
+║  │ ✓ 3 perfil(is) seleccionado(s)           [Cancelar] [🗑️ Apagar]    │ ║
+║  └─────────────────────────────────────────────────────────────────────┘ ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║ ☐ │ Nome ↑          │ Estado    │ Score │ Cursos │ Especialidade │ ...  ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║ ☐ │ Ana Silva       │ Ativo     │  85%  │   3    │ Tricologia    │ ...  ║
+║ ☑ │ João Santos     │ Lead      │  45%  │   0    │ -             │ ...  ║
+║ ☑ │ Maria Costa     │ Prospect  │  60%  │   1    │ Unhas         │ ...  ║
+║ ☑ │ Pedro Almeida   │ Inativo   │  20%  │   2    │ Massagem      │ ...  ║
+╚══════════════════════════════════════════════════════════════════════════╝
 ```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/knowledge-base/KnowledgeSourcesPanel.tsx` | Adicionar opção para reprocessar/cancelar documentos em "processing" + indicador de documento preso |
-| `src/components/knowledge-base/KnowledgeBaseModule.tsx` | Melhorar lógica de reprocessamento |
-| `supabase/functions/knowledge-document-process/index.ts` | Adicionar timeout handler |
-| `supabase/functions/knowledge-document-trigger/index.ts` | Adicionar timeout handler |
+| `src/pages/student-journey/SJProfiles.tsx` | Adicionar multi-selecção, ordenação e barra de acções em massa |
 
-## Correcção Imediata (via Base de Dados)
+## Imports Adicionais
 
-Para resolver o documento actual que está preso, será necessário resetar manualmente o status:
-
-```sql
-UPDATE knowledge_sources 
-SET processing_status = 'failed', 
-    processing_error = 'Processamento falhou (timeout). Clique para reprocessar.'
-WHERE id = '1e0f51a8-ff06-4423-8895-bf5670429e01';
+```typescript
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 ```
 
-## Resultado Esperado
+## Comportamento Esperado
 
-1. O documento "Documento" aparecerá com status "Erro" em vez de "A processar"
-2. O utilizador poderá clicar em "Processar Agora" para tentar novamente
-3. Futuros documentos presos serão detectados automaticamente após 30 minutos
-4. A edge function marcará correctamente o status como "failed" se ocorrer timeout
+1. **Selecção Individual**: Clicar no checkbox de uma linha selecciona/desselecciona esse perfil
+2. **Selecção Total**: Clicar no checkbox do cabeçalho selecciona/desselecciona todos os perfis visíveis
+3. **Barra de Acções**: Aparece automaticamente quando há 1+ perfis seleccionados
+4. **Apagar em Massa**: Remove todos os perfis seleccionados após confirmação
+5. **Ordenação**: Clicar no cabeçalho de uma coluna ordena por essa coluna (toggle asc/desc)
+6. **Indicador Visual**: Seta ↑/↓ mostra a direcção da ordenação actual
+
