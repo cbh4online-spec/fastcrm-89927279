@@ -41,16 +41,11 @@ import { VariableContext } from "@/lib/templateVariables";
 import { EnhancedAIReplyPanel } from "./EnhancedAIReplyPanel";
 import { ConversationClassification } from "./ConversationClassification";
 import { InboxActionsMenu } from "./InboxActionsMenu";
-import { ConversationFollowupBanner } from "./ConversationFollowupBanner";
 import { InboxSafetyIndicator } from "./InboxSafetyIndicator";
 import { ConversationTemperature } from "./ConversationTemperature";
-import { ConversationSummary } from "./ConversationSummary";
-import { AIActionSuggestions } from "./AIActionSuggestions";
-import { OpportunityTriggerBanner } from "./OpportunityTriggerBanner";
-import { ConversationAutoTags } from "./ConversationAutoTags";
-import { AiSafetyRulesBanner } from "./AiSafetyRulesBanner";
 import { ConversationAutopilotToggle } from "./ConversationAutopilotToggle";
-import { AutopilotStatusBanner } from "./AutopilotStatusBanner";
+import { ConversationStatusBanner } from "./ConversationStatusBanner";
+import { AIActionSuggestions } from "./AIActionSuggestions";
 import { useInboxActionSuggestions } from "@/hooks/useInboxActionSuggestions";
 import { EmailMessageBubble } from "./EmailMessageBubble";
 import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
@@ -396,56 +391,12 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
         </div>
       </div>
 
-      {/* Conversation Summary */}
-      <ConversationSummary
-        conversationId={conversationId}
+      {/* Consolidated Status Banner - Single compact banner */}
+      <ConversationStatusBanner
+        conversation={conversation}
         messages={messages}
-        leadName={conversation.lead?.name}
-        channel={conversation.channel}
-        lastMessageAt={conversation.last_message_at || undefined}
-        className="mx-3 mt-3"
+        opportunityTrigger={opportunityTrigger}
       />
-
-      {/* Auto Tags */}
-      {messages && messages.length >= 2 && (
-        <div className="px-3 py-2 border-b border-border">
-          <ConversationAutoTags
-            conversation={conversation}
-            messages={messages}
-          />
-        </div>
-      )}
-
-      {/* AI Safety Rules Banner (compact) */}
-      <div className="px-3 py-2 border-b border-border">
-        <AiSafetyRulesBanner conversationId={conversationId} compact />
-      </div>
-
-      {/* Autopilot Status with Logs */}
-      <div className="px-3 py-2 border-b border-border">
-        <AutopilotStatusBanner conversationId={conversationId} />
-      </div>
-
-      {/* Follow-up Banner */}
-      {messages && messages.length > 0 && (
-        <ConversationFollowupBanner conversation={conversation} messages={messages} />
-      )}
-
-      {/* Opportunity Trigger Banner */}
-      {opportunityTrigger && 
-       opportunityTrigger.shouldSuggest && 
-       !dismissedOpportunityBanner && 
-       !opportunityData?.id && 
-       conversation.lead_id && (
-        <OpportunityTriggerBanner
-          trigger={opportunityTrigger}
-          conversationId={conversationId}
-          leadId={conversation.lead_id}
-          leadName={conversation.lead?.name || "Lead"}
-          leadEmail={conversation.lead?.email || undefined}
-          onDismiss={() => setDismissedOpportunityBanner(true)}
-        />
-      )}
 
       {/* Messages Area */}
       <div className="flex-1 flex overflow-hidden min-h-0">

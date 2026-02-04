@@ -10,13 +10,10 @@ import { useContact } from "@/hooks/useContacts";
 import { useCompany } from "@/hooks/useCompanies";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -33,44 +30,23 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   User,
   Mail,
   Phone,
-  Building2,
   Target,
   FileText,
-  CheckCircle,
   Plus,
   ExternalLink,
   DollarSign,
   Calendar,
   ListTodo,
   Activity,
-  Thermometer,
   Tag,
   Globe,
-  Briefcase,
-  TrendingUp,
-  Clock,
-  Eye,
   Send,
-  Star,
-  Users,
-  Bell,
-  Settings,
-  Flag,
-  Ban,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
-import { ConversationTemperature } from "./ConversationTemperature";
 import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -81,52 +57,6 @@ import { calculateTemperature } from "@/lib/conversationTemperature";
 
 interface InboxCRMPanelProps {
   conversationId: string | null;
-}
-
-// Calculate lead score based on various factors
-function calculateLeadScore(
-  lead: any,
-  opportunities: any[],
-  proposals: any[],
-  conversationTemp: number
-): number {
-  let score = 0;
-  
-  // Base score from lead status
-  if (lead?.status === "completed") score += 30;
-  else if (lead?.status === "in_progress") score += 20;
-  else score += 10;
-  
-  // Opportunities value contribution
-  const totalValue = opportunities.reduce((acc, o) => acc + (o.value || 0), 0);
-  if (totalValue > 10000) score += 25;
-  else if (totalValue > 5000) score += 20;
-  else if (totalValue > 1000) score += 15;
-  else if (totalValue > 0) score += 10;
-  
-  // Proposals engagement
-  const hasAcceptedProposal = proposals.some(p => p.status === "accepted");
-  const hasViewedProposal = proposals.some(p => (p.views_count || 0) > 0);
-  if (hasAcceptedProposal) score += 25;
-  else if (hasViewedProposal) score += 15;
-  else if (proposals.length > 0) score += 5;
-  
-  // Conversation temperature contribution
-  score += Math.round(conversationTemp * 0.2);
-  
-  return Math.min(100, score);
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 70) return "text-green-500";
-  if (score >= 40) return "text-amber-500";
-  return "text-muted-foreground";
-}
-
-function getScoreBg(score: number): string {
-  if (score >= 70) return "bg-green-500";
-  if (score >= 40) return "bg-amber-500";
-  return "bg-muted-foreground";
 }
 
 export function InboxCRMPanel({ conversationId }: InboxCRMPanelProps) {
@@ -173,30 +103,6 @@ export function InboxCRMPanel({ conversationId }: InboxCRMPanelProps) {
   const openOpportunities = useMemo(() => 
     leadOpportunities.filter(o => o.status === "open")
   , [leadOpportunities]);
-
-  // Calculate temperature and score
-  const conversationTemp = useMemo(() => {
-    if (!conversation || !messages) return 0;
-    return calculateTemperature({
-      ...conversation,
-      messages: messages || [],
-      opportunities: openOpportunities.map(o => ({ id: o.id, status: o.status, value: o.value })),
-    }).score;
-  }, [conversation, messages, openOpportunities]);
-
-  const leadScore = useMemo(() => 
-    calculateLeadScore(lead, leadOpportunities, leadProposals, conversationTemp)
-  , [lead, leadOpportunities, leadProposals, conversationTemp]);
-  
-  const handleUpdateLeadStatus = async (status: string) => {
-    if (!lead) return;
-    try {
-      await updateLead.mutateAsync({ id: lead.id, status: status as any });
-      toast.success("Estado do lead atualizado");
-    } catch (error) {
-      toast.error("Erro ao atualizar estado");
-    }
-  };
   
   const handleCreateOpportunity = async () => {
     if (!lead || !opportunityTitle || !stages?.[0]) return;
@@ -244,7 +150,7 @@ export function InboxCRMPanel({ conversationId }: InboxCRMPanelProps) {
     return (
       <div className="h-full flex items-center justify-center p-4 text-center">
         <p className="text-sm text-muted-foreground">
-          Selecione uma conversa para ver o contexto CRM
+          Selecione uma conversa para ver o contexto
         </p>
       </div>
     );
@@ -252,18 +158,14 @@ export function InboxCRMPanel({ conversationId }: InboxCRMPanelProps) {
   
   if (!lead && !contact) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-4 text-center gap-4">
-        <User className="w-10 h-10 text-muted-foreground" />
+      <div className="h-full flex flex-col items-center justify-center p-4 text-center gap-3">
+        <User className="w-8 h-8 text-muted-foreground" />
         <div>
-          <p className="text-sm font-medium">Sem contacto associado</p>
+          <p className="text-sm font-medium">Sem contacto</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Esta conversa não tem um contacto no CRM
+            Conversa sem contacto associado
           </p>
         </div>
-        <Button size="sm" variant="outline">
-          <Plus className="w-4 h-4 mr-2" />
-          Criar Contacto
-        </Button>
       </div>
     );
   }
@@ -273,297 +175,345 @@ export function InboxCRMPanel({ conversationId }: InboxCRMPanelProps) {
   const displayEmail = lead?.email || contact?.email;
   const displayPhone = lead?.phone || contact?.phone;
   const displayTags = lead?.tags || contact?.tags || [];
-  
-  // Get avatar and website
   const avatarUrl = (lead as any)?.avatar_url || (contact as any)?.avatar_url;
   const website = (company as any)?.website || (contact as any)?.website || null;
-
-  // Get initials for avatar
+  
   const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
+    return name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
   };
 
-  // Format last contact date
   const lastContactDate = conversation?.last_message_at 
     ? formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: true, locale: pt })
     : "Nunca";
-
-  // Calculate subscribed date (using lead created_at as proxy)
-  const subscribedDate = lead?.created_at 
-    ? format(new Date(lead.created_at), "d MMM yyyy", { locale: pt })
-    : contact?.created_at
-    ? format(new Date(contact.created_at), "d MMM yyyy", { locale: pt })
-    : null;
-
-  const isActive = conversation?.status === "open";
   
   return (
-    <ScrollArea className="h-full">
-      <div className="p-4 space-y-4">
-        {/* Header with large avatar */}
-        <div className="text-center space-y-3">
-          <Avatar className="h-16 w-16 mx-auto">
+    <div className="h-full flex flex-col bg-card">
+      {/* Header - Always visible */}
+      <div className="p-4 border-b border-border space-y-3">
+        {/* Avatar + Name */}
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
             <AvatarImage src={avatarUrl} />
-            <AvatarFallback className="text-lg font-medium bg-primary/10 text-primary">
+            <AvatarFallback className="text-sm font-medium bg-primary/10 text-primary">
               {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <h3 className="font-semibold text-base">{displayName}</h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-sm truncate">{displayName}</h3>
             {website && (
               <a 
                 href={website.startsWith("http") ? website : `https://${website}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-xs text-primary flex items-center justify-center gap-1 hover:underline"
+                className="text-xs text-primary flex items-center gap-1 hover:underline"
               >
                 <Globe className="w-3 h-3" />
-                {website.replace(/^https?:\/\//, "")}
+                <span className="truncate">{website.replace(/^https?:\/\//, "")}</span>
               </a>
             )}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center gap-1">
           {displayPhone && (
-            <Button variant="outline" size="icon" className="rounded-full h-9 w-9" asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
               <a href={`tel:${displayPhone}`}>
                 <Phone className="w-4 h-4" />
               </a>
             </Button>
           )}
           {displayEmail && (
-            <Button variant="outline" size="icon" className="rounded-full h-9 w-9" asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
               <a href={`mailto:${displayEmail}`}>
                 <Mail className="w-4 h-4" />
               </a>
             </Button>
           )}
-          <Button variant="outline" size="icon" className="rounded-full h-9 w-9">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
             <Calendar className="w-4 h-4" />
           </Button>
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="bg-green-500 text-white hover:bg-green-600 text-xs px-3"
-          >
-            Unsubscribe
-          </Button>
-        </div>
-
-        <Separator />
-
-        {/* Stats Grid */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Status:</span>
-            <Badge className={cn(
-              "text-xs",
-              isActive 
-                ? "bg-green-500 hover:bg-green-500 text-white" 
-                : "bg-muted text-muted-foreground"
-            )}>
-              {isActive ? "Active" : "Inactive"}
+          
+          <div className="ml-auto">
+            <Badge 
+              variant="secondary"
+              className={cn(
+                "text-xs",
+                conversation?.status === "open" 
+                  ? "bg-green-500/10 text-green-600" 
+                  : "bg-muted"
+              )}
+            >
+              {conversation?.status === "open" ? "Ativo" : "Fechado"}
             </Badge>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Oportunidades:</span>
-            <span className="font-medium">{leadOpportunities.length}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Último Contacto:</span>
-            <span className="font-medium text-xs">{lastContactDate}</span>
-          </div>
-          {subscribedDate && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Subscrito:</span>
-              <span className="font-medium text-xs">{subscribedDate}</span>
-            </div>
-          )}
         </div>
-
-        <Separator />
-
-        {/* Notifications Section */}
-        <div>
-          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-            <Bell className="w-4 h-4" />
-            Notificações
-          </h4>
-          <div className="space-y-2">
-            {openOpportunities.length > 0 && (
-              <div className="flex items-center gap-2 text-sm p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20">
-                <DollarSign className="w-4 h-4 text-amber-500" />
-                <span>{openOpportunities.length} Oportunidade(s) em Aberto</span>
-                <span className="ml-auto text-xs text-muted-foreground">Agora</span>
-              </div>
-            )}
-            {conversation?.unread_count > 0 && (
-              <div className="flex items-center gap-2 text-sm p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                <Mail className="w-4 h-4 text-blue-500" />
-                <span>{conversation.unread_count} Mensagem(ns) Nova(s)</span>
-                <span className="ml-auto text-xs text-muted-foreground">Agora</span>
-              </div>
-            )}
-            {leadTasks.filter(t => t.status !== "done").length > 0 && (
-              <div className="flex items-center gap-2 text-sm p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20">
-                <ListTodo className="w-4 h-4 text-purple-500" />
-                <span>{leadTasks.filter(t => t.status !== "done").length} Tarefa(s) Pendente(s)</span>
-                <span className="ml-auto text-xs text-muted-foreground">12h</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* User Settings Section */}
-        <div>
-          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Definições
-          </h4>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm">
-                <Bell className="w-4 h-4 text-muted-foreground" />
-                Notificações
-              </span>
-              <Switch defaultChecked />
-            </div>
-            <Button variant="ghost" size="sm" className="w-full justify-start text-sm h-8">
-              <Flag className="w-4 h-4 mr-2 text-muted-foreground" />
-              Reportar
-            </Button>
-            <Button variant="ghost" size="sm" className="w-full justify-start text-sm h-8 text-destructive hover:text-destructive">
-              <Ban className="w-4 h-4 mr-2" />
-              Bloquear
-            </Button>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Quick Actions Bar - Compact */}
-        <div className="grid grid-cols-2 gap-2">
-          <Dialog open={showOpportunityDialog} onOpenChange={setShowOpportunityDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs justify-start">
-                <Target className="w-3 h-3 mr-1.5" />
-                Nova Oportunidade
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  Criar Oportunidade
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Título</Label>
-                  <Input 
-                    value={opportunityTitle}
-                    onChange={(e) => setOpportunityTitle(e.target.value)}
-                    placeholder={`Oportunidade - ${displayName}`}
-                  />
-                </div>
-                <div>
-                  <Label>Valor (€)</Label>
-                  <Input 
-                    type="number"
-                    value={opportunityValue}
-                    onChange={(e) => setOpportunityValue(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label>Etapa</Label>
-                  <Select value={opportunityStage} onValueChange={setOpportunityStage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar etapa..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stages?.map((stage) => (
-                        <SelectItem key={stage.id} value={stage.id}>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />
-                            {stage.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleCreateOpportunity} disabled={!opportunityTitle}>
-                  Criar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={showTaskDialog} onOpenChange={setShowTaskDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs justify-start">
-                <ListTodo className="w-3 h-3 mr-1.5" />
-                Nova Tarefa
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <ListTodo className="w-5 h-5" />
-                  Criar Tarefa
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Título</Label>
-                  <Input 
-                    value={taskTitle}
-                    onChange={(e) => setTaskTitle(e.target.value)}
-                    placeholder="Ex: Fazer follow-up"
-                  />
-                </div>
-                <div>
-                  <Label>Data Limite</Label>
-                  <Input 
-                    type="datetime-local"
-                    value={taskDueDate}
-                    onChange={(e) => setTaskDueDate(e.target.value)}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleCreateTask} disabled={!taskTitle}>
-                  Criar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Link to full profile */}
-        {(lead || contact) && (
-          <div className="pt-2">
-            <Link to={lead ? `/dashboard/leads/${lead.id}` : `/dashboard/contacts/${contact?.id}`}>
-              <Button variant="outline" size="sm" className="w-full h-8 text-xs">
-                <ExternalLink className="w-3 h-3 mr-1.5" />
-                Ver Perfil Completo
-              </Button>
-            </Link>
-          </div>
-        )}
       </div>
+
+      {/* Tabbed Content */}
+      <Tabs defaultValue="info" className="flex-1 flex flex-col min-h-0">
+        <TabsList className="w-full grid grid-cols-3 h-9 mx-4 mt-2" style={{ width: "calc(100% - 2rem)" }}>
+          <TabsTrigger value="info" className="text-xs gap-1">
+            <User className="w-3 h-3" />
+            Info
+          </TabsTrigger>
+          <TabsTrigger value="sales" className="text-xs gap-1">
+            <DollarSign className="w-3 h-3" />
+            Vendas
+          </TabsTrigger>
+          <TabsTrigger value="history" className="text-xs gap-1">
+            <Activity className="w-3 h-3" />
+            Histórico
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Info Tab */}
+        <TabsContent value="info" className="flex-1 m-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              {/* Contact Details */}
+              <div className="space-y-2">
+                {displayEmail && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span className="truncate">{displayEmail}</span>
+                  </div>
+                )}
+                {displayPhone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span>{displayPhone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Último contacto:</span>
+                  <span>{lastContactDate}</span>
+                </div>
+              </div>
+
+              {/* Tags */}
+              {displayTags.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Tag className="w-3 h-3" />
+                    Tags
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {displayTags.map((tag: string, i: number) => (
+                      <Badge key={i} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Link to full profile */}
+              {(lead || contact) && (
+                <Link to={lead ? `/dashboard/leads/${lead.id}` : `/dashboard/contacts/${contact?.id}`}>
+                  <Button variant="outline" size="sm" className="w-full h-8 text-xs">
+                    <ExternalLink className="w-3 h-3 mr-1.5" />
+                    Ver Perfil Completo
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        {/* Sales Tab */}
+        <TabsContent value="sales" className="flex-1 m-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 rounded-lg bg-muted/50 text-center">
+                  <p className="text-lg font-semibold">{leadOpportunities.length}</p>
+                  <p className="text-xs text-muted-foreground">Oportunidades</p>
+                </div>
+                <div className="p-2 rounded-lg bg-muted/50 text-center">
+                  <p className="text-lg font-semibold">{leadProposals.length}</p>
+                  <p className="text-xs text-muted-foreground">Propostas</p>
+                </div>
+              </div>
+
+              {/* Total Value */}
+              {totalOpportunityValue > 0 && (
+                <div className="p-2 rounded-lg bg-green-500/10 text-center">
+                  <p className="text-sm font-semibold text-green-600">
+                    {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(totalOpportunityValue)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Valor Total</p>
+                </div>
+              )}
+
+              {/* Open Opportunities */}
+              {openOpportunities.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Em Aberto</h4>
+                  {openOpportunities.slice(0, 3).map(opp => (
+                    <div key={opp.id} className="p-2 rounded border bg-background flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{opp.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(opp.value || 0)}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7"
+                        onClick={() => handleSendProposal(opp.id)}
+                      >
+                        <Send className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Pending Tasks */}
+              {leadTasks.filter(t => t.status !== "done").length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Tarefas Pendentes</h4>
+                  {leadTasks.filter(t => t.status !== "done").slice(0, 3).map(task => (
+                    <div key={task.id} className="p-2 rounded border bg-background">
+                      <p className="text-xs font-medium">{task.title}</p>
+                      {task.due_at && (
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(task.due_at), "d MMM", { locale: pt })}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Quick Actions */}
+              <div className="grid grid-cols-2 gap-2">
+                <Dialog open={showOpportunityDialog} onOpenChange={setShowOpportunityDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 text-xs">
+                      <Target className="w-3 h-3 mr-1" />
+                      + Oportunidade
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Target className="w-5 h-5" />
+                        Criar Oportunidade
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Título</Label>
+                        <Input 
+                          value={opportunityTitle}
+                          onChange={(e) => setOpportunityTitle(e.target.value)}
+                          placeholder={`Oportunidade - ${displayName}`}
+                        />
+                      </div>
+                      <div>
+                        <Label>Valor (€)</Label>
+                        <Input 
+                          type="number"
+                          value={opportunityValue}
+                          onChange={(e) => setOpportunityValue(e.target.value)}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <Label>Etapa</Label>
+                        <Select value={opportunityStage} onValueChange={setOpportunityStage}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {stages?.map((stage) => (
+                              <SelectItem key={stage.id} value={stage.id}>
+                                {stage.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleCreateOpportunity} disabled={!opportunityTitle}>
+                        Criar
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={showTaskDialog} onOpenChange={setShowTaskDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 text-xs">
+                      <ListTodo className="w-3 h-3 mr-1" />
+                      + Tarefa
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <ListTodo className="w-5 h-5" />
+                        Criar Tarefa
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Título</Label>
+                        <Input 
+                          value={taskTitle}
+                          onChange={(e) => setTaskTitle(e.target.value)}
+                          placeholder="Ex: Fazer follow-up"
+                        />
+                      </div>
+                      <div>
+                        <Label>Data Limite</Label>
+                        <Input 
+                          type="datetime-local"
+                          value={taskDueDate}
+                          onChange={(e) => setTaskDueDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleCreateTask} disabled={!taskTitle}>
+                        Criar
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        {/* History Tab */}
+        <TabsContent value="history" className="flex-1 m-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-4">
+              {lead && (
+                <UnifiedActivityLog
+                  entityType="lead"
+                  entityId={lead.id}
+                  compact
+                />
+              )}
+              {!lead && contact && (
+                <UnifiedActivityLog
+                  entityType="contact"
+                  entityId={contact.id}
+                  compact
+                />
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
 
       {/* Create Proposal Dialog */}
       {selectedOpportunityForProposal && (
@@ -576,6 +526,6 @@ export function InboxCRMPanel({ conversationId }: InboxCRMPanelProps) {
           opportunityId={selectedOpportunityForProposal}
         />
       )}
-    </ScrollArea>
+    </div>
   );
 }

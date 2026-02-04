@@ -457,23 +457,28 @@ export function ConversationList({
               </Button>
             </div>
           </div>
-          <Tabs value={channelFilter} onValueChange={(v) => setChannelFilter(v as ConversationChannel | "all")}>
-            <TabsList className="w-full grid grid-cols-5 h-8">
-              <TabsTrigger value="all" className="text-xs px-2">Todos</TabsTrigger>
-              <TabsTrigger value="instagram" className="text-xs px-2">
-                <Instagram className="w-3 h-3" />
-              </TabsTrigger>
-              <TabsTrigger value="whatsapp" className="text-xs px-2">
-                <Phone className="w-3 h-3" />
-              </TabsTrigger>
-              <TabsTrigger value="email" className="text-xs px-2">
-                <Mail className="w-3 h-3" />
-              </TabsTrigger>
-              <TabsTrigger value="webchat" className="text-xs px-2">
-                <Globe className="w-3 h-3" />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {/* Smart Filter Pills - Replace channel tabs */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {Object.entries(smartFilterConfig).map(([key, config]) => {
+              const FilterIcon = config.icon;
+              const isActive = smartFilter === key;
+              return (
+                <Button
+                  key={key}
+                  variant={isActive ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-7 px-2.5 text-xs gap-1",
+                    isActive && "bg-primary/10 text-primary"
+                  )}
+                  onClick={() => setSmartFilter(key as SmartFilter)}
+                >
+                  <FilterIcon className="w-3 h-3" />
+                  <span className="hidden sm:inline">{config.label}</span>
+                </Button>
+              );
+            })}
+          </div>
 
           {/* Search */}
           <div className="relative">
