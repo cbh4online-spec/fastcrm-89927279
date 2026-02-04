@@ -60,6 +60,7 @@ interface ProposalInternalViewProps {
   })[];
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onQuantityChange?: (itemId: string, quantity: number) => void;
+  onPriceChange?: (itemId: string, price: number) => void;
 }
 
 function formatCurrency(value: number, currency: string = "EUR"): string {
@@ -74,6 +75,7 @@ export function ProposalInternalView({
   items = [],
   onItemToggle,
   onQuantityChange,
+  onPriceChange,
 }: ProposalInternalViewProps) {
   const navigate = useNavigate();
   const [showTaskDialog, setShowTaskDialog] = useState(false);
@@ -341,8 +343,19 @@ export function ProposalInternalView({
                         disabled={!isEnabled}
                       />
                     </TableCell>
-                    <TableCell className={cn("text-right whitespace-nowrap", !isEnabled && "line-through text-muted-foreground")}>
-                      {formatCurrency(item.unit_price, proposal.currency)}
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={item.unit_price}
+                        onChange={(e) => onPriceChange?.(item.id, parseFloat(e.target.value) || 0)}
+                        className={cn(
+                          "w-24 h-8 text-right ml-auto",
+                          !isEnabled && "opacity-50"
+                        )}
+                        min={0}
+                        disabled={!isEnabled}
+                      />
                     </TableCell>
                     <TableCell className={cn("text-right text-muted-foreground whitespace-nowrap", !isEnabled && "line-through")}>
                       {formatCurrency(itemCost, proposal.currency)}
