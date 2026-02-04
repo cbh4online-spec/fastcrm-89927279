@@ -11,8 +11,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Calendar, FileText, Clock, Sparkles } from "lucide-react";
+import { CreditCard, Calendar, FileText, Clock, Sparkles, Coins } from "lucide-react";
 import { PAYMENT_CONDITIONS, VALIDITY_DAYS_OPTIONS } from "./proposalConstants";
+import { SUPPORTED_CURRENCIES } from "@/types/proposal";
 import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { SectionAIAssistButton } from "./SectionAIAssistButton";
@@ -24,6 +25,7 @@ export interface ConditionsData {
   customPaymentConditions: string;
   validityDays: number;
   notes: string;
+  currency: string;
   isAIGenerated?: boolean;
 }
 
@@ -115,24 +117,48 @@ export function ProposalConditionsSection({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Prazo de Pagamento</Label>
-            <Select
-              value={data.paymentConditions}
-              onValueChange={handlePaymentConditionChange}
-              disabled={disabled}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar condição..." />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentOptions.map((condition) => (
-                  <SelectItem key={condition.value} value={condition.value}>
-                    {condition.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5" />
+                Moeda da Proposta
+              </Label>
+              <Select
+                value={data.currency}
+                onValueChange={(value) => onChange({ ...data, currency: value })}
+                disabled={disabled}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar moeda..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_CURRENCIES.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Prazo de Pagamento</Label>
+              <Select
+                value={data.paymentConditions}
+                onValueChange={handlePaymentConditionChange}
+                disabled={disabled}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar condição..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentOptions.map((condition) => (
+                    <SelectItem key={condition.value} value={condition.value}>
+                      {condition.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {isCustomPayment && (

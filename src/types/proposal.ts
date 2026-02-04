@@ -1,6 +1,16 @@
 export type ProposalStatus = 'draft' | 'published' | 'accepted' | 'expired' | 'rejected';
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
+// Supported currencies for proposals
+export const SUPPORTED_CURRENCIES = [
+  { code: "EUR", symbol: "€", label: "Euro (€)" },
+  { code: "USD", symbol: "$", label: "Dólar ($)" },
+  { code: "BRL", symbol: "R$", label: "Real (R$)" },
+  { code: "GBP", symbol: "£", label: "Libra (£)" },
+] as const;
+
+export type CurrencyCode = typeof SUPPORTED_CURRENCIES[number]['code'];
+
 export interface ContentBlock {
   id: string;
   type: 'text' | 'image' | 'offer' | 'testimonials' | 'faq' | 'divider' | 'cta';
