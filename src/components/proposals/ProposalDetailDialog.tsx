@@ -151,6 +151,7 @@ export function ProposalDetailDialog({
     customPaymentConditions: "",
     validityDays: 30,
     notes: "",
+    currency: "EUR",
   });
 
   // New section states
@@ -286,6 +287,7 @@ export function ProposalDetailDialog({
         customPaymentConditions: isCustom ? paymentValue : "",
         validityDays: proposal.validity_days || 30,
         notes: proposal.notes || "",
+        currency: proposal.currency || "EUR",
       });
 
       // Initialize new section data from JSONB columns
@@ -389,6 +391,7 @@ export function ProposalDetailDialog({
           payment_conditions: paymentConditionsValue || null,
           validity_days: conditionsData.validityDays,
           notes: conditionsData.notes || null,
+          currency: conditionsData.currency,
           scope_data: JSON.parse(JSON.stringify(scopeData)),
           timeline_data: JSON.parse(JSON.stringify(timelineData.phases)),
           references_data: JSON.parse(JSON.stringify(referencesData)),
@@ -485,7 +488,7 @@ export function ProposalDetailDialog({
           <div className="h-full">
             <POSProposalItemsEditor 
               proposalId={proposalId}
-              currency={proposal?.currency || "EUR"}
+              currency={conditionsData.currency || proposal?.currency || "EUR"}
               onSaved={async () => {
                 await queryClient.refetchQueries({ 
                   queryKey: ["proposal", proposalId] 
@@ -597,13 +600,14 @@ export function ProposalDetailDialog({
                   const result = await suggestConditions(proposalData);
                   if (result) {
                     const isCustom = !PAYMENT_CONDITIONS.some(p => p.value === result.paymentConditions);
-                    setConditionsData({
+                    setConditionsData(prev => ({
+                      ...prev,
                       paymentConditions: isCustom ? "custom" : result.paymentConditions,
                       customPaymentConditions: isCustom ? result.paymentConditions : "",
                       validityDays: result.validityDays,
                       notes: result.notes,
                       isAIGenerated: true,
-                    });
+                    }));
                     toast.success("Condições sugeridas com sucesso!");
                   }
                 }}
@@ -792,13 +796,14 @@ export function ProposalDetailDialog({
                     }}
                     onConditionsGenerated={(result: VoiceConditionsResult) => {
                       const isCustom = !PAYMENT_CONDITIONS.some(p => p.value === result.paymentConditions);
-                      setConditionsData({
+                      setConditionsData(prev => ({
+                        ...prev,
                         paymentConditions: isCustom ? "custom" : result.paymentConditions,
                         customPaymentConditions: isCustom ? result.paymentConditions : "",
                         validityDays: result.validityDays,
                         notes: result.notes,
                         isAIGenerated: true,
-                      });
+                      }));
                       setCurrentStep(3);
                       toast.success("Condições geradas por voz!");
                     }}
