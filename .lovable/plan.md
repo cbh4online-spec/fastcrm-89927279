@@ -1,78 +1,87 @@
 
-
-# Plano: Corrigir Políticas RLS para Metas de Produtividade
+# Plano: Adicionar Acesso Global de Super Admin às Políticas RLS
 
 ## Problema Identificado
 
-As metas de produtividade não estão a ser registadas devido a **políticas de Row Level Security (RLS) incompletas**. Os logs da base de dados mostram:
+O utilizador **Jorge Cardoso** é um **super_admin** mas as políticas RLS da tabela `productivity_goals` não concedem acesso global adequado:
 
-```
-"new row violates row-level security policy for table \"productivity_goals\""
-```
+### Situação Actual
 
-### Análise das Políticas Actuais
+| Operação | Política | Verifica Super Admin? |
+|----------|----------|----------------------|
+| SELECT | "Users can view goals in their workspace" | **NÃO** |
+| SELECT | "Users can view organizational goals in their workspace" | **NÃO** |
+| INSERT (individual) | "Users can create own individual goals" | **NÃO** |
+| INSERT (individual) | "Admins can create individual goals for members" | **SIM** |
+| INSERT (organizational) | "Admins can create organizational goals" | **SIM** |
+| UPDATE | "Users can update their goals" | **NÃO** |
+| DELETE | "Users can delete their goals" | **NÃO** |
 
-| Política | Comando | Condição |
-|----------|---------|----------|
-| Admins can create organizational goals | INSERT | `goal_scope = 'organizational'` E utilizador é owner/admin |
-| Users can create goals | INSERT | workspace_id pertence ao utilizador (sem verificar user_id ou scope) |
+### Problema Específico
 
-### Cenários que Falham
+O super admin está no workspace **PHARLISS** (via o contexto da aplicação), mas **não é membro directo** desse workspace. As políticas de INSERT para super admins estão correctas, mas:
 
-1. **Owner/Admin a criar meta individual para OUTRO utilizador** - O user_id da meta é diferente de `auth.uid()`, e não há política que permita isto
-2. **Utilizador regular a criar meta individual própria** - Pode falhar se a política não validar correctamente o user_id = auth.uid()
+1. A política de **SELECT** bloqueia a visualização (o que pode causar problemas no frontend)
+2. A política para metas **individuais por membros** (`Users can create own individual goals`) não aceita super admins
 
 ## Solução
 
-Reorganizar as políticas de INSERT para cobrir todos os cenários correctamente:
+Actualizar **TODAS** as políticas de `productivity_goals` para incluir verificação de `is_super_admin()`:
 
-### 1. Política para Metas Individuais
-
-Permitir criar metas individuais se:
-- O utilizador pertence ao workspace **E**
-- A meta é para si próprio (user_id = auth.uid()) **OU** o utilizador é owner/admin
-
-### 2. Política para Metas Organizacionais  
-
-Manter a lógica actual: apenas owners/admins podem criar metas organizacionais.
-
-## Alterações na Base de Dados
+### 1. Políticas de SELECT
 
 ```sql
--- 1. Remover a política genérica problemática
-DROP POLICY IF EXISTS "Users can create goals" ON productivity_goals;
+-- Actualizar SELECT para incluir super admins
+DROP POLICY IF EXISTS "Users can view goals in their workspace" ON productivity_goals;
+DROP POLICY IF EXISTS "Users can view organizational goals in their workspace" ON productivity_goals;
 
--- 2. Criar política para metas individuais próprias
-CREATE POLICY "Users can create own individual goals"
-ON productivity_goals FOR INSERT
-WITH CHECK (
-  -- Meta individual
-  goal_scope = 'individual' 
-  AND
-  -- User_id é o próprio utilizador
-  user_id = auth.uid()
-  AND
-  -- Pertence ao workspace
+CREATE POLICY "Users can view goals in their workspace"
+ON productivity_goals FOR SELECT
+USING (
+  public.is_super_admin()
+  OR
   workspace_id IN (
     SELECT workspace_id FROM workspace_members 
     WHERE user_id = auth.uid()
   )
 );
+```
 
--- 3. Criar política para admins criarem metas individuais para outros
-CREATE POLICY "Admins can create individual goals for members"
-ON productivity_goals FOR INSERT
-WITH CHECK (
-  -- Meta individual
-  goal_scope = 'individual'
-  AND
-  -- User_id é um membro válido do workspace
-  user_id IN (
-    SELECT user_id FROM workspace_members 
+### 2. Políticas de UPDATE
+
+```sql
+DROP POLICY IF EXISTS "Users can update their goals" ON productivity_goals;
+DROP POLICY IF EXISTS "Members can update organizational goals" ON productivity_goals;
+
+CREATE POLICY "Users can update goals"
+ON productivity_goals FOR UPDATE
+USING (
+  public.is_super_admin()
+  OR
+  user_id = auth.uid()
+  OR
+  EXISTS (
+    SELECT 1 FROM workspace_members
     WHERE workspace_id = productivity_goals.workspace_id
+    AND user_id = auth.uid()
+    AND role IN ('owner', 'admin')
   )
-  AND
-  -- Quem insere é owner/admin
+);
+```
+
+### 3. Políticas de DELETE
+
+```sql
+DROP POLICY IF EXISTS "Users can delete their goals" ON productivity_goals;
+DROP POLICY IF EXISTS "Admins can delete organizational goals" ON productivity_goals;
+
+CREATE POLICY "Users can delete goals"
+ON productivity_goals FOR DELETE
+USING (
+  public.is_super_admin()
+  OR
+  user_id = auth.uid()
+  OR
   EXISTS (
     SELECT 1 FROM workspace_members
     WHERE workspace_id = productivity_goals.workspace_id
@@ -84,24 +93,23 @@ WITH CHECK (
 
 ## Resumo das Políticas Finais
 
-| Cenário | Política Aplicável |
-|---------|-------------------|
-| Owner cria meta organizacional | "Admins can create organizational goals" |
-| Owner cria meta individual para si | "Users can create own individual goals" |
-| Owner cria meta individual para membro | "Admins can create individual goals for members" |
-| Membro cria meta individual para si | "Users can create own individual goals" |
-| Membro tenta criar meta organizacional | **Bloqueado** (correcto) |
-| Membro tenta criar meta para outro | **Bloqueado** (correcto) |
+| Operação | Condições |
+|----------|-----------|
+| SELECT | Super admin **OU** membro do workspace |
+| INSERT (individual própria) | Membro do workspace E user_id = auth.uid() |
+| INSERT (individual para outros) | Super admin **OU** owner/admin do workspace |
+| INSERT (organizacional) | Super admin **OU** owner/admin do workspace |
+| UPDATE | Super admin **OU** owner da meta **OU** admin do workspace |
+| DELETE | Super admin **OU** owner da meta **OU** admin do workspace |
 
-## Ficheiros a Modificar
+## Alterações na Base de Dados
 
-| Tipo | Alteração |
+| Tipo | Descrição |
 |------|-----------|
-| Migração SQL | Reorganizar políticas RLS de INSERT para productivity_goals |
+| Migração SQL | Reorganizar políticas RLS para incluir `is_super_admin()` em SELECT, UPDATE e DELETE |
 
 ## Resultado Esperado
 
-1. Owners/admins podem criar metas organizacionais e individuais (para qualquer membro)
-2. Membros regulares podem criar metas individuais apenas para si próprios
-3. Todas as operações de criação de metas funcionarão sem erros de RLS
-
+1. Super admins podem ver, criar, editar e apagar metas em **qualquer** workspace
+2. Owners/admins continuam a poder gerir metas nos seus próprios workspaces
+3. Utilizadores regulares podem gerir apenas as suas próprias metas individuais
