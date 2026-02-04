@@ -5,7 +5,6 @@ import { ConversationDetail } from "./ConversationDetail";
 import { InboxCRMPanel } from "./InboxCRMPanel";
 import { InboxMetricsBar } from "./InboxMetricsBar";
 import { InboxFollowupPanel } from "./InboxFollowupPanel";
-import { SmartAlertsPopover } from "./SmartAlertsPopover";
 import { InboxSidebar, InboxCategory, ChannelFilter } from "./InboxSidebar";
 import { ComposeButton } from "./ComposeButton";
 import { ConversationChannel } from "@/hooks/useConversations";
@@ -46,21 +45,16 @@ export function InboxView() {
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col rounded-lg border border-border overflow-hidden bg-background">
-      {/* Metrics Bar with Follow-up Toggle and Smart Alerts */}
-      <div className="flex items-center border-b border-border bg-card">
-        <div className="flex-1">
-          <InboxMetricsBar />
-        </div>
-        <div className="flex items-center gap-2 px-4">
-          {/* Compose Button - Most Visible */}
+      {/* Header Bar - Simplified */}
+      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
+        {/* Left: Compose + Toggle */}
+        <div className="flex items-center gap-2">
           <ComposeButton />
-          
-          {/* Toggle Sidebar */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowSidebar(!showSidebar)}
-            className="gap-2"
+            className="h-8 w-8 p-0"
           >
             {showSidebar ? (
               <PanelLeftClose className="w-4 h-4" />
@@ -68,26 +62,26 @@ export function InboxView() {
               <PanelLeft className="w-4 h-4" />
             )}
           </Button>
-          
-          {/* Smart Alerts Popover */}
-          <SmartAlertsPopover />
-          
-          {/* Follow-ups Toggle */}
-          <Button
-            variant={showFollowups ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setShowFollowups(!showFollowups)}
-            className="gap-2"
-          >
-            <Bell className={cn("w-4 h-4", followupCount > 0 && "text-amber-500")} />
-            <span className="hidden sm:inline">Follow-ups</span>
-            {followupCount > 0 && (
-              <Badge className="bg-green-500 text-white text-xs px-1.5 py-0 h-5">
-                {followupCount}
-              </Badge>
-            )}
-          </Button>
         </div>
+        
+        {/* Center: Metrics */}
+        <InboxMetricsBar />
+        
+        {/* Right: Follow-ups Toggle */}
+        <Button
+          variant={showFollowups ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => setShowFollowups(!showFollowups)}
+          className="gap-1.5 h-8"
+        >
+          <Bell className={cn("w-4 h-4", followupCount > 0 && "text-amber-500")} />
+          <span className="hidden sm:inline text-xs">Follow-ups</span>
+          {followupCount > 0 && (
+            <Badge className="bg-green-500 text-white text-xs px-1.5 py-0 h-5">
+              {followupCount}
+            </Badge>
+          )}
+        </Button>
       </div>
       
       <div className="flex-1 flex overflow-hidden">
