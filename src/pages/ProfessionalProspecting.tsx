@@ -2,8 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Search, Users, History, BarChart3 } from "lucide-react";
+import { Search, Users, History } from "lucide-react";
 import { ProspectingSearch } from "@/components/professional-prospecting/ProspectingSearch";
 import { ProspectingResults } from "@/components/professional-prospecting/ProspectingResults";
 import { ProspectingHistory } from "@/components/professional-prospecting/ProspectingHistory";
@@ -20,12 +19,7 @@ export default function ProfessionalProspecting() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">Prospecção Profissional</h1>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                Beta
-              </Badge>
-            </div>
+            <h1 className="text-2xl font-bold">Prospecção Profissional</h1>
             <p className="text-muted-foreground mt-1">
               Descubra profissionais individuais por profissão e localização
             </p>
