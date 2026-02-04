@@ -1,109 +1,147 @@
 
-# Plano: Pre-preencher Contacto/Lead/Empresa no Modal de Agendamento
+
+# Plano: Permitir Edicao de Precos na Visao Interna da Proposta
 
 ## Problema Identificado
 
-Quando o utilizador esta dentro de um Contacto/Lead/Empresa e clica em "Agendar", o modal de criacao de evento abre mas o campo "Cliente/Contacto" esta vazio, obrigando o utilizador a procurar manualmente a entidade que ja esta a visualizar.
+Na pagina de detalhe da proposta (modo visualizacao), a tabela de itens mostra os produtos mas os precos estao apenas em modo de leitura. O utilizador pretende poder alterar os precos unitarios diretamente nesta vista, sem ter que entrar no modo de edicao completo.
 
-### Causa Tecnica
-
-O componente `EntitySchedulingSection` passa as props `entityType` e `entityId` mas o `CalendarEventModal` nao recebe nem utiliza esses valores para pre-preencher o `EntityPicker`.
+### Situacao Atual
 
 ```text
-Fluxo Atual:
-+---------------------------+     +----------------------+
-| EntitySchedulingSection   |     | CalendarEventModal   |
-|---------------------------|     |----------------------|
-| entityType = 'contact'    | --> | entityValue = null   | <- Problema!
-| entityId = '7f32644f...'  |     | (sempre vazio)       |
-| entityName = 'Joao'       |     |                      |
-+---------------------------+     +----------------------+
++------------------------------------------+
+| ProposalDetailDialog (View Mode)          |
+|------------------------------------------|
+|   ProposalInternalView                   |
+|   +------------------------------------+ |
+|   | Activo | Item | Qtd | Preco | ... | |
+|   +------------------------------------+ |
+|   | Switch | Nome | [X] | €100  | ... | | <- Preco apenas texto
+|   +------------------------------------+ |
++------------------------------------------+
 ```
 
-### Solucao
+O componente `ProposalInternalView`:
+- Recebe `onQuantityChange` nas props mas **nao esta a ser passado** pelo `ProposalDetailDialog`
+- O preco e mostrado como texto estatico, sem input editavel
+- Nao existe handler para atualizar precos
 
-Adicionar novas props ao `CalendarEventModal` para receber os dados da entidade e usa-los para inicializar o estado `entityValue`.
+## Solucao
+
+Adicionar a capacidade de editar precos unitarios diretamente na tabela da visao interna.
 
 ```text
-Fluxo Corrigido:
-+---------------------------+     +------------------------+
-| EntitySchedulingSection   |     | CalendarEventModal     |
-|---------------------------|     |------------------------|
-| entityType = 'contact'    | --> | defaultContactId       |
-| entityId = '7f32644f...'  | --> | defaultCompanyId       |
-| entityName = 'Joao'       | --> | entityValue = preenchido|
-+---------------------------+     +------------------------+
++------------------------------------------+
+| ProposalDetailDialog (View Mode)          |
+|------------------------------------------|
+|   ProposalInternalView                   |
+|   +------------------------------------+ |
+|   | Activo | Item | Qtd | Preco | ... | |
+|   +------------------------------------+ |
+|   | Switch | Nome | [X] | [100] | ... | | <- Input editavel
+|   +------------------------------------+ |
++------------------------------------------+
 ```
 
 ## Alteracoes Necessarias
 
-### 1. Ficheiro: `src/components/calendars/CalendarEventModal.tsx`
+### 1. Ficheiro: `src/components/proposals/ProposalInternalView.tsx`
 
-Adicionar novas props opcionais para pre-preencher a entidade:
-
+**Adicionar nova prop:**
 ```typescript
-interface CalendarEventModalProps {
-  // ... props existentes
-  defaultContactId?: string | null;
-  defaultCompanyId?: string | null;
-  defaultLeadId?: string | null;
+interface ProposalInternalViewProps {
+  // ... existentes
+  onPriceChange?: (itemId: string, price: number) => void;
 }
 ```
 
-Modificar o `useEffect` para usar esses valores quando o modal abre para criar um novo evento:
-
+**Substituir celula de preco por Input editavel:**
 ```typescript
-useEffect(() => {
-  if (open) {
-    if (event) {
-      // ... logica existente para editar evento
-    } else {
-      // Reset com os valores default da entidade
-      setEntityValue({ 
-        contactId: defaultContactId || null, 
-        companyId: defaultCompanyId || null,
-        leadId: defaultLeadId || null,
-      });
-    }
-  }
-}, [open, event, defaultContactId, defaultCompanyId, defaultLeadId]);
+<TableCell className="text-right">
+  <Input
+    type="number"
+    step="0.01"
+    value={item.unit_price}
+    onChange={(e) => onPriceChange?.(item.id, parseFloat(e.target.value) || 0)}
+    className="w-24 h-8 text-right"
+    disabled={!isEnabled}
+  />
+</TableCell>
 ```
 
-### 2. Ficheiro: `src/components/scheduling/EntitySchedulingSection.tsx`
+### 2. Ficheiro: `src/components/proposals/ProposalDetailDialog.tsx`
 
-Passar os valores de entidade para o `CalendarEventModal`:
-
+**Criar handler para atualizar preco:**
 ```typescript
-<CalendarEventModal
-  open={showEventModal}
-  onOpenChange={setShowEventModal}
-  calendars={calendars}
-  event={null}
-  defaultDate={new Date()}
-  onSubmit={handleCreateEvent}
-  onDelete={async () => {}}
-  // Novas props para pre-preencher
-  defaultContactId={entityType === 'contact' ? entityId : null}
-  defaultCompanyId={entityType === 'company' ? entityId : null}
-  defaultLeadId={entityType === 'lead' ? entityId : null}
+const handleItemPriceChange = async (itemId: string, price: number) => {
+  // Atualizar o preco do item na base de dados
+  await supabase
+    .from("proposal_items")
+    .update({ unit_price: price })
+    .eq("id", itemId);
+  
+  // Refetch para atualizar a UI
+  queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
+};
+```
+
+**Passar handler para ProposalInternalView:**
+```typescript
+<ProposalInternalView
+  proposal={proposal}
+  items={...}
+  onItemToggle={handleItemToggle}
+  onQuantityChange={handleQuantityChange}  // Adicionar se nao existir
+  onPriceChange={handleItemPriceChange}    // NOVO
 />
+```
+
+### 3. Ficheiro: `src/hooks/useProposals.ts`
+
+**Adicionar hook para atualizar item individual (se nao existir):**
+```typescript
+export function useUpdateProposalItemPrice() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ itemId, price }: { itemId: string; price: number }) => {
+      const { error } = await supabase
+        .from("proposal_items")
+        .update({ unit_price: price })
+        .eq("id", itemId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { itemId }) => {
+      // Invalidar queries relacionadas
+    },
+  });
+}
 ```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteracao |
 |----------|-----------|
-| `src/components/calendars/CalendarEventModal.tsx` | Adicionar props `defaultContactId`, `defaultCompanyId`, `defaultLeadId` e usar no `useEffect` |
-| `src/components/scheduling/EntitySchedulingSection.tsx` | Passar os IDs da entidade atual para o modal |
+| `src/components/proposals/ProposalInternalView.tsx` | Adicionar prop `onPriceChange` e converter coluna de preco para Input editavel |
+| `src/components/proposals/ProposalDetailDialog.tsx` | Adicionar handler `handleItemPriceChange` e passar para ProposalInternalView; Tambem passar `onQuantityChange` que ja existe na interface |
+| `src/hooks/useProposals.ts` | Adicionar mutation para atualizar preco de item individual (opcional - pode usar supabase direto) |
 
-## Resultado Esperado
+## Comportamento Esperado
 
-1. Utilizador abre detalhe de um Contacto (ex: "Joao Silva")
-2. Clica em "Agendamentos" no menu lateral
-3. Clica no botao "Agendar"
-4. O modal abre com "Joao Silva" ja selecionado no campo "Cliente/Contacto"
-5. Utilizador so precisa preencher titulo, data e hora
+1. Utilizador abre detalhe da proposta (modo visualizacao)
+2. Na tabela de itens, ve campos editaveis para Quantidade e Preco
+3. Ao alterar o preco, o valor e guardado automaticamente
+4. Os totais (Subtotal, Margem, Total) sao recalculados em tempo real
+5. Nao e necessario entrar no modo "Editar" completo para ajustes rapidos de preco
+
+## Consideracoes de UX
+
+- Inputs aparecem apenas quando o item esta activo
+- Debounce opcional para evitar muitas chamadas a BD em alteracoes rapidas
+- Feedback visual quando o valor e guardado (opcional)
+- Manter consistencia com o estilo do Input de quantidade ja existente
 
 ## Complexidade
 
-Baixa - Apenas adicionar props opcionais e ajustar a logica de inicializacao do estado.
+Baixa/Media - Envolve modificar a interface e adicionar logica de persistencia.
+
