@@ -225,6 +225,40 @@ export function ProposalDetailDialog({
     toggleItem.mutate({ itemId, isEnabled, proposalId });
   };
   
+  // Handle item price change
+  const handleItemPriceChange = async (itemId: string, price: number) => {
+    try {
+      const { error } = await supabase
+        .from("proposal_items")
+        .update({ unit_price: price })
+        .eq("id", itemId);
+      
+      if (error) throw error;
+      
+      // Refetch to update UI and recalculate totals
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar preço: ${error.message}`);
+    }
+  };
+  
+  // Handle item quantity change
+  const handleItemQuantityChange = async (itemId: string, quantity: number) => {
+    if (quantity < 1) return;
+    try {
+      const { error } = await supabase
+        .from("proposal_items")
+        .update({ quantity })
+        .eq("id", itemId);
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar quantidade: ${error.message}`);
+    }
+  };
+  
   // Initialize edit form when proposal loads or when switching to edit mode
   const initializeEditForm = () => {
     if (proposal) {
@@ -980,6 +1014,8 @@ export function ProposalDetailDialog({
                         operational_cost_snapshot: item.operational_cost_snapshot,
                       }))}
                       onItemToggle={handleItemToggle}
+                      onQuantityChange={handleItemQuantityChange}
+                      onPriceChange={handleItemPriceChange}
                     />
                   ) : (
                     <ProposalClientDocument
