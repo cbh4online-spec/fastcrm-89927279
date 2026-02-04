@@ -20,7 +20,9 @@ import {
   RefreshCw,
   ExternalLink,
   MoreVertical,
-  Trash2
+  Trash2,
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -97,14 +99,18 @@ export function KnowledgeSourcesPanel({
                 const StatusIcon = statusConfig.icon;
                 const SourceIcon = SOURCE_TYPE_ICONS[source.sourceType] || FileText;
                 
+                // Check if processing is stale (stuck for more than 30 minutes)
+                const isStale = source.processingStatus === 'processing' && 
+                  new Date().getTime() - new Date(source.updatedAt).getTime() > 30 * 60 * 1000;
+                
                 return (
                   <div 
                     key={source.id} 
-                    className="p-3 border rounded-lg hover:border-primary/50 transition-colors"
+                    className={`p-3 border rounded-lg hover:border-primary/50 transition-colors ${isStale ? 'border-amber-300 bg-amber-50/50 dark:bg-amber-900/10' : ''}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <SourceIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span className="font-medium text-sm truncate">
                             {source.sourceType === 'url' ? 'URL' : 
@@ -117,6 +123,12 @@ export function KnowledgeSourcesPanel({
                             <StatusIcon className={`h-3 w-3 mr-1 ${source.processingStatus === 'processing' ? 'animate-spin' : ''}`} />
                             {statusConfig.label}
                           </Badge>
+                          {isStale && (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 text-xs shrink-0">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Possível bloqueio
+                            </Badge>
+                          )}
                         </div>
                         
                         {source.sourceUrl && (
@@ -180,10 +192,16 @@ export function KnowledgeSourcesPanel({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {(source.processingStatus === 'failed' || source.processingStatus === 'pending' || source.processingStatus === 'completed') && onReprocess && (
+                          {onReprocess && source.processingStatus !== 'processing' && (
                             <DropdownMenuItem onClick={() => onReprocess(source.id)}>
                               <RefreshCw className="h-4 w-4 mr-2" />
                               {source.processingStatus === 'completed' ? 'Reprocessar' : 'Processar Agora'}
+                            </DropdownMenuItem>
+                          )}
+                          {onReprocess && source.processingStatus === 'processing' && (
+                            <DropdownMenuItem onClick={() => onReprocess(source.id)}>
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Cancelar e Reprocessar
                             </DropdownMenuItem>
                           )}
                           {onDelete && (

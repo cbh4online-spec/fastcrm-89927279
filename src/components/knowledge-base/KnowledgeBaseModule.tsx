@@ -528,9 +528,21 @@ export function KnowledgeBaseModule() {
                         const source = sources.find(s => s.id === sourceId);
                         if (source) {
                           toast.info('A reprocessar fonte...');
+                          
+                          // First reset to pending and clear errors (handles stuck processing docs)
                           await supabase
                             .from('knowledge_sources')
-                            .update({ processing_status: 'processing', processing_error: null })
+                            .update({ 
+                              processing_status: 'pending', 
+                              processing_error: null,
+                              last_processed_at: null 
+                            })
+                            .eq('id', sourceId);
+                          
+                          // Then update to processing
+                          await supabase
+                            .from('knowledge_sources')
+                            .update({ processing_status: 'processing' })
                             .eq('id', sourceId);
                           
                           // Use the correct function based on source type
