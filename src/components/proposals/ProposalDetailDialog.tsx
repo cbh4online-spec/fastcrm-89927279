@@ -484,7 +484,8 @@ export function ProposalDetailDialog({
         return (
           <div className="h-full">
             <POSProposalItemsEditor 
-              proposalId={proposalId} 
+              proposalId={proposalId}
+              currency={proposal?.currency || "EUR"}
               onSaved={async () => {
                 await queryClient.refetchQueries({ 
                   queryKey: ["proposal", proposalId] 

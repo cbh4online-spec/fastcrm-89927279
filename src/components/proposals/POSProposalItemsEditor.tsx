@@ -48,10 +48,11 @@ interface EditableItem {
 
 interface POSProposalItemsEditorProps {
   proposalId: string;
+  currency?: string;
   onSaved?: () => void;
 }
 
-export function POSProposalItemsEditor({ proposalId, onSaved }: POSProposalItemsEditorProps) {
+export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }: POSProposalItemsEditorProps) {
   const queryClient = useQueryClient();
   const { data: existingItems, isLoading: loadingItems, dataUpdatedAt } = useProposalItems(proposalId);
   const { data: products } = useProducts({ status: "active" });
@@ -97,10 +98,10 @@ export function POSProposalItemsEditor({ proposalId, onSaved }: POSProposalItems
     }
   }, [existingItems, loadingItems, dataUpdatedAt, lastSyncedAt, hasChanges, products]);
 
-  const formatPrice = (price: number, currency = "EUR") => {
+  const formatPrice = (price: number) => {
     return new Intl.NumberFormat("pt-PT", {
       style: "currency",
-      currency,
+      currency: currency,
     }).format(price);
   };
 
