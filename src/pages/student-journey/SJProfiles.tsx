@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -41,6 +42,9 @@ import {
   Clock,
   Filter,
   Edit,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import { useProfiles, useCourses } from "@/hooks/useStudentJourney";
 import { useJourneyTransitions } from "@/hooks/useJourneyTransitions";
@@ -107,6 +111,15 @@ export default function SJProfiles() {
   const [interestFilter, setInterestFilter] = useState<string>("all");
   const [timeFilter, setTimeFilter] = useState<string>("all");
   const [hasFollowUpFilter, setHasFollowUpFilter] = useState<"all" | "with" | "without" | "overdue">("all");
+
+  // Multi-selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // Sorting state
+  type SortField = 'name' | 'stage' | 'score' | 'courses' | 'specialty' | 'followup';
+  type SortDirection = 'asc' | 'desc';
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // Sync filter with URL params when they change
   useEffect(() => {
@@ -193,6 +206,36 @@ export default function SJProfiles() {
   }, [enrichedProfiles, searchQuery, stageFilter, riskFilter, potentialFilter, 
       interestFilter, timeFilter, hasFollowUpFilter]);
 
+  // Sorted profiles
+  const sortedProfiles = useMemo(() => {
+    return [...filteredProfiles].sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'name':
+          comparison = a.full_name.localeCompare(b.full_name);
+          break;
+        case 'stage':
+          comparison = a.lifecycle_stage.localeCompare(b.lifecycle_stage);
+          break;
+        case 'score':
+          comparison = (a.activationScore || 0) - (b.activationScore || 0);
+          break;
+        case 'courses':
+          comparison = (a.completedCourses || 0) - (b.completedCourses || 0);
+          break;
+        case 'specialty':
+          comparison = (a.primary_specialty || '').localeCompare(b.primary_specialty || '');
+          break;
+        case 'followup':
+          const dateA = a.next_follow_up_at ? new Date(a.next_follow_up_at).getTime() : 0;
+          const dateB = b.next_follow_up_at ? new Date(b.next_follow_up_at).getTime() : 0;
+          comparison = dateA - dateB;
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredProfiles, sortField, sortDirection]);
+
   // Use actual database lifecycle stages (matching the CHECK constraint)
   const stages: (LifecycleStage | "all")[] = [
     "all", "lead", "prospect", "enrolled", "active", "completed", "inactive", "churned",
@@ -214,6 +257,62 @@ export default function SJProfiles() {
     setTimeFilter("all");
     setHasFollowUpFilter("all");
     setSearchQuery("");
+  };
+
+  // Selection helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === sortedProfiles.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedProfiles.map(p => p.id)));
+    }
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  // Sort handler
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    const confirmed = confirm(
+      `Tem a certeza que deseja remover ${selectedIds.size} perfil(is)?`
+    );
+    
+    if (confirmed) {
+      for (const id of selectedIds) {
+        await deleteProfile.mutateAsync(id);
+      }
+      clearSelection();
+    }
+  };
+
+  // SortIcon component
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3 w-3" /> 
+      : <ArrowDown className="h-3 w-3" />;
   };
 
   const handleScheduleFollowUp = (profileId: string) => {
@@ -366,39 +465,101 @@ export default function SJProfiles() {
         </div>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+          <span className="text-sm font-medium">
+            {selectedIds.size} perfil(is) seleccionado(s)
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Apagar Seleccionados
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Profiles Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Cursos</TableHead>
-                <TableHead>Especialidade</TableHead>
-                <TableHead>Próximo Follow-up</TableHead>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedIds.size === sortedProfiles.length && sortedProfiles.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Seleccionar todos"
+                  />
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('name')}>
+                  <div className="flex items-center gap-1">
+                    Nome
+                    <SortIcon field="name" />
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('stage')}>
+                  <div className="flex items-center gap-1">
+                    Estado
+                    <SortIcon field="stage" />
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('score')}>
+                  <div className="flex items-center gap-1">
+                    Score
+                    <SortIcon field="score" />
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('courses')}>
+                  <div className="flex items-center gap-1">
+                    Cursos
+                    <SortIcon field="courses" />
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('specialty')}>
+                  <div className="flex items-center gap-1">
+                    Especialidade
+                    <SortIcon field="specialty" />
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('followup')}>
+                  <div className="flex items-center gap-1">
+                    Follow-up
+                    <SortIcon field="followup" />
+                  </div>
+                </TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     A carregar...
                   </TableCell>
                 </TableRow>
-              ) : filteredProfiles.length === 0 ? (
+              ) : sortedProfiles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     Nenhum perfil encontrado
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProfiles.map((profile) => {
+                sortedProfiles.map((profile) => {
                   const stageConfig = LIFECYCLE_STAGE_CONFIG[profile.lifecycle_stage];
                   return (
-                    <TableRow key={profile.id}>
+                    <TableRow key={profile.id} className={cn(selectedIds.has(profile.id) && "bg-primary/5")}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(profile.id)}
+                          onCheckedChange={() => toggleSelect(profile.id)}
+                          aria-label={`Seleccionar ${profile.full_name}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <Link
                           to={`/dashboard/student-journey/profiles/${profile.id}`}
@@ -450,7 +611,7 @@ export default function SJProfiles() {
                         {profile.next_follow_up_at ? (
                           <span className={cn(
                             "text-sm",
-                            parseISO(profile.next_follow_up_at) < new Date() && "text-red-600 font-medium"
+                            parseISO(profile.next_follow_up_at) < new Date() && "text-destructive font-medium"
                           )}>
                             {format(new Date(profile.next_follow_up_at), "dd MMM, HH:mm", { locale: pt })}
                           </span>
