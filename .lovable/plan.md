@@ -1,93 +1,152 @@
 
-# Plano: Corrigir Moeda nos Itens da Proposta
+# Plano: Adicionar Selector de Moeda nas Condições de Pagamento
 
-## Problema Identificado
+## Diagnóstico
 
-O componente `POSProposalItemsEditor` utiliza `EUR` como moeda por defeito na função `formatPrice`, ignorando a moeda real configurada na proposta. Quando a proposta é em EUR, deveria mostrar euros (€), mas está a mostrar o formato incorreto.
+Após investigar a base de dados, confirmei que a proposta "Solução Wi-Fi Alta Performance" está gravada com **currency: BRL** (Reais) em vez de EUR. Este é o motivo pelo qual aparece "R$" no cabeçalho.
 
-### Código Actual (Problemático)
+| id | title | currency |
+|----|-------|----------|
+| b83949a8-... | Solução Wi-Fi Alta Performance | **BRL** |
+| d8f9f8f3-... | Proposta Comercial (cópia) | EUR |
 
-```typescript
-// POSProposalItemsEditor.tsx - linha 100
-const formatPrice = (price: number, currency = "EUR") => {
-  return new Intl.NumberFormat("pt-PT", {
-    style: "currency",
-    currency,
-  }).format(price);
-};
-```
-
-O problema é que a moeda da proposta (`proposal.currency`) não está a ser passada para o `POSProposalItemsEditor`. O componente está a usar o valor por defeito `EUR`, mas não está a formatá-lo correctamente em todas as chamadas.
-
-Além disso, o componente não recebe a prop `currency` do `ProposalDetailDialog`, que é onde a proposta é carregada e onde `proposal.currency` está disponível.
+O sistema está a funcionar correctamente - está a usar a moeda gravada na proposta. O problema é que **não existe forma de alterar a moeda** depois da proposta ser criada.
 
 ## Solução
 
-1. Adicionar a prop `currency` à interface `POSProposalItemsEditorProps`
-2. Passar `proposal.currency` quando o componente é utilizado no `ProposalDetailDialog`
-3. Utilizar a prop `currency` em todas as chamadas de `formatPrice`
+Adicionar um campo de selecção de moeda na secção **Condições de Pagamento** (step 4: Condições), permitindo ao utilizador escolher entre EUR, USD, BRL, etc.
 
-## Alterações Necessárias
+### Layout Proposto
 
-### Ficheiro 1: `src/components/proposals/POSProposalItemsEditor.tsx`
+```text
+╔══════════════════════════════════════════════════════╗
+║ 💳 Condições de Pagamento                            ║
+╠══════════════════════════════════════════════════════╣
+║                                                      ║
+║  Moeda da Proposta          Prazo de Pagamento       ║
+║  ┌─────────────────┐        ┌─────────────────┐      ║
+║  │ EUR (€)       ▾ │        │ 30 dias       ▾ │      ║
+║  └─────────────────┘        └─────────────────┘      ║
+║                                                      ║
+╚══════════════════════════════════════════════════════╝
+```
 
-**Alteração na interface (linhas 49-52):**
+## Alterações Técnicas
 
+### 1. Ficheiro: `src/components/proposals/ProposalConditionsSection.tsx`
+
+**Adicionar propriedade à interface ConditionsData:**
 ```typescript
-interface POSProposalItemsEditorProps {
-  proposalId: string;
-  currency?: string;  // Adicionar esta prop
-  onSaved?: () => void;
+export interface ConditionsData {
+  paymentConditions: string;
+  customPaymentConditions: string;
+  validityDays: number;
+  notes: string;
+  currency: string;  // NOVO
+  isAIGenerated?: boolean;
 }
 ```
 
-**Alteração na assinatura da função (linha 54):**
+**Adicionar selector de moeda no card "Condições de Pagamento":**
+- Opções: EUR (€), USD ($), BRL (R$), GBP (£)
+- Posicionado ao lado do "Prazo de Pagamento"
+- Com ícone de moeda
 
+### 2. Ficheiro: `src/components/proposals/ProposalDetailDialog.tsx`
+
+**Inicializar currency no estado conditionsData (linha ~148-155):**
 ```typescript
-export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }: POSProposalItemsEditorProps) {
+const [conditionsData, setConditionsData] = useState<ConditionsData>({
+  paymentConditions: "30_dias",
+  customPaymentConditions: "",
+  validityDays: 30,
+  notes: "",
+  currency: "EUR",  // NOVO
+});
 ```
 
-**Alteração na função formatPrice (linhas 100-105):**
-
+**Carregar currency da proposta na inicialização (linha ~282-289):**
 ```typescript
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat("pt-PT", {
-    style: "currency",
-    currency: currency,  // Usar a prop currency
-  }).format(price);
-};
+setConditionsData({
+  paymentConditions: isCustom ? "custom" : paymentValue,
+  customPaymentConditions: isCustom ? paymentValue : "",
+  validityDays: proposal.validity_days || 30,
+  notes: proposal.notes || "",
+  currency: proposal.currency || "EUR",  // NOVO
+});
 ```
 
-### Ficheiro 2: `src/components/proposals/ProposalDetailDialog.tsx`
+**Gravar currency na proposta ao salvar (linha ~378-395):**
+```typescript
+const { error } = await supabase
+  .from("proposals")
+  .update({
+    // ... outros campos
+    currency: conditionsData.currency,  // NOVO
+  })
+  .eq("id", proposal.id);
+```
 
-**Alteração na chamada do componente (linhas 486-493):**
-
+**Passar currency para POSProposalItemsEditor (linha ~484-493):**
 ```typescript
 <POSProposalItemsEditor 
   proposalId={proposalId}
-  currency={proposal?.currency || "EUR"}  // Adicionar esta prop
-  onSaved={async () => {
-    await queryClient.refetchQueries({ 
-      queryKey: ["proposal", proposalId] 
-    });
-  }}
+  currency={conditionsData.currency || proposal?.currency || "EUR"}  // Usar do estado
+  onSaved={...}
 />
+```
+
+### 3. Ficheiro: `src/types/proposal.ts` (opcional)
+
+Adicionar array de moedas suportadas para reutilização:
+```typescript
+export const SUPPORTED_CURRENCIES = [
+  { code: "EUR", symbol: "€", label: "Euro (€)" },
+  { code: "USD", symbol: "$", label: "Dólar ($)" },
+  { code: "BRL", symbol: "R$", label: "Real (R$)" },
+  { code: "GBP", symbol: "£", label: "Libra (£)" },
+] as const;
 ```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/POSProposalItemsEditor.tsx` | Adicionar prop `currency` e usá-la na função `formatPrice` |
-| `src/components/proposals/ProposalDetailDialog.tsx` | Passar `proposal?.currency` para o `POSProposalItemsEditor` |
+| `src/components/proposals/ProposalConditionsSection.tsx` | Adicionar selector de moeda e prop na interface |
+| `src/components/proposals/ProposalDetailDialog.tsx` | Inicializar, carregar e gravar currency |
+| `src/types/proposal.ts` | Definir constante SUPPORTED_CURRENCIES |
 
 ## Comportamento Esperado
 
-1. Proposta em EUR → Preços formatados com €
-2. Proposta em BRL → Preços formatados com R$
-3. Proposta em USD → Preços formatados com $
-4. A moeda é determinada pela configuração da proposta, não pelo valor por defeito
+1. Utilizador abre proposta existente com BRL
+2. Vai à secção "Condições"
+3. No campo "Moeda da Proposta", selecciona "EUR (€)"
+4. Clica "Guardar"
+5. O cabeçalho actualiza para mostrar € em vez de R$
+6. Os itens da proposta também mostram €
+
+## Fluxo de Dados
+
+```text
+ProposalConditionsSection           ProposalDetailDialog          POSProposalItemsEditor
+        │                                   │                              │
+        │ onChange({ currency: "EUR" })     │                              │
+        │─────────────────────────────────▶ │                              │
+        │                                   │ setConditionsData(...)       │
+        │                                   │──────────────────────▶ state │
+        │                                   │                              │
+        │                                   │ currency prop                │
+        │                                   │─────────────────────────────▶│
+        │                                   │                              │
+                                            │ handleSaveEdit()             │
+                                            │─────▶ supabase.update({      │
+                                            │         currency: "EUR"      │
+                                            │       })                     │
+```
 
 ## Complexidade
 
-Muito baixa - apenas adicionar uma prop e passá-la através da hierarquia de componentes.
+Baixa-Média - Requer:
+1. Adicionar um novo campo à interface existente
+2. Adicionar um componente Select standard
+3. Propagar o valor através do fluxo de dados existente
