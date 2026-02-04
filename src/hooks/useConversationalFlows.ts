@@ -46,17 +46,30 @@ export function useConversationalFlows() {
     }
   }, [currentWorkspace?.id]);
 
-  // Load flow details (steps + variables)
+  // Load flow details (steps + variables) - with workspace isolation
   const loadFlowDetails = useCallback(async (flowId: string) => {
+    if (!currentWorkspace?.id) return;
+    
     setIsLoading(true);
     try {
       const [flowRes, stepsRes, varsRes] = await Promise.all([
-        supabase.from('conversational_flows').select('*').eq('id', flowId).single(),
+        supabase
+          .from('conversational_flows')
+          .select('*')
+          .eq('id', flowId)
+          .eq('workspace_id', currentWorkspace.id)
+          .maybeSingle(),
         supabase.from('flow_steps').select('*').eq('flow_id', flowId).order('position'),
         supabase.from('flow_variables').select('*').eq('flow_id', flowId).order('position')
       ]);
 
       if (flowRes.error) throw flowRes.error;
+      
+      // Flow not found in current workspace - may belong to another workspace
+      if (!flowRes.data) {
+        toast.error('Fluxo não encontrado neste workspace');
+        return;
+      }
       
       setCurrentFlow(mapFlowFromDB(flowRes.data));
       setSteps((stepsRes.data || []).map(mapStepFromDB));
@@ -67,7 +80,7 @@ export function useConversationalFlows() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentWorkspace?.id]);
 
   // Create new flow
   const createFlow = useCallback(async (data: {
@@ -118,8 +131,10 @@ export function useConversationalFlows() {
     }
   }, [currentWorkspace?.id]);
 
-  // Update flow
+  // Update flow - with workspace isolation
   const updateFlow = useCallback(async (flowId: string, data: Partial<ConversationalFlow>) => {
+    if (!currentWorkspace?.id) return null;
+    
     setIsSaving(true);
     try {
       const updateData: Record<string, unknown> = {};
@@ -139,14 +154,21 @@ export function useConversationalFlows() {
       if (data.priority !== undefined) updateData.priority = data.priority;
       if (data.timeoutMinutes !== undefined) updateData.timeout_minutes = data.timeoutMinutes;
 
+      // Update only if flow belongs to current workspace
       const { data: updated, error } = await supabase
         .from('conversational_flows')
         .update(updateData)
         .eq('id', flowId)
+        .eq('workspace_id', currentWorkspace.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      
+      if (!updated) {
+        toast.error('Fluxo não encontrado neste workspace');
+        return null;
+      }
 
       const mappedFlow = mapFlowFromDB(updated);
       setFlows(prev => prev.map(f => f.id === flowId ? mappedFlow : f));
@@ -160,11 +182,26 @@ export function useConversationalFlows() {
     } finally {
       setIsSaving(false);
     }
-  }, [currentFlow?.id]);
+  }, [currentFlow?.id, currentWorkspace?.id]);
 
-  // Delete flow
+  // Delete flow - with workspace isolation
   const deleteFlow = useCallback(async (flowId: string) => {
+    if (!currentWorkspace?.id) return false;
+    
     try {
+      // Verify flow belongs to current workspace first
+      const { data: existingFlow } = await supabase
+        .from('conversational_flows')
+        .select('id')
+        .eq('id', flowId)
+        .eq('workspace_id', currentWorkspace.id)
+        .maybeSingle();
+        
+      if (!existingFlow) {
+        toast.error('Fluxo não encontrado neste workspace');
+        return false;
+      }
+      
       // Delete steps and variables first (cascade should handle, but be safe)
       await supabase.from('flow_steps').delete().eq('flow_id', flowId);
       await supabase.from('flow_variables').delete().eq('flow_id', flowId);
@@ -172,7 +209,8 @@ export function useConversationalFlows() {
       const { error } = await supabase
         .from('conversational_flows')
         .delete()
-        .eq('id', flowId);
+        .eq('id', flowId)
+        .eq('workspace_id', currentWorkspace.id);
 
       if (error) throw error;
 
@@ -189,7 +227,7 @@ export function useConversationalFlows() {
       toast.error('Erro ao eliminar fluxo');
       return false;
     }
-  }, [currentFlow?.id]);
+  }, [currentFlow?.id, currentWorkspace?.id]);
 
   // =========== STEPS ===========
 
@@ -568,6 +606,14 @@ export function useConversationalFlows() {
     } finally {
       setIsSaving(false);
     }
+  }, [currentWorkspace?.id]);
+
+  // Clear state when workspace changes to ensure isolation
+  useEffect(() => {
+    setCurrentFlow(null);
+    setSteps([]);
+    setVariables([]);
+    setFlows([]);
   }, [currentWorkspace?.id]);
 
   // Load flows on mount
