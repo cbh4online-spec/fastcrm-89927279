@@ -1,153 +1,212 @@
 
-# Plano: Adicionar Botão "Convidar para B2B" na Página de Contacto
 
-## Objectivo
+# Plano: Simplificar e Tornar o Inbox Mais Funcional
 
-Adicionar um botão na página de detalhe do contacto que permite enviar um convite para o Portal B2B, pré-preenchendo os dados do cliente com base no contacto actual.
+## Problemas Identificados
 
-## Análise da Situação Actual
+Após analisar o código, identifiquei as seguintes fontes de confusão:
 
-O sistema já possui:
-- **`InviteClientDialog`** - Diálogo completo para criar clientes B2B
-- **`InviteLinkDialog`** - Diálogo para partilhar o link de convite (URL, QR Code, Email)
-- Suporte para associar um `contact_id` ao cliente B2B
+| Problema | Causa | Impacto |
+|----------|-------|---------|
+| **Barra de métricas sobrecarregada** | 10+ elementos (métricas, sync, autopilot, compose, alerts) numa só linha | Difícil identificar acções importantes |
+| **Sidebar + Tabs duplicados** | Filtro de canais aparece no Sidebar E nas Tabs da lista | Redundância confusa |
+| **Detalhe da conversa poluído** | 6+ banners (Summary, Tags, Safety, Autopilot, Follow-up, Opportunity) antes das mensagens | O conteúdo principal fica escondido |
+| **Painel CRM muito longo** | 400+ linhas de informação numa scroll infinita | Informação importante misturada com secundária |
+| **Acções espalhadas** | Botões de acção em múltiplos locais (header, menus, banners) | Utilizador não sabe onde clicar |
 
-## Solução Proposta
+## Arquitectura Actual
 
-### Opção Escolhida: Criar um botão que abre o InviteClientDialog pré-preenchido
+```text
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ [Metrics] [Open:5] [Unread:3] [>2h:2] [Alerts] [AutoPilot] [Sync▾] [New] [...]  │ ← MUITO OCUPADO
+├──────────┬──────────────┬─────────────────────────────────┬─────────────────────┤
+│ Sidebar  │ Conv List    │ Conversation Detail             │ CRM Panel           │
+│ 52 cols  │ 72 cols      │ Flex                            │ 72 cols             │
+│ ──────── │ ──────────── │ ─────────────────────────────── │ ─────────────────── │
+│ Canais   │ Tabs(canais) │ Header + 6 Banners + Messages   │ Avatar              │
+│ Conversas│ Search       │ + AI Composer                   │ Stats               │
+│ Contactos│ Items        │                                 │ Notifications       │
+│          │              │                                 │ Settings            │
+│          │              │                                 │ Actions             │
+│          │              │                                 │ Opportunities       │
+│          │              │                                 │ Proposals           │
+│          │              │                                 │ Tasks               │
+│          │              │                                 │ Activity            │
+└──────────┴──────────────┴─────────────────────────────────┴─────────────────────┘
+```
 
-Adicionar um novo botão "Convidar para Portal B2B" no header da página de contacto, que abre o diálogo de convite com os dados do contacto já preenchidos.
+## Proposta de Redesign
+
+### 1. Barra Superior Simplificada
+
+**Antes:** 10+ elementos
+**Depois:** 4 grupos lógicos
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ [📝 Nova]    │   5 abertas • 3 não lidas   │   [🔔 2] [⚡Auto] [↻]   │   [🔍]   │
+│   ACÇÃO      │        STATUS               │       FERRAMENTAS       │  SEARCH  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2. Eliminar Redundância de Filtros
+
+- **Remover** tabs de canais da ConversationList (já existem no Sidebar)
+- **Manter** apenas busca + smart filters na lista
+- Sidebar fica como único local de filtros de categoria/canal
+
+### 3. Detalhe da Conversa Limpo
+
+**Antes:** 6 banners antes das mensagens
+**Depois:** Apenas 1 banner consolidado (só aparece quando relevante)
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ [Avatar] João Silva  •  WhatsApp  •  Aberta  •  🔥Hot           [...] [⚡] [AI] │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ ⚠️ Follow-up pendente há 2h • Intenção: Vendas • Auto: ✓               [ver +] │ ← BANNER ÚNICO
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│                        MENSAGENS (área principal)                               │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ [Composer]                                                                      │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 4. Painel CRM com Tabs
+
+Organizar a informação em 3 tabs simples:
+
+```text
+┌─────────────────────────────┐
+│  [📋 Info] [💰 Sales] [📜 Hist] │
+├─────────────────────────────┤
+│  Tab: Info                  │
+│  ────────────────────────── │
+│  Avatar + Nome              │
+│  Email / Telefone           │
+│  Status: Active             │
+│  Tags: [tag1] [tag2]        │
+│  [📧] [📞] [📅]             │
+├─────────────────────────────┤
+│  Tab: Sales                 │
+│  ────────────────────────── │
+│  Oportunidades (2)          │
+│  Propostas (1)              │
+│  Tarefas (3)                │
+│  [+ Nova Oportunidade]      │
+├─────────────────────────────┤
+│  Tab: Histórico             │
+│  ────────────────────────── │
+│  Timeline de actividade     │
+└─────────────────────────────┘
+```
 
 ## Alterações de Código
 
-### 1. Modificar `InviteClientDialog.tsx`
-
-Adicionar props opcionais para receber dados de pré-preenchimento:
-
-```typescript
-interface InviteClientDialogProps {
-  trigger?: React.ReactNode;
-  onSuccess?: () => void;
-  // NOVAS PROPS para pré-preenchimento
-  prefillData?: {
-    contactId: string;
-    name: string;
-    email: string;
-    phone?: string;
-    taxId?: string;
-    address?: string;
-    city?: string;
-    postalCode?: string;
-    country?: string;
-  };
-}
-```
-
-Modificar o `useEffect` para preencher o formulário quando `prefillData` é fornecido:
-
-```typescript
-useEffect(() => {
-  if (prefillData && open) {
-    form.setValue("contact_id", prefillData.contactId);
-    form.setValue("name", prefillData.name);
-    form.setValue("email", prefillData.email);
-    if (prefillData.phone) form.setValue("phone", prefillData.phone);
-    if (prefillData.taxId) form.setValue("tax_id", prefillData.taxId);
-    // ... preencher morada de facturação
-  }
-}, [prefillData, open]);
-```
-
-### 2. Modificar `ENIContactDetailWithSidebar.tsx`
-
-Adicionar o botão de convite B2B no header:
-
-```typescript
-// Imports
-import { InviteClientDialog } from "@/components/client-users/InviteClientDialog";
-import { UserPlus } from "lucide-react";
-
-// No header, junto aos outros botões de acção
-{contact.email && (
-  <InviteClientDialog
-    trigger={
-      <Button variant="outline" className="gap-2">
-        <UserPlus className="w-4 h-4" />
-        Convidar B2B
-      </Button>
-    }
-    prefillData={{
-      contactId: id!,
-      name: contact.name,
-      email: contact.email,
-      phone: contact.phone || undefined,
-      taxId: contact.tax_id || undefined,
-      address: contact.address || undefined,
-      city: contact.city || undefined,
-      postalCode: contact.postal_code || undefined,
-      country: contact.country || undefined,
-    }}
-  />
-)}
-```
-
-## Fluxo do Utilizador
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  Página de Detalhe do Contacto                              │
-│                                                             │
-│  [← Voltar]  João Silva                                     │
-│                                                             │
-│  [ Enviar Email ] [ Nova Fatura ] [ Convidar B2B ] [...]    │
-│                        ↓                                    │
-│                  Clique aqui                                │
-└─────────────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Dialog: Convidar Novo Cliente B2B                          │
-│                                                             │
-│  Contacto CRM: [João Silva] (pré-seleccionado)              │
-│                                                             │
-│  Nome: [João Silva]        ← Pré-preenchido                 │
-│  Email: [joao@empresa.pt]  ← Pré-preenchido                 │
-│  Telefone: [+351 912 345 678]                               │
-│  NIF: [123456789]                                           │
-│                                                             │
-│                    [ Cancelar ] [ Criar e Gerar Convite ]   │
-└─────────────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Dialog: Cliente Criado com Sucesso                         │
-│                                                             │
-│  [ Link ] [ QR Code ] [ Email ]                             │
-│                                                             │
-│  ┌─────────────────────────────┐                            │
-│  │ Link de Convite: https://...│ [ Copiar ]                 │
-│  └─────────────────────────────┘                            │
-│                                                             │
-│  [ Palavra-passe: abc123... ]  [ Copiar ]                   │
-│                                                             │
-│                                      [ Fechar ]             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Verificação de Email Obrigatório
-
-O botão só aparece se o contacto tiver email, pois o email é obrigatório para criar um cliente B2B.
-
-## Ficheiros a Modificar
+### Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/client-users/InviteClientDialog.tsx` | Adicionar props `prefillData` e lógica de pré-preenchimento |
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Adicionar botão "Convidar B2B" no header |
+| `src/components/inbox/InboxMetricsBar.tsx` | Simplificar para 4 grupos: Acção, Status, Ferramentas, Busca |
+| `src/components/inbox/ConversationList.tsx` | Remover tabs de canais duplicados, simplificar header |
+| `src/components/inbox/ConversationDetail.tsx` | Criar banner consolidado, esconder detalhes em accordions |
+| `src/components/inbox/InboxCRMPanel.tsx` | Reorganizar com tabs (Info/Sales/Histórico) |
+| `src/components/inbox/InboxView.tsx` | Ajustar layout e responsividade |
+| **NOVO** `src/components/inbox/ConversationStatusBanner.tsx` | Banner único consolidando avisos importantes |
 
-## Benefícios
+### Detalhe das Alterações
 
-1. **Fluxo rápido** - Dados pré-preenchidos reduzem entrada manual
-2. **Associação automática** - O `contact_id` é automaticamente associado ao cliente B2B
-3. **Reutilização de código** - Usa os componentes existentes (`InviteClientDialog`, `InviteLinkDialog`)
-4. **Consistência** - Mesmo fluxo de criação que na página de Clientes B2B
+#### A. InboxMetricsBar.tsx - Simplificação
+
+```typescript
+// Layout simplificado
+<div className="flex items-center justify-between px-4 py-2 border-b">
+  {/* Acção Principal */}
+  <ComposeButton />
+  
+  {/* Status Compacto */}
+  <div className="flex items-center gap-3 text-sm">
+    <span className="font-medium">{openCount} abertas</span>
+    <span className="text-muted-foreground">•</span>
+    <span className={cn(unreadCount > 0 && "text-primary font-medium")}>
+      {unreadCount} não lidas
+    </span>
+  </div>
+  
+  {/* Ferramentas */}
+  <div className="flex items-center gap-2">
+    <SmartAlertsPopover />
+    <AutopilotToggle compact />
+    <SyncButton compact />
+  </div>
+</div>
+```
+
+#### B. ConversationList.tsx - Sem Tabs Duplicados
+
+```typescript
+// Remover TabsList de canais (linha 460-476)
+// Manter apenas: Header + Search + Smart Filter + Lista
+```
+
+#### C. ConversationDetail.tsx - Banner Consolidado
+
+```typescript
+// Substituir os 6 banners separados por:
+<ConversationStatusBanner
+  conversationId={conversationId}
+  messages={messages}
+  conversation={conversation}
+  opportunityTrigger={opportunityTrigger}
+/>
+
+// Este componente mostra APENAS alertas importantes:
+// - Follow-up pendente (se >2h)
+// - Autopilot status (se diferente do padrão)
+// - Intenção detectada (se sales)
+// - Botão "ver mais" para detalhes
+```
+
+#### D. InboxCRMPanel.tsx - Tabs Organizadas
+
+```typescript
+// Novo layout com 3 tabs
+<Tabs defaultValue="info" className="w-full">
+  <TabsList className="w-full grid grid-cols-3 h-9">
+    <TabsTrigger value="info" className="text-xs">Info</TabsTrigger>
+    <TabsTrigger value="sales" className="text-xs">Vendas</TabsTrigger>
+    <TabsTrigger value="history" className="text-xs">Histórico</TabsTrigger>
+  </TabsList>
+  
+  <TabsContent value="info">
+    {/* Avatar, contacto, status, tags */}
+  </TabsContent>
+  
+  <TabsContent value="sales">
+    {/* Oportunidades, propostas, tarefas */}
+  </TabsContent>
+  
+  <TabsContent value="history">
+    {/* UnifiedActivityLog */}
+  </TabsContent>
+</Tabs>
+```
+
+## Benefícios Esperados
+
+1. **Menos ruído visual** - Informação agrupada logicamente
+2. **Acções claras** - Botão "Nova Mensagem" em destaque
+3. **Foco no conteúdo** - Mensagens visíveis sem scroll
+4. **Navegação intuitiva** - Filtros num só local (Sidebar)
+5. **CRM organizado** - Tabs separam info/vendas/histórico
+
+## Prioridade de Implementação
+
+1. **Alta**: Simplificar InboxMetricsBar
+2. **Alta**: Remover tabs duplicados da ConversationList
+3. **Média**: Criar banner consolidado
+4. **Média**: Reorganizar CRM Panel com tabs
+5. **Baixa**: Ajustes de responsividade
+
