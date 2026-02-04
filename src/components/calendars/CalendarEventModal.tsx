@@ -62,6 +62,9 @@ interface CalendarEventModalProps {
   defaultDate?: Date;
   onSubmit: (data: CreateEventData) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
+  defaultContactId?: string | null;
+  defaultCompanyId?: string | null;
+  defaultLeadId?: string | null;
 }
 
 export function CalendarEventModal({
@@ -72,11 +75,15 @@ export function CalendarEventModal({
   defaultDate = new Date(),
   onSubmit,
   onDelete,
+  defaultContactId,
+  defaultCompanyId,
+  defaultLeadId,
 }: CalendarEventModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null }>({
-    contactId: null,
-    companyId: null,
+  const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null; leadId?: string | null }>({
+    contactId: defaultContactId || null,
+    companyId: defaultCompanyId || null,
+    leadId: defaultLeadId || null,
   });
 
   const form = useForm<EventFormData>({
@@ -150,13 +157,17 @@ export function CalendarEventModal({
           location: '',
           meeting_url: '',
           status: 'confirmed',
-          contact_id: null,
-          company_id: null,
+          contact_id: defaultContactId || null,
+          company_id: defaultCompanyId || null,
         });
-        setEntityValue({ contactId: null, companyId: null });
+        setEntityValue({ 
+          contactId: defaultContactId || null, 
+          companyId: defaultCompanyId || null,
+          leadId: defaultLeadId || null,
+        });
       }
     }
-  }, [open, event, calendars, defaultDate, form]);
+  }, [open, event, calendars, defaultDate, form, defaultContactId, defaultCompanyId, defaultLeadId]);
 
   const handleSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);

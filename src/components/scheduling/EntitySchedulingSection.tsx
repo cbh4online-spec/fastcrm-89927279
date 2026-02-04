@@ -264,6 +264,9 @@ export function EntitySchedulingSection({
         defaultDate={new Date()}
         onSubmit={handleCreateEvent}
         onDelete={async () => {}}
+        defaultContactId={entityType === 'contact' ? entityId : null}
+        defaultCompanyId={entityType === 'company' ? entityId : null}
+        defaultLeadId={entityType === 'lead' ? entityId : null}
       />
     </div>
   );
