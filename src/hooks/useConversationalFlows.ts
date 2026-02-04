@@ -608,18 +608,19 @@ export function useConversationalFlows() {
     }
   }, [currentWorkspace?.id]);
 
-  // Clear state when workspace changes to ensure isolation
+  // Clear state and reload when workspace changes
   useEffect(() => {
+    // Clear previous workspace data
     setCurrentFlow(null);
     setSteps([]);
     setVariables([]);
     setFlows([]);
-  }, [currentWorkspace?.id]);
-
-  // Load flows on mount
-  useEffect(() => {
-    loadFlows();
-  }, [loadFlows]);
+    
+    // Load flows for new workspace
+    if (currentWorkspace?.id) {
+      loadFlows();
+    }
+  }, [currentWorkspace?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     // State
