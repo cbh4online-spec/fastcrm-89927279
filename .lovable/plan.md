@@ -1,232 +1,107 @@
 
 
-# Plano: Adicionar Multi-Selecção e Ordenação ao SJProfiles.tsx
+# Plano: Corrigir Políticas RLS para Metas de Produtividade
 
 ## Problema Identificado
 
-As funcionalidades de multi-selecção e ordenação foram implementadas no ficheiro errado:
-- **SJProfiles.tsx** - usado na rota `/dashboard/student-journey/profiles` (ficheiro actual, SEM as funcionalidades)
-- **SJStudents.tsx** - ficheiro onde as alterações foram feitas (rota diferente)
+As metas de produtividade não estão a ser registadas devido a **políticas de Row Level Security (RLS) incompletas**. Os logs da base de dados mostram:
+
+```
+"new row violates row-level security policy for table \"productivity_goals\""
+```
+
+### Análise das Políticas Actuais
+
+| Política | Comando | Condição |
+|----------|---------|----------|
+| Admins can create organizational goals | INSERT | `goal_scope = 'organizational'` E utilizador é owner/admin |
+| Users can create goals | INSERT | workspace_id pertence ao utilizador (sem verificar user_id ou scope) |
+
+### Cenários que Falham
+
+1. **Owner/Admin a criar meta individual para OUTRO utilizador** - O user_id da meta é diferente de `auth.uid()`, e não há política que permita isto
+2. **Utilizador regular a criar meta individual própria** - Pode falhar se a política não validar correctamente o user_id = auth.uid()
 
 ## Solução
 
-Adicionar as mesmas funcionalidades ao ficheiro correcto `SJProfiles.tsx`, adaptando para as colunas existentes (Nome, Estado, Score, Cursos, Especialidade, Follow-up).
+Reorganizar as políticas de INSERT para cobrir todos os cenários correctamente:
 
-## Alterações Técnicas
+### 1. Política para Metas Individuais
 
-### Ficheiro: `src/pages/student-journey/SJProfiles.tsx`
+Permitir criar metas individuais se:
+- O utilizador pertence ao workspace **E**
+- A meta é para si próprio (user_id = auth.uid()) **OU** o utilizador é owner/admin
 
-#### 1. Imports Adicionais
+### 2. Política para Metas Organizacionais  
 
-```typescript
-import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+Manter a lógica actual: apenas owners/admins podem criar metas organizacionais.
+
+## Alterações na Base de Dados
+
+```sql
+-- 1. Remover a política genérica problemática
+DROP POLICY IF EXISTS "Users can create goals" ON productivity_goals;
+
+-- 2. Criar política para metas individuais próprias
+CREATE POLICY "Users can create own individual goals"
+ON productivity_goals FOR INSERT
+WITH CHECK (
+  -- Meta individual
+  goal_scope = 'individual' 
+  AND
+  -- User_id é o próprio utilizador
+  user_id = auth.uid()
+  AND
+  -- Pertence ao workspace
+  workspace_id IN (
+    SELECT workspace_id FROM workspace_members 
+    WHERE user_id = auth.uid()
+  )
+);
+
+-- 3. Criar política para admins criarem metas individuais para outros
+CREATE POLICY "Admins can create individual goals for members"
+ON productivity_goals FOR INSERT
+WITH CHECK (
+  -- Meta individual
+  goal_scope = 'individual'
+  AND
+  -- User_id é um membro válido do workspace
+  user_id IN (
+    SELECT user_id FROM workspace_members 
+    WHERE workspace_id = productivity_goals.workspace_id
+  )
+  AND
+  -- Quem insere é owner/admin
+  EXISTS (
+    SELECT 1 FROM workspace_members
+    WHERE workspace_id = productivity_goals.workspace_id
+    AND user_id = auth.uid()
+    AND role IN ('owner', 'admin')
+  )
+);
 ```
 
-#### 2. Estados para Selecção e Ordenação
+## Resumo das Políticas Finais
 
-```typescript
-type SortField = 'name' | 'stage' | 'score' | 'courses' | 'specialty' | 'followup';
-type SortDirection = 'asc' | 'desc';
-
-// Multi-selection
-const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-// Sorting
-const [sortField, setSortField] = useState<SortField>('name');
-const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-```
-
-#### 3. Helpers de Selecção
-
-```typescript
-const toggleSelect = (id: string) => {
-  setSelectedIds(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    return next;
-  });
-};
-
-const toggleSelectAll = () => {
-  if (selectedIds.size === sortedProfiles.length) {
-    setSelectedIds(new Set());
-  } else {
-    setSelectedIds(new Set(sortedProfiles.map(p => p.id)));
-  }
-};
-
-const clearSelection = () => setSelectedIds(new Set());
-```
-
-#### 4. Lógica de Ordenação
-
-```typescript
-const sortedProfiles = useMemo(() => {
-  return [...filteredProfiles].sort((a, b) => {
-    let comparison = 0;
-    switch (sortField) {
-      case 'name':
-        comparison = a.full_name.localeCompare(b.full_name);
-        break;
-      case 'stage':
-        comparison = a.lifecycle_stage.localeCompare(b.lifecycle_stage);
-        break;
-      case 'score':
-        comparison = (a.activationScore || 0) - (b.activationScore || 0);
-        break;
-      case 'courses':
-        comparison = (a.completedCourses || 0) - (b.completedCourses || 0);
-        break;
-      case 'specialty':
-        comparison = (a.primary_specialty || '').localeCompare(b.primary_specialty || '');
-        break;
-      case 'followup':
-        const dateA = a.next_follow_up_at ? new Date(a.next_follow_up_at).getTime() : 0;
-        const dateB = b.next_follow_up_at ? new Date(b.next_follow_up_at).getTime() : 0;
-        comparison = dateA - dateB;
-        break;
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
-}, [filteredProfiles, sortField, sortDirection]);
-```
-
-#### 5. Handler de Ordenação
-
-```typescript
-const handleSort = (field: SortField) => {
-  if (sortField === field) {
-    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-  } else {
-    setSortField(field);
-    setSortDirection('asc');
-  }
-};
-```
-
-#### 6. Componente SortIcon
-
-```typescript
-const SortIcon = ({ field }: { field: SortField }) => {
-  if (sortField !== field) {
-    return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
-  }
-  return sortDirection === 'asc' 
-    ? <ArrowUp className="h-3 w-3" /> 
-    : <ArrowDown className="h-3 w-3" />;
-};
-```
-
-#### 7. Barra de Acções em Massa (após os filtros, antes da Card)
-
-```typescript
-{selectedIds.size > 0 && (
-  <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-    <span className="text-sm font-medium">
-      {selectedIds.size} perfil(is) seleccionado(s)
-    </span>
-    <div className="flex items-center gap-2">
-      <Button variant="ghost" size="sm" onClick={clearSelection}>
-        Cancelar
-      </Button>
-      <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
-        <Trash2 className="h-4 w-4 mr-2" />
-        Apagar Seleccionados
-      </Button>
-    </div>
-  </div>
-)}
-```
-
-#### 8. Cabeçalhos de Tabela com Ordenação
-
-Substituir os TableHead actuais por versões clicáveis:
-
-```typescript
-<TableHeader>
-  <TableRow>
-    <TableHead className="w-12">
-      <Checkbox
-        checked={selectedIds.size === sortedProfiles.length && sortedProfiles.length > 0}
-        onCheckedChange={toggleSelectAll}
-        aria-label="Seleccionar todos"
-      />
-    </TableHead>
-    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('name')}>
-      <div className="flex items-center gap-1">
-        Nome
-        <SortIcon field="name" />
-      </div>
-    </TableHead>
-    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('stage')}>
-      <div className="flex items-center gap-1">
-        Estado
-        <SortIcon field="stage" />
-      </div>
-    </TableHead>
-    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('score')}>
-      <div className="flex items-center gap-1">
-        Score
-        <SortIcon field="score" />
-      </div>
-    </TableHead>
-    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('courses')}>
-      <div className="flex items-center gap-1">
-        Cursos
-        <SortIcon field="courses" />
-      </div>
-    </TableHead>
-    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('specialty')}>
-      <div className="flex items-center gap-1">
-        Especialidade
-        <SortIcon field="specialty" />
-      </div>
-    </TableHead>
-    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('followup')}>
-      <div className="flex items-center gap-1">
-        Follow-up
-        <SortIcon field="followup" />
-      </div>
-    </TableHead>
-    <TableHead className="w-12"></TableHead>
-  </TableRow>
-</TableHeader>
-```
-
-#### 9. Checkbox em Cada Linha
-
-Adicionar checkbox e highlight visual nas linhas:
-
-```typescript
-<TableRow key={profile.id} className={cn(selectedIds.has(profile.id) && "bg-primary/5")}>
-  <TableCell>
-    <Checkbox
-      checked={selectedIds.has(profile.id)}
-      onCheckedChange={() => toggleSelect(profile.id)}
-      aria-label={`Seleccionar ${profile.full_name}`}
-    />
-  </TableCell>
-  {/* resto das células... */}
-</TableRow>
-```
-
-#### 10. Usar sortedProfiles em vez de filteredProfiles no map
-
-Alterar a iteração para usar os perfis ordenados.
+| Cenário | Política Aplicável |
+|---------|-------------------|
+| Owner cria meta organizacional | "Admins can create organizational goals" |
+| Owner cria meta individual para si | "Users can create own individual goals" |
+| Owner cria meta individual para membro | "Admins can create individual goals for members" |
+| Membro cria meta individual para si | "Users can create own individual goals" |
+| Membro tenta criar meta organizacional | **Bloqueado** (correcto) |
+| Membro tenta criar meta para outro | **Bloqueado** (correcto) |
 
 ## Ficheiros a Modificar
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/pages/student-journey/SJProfiles.tsx` | Adicionar multi-selecção, ordenação por colunas e barra de acções em massa |
+| Tipo | Alteração |
+|------|-----------|
+| Migração SQL | Reorganizar políticas RLS de INSERT para productivity_goals |
 
 ## Resultado Esperado
 
-1. Checkbox visível em cada linha para selecção individual
-2. Checkbox no cabeçalho para seleccionar/desseleccionar todos
-3. Barra de acções aparece quando há perfis seleccionados
-4. Clicar nos cabeçalhos ordena por essa coluna (alternando asc/desc)
-5. Ícones de seta indicam a direcção da ordenação actual
+1. Owners/admins podem criar metas organizacionais e individuais (para qualquer membro)
+2. Membros regulares podem criar metas individuais apenas para si próprios
+3. Todas as operações de criação de metas funcionarão sem erros de RLS
 
