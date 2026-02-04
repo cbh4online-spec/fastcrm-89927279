@@ -1,112 +1,140 @@
 
+# Plano: Resolver Documentos Presos em "A Processar"
 
-# Plano: Corrigir Contadores e Remover Badge Beta
+## Problema
 
-## Problemas Identificados
+O documento "TRICOLOGIA.pdf" está preso em estado "processing" há 3 dias (desde 1 de Fevereiro). Isto acontece porque:
 
-### 1. Contadores com Formato Invertido
-Após analisar a resposta da API, o sistema está a funcionar correctamente e retorna:
-```json
-{
-  "searches_count": 0,
-  "searches_limit": 50,
-  "profiles_analyzed_count": 0,
-  "profiles_analyzed_limit": 200
-}
+1. O processamento falhou silenciosamente (timeout ou limite de memória da Edge Function)
+2. O status nunca foi actualizado para "failed"
+3. A interface não permite reprocessar documentos em estado "processing"
+
+## Solução
+
+Implementar três correções:
+
+### 1. Permitir Reprocessar/Cancelar Documentos em "processing"
+
+Actualmente, o menu de acções só aparece para status `failed`, `pending` ou `completed`. Precisamos adicionar a opção de "Cancelar" ou "Forçar Reprocessamento" para documentos em `processing`.
+
+**Ficheiro: `src/components/knowledge-base/KnowledgeSourcesPanel.tsx`**
+
+Alterar a condição da linha 183:
+```typescript
+// Antes (não inclui 'processing')
+{(source.processingStatus === 'failed' || source.processingStatus === 'pending' || source.processingStatus === 'completed') && onReprocess && (
+
+// Depois (inclui 'processing')
+{onReprocess && (
 ```
 
-No entanto, o componente `ProspectingUsage.tsx` apresenta `count/limit`, que com os dados actuais mostraria "0/50" e "0/200". O utilizador reportou ver "200 / 0" - o que indica que a ordem está invertida em algum ponto, possivelmente devido a uma reordenação ou bug na apresentação.
+Adicionar opção específica para cancelar processamento preso:
+```typescript
+{source.processingStatus === 'processing' && onReprocess && (
+  <DropdownMenuItem onClick={() => onReprocess(source.id)}>
+    <XCircle className="h-4 w-4 mr-2" />
+    Cancelar e Reprocessar
+  </DropdownMenuItem>
+)}
+```
 
-Vou verificar e corrigir para garantir que mostra claramente:
-- "Pesquisas: 0 de 50 usadas"
-- "Perfis: 0 de 200 analisados"
+### 2. Detectar Documentos Presos (Stale) e Marcá-los
 
-### 2. Badge Beta
-O badge "Beta" está hardcoded na página principal e precisa ser removido conforme solicitado.
+Adicionar lógica para detectar documentos em "processing" há mais de 30 minutos e mostrá-los visualmente como "presos".
 
-## Alterações a Efectuar
+**Ficheiro: `src/components/knowledge-base/KnowledgeSourcesPanel.tsx`**
 
-### Ficheiro 1: `src/pages/ProfessionalProspecting.tsx`
+```typescript
+// Verificar se o processamento está preso (mais de 30 minutos)
+const isStale = source.processingStatus === 'processing' && 
+  new Date().getTime() - new Date(source.updatedAt).getTime() > 30 * 60 * 1000;
 
-**Remover o Badge Beta (linhas 25-27):**
-
-Antes:
-```tsx
-<div className="flex items-center gap-3">
-  <h1 className="text-2xl font-bold">Prospecção Profissional</h1>
-  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-    Beta
+{isStale && (
+  <Badge variant="outline" className="bg-amber-50 text-amber-600 text-xs">
+    <AlertTriangle className="h-3 w-3 mr-1" />
+    Possível bloqueio
   </Badge>
-</div>
+)}
 ```
 
-Depois:
-```tsx
-<h1 className="text-2xl font-bold">Prospecção Profissional</h1>
+### 3. Forçar Reset do Status ao Reprocessar
+
+**Ficheiro: `src/components/knowledge-base/KnowledgeBaseModule.tsx`**
+
+Na função `onReprocess`, garantir que o status é resetado para "pending" antes de chamar a edge function:
+
+```typescript
+onReprocess={async (sourceId) => {
+  const source = sources.find(s => s.id === sourceId);
+  if (source) {
+    toast.info('A reprocessar fonte...');
+    
+    // Primeiro resetar para pending (em vez de processing)
+    await supabase
+      .from('knowledge_sources')
+      .update({ 
+        processing_status: 'pending', // Mudou de 'processing'
+        processing_error: null,
+        last_processed_at: null 
+      })
+      .eq('id', sourceId);
+    
+    // Depois actualizar para processing e chamar a função
+    await supabase
+      .from('knowledge_sources')
+      .update({ processing_status: 'processing' })
+      .eq('id', sourceId);
+    
+    // ... resto do código
+  }
+}}
 ```
 
-### Ficheiro 2: `src/components/professional-prospecting/ProspectingUsage.tsx`
+### 4. Corrigir Edge Function para Marcar Erros Correctamente
 
-**Melhorar a apresentação dos contadores para maior clareza:**
+**Ficheiro: `supabase/functions/knowledge-document-process/index.ts`**
 
-Antes (pode causar confusão):
-```tsx
-<span className="text-sm">{usage.searches_count}/{usage.searches_limit}</span>
-```
+Adicionar timeout handler e garantir que erros de timeout são capturados:
 
-Depois (mais claro e com tooltips):
-```tsx
-<Tooltip>
-  <TooltipTrigger asChild>
-    <div className="flex items-center gap-2">
-      <Search className="w-4 h-4 text-muted-foreground" />
-      <span className="text-sm font-medium">
-        {usage.searches_count}/{usage.searches_limit}
-      </span>
-      <Progress value={searchPercent} className="w-16 h-2" />
-    </div>
-  </TooltipTrigger>
-  <TooltipContent>
-    <p>{usage.searches_count} pesquisas de {usage.searches_limit} usadas este mês</p>
-  </TooltipContent>
-</Tooltip>
-```
+```typescript
+// No início do processamento background
+const timeout = setTimeout(async () => {
+  await supabase
+    .from('knowledge_sources')
+    .update({
+      processing_status: 'failed',
+      processing_error: 'Processamento excedeu o tempo limite (timeout)'
+    })
+    .eq('id', sourceId);
+}, 140000); // 140 segundos (antes do limite de 150s)
 
-**Adicionar labels visíveis (opcional):**
-```tsx
-<div className="flex items-center gap-4 text-sm">
-  <div className="flex items-center gap-2" title="Pesquisas realizadas">
-    <Search className="w-4 h-4 text-muted-foreground" />
-    <span>{usage.searches_count} / {usage.searches_limit}</span>
-    <Progress value={searchPercent} className="w-16 h-2" />
-  </div>
-  <div className="flex items-center gap-2" title="Perfis analisados">
-    <Users className="w-4 h-4 text-muted-foreground" />
-    <span>{usage.profiles_analyzed_count} / {usage.profiles_analyzed_limit}</span>
-    <Progress value={profilePercent} className="w-16 h-2" />
-  </div>
-</div>
+// No final do processamento
+clearTimeout(timeout);
 ```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/pages/ProfessionalProspecting.tsx` | Remover Badge Beta e simplificar header |
-| `src/components/professional-prospecting/ProspectingUsage.tsx` | Adicionar tooltips e melhorar clareza dos contadores |
+| `src/components/knowledge-base/KnowledgeSourcesPanel.tsx` | Adicionar opção para reprocessar/cancelar documentos em "processing" + indicador de documento preso |
+| `src/components/knowledge-base/KnowledgeBaseModule.tsx` | Melhorar lógica de reprocessamento |
+| `supabase/functions/knowledge-document-process/index.ts` | Adicionar timeout handler |
+| `supabase/functions/knowledge-document-trigger/index.ts` | Adicionar timeout handler |
+
+## Correcção Imediata (via Base de Dados)
+
+Para resolver o documento actual que está preso, será necessário resetar manualmente o status:
+
+```sql
+UPDATE knowledge_sources 
+SET processing_status = 'failed', 
+    processing_error = 'Processamento falhou (timeout). Clique para reprocessar.'
+WHERE id = '1e0f51a8-ff06-4423-8895-bf5670429e01';
+```
 
 ## Resultado Esperado
 
-1. O título "Prospecção Profissional" aparece sem o badge "Beta"
-2. Os contadores mostram claramente "X / Y" com tooltips explicativos
-3. A barra de progresso reflecte correctamente a percentagem de uso
-4. O utilizador entende que está a ver "usados / limite"
-
-## Verificação Adicional
-
-Os dados da base de dados para o workspace actual (período Fevereiro 2026) são:
-- Pesquisas: 0/50 (0% usado)
-- Perfis: 0/200 (0% usado)
-
-Estes valores estão correctos - é um novo mês, por isso os contadores foram reiniciados a 1 de Fevereiro.
-
+1. O documento "Documento" aparecerá com status "Erro" em vez de "A processar"
+2. O utilizador poderá clicar em "Processar Agora" para tentar novamente
+3. Futuros documentos presos serão detectados automaticamente após 30 minutos
+4. A edge function marcará correctamente o status como "failed" se ocorrer timeout
