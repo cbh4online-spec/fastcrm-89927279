@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useUserRole } from '@/hooks/useUserRole';
 import type { Json } from '@/integrations/supabase/types';
 
 export type GoalPeriod = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
@@ -98,6 +99,7 @@ export function useProductivityCoach() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isSuperAdmin } = useUserRole();
 
   // Fetch today's priorities
   const prioritiesQuery = useQuery({
@@ -124,17 +126,17 @@ export function useProductivityCoach() {
   // For owners/admins: fetch ALL individual goals in workspace
   // For regular users: fetch only their own individual goals
   const goalsQuery = useQuery({
-    queryKey: ['productivity-goals', currentWorkspace?.id, user?.id],
+    queryKey: ['productivity-goals', currentWorkspace?.id, user?.id, isSuperAdmin],
     queryFn: async () => {
       if (!currentWorkspace?.id || !user?.id) return [];
 
-      // Check if user is owner or admin of the workspace
-      const isOwnerOrAdmin = currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin';
+      // Check if user is owner or admin of the workspace OR is super admin
+      const isOwnerOrAdmin = currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin' || isSuperAdmin;
 
       let individualGoalsData: any[] = [];
 
       if (isOwnerOrAdmin) {
-        // Owner/Admin: fetch ALL individual goals in the workspace
+        // Owner/Admin/SuperAdmin: fetch ALL individual goals in the workspace
         const { data, error } = await supabase
           .from('productivity_goals')
           .select('*')
