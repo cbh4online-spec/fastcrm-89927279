@@ -300,6 +300,10 @@ const pageTabs = [
 const sortOptions = [
   { value: "name_asc", label: "Nome (A-Z)" },
   { value: "name_desc", label: "Nome (Z-A)" },
+  { value: "company_asc", label: "Empresa (A-Z)" },
+  { value: "company_desc", label: "Empresa (Z-A)" },
+  { value: "temperature_hot", label: "Temperatura (Quentes primeiro)" },
+  { value: "temperature_cold", label: "Temperatura (Frios primeiro)" },
   { value: "created_desc", label: "Mais recentes" },
   { value: "created_asc", label: "Mais antigos" },
   { value: "score_desc", label: "Maior score" },
@@ -346,54 +350,97 @@ export function SmartContactsTable() {
   const bulkAnalyze = useBulkAnalyzeContacts();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
 
-  // Apply search filter locally - search ALL text fields
+  // Apply search filter and sorting locally
   const filteredContacts = useMemo(() => {
     if (!contacts) return [];
-    if (!searchValue) return contacts;
-    const lower = searchValue.toLowerCase();
-    return contacts.filter(c => {
-      // All searchable text fields from contacts table
-      const searchableFields = [
-        c.name,
-        c.email,
-        c.phone,
-        c.company,
-        c.job_title,
-        (c as any).commercial_name,
-        c.source,
-        (c as any).lead_source,
-        (c as any).address,
-        (c as any).city,
-        (c as any).postal_code,
-        (c as any).country,
-        (c as any).tax_id,
-        (c as any).notes,
-        (c as any).business_area,
-        (c as any).cae_code,
-        (c as any).cae_description,
-        (c as any).whatsapp_number,
-        (c as any).linkedin_url,
-        (c as any).facebook_url,
-        (c as any).instagram_url,
-        (c as any).twitter_url,
-        c.ai_insight,
-        c.ai_next_action,
-        (c as any).client_status,
-        (c as any).client_types,
-        (c as any).abc_category,
-        (c as any).fiscal_regime,
-        (c as any).payment_conditions,
-        (c as any).preferred_payment_method,
-        (c as any).entity_type,
-        (c as any).assigned_to,
-      ];
-      // Also search in tags array
-      const tags = (c as any).tags || [];
-      return searchableFields.some(field => 
-        field?.toString().toLowerCase().includes(lower)
-      ) || tags.some((tag: string) => tag?.toLowerCase().includes(lower));
+    
+    let result = contacts;
+    
+    // Apply search filter
+    if (searchValue) {
+      const lower = searchValue.toLowerCase();
+      result = result.filter(c => {
+        // All searchable text fields from contacts table
+        const searchableFields = [
+          c.name,
+          c.email,
+          c.phone,
+          c.company,
+          c.job_title,
+          (c as any).commercial_name,
+          c.source,
+          (c as any).lead_source,
+          (c as any).address,
+          (c as any).city,
+          (c as any).postal_code,
+          (c as any).country,
+          (c as any).tax_id,
+          (c as any).notes,
+          (c as any).business_area,
+          (c as any).cae_code,
+          (c as any).cae_description,
+          (c as any).whatsapp_number,
+          (c as any).linkedin_url,
+          (c as any).facebook_url,
+          (c as any).instagram_url,
+          (c as any).twitter_url,
+          c.ai_insight,
+          c.ai_next_action,
+          (c as any).client_status,
+          (c as any).client_types,
+          (c as any).abc_category,
+          (c as any).fiscal_regime,
+          (c as any).payment_conditions,
+          (c as any).preferred_payment_method,
+          (c as any).entity_type,
+          (c as any).assigned_to,
+        ];
+        // Also search in tags array
+        const tags = (c as any).tags || [];
+        return searchableFields.some(field => 
+          field?.toString().toLowerCase().includes(lower)
+        ) || tags.some((tag: string) => tag?.toLowerCase().includes(lower));
+      });
+    }
+    
+    // Apply sorting
+    result = [...result].sort((a, b) => {
+      switch (sortValue) {
+        case "name_asc":
+          return (a.name || "").localeCompare(b.name || "");
+        case "name_desc":
+          return (b.name || "").localeCompare(a.name || "");
+        case "company_asc":
+          return (a.company || "").localeCompare(b.company || "");
+        case "company_desc":
+          return (b.company || "").localeCompare(a.company || "");
+        case "temperature_hot": {
+          const order: Record<string, number> = { hot: 0, warm: 1, cold: 2 };
+          const aTemp = a.ai_temperature || 'cold';
+          const bTemp = b.ai_temperature || 'cold';
+          return (order[aTemp] ?? 3) - (order[bTemp] ?? 3);
+        }
+        case "temperature_cold": {
+          const order: Record<string, number> = { cold: 0, warm: 1, hot: 2 };
+          const aTemp = a.ai_temperature || 'cold';
+          const bTemp = b.ai_temperature || 'cold';
+          return (order[aTemp] ?? 3) - (order[bTemp] ?? 3);
+        }
+        case "created_desc":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "created_asc":
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "score_desc":
+          return (b.contact_score || 0) - (a.contact_score || 0);
+        case "score_asc":
+          return (a.contact_score || 0) - (b.contact_score || 0);
+        default:
+          return 0;
+      }
     });
-  }, [contacts, searchValue]);
+    
+    return result;
+  }, [contacts, searchValue, sortValue]);
 
   // Paginação
   const totalContacts = filteredContacts.length;
