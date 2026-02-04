@@ -299,6 +299,48 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
     fetchMeetingTypes();
   }, [fetchMeetings, fetchMeetingTypes]);
 
+  // Subscribe to realtime changes for meetings and calendar_events
+  useEffect(() => {
+    if (!currentWorkspace?.id) return;
+
+    const meetingsChannel = supabase
+      .channel(`meetings-realtime-${currentWorkspace.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meetings',
+          filter: `workspace_id=eq.${currentWorkspace.id}`,
+        },
+        () => {
+          fetchMeetings();
+        }
+      )
+      .subscribe();
+
+    const eventsChannel = supabase
+      .channel(`calendar-events-realtime-${currentWorkspace.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'calendar_events',
+          filter: `workspace_id=eq.${currentWorkspace.id}`,
+        },
+        () => {
+          fetchMeetings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(meetingsChannel);
+      supabase.removeChannel(eventsChannel);
+    };
+  }, [currentWorkspace?.id, fetchMeetings]);
+
   const createMeeting = async (data: CreateMeetingData): Promise<Meeting | null> => {
     if (!currentWorkspace?.id || !user?.id) return null;
 
