@@ -1,152 +1,112 @@
 
-# Plano: Adicionar Selector de Moeda nas Condições de Pagamento
 
-## Diagnóstico
+# Plano: Corrigir Contadores e Remover Badge Beta
 
-Após investigar a base de dados, confirmei que a proposta "Solução Wi-Fi Alta Performance" está gravada com **currency: BRL** (Reais) em vez de EUR. Este é o motivo pelo qual aparece "R$" no cabeçalho.
+## Problemas Identificados
 
-| id | title | currency |
-|----|-------|----------|
-| b83949a8-... | Solução Wi-Fi Alta Performance | **BRL** |
-| d8f9f8f3-... | Proposta Comercial (cópia) | EUR |
-
-O sistema está a funcionar correctamente - está a usar a moeda gravada na proposta. O problema é que **não existe forma de alterar a moeda** depois da proposta ser criada.
-
-## Solução
-
-Adicionar um campo de selecção de moeda na secção **Condições de Pagamento** (step 4: Condições), permitindo ao utilizador escolher entre EUR, USD, BRL, etc.
-
-### Layout Proposto
-
-```text
-╔══════════════════════════════════════════════════════╗
-║ 💳 Condições de Pagamento                            ║
-╠══════════════════════════════════════════════════════╣
-║                                                      ║
-║  Moeda da Proposta          Prazo de Pagamento       ║
-║  ┌─────────────────┐        ┌─────────────────┐      ║
-║  │ EUR (€)       ▾ │        │ 30 dias       ▾ │      ║
-║  └─────────────────┘        └─────────────────┘      ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
-```
-
-## Alterações Técnicas
-
-### 1. Ficheiro: `src/components/proposals/ProposalConditionsSection.tsx`
-
-**Adicionar propriedade à interface ConditionsData:**
-```typescript
-export interface ConditionsData {
-  paymentConditions: string;
-  customPaymentConditions: string;
-  validityDays: number;
-  notes: string;
-  currency: string;  // NOVO
-  isAIGenerated?: boolean;
+### 1. Contadores com Formato Invertido
+Após analisar a resposta da API, o sistema está a funcionar correctamente e retorna:
+```json
+{
+  "searches_count": 0,
+  "searches_limit": 50,
+  "profiles_analyzed_count": 0,
+  "profiles_analyzed_limit": 200
 }
 ```
 
-**Adicionar selector de moeda no card "Condições de Pagamento":**
-- Opções: EUR (€), USD ($), BRL (R$), GBP (£)
-- Posicionado ao lado do "Prazo de Pagamento"
-- Com ícone de moeda
+No entanto, o componente `ProspectingUsage.tsx` apresenta `count/limit`, que com os dados actuais mostraria "0/50" e "0/200". O utilizador reportou ver "200 / 0" - o que indica que a ordem está invertida em algum ponto, possivelmente devido a uma reordenação ou bug na apresentação.
 
-### 2. Ficheiro: `src/components/proposals/ProposalDetailDialog.tsx`
+Vou verificar e corrigir para garantir que mostra claramente:
+- "Pesquisas: 0 de 50 usadas"
+- "Perfis: 0 de 200 analisados"
 
-**Inicializar currency no estado conditionsData (linha ~148-155):**
-```typescript
-const [conditionsData, setConditionsData] = useState<ConditionsData>({
-  paymentConditions: "30_dias",
-  customPaymentConditions: "",
-  validityDays: 30,
-  notes: "",
-  currency: "EUR",  // NOVO
-});
+### 2. Badge Beta
+O badge "Beta" está hardcoded na página principal e precisa ser removido conforme solicitado.
+
+## Alterações a Efectuar
+
+### Ficheiro 1: `src/pages/ProfessionalProspecting.tsx`
+
+**Remover o Badge Beta (linhas 25-27):**
+
+Antes:
+```tsx
+<div className="flex items-center gap-3">
+  <h1 className="text-2xl font-bold">Prospecção Profissional</h1>
+  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+    Beta
+  </Badge>
+</div>
 ```
 
-**Carregar currency da proposta na inicialização (linha ~282-289):**
-```typescript
-setConditionsData({
-  paymentConditions: isCustom ? "custom" : paymentValue,
-  customPaymentConditions: isCustom ? paymentValue : "",
-  validityDays: proposal.validity_days || 30,
-  notes: proposal.notes || "",
-  currency: proposal.currency || "EUR",  // NOVO
-});
+Depois:
+```tsx
+<h1 className="text-2xl font-bold">Prospecção Profissional</h1>
 ```
 
-**Gravar currency na proposta ao salvar (linha ~378-395):**
-```typescript
-const { error } = await supabase
-  .from("proposals")
-  .update({
-    // ... outros campos
-    currency: conditionsData.currency,  // NOVO
-  })
-  .eq("id", proposal.id);
+### Ficheiro 2: `src/components/professional-prospecting/ProspectingUsage.tsx`
+
+**Melhorar a apresentação dos contadores para maior clareza:**
+
+Antes (pode causar confusão):
+```tsx
+<span className="text-sm">{usage.searches_count}/{usage.searches_limit}</span>
 ```
 
-**Passar currency para POSProposalItemsEditor (linha ~484-493):**
-```typescript
-<POSProposalItemsEditor 
-  proposalId={proposalId}
-  currency={conditionsData.currency || proposal?.currency || "EUR"}  // Usar do estado
-  onSaved={...}
-/>
+Depois (mais claro e com tooltips):
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <div className="flex items-center gap-2">
+      <Search className="w-4 h-4 text-muted-foreground" />
+      <span className="text-sm font-medium">
+        {usage.searches_count}/{usage.searches_limit}
+      </span>
+      <Progress value={searchPercent} className="w-16 h-2" />
+    </div>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>{usage.searches_count} pesquisas de {usage.searches_limit} usadas este mês</p>
+  </TooltipContent>
+</Tooltip>
 ```
 
-### 3. Ficheiro: `src/types/proposal.ts` (opcional)
-
-Adicionar array de moedas suportadas para reutilização:
-```typescript
-export const SUPPORTED_CURRENCIES = [
-  { code: "EUR", symbol: "€", label: "Euro (€)" },
-  { code: "USD", symbol: "$", label: "Dólar ($)" },
-  { code: "BRL", symbol: "R$", label: "Real (R$)" },
-  { code: "GBP", symbol: "£", label: "Libra (£)" },
-] as const;
+**Adicionar labels visíveis (opcional):**
+```tsx
+<div className="flex items-center gap-4 text-sm">
+  <div className="flex items-center gap-2" title="Pesquisas realizadas">
+    <Search className="w-4 h-4 text-muted-foreground" />
+    <span>{usage.searches_count} / {usage.searches_limit}</span>
+    <Progress value={searchPercent} className="w-16 h-2" />
+  </div>
+  <div className="flex items-center gap-2" title="Perfis analisados">
+    <Users className="w-4 h-4 text-muted-foreground" />
+    <span>{usage.profiles_analyzed_count} / {usage.profiles_analyzed_limit}</span>
+    <Progress value={profilePercent} className="w-16 h-2" />
+  </div>
+</div>
 ```
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/ProposalConditionsSection.tsx` | Adicionar selector de moeda e prop na interface |
-| `src/components/proposals/ProposalDetailDialog.tsx` | Inicializar, carregar e gravar currency |
-| `src/types/proposal.ts` | Definir constante SUPPORTED_CURRENCIES |
+| `src/pages/ProfessionalProspecting.tsx` | Remover Badge Beta e simplificar header |
+| `src/components/professional-prospecting/ProspectingUsage.tsx` | Adicionar tooltips e melhorar clareza dos contadores |
 
-## Comportamento Esperado
+## Resultado Esperado
 
-1. Utilizador abre proposta existente com BRL
-2. Vai à secção "Condições"
-3. No campo "Moeda da Proposta", selecciona "EUR (€)"
-4. Clica "Guardar"
-5. O cabeçalho actualiza para mostrar € em vez de R$
-6. Os itens da proposta também mostram €
+1. O título "Prospecção Profissional" aparece sem o badge "Beta"
+2. Os contadores mostram claramente "X / Y" com tooltips explicativos
+3. A barra de progresso reflecte correctamente a percentagem de uso
+4. O utilizador entende que está a ver "usados / limite"
 
-## Fluxo de Dados
+## Verificação Adicional
 
-```text
-ProposalConditionsSection           ProposalDetailDialog          POSProposalItemsEditor
-        │                                   │                              │
-        │ onChange({ currency: "EUR" })     │                              │
-        │─────────────────────────────────▶ │                              │
-        │                                   │ setConditionsData(...)       │
-        │                                   │──────────────────────▶ state │
-        │                                   │                              │
-        │                                   │ currency prop                │
-        │                                   │─────────────────────────────▶│
-        │                                   │                              │
-                                            │ handleSaveEdit()             │
-                                            │─────▶ supabase.update({      │
-                                            │         currency: "EUR"      │
-                                            │       })                     │
-```
+Os dados da base de dados para o workspace actual (período Fevereiro 2026) são:
+- Pesquisas: 0/50 (0% usado)
+- Perfis: 0/200 (0% usado)
 
-## Complexidade
+Estes valores estão correctos - é um novo mês, por isso os contadores foram reiniciados a 1 de Fevereiro.
 
-Baixa-Média - Requer:
-1. Adicionar um novo campo à interface existente
-2. Adicionar um componente Select standard
-3. Propagar o valor através do fluxo de dados existente
