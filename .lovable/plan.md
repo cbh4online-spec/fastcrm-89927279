@@ -1,108 +1,93 @@
 
-# Plano: Corrigir Visibilidade do Preço e Quantidade no Painel de Itens
+# Plano: Corrigir Moeda nos Itens da Proposta
 
 ## Problema Identificado
 
-Analisando a imagem enviada, o painel direito "Itens da Proposta" mostra os itens com:
-- Nome do produto (truncado)
-- Controlos de quantidade (-, número, +) 
-- Ícones de ação (lápis, lixo)
+O componente `POSProposalItemsEditor` utiliza `EUR` como moeda por defeito na função `formatPrice`, ignorando a moeda real configurada na proposta. Quando a proposta é em EUR, deveria mostrar euros (€), mas está a mostrar o formato incorreto.
 
-**O campo de preço editável não está visível** apesar de estar implementado no código. O problema é que o layout horizontal actual está demasiado congestionado, fazendo com que o preço (que está numa segunda linha dentro do bloco flex-1) não seja visível ou fique cortado.
+### Código Actual (Problemático)
 
-### Layout Actual (Problemático)
-
-```text
-+----------------------------------------------------------+
-| ≡ | Nome muito longo que fica trunc... | [-][1][+] | ✏🗑 |
-|   | [Preço] € (linha abaixo - não visível)              |
-+----------------------------------------------------------+
+```typescript
+// POSProposalItemsEditor.tsx - linha 100
+const formatPrice = (price: number, currency = "EUR") => {
+  return new Intl.NumberFormat("pt-PT", {
+    style: "currency",
+    currency,
+  }).format(price);
+};
 ```
 
-O preço está numa segunda linha dentro do div flex-1, mas devido ao overflow e ao espaço limitado, não está a aparecer.
+O problema é que a moeda da proposta (`proposal.currency`) não está a ser passada para o `POSProposalItemsEditor`. O componente está a usar o valor por defeito `EUR`, mas não está a formatá-lo correctamente em todas as chamadas.
+
+Além disso, o componente não recebe a prop `currency` do `ProposalDetailDialog`, que é onde a proposta é carregada e onde `proposal.currency` está disponível.
 
 ## Solução
 
-Reorganizar o layout dos itens para um formato mais compacto e vertical que garanta a visibilidade de todos os campos editáveis:
-
-### Novo Layout (Proposto)
-
-```text
-+------------------------------------------+
-| ≡ Nome do Produto                  | ✏🗑 |
-|   [100.00]€  x  [-][1][+] = 100,00€     |
-+------------------------------------------+
-```
-
-**Estrutura:**
-- Linha 1: Drag handle + Nome + Ações (editar/remover)
-- Linha 2: Preço unitário + "x" + Quantidade + "=" + Total
+1. Adicionar a prop `currency` à interface `POSProposalItemsEditorProps`
+2. Passar `proposal.currency` quando o componente é utilizado no `ProposalDetailDialog`
+3. Utilizar a prop `currency` em todas as chamadas de `formatPrice`
 
 ## Alterações Necessárias
 
-### Ficheiro: `src/components/proposals/POSProposalItemsEditor.tsx`
+### Ficheiro 1: `src/components/proposals/POSProposalItemsEditor.tsx`
 
-Reorganizar o layout do card de item (linhas 396-488) para:
-
-1. **Primeira linha**: Handle de arrastar, nome do produto, botões de ação
-2. **Segunda linha**: Input de preço, separador "x", controlos de quantidade, total calculado
+**Alteração na interface (linhas 49-52):**
 
 ```typescript
-<Card className={cn("p-3 bg-muted/30 ...", ...)}>
-  {/* Linha 1: Nome e Ações */}
-  <div className="flex items-center justify-between gap-2">
-    <div className="flex items-center gap-2 min-w-0 flex-1">
-      <GripVertical className="h-4 w-4 shrink-0 cursor-grab" />
-      <h4 className="font-medium text-sm truncate">{item.name}</h4>
-      {hasOverride && <Badge>Editado</Badge>}
-    </div>
-    <div className="flex items-center gap-1 shrink-0">
-      <CollapsibleTrigger>...</CollapsibleTrigger>
-      <Button onClick={remove}>🗑</Button>
-    </div>
-  </div>
-
-  {/* Linha 2: Preço x Quantidade = Total */}
-  <div className="flex items-center gap-2 mt-2">
-    <div className="flex items-center gap-1">
-      <Input type="number" value={unit_price} className="w-20" />
-      <span>€</span>
-    </div>
-    <span className="text-muted-foreground">×</span>
-    <div className="flex items-center gap-1">
-      <Button>-</Button>
-      <Input type="number" value={quantity} className="w-12" />
-      <Button>+</Button>
-    </div>
-    <span className="text-muted-foreground">=</span>
-    <span className="font-semibold">{total}€</span>
-  </div>
-</Card>
+interface POSProposalItemsEditorProps {
+  proposalId: string;
+  currency?: string;  // Adicionar esta prop
+  onSaved?: () => void;
+}
 ```
 
-## Ficheiro a Modificar
+**Alteração na assinatura da função (linha 54):**
+
+```typescript
+export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }: POSProposalItemsEditorProps) {
+```
+
+**Alteração na função formatPrice (linhas 100-105):**
+
+```typescript
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat("pt-PT", {
+    style: "currency",
+    currency: currency,  // Usar a prop currency
+  }).format(price);
+};
+```
+
+### Ficheiro 2: `src/components/proposals/ProposalDetailDialog.tsx`
+
+**Alteração na chamada do componente (linhas 486-493):**
+
+```typescript
+<POSProposalItemsEditor 
+  proposalId={proposalId}
+  currency={proposal?.currency || "EUR"}  // Adicionar esta prop
+  onSaved={async () => {
+    await queryClient.refetchQueries({ 
+      queryKey: ["proposal", proposalId] 
+    });
+  }}
+/>
+```
+
+## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/POSProposalItemsEditor.tsx` | Reorganizar layout do card de item (linhas 385-488) para formato vertical com 2 linhas separadas |
+| `src/components/proposals/POSProposalItemsEditor.tsx` | Adicionar prop `currency` e usá-la na função `formatPrice` |
+| `src/components/proposals/ProposalDetailDialog.tsx` | Passar `proposal?.currency` para o `POSProposalItemsEditor` |
 
 ## Comportamento Esperado
 
-1. Utilizador abre a tab "Itens" no editor de proposta
-2. No painel direito, cada item mostra:
-   - Nome do produto na primeira linha
-   - Preço (editável) × Quantidade (editável) = Total na segunda linha
-3. Todos os campos são visíveis sem truncamento
-4. O utilizador pode editar preço e quantidade directamente
-
-## Benefícios
-
-- Layout mais legível e organizado
-- Todos os campos editáveis sempre visíveis
-- Fórmula clara: Preço × Quantidade = Total
-- Melhor uso do espaço vertical disponível
-- Funciona bem em ecrãs de diferentes tamanhos
+1. Proposta em EUR → Preços formatados com €
+2. Proposta em BRL → Preços formatados com R$
+3. Proposta em USD → Preços formatados com $
+4. A moeda é determinada pela configuração da proposta, não pelo valor por defeito
 
 ## Complexidade
 
-Média - Requer reorganização do JSX do card de item mantendo toda a lógica existente.
+Muito baixa - apenas adicionar uma prop e passá-la através da hierarquia de componentes.
