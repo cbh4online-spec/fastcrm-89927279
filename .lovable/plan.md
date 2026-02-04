@@ -1,39 +1,35 @@
 
 
-# Plano: Mostrar Campo de Preço Diretamente na Lista de Itens
+# Plano: Adicionar Input Editável para Quantidade na Lista de Itens
 
 ## Problema Identificado
 
-Na vista de edição de itens da proposta (tab "Itens"), o campo de preço unitário está **escondido** dentro de um painel colapsável. O utilizador tem que clicar no ícone de lápis para expandir cada item e só então consegue ver/editar o preço. Isto torna a edição de preços lenta e pouco intuitiva.
+Atualmente, a quantidade de cada item é mostrada como texto estático entre os botões - e +. Para alterações rápidas de quantidade (ex: de 1 para 10), o utilizador tem que clicar várias vezes nos botões.
 
 ### Situação Atual
 
 ```text
 +----------------------------------------+
-| ≡ Nome do Produto         550,00 €    |
-|   (clica no lápis para expandir)       |
-|                          - 1 + [✏️][🗑]|
-+----------------------------------------+
-| [PAINEL ESCONDIDO]                     |
-|   Preço unitário: [550.00]             |
-|   Desconto (%):   [   ]                |
+| Nome do Produto                        |
+| [550.00] €                 [-] 1 [+]   | <- Quantidade é texto
 +----------------------------------------+
 ```
 
-O preço é mostrado como texto, e para editar é necessário:
-1. Clicar no lápis para expandir
-2. Ver o campo "Preço unitário"
-3. Alterar o valor
-4. O painel fica expandido ocupando espaço
+A quantidade está num `<span>` simples:
+```typescript
+<span className="w-6 text-center text-sm font-medium">
+  {item.quantity}
+</span>
+```
 
 ## Solução
 
-Mostrar o preço editável diretamente na linha do item, substituindo o texto estático por um input editável. O painel colapsável pode manter-se para o desconto e outras opções avançadas.
+Substituir o `<span>` por um `<Input>` editável que permite digitar diretamente a quantidade desejada.
 
 ```text
 +----------------------------------------+
-| ≡ Nome do Produto                      |
-|   [550.00] €                  - 1 + [✏️][🗑]|
+| Nome do Produto                        |
+| [550.00] €                 [-][10][+]  | <- Input editável
 +----------------------------------------+
 ```
 
@@ -41,63 +37,51 @@ Mostrar o preço editável diretamente na linha do item, substituindo o texto es
 
 ### Ficheiro: `src/components/proposals/POSProposalItemsEditor.tsx`
 
-**Localização:** Linhas ~416-425
+**Localização:** Linhas 451-453
 
-**Substituir o texto do preço por um Input editável:**
+**Substituir o span por Input:**
 
 Antes:
 ```typescript
-<span className="text-sm font-semibold text-primary">
-  {formatPrice(itemTotal)}
+<span className="w-6 text-center text-sm font-medium">
+  {item.quantity}
 </span>
 ```
 
 Depois:
 ```typescript
-<div className="flex items-center gap-1">
-  <Input
-    type="number"
-    step="0.01"
-    value={item.unit_price}
-    onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
-    className="w-20 h-6 text-sm text-primary font-semibold text-right px-1"
-    onClick={(e) => e.stopPropagation()}
-  />
-  <span className="text-xs text-muted-foreground">€</span>
-</div>
+<Input
+  type="number"
+  min="1"
+  value={item.quantity}
+  onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
+  onClick={(e) => e.stopPropagation()}
+  className="w-12 h-6 text-center text-sm font-medium px-1"
+/>
 ```
-
-**Adicionar também o total calculado:**
-
-```typescript
-<div className="text-xs text-muted-foreground mt-0.5">
-  Total: {formatPrice(itemTotal)}
-</div>
-```
-
-## Comportamento Esperado
-
-1. Utilizador abre a tab "Itens" no editor de proposta
-2. Vê a lista de itens no painel direito
-3. Cada item mostra um campo de preço unitário editável
-4. Ao alterar o preço, o total é recalculado automaticamente
-5. O painel expandível continua disponível para ajustes de desconto
 
 ## Ficheiro a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/POSProposalItemsEditor.tsx` | Substituir display de preço por Input editável na linha ~416-425 |
+| `src/components/proposals/POSProposalItemsEditor.tsx` | Substituir span da quantidade por Input editável (linhas 451-453) |
+
+## Comportamento Esperado
+
+1. Utilizador abre a tab "Itens" no editor de proposta
+2. Vê a lista de itens com preço e quantidade editáveis
+3. Pode digitar diretamente no campo de quantidade (ex: escrever "10")
+4. Os botões - e + continuam a funcionar para ajustes incrementais
+5. O total é recalculado automaticamente
 
 ## Considerações de UX
 
-- O input de preço deve ser pequeno e não ocupar muito espaço
-- Manter o onClick stopPropagation para evitar conflitos com drag/drop
-- Mostrar o total calculado (preço × quantidade) como referência
-- Manter a cor primária para destacar o preço
-- O símbolo € aparece fora do input para manter consistência visual
+- O input tem `min="1"` para evitar quantidades zero ou negativas
+- Se o valor for inválido, usa 1 como fallback
+- `onClick stopPropagation` evita conflitos com drag/drop
+- O input é ligeiramente mais largo (w-12) para acomodar números maiores
 
 ## Complexidade
 
-Muito baixa - apenas substituir um span por um Input no componente existente.
+Muito baixa - apenas substituir um span por um Input no mesmo local.
 
