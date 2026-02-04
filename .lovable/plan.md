@@ -1,87 +1,108 @@
 
-
-# Plano: Adicionar Input Editável para Quantidade na Lista de Itens
+# Plano: Corrigir Visibilidade do Preço e Quantidade no Painel de Itens
 
 ## Problema Identificado
 
-Atualmente, a quantidade de cada item é mostrada como texto estático entre os botões - e +. Para alterações rápidas de quantidade (ex: de 1 para 10), o utilizador tem que clicar várias vezes nos botões.
+Analisando a imagem enviada, o painel direito "Itens da Proposta" mostra os itens com:
+- Nome do produto (truncado)
+- Controlos de quantidade (-, número, +) 
+- Ícones de ação (lápis, lixo)
 
-### Situação Atual
+**O campo de preço editável não está visível** apesar de estar implementado no código. O problema é que o layout horizontal actual está demasiado congestionado, fazendo com que o preço (que está numa segunda linha dentro do bloco flex-1) não seja visível ou fique cortado.
+
+### Layout Actual (Problemático)
 
 ```text
-+----------------------------------------+
-| Nome do Produto                        |
-| [550.00] €                 [-] 1 [+]   | <- Quantidade é texto
-+----------------------------------------+
++----------------------------------------------------------+
+| ≡ | Nome muito longo que fica trunc... | [-][1][+] | ✏🗑 |
+|   | [Preço] € (linha abaixo - não visível)              |
++----------------------------------------------------------+
 ```
 
-A quantidade está num `<span>` simples:
-```typescript
-<span className="w-6 text-center text-sm font-medium">
-  {item.quantity}
-</span>
-```
+O preço está numa segunda linha dentro do div flex-1, mas devido ao overflow e ao espaço limitado, não está a aparecer.
 
 ## Solução
 
-Substituir o `<span>` por um `<Input>` editável que permite digitar diretamente a quantidade desejada.
+Reorganizar o layout dos itens para um formato mais compacto e vertical que garanta a visibilidade de todos os campos editáveis:
+
+### Novo Layout (Proposto)
 
 ```text
-+----------------------------------------+
-| Nome do Produto                        |
-| [550.00] €                 [-][10][+]  | <- Input editável
-+----------------------------------------+
++------------------------------------------+
+| ≡ Nome do Produto                  | ✏🗑 |
+|   [100.00]€  x  [-][1][+] = 100,00€     |
++------------------------------------------+
 ```
+
+**Estrutura:**
+- Linha 1: Drag handle + Nome + Ações (editar/remover)
+- Linha 2: Preço unitário + "x" + Quantidade + "=" + Total
 
 ## Alterações Necessárias
 
 ### Ficheiro: `src/components/proposals/POSProposalItemsEditor.tsx`
 
-**Localização:** Linhas 451-453
+Reorganizar o layout do card de item (linhas 396-488) para:
 
-**Substituir o span por Input:**
+1. **Primeira linha**: Handle de arrastar, nome do produto, botões de ação
+2. **Segunda linha**: Input de preço, separador "x", controlos de quantidade, total calculado
 
-Antes:
 ```typescript
-<span className="w-6 text-center text-sm font-medium">
-  {item.quantity}
-</span>
-```
+<Card className={cn("p-3 bg-muted/30 ...", ...)}>
+  {/* Linha 1: Nome e Ações */}
+  <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center gap-2 min-w-0 flex-1">
+      <GripVertical className="h-4 w-4 shrink-0 cursor-grab" />
+      <h4 className="font-medium text-sm truncate">{item.name}</h4>
+      {hasOverride && <Badge>Editado</Badge>}
+    </div>
+    <div className="flex items-center gap-1 shrink-0">
+      <CollapsibleTrigger>...</CollapsibleTrigger>
+      <Button onClick={remove}>🗑</Button>
+    </div>
+  </div>
 
-Depois:
-```typescript
-<Input
-  type="number"
-  min="1"
-  value={item.quantity}
-  onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
-  onClick={(e) => e.stopPropagation()}
-  className="w-12 h-6 text-center text-sm font-medium px-1"
-/>
+  {/* Linha 2: Preço x Quantidade = Total */}
+  <div className="flex items-center gap-2 mt-2">
+    <div className="flex items-center gap-1">
+      <Input type="number" value={unit_price} className="w-20" />
+      <span>€</span>
+    </div>
+    <span className="text-muted-foreground">×</span>
+    <div className="flex items-center gap-1">
+      <Button>-</Button>
+      <Input type="number" value={quantity} className="w-12" />
+      <Button>+</Button>
+    </div>
+    <span className="text-muted-foreground">=</span>
+    <span className="font-semibold">{total}€</span>
+  </div>
+</Card>
 ```
 
 ## Ficheiro a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/proposals/POSProposalItemsEditor.tsx` | Substituir span da quantidade por Input editável (linhas 451-453) |
+| `src/components/proposals/POSProposalItemsEditor.tsx` | Reorganizar layout do card de item (linhas 385-488) para formato vertical com 2 linhas separadas |
 
 ## Comportamento Esperado
 
 1. Utilizador abre a tab "Itens" no editor de proposta
-2. Vê a lista de itens com preço e quantidade editáveis
-3. Pode digitar diretamente no campo de quantidade (ex: escrever "10")
-4. Os botões - e + continuam a funcionar para ajustes incrementais
-5. O total é recalculado automaticamente
+2. No painel direito, cada item mostra:
+   - Nome do produto na primeira linha
+   - Preço (editável) × Quantidade (editável) = Total na segunda linha
+3. Todos os campos são visíveis sem truncamento
+4. O utilizador pode editar preço e quantidade directamente
 
-## Considerações de UX
+## Benefícios
 
-- O input tem `min="1"` para evitar quantidades zero ou negativas
-- Se o valor for inválido, usa 1 como fallback
-- `onClick stopPropagation` evita conflitos com drag/drop
-- O input é ligeiramente mais largo (w-12) para acomodar números maiores
+- Layout mais legível e organizado
+- Todos os campos editáveis sempre visíveis
+- Fórmula clara: Preço × Quantidade = Total
+- Melhor uso do espaço vertical disponível
+- Funciona bem em ecrãs de diferentes tamanhos
 
 ## Complexidade
 
-Muito baixa - apenas substituir um span por um Input no mesmo local.
-
+Média - Requer reorganização do JSX do card de item mantendo toda a lógica existente.
