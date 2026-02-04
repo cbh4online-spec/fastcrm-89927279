@@ -414,9 +414,22 @@ export function POSProposalItemsEditor({ proposalId, onSaved }: POSProposalItems
                               )}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-sm font-semibold text-primary">
-                                {formatPrice(itemTotal)}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.unit_price}
+                                  onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-20 h-6 text-sm text-primary font-semibold text-right px-1"
+                                />
+                                <span className="text-xs text-muted-foreground">€</span>
+                              </div>
+                              {item.quantity > 1 && (
+                                <span className="text-xs text-muted-foreground">
+                                  (Total: {formatPrice(itemTotal)})
+                                </span>
+                              )}
                               {(hasOverride || hasDiscount) && originalTotal !== itemTotal && (
                                 <span className="text-xs text-muted-foreground line-through">
                                   {formatPrice(originalTotal)}
