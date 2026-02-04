@@ -1,147 +1,103 @@
 
 
-# Plano: Permitir Edicao de Precos na Visao Interna da Proposta
+# Plano: Mostrar Campo de Preço Diretamente na Lista de Itens
 
 ## Problema Identificado
 
-Na pagina de detalhe da proposta (modo visualizacao), a tabela de itens mostra os produtos mas os precos estao apenas em modo de leitura. O utilizador pretende poder alterar os precos unitarios diretamente nesta vista, sem ter que entrar no modo de edicao completo.
+Na vista de edição de itens da proposta (tab "Itens"), o campo de preço unitário está **escondido** dentro de um painel colapsável. O utilizador tem que clicar no ícone de lápis para expandir cada item e só então consegue ver/editar o preço. Isto torna a edição de preços lenta e pouco intuitiva.
 
-### Situacao Atual
-
-```text
-+------------------------------------------+
-| ProposalDetailDialog (View Mode)          |
-|------------------------------------------|
-|   ProposalInternalView                   |
-|   +------------------------------------+ |
-|   | Activo | Item | Qtd | Preco | ... | |
-|   +------------------------------------+ |
-|   | Switch | Nome | [X] | €100  | ... | | <- Preco apenas texto
-|   +------------------------------------+ |
-+------------------------------------------+
-```
-
-O componente `ProposalInternalView`:
-- Recebe `onQuantityChange` nas props mas **nao esta a ser passado** pelo `ProposalDetailDialog`
-- O preco e mostrado como texto estatico, sem input editavel
-- Nao existe handler para atualizar precos
-
-## Solucao
-
-Adicionar a capacidade de editar precos unitarios diretamente na tabela da visao interna.
+### Situação Atual
 
 ```text
-+------------------------------------------+
-| ProposalDetailDialog (View Mode)          |
-|------------------------------------------|
-|   ProposalInternalView                   |
-|   +------------------------------------+ |
-|   | Activo | Item | Qtd | Preco | ... | |
-|   +------------------------------------+ |
-|   | Switch | Nome | [X] | [100] | ... | | <- Input editavel
-|   +------------------------------------+ |
-+------------------------------------------+
++----------------------------------------+
+| ≡ Nome do Produto         550,00 €    |
+|   (clica no lápis para expandir)       |
+|                          - 1 + [✏️][🗑]|
++----------------------------------------+
+| [PAINEL ESCONDIDO]                     |
+|   Preço unitário: [550.00]             |
+|   Desconto (%):   [   ]                |
++----------------------------------------+
 ```
 
-## Alteracoes Necessarias
+O preço é mostrado como texto, e para editar é necessário:
+1. Clicar no lápis para expandir
+2. Ver o campo "Preço unitário"
+3. Alterar o valor
+4. O painel fica expandido ocupando espaço
 
-### 1. Ficheiro: `src/components/proposals/ProposalInternalView.tsx`
+## Solução
 
-**Adicionar nova prop:**
-```typescript
-interface ProposalInternalViewProps {
-  // ... existentes
-  onPriceChange?: (itemId: string, price: number) => void;
-}
+Mostrar o preço editável diretamente na linha do item, substituindo o texto estático por um input editável. O painel colapsável pode manter-se para o desconto e outras opções avançadas.
+
+```text
++----------------------------------------+
+| ≡ Nome do Produto                      |
+|   [550.00] €                  - 1 + [✏️][🗑]|
++----------------------------------------+
 ```
 
-**Substituir celula de preco por Input editavel:**
+## Alterações Necessárias
+
+### Ficheiro: `src/components/proposals/POSProposalItemsEditor.tsx`
+
+**Localização:** Linhas ~416-425
+
+**Substituir o texto do preço por um Input editável:**
+
+Antes:
 ```typescript
-<TableCell className="text-right">
+<span className="text-sm font-semibold text-primary">
+  {formatPrice(itemTotal)}
+</span>
+```
+
+Depois:
+```typescript
+<div className="flex items-center gap-1">
   <Input
     type="number"
     step="0.01"
     value={item.unit_price}
-    onChange={(e) => onPriceChange?.(item.id, parseFloat(e.target.value) || 0)}
-    className="w-24 h-8 text-right"
-    disabled={!isEnabled}
+    onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
+    className="w-20 h-6 text-sm text-primary font-semibold text-right px-1"
+    onClick={(e) => e.stopPropagation()}
   />
-</TableCell>
+  <span className="text-xs text-muted-foreground">€</span>
+</div>
 ```
 
-### 2. Ficheiro: `src/components/proposals/ProposalDetailDialog.tsx`
+**Adicionar também o total calculado:**
 
-**Criar handler para atualizar preco:**
 ```typescript
-const handleItemPriceChange = async (itemId: string, price: number) => {
-  // Atualizar o preco do item na base de dados
-  await supabase
-    .from("proposal_items")
-    .update({ unit_price: price })
-    .eq("id", itemId);
-  
-  // Refetch para atualizar a UI
-  queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
-};
+<div className="text-xs text-muted-foreground mt-0.5">
+  Total: {formatPrice(itemTotal)}
+</div>
 ```
-
-**Passar handler para ProposalInternalView:**
-```typescript
-<ProposalInternalView
-  proposal={proposal}
-  items={...}
-  onItemToggle={handleItemToggle}
-  onQuantityChange={handleQuantityChange}  // Adicionar se nao existir
-  onPriceChange={handleItemPriceChange}    // NOVO
-/>
-```
-
-### 3. Ficheiro: `src/hooks/useProposals.ts`
-
-**Adicionar hook para atualizar item individual (se nao existir):**
-```typescript
-export function useUpdateProposalItemPrice() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ itemId, price }: { itemId: string; price: number }) => {
-      const { error } = await supabase
-        .from("proposal_items")
-        .update({ unit_price: price })
-        .eq("id", itemId);
-      if (error) throw error;
-    },
-    onSuccess: (_, { itemId }) => {
-      // Invalidar queries relacionadas
-    },
-  });
-}
-```
-
-## Ficheiros a Modificar
-
-| Ficheiro | Alteracao |
-|----------|-----------|
-| `src/components/proposals/ProposalInternalView.tsx` | Adicionar prop `onPriceChange` e converter coluna de preco para Input editavel |
-| `src/components/proposals/ProposalDetailDialog.tsx` | Adicionar handler `handleItemPriceChange` e passar para ProposalInternalView; Tambem passar `onQuantityChange` que ja existe na interface |
-| `src/hooks/useProposals.ts` | Adicionar mutation para atualizar preco de item individual (opcional - pode usar supabase direto) |
 
 ## Comportamento Esperado
 
-1. Utilizador abre detalhe da proposta (modo visualizacao)
-2. Na tabela de itens, ve campos editaveis para Quantidade e Preco
-3. Ao alterar o preco, o valor e guardado automaticamente
-4. Os totais (Subtotal, Margem, Total) sao recalculados em tempo real
-5. Nao e necessario entrar no modo "Editar" completo para ajustes rapidos de preco
+1. Utilizador abre a tab "Itens" no editor de proposta
+2. Vê a lista de itens no painel direito
+3. Cada item mostra um campo de preço unitário editável
+4. Ao alterar o preço, o total é recalculado automaticamente
+5. O painel expandível continua disponível para ajustes de desconto
 
-## Consideracoes de UX
+## Ficheiro a Modificar
 
-- Inputs aparecem apenas quando o item esta activo
-- Debounce opcional para evitar muitas chamadas a BD em alteracoes rapidas
-- Feedback visual quando o valor e guardado (opcional)
-- Manter consistencia com o estilo do Input de quantidade ja existente
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/components/proposals/POSProposalItemsEditor.tsx` | Substituir display de preço por Input editável na linha ~416-425 |
+
+## Considerações de UX
+
+- O input de preço deve ser pequeno e não ocupar muito espaço
+- Manter o onClick stopPropagation para evitar conflitos com drag/drop
+- Mostrar o total calculado (preço × quantidade) como referência
+- Manter a cor primária para destacar o preço
+- O símbolo € aparece fora do input para manter consistência visual
 
 ## Complexidade
 
-Baixa/Media - Envolve modificar a interface e adicionar logica de persistencia.
+Muito baixa - apenas substituir um span por um Input no componente existente.
 
