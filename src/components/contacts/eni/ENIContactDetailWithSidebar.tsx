@@ -7,7 +7,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
-import { ArrowLeft, Trash2, User, Clock, Building2, Shield, Sparkles, FileText, Mail } from "lucide-react";
+import { ArrowLeft, Trash2, User, Clock, Building2, Shield, Sparkles, FileText, Mail, UserPlus } from "lucide-react";
+import { InviteClientDialog } from "@/components/client-users/InviteClientDialog";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ENIContact, ENTITY_TYPE_LABELS, EntityType } from "./ENIContactTypes";
@@ -472,6 +473,27 @@ export function ENIContactDetailWithSidebar() {
                 <Mail className="w-4 h-4" />
                 Enviar Email
               </Button>
+            )}
+            {contact.email && (
+              <InviteClientDialog
+                trigger={
+                  <Button variant="outline" className="gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Convidar B2B
+                  </Button>
+                }
+                prefillData={{
+                  contactId: id!,
+                  name: contact.name,
+                  email: contact.email,
+                  phone: contact.phone || undefined,
+                  taxId: contact.tax_id || undefined,
+                  address: contact.address || undefined,
+                  city: contact.city || undefined,
+                  postalCode: contact.postal_code || undefined,
+                  country: contact.country || undefined,
+                }}
+              />
             )}
             <Button variant="outline" onClick={() => setShowInvoiceDialog(true)} className="gap-2">
               <FileText className="w-4 h-4" />

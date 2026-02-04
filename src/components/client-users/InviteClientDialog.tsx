@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -77,9 +77,22 @@ interface Company {
   postal_code: string | null;
 }
 
+interface PrefillData {
+  contactId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  taxId?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+}
+
 interface InviteClientDialogProps {
   trigger?: React.ReactNode;
   onSuccess?: () => void;
+  prefillData?: PrefillData;
 }
 
 interface InviteData {
@@ -91,7 +104,7 @@ interface InviteData {
   workspaceName: string;
 }
 
-export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogProps) {
+export function InviteClientDialog({ trigger, onSuccess, prefillData }: InviteClientDialogProps) {
   const [open, setOpen] = useState(false);
   const [showInviteLinkDialog, setShowInviteLinkDialog] = useState(false);
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
@@ -118,6 +131,21 @@ export function InviteClientDialog({ trigger, onSuccess }: InviteClientDialogPro
       billing_country: "Portugal",
     },
   });
+
+  // Prefill form when dialog opens with prefillData
+  useEffect(() => {
+    if (prefillData && open) {
+      form.setValue("contact_id", prefillData.contactId);
+      form.setValue("name", prefillData.name);
+      form.setValue("email", prefillData.email);
+      if (prefillData.phone) form.setValue("phone", prefillData.phone);
+      if (prefillData.taxId) form.setValue("tax_id", prefillData.taxId);
+      if (prefillData.address) form.setValue("billing_street", prefillData.address);
+      if (prefillData.city) form.setValue("billing_city", prefillData.city);
+      if (prefillData.postalCode) form.setValue("billing_postal_code", prefillData.postalCode);
+      if (prefillData.country) form.setValue("billing_country", prefillData.country);
+    }
+  }, [prefillData, open, form]);
 
   // Fetch contacts for association - expanded query with all needed fields
   const { data: contacts = [] } = useQuery({
