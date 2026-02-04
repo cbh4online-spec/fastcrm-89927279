@@ -448,9 +448,14 @@ export function POSProposalItemsEditor({ proposalId, onSaved }: POSProposalItems
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
-                            <span className="w-6 text-center text-sm font-medium">
-                              {item.quantity}
-                            </span>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-12 h-6 text-center text-sm font-medium px-1"
+                            />
                             <Button
                               variant="outline"
                               size="icon"
