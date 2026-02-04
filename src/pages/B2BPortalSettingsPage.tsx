@@ -36,10 +36,10 @@ export default function B2BPortalSettingsPage() {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
 
-  // Get portal URL
+  // Get portal URL - dynamic based on current origin
   const portalUrl = currentWorkspace?.slug 
-    ? `https://fastcrm.metodopare.ai/client/login?workspace=${currentWorkspace.slug}`
-    : "https://fastcrm.metodopare.ai/client/login";
+    ? `${window.location.origin}/client/login?workspace=${currentWorkspace.slug}`
+    : `${window.location.origin}/client/login`;
 
   // Fetch workspace settings
   const { data: workspace } = useQuery({

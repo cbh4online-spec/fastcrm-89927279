@@ -11,8 +11,8 @@ export default function ClientUsersPage() {
   const { currentWorkspace } = useWorkspace();
   
   const portalUrl = currentWorkspace?.slug 
-    ? `https://fastcrm.metodopare.ai/client/login?workspace=${currentWorkspace.slug}`
-    : "https://fastcrm.metodopare.ai/client/login";
+    ? `${window.location.origin}/client/login?workspace=${currentWorkspace.slug}`
+    : `${window.location.origin}/client/login`;
 
   const openPortal = () => {
     window.open(portalUrl, "_blank");
