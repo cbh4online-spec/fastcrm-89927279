@@ -1,212 +1,182 @@
 
 
-# Plano: Simplificar e Tornar o Inbox Mais Funcional
+# Plano: Isolar Fluxos por Workspace
 
-## Problemas Identificados
+## Problema Identificado
 
-Após analisar o código, identifiquei as seguintes fontes de confusão:
+Quando um utilizador com papel **super_admin** navega entre workspaces, está a ver fluxos de outros workspaces porque:
 
-| Problema | Causa | Impacto |
-|----------|-------|---------|
-| **Barra de métricas sobrecarregada** | 10+ elementos (métricas, sync, autopilot, compose, alerts) numa só linha | Difícil identificar acções importantes |
-| **Sidebar + Tabs duplicados** | Filtro de canais aparece no Sidebar E nas Tabs da lista | Redundância confusa |
-| **Detalhe da conversa poluído** | 6+ banners (Summary, Tags, Safety, Autopilot, Follow-up, Opportunity) antes das mensagens | O conteúdo principal fica escondido |
-| **Painel CRM muito longo** | 400+ linhas de informação numa scroll infinita | Informação importante misturada com secundária |
-| **Acções espalhadas** | Botões de acção em múltiplos locais (header, menus, banners) | Utilizador não sabe onde clicar |
+1. **Política RLS permissiva**: A regra `Super admins can manage all flows` permite que super admins vejam todos os fluxos do sistema, ignorando a filtragem por workspace
+2. **Falta de validação no frontend**: A função `loadFlowDetails` carrega um fluxo apenas pelo `id`, sem verificar se pertence ao workspace actual
 
-## Arquitectura Actual
+### Causa Raiz
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ [Metrics] [Open:5] [Unread:3] [>2h:2] [Alerts] [AutoPilot] [Sync▾] [New] [...]  │ ← MUITO OCUPADO
-├──────────┬──────────────┬─────────────────────────────────┬─────────────────────┤
-│ Sidebar  │ Conv List    │ Conversation Detail             │ CRM Panel           │
-│ 52 cols  │ 72 cols      │ Flex                            │ 72 cols             │
-│ ──────── │ ──────────── │ ─────────────────────────────── │ ─────────────────── │
-│ Canais   │ Tabs(canais) │ Header + 6 Banners + Messages   │ Avatar              │
-│ Conversas│ Search       │ + AI Composer                   │ Stats               │
-│ Contactos│ Items        │                                 │ Notifications       │
-│          │              │                                 │ Settings            │
-│          │              │                                 │ Actions             │
-│          │              │                                 │ Opportunities       │
-│          │              │                                 │ Proposals           │
-│          │              │                                 │ Tasks               │
-│          │              │                                 │ Activity            │
-└──────────┴──────────────┴─────────────────────────────────┴─────────────────────┘
+```sql
+-- Esta política permite que super admins vejam TUDO
+Super admins can manage all flows: is_super_admin(auth.uid())
 ```
 
-## Proposta de Redesign
+Embora o `loadFlows` filtre por `workspace_id`, o RLS permite que o super admin veja todos os dados, e não há validação adicional no frontend.
 
-### 1. Barra Superior Simplificada
+## Solução
 
-**Antes:** 10+ elementos
-**Depois:** 4 grupos lógicos
+### Abordagem: Validação no Frontend + Opção de Restrição no RLS
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ [📝 Nova]    │   5 abertas • 3 não lidas   │   [🔔 2] [⚡Auto] [↻]   │   [🔍]   │
-│   ACÇÃO      │        STATUS               │       FERRAMENTAS       │  SEARCH  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+Vamos implementar uma dupla verificação:
 
-### 2. Eliminar Redundância de Filtros
-
-- **Remover** tabs de canais da ConversationList (já existem no Sidebar)
-- **Manter** apenas busca + smart filters na lista
-- Sidebar fica como único local de filtros de categoria/canal
-
-### 3. Detalhe da Conversa Limpo
-
-**Antes:** 6 banners antes das mensagens
-**Depois:** Apenas 1 banner consolidado (só aparece quando relevante)
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ [Avatar] João Silva  •  WhatsApp  •  Aberta  •  🔥Hot           [...] [⚡] [AI] │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│ ⚠️ Follow-up pendente há 2h • Intenção: Vendas • Auto: ✓               [ver +] │ ← BANNER ÚNICO
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│                        MENSAGENS (área principal)                               │
-│                                                                                 │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│ [Composer]                                                                      │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 4. Painel CRM com Tabs
-
-Organizar a informação em 3 tabs simples:
-
-```text
-┌─────────────────────────────┐
-│  [📋 Info] [💰 Sales] [📜 Hist] │
-├─────────────────────────────┤
-│  Tab: Info                  │
-│  ────────────────────────── │
-│  Avatar + Nome              │
-│  Email / Telefone           │
-│  Status: Active             │
-│  Tags: [tag1] [tag2]        │
-│  [📧] [📞] [📅]             │
-├─────────────────────────────┤
-│  Tab: Sales                 │
-│  ────────────────────────── │
-│  Oportunidades (2)          │
-│  Propostas (1)              │
-│  Tarefas (3)                │
-│  [+ Nova Oportunidade]      │
-├─────────────────────────────┤
-│  Tab: Histórico             │
-│  ────────────────────────── │
-│  Timeline de actividade     │
-└─────────────────────────────┘
-```
+1. **Frontend**: Adicionar validação de workspace em todas as operações de fluxos
+2. **Backend (opcional)**: Manter RLS para super admins mas adicionar filtro de workspace explícito
 
 ## Alterações de Código
 
-### Ficheiros a Modificar
+### 1. `useConversationalFlows.ts` - Validação de Workspace
+
+#### A. Adicionar verificação em `loadFlowDetails`
+
+```typescript
+// Load flow details (steps + variables)
+const loadFlowDetails = useCallback(async (flowId: string) => {
+  if (!currentWorkspace?.id) return;
+  
+  setIsLoading(true);
+  try {
+    // ADICIONAR: Filtrar por workspace_id para garantir isolamento
+    const [flowRes, stepsRes, varsRes] = await Promise.all([
+      supabase
+        .from('conversational_flows')
+        .select('*')
+        .eq('id', flowId)
+        .eq('workspace_id', currentWorkspace.id)  // NOVO
+        .single(),
+      supabase.from('flow_steps').select('*').eq('flow_id', flowId).order('position'),
+      supabase.from('flow_variables').select('*').eq('flow_id', flowId).order('position')
+    ]);
+
+    if (flowRes.error) {
+      // Se não encontrar o fluxo no workspace actual, pode ser de outro workspace
+      if (flowRes.error.code === 'PGRST116') {
+        toast.error('Fluxo não encontrado neste workspace');
+        return;
+      }
+      throw flowRes.error;
+    }
+    
+    setCurrentFlow(mapFlowFromDB(flowRes.data));
+    setSteps((stepsRes.data || []).map(mapStepFromDB));
+    setVariables((varsRes.data || []).map(mapVariableFromDB));
+  } catch (err) {
+    console.error('Error loading flow details:', err);
+    toast.error('Erro ao carregar detalhes do fluxo');
+  } finally {
+    setIsLoading(false);
+  }
+}, [currentWorkspace?.id]);
+```
+
+#### B. Adicionar verificação em `updateFlow`
+
+```typescript
+const updateFlow = useCallback(async (flowId: string, data: Partial<ConversationalFlow>) => {
+  if (!currentWorkspace?.id) return null;
+  
+  // Verificar se o fluxo pertence ao workspace actual
+  const { data: existingFlow } = await supabase
+    .from('conversational_flows')
+    .select('id')
+    .eq('id', flowId)
+    .eq('workspace_id', currentWorkspace.id)
+    .single();
+    
+  if (!existingFlow) {
+    toast.error('Fluxo não encontrado neste workspace');
+    return null;
+  }
+  
+  // ... resto da lógica existente
+}, [currentWorkspace?.id]);
+```
+
+#### C. Adicionar verificação em `deleteFlow`
+
+```typescript
+const deleteFlow = useCallback(async (flowId: string) => {
+  if (!currentWorkspace?.id) return false;
+  
+  try {
+    // Verificar se o fluxo pertence ao workspace actual
+    const { data: existingFlow } = await supabase
+      .from('conversational_flows')
+      .select('id')
+      .eq('id', flowId)
+      .eq('workspace_id', currentWorkspace.id)
+      .single();
+      
+    if (!existingFlow) {
+      toast.error('Fluxo não encontrado neste workspace');
+      return false;
+    }
+    
+    // ... resto da lógica existente
+}, [currentWorkspace?.id, currentFlow?.id]);
+```
+
+### 2. Limpar estado ao mudar de workspace
+
+Adicionar um `useEffect` para limpar o estado quando o workspace muda:
+
+```typescript
+// Limpar estado ao mudar de workspace
+useEffect(() => {
+  setCurrentFlow(null);
+  setSteps([]);
+  setVariables([]);
+  setFlows([]);
+}, [currentWorkspace?.id]);
+```
+
+## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/inbox/InboxMetricsBar.tsx` | Simplificar para 4 grupos: Acção, Status, Ferramentas, Busca |
-| `src/components/inbox/ConversationList.tsx` | Remover tabs de canais duplicados, simplificar header |
-| `src/components/inbox/ConversationDetail.tsx` | Criar banner consolidado, esconder detalhes em accordions |
-| `src/components/inbox/InboxCRMPanel.tsx` | Reorganizar com tabs (Info/Sales/Histórico) |
-| `src/components/inbox/InboxView.tsx` | Ajustar layout e responsividade |
-| **NOVO** `src/components/inbox/ConversationStatusBanner.tsx` | Banner único consolidando avisos importantes |
+| `src/hooks/useConversationalFlows.ts` | Adicionar validação de workspace_id em loadFlowDetails, updateFlow, deleteFlow e limpar estado ao mudar workspace |
 
-### Detalhe das Alterações
+## Fluxo Após Implementação
 
-#### A. InboxMetricsBar.tsx - Simplificação
-
-```typescript
-// Layout simplificado
-<div className="flex items-center justify-between px-4 py-2 border-b">
-  {/* Acção Principal */}
-  <ComposeButton />
-  
-  {/* Status Compacto */}
-  <div className="flex items-center gap-3 text-sm">
-    <span className="font-medium">{openCount} abertas</span>
-    <span className="text-muted-foreground">•</span>
-    <span className={cn(unreadCount > 0 && "text-primary font-medium")}>
-      {unreadCount} não lidas
-    </span>
-  </div>
-  
-  {/* Ferramentas */}
-  <div className="flex items-center gap-2">
-    <SmartAlertsPopover />
-    <AutopilotToggle compact />
-    <SyncButton compact />
-  </div>
-</div>
+```text
+                    Utilizador (Super Admin)
+                              │
+                              ▼
+                    Muda para Workspace B
+                              │
+                              ▼
+            ┌─────────────────────────────────┐
+            │ useEffect detecta mudança de    │
+            │ workspace_id e limpa estado     │
+            │ (flows=[], currentFlow=null)    │
+            └─────────────────────────────────┘
+                              │
+                              ▼
+                    loadFlows() é chamado
+                              │
+                              ▼
+            ┌─────────────────────────────────┐
+            │ Query filtra por workspace_id   │
+            │ SELECT * FROM conversational_   │
+            │ flows WHERE workspace_id = B    │
+            └─────────────────────────────────┘
+                              │
+                              ▼
+              Mostra apenas fluxos do Workspace B
 ```
 
-#### B. ConversationList.tsx - Sem Tabs Duplicados
+## Nota sobre RLS
 
-```typescript
-// Remover TabsList de canais (linha 460-476)
-// Manter apenas: Header + Search + Smart Filter + Lista
-```
+As políticas de RLS para super admins permanecem inalteradas por design - super admins precisam de acesso total para gestão do sistema. O isolamento é garantido pelo filtro de workspace no código do frontend, que é a abordagem recomendada para multi-tenancy com super admins.
 
-#### C. ConversationDetail.tsx - Banner Consolidado
+## Benefícios
 
-```typescript
-// Substituir os 6 banners separados por:
-<ConversationStatusBanner
-  conversationId={conversationId}
-  messages={messages}
-  conversation={conversation}
-  opportunityTrigger={opportunityTrigger}
-/>
-
-// Este componente mostra APENAS alertas importantes:
-// - Follow-up pendente (se >2h)
-// - Autopilot status (se diferente do padrão)
-// - Intenção detectada (se sales)
-// - Botão "ver mais" para detalhes
-```
-
-#### D. InboxCRMPanel.tsx - Tabs Organizadas
-
-```typescript
-// Novo layout com 3 tabs
-<Tabs defaultValue="info" className="w-full">
-  <TabsList className="w-full grid grid-cols-3 h-9">
-    <TabsTrigger value="info" className="text-xs">Info</TabsTrigger>
-    <TabsTrigger value="sales" className="text-xs">Vendas</TabsTrigger>
-    <TabsTrigger value="history" className="text-xs">Histórico</TabsTrigger>
-  </TabsList>
-  
-  <TabsContent value="info">
-    {/* Avatar, contacto, status, tags */}
-  </TabsContent>
-  
-  <TabsContent value="sales">
-    {/* Oportunidades, propostas, tarefas */}
-  </TabsContent>
-  
-  <TabsContent value="history">
-    {/* UnifiedActivityLog */}
-  </TabsContent>
-</Tabs>
-```
-
-## Benefícios Esperados
-
-1. **Menos ruído visual** - Informação agrupada logicamente
-2. **Acções claras** - Botão "Nova Mensagem" em destaque
-3. **Foco no conteúdo** - Mensagens visíveis sem scroll
-4. **Navegação intuitiva** - Filtros num só local (Sidebar)
-5. **CRM organizado** - Tabs separam info/vendas/histórico
-
-## Prioridade de Implementação
-
-1. **Alta**: Simplificar InboxMetricsBar
-2. **Alta**: Remover tabs duplicados da ConversationList
-3. **Média**: Criar banner consolidado
-4. **Média**: Reorganizar CRM Panel com tabs
-5. **Baixa**: Ajustes de responsividade
+1. **Isolamento garantido** - Fluxos são sempre filtrados pelo workspace actual
+2. **UX consistente** - Ao mudar de workspace, os dados antigos são limpos
+3. **Segurança mantida** - RLS continua a proteger os dados, o frontend adiciona UX layer
+4. **Compatibilidade** - Super admins ainda podem aceder a dados de outros workspaces via painel de administração (se necessário)
 
