@@ -12,8 +12,8 @@ export default function Login() {
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to your account to continue"
+      title="Bem-vindo de volta"
+      subtitle="Inicie sessão na sua conta para continuar"
     >
       <LoginForm />
     </AuthLayout>

@@ -21,12 +21,12 @@ export function LoginForm() {
     const { error } = await signIn(email, password);
 
     if (error) {
-      toast.error("Invalid email or password");
+      toast.error("Email ou palavra-passe inválidos");
       setLoading(false);
       return;
     }
 
-    toast.success("Welcome back!");
+    toast.success("Bem-vindo de volta!");
     navigate("/dashboard");
   };
 
@@ -34,11 +34,11 @@ export function LoginForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email address</Label>
+          <Label htmlFor="email">Endereço de email</Label>
           <Input
             id="email"
             type="email"
-            placeholder="you@company.com"
+            placeholder="voce@empresa.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -48,12 +48,12 @@ export function LoginForm() {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Palavra-passe</Label>
             <Link
               to="/forgot-password"
               className="text-sm text-primary hover:text-primary/80 transition-colors"
             >
-              Forgot password?
+              Esqueceu a palavra-passe?
             </Link>
           </div>
           <Input
@@ -70,13 +70,13 @@ export function LoginForm() {
 
       <Button type="submit" className="w-full h-11" disabled={loading}>
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Sign in
+        Entrar
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
-        Don't have an account?{" "}
+        Não tem conta?{" "}
         <Link to="/signup" className="text-primary hover:text-primary/80 font-medium transition-colors">
-          Sign up
+          Criar conta
         </Link>
       </p>
     </form>
