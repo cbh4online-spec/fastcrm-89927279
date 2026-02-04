@@ -1,115 +1,79 @@
 
-# Plano: Adicionar Acesso Global de Super Admin às Políticas RLS
+
+# Plano: Corrigir URL do Portal B2B
 
 ## Problema Identificado
 
-O utilizador **Jorge Cardoso** é um **super_admin** mas as políticas RLS da tabela `productivity_goals` não concedem acesso global adequado:
+O portal B2B não abre porque o URL está configurado para um domínio externo que não está a funcionar:
 
-### Situação Actual
+| Componente | URL Actual (Problema) | URL Correcto |
+|------------|----------------------|--------------|
+| Portal B2B | `https://fastcrm.metodopare.ai/client/login` | `https://fastcrm.lovable.app/client/login` |
 
-| Operação | Política | Verifica Super Admin? |
-|----------|----------|----------------------|
-| SELECT | "Users can view goals in their workspace" | **NÃO** |
-| SELECT | "Users can view organizational goals in their workspace" | **NÃO** |
-| INSERT (individual) | "Users can create own individual goals" | **NÃO** |
-| INSERT (individual) | "Admins can create individual goals for members" | **SIM** |
-| INSERT (organizational) | "Admins can create organizational goals" | **SIM** |
-| UPDATE | "Users can update their goals" | **NÃO** |
-| DELETE | "Users can delete their goals" | **NÃO** |
+### Causa Raiz
 
-### Problema Específico
+O código em múltiplos ficheiros tem o URL do portal **hardcoded** para `fastcrm.metodopare.ai`, que é um domínio custom que pode não estar configurado ou a resolver correctamente.
 
-O super admin está no workspace **PHARLISS** (via o contexto da aplicação), mas **não é membro directo** desse workspace. As políticas de INSERT para super admins estão correctas, mas:
+### Ficheiros Afectados
 
-1. A política de **SELECT** bloqueia a visualização (o que pode causar problemas no frontend)
-2. A política para metas **individuais por membros** (`Users can create own individual goals`) não aceita super admins
+1. `src/pages/B2BPortalSettingsPage.tsx` (linha 40-42)
+2. `src/pages/ClientUsersPage.tsx` (linha 13-15)
+3. `src/components/client-users/ClientUsersList.tsx` (linha 96)
 
 ## Solução
 
-Actualizar **TODAS** as políticas de `productivity_goals` para incluir verificação de `is_super_admin()`:
+Alterar todos os URLs do portal para usar o domínio actual da aplicação em vez de um domínio hardcoded externo.
 
-### 1. Políticas de SELECT
+### Abordagem
 
-```sql
--- Actualizar SELECT para incluir super admins
-DROP POLICY IF EXISTS "Users can view goals in their workspace" ON productivity_goals;
-DROP POLICY IF EXISTS "Users can view organizational goals in their workspace" ON productivity_goals;
+Usar `window.location.origin` para construir URLs dinâmicos que funcionam em qualquer ambiente:
 
-CREATE POLICY "Users can view goals in their workspace"
-ON productivity_goals FOR SELECT
-USING (
-  public.is_super_admin()
-  OR
-  workspace_id IN (
-    SELECT workspace_id FROM workspace_members 
-    WHERE user_id = auth.uid()
-  )
-);
+```typescript
+// ANTES (hardcoded - não funciona)
+const portalUrl = `https://fastcrm.metodopare.ai/client/login?workspace=${slug}`;
+
+// DEPOIS (dinâmico - funciona em qualquer ambiente)
+const portalUrl = `${window.location.origin}/client/login?workspace=${slug}`;
 ```
 
-### 2. Políticas de UPDATE
+## Alterações de Código
 
-```sql
-DROP POLICY IF EXISTS "Users can update their goals" ON productivity_goals;
-DROP POLICY IF EXISTS "Members can update organizational goals" ON productivity_goals;
+### 1. B2BPortalSettingsPage.tsx
 
-CREATE POLICY "Users can update goals"
-ON productivity_goals FOR UPDATE
-USING (
-  public.is_super_admin()
-  OR
-  user_id = auth.uid()
-  OR
-  EXISTS (
-    SELECT 1 FROM workspace_members
-    WHERE workspace_id = productivity_goals.workspace_id
-    AND user_id = auth.uid()
-    AND role IN ('owner', 'admin')
-  )
-);
+```typescript
+// Linha 40-42
+const portalUrl = currentWorkspace?.slug 
+  ? `${window.location.origin}/client/login?workspace=${currentWorkspace.slug}`
+  : `${window.location.origin}/client/login`;
 ```
 
-### 3. Políticas de DELETE
+### 2. ClientUsersPage.tsx
 
-```sql
-DROP POLICY IF EXISTS "Users can delete their goals" ON productivity_goals;
-DROP POLICY IF EXISTS "Admins can delete organizational goals" ON productivity_goals;
-
-CREATE POLICY "Users can delete goals"
-ON productivity_goals FOR DELETE
-USING (
-  public.is_super_admin()
-  OR
-  user_id = auth.uid()
-  OR
-  EXISTS (
-    SELECT 1 FROM workspace_members
-    WHERE workspace_id = productivity_goals.workspace_id
-    AND user_id = auth.uid()
-    AND role IN ('owner', 'admin')
-  )
-);
+```typescript
+// Linha 13-15
+const portalUrl = currentWorkspace?.slug 
+  ? `${window.location.origin}/client/login?workspace=${currentWorkspace.slug}`
+  : `${window.location.origin}/client/login`;
 ```
 
-## Resumo das Políticas Finais
+### 3. ClientUsersList.tsx
 
-| Operação | Condições |
-|----------|-----------|
-| SELECT | Super admin **OU** membro do workspace |
-| INSERT (individual própria) | Membro do workspace E user_id = auth.uid() |
-| INSERT (individual para outros) | Super admin **OU** owner/admin do workspace |
-| INSERT (organizacional) | Super admin **OU** owner/admin do workspace |
-| UPDATE | Super admin **OU** owner da meta **OU** admin do workspace |
-| DELETE | Super admin **OU** owner da meta **OU** admin do workspace |
+```typescript
+// Linha 96
+portalUrl: `${window.location.origin}/client/login`,
+```
 
-## Alterações na Base de Dados
+## Benefícios
 
-| Tipo | Descrição |
-|------|-----------|
-| Migração SQL | Reorganizar políticas RLS para incluir `is_super_admin()` em SELECT, UPDATE e DELETE |
+1. O portal funciona em **qualquer ambiente** (preview, produção, domínio custom)
+2. Não requer configuração de DNS externos
+3. A sessão de autenticação é partilhada no mesmo domínio
 
-## Resultado Esperado
+## Teste
 
-1. Super admins podem ver, criar, editar e apagar metas em **qualquer** workspace
-2. Owners/admins continuam a poder gerir metas nos seus próprios workspaces
-3. Utilizadores regulares podem gerir apenas as suas próprias metas individuais
+Após as alterações:
+1. Aceder a `/dashboard/b2b-portal`
+2. Clicar em "Abrir Portal"
+3. O portal deve abrir em `fastcrm.lovable.app/client/login` (ou preview URL correspondente)
+4. O login deve funcionar normalmente
+
