@@ -1,182 +1,118 @@
 
 
-# Plano: Isolar Fluxos por Workspace
+# Plano: Aplicar Conceito AIDA e Traduzir para Português
 
-## Problema Identificado
+## O que é AIDA?
 
-Quando um utilizador com papel **super_admin** navega entre workspaces, está a ver fluxos de outros workspaces porque:
+O modelo AIDA é uma técnica de copywriting que guia o utilizador através de 4 fases:
 
-1. **Política RLS permissiva**: A regra `Super admins can manage all flows` permite que super admins vejam todos os fluxos do sistema, ignorando a filtragem por workspace
-2. **Falta de validação no frontend**: A função `loadFlowDetails` carrega um fluxo apenas pelo `id`, sem verificar se pertence ao workspace actual
+| Fase | Objectivo | Aplicação na Landing |
+|------|-----------|---------------------|
+| **A**tenção | Captar o olhar imediatamente | Headline impactante e visual forte |
+| **I**nteresse | Despertar curiosidade | Benefícios e features relevantes |
+| **D**esejo | Criar vontade de ter | Prova social, resultados, urgência |
+| **A**cção | Levar ao passo seguinte | CTA claro (formulário de login) |
 
-### Causa Raiz
+## Alterações Planeadas
 
-```sql
--- Esta política permite que super admins vejam TUDO
-Super admins can manage all flows: is_super_admin(auth.uid())
+### 1. AuthLayout.tsx - Painel Esquerdo com AIDA
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│  [Logo] FastCRM                                                         │  ← Branding
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ATENÇÃO (Headline)                                                     │
+│  ──────────────────                                                     │
+│  "Transforme leads em clientes"                                         │
+│  "com o CRM mais inteligente"                                           │
+│                                                                         │
+│  INTERESSE (Benefícios)                                                 │
+│  ───────────────────────                                                │
+│  ✓ Gestão de contactos simplificada                                    │
+│  ✓ Automação de vendas com IA                                          │
+│  ✓ Relatórios em tempo real                                            │
+│  ✓ Integrações com WhatsApp e Email                                    │
+│                                                                         │
+│  DESEJO (Prova social)                                                  │
+│  ───────────────────────                                                │
+│  "Mais de 500 empresas já confiam no FastCRM"                          │
+│  [★★★★★] "Aumentámos as vendas em 40%" - João Silva, CEO               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+│  © 2024 FastCRM  •  Privacidade  •  Termos                              │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-Embora o `loadFlows` filtre por `workspace_id`, o RLS permite que o super admin veja todos os dados, e não há validação adicional no frontend.
-
-## Solução
-
-### Abordagem: Validação no Frontend + Opção de Restrição no RLS
-
-Vamos implementar uma dupla verificação:
-
-1. **Frontend**: Adicionar validação de workspace em todas as operações de fluxos
-2. **Backend (opcional)**: Manter RLS para super admins mas adicionar filtro de workspace explícito
-
-## Alterações de Código
-
-### 1. `useConversationalFlows.ts` - Validação de Workspace
-
-#### A. Adicionar verificação em `loadFlowDetails`
+### 2. Login.tsx - Textos em Português
 
 ```typescript
-// Load flow details (steps + variables)
-const loadFlowDetails = useCallback(async (flowId: string) => {
-  if (!currentWorkspace?.id) return;
-  
-  setIsLoading(true);
-  try {
-    // ADICIONAR: Filtrar por workspace_id para garantir isolamento
-    const [flowRes, stepsRes, varsRes] = await Promise.all([
-      supabase
-        .from('conversational_flows')
-        .select('*')
-        .eq('id', flowId)
-        .eq('workspace_id', currentWorkspace.id)  // NOVO
-        .single(),
-      supabase.from('flow_steps').select('*').eq('flow_id', flowId).order('position'),
-      supabase.from('flow_variables').select('*').eq('flow_id', flowId).order('position')
-    ]);
-
-    if (flowRes.error) {
-      // Se não encontrar o fluxo no workspace actual, pode ser de outro workspace
-      if (flowRes.error.code === 'PGRST116') {
-        toast.error('Fluxo não encontrado neste workspace');
-        return;
-      }
-      throw flowRes.error;
-    }
-    
-    setCurrentFlow(mapFlowFromDB(flowRes.data));
-    setSteps((stepsRes.data || []).map(mapStepFromDB));
-    setVariables((varsRes.data || []).map(mapVariableFromDB));
-  } catch (err) {
-    console.error('Error loading flow details:', err);
-    toast.error('Erro ao carregar detalhes do fluxo');
-  } finally {
-    setIsLoading(false);
-  }
-}, [currentWorkspace?.id]);
+<AuthLayout
+  title="Bem-vindo de volta"
+  subtitle="Inicie sessão na sua conta para continuar"
+>
 ```
 
-#### B. Adicionar verificação em `updateFlow`
+### 3. LoginForm.tsx - Tradução Completa
 
-```typescript
-const updateFlow = useCallback(async (flowId: string, data: Partial<ConversationalFlow>) => {
-  if (!currentWorkspace?.id) return null;
-  
-  // Verificar se o fluxo pertence ao workspace actual
-  const { data: existingFlow } = await supabase
-    .from('conversational_flows')
-    .select('id')
-    .eq('id', flowId)
-    .eq('workspace_id', currentWorkspace.id)
-    .single();
-    
-  if (!existingFlow) {
-    toast.error('Fluxo não encontrado neste workspace');
-    return null;
-  }
-  
-  // ... resto da lógica existente
-}, [currentWorkspace?.id]);
-```
-
-#### C. Adicionar verificação em `deleteFlow`
-
-```typescript
-const deleteFlow = useCallback(async (flowId: string) => {
-  if (!currentWorkspace?.id) return false;
-  
-  try {
-    // Verificar se o fluxo pertence ao workspace actual
-    const { data: existingFlow } = await supabase
-      .from('conversational_flows')
-      .select('id')
-      .eq('id', flowId)
-      .eq('workspace_id', currentWorkspace.id)
-      .single();
-      
-    if (!existingFlow) {
-      toast.error('Fluxo não encontrado neste workspace');
-      return false;
-    }
-    
-    // ... resto da lógica existente
-}, [currentWorkspace?.id, currentFlow?.id]);
-```
-
-### 2. Limpar estado ao mudar de workspace
-
-Adicionar um `useEffect` para limpar o estado quando o workspace muda:
-
-```typescript
-// Limpar estado ao mudar de workspace
-useEffect(() => {
-  setCurrentFlow(null);
-  setSteps([]);
-  setVariables([]);
-  setFlows([]);
-}, [currentWorkspace?.id]);
-```
+| Inglês | Português |
+|--------|-----------|
+| Email address | Endereço de email |
+| Password | Palavra-passe |
+| Forgot password? | Esqueceu a palavra-passe? |
+| Sign in | Entrar |
+| Don't have an account? | Não tem conta? |
+| Sign up | Criar conta |
+| Invalid email or password | Email ou palavra-passe inválidos |
+| Welcome back! | Bem-vindo de volta! |
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/hooks/useConversationalFlows.ts` | Adicionar validação de workspace_id em loadFlowDetails, updateFlow, deleteFlow e limpar estado ao mudar workspace |
+| `src/components/auth/AuthLayout.tsx` | Redesenhar painel esquerdo com estrutura AIDA, traduzir para PT |
+| `src/pages/Login.tsx` | Traduzir props title/subtitle |
+| `src/components/auth/LoginForm.tsx` | Traduzir labels, placeholders, mensagens e links |
 
-## Fluxo Após Implementação
+## Estrutura AIDA no Código
 
-```text
-                    Utilizador (Super Admin)
-                              │
-                              ▼
-                    Muda para Workspace B
-                              │
-                              ▼
-            ┌─────────────────────────────────┐
-            │ useEffect detecta mudança de    │
-            │ workspace_id e limpa estado     │
-            │ (flows=[], currentFlow=null)    │
-            └─────────────────────────────────┘
-                              │
-                              ▼
-                    loadFlows() é chamado
-                              │
-                              ▼
-            ┌─────────────────────────────────┐
-            │ Query filtra por workspace_id   │
-            │ SELECT * FROM conversational_   │
-            │ flows WHERE workspace_id = B    │
-            └─────────────────────────────────┘
-                              │
-                              ▼
-              Mostra apenas fluxos do Workspace B
+```typescript
+// AuthLayout.tsx - Painel Esquerdo
+<div className="space-y-8">
+  {/* ATENÇÃO - Headline impactante */}
+  <div>
+    <h1 className="text-4xl font-bold">
+      Transforme leads em clientes
+    </h1>
+    <p className="text-xl opacity-90">
+      com o CRM mais inteligente de Portugal
+    </p>
+  </div>
+
+  {/* INTERESSE - Lista de benefícios */}
+  <ul className="space-y-3">
+    <li className="flex items-center gap-3">
+      <CheckCircle className="text-green-300" />
+      Gestão de contactos simplificada
+    </li>
+    <li>...</li>
+  </ul>
+
+  {/* DESEJO - Prova social */}
+  <div className="bg-white/10 rounded-xl p-4">
+    <div className="flex items-center gap-1">
+      {[...Array(5)].map(() => <Star className="fill-yellow-400" />)}
+    </div>
+    <p className="italic">"Aumentámos as vendas em 40%"</p>
+    <p className="text-sm">— João Silva, CEO da TechStart</p>
+  </div>
+</div>
 ```
-
-## Nota sobre RLS
-
-As políticas de RLS para super admins permanecem inalteradas por design - super admins precisam de acesso total para gestão do sistema. O isolamento é garantido pelo filtro de workspace no código do frontend, que é a abordagem recomendada para multi-tenancy com super admins.
 
 ## Benefícios
 
-1. **Isolamento garantido** - Fluxos são sempre filtrados pelo workspace actual
-2. **UX consistente** - Ao mudar de workspace, os dados antigos são limpos
-3. **Segurança mantida** - RLS continua a proteger os dados, o frontend adiciona UX layer
-4. **Compatibilidade** - Super admins ainda podem aceder a dados de outros workspaces via painel de administração (se necessário)
+1. **Copywriting persuasivo** - Segue metodologia comprovada de conversão
+2. **Localização completa** - Interface 100% em Português
+3. **Credibilidade** - Prova social aumenta confiança
+4. **Consistência** - Alinhado com a identidade do produto
 
