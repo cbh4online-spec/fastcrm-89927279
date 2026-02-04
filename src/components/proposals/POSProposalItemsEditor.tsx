@@ -393,81 +393,27 @@ export function POSProposalItemsEditor({ proposalId, onSaved }: POSProposalItems
                         onDragEnd={handleDragEnd}
                         onDragOver={(e) => e.preventDefault()}
                       >
-                        <div className="flex items-start gap-2">
-                          {/* Drag Handle */}
-                          <div 
-                            className="flex items-center text-muted-foreground cursor-grab active:cursor-grabbing pt-1 hover:text-primary transition-colors"
-                            title="Arraste para reordenar"
-                          >
-                            <GripVertical className="h-4 w-4" />
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium text-sm truncate">
-                                {item.name}
-                              </h4>
-                              {(hasOverride || hasDiscount) && (
-                                <Badge variant="secondary" className="text-[10px] shrink-0">
-                                  Editado
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={item.unit_price}
-                                  onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="w-20 h-6 text-sm text-primary font-semibold text-right px-1"
-                                />
-                                <span className="text-xs text-muted-foreground">€</span>
-                              </div>
-                              {item.quantity > 1 && (
-                                <span className="text-xs text-muted-foreground">
-                                  (Total: {formatPrice(itemTotal)})
-                                </span>
-                              )}
-                              {(hasOverride || hasDiscount) && originalTotal !== itemTotal && (
-                                <span className="text-xs text-muted-foreground line-through">
-                                  {formatPrice(originalTotal)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Quantity Controls */}
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleUpdateQuantity(index, item.quantity - 1)}
+                        {/* Linha 1: Nome e Ações */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {/* Drag Handle */}
+                            <div 
+                              className="flex items-center text-muted-foreground cursor-grab active:cursor-grabbing hover:text-primary transition-colors shrink-0"
+                              title="Arraste para reordenar"
                             >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-12 h-6 text-center text-sm font-medium px-1"
-                            />
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleUpdateQuantity(index, item.quantity + 1)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
+                              <GripVertical className="h-4 w-4" />
+                            </div>
+                            <h4 className="font-medium text-sm truncate">
+                              {item.name}
+                            </h4>
+                            {(hasOverride || hasDiscount) && (
+                              <Badge variant="secondary" className="text-[10px] shrink-0">
+                                Editado
+                              </Badge>
+                            )}
                           </div>
-
                           {/* Actions */}
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             <CollapsibleTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-6 w-6">
                                 {isExpanded ? (
@@ -486,6 +432,58 @@ export function POSProposalItemsEditor({ proposalId, onSaved }: POSProposalItems
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
+                        </div>
+
+                        {/* Linha 2: Preço × Quantidade = Total */}
+                        <div className="flex items-center gap-2 mt-2 pl-6">
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={item.unit_price}
+                              onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-20 h-7 text-sm text-primary font-semibold text-right px-1"
+                            />
+                            <span className="text-xs text-muted-foreground">€</span>
+                          </div>
+                          <span className="text-muted-foreground text-sm">×</span>
+                          {/* Quantity Controls */}
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleUpdateQuantity(index, item.quantity - 1)}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-12 h-7 text-center text-sm font-medium px-1"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleUpdateQuantity(index, item.quantity + 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <span className="text-muted-foreground text-sm">=</span>
+                          <span className="font-semibold text-sm">
+                            {formatPrice(itemTotal)}
+                          </span>
+                          {(hasOverride || hasDiscount) && originalTotal !== itemTotal && (
+                            <span className="text-xs text-muted-foreground line-through">
+                              {formatPrice(originalTotal)}
+                            </span>
+                          )}
                         </div>
 
                         <CollapsibleContent className="mt-3 pt-3 border-t border-border/50">
