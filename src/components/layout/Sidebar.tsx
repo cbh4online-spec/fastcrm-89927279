@@ -57,6 +57,7 @@ import {
   Landmark,
   ShoppingCart,
   BookOpen,
+  Store,
 } from "lucide-react";
 import {
   Collapsible,
@@ -191,6 +192,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Produtos", href: "/dashboard/products", icon: Package, tooltip: "Catálogo de produtos" },
       { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: ShoppingCart, tooltip: "Encomendas B2B" },
       { name: "Clientes B2B", href: "/dashboard/client-users", icon: UsersRound, tooltip: "Clientes profissionais" },
+      { name: "Portal B2B", href: "/dashboard/b2b-portal", icon: Store, tooltip: "Configurar portal de clientes", highlight: true },
     ],
   },
   // MARKETING

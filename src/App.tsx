@@ -71,6 +71,7 @@ import OrderNotesPage from "./pages/OrderNotesPage";
 import OrderNoteDetailPage from "./pages/OrderNoteDetailPage";
 import OrderApprovalsPage from "./pages/OrderApprovalsPage";
 import ClientUsersPage from "./pages/ClientUsersPage";
+import B2BPortalSettingsPage from "./pages/B2BPortalSettingsPage";
 import ReportsOverview from "./pages/ReportsOverview";
 import ReportsForecasts from "./pages/ReportsForecasts";
 import ReportsConsumption from "./pages/ReportsConsumption";
@@ -254,6 +255,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
                 <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
                 <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
+                <Route path="/dashboard/b2b-portal" element={<B2BPortalSettingsPage />} />
                 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
