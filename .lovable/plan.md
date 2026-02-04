@@ -1,27 +1,45 @@
 
 
-# Plano: Multi-Selecção e Ordenação na Lista de Perfis
+# Plano: Adicionar Multi-Selecção e Ordenação ao SJProfiles.tsx
 
-## Funcionalidades a Implementar
+## Problema Identificado
 
-### 1. Multi-Selecção de Perfis
-Permitir seleccionar vários perfis em simultâneo para executar acções em massa como apagar.
+As funcionalidades de multi-selecção e ordenação foram implementadas no ficheiro errado:
+- **SJProfiles.tsx** - usado na rota `/dashboard/student-journey/profiles` (ficheiro actual, SEM as funcionalidades)
+- **SJStudents.tsx** - ficheiro onde as alterações foram feitas (rota diferente)
 
-### 2. Ordenação por Colunas
-Permitir ordenar a tabela por nome, estado, score, cursos, etc.
+## Solução
+
+Adicionar as mesmas funcionalidades ao ficheiro correcto `SJProfiles.tsx`, adaptando para as colunas existentes (Nome, Estado, Score, Cursos, Especialidade, Follow-up).
 
 ## Alterações Técnicas
 
 ### Ficheiro: `src/pages/student-journey/SJProfiles.tsx`
 
-#### A. Estado para Multi-Selecção
-
-Adicionar estado para gerir os perfis seleccionados:
+#### 1. Imports Adicionais
 
 ```typescript
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+```
+
+#### 2. Estados para Selecção e Ordenação
+
+```typescript
+type SortField = 'name' | 'stage' | 'score' | 'courses' | 'specialty' | 'followup';
+type SortDirection = 'asc' | 'desc';
+
+// Multi-selection
 const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-// Helpers
+// Sorting
+const [sortField, setSortField] = useState<SortField>('name');
+const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+```
+
+#### 3. Helpers de Selecção
+
+```typescript
 const toggleSelect = (id: string) => {
   setSelectedIds(prev => {
     const next = new Set(prev);
@@ -32,25 +50,52 @@ const toggleSelect = (id: string) => {
 };
 
 const toggleSelectAll = () => {
-  if (selectedIds.size === filteredProfiles.length) {
+  if (selectedIds.size === sortedProfiles.length) {
     setSelectedIds(new Set());
   } else {
-    setSelectedIds(new Set(filteredProfiles.map(p => p.id)));
+    setSelectedIds(new Set(sortedProfiles.map(p => p.id)));
   }
 };
 
 const clearSelection = () => setSelectedIds(new Set());
 ```
 
-#### B. Estado para Ordenação
+#### 4. Lógica de Ordenação
 
 ```typescript
-type SortField = 'name' | 'state' | 'score' | 'courses' | 'created';
-type SortDirection = 'asc' | 'desc';
+const sortedProfiles = useMemo(() => {
+  return [...filteredProfiles].sort((a, b) => {
+    let comparison = 0;
+    switch (sortField) {
+      case 'name':
+        comparison = a.full_name.localeCompare(b.full_name);
+        break;
+      case 'stage':
+        comparison = a.lifecycle_stage.localeCompare(b.lifecycle_stage);
+        break;
+      case 'score':
+        comparison = (a.activationScore || 0) - (b.activationScore || 0);
+        break;
+      case 'courses':
+        comparison = (a.completedCourses || 0) - (b.completedCourses || 0);
+        break;
+      case 'specialty':
+        comparison = (a.primary_specialty || '').localeCompare(b.primary_specialty || '');
+        break;
+      case 'followup':
+        const dateA = a.next_follow_up_at ? new Date(a.next_follow_up_at).getTime() : 0;
+        const dateB = b.next_follow_up_at ? new Date(b.next_follow_up_at).getTime() : 0;
+        comparison = dateA - dateB;
+        break;
+    }
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+}, [filteredProfiles, sortField, sortDirection]);
+```
 
-const [sortField, setSortField] = useState<SortField>('name');
-const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+#### 5. Handler de Ordenação
 
+```typescript
 const handleSort = (field: SortField) => {
   if (sortField === field) {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -61,56 +106,20 @@ const handleSort = (field: SortField) => {
 };
 ```
 
-#### C. Lógica de Ordenação
+#### 6. Componente SortIcon
 
 ```typescript
-const sortedProfiles = useMemo(() => {
-  return [...filteredProfiles].sort((a, b) => {
-    let comparison = 0;
-    switch (sortField) {
-      case 'name':
-        comparison = a.full_name.localeCompare(b.full_name);
-        break;
-      case 'state':
-        comparison = a.lifecycle_stage.localeCompare(b.lifecycle_stage);
-        break;
-      case 'score':
-        comparison = (a.activationScore || 0) - (b.activationScore || 0);
-        break;
-      case 'courses':
-        comparison = (a.completedCourses || 0) - (b.completedCourses || 0);
-        break;
-      case 'created':
-        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        break;
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
-}, [filteredProfiles, sortField, sortDirection]);
-```
-
-#### D. Acção de Apagar em Massa
-
-```typescript
-const handleBulkDelete = async () => {
-  if (selectedIds.size === 0) return;
-  
-  const confirmed = confirm(
-    `Tem a certeza que deseja remover ${selectedIds.size} perfil(is)?`
-  );
-  
-  if (confirmed) {
-    for (const id of selectedIds) {
-      await deleteProfile.mutateAsync(id);
-    }
-    clearSelection();
+const SortIcon = ({ field }: { field: SortField }) => {
+  if (sortField !== field) {
+    return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
   }
+  return sortDirection === 'asc' 
+    ? <ArrowUp className="h-3 w-3" /> 
+    : <ArrowDown className="h-3 w-3" />;
 };
 ```
 
-#### E. Interface - Barra de Acções em Massa
-
-Quando há perfis seleccionados, mostrar uma barra de acções:
+#### 7. Barra de Acções em Massa (após os filtros, antes da Card)
 
 ```typescript
 {selectedIds.size > 0 && (
@@ -131,43 +140,64 @@ Quando há perfis seleccionados, mostrar uma barra de acções:
 )}
 ```
 
-#### F. Interface - Cabeçalhos Ordenáveis
+#### 8. Cabeçalhos de Tabela com Ordenação
+
+Substituir os TableHead actuais por versões clicáveis:
 
 ```typescript
 <TableHeader>
   <TableRow>
     <TableHead className="w-12">
       <Checkbox
-        checked={selectedIds.size === filteredProfiles.length && filteredProfiles.length > 0}
+        checked={selectedIds.size === sortedProfiles.length && sortedProfiles.length > 0}
         onCheckedChange={toggleSelectAll}
+        aria-label="Seleccionar todos"
       />
     </TableHead>
-    <TableHead 
-      className="cursor-pointer hover:bg-muted/50"
-      onClick={() => handleSort('name')}
-    >
+    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('name')}>
       <div className="flex items-center gap-1">
         Nome
-        {sortField === 'name' && (
-          sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-        )}
+        <SortIcon field="name" />
       </div>
     </TableHead>
-    <TableHead 
-      className="cursor-pointer hover:bg-muted/50"
-      onClick={() => handleSort('state')}
-    >
+    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('stage')}>
       <div className="flex items-center gap-1">
         Estado
-        {sortField === 'state' && (...)}
+        <SortIcon field="stage" />
       </div>
     </TableHead>
-    {/* Repetir para Score, Cursos, etc. */}
+    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('score')}>
+      <div className="flex items-center gap-1">
+        Score
+        <SortIcon field="score" />
+      </div>
+    </TableHead>
+    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('courses')}>
+      <div className="flex items-center gap-1">
+        Cursos
+        <SortIcon field="courses" />
+      </div>
+    </TableHead>
+    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('specialty')}>
+      <div className="flex items-center gap-1">
+        Especialidade
+        <SortIcon field="specialty" />
+      </div>
+    </TableHead>
+    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('followup')}>
+      <div className="flex items-center gap-1">
+        Follow-up
+        <SortIcon field="followup" />
+      </div>
+    </TableHead>
+    <TableHead className="w-12"></TableHead>
   </TableRow>
 </TableHeader>
 ```
 
-#### G. Interface - Checkbox por Linha
+#### 9. Checkbox em Cada Linha
+
+Adicionar checkbox e highlight visual nas linhas:
 
 ```typescript
 <TableRow key={profile.id} className={cn(selectedIds.has(profile.id) && "bg-primary/5")}>
@@ -175,54 +205,28 @@ Quando há perfis seleccionados, mostrar uma barra de acções:
     <Checkbox
       checked={selectedIds.has(profile.id)}
       onCheckedChange={() => toggleSelect(profile.id)}
+      aria-label={`Seleccionar ${profile.full_name}`}
     />
   </TableCell>
-  {/* ... resto das células */}
+  {/* resto das células... */}
 </TableRow>
 ```
 
-## Layout Visual
+#### 10. Usar sortedProfiles em vez de filteredProfiles no map
 
-```text
-╔══════════════════════════════════════════════════════════════════════════╗
-║ Perfis de Alunos                                    [Importar] [+ Novo]  ║
-║ 45 de 120 perfis                                                         ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║ [Pesquisar...]                      [Potencial ▾] [Tempo ▾] [Área ▾]     ║
-║ [Todos] [Lead] [Prospect] [Inscrito] [Ativo] [Concluído] [Inativo]       ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║  ┌─────────────────────────────────────────────────────────────────────┐ ║
-║  │ ✓ 3 perfil(is) seleccionado(s)           [Cancelar] [🗑️ Apagar]    │ ║
-║  └─────────────────────────────────────────────────────────────────────┘ ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║ ☐ │ Nome ↑          │ Estado    │ Score │ Cursos │ Especialidade │ ...  ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║ ☐ │ Ana Silva       │ Ativo     │  85%  │   3    │ Tricologia    │ ...  ║
-║ ☑ │ João Santos     │ Lead      │  45%  │   0    │ -             │ ...  ║
-║ ☑ │ Maria Costa     │ Prospect  │  60%  │   1    │ Unhas         │ ...  ║
-║ ☑ │ Pedro Almeida   │ Inativo   │  20%  │   2    │ Massagem      │ ...  ║
-╚══════════════════════════════════════════════════════════════════════════╝
-```
+Alterar a iteração para usar os perfis ordenados.
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/pages/student-journey/SJProfiles.tsx` | Adicionar multi-selecção, ordenação e barra de acções em massa |
+| `src/pages/student-journey/SJProfiles.tsx` | Adicionar multi-selecção, ordenação por colunas e barra de acções em massa |
 
-## Imports Adicionais
+## Resultado Esperado
 
-```typescript
-import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
-```
-
-## Comportamento Esperado
-
-1. **Selecção Individual**: Clicar no checkbox de uma linha selecciona/desselecciona esse perfil
-2. **Selecção Total**: Clicar no checkbox do cabeçalho selecciona/desselecciona todos os perfis visíveis
-3. **Barra de Acções**: Aparece automaticamente quando há 1+ perfis seleccionados
-4. **Apagar em Massa**: Remove todos os perfis seleccionados após confirmação
-5. **Ordenação**: Clicar no cabeçalho de uma coluna ordena por essa coluna (toggle asc/desc)
-6. **Indicador Visual**: Seta ↑/↓ mostra a direcção da ordenação actual
+1. Checkbox visível em cada linha para selecção individual
+2. Checkbox no cabeçalho para seleccionar/desseleccionar todos
+3. Barra de acções aparece quando há perfis seleccionados
+4. Clicar nos cabeçalhos ordena por essa coluna (alternando asc/desc)
+5. Ícones de seta indicam a direcção da ordenação actual
 
