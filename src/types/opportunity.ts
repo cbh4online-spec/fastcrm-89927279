@@ -87,6 +87,10 @@ export interface Opportunity {
   ai_next_action: string | null;
   ai_temperature: string | null;
   ai_analyzed_at: string | null;
+  // Commission fields
+  commission_percentage: number | null;
+  commission_amount: number | null;
+  commission_notes: string | null;
 }
 
 export interface CreateOpportunityInput {
@@ -108,6 +112,9 @@ export interface UpdateOpportunityInput extends Partial<Omit<CreateOpportunityIn
   id: string;
   stage_id?: string;
   lost_reason?: string;
+  commission_percentage?: number;
+  commission_amount?: number;
+  commission_notes?: string;
 }
 
 // KPI Types
