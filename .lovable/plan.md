@@ -1,118 +1,168 @@
 
+# Plano: Corrigir Erro de Login no Portal B2B
 
-# Plano: Aplicar Conceito AIDA e Traduzir para Português
+## Problema Identificado
 
-## O que é AIDA?
+O utilizador `jorge.cardoso@digital4ads.pt` tem **2 registos** na tabela `client_users`:
 
-O modelo AIDA é uma técnica de copywriting que guia o utilizador através de 4 fases:
+| workspace_id | workspace_name | status |
+|--------------|----------------|--------|
+| d9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f | METODOPARE | active |
+| 0662fc16-6286-4156-a908-08c7dfec0fb7 | PHARLISS | active |
 
-| Fase | Objectivo | Aplicação na Landing |
-|------|-----------|---------------------|
-| **A**tenção | Captar o olhar imediatamente | Headline impactante e visual forte |
-| **I**nteresse | Despertar curiosidade | Benefícios e features relevantes |
-| **D**esejo | Criar vontade de ter | Prova social, resultados, urgência |
-| **A**cção | Levar ao passo seguinte | CTA claro (formulário de login) |
+Quando o hook `useClientAuth` executa:
+```typescript
+await supabase
+  .from("client_users")
+  .select("*")
+  .eq("auth_user_id", userId)
+  .in("status", ["active", "pending"])
+  .maybeSingle();  // ERRO: retorna mais de 1 resultado!
+```
 
-## Alterações Planeadas
+O método `.maybeSingle()` falha quando há mais de um resultado, causando o erro "Erro ao carregar perfil de cliente".
 
-### 1. AuthLayout.tsx - Painel Esquerdo com AIDA
+## Solução
+
+O sistema já gera URLs com o parâmetro `?workspace=slug`:
+```
+/client/login?workspace=metodopare
+/client/login?workspace=pharliss
+```
+
+Mas esse parâmetro **não está a ser utilizado** para filtrar o cliente correcto.
+
+### Fluxo Corrigido
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  [Logo] FastCRM                                                         │  ← Branding
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ATENÇÃO (Headline)                                                     │
-│  ──────────────────                                                     │
-│  "Transforme leads em clientes"                                         │
-│  "com o CRM mais inteligente"                                           │
-│                                                                         │
-│  INTERESSE (Benefícios)                                                 │
-│  ───────────────────────                                                │
-│  ✓ Gestão de contactos simplificada                                    │
-│  ✓ Automação de vendas com IA                                          │
-│  ✓ Relatórios em tempo real                                            │
-│  ✓ Integrações com WhatsApp e Email                                    │
-│                                                                         │
-│  DESEJO (Prova social)                                                  │
-│  ───────────────────────                                                │
-│  "Mais de 500 empresas já confiam no FastCRM"                          │
-│  [★★★★★] "Aumentámos as vendas em 40%" - João Silva, CEO               │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-│  © 2024 FastCRM  •  Privacidade  •  Termos                              │
+│  URL: /client/login?workspace=metodopare                               │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │  ClientLoginPage extrai workspace slug da URL                      │ │
+│  │  useSearchParams() → slug = "metodopare"                           │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │  Busca workspace_id pelo slug                                      │ │
+│  │  SELECT id FROM workspaces WHERE slug = 'metodopare'              │ │
+│  │  → workspace_id = d9e3d0ae-5893-...                               │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │  useClientAuth recebe workspaceId como parâmetro                   │ │
+│  │  Filtra: .eq("workspace_id", workspaceId)                         │ │
+│  │  Agora .maybeSingle() retorna 1 resultado ou null                 │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │  Login bem sucedido - utilizador acede ao Portal do METODOPARE    │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Login.tsx - Textos em Português
+## Alterações de Código
 
-```typescript
-<AuthLayout
-  title="Bem-vindo de volta"
-  subtitle="Inicie sessão na sua conta para continuar"
->
-```
-
-### 3. LoginForm.tsx - Tradução Completa
-
-| Inglês | Português |
-|--------|-----------|
-| Email address | Endereço de email |
-| Password | Palavra-passe |
-| Forgot password? | Esqueceu a palavra-passe? |
-| Sign in | Entrar |
-| Don't have an account? | Não tem conta? |
-| Sign up | Criar conta |
-| Invalid email or password | Email ou palavra-passe inválidos |
-| Welcome back! | Bem-vindo de volta! |
-
-## Ficheiros a Modificar
+### Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/auth/AuthLayout.tsx` | Redesenhar painel esquerdo com estrutura AIDA, traduzir para PT |
-| `src/pages/Login.tsx` | Traduzir props title/subtitle |
-| `src/components/auth/LoginForm.tsx` | Traduzir labels, placeholders, mensagens e links |
+| `src/hooks/client-portal/useClientAuth.ts` | Aceitar `workspaceId` como parâmetro opcional e filtrar a query |
+| `src/pages/client/ClientLoginPage.tsx` | Extrair `workspace` slug da URL, resolver para `workspace_id`, e passar ao hook |
+| `src/components/client-portal/ClientLayout.tsx` | Propagar o contexto de workspace através de localStorage ou URL |
 
-## Estrutura AIDA no Código
+### Detalhes Técnicos
+
+#### 1. useClientAuth.ts - Aceitar workspaceId
 
 ```typescript
-// AuthLayout.tsx - Painel Esquerdo
-<div className="space-y-8">
-  {/* ATENÇÃO - Headline impactante */}
-  <div>
-    <h1 className="text-4xl font-bold">
-      Transforme leads em clientes
-    </h1>
-    <p className="text-xl opacity-90">
-      com o CRM mais inteligente de Portugal
-    </p>
-  </div>
+interface UseClientAuthConfig {
+  workspaceId?: string;
+}
 
-  {/* INTERESSE - Lista de benefícios */}
-  <ul className="space-y-3">
-    <li className="flex items-center gap-3">
-      <CheckCircle className="text-green-300" />
-      Gestão de contactos simplificada
-    </li>
-    <li>...</li>
-  </ul>
-
-  {/* DESEJO - Prova social */}
-  <div className="bg-white/10 rounded-xl p-4">
-    <div className="flex items-center gap-1">
-      {[...Array(5)].map(() => <Star className="fill-yellow-400" />)}
-    </div>
-    <p className="italic">"Aumentámos as vendas em 40%"</p>
-    <p className="text-sm">— João Silva, CEO da TechStart</p>
-  </div>
-</div>
+export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn {
+  // ...
+  
+  const fetchClientUser = useCallback(async (userId: string) => {
+    let query = supabase
+      .from("client_users")
+      .select("*")
+      .eq("auth_user_id", userId)
+      .in("status", ["active", "pending"]);
+    
+    // Se workspaceId foi fornecido, filtrar por ele
+    if (config?.workspaceId) {
+      query = query.eq("workspace_id", config.workspaceId);
+    }
+    
+    const { data, error } = await query.maybeSingle();
+    // ...
+  }, [config?.workspaceId]);
+}
 ```
+
+#### 2. ClientLoginPage.tsx - Resolver workspace slug
+
+```typescript
+import { useSearchParams } from "react-router-dom";
+
+export default function ClientLoginPage() {
+  const [searchParams] = useSearchParams();
+  const workspaceSlug = searchParams.get("workspace");
+  const [workspaceId, setWorkspaceId] = useState<string | undefined>();
+  
+  // Resolver slug para workspace_id
+  useEffect(() => {
+    if (!workspaceSlug) return;
+    
+    const resolveWorkspace = async () => {
+      const { data } = await supabase
+        .from("workspaces")
+        .select("id")
+        .eq("slug", workspaceSlug)
+        .single();
+      
+      if (data) {
+        setWorkspaceId(data.id);
+        // Guardar em localStorage para manter contexto após login
+        localStorage.setItem("client_workspace_id", data.id);
+      }
+    };
+    
+    resolveWorkspace();
+  }, [workspaceSlug]);
+  
+  // Passar workspaceId ao hook
+  const { signIn, ... } = useClientAuth({ workspaceId });
+  // ...
+}
+```
+
+#### 3. ClientLayout.tsx - Usar workspace do localStorage
+
+```typescript
+export function ClientLayout({ children }: ClientLayoutProps) {
+  const savedWorkspaceId = localStorage.getItem("client_workspace_id");
+  const { clientUser, ... } = useClientAuth({ 
+    workspaceId: savedWorkspaceId || undefined 
+  });
+  // ...
+}
+```
+
+## Fallback para URLs Sem Workspace
+
+Se o utilizador aceder a `/client/login` sem o parâmetro `?workspace=`:
+1. A query retornará o primeiro `client_user` encontrado (usando `.limit(1)` em vez de `.maybeSingle()`)
+2. Ou mostrará uma mensagem pedindo para usar o link de acesso fornecido pelo administrador
 
 ## Benefícios
 
-1. **Copywriting persuasivo** - Segue metodologia comprovada de conversão
-2. **Localização completa** - Interface 100% em Português
-3. **Credibilidade** - Prova social aumenta confiança
-4. **Consistência** - Alinhado com a identidade do produto
-
+1. **Multi-tenancy correcto** - Cada cliente acede apenas ao portal do seu workspace
+2. **Sem erros de duplicados** - A query nunca retornará múltiplos resultados
+3. **Contexto persistente** - O workspace é guardado em localStorage para navegação subsequente
+4. **Retrocompatibilidade** - URLs antigas continuam a funcionar (com fallback)
