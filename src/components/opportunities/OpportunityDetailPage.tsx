@@ -10,11 +10,15 @@ import {
   usePipelineStagesEnhanced 
 } from "@/hooks/useOpportunitiesEnhanced";
 import { useActivities } from "@/hooks/useActivities";
+import { useLeads } from "@/hooks/useLeads";
+import { useContacts } from "@/hooks/useContacts";
+import { useCompanies } from "@/hooks/useCompanies";
 import { OpportunityStagesStepper } from "./detail/OpportunityStagesStepper";
 import { OpportunityDetailsGrid } from "./detail/OpportunityDetailsGrid";
-import { OpportunityContactsSidebar } from "./detail/OpportunityContactsSidebar";
 import { OpportunityActivityTimeline } from "./detail/OpportunityActivityTimeline";
 import { OpportunityAIInsightsSection } from "./OpportunityAIInsightsSection";
+import { OpportunityAssociationsSection } from "./sections/OpportunityAssociationsSection";
+import { OpportunityCommissionSection } from "./sections/OpportunityCommissionSection";
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { toast } from "sonner";
@@ -35,6 +39,11 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     limit: 50,
   });
   const updateOpportunity = useUpdateOpportunityEnhanced();
+  
+  // Fetch entities for associations
+  const { data: leadsData = [], isLoading: isLoadingLeads } = useLeads();
+  const { contacts: contactsData = [], isLoading: isLoadingContacts } = useContacts();
+  const { companies: companiesData = [], isLoading: isLoadingCompanies } = useCompanies();
 
   const handleMoveToNext = async () => {
     if (!opportunity || !stages.length) return;
@@ -67,37 +76,32 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     avatar_url: a.performed_by_avatar,
   }));
 
-  // Generate sample contacts from opportunity data
-  const contacts = [];
-  if (opportunity?.contact) {
-    contacts.push({
-      id: opportunity.contact.id,
-      name: opportunity.contact.name,
-      role: (opportunity.contact as any).job_title || "Contacto",
-      email: opportunity.contact.email || undefined,
-      phone: opportunity.contact.phone || undefined,
-      type: "primary" as const,
-    });
-  }
-  if (opportunity?.lead) {
-    contacts.push({
-      id: opportunity.lead.id,
-      name: opportunity.lead.name,
-      email: opportunity.lead.email || undefined,
-      phone: opportunity.lead.phone || undefined,
-      type: "influencer" as const,
-    });
-  }
+  // Handler for updating opportunity associations
+  const handleAssociationUpdate = async (updates: { id: string } & Record<string, unknown>) => {
+    await updateOpportunity.mutateAsync(updates);
+  };
 
-  // Get company from opportunity
-  const company = opportunity?.company ? {
-    id: opportunity.company.id,
-    name: opportunity.company.name,
-    industry: (opportunity.company as any).industry,
-    city: (opportunity.company as any).city,
-    employee_count: (opportunity.company as any).employee_count,
-    logo_url: (opportunity.company as any).avatar_url,
-  } : null;
+  // Map entities to select format
+  const leadOptions = leadsData.map(l => ({
+    id: l.id,
+    name: l.name,
+    email: l.email,
+    phone: l.phone,
+  }));
+  
+  const contactOptions = contactsData.map(c => ({
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    phone: c.phone,
+    company: c.company,
+  }));
+  
+  const companyOptions = companiesData.map(c => ({
+    id: c.id,
+    name: c.name,
+    website: c.website,
+  }));
 
   if (isLoading) {
     return (
@@ -231,13 +235,23 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
         </div>
 
         {/* Sidebar - Fixed width on desktop */}
-        <div className="w-full lg:w-80 lg:flex-shrink-0">
-          <OpportunityContactsSidebar
-            contacts={contacts}
-            company={company}
-            onAddContact={() => {}}
-            onContactClick={(contact) => navigate(`/dashboard/contacts/${contact.id}`)}
-            onCompanyClick={(company) => navigate(`/dashboard/companies/${company.id}`)}
+        <div className="w-full lg:w-80 lg:flex-shrink-0 space-y-4">
+          {/* Associations Section */}
+          <OpportunityAssociationsSection
+            opportunity={opportunity}
+            leads={leadOptions}
+            contacts={contactOptions}
+            companies={companyOptions}
+            onUpdate={handleAssociationUpdate}
+            isLoadingLeads={isLoadingLeads}
+            isLoadingContacts={isLoadingContacts}
+            isLoadingCompanies={isLoadingCompanies}
+          />
+          
+          {/* Commission Section */}
+          <OpportunityCommissionSection
+            opportunity={opportunity}
+            onUpdate={handleAssociationUpdate}
           />
         </div>
       </div>

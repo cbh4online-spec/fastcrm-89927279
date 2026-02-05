@@ -13288,6 +13288,9 @@ export type Database = {
             | null
           billing_type: Database["public"]["Enums"]["billing_type"] | null
           churn_reason: string | null
+          commission_amount: number | null
+          commission_notes: string | null
+          commission_percentage: number | null
           company_id: string | null
           contact_id: string | null
           contract_months: number | null
@@ -13331,6 +13334,9 @@ export type Database = {
             | null
           billing_type?: Database["public"]["Enums"]["billing_type"] | null
           churn_reason?: string | null
+          commission_amount?: number | null
+          commission_notes?: string | null
+          commission_percentage?: number | null
           company_id?: string | null
           contact_id?: string | null
           contract_months?: number | null
@@ -13374,6 +13380,9 @@ export type Database = {
             | null
           billing_type?: Database["public"]["Enums"]["billing_type"] | null
           churn_reason?: string | null
+          commission_amount?: number | null
+          commission_notes?: string | null
+          commission_percentage?: number | null
           company_id?: string | null
           contact_id?: string | null
           contract_months?: number | null
