@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -51,6 +51,7 @@ export interface UpdateContactData extends Partial<CreateContactData> {
 
 export function useContacts() {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -59,7 +60,7 @@ export function useContacts() {
     queryFn: async () => {
       if (!currentWorkspace) return [];
       
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("contacts")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -77,7 +78,7 @@ export function useContacts() {
     queryFn: async () => {
       if (!currentWorkspace) return new Set<string>();
       
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("sj_profiles")
         .select("contact_id")
         .eq("workspace_id", currentWorkspace.id)
@@ -93,7 +94,7 @@ export function useContacts() {
     mutationFn: async (data: CreateContactData) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
 
-      const { data: contact, error } = await supabase
+      const { data: contact, error } = await workspaceClient
         .from("contacts")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -141,7 +142,7 @@ export function useContacts() {
         updateData[key] = value === undefined ? null : value;
       });
 
-      const { data: contact, error } = await supabase
+      const { data: contact, error } = await workspaceClient
         .from("contacts")
         .update(updateData)
         .eq("id", id)
@@ -163,7 +164,7 @@ export function useContacts() {
 
   const deleteContact = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await workspaceClient
         .from("contacts")
         .delete()
         .eq("id", id);
@@ -181,7 +182,7 @@ export function useContacts() {
 
   const deleteContacts = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase
+      const { error } = await workspaceClient
         .from("contacts")
         .delete()
         .in("id", ids);
@@ -200,7 +201,7 @@ export function useContacts() {
   const addTagsToContacts = useMutation({
     mutationFn: async ({ ids, tags }: { ids: string[]; tags: string[] }) => {
       // Get current contacts to merge tags
-      const { data: existingContacts, error: fetchError } = await supabase
+      const { data: existingContacts, error: fetchError } = await workspaceClient
         .from("contacts")
         .select("id, tags")
         .in("id", ids);
@@ -211,7 +212,7 @@ export function useContacts() {
       const updates = existingContacts?.map(contact => {
         const currentTags = contact.tags || [];
         const mergedTags = [...new Set([...currentTags, ...tags])];
-        return supabase
+        return workspaceClient
           .from("contacts")
           .update({ tags: mergedTags })
           .eq("id", contact.id);
@@ -230,7 +231,7 @@ export function useContacts() {
 
   const bulkUpdateContacts = useMutation({
     mutationFn: async ({ ids, changes }: { ids: string[]; changes: Record<string, unknown> }) => {
-      const { error } = await supabase
+      const { error } = await workspaceClient
         .from("contacts")
         .update(changes)
         .in("id", ids);
@@ -263,12 +264,14 @@ export function useContacts() {
 
 // Hook to fetch a single contact by ID
 export function useContact(contactId: string | undefined) {
+  const { workspaceClient } = useWorkspaceInstance();
+  
   return useQuery({
     queryKey: ["contact", contactId],
     queryFn: async () => {
       if (!contactId) return null;
       
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("contacts")
         .select("*")
         .eq("id", contactId)

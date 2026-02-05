@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -89,6 +89,7 @@ export interface UpdateCompanyData extends Partial<CreateCompanyData> {
 
 export function useCompanies() {
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -97,7 +98,7 @@ export function useCompanies() {
     queryFn: async () => {
       if (!currentWorkspace) return [];
       
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("companies")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -113,7 +114,7 @@ export function useCompanies() {
     mutationFn: async (data: CreateCompanyData) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
 
-      const { data: company, error } = await supabase
+      const { data: company, error } = await workspaceClient
         .from("companies")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -183,7 +184,7 @@ export function useCompanies() {
       if ((data as any).last_purchase_date !== undefined) updateData.last_purchase_date = (data as any).last_purchase_date;
       if ((data as any).abc_category !== undefined) updateData.abc_category = (data as any).abc_category;
 
-      const { data: company, error } = await supabase
+      const { data: company, error } = await workspaceClient
         .from("companies")
         .update(updateData)
         .eq("id", id)
@@ -204,7 +205,7 @@ export function useCompanies() {
 
   const deleteCompany = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await workspaceClient
         .from("companies")
         .delete()
         .eq("id", id);
@@ -233,12 +234,14 @@ export function useCompanies() {
 
 // Hook to fetch a single company by ID
 export function useCompany(companyId: string | undefined) {
+  const { workspaceClient } = useWorkspaceInstance();
+  
   return useQuery({
     queryKey: ["company", companyId],
     queryFn: async () => {
       if (!companyId) return null;
       
-      const { data, error } = await supabase
+      const { data, error } = await workspaceClient
         .from("companies")
         .select("*")
         .eq("id", companyId)
