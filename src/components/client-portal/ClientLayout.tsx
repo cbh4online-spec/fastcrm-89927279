@@ -40,7 +40,9 @@ const navItems = [
 ];
 
 export function ClientLayout({ children }: ClientLayoutProps) {
-  const { clientUser, loading, signOut, isAuthenticated, hasAuthButNoClient } = useClientAuth();
+  // Get workspace ID from localStorage for multi-tenancy
+  const savedWorkspaceId = localStorage.getItem("client_workspace_id") || undefined;
+  const { clientUser, loading, signOut, isAuthenticated, hasAuthButNoClient } = useClientAuth({ workspaceId: savedWorkspaceId });
   const { itemCount } = useCart();
   const { favoriteCount } = useClientFavorites();
   const location = useLocation();

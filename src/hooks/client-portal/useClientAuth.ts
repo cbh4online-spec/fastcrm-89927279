@@ -1,8 +1,12 @@
-// v2.0 - Fixed race condition in auth loading states
+// v3.0 - Added multi-tenancy support with workspace filtering
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import type { ClientUser } from "@/types/client-user";
+
+interface UseClientAuthConfig {
+  workspaceId?: string;
+}
 
 interface UseClientAuthReturn {
   user: User | null;
@@ -15,7 +19,7 @@ interface UseClientAuthReturn {
   hasAuthButNoClient: boolean;
 }
 
-export function useClientAuth(): UseClientAuthReturn {
+export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn {
   const [user, setUser] = useState<User | null>(null);
   const [clientUser, setClientUser] = useState<ClientUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -28,12 +32,21 @@ export function useClientAuth(): UseClientAuthReturn {
     setClientChecked(false);
     
     try {
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from("client_users")
         .select("*")
         .eq("auth_user_id", userId)
-        .in("status", ["active", "pending"])
-        .maybeSingle();
+        .in("status", ["active", "pending"]);
+      
+      // Filter by workspace if provided
+      if (config?.workspaceId) {
+        query = query.eq("workspace_id", config.workspaceId);
+      }
+      
+      // Use limit(1) as fallback when no workspace filter, otherwise maybeSingle
+      const { data, error: fetchError } = config?.workspaceId 
+        ? await query.maybeSingle()
+        : await query.limit(1).maybeSingle();
       
       if (fetchError) {
         console.error("Error fetching client user:", fetchError);
@@ -51,7 +64,7 @@ export function useClientAuth(): UseClientAuthReturn {
       setClientLoading(false);
       setClientChecked(true);
     }
-  }, []);
+  }, [config?.workspaceId]);
 
   useEffect(() => {
     let isMounted = true;

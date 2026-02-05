@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,40 @@ import { Loader2, Package, AlertCircle } from "lucide-react";
 
 export default function ClientLoginPage() {
   const navigate = useNavigate();
-  const { signIn, signOut, loading, error, isAuthenticated, user, hasAuthButNoClient } = useClientAuth();
+  const [searchParams] = useSearchParams();
+  const workspaceSlug = searchParams.get("workspace");
+  
+  const [workspaceId, setWorkspaceId] = useState<string | undefined>(() => {
+    // Try to get from localStorage on initial load
+    return localStorage.getItem("client_workspace_id") || undefined;
+  });
+  const [workspaceResolved, setWorkspaceResolved] = useState(!workspaceSlug);
+  
+  // Resolve workspace slug to ID
+  useEffect(() => {
+    if (!workspaceSlug) {
+      setWorkspaceResolved(true);
+      return;
+    }
+    
+    const resolveWorkspace = async () => {
+      const { data } = await supabase
+        .from("workspaces")
+        .select("id")
+        .eq("slug", workspaceSlug.toLowerCase())
+        .maybeSingle();
+      
+      if (data) {
+        setWorkspaceId(data.id);
+        localStorage.setItem("client_workspace_id", data.id);
+      }
+      setWorkspaceResolved(true);
+    };
+    
+    resolveWorkspace();
+  }, [workspaceSlug]);
+  
+  const { signIn, signOut, loading, error, isAuthenticated, user, hasAuthButNoClient } = useClientAuth({ workspaceId });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -72,7 +105,7 @@ export default function ClientLoginPage() {
     setIsSubmitting(false);
   };
 
-  if (loading) {
+  if (loading || !workspaceResolved) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
