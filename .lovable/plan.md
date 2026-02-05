@@ -1,168 +1,131 @@
 
-# Plano: Corrigir Erro de Login no Portal B2B
+# Plano: Publicar/Ocultar Produtos no Portal B2B
 
-## Problema Identificado
+## Objectivo
 
-O utilizador `jorge.cardoso@digital4ads.pt` tem **2 registos** na tabela `client_users`:
+Adicionar um toggle que permite ao utilizador escolher se cada produto deve aparecer (ou não) no catálogo do Portal B2B.
 
-| workspace_id | workspace_name | status |
-|--------------|----------------|--------|
-| d9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f | METODOPARE | active |
-| 0662fc16-6286-4156-a908-08c7dfec0fb7 | PHARLISS | active |
+## Alterações Necessárias
 
-Quando o hook `useClientAuth` executa:
+### 1. Base de Dados - Nova Coluna
+
+Criar migração para adicionar a coluna `b2b_published` à tabela `products`:
+
+```sql
+ALTER TABLE products 
+ADD COLUMN b2b_published boolean DEFAULT true;
+
+COMMENT ON COLUMN products.b2b_published IS 'Whether this product is visible in the B2B client portal';
+```
+
+O valor padrão é `true` para manter compatibilidade - produtos existentes continuam visíveis.
+
+### 2. Tipo TypeScript
+
+Actualizar o tipo `Product` e `CreateProductInput` em `src/types/product.ts`:
+
 ```typescript
-await supabase
-  .from("client_users")
-  .select("*")
-  .eq("auth_user_id", userId)
-  .in("status", ["active", "pending"])
-  .maybeSingle();  // ERRO: retorna mais de 1 resultado!
+export interface Product {
+  // ... campos existentes
+  b2b_published: boolean | null;
+}
+
+export interface CreateProductInput {
+  // ... campos existentes
+  b2b_published?: boolean;
+}
 ```
 
-O método `.maybeSingle()` falha quando há mais de um resultado, causando o erro "Erro ao carregar perfil de cliente".
+### 3. Formulário de Criação/Edição
 
-## Solução
-
-O sistema já gera URLs com o parâmetro `?workspace=slug`:
-```
-/client/login?workspace=metodopare
-/client/login?workspace=pharliss
-```
-
-Mas esse parâmetro **não está a ser utilizado** para filtrar o cliente correcto.
-
-### Fluxo Corrigido
+Adicionar toggle no `CreateProductDialog.tsx`:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│  URL: /client/login?workspace=metodopare                               │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │  ClientLoginPage extrai workspace slug da URL                      │ │
-│  │  useSearchParams() → slug = "metodopare"                           │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │  Busca workspace_id pelo slug                                      │ │
-│  │  SELECT id FROM workspaces WHERE slug = 'metodopare'              │ │
-│  │  → workspace_id = d9e3d0ae-5893-...                               │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │  useClientAuth recebe workspaceId como parâmetro                   │ │
-│  │  Filtra: .eq("workspace_id", workspaceId)                         │ │
-│  │  Agora .maybeSingle() retorna 1 resultado ou null                 │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │  Login bem sucedido - utilizador acede ao Portal do METODOPARE    │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  [...]                                                          │
+│                                                                 │
+│  Portal B2B                                                     │
+│  ─────────────────────────────────────────────────────────────  │
+│  [Toggle] Publicar no Portal B2B                               │
+│           Quando ativo, este produto ficará visível para       │
+│           os clientes no catálogo do portal B2B                │
+│                                                                 │
+│  [...]                                                          │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Alterações de Código
+### 4. Hook de Produtos
 
-### Ficheiros a Modificar
+Actualizar `useProducts.ts` para incluir o novo campo nas operações de create/update.
+
+### 5. Listagem de Produtos no Portal B2B
+
+Modificar `useClientProducts.ts` para filtrar apenas produtos com `b2b_published = true`:
+
+```typescript
+let query = supabase
+  .from("products")
+  .select("...")
+  .eq("workspace_id", workspaceId)
+  .eq("status", "active")
+  .eq("b2b_published", true)  // NOVO FILTRO
+  .order("name");
+```
+
+### 6. Indicador Visual na Lista de Produtos
+
+Adicionar badge/ícone na `ProductsList.tsx` para mostrar estado de publicação B2B.
+
+## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/hooks/client-portal/useClientAuth.ts` | Aceitar `workspaceId` como parâmetro opcional e filtrar a query |
-| `src/pages/client/ClientLoginPage.tsx` | Extrair `workspace` slug da URL, resolver para `workspace_id`, e passar ao hook |
-| `src/components/client-portal/ClientLayout.tsx` | Propagar o contexto de workspace através de localStorage ou URL |
+| (migração SQL) | Adicionar coluna `b2b_published` |
+| `src/types/product.ts` | Adicionar campo ao tipo Product |
+| `src/components/products/CreateProductDialog.tsx` | Adicionar toggle "Publicar no Portal B2B" |
+| `src/hooks/useProducts.ts` | Incluir campo nas operações CRUD |
+| `src/hooks/client-portal/useClientProducts.ts` | Filtrar por `b2b_published = true` |
+| `src/components/products/ProductsList.tsx` | Mostrar indicador visual de publicação B2B |
+| `src/components/products/ProductDetailDialog.tsx` | Mostrar estado de publicação nos detalhes |
 
-### Detalhes Técnicos
+## Fluxo de Utilização
 
-#### 1. useClientAuth.ts - Aceitar workspaceId
-
-```typescript
-interface UseClientAuthConfig {
-  workspaceId?: string;
-}
-
-export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn {
-  // ...
-  
-  const fetchClientUser = useCallback(async (userId: string) => {
-    let query = supabase
-      .from("client_users")
-      .select("*")
-      .eq("auth_user_id", userId)
-      .in("status", ["active", "pending"]);
-    
-    // Se workspaceId foi fornecido, filtrar por ele
-    if (config?.workspaceId) {
-      query = query.eq("workspace_id", config.workspaceId);
-    }
-    
-    const { data, error } = await query.maybeSingle();
-    // ...
-  }, [config?.workspaceId]);
-}
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ADMINISTRADOR (Dashboard)                                             │
+│                                                                         │
+│  1. Cria/edita produto                                                 │
+│  2. Define "Publicar no Portal B2B" = ON/OFF                           │
+│  3. Guarda produto                                                     │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │  Produto com b2b_published = true                                  │ │
+│  │  → Aparece no catálogo do Portal B2B                              │ │
+│  │                                                                    │ │
+│  │  Produto com b2b_published = false                                 │ │
+│  │  → NÃO aparece no catálogo (invisível para clientes)              │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  CLIENTE (Portal B2B)                                                  │
+│                                                                         │
+│  → Vê apenas produtos com b2b_published = true                        │
+│  → Pode pesquisar, adicionar ao carrinho, encomendar                  │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 2. ClientLoginPage.tsx - Resolver workspace slug
+## Interface do Toggle
 
-```typescript
-import { useSearchParams } from "react-router-dom";
+O toggle será adicionado numa secção dedicada do formulário:
 
-export default function ClientLoginPage() {
-  const [searchParams] = useSearchParams();
-  const workspaceSlug = searchParams.get("workspace");
-  const [workspaceId, setWorkspaceId] = useState<string | undefined>();
-  
-  // Resolver slug para workspace_id
-  useEffect(() => {
-    if (!workspaceSlug) return;
-    
-    const resolveWorkspace = async () => {
-      const { data } = await supabase
-        .from("workspaces")
-        .select("id")
-        .eq("slug", workspaceSlug)
-        .single();
-      
-      if (data) {
-        setWorkspaceId(data.id);
-        // Guardar em localStorage para manter contexto após login
-        localStorage.setItem("client_workspace_id", data.id);
-      }
-    };
-    
-    resolveWorkspace();
-  }, [workspaceSlug]);
-  
-  // Passar workspaceId ao hook
-  const { signIn, ... } = useClientAuth({ workspaceId });
-  // ...
-}
-```
-
-#### 3. ClientLayout.tsx - Usar workspace do localStorage
-
-```typescript
-export function ClientLayout({ children }: ClientLayoutProps) {
-  const savedWorkspaceId = localStorage.getItem("client_workspace_id");
-  const { clientUser, ... } = useClientAuth({ 
-    workspaceId: savedWorkspaceId || undefined 
-  });
-  // ...
-}
-```
-
-## Fallback para URLs Sem Workspace
-
-Se o utilizador aceder a `/client/login` sem o parâmetro `?workspace=`:
-1. A query retornará o primeiro `client_user` encontrado (usando `.limit(1)` em vez de `.maybeSingle()`)
-2. Ou mostrará uma mensagem pedindo para usar o link de acesso fornecido pelo administrador
+- **Label**: "Publicar no Portal B2B"
+- **Descrição**: "Quando ativo, este produto ficará visível no catálogo para clientes B2B"
+- **Ícone**: `Store` ou `Globe` do lucide-react
+- **Valor padrão**: `true` (publicado por defeito)
 
 ## Benefícios
 
-1. **Multi-tenancy correcto** - Cada cliente acede apenas ao portal do seu workspace
-2. **Sem erros de duplicados** - A query nunca retornará múltiplos resultados
-3. **Contexto persistente** - O workspace é guardado em localStorage para navegação subsequente
-4. **Retrocompatibilidade** - URLs antigas continuam a funcionar (com fallback)
+1. **Controlo granular** - Escolher produto a produto o que mostrar
+2. **Produtos internos** - Manter produtos apenas para uso interno/propostas
+3. **Lançamentos faseados** - Preparar produtos antes de os tornar públicos
+4. **Catálogo limpo** - Mostrar apenas produtos relevantes para clientes B2B
