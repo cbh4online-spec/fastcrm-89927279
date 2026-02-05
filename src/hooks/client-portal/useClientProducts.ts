@@ -49,6 +49,7 @@ export function useClientProducts(workspaceId: string | undefined): UseClientPro
         .select("id, name, sku, short_description, commercial_description, base_price, category, images, primary_image_index, specifications, status, workspace_id")
         .eq("workspace_id", workspaceId)
         .eq("status", "active")
+        .eq("b2b_published", true)
         .order("name");
 
       if (filters.search) {
