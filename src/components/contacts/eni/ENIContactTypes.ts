@@ -42,6 +42,7 @@ export interface ENIContact {
   lead_source?: string | null;
   source?: string | null;
   assigned_to?: string | null;
+  price_tier_id?: string | null;
   
   // Financial
   payment_conditions?: string | null;

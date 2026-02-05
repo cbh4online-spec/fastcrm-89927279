@@ -42,8 +42,10 @@ export default function ClientCatalogPage() {
     setFilters, 
     categories,
     functions,
-    pathologies 
-  } = useClientProducts(clientUser?.workspace_id);
+    pathologies,
+    tier,
+    discountPercentage,
+  } = useClientProducts(clientUser?.workspace_id, clientUser?.id);
   const { addItem, itemCount } = useCart();
   
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -55,13 +57,16 @@ export default function ClientCatalogPage() {
       ? product.images[product.primary_image_index || 0] 
       : null;
     
+    // Use effective_price (tier price) instead of base_price
+    const unitPrice = product.effective_price ?? product.base_price;
+    
     addItem({
       product_id: product.id,
       product_name: product.name,
       product_sku: product.sku,
       product_image_url: imageUrl,
       quantity: qty,
-      unit_price_net: product.base_price,
+      unit_price_net: unitPrice,
       vat_rate: 23, // Default VAT rate
     });
     
@@ -85,6 +90,21 @@ export default function ClientCatalogPage() {
             <h1 className="text-2xl font-bold">Catálogo de Produtos</h1>
             <p className="text-muted-foreground">
               {products.length} produtos disponíveis
+              {tier && (
+                <span className="ml-2">
+                  • <Badge 
+                      variant="secondary" 
+                      className="text-xs"
+                      style={{ 
+                        backgroundColor: `${tier.color}20`, 
+                        color: tier.color,
+                        borderColor: `${tier.color}40` 
+                      }}
+                    >
+                    {tier.name} ({discountPercentage}% desc.)
+                  </Badge>
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -251,8 +271,13 @@ export default function ClientCatalogPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-lg font-bold text-primary">
-                          {product.base_price.toFixed(2)}€
+                          {(product.effective_price ?? product.base_price).toFixed(2)}€
                         </p>
+                        {product.has_discount && (
+                          <p className="text-xs text-muted-foreground line-through">
+                            {product.base_price.toFixed(2)}€
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground">sem IVA</p>
                       </div>
                       <Button 
@@ -334,13 +359,18 @@ export default function ClientCatalogPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Preço unitário (s/ IVA)</p>
                       <p className="text-2xl font-bold text-primary">
-                        {selectedProduct.base_price.toFixed(2)}€
+                        {(selectedProduct.effective_price ?? selectedProduct.base_price).toFixed(2)}€
                       </p>
+                      {selectedProduct.has_discount && (
+                        <p className="text-sm text-muted-foreground line-through">
+                          {selectedProduct.base_price.toFixed(2)}€
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">IVA (23%)</p>
                       <p className="text-lg font-medium">
-                        {(selectedProduct.base_price * 0.23).toFixed(2)}€
+                        {((selectedProduct.effective_price ?? selectedProduct.base_price) * 0.23).toFixed(2)}€
                       </p>
                     </div>
                   </div>
@@ -367,7 +397,7 @@ export default function ClientCatalogPage() {
                     <div className="flex-1">
                       <p className="text-sm text-muted-foreground">Subtotal (c/ IVA)</p>
                       <p className="text-lg font-bold">
-                        {(selectedProduct.base_price * quantity * 1.23).toFixed(2)}€
+                        {((selectedProduct.effective_price ?? selectedProduct.base_price) * quantity * 1.23).toFixed(2)}€
                       </p>
                     </div>
                   </div>

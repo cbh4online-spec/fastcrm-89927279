@@ -1,9 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingBag, Calendar, Target, Users, Tag } from "lucide-react";
+import { ShoppingBag, Calendar, Target, Users, Tag, Percent } from "lucide-react";
 import { ENIContact, CLIENT_STATUS_LABELS, ABCCategory } from "../ENIContactTypes";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
+import { usePriceTiers } from "@/hooks/useClientPricing";
 
 interface CommercialProfileSectionProps {
   contact: ENIContact;
@@ -32,6 +33,13 @@ export function CommercialProfileSection({
   onFieldChange,
 }: CommercialProfileSectionProps) {
   const abcCategory = contact.abc_category as ABCCategory;
+  const { tiers } = usePriceTiers();
+
+  // Get current tier for display
+  const currentTier = tiers.find(t => t.id === contact.price_tier_id);
+  
+  // Build tier options (only active ones)
+  const activeTiers = tiers.filter(t => t.is_active);
 
   return (
     <Card className="border-border/50 bg-gradient-to-br from-card to-card/80 shadow-sm hover:shadow-md transition-shadow">
@@ -74,6 +82,23 @@ export function CommercialProfileSection({
           value={contact.client_since || ''}
           onChange={(value) => onFieldChange('client_since', value)}
           icon={<Calendar className="h-3.5 w-3.5" />}
+        />
+
+        {/* Price Tier */}
+        <InlineEditableField
+          label="Escalão de Preço"
+          fieldId="price_tier_id"
+          fieldType="select"
+          value={contact.price_tier_id || ''}
+          onChange={(value) => onFieldChange('price_tier_id', value || null)}
+          options={activeTiers.map(t => t.id)}
+          optionLabels={activeTiers.reduce((acc, t) => ({ 
+            ...acc, 
+            [t.id]: `${t.name}${t.discount_percentage > 0 ? ` (${t.discount_percentage}%)` : ''}` 
+          }), {})}
+          icon={<Percent className="h-3.5 w-3.5" />}
+          placeholder="Sem escalão"
+          emptyOption="Sem escalão"
         />
 
         {/* Lead Source */}

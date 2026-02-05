@@ -412,6 +412,7 @@ export function CreateProposalDialog({
                 opportunityValue={selectedOpportunity?.value || undefined}
                 leadName={propContactName || selectedOpportunity?.lead?.name}
                 companyName={propCompanyName}
+                contactId={selectedOpportunity?.lead_id || undefined}
                 onItemsChange={handleCartItemsChange}
                 initialItems={cartItems}
               />

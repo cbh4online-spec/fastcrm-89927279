@@ -3,6 +3,7 @@ import { POSProductSelector } from "./POSProductSelector";
 import { ProposalCart, CartItem } from "./ProposalCart";
 import { AIProductSuggestions } from "./AIProductSuggestions";
 import { useProposalCart } from "@/hooks/useProposalItems";
+import { useContactPricing } from "@/hooks/useContactPricing";
 import type { Product } from "@/types/product";
 
 interface POSProposalBuilderProps {
@@ -10,6 +11,7 @@ interface POSProposalBuilderProps {
   opportunityValue?: number;
   leadName?: string;
   companyName?: string;
+  contactId?: string;
   onItemsChange?: (items: CartItem[]) => void;
   initialItems?: CartItem[];
 }
@@ -19,6 +21,7 @@ export function POSProposalBuilder({
   opportunityValue,
   leadName,
   companyName,
+  contactId,
   onItemsChange,
   initialItems,
 }: POSProposalBuilderProps) {
@@ -33,6 +36,9 @@ export function POSProposalBuilder({
     getSelectedProductIds,
     setItems,
   } = useProposalCart();
+
+  // Get contact's price tier for automatic discount application
+  const { tier, discountPercentage, getProductPriceSync } = useContactPricing(contactId);
 
   // Usar ref para rastrear o hash dos items já inicializados
   const lastInitializedItemsRef = useRef<string | null>(null);
@@ -63,9 +69,20 @@ export function POSProposalBuilder({
     onItemsChange?.(items);
   }, [items, onItemsChange]);
 
-  // Simplified handlers - no need to call onItemsChange manually
+  // When adding a product, apply tier pricing if available
   const handleAddProduct = (product: Product) => {
-    addItem(product);
+    // If contact has a tier, apply the tier price as the override
+    if (tier && discountPercentage > 0) {
+      const tierPrice = getProductPriceSync(product.base_price ?? 0);
+      // Add with the tier price as override
+      addItem(product);
+      // Then update the price to reflect the tier
+      if (tierPrice !== product.base_price) {
+        updatePrice(product.id, tierPrice);
+      }
+    } else {
+      addItem(product);
+    }
   };
 
   const handleRemoveProduct = (productId: string) => {
@@ -131,6 +148,9 @@ export function POSProposalBuilder({
           onUpdateDiscount={handleUpdateDiscount}
           onRemoveItem={handleRemoveProduct}
           onClear={handleClear}
+          tierName={tier?.name}
+          tierColor={tier?.color}
+          discountPercentage={discountPercentage}
         />
       </div>
     </div>
