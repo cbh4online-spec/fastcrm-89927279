@@ -63,6 +63,8 @@ export interface Product {
   labor_hourly_rate: number | null;
   labor_included_in_price: boolean | null;
   labor_notes: string | null;
+  // B2B Portal visibility
+  b2b_published: boolean | null;
 }
 
 export interface ProductWithMargins extends Product {
@@ -168,6 +170,8 @@ export interface CreateProductInput {
   labor_hourly_rate?: number;
   labor_included_in_price?: boolean;
   labor_notes?: string;
+  // B2B Portal visibility
+  b2b_published?: boolean;
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {

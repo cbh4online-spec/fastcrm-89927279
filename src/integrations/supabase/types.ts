@@ -15540,6 +15540,7 @@ export type Database = {
       }
       products: {
         Row: {
+          b2b_published: boolean | null
           base_price: number
           benefits: string[] | null
           billing_frequency: string | null
@@ -15598,6 +15599,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          b2b_published?: boolean | null
           base_price?: number
           benefits?: string[] | null
           billing_frequency?: string | null
@@ -15656,6 +15658,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          b2b_published?: boolean | null
           base_price?: number
           benefits?: string[] | null
           billing_frequency?: string | null

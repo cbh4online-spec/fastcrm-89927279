@@ -103,6 +103,7 @@ const PRODUCT_COLUMNS: ColumnConfig[] = [
   { id: "billing_type", label: "Cobrança", category: "business", defaultVisible: true },
   { id: "billing_frequency", label: "Frequência", category: "business", defaultVisible: false },
   { id: "status", label: "Estado", category: "basic", defaultVisible: true },
+  { id: "b2b_published", label: "Portal B2B", category: "basic", defaultVisible: true },
   { id: "total_units", label: "Unidades", category: "business", defaultVisible: false },
   { id: "unit_duration", label: "Duração", category: "business", defaultVisible: false },
   { id: "validity_days", label: "Validade (dias)", category: "business", defaultVisible: false },
@@ -420,6 +421,16 @@ export function ProductsList() {
         return (
           <Badge variant={product.status === "active" ? "default" : "secondary"}>
             {productStatusLabels[product.status]}
+          </Badge>
+        );
+      case "b2b_published":
+        return (product as any).b2b_published !== false ? (
+          <Badge variant="outline" className="text-green-600 border-green-300">
+            Publicado
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground">
+            Oculto
           </Badge>
         );
       case "total_units":

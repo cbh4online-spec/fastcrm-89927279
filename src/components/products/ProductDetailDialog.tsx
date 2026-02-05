@@ -151,6 +151,15 @@ export function ProductDetailDialog({
                     >
                       {productStatusLabels[product.status]}
                     </Badge>
+                    {(product as any).b2b_published !== false ? (
+                      <Badge variant="outline" className="text-green-600 border-green-300">
+                        B2B
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        B2B Oculto
+                      </Badge>
+                    )}
                     {product.category && (
                       <Badge variant="secondary">{product.category}</Badge>
                     )}

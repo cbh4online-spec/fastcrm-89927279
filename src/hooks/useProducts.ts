@@ -190,6 +190,8 @@ export function useUpdateProduct() {
       if (input.labor_hourly_rate !== undefined) updateData.labor_hourly_rate = input.labor_hourly_rate;
       if (input.labor_included_in_price !== undefined) updateData.labor_included_in_price = input.labor_included_in_price;
       if (input.labor_notes !== undefined) updateData.labor_notes = input.labor_notes;
+      // B2B Portal visibility
+      if (input.b2b_published !== undefined) updateData.b2b_published = input.b2b_published;
 
       const { data, error } = await supabase
         .from("products")

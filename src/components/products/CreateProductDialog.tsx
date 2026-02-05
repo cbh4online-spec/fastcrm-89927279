@@ -132,6 +132,8 @@ export function CreateProductDialog({
   const [laborNotes, setLaborNotes] = useState("");
   const [showCostWarning, setShowCostWarning] = useState(false);
   const [skuSearchTrigger, setSkuSearchTrigger] = useState(0);
+  // B2B Portal visibility
+  const [b2bPublished, setB2bPublished] = useState(true);
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -253,6 +255,8 @@ export function CreateProductDialog({
       setLaborHourlyRate(product.labor_hourly_rate || null);
       setLaborIncludedInPrice(product.labor_included_in_price ?? true);
       setLaborNotes(product.labor_notes || "");
+      // B2B Portal visibility
+      setB2bPublished(product.b2b_published ?? true);
       setHasDraft(false);
     } else {
       // Try to load draft from localStorage
@@ -386,6 +390,8 @@ export function CreateProductDialog({
     setLaborHourlyRate(null);
     setLaborIncludedInPrice(true);
     setLaborNotes("");
+    // Reset B2B Portal visibility
+    setB2bPublished(true);
   };
 
   const handleActualSubmit = async () => {
@@ -425,6 +431,9 @@ export function CreateProductDialog({
     data.labor_hourly_rate = laborHourlyRate || undefined;
     data.labor_included_in_price = laborIncludedInPrice;
     data.labor_notes = laborNotes || undefined;
+
+    // B2B Portal visibility
+    data.b2b_published = b2bPublished;
 
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product!.id, ...data });
@@ -1046,6 +1055,26 @@ export function CreateProductDialog({
                   </div>
                 </CollapsibleContent>
               </Collapsible>
+
+              {/* B2B Portal Section */}
+              <Card className="p-4 border-dashed">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="b2bPublished" className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" />
+                      Publicar no Portal B2B
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Quando ativo, este produto ficará visível no catálogo para clientes B2B
+                    </p>
+                  </div>
+                  <Switch
+                    id="b2bPublished"
+                    checked={b2bPublished}
+                    onCheckedChange={setB2bPublished}
+                  />
+                </div>
+              </Card>
             </div>
 
             {/* AI Assistant Panel - Right Side */}
