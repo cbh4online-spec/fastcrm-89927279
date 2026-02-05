@@ -4612,6 +4612,7 @@ export type Database = {
           postal_code: string | null
           preferred_currency: string | null
           preferred_payment_method: string | null
+          price_tier_id: string | null
           sales_2023: number | null
           sales_2024: number | null
           sales_2025: number | null
@@ -4685,6 +4686,7 @@ export type Database = {
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
+          price_tier_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
           sales_2025?: number | null
@@ -4758,6 +4760,7 @@ export type Database = {
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
+          price_tier_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
           sales_2025?: number | null
@@ -4784,6 +4787,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_price_tier_id_fkey"
+            columns: ["price_tier_id"]
+            isOneToOne: false
+            referencedRelation: "client_price_tiers"
             referencedColumns: ["id"]
           },
           {

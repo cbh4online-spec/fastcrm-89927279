@@ -29,6 +29,8 @@ export interface InlineEditableFieldProps {
   icon?: ReactNode;
   required?: boolean;
   options?: string[];
+  optionLabels?: Record<string, string>;
+  emptyOption?: string;
   isLink?: boolean;
   linkType?: "email" | "phone" | "url";
   suggestion?: FieldSuggestion;
@@ -47,6 +49,8 @@ export function InlineEditableField({
   icon,
   required = false,
   options = [],
+  optionLabels = {},
+  emptyOption,
   isLink = false,
   linkType = "url",
   suggestion,
@@ -246,15 +250,18 @@ export function InlineEditableField({
         return (
           <Select
             value={(editedValue as string) || ""}
-            onValueChange={(v) => setEditedValue(v || null)}
+            onValueChange={(v) => setEditedValue(v === "__empty__" ? null : v)}
           >
             <SelectTrigger className="h-8 text-sm">
               <SelectValue placeholder={placeholder || `Selecionar ${label.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent>
+              {emptyOption && (
+                <SelectItem value="__empty__">{emptyOption}</SelectItem>
+              )}
               {options.map((option) => (
                 <SelectItem key={option} value={option}>
-                  {option}
+                  {optionLabels[option] || option}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getEffectivePrice, ClientPriceTier, ProductTierPrice } from "@/types/pricing-tier";
 
 interface Product {
   id: string;
@@ -9,6 +10,8 @@ interface Product {
   short_description: string | null;
   commercial_description: string | null;
   base_price: number;
+  effective_price: number; // Price after tier discounts
+  has_discount: boolean;
   category: string | null;
   images: string[] | null;
   primary_image_index: number | null;
@@ -33,14 +36,61 @@ interface UseClientProductsReturn {
   categories: string[];
   functions: string[];
   pathologies: string[];
+  tier: ClientPriceTier | null;
+  discountPercentage: number;
 }
 
-export function useClientProducts(workspaceId: string | undefined): UseClientProductsReturn {
+export function useClientProducts(
+  workspaceId: string | undefined,
+  clientUserId?: string
+): UseClientProductsReturn {
   const [filters, setFilters] = useState<ProductFilters>({});
+
+  // Fetch client user's price tier
+  const { data: tierData } = useQuery({
+    queryKey: ["client-user-tier", clientUserId],
+    queryFn: async () => {
+      if (!clientUserId) return null;
+
+      const { data: clientUser } = await supabase
+        .from("client_users")
+        .select("price_tier_id")
+        .eq("id", clientUserId)
+        .single();
+
+      if (!clientUser?.price_tier_id) return null;
+
+      const { data: tier } = await supabase
+        .from("client_price_tiers")
+        .select("*")
+        .eq("id", clientUser.price_tier_id)
+        .single();
+
+      return tier as ClientPriceTier | null;
+    },
+    enabled: !!clientUserId,
+  });
+
+  // Fetch tier-specific prices
+  const { data: tierPrices = [] } = useQuery({
+    queryKey: ["client-tier-prices", tierData?.id],
+    queryFn: async () => {
+      if (!tierData?.id) return [];
+
+      const { data } = await supabase
+        .from("product_tier_prices")
+        .select("*")
+        .eq("tier_id", tierData.id)
+        .eq("is_active", true);
+
+      return (data || []) as ProductTierPrice[];
+    },
+    enabled: !!tierData?.id,
+  });
 
   // Fetch products
   const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery({
-    queryKey: ["client-products", workspaceId, filters],
+    queryKey: ["client-products", workspaceId, filters, tierData?.id, tierPrices.length],
     queryFn: async () => {
       if (!workspaceId) return [];
 
@@ -64,9 +114,25 @@ export function useClientProducts(workspaceId: string | undefined): UseClientPro
 
       if (error) throw error;
 
+      // Apply tier pricing to products
+      const productsWithPricing = (data || []).map((product) => {
+        const tierPrice = tierPrices.find(tp => tp.product_id === product.id);
+        const effectivePrice = getEffectivePrice(
+          product.base_price,
+          tierData,
+          tierPrice || null
+        );
+        
+        return {
+          ...product,
+          effective_price: effectivePrice,
+          has_discount: effectivePrice < product.base_price,
+        } as Product;
+      });
+
       // If function or pathology filters are set, fetch attributes and filter
       if (filters.function || filters.pathology) {
-        const productIds = (data || []).map((p) => p.id);
+        const productIds = productsWithPricing.map((p) => p.id);
         
         if (productIds.length > 0) {
           const { data: attributes } = await supabase
@@ -75,7 +141,7 @@ export function useClientProducts(workspaceId: string | undefined): UseClientPro
             .in("product_id", productIds);
 
           // Filter products by attributes
-          const filteredProducts = (data || []).filter((product) => {
+          const filteredProducts = productsWithPricing.filter((product) => {
             const productAttrs = (attributes || []).filter((a) => a.product_id === product.id);
             
             if (filters.function) {
@@ -95,11 +161,11 @@ export function useClientProducts(workspaceId: string | undefined): UseClientPro
             return true;
           });
 
-          return filteredProducts as Product[];
+          return filteredProducts;
         }
       }
 
-      return (data || []) as Product[];
+      return productsWithPricing;
     },
     enabled: !!workspaceId,
   });
@@ -159,5 +225,7 @@ export function useClientProducts(workspaceId: string | undefined): UseClientPro
     categories,
     functions: attributeValues.functions,
     pathologies: attributeValues.pathologies,
+    tier: tierData || null,
+    discountPercentage: tierData?.discount_percentage || 0,
   };
 }

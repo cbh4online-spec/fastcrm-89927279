@@ -1,6 +1,38 @@
 
 # Plano: Preços Diferenciados por Contacto
 
+## ✅ Implementação Concluída
+
+### 1. Base de Dados
+- ✅ Adicionada coluna `price_tier_id` à tabela `contacts` com FK para `client_price_tiers`
+
+### 2. Tipos TypeScript
+- ✅ Actualizado `ENIContactTypes.ts` com `price_tier_id`
+- ✅ Criado hook `useContactPricing.ts` para obter preços do tier do contacto
+- ✅ Actualizado `InlineEditableField` com `optionLabels` e `emptyOption`
+
+### 3. UI de Gestão - Perfil Comercial
+- ✅ Adicionado selector de "Escalão de Preço" no `CommercialProfileSection.tsx`
+- ✅ Lista tiers activos do workspace com % de desconto
+
+### 4. Portal B2B
+- ✅ Actualizado `useClientProducts.ts` para buscar tier do cliente e aplicar preços
+- ✅ Produtos mostram `effective_price` com desconto do tier
+- ✅ Catálogo mostra badge do tier e preço riscado quando há desconto
+
+### 5. Propostas
+- ✅ `POSProposalBuilder` aceita `contactId` e aplica tier pricing automaticamente
+- ✅ `ProposalCart` mostra badge do tier quando disponível
+- ✅ Preços são aplicados automaticamente ao adicionar produtos
+
+## Fluxo de Utilização
+
+1. Admin atribui "Escalão de Preço" ao contacto no Perfil Comercial
+2. Ao criar proposta para oportunidade desse contacto, os preços são aplicados automaticamente
+3. No Portal B2B, cliente logado vê preços do seu tier
+
+
+
 ## Resumo Executivo
 
 O sistema já possui a infraestrutura de **Escalões de Preço** (`client_price_tiers` e `product_tier_prices`), mas está apenas parcialmente implementado:

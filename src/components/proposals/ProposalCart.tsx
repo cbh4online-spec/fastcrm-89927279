@@ -28,6 +28,9 @@ interface ProposalCartProps {
   onUpdateDiscount: (productId: string, discount: number | undefined) => void;
   onRemoveItem: (productId: string) => void;
   onClear: () => void;
+  tierName?: string | null;
+  tierColor?: string | null;
+  discountPercentage?: number;
 }
 
 export function ProposalCart({
@@ -37,6 +40,9 @@ export function ProposalCart({
   onUpdateDiscount,
   onRemoveItem,
   onClear,
+  tierName,
+  tierColor,
+  discountPercentage,
 }: ProposalCartProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [editingPrice, setEditingPrice] = useState<string | null>(null);
@@ -107,6 +113,19 @@ export function ProposalCart({
           <span className="font-semibold">
             Itens da Proposta ({items.length})
           </span>
+          {tierName && (
+            <Badge 
+              variant="outline" 
+              className="text-xs"
+              style={{ 
+                backgroundColor: tierColor ? `${tierColor}20` : undefined,
+                color: tierColor || undefined,
+                borderColor: tierColor ? `${tierColor}40` : undefined,
+              }}
+            >
+              {tierName} {discountPercentage ? `(${discountPercentage}%)` : ''}
+            </Badge>
+          )}
         </div>
         <Button variant="ghost" size="sm" onClick={onClear} className="text-destructive hover:text-destructive">
           Limpar
