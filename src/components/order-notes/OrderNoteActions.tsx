@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,7 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useOrderNoteStatus } from "@/hooks/useOrderNoteStatus";
+import { useConvertOrderToInvoice } from "@/hooks/useConvertOrderToInvoice";
 import type { OrderNote, OrderNoteStatus } from "@/types/order-note";
 import {
   CheckCircle,
@@ -19,6 +22,7 @@ import {
   FileText,
   Ban,
   Loader2,
+  Receipt,
 } from "lucide-react";
 
 interface OrderNoteActionsProps {
@@ -27,19 +31,24 @@ interface OrderNoteActionsProps {
 }
 
 export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
+  const navigate = useNavigate();
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [cancelReason, setCancelReason] = useState("");
+  const [dueInDays, setDueInDays] = useState(30);
+  const [invoiceNotes, setInvoiceNotes] = useState("");
 
   const {
     approve,
     reject,
     markInPreparation,
-    markInvoiced,
     cancel,
     isChanging,
   } = useOrderNoteStatus();
+
+  const convertToInvoice = useConvertOrderToInvoice();
 
   const handleApprove = async () => {
     await approve(order.id);
@@ -59,9 +68,17 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
     onSuccess?.();
   };
 
-  const handleMarkInvoiced = async () => {
-    await markInvoiced(order.id);
+  const handleConvertToInvoice = async () => {
+    const result = await convertToInvoice.mutateAsync({
+      order,
+      dueInDays,
+      notes: invoiceNotes || undefined,
+    });
+    setInvoiceDialogOpen(false);
+    setInvoiceNotes("");
     onSuccess?.();
+    // Navigate to the new invoice
+    navigate(`/dashboard/invoices/${result.id}`);
   };
 
   const handleCancel = async () => {
@@ -77,10 +94,12 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
   const showApprove = ["submitted", "awaiting_approval"].includes(status);
   const showReject = status === "awaiting_approval";
   const showInPreparation = ["submitted", "approved"].includes(status);
-  const showInvoiced = status === "in_preparation";
+  const showConvertToInvoice = status === "in_preparation";
   const showCancel = ["submitted", "awaiting_approval"].includes(status);
 
-  if (!showApprove && !showReject && !showInPreparation && !showInvoiced && !showCancel) {
+  const isProcessing = isChanging || convertToInvoice.isPending;
+
+  if (!showApprove && !showReject && !showInPreparation && !showConvertToInvoice && !showCancel) {
     return null;
   }
 
@@ -133,19 +152,19 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
           </Button>
         )}
 
-        {showInvoiced && (
+        {showConvertToInvoice && (
           <Button
             variant="outline"
-            onClick={handleMarkInvoiced}
-            disabled={isChanging}
-            className="border-cyan-300 text-cyan-700 hover:bg-cyan-50"
+            onClick={() => setInvoiceDialogOpen(true)}
+            disabled={isProcessing}
+            className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-950"
           >
-            {isChanging ? (
+            {convertToInvoice.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <FileText className="h-4 w-4 mr-2" />
+              <Receipt className="h-4 w-4 mr-2" />
             )}
-            Marcar como Faturada
+            Converter para Fatura
           </Button>
         )}
 
@@ -197,6 +216,76 @@ export function OrderNoteActions({ order, onSuccess }: OrderNoteActionsProps) {
             >
               {isChanging && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Rejeitar Encomenda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Invoice Dialog */}
+      <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Converter para Fatura</DialogTitle>
+            <DialogDescription>
+              Será criada uma nova fatura com base nos dados desta encomenda.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Cliente</Label>
+                <p className="text-sm font-medium mt-1">{order.client_user?.name || "—"}</p>
+              </div>
+              <div>
+                <Label>Valor Total</Label>
+                <p className="text-sm font-medium mt-1">
+                  {order.total_gross.toLocaleString("pt-PT", {
+                    style: "currency",
+                    currency: order.currency || "EUR",
+                  })}
+                </p>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="due-in-days">Prazo de Pagamento (dias)</Label>
+              <Input
+                id="due-in-days"
+                type="number"
+                min={1}
+                max={365}
+                value={dueInDays}
+                onChange={(e) => setDueInDays(Number(e.target.value))}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="invoice-notes">Notas (opcional)</Label>
+              <Textarea
+                id="invoice-notes"
+                value={invoiceNotes}
+                onChange={(e) => setInvoiceNotes(e.target.value)}
+                placeholder="Notas adicionais para a fatura..."
+                className="mt-2"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setInvoiceDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConvertToInvoice}
+              disabled={convertToInvoice.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {convertToInvoice.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Criar Fatura
             </Button>
           </DialogFooter>
         </DialogContent>
