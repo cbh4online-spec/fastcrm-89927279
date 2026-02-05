@@ -1,226 +1,80 @@
 
-# Plano: Preços Diferenciados por Contacto
+# Plano: Corrigir Associação de Contactos nas Oportunidades
 
-## ✅ Implementação Concluída
+## Problema Identificado
 
-### 1. Base de Dados
-- ✅ Adicionada coluna `price_tier_id` à tabela `contacts` com FK para `client_price_tiers`
+Os contactos não aparecem no dropdown de seleção porque o hook `useContacts` está a usar o **cliente Supabase errado**.
 
-### 2. Tipos TypeScript
-- ✅ Actualizado `ENIContactTypes.ts` com `price_tier_id`
-- ✅ Criado hook `useContactPricing.ts` para obter preços do tier do contacto
-- ✅ Actualizado `InlineEditableField` com `optionLabels` e `emptyOption`
+### Diagnóstico
 
-### 3. UI de Gestão - Perfil Comercial
-- ✅ Adicionado selector de "Escalão de Preço" no `CommercialProfileSection.tsx`
-- ✅ Lista tiers activos do workspace com % de desconto
+| Hook | Cliente Usado | Estado |
+|------|---------------|--------|
+| `useLeads` | `workspaceClient` | Correto |
+| `useContacts` | `supabase` (global) | **ERRADO** |
+| `useCompanies` | `supabase` (global) | **ERRADO** |
 
-### 4. Portal B2B
-- ✅ Actualizado `useClientProducts.ts` para buscar tier do cliente e aplicar preços
-- ✅ Produtos mostram `effective_price` com desconto do tier
-- ✅ Catálogo mostra badge do tier e preço riscado quando há desconto
+A query está a devolver um array vazio `[]` porque o cliente global não tem o contexto de autenticação correto para a instância do workspace.
 
-### 5. Propostas
-- ✅ `POSProposalBuilder` aceita `contactId` e aplica tier pricing automaticamente
-- ✅ `ProposalCart` mostra badge do tier quando disponível
-- ✅ Preços são aplicados automaticamente ao adicionar produtos
-
-## Fluxo de Utilização
-
-1. Admin atribui "Escalão de Preço" ao contacto no Perfil Comercial
-2. Ao criar proposta para oportunidade desse contacto, os preços são aplicados automaticamente
-3. No Portal B2B, cliente logado vê preços do seu tier
-
-
-
-## Resumo Executivo
-
-O sistema já possui a infraestrutura de **Escalões de Preço** (`client_price_tiers` e `product_tier_prices`), mas está apenas parcialmente implementado:
-- Existe no lado B2B (`client_users.price_tier_id`)  
-- **NÃO existe** no lado dos contactos CRM (`contacts` não tem `price_tier_id`)
-- O portal B2B mostra sempre o `base_price` sem aplicar descontos de tier
-
-Este plano liga os contactos aos escalões e aplica os preços automaticamente.
-
-## Arquitectura Actual vs. Proposta
+### Evidência (Network Log)
 
 ```text
-ACTUAL:
-┌─────────────────────────────────────────────────────────────────────────┐
-│  products.base_price → Catálogo B2B → base_price exibido               │
-│                      → Propostas → base_price usado                     │
-│                                                                         │
-│  client_price_tiers ────┐                                               │
-│  product_tier_prices ───┴─→ NÃO UTILIZADO em nenhum lugar              │
-│                                                                         │
-│  contacts ─────────────────→ SEM campo price_tier_id                    │
-└─────────────────────────────────────────────────────────────────────────┘
+GET /contacts?workspace_id=eq.a50159f3-4545-4eca-8436-a55a7cf6d673
+Response: [] (vazio)
 
-PROPOSTA:
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                                                         │
-│  contacts.price_tier_id ──┬──→ Propostas: getEffectivePrice()          │
-│                           │                                             │
-│  client_users.price_tier_id ──→ Portal B2B: preço com desconto         │
-│                           │                                             │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  LÓGICA DE PREÇO EFETIVO                                          │  │
-│  │  1. Verificar se existe ProductTierPrice específico para produto  │  │
-│  │  2. Se sim → usar price_net do tier                               │  │
-│  │  3. Se não → aplicar discount_percentage do tier ao base_price   │  │
-│  │  4. Se não tem tier → usar base_price                             │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+Workspace correto do utilizador: d9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f
 ```
+
+## Solução
+
+Migrar os hooks `useContacts` e `useCompanies` para usar o `workspaceClient` do contexto `WorkspaceInstanceContext`, alinhando-os com o padrão já usado em `useLeads` e `useOpportunitiesEnhanced`.
 
 ## Alterações Necessárias
 
-### 1. Base de Dados
+### 1. `src/hooks/useContacts.ts`
 
-Adicionar coluna `price_tier_id` à tabela `contacts`:
-
-```sql
-ALTER TABLE contacts 
-ADD COLUMN price_tier_id uuid REFERENCES client_price_tiers(id);
-
-COMMENT ON COLUMN contacts.price_tier_id IS 
-  'Escalão de preço atribuído ao contacto para cálculo de descontos';
-```
-
-### 2. UI de Gestão - Perfil Comercial do Contacto
-
-Adicionar selector de Escalão de Preço no `CommercialProfileSection.tsx`:
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| Escalão de Preço | Select | Lista de tiers do workspace |
-
-Visual proposto:
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Perfil Comercial                                    Cliente A  │
-├─────────────────────────────────────────────────────────────────┤
-│  Status do Cliente    [Ativo              ▼]                   │
-│  Cliente Desde        [2024-01-15         📅]                  │
-│  Escalão de Preço     [🏷️ Gold - 15%     ▼]    ← NOVO CAMPO   │
-│  Fonte do Lead        [Instagram          ▼]                   │
-│  Tags                 [tag1] [tag2] [+]                        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 3. Portal B2B - Aplicar Preço do Tier
-
-Modificar `useClientProducts.ts` para buscar e aplicar o tier do cliente:
+Substituir:
 
 ```typescript
-// Antes (actual)
-unit_price_net: product.base_price
-
-// Depois (proposta)
-const effectivePrice = await getEffectivePrice(
-  product.base_price,
-  clientUser.tier,           // Dados do tier do cliente
-  tierPrice                  // Preço específico do produto para o tier
-);
-unit_price_net: effectivePrice
+import { supabase } from "@/integrations/supabase/client";
 ```
 
-O catálogo mostrará:
-- Preço original riscado (se houver desconto)
-- Preço com desconto do tier
-- Badge com nome do tier
+Por:
 
-### 4. Propostas - Pré-carregar Preço do Contacto
-
-Quando um contacto é selecionado para uma proposta:
-
-1. Buscar o `price_tier_id` do contacto/lead associado à oportunidade
-2. Para cada produto adicionado ao carrinho, calcular `getEffectivePrice()`
-3. Mostrar indicador visual de desconto aplicado
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Carrinho da Proposta                                           │
-├─────────────────────────────────────────────────────────────────┤
-│  Cliente: João Silva (Escalão Gold - 15%)                       │
-├─────────────────────────────────────────────────────────────────┤
-│  Produto A              Qty: 2    85,00€  [era 100€]    170,00€│
-│  Produto B              Qty: 1    42,50€  [era 50€]      42,50€│
-├─────────────────────────────────────────────────────────────────┤
-│  Total:                                                 212,50€│
-│  Desconto Gold aplicado (-15%):                        -37,50€│
-└─────────────────────────────────────────────────────────────────┘
+```typescript
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+// Remover: import { supabase } from "@/integrations/supabase/client";
 ```
 
-### 5. Ficheiros a Modificar
+Adicionar dentro do hook:
+
+```typescript
+const { workspaceClient } = useWorkspaceInstance();
+```
+
+Substituir todas as referências de `supabase` por `workspaceClient`.
+
+### 2. `src/hooks/useCompanies.ts`
+
+Mesma alteração - substituir `supabase` por `workspaceClient`.
+
+## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `(migração SQL)` | Adicionar `price_tier_id` à tabela `contacts` |
-| `src/types/contact.ts` ou `ENIContactTypes.ts` | Adicionar tipo `price_tier_id` |
-| `src/components/contacts/eni/sections/CommercialProfileSection.tsx` | Adicionar selector de tier |
-| `src/hooks/client-portal/useClientProducts.ts` | Aplicar preço do tier aos produtos |
-| `src/pages/client/ClientCatalogPage.tsx` | Mostrar preço com desconto e indicador |
-| `src/hooks/useProposalItems.ts` | Calcular preços com tier do contacto |
-| `src/components/proposals/POSProposalBuilder.tsx` | Passar tier do contacto |
-| `src/components/proposals/ProposalCart.tsx` | Mostrar descontos de tier |
+| `src/hooks/useContacts.ts` | Migrar para `workspaceClient` |
+| `src/hooks/useCompanies.ts` | Migrar para `workspaceClient` |
 
-### 6. Fluxo de Utilização
+## Resultado Esperado
 
-```text
-ADMINISTRADOR:
-┌─────────────────────────────────────────────────────────────────────────┐
-│  1. Produtos → Gerir Escalões → Criar "Gold" com 15% desconto          │
-│  2. Contactos → Detalhe → Perfil Comercial → Escalão: Gold             │
-│  3. Propostas → Selecionar oportunidade do contacto                    │
-│     → Produtos já aparecem com preço Gold aplicado                     │
-└─────────────────────────────────────────────────────────────────────────┘
+Após a correção:
+- O dropdown de "Contacto" na página de oportunidades mostrará todos os contactos do workspace
+- O dropdown de "Empresa" também funcionará correctamente
+- A consistência entre hooks será mantida
 
-CLIENTE B2B:
-┌─────────────────────────────────────────────────────────────────────────┐
-│  1. Login no Portal B2B                                                │
-│  2. Catálogo → Produtos mostram "Preço Gold: 85€" (era 100€)          │
-│  3. Adicionar ao carrinho → Preço Gold mantido                         │
-│  4. Checkout → Total com desconto aplicado                             │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+## Nota Adicional - Comissões
 
-## Hook de Pricing Unificado
+O pedido original também mencionou que as oportunidades devem poder ser "consideradas como comissão do negócio". Esta funcionalidade já foi implementada numa alteração anterior com:
+- Campos `commission_percentage`, `commission_amount`, `commission_notes` na tabela `opportunities`
+- Componente `OpportunityCommissionSection` na página de detalhe
 
-Criar um hook `useContactPricing` para reutilização:
-
-```typescript
-export function useContactPricing(contactId: string | undefined) {
-  // 1. Buscar price_tier_id do contacto
-  // 2. Buscar dados do tier
-  // 3. Retornar função getProductPrice(productId, basePrice)
-  
-  return {
-    tier,                    // Dados do tier
-    discountPercentage,      // % de desconto
-    getProductPrice,         // Função async para preço específico
-    getProductPriceSync,     // Função sync para desconto geral
-  };
-}
-```
-
-## Benefícios
-
-1. **Preços personalizados** - Cada cliente vê o seu preço exclusivo
-2. **Consistência** - Mesmo preço no CRM e no Portal B2B
-3. **Flexibilidade** - Desconto geral do tier OU preço específico por produto
-4. **Automação** - Propostas já aplicam desconto sem intervenção manual
-5. **Transparência** - Cliente vê claramente o desconto que está a receber
-
-## Considerações Técnicas
-
-### Performance
-- Preços de tier são cacheados por React Query
-- `getProductPriceSync` usa desconto geral (instantâneo)
-- `getProductPrice` consulta preços específicos (async)
-
-### Migração de Dados
-- Contactos existentes ficam sem tier (preço base mantido)
-- Administrador pode atribuir tiers em massa via edição múltipla
+Confirma que estes campos estão a aparecer correctamente ou precisas de alguma funcionalidade adicional de comissões?
