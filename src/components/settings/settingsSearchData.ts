@@ -354,6 +354,15 @@ export const settingsSearchData: SearchableItem[] = [
     keywords: ["stripe", "pagamentos", "faturas", "subscrições", "checkout"],
   },
   {
+    id: "integrations-video",
+    category: "integrations",
+    sectionTitle: "Videoconferência",
+    sectionDescription: "Criar reuniões Zoom e Google Meet automaticamente",
+    itemTitle: "Zoom & Google Meet",
+    itemDescription: "Configurar credenciais por workspace",
+    keywords: ["zoom", "google meet", "video", "videoconferência", "reunião", "meeting", "conferência"],
+  },
+  {
     id: "integrations-api",
     category: "integrations",
     sectionTitle: "API & Webhooks",

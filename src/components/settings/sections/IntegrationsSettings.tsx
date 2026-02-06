@@ -12,11 +12,14 @@ import {
   Key,
   Zap,
   Settings,
+  Video,
 } from "lucide-react";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
 import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
+import { WorkspaceVideoSettings } from "./WorkspaceVideoSettings";
 import { useWorkspaceStripeConfig } from "@/hooks/useWorkspaceStripeConfig";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
+import { useWorkspaceVideoConfig } from "@/hooks/useWorkspaceVideoConfig";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const integrations = [
@@ -45,6 +48,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
   const { isSuperAdmin } = useUserRole();
   const { isConfigured: isStripeConfigured } = useWorkspaceStripeConfig();
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
+  const { isZoomConfigured, isGoogleMeetConfigured } = useWorkspaceVideoConfig();
   const hasSearch = searchQuery.trim().length > 0;
 
   const shouldShow = (sectionId: string) => {
@@ -55,6 +59,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
   const visibleSections = [
     { id: "integrations-stripe", show: shouldShow("integrations-stripe") },
     { id: "integrations-ghl", show: shouldShow("integrations-ghl") },
+    { id: "integrations-video", show: shouldShow("integrations-video") },
     { id: "integrations-api", show: shouldShow("integrations-api") },
     { id: "integrations-external", show: shouldShow("integrations-external") },
     { id: "integrations-variables", show: shouldShow("integrations-variables") },
@@ -89,6 +94,16 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
           icon={<Zap className="h-5 w-5 text-orange-500" />}
         >
           <WorkspaceGHLSettings />
+        </SettingsSection>
+      )}
+
+      {shouldShow("integrations-video") && (
+        <SettingsSection
+          title="Videoconferência"
+          description="Configure Zoom e Google Meet para criar reuniões automaticamente"
+          icon={<Video className="h-5 w-5" />}
+        >
+          <WorkspaceVideoSettings />
         </SettingsSection>
       )}
 
