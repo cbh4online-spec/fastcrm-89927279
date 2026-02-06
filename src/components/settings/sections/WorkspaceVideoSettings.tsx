@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -14,6 +13,9 @@ import {
   Info,
   Video,
   Monitor,
+  CheckCircle2,
+  Unplug,
+  ExternalLink,
 } from "lucide-react";
 import { useWorkspaceVideoConfig, SaveVideoConfigInput } from "@/hooks/useWorkspaceVideoConfig";
 import { toast } from "sonner";
@@ -22,112 +24,142 @@ export function WorkspaceVideoSettings() {
   const {
     config,
     isLoading,
+    isZoomConnected,
+    isGoogleMeetConnected,
     isZoomConfigured,
     isGoogleMeetConfigured,
     hasZoomCredentials,
     hasGoogleCredentials,
     saveConfig,
+    saveConfigAsync,
     isSaving,
-    testZoom,
-    isTestingZoom,
-    testGoogleMeet,
-    isTestingGoogle,
+    connectOAuth,
+    isConnecting,
+    disconnect,
+    isDisconnecting,
+    testConnection,
+    isTesting,
   } = useWorkspaceVideoConfig();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // Zoom fields
-  const [zoomAccountId, setZoomAccountId] = useState("");
   const [zoomClientId, setZoomClientId] = useState("");
   const [zoomClientSecret, setZoomClientSecret] = useState("");
   const [showZoomSecret, setShowZoomSecret] = useState(false);
-  const [zoomEnabled, setZoomEnabled] = useState(false);
 
   // Google Meet fields
-  const [googleServiceAccountJson, setGoogleServiceAccountJson] = useState("");
-  const [showGoogleJson, setShowGoogleJson] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState("");
+  const [googleClientSecret, setGoogleClientSecret] = useState("");
+  const [showGoogleSecret, setShowGoogleSecret] = useState(false);
   const [googleCalendarEmail, setGoogleCalendarEmail] = useState("");
-  const [googleMeetEnabled, setGoogleMeetEnabled] = useState(false);
+
+  // Handle OAuth callback params
+  useEffect(() => {
+    const oauthResult = searchParams.get("video_oauth");
+    const oauthProvider = searchParams.get("video_provider");
+    const oauthError = searchParams.get("video_error");
+
+    if (oauthResult === "success") {
+      toast.success(
+        oauthProvider === "zoom"
+          ? "Zoom conectado com sucesso!"
+          : "Google Meet conectado com sucesso!"
+      );
+      // Clean URL params
+      searchParams.delete("video_oauth");
+      searchParams.delete("video_provider");
+      setSearchParams(searchParams, { replace: true });
+    } else if (oauthResult === "error") {
+      toast.error(oauthError || "Erro na autenticação");
+      searchParams.delete("video_oauth");
+      searchParams.delete("video_error");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Sync form with config
   useEffect(() => {
     if (config) {
-      setZoomAccountId(config.zoom_account_id || "");
       setZoomClientId(config.zoom_client_id || "");
-      setZoomEnabled(config.zoom_enabled);
+      setGoogleClientId(config.google_client_id || "");
       setGoogleCalendarEmail(config.google_calendar_email || "");
-      setGoogleMeetEnabled(config.google_meet_enabled);
     }
   }, [config]);
 
-  const handleSave = () => {
+  const handleSaveZoom = async () => {
+    if (!zoomClientId.trim()) {
+      toast.error("Preencha o Client ID do Zoom");
+      return;
+    }
+    if (!hasZoomCredentials && !zoomClientSecret.trim()) {
+      toast.error("Insira o Client Secret do Zoom");
+      return;
+    }
+
     const input: SaveVideoConfigInput = {
-      zoom_account_id: zoomAccountId.trim(),
       zoom_client_id: zoomClientId.trim(),
-      zoom_enabled: zoomEnabled,
-      google_calendar_email: googleCalendarEmail.trim(),
-      google_meet_enabled: googleMeetEnabled,
+      zoom_enabled: config?.zoom_enabled ?? false,
+      google_client_id: config?.google_client_id || undefined,
+      google_calendar_email: config?.google_calendar_email || undefined,
+      google_meet_enabled: config?.google_meet_enabled ?? false,
     };
 
     if (zoomClientSecret.trim()) {
       input.zoom_client_secret = zoomClientSecret.trim();
     }
 
-    if (googleServiceAccountJson.trim()) {
-      input.google_service_account_json = googleServiceAccountJson.trim();
-    }
-
-    // Validate zoom if enabled
-    if (zoomEnabled) {
-      if (!zoomAccountId.trim() || !zoomClientId.trim()) {
-        toast.error("Preencha Account ID e Client ID do Zoom");
-        return;
-      }
-      if (!hasZoomCredentials && !zoomClientSecret.trim()) {
-        toast.error("Insira o Client Secret do Zoom");
-        return;
-      }
-    }
-
-    // Validate google meet if enabled
-    if (googleMeetEnabled) {
-      if (!googleCalendarEmail.trim()) {
-        toast.error("Preencha o email do calendário Google");
-        return;
-      }
-      if (!hasGoogleCredentials && !googleServiceAccountJson.trim()) {
-        toast.error("Insira o JSON da Service Account");
-        return;
-      }
-    }
-
-    saveConfig(input);
+    await saveConfigAsync(input);
     setZoomClientSecret("");
-    setGoogleServiceAccountJson("");
   };
 
-  const handleTestZoom = () => {
-    const secret = zoomClientSecret.trim() || (hasZoomCredentials ? "__stored__" : "");
-    if (!zoomAccountId.trim() || !zoomClientId.trim() || !secret) {
-      toast.error("Preencha todos os campos do Zoom para testar");
+  const handleSaveGoogle = async () => {
+    if (!googleClientId.trim()) {
+      toast.error("Preencha o Client ID do Google");
       return;
     }
-    testZoom({
-      accountId: zoomAccountId.trim(),
-      clientId: zoomClientId.trim(),
-      clientSecret: zoomClientSecret.trim() || "__use_stored__",
-    });
+    if (!hasGoogleCredentials && !googleClientSecret.trim()) {
+      toast.error("Insira o Client Secret do Google");
+      return;
+    }
+
+    const input: SaveVideoConfigInput = {
+      zoom_client_id: config?.zoom_client_id || undefined,
+      zoom_enabled: config?.zoom_enabled ?? false,
+      google_client_id: googleClientId.trim(),
+      google_client_secret: googleClientSecret.trim() || undefined,
+      google_calendar_email: googleCalendarEmail.trim(),
+      google_meet_enabled: config?.google_meet_enabled ?? false,
+    };
+
+    await saveConfigAsync(input);
+    setGoogleClientSecret("");
   };
 
-  const handleTestGoogleMeet = () => {
-    const json = googleServiceAccountJson.trim() || (hasGoogleCredentials ? "__stored__" : "");
-    if (!json || !googleCalendarEmail.trim()) {
-      toast.error("Preencha todos os campos do Google Meet para testar");
-      return;
+  const handleConnectZoom = async () => {
+    if (!isZoomConfigured) {
+      // Save first, then connect
+      if (!zoomClientId.trim() || !zoomClientSecret.trim()) {
+        toast.error("Preencha Client ID e Client Secret antes de conectar");
+        return;
+      }
+      await handleSaveZoom();
     }
-    testGoogleMeet({
-      serviceAccountJson: googleServiceAccountJson.trim() || "__use_stored__",
-      calendarEmail: googleCalendarEmail.trim(),
-    });
+    connectOAuth("zoom");
   };
+
+  const handleConnectGoogle = async () => {
+    if (!isGoogleMeetConfigured) {
+      if (!googleClientId.trim() || !googleClientSecret.trim()) {
+        toast.error("Preencha Client ID e Client Secret antes de conectar");
+        return;
+      }
+      await handleSaveGoogle();
+    }
+    connectOAuth("google_meet");
+  };
+
+  const callbackUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/video-oauth-callback`;
 
   if (isLoading) {
     return (
@@ -146,13 +178,13 @@ export function WorkspaceVideoSettings() {
           <span className="font-medium">Videoconferência</span>
         </div>
         <div className="flex gap-2">
-          {isZoomConfigured && (
-            <Badge className="bg-blue-500 text-white">Zoom ativo</Badge>
+          {isZoomConnected && (
+            <Badge className="bg-blue-500 text-white">Zoom conectado</Badge>
           )}
-          {isGoogleMeetConfigured && (
-            <Badge className="bg-emerald-500 text-white">Meet ativo</Badge>
+          {isGoogleMeetConnected && (
+            <Badge className="bg-emerald-500 text-white">Meet conectado</Badge>
           )}
-          {!isZoomConfigured && !isGoogleMeetConfigured && (
+          {!isZoomConnected && !isGoogleMeetConnected && (
             <Badge variant="outline">Não configurado</Badge>
           )}
         </div>
@@ -161,218 +193,269 @@ export function WorkspaceVideoSettings() {
       {/* Zoom Section */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Monitor className="h-4 w-4 text-blue-500" />
-            Zoom
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Monitor className="h-4 w-4 text-blue-500" />
+              Zoom
+            </CardTitle>
+            {isZoomConnected && (
+              <div className="flex items-center gap-1 text-emerald-600">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="text-xs font-medium">Conectado</span>
+              </div>
+            )}
+          </div>
           <CardDescription>
-            Criar reuniões Zoom automaticamente via Server-to-Server OAuth
+            Conecte a sua conta Zoom para criar reuniões automaticamente
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <Info className="h-4 w-4" />
-            <AlertDescription className="text-xs">
-              Crie uma app "Server-to-Server OAuth" em{" "}
-              <a
-                href="https://marketplace.zoom.us"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline"
-              >
-                marketplace.zoom.us
-              </a>
-              . Necessita dos scopes: <code>meeting:write:meeting</code>.
+            <AlertDescription className="text-xs space-y-1">
+              <p>1. Crie uma app OAuth em{" "}
+                <a href="https://marketplace.zoom.us" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                  marketplace.zoom.us
+                </a>
+              </p>
+              <p>2. Adicione o scope: <code className="bg-muted px-1 rounded">meeting:write</code></p>
+              <p>3. Configure o Redirect URL: <code className="bg-muted px-1 rounded text-[10px] break-all">{callbackUrl}</code></p>
+              <p>4. Cole o Client ID e Client Secret abaixo e clique "Conectar"</p>
             </AlertDescription>
           </Alert>
 
-          <div className="space-y-2">
-            <Label htmlFor="zoom-account-id">Account ID</Label>
-            <Input
-              id="zoom-account-id"
-              placeholder="Ex: AbCdEf123..."
-              value={zoomAccountId}
-              onChange={(e) => setZoomAccountId(e.target.value)}
-            />
-          </div>
+          {!isZoomConnected ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="zoom-client-id">Client ID</Label>
+                <Input
+                  id="zoom-client-id"
+                  placeholder="Ex: xyz789..."
+                  value={zoomClientId}
+                  onChange={(e) => setZoomClientId(e.target.value)}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="zoom-client-id">Client ID</Label>
-            <Input
-              id="zoom-client-id"
-              placeholder="Ex: xyz789..."
-              value={zoomClientId}
-              onChange={(e) => setZoomClientId(e.target.value)}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="zoom-client-secret">
+                  Client Secret{" "}
+                  {hasZoomCredentials && (
+                    <span className="text-muted-foreground">(já configurado)</span>
+                  )}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="zoom-client-secret"
+                    type={showZoomSecret ? "text" : "password"}
+                    placeholder={hasZoomCredentials ? "••••••••••••••••" : "Insira o Client Secret"}
+                    value={zoomClientSecret}
+                    onChange={(e) => setZoomClientSecret(e.target.value)}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowZoomSecret(!showZoomSecret)}
+                  >
+                    {showZoomSecret ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="zoom-client-secret">
-              Client Secret{" "}
-              {hasZoomCredentials && (
-                <span className="text-muted-foreground">(já configurado)</span>
-              )}
-            </Label>
-            <div className="relative">
-              <Input
-                id="zoom-client-secret"
-                type={showZoomSecret ? "text" : "password"}
-                placeholder={hasZoomCredentials ? "••••••••••••••••" : "Insira o Client Secret"}
-                value={zoomClientSecret}
-                onChange={(e) => setZoomClientSecret(e.target.value)}
-                className="pr-10"
-              />
               <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                onClick={() => setShowZoomSecret(!showZoomSecret)}
+                onClick={handleConnectZoom}
+                disabled={isConnecting || isSaving}
+                className="w-full"
               >
-                {showZoomSecret ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                )}
+                {(isConnecting || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Conectar com Zoom
               </Button>
-            </div>
-            {hasZoomCredentials && (
-              <p className="text-xs text-muted-foreground">
-                Deixe em branco para manter o secret atual
-              </p>
-            )}
-          </div>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <div>
+                  <p className="text-sm font-medium">Zoom ligado com sucesso</p>
+                  <p className="text-xs text-muted-foreground">
+                    As reuniões Zoom serão criadas automaticamente
+                  </p>
+                </div>
+              </div>
 
-          <div className="flex items-center justify-between pt-2">
-            <div>
-              <Label htmlFor="zoom-enabled">Zoom Ativo</Label>
-              <p className="text-xs text-muted-foreground">
-                Disponibilizar Zoom ao criar reuniões
-              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => testConnection("zoom")}
+                  disabled={isTesting}
+                >
+                  {isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Testar Conexão
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => disconnect("zoom")}
+                  disabled={isDisconnecting}
+                >
+                  {isDisconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Unplug className="mr-2 h-4 w-4" />
+                  Desligar
+                </Button>
+              </div>
             </div>
-            <Switch
-              id="zoom-enabled"
-              checked={zoomEnabled}
-              onCheckedChange={setZoomEnabled}
-            />
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleTestZoom}
-            disabled={isTestingZoom || (!zoomAccountId && !zoomClientId)}
-          >
-            {isTestingZoom && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Testar Zoom
-          </Button>
+          )}
         </CardContent>
       </Card>
 
       {/* Google Meet Section */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Video className="h-4 w-4 text-emerald-500" />
-            Google Meet
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Video className="h-4 w-4 text-emerald-500" />
+              Google Meet
+            </CardTitle>
+            {isGoogleMeetConnected && (
+              <div className="flex items-center gap-1 text-emerald-600">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="text-xs font-medium">Conectado</span>
+              </div>
+            )}
+          </div>
           <CardDescription>
-            Criar reuniões Google Meet via Service Account
+            Conecte a sua conta Google para criar reuniões Meet automaticamente
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <Info className="h-4 w-4" />
-            <AlertDescription className="text-xs">
-              1. Ative a Google Calendar API no{" "}
-              <a
-                href="https://console.cloud.google.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline"
-              >
-                Google Cloud Console
-              </a>
-              .{" "}
-              2. Crie uma Service Account e gere uma chave JSON.{" "}
-              3. Partilhe o calendário com o email da Service Account.
+            <AlertDescription className="text-xs space-y-1">
+              <p>1. Ative a Google Calendar API no{" "}
+                <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                  Google Cloud Console
+                </a>
+              </p>
+              <p>2. Crie credenciais OAuth 2.0 (Web application)</p>
+              <p>3. Configure o Redirect URI: <code className="bg-muted px-1 rounded text-[10px] break-all">{callbackUrl}</code></p>
+              <p>4. Cole o Client ID e Client Secret abaixo e clique "Conectar"</p>
             </AlertDescription>
           </Alert>
 
-          <div className="space-y-2">
-            <Label htmlFor="google-calendar-email">Email do Calendário</Label>
-            <Input
-              id="google-calendar-email"
-              type="email"
-              placeholder="exemplo@empresa.com ou primary"
-              value={googleCalendarEmail}
-              onChange={(e) => setGoogleCalendarEmail(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              O calendário onde as reuniões serão criadas. Use "primary" para o calendário principal.
-            </p>
-          </div>
+          {!isGoogleMeetConnected ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="google-client-id">Client ID</Label>
+                <Input
+                  id="google-client-id"
+                  placeholder="Ex: 123456789.apps.googleusercontent.com"
+                  value={googleClientId}
+                  onChange={(e) => setGoogleClientId(e.target.value)}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="google-sa-json">
-              Service Account JSON{" "}
-              {hasGoogleCredentials && (
-                <span className="text-muted-foreground">(já configurado)</span>
-              )}
-            </Label>
-            <div className="relative">
-              <Textarea
-                id="google-sa-json"
-                placeholder={
-                  hasGoogleCredentials
-                    ? "JSON já configurado. Cole um novo para substituir."
-                    : '{"type": "service_account", "project_id": "...", ...}'
-                }
-                value={showGoogleJson ? googleServiceAccountJson : (googleServiceAccountJson ? "••••••••" : "")}
-                onChange={(e) => setGoogleServiceAccountJson(e.target.value)}
-                onFocus={() => setShowGoogleJson(true)}
-                rows={4}
-                className="font-mono text-xs"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="google-client-secret">
+                  Client Secret{" "}
+                  {hasGoogleCredentials && (
+                    <span className="text-muted-foreground">(já configurado)</span>
+                  )}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="google-client-secret"
+                    type={showGoogleSecret ? "text" : "password"}
+                    placeholder={hasGoogleCredentials ? "••••••••••••••••" : "Insira o Client Secret"}
+                    value={googleClientSecret}
+                    onChange={(e) => setGoogleClientSecret(e.target.value)}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowGoogleSecret(!showGoogleSecret)}
+                  >
+                    {showGoogleSecret ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="google-calendar-email">Email do Calendário (opcional)</Label>
+                <Input
+                  id="google-calendar-email"
+                  type="email"
+                  placeholder="primary (ou email específico)"
+                  value={googleCalendarEmail}
+                  onChange={(e) => setGoogleCalendarEmail(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deixe vazio para usar o calendário principal da conta autorizada.
+                </p>
+              </div>
+
+              <Button
+                onClick={handleConnectGoogle}
+                disabled={isConnecting || isSaving}
+                className="w-full"
+              >
+                {(isConnecting || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Conectar com Google
+              </Button>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <div>
+                  <p className="text-sm font-medium">Google Meet ligado com sucesso</p>
+                  <p className="text-xs text-muted-foreground">
+                    As reuniões Meet serão criadas automaticamente
+                    {config?.google_calendar_email && ` no calendário ${config.google_calendar_email}`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => testConnection("google_meet")}
+                  disabled={isTesting}
+                >
+                  {isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Testar Conexão
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => disconnect("google_meet")}
+                  disabled={isDisconnecting}
+                >
+                  {isDisconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Unplug className="mr-2 h-4 w-4" />
+                  Desligar
+                </Button>
+              </div>
             </div>
-            {hasGoogleCredentials && (
-              <p className="text-xs text-muted-foreground">
-                Deixe em branco para manter o JSON atual
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between pt-2">
-            <div>
-              <Label htmlFor="google-meet-enabled">Google Meet Ativo</Label>
-              <p className="text-xs text-muted-foreground">
-                Disponibilizar Google Meet ao criar reuniões
-              </p>
-            </div>
-            <Switch
-              id="google-meet-enabled"
-              checked={googleMeetEnabled}
-              onCheckedChange={setGoogleMeetEnabled}
-            />
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleTestGoogleMeet}
-            disabled={isTestingGoogle || (!googleCalendarEmail && !hasGoogleCredentials)}
-          >
-            {isTestingGoogle && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Testar Google Meet
-          </Button>
+          )}
         </CardContent>
       </Card>
-
-      {/* Save Button */}
-      <Button onClick={handleSave} disabled={isSaving} className="w-full">
-        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Guardar Configuração
-      </Button>
     </div>
   );
 }

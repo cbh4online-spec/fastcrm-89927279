@@ -177,3 +177,9 @@ verify_jwt = false
 
 [functions.create-video-meeting]
 verify_jwt = false
+
+[functions.video-auth-url]
+verify_jwt = false
+
+[functions.video-oauth-callback]
+verify_jwt = false

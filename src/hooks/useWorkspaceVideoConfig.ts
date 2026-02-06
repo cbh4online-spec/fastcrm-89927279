@@ -9,20 +9,28 @@ export interface WorkspaceVideoConfig {
   zoom_account_id: string | null;
   zoom_client_id: string | null;
   zoom_client_secret_encrypted: string | null;
+  zoom_access_token: string | null;
+  zoom_refresh_token: string | null;
+  zoom_token_expires_at: string | null;
   zoom_enabled: boolean;
   google_service_account_json: string | null;
   google_calendar_email: string | null;
+  google_client_id: string | null;
+  google_client_secret_encrypted: string | null;
+  google_access_token: string | null;
+  google_refresh_token: string | null;
+  google_token_expires_at: string | null;
   google_meet_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface SaveVideoConfigInput {
-  zoom_account_id?: string;
   zoom_client_id?: string;
   zoom_client_secret?: string;
   zoom_enabled: boolean;
-  google_service_account_json?: string;
+  google_client_id?: string;
+  google_client_secret?: string;
   google_calendar_email?: string;
   google_meet_enabled: boolean;
 }
@@ -58,9 +66,9 @@ export function useWorkspaceVideoConfig() {
       if (!workspaceId) throw new Error("No workspace selected");
 
       const payload: Record<string, unknown> = {
-        zoom_account_id: input.zoom_account_id || null,
         zoom_client_id: input.zoom_client_id || null,
         zoom_enabled: input.zoom_enabled,
+        google_client_id: input.google_client_id || null,
         google_calendar_email: input.google_calendar_email || null,
         google_meet_enabled: input.google_meet_enabled,
         updated_at: new Date().toISOString(),
@@ -70,8 +78,8 @@ export function useWorkspaceVideoConfig() {
       if (input.zoom_client_secret) {
         payload.zoom_client_secret_encrypted = input.zoom_client_secret;
       }
-      if (input.google_service_account_json) {
-        payload.google_service_account_json = input.google_service_account_json;
+      if (input.google_client_secret) {
+        payload.google_client_secret_encrypted = input.google_client_secret;
       }
 
       if (config?.id) {
@@ -106,22 +114,75 @@ export function useWorkspaceVideoConfig() {
     },
   });
 
-  const testZoomMutation = useMutation({
-    mutationFn: async (credentials: { accountId: string; clientId: string; clientSecret: string }) => {
-      if (!credentials.accountId || !credentials.clientId || !credentials.clientSecret) {
-        throw new Error("Preencha Account ID, Client ID e Client Secret do Zoom");
+  const connectOAuthMutation = useMutation({
+    mutationFn: async (provider: "zoom" | "google_meet") => {
+      if (!workspaceId) throw new Error("No workspace selected");
+
+      const redirectUrl = window.location.origin + window.location.pathname;
+
+      const { data, error } = await supabase.functions.invoke("video-auth-url", {
+        body: {
+          provider,
+          workspace_id: workspaceId,
+          redirect_url: redirectUrl,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Erro ao iniciar ligação");
+    },
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: async (provider: "zoom" | "google_meet") => {
+      if (!config?.id) throw new Error("No config found");
+
+      const updates: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (provider === "zoom") {
+        updates.zoom_access_token = null;
+        updates.zoom_refresh_token = null;
+        updates.zoom_token_expires_at = null;
+        updates.zoom_enabled = false;
+      } else {
+        updates.google_access_token = null;
+        updates.google_refresh_token = null;
+        updates.google_token_expires_at = null;
+        updates.google_meet_enabled = false;
       }
 
+      const { error } = await (supabase as any)
+        .from("workspace_video_config")
+        .update(updates)
+        .eq("id", config.id);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, provider) => {
+      queryClient.invalidateQueries({ queryKey: ["workspace-video-config", workspaceId] });
+      toast.success(provider === "zoom" ? "Zoom desligado" : "Google Meet desligado");
+    },
+    onError: () => {
+      toast.error("Erro ao desligar");
+    },
+  });
+
+  const testConnectionMutation = useMutation({
+    mutationFn: async (provider: "zoom" | "google_meet") => {
       const { data, error } = await supabase.functions.invoke("create-video-meeting", {
         body: {
           action: "test",
-          provider: "zoom",
+          provider,
           workspace_id: workspaceId,
-          test_credentials: {
-            zoom_account_id: credentials.accountId,
-            zoom_client_id: credentials.clientId,
-            zoom_client_secret: credentials.clientSecret,
-          },
         },
       });
 
@@ -129,64 +190,29 @@ export function useWorkspaceVideoConfig() {
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: () => {
-      toast.success("Conexão Zoom testada com sucesso!");
+    onSuccess: (_, provider) => {
+      toast.success(provider === "zoom" ? "Zoom conectado com sucesso!" : "Google Meet conectado com sucesso!");
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Erro ao testar Zoom");
+      toast.error(error instanceof Error ? error.message : "Erro ao testar conexão");
     },
   });
 
-  const testGoogleMutation = useMutation({
-    mutationFn: async (credentials: { serviceAccountJson: string; calendarEmail: string }) => {
-      if (!credentials.serviceAccountJson || !credentials.calendarEmail) {
-        throw new Error("Preencha o JSON da Service Account e o email do calendário");
-      }
+  const isZoomConnected = !!(config?.zoom_refresh_token && config?.zoom_enabled);
+  const isGoogleMeetConnected = !!(config?.google_refresh_token && config?.google_meet_enabled);
 
-      const { data, error } = await supabase.functions.invoke("create-video-meeting", {
-        body: {
-          action: "test",
-          provider: "google_meet",
-          workspace_id: workspaceId,
-          test_credentials: {
-            google_service_account_json: credentials.serviceAccountJson,
-            google_calendar_email: credentials.calendarEmail,
-          },
-        },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Conexão Google Meet testada com sucesso!");
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Erro ao testar Google Meet");
-    },
-  });
-
-  const isZoomConfigured = !!(
-    config?.zoom_account_id &&
-    config?.zoom_client_id &&
-    config?.zoom_client_secret_encrypted &&
-    config?.zoom_enabled
-  );
-
-  const isGoogleMeetConfigured = !!(
-    config?.google_service_account_json &&
-    config?.google_calendar_email &&
-    config?.google_meet_enabled
-  );
+  const isZoomConfigured = !!(config?.zoom_client_id && config?.zoom_client_secret_encrypted);
+  const isGoogleMeetConfigured = !!(config?.google_client_id && config?.google_client_secret_encrypted);
 
   const hasZoomCredentials = !!(config?.zoom_client_secret_encrypted);
-  const hasGoogleCredentials = !!(config?.google_service_account_json);
+  const hasGoogleCredentials = !!(config?.google_client_secret_encrypted);
 
   return {
     config,
     isLoading,
     error,
+    isZoomConnected,
+    isGoogleMeetConnected,
     isZoomConfigured,
     isGoogleMeetConfigured,
     hasZoomCredentials,
@@ -194,9 +220,11 @@ export function useWorkspaceVideoConfig() {
     saveConfig: saveConfigMutation.mutate,
     saveConfigAsync: saveConfigMutation.mutateAsync,
     isSaving: saveConfigMutation.isPending,
-    testZoom: testZoomMutation.mutate,
-    isTestingZoom: testZoomMutation.isPending,
-    testGoogleMeet: testGoogleMutation.mutate,
-    isTestingGoogle: testGoogleMutation.isPending,
+    connectOAuth: connectOAuthMutation.mutate,
+    isConnecting: connectOAuthMutation.isPending,
+    disconnect: disconnectMutation.mutate,
+    isDisconnecting: disconnectMutation.isPending,
+    testConnection: testConnectionMutation.mutate,
+    isTesting: testConnectionMutation.isPending,
   };
 }

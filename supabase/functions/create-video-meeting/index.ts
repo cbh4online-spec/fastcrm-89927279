@@ -6,30 +6,133 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Zoom helpers ──
+// ── Token refresh helpers ──
 
-async function getZoomAccessToken(
-  accountId: string,
+async function refreshZoomToken(
+  refreshToken: string,
   clientId: string,
   clientSecret: string
-): Promise<string> {
+): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
   const credentials = btoa(`${clientId}:${clientSecret}`);
-  const res = await fetch(
-    `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${accountId}`,
-    {
-      method: "POST",
-      headers: { Authorization: `Basic ${credentials}` },
-    }
-  );
+  const res = await fetch("https://zoom.us/oauth/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshToken)}`,
+  });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Zoom OAuth failed: ${err}`);
+    throw new Error(`Zoom token refresh failed: ${err}`);
   }
 
-  const data = await res.json();
-  return data.access_token;
+  return res.json();
 }
+
+async function refreshGoogleToken(
+  refreshToken: string,
+  clientId: string,
+  clientSecret: string
+): Promise<{ access_token: string; expires_in: number }> {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }).toString(),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Google token refresh failed: ${err}`);
+  }
+
+  return res.json();
+}
+
+// ── Get valid access token (refresh if expired) ──
+
+async function getValidZoomToken(
+  config: any,
+  adminClient: any
+): Promise<string> {
+  const now = new Date();
+  const expiresAt = config.zoom_token_expires_at ? new Date(config.zoom_token_expires_at) : null;
+
+  // If token exists and not expired (with 5 min buffer), use it
+  if (config.zoom_access_token && expiresAt && expiresAt.getTime() - 300000 > now.getTime()) {
+    return config.zoom_access_token;
+  }
+
+  // Need to refresh
+  if (!config.zoom_refresh_token) {
+    throw new Error("Zoom não está conectado. Faça a ligação nas configurações.");
+  }
+
+  const tokenData = await refreshZoomToken(
+    config.zoom_refresh_token,
+    config.zoom_client_id,
+    config.zoom_client_secret_encrypted
+  );
+
+  // Update stored tokens
+  const newExpiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
+  await adminClient
+    .from("workspace_video_config")
+    .update({
+      zoom_access_token: tokenData.access_token,
+      zoom_refresh_token: tokenData.refresh_token || config.zoom_refresh_token,
+      zoom_token_expires_at: newExpiresAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", config.id);
+
+  return tokenData.access_token;
+}
+
+async function getValidGoogleToken(
+  config: any,
+  adminClient: any
+): Promise<string> {
+  const now = new Date();
+  const expiresAt = config.google_token_expires_at ? new Date(config.google_token_expires_at) : null;
+
+  // If token exists and not expired (with 5 min buffer), use it
+  if (config.google_access_token && expiresAt && expiresAt.getTime() - 300000 > now.getTime()) {
+    return config.google_access_token;
+  }
+
+  // Need to refresh
+  if (!config.google_refresh_token) {
+    throw new Error("Google Meet não está conectado. Faça a ligação nas configurações.");
+  }
+
+  const tokenData = await refreshGoogleToken(
+    config.google_refresh_token,
+    config.google_client_id,
+    config.google_client_secret_encrypted
+  );
+
+  // Update stored tokens
+  const newExpiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
+  await adminClient
+    .from("workspace_video_config")
+    .update({
+      google_access_token: tokenData.access_token,
+      google_token_expires_at: newExpiresAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", config.id);
+
+  return tokenData.access_token;
+}
+
+// ── Zoom meeting creation ──
 
 async function createZoomMeeting(
   accessToken: string,
@@ -45,7 +148,7 @@ async function createZoomMeeting(
     },
     body: JSON.stringify({
       topic,
-      type: 2, // Scheduled
+      type: 2,
       start_time: startTime,
       duration,
       timezone: "UTC",
@@ -65,76 +168,7 @@ async function createZoomMeeting(
   return res.json();
 }
 
-// ── Google Meet helpers ──
-
-function base64url(input: string): string {
-  return btoa(input)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-async function getGoogleAccessToken(
-  serviceAccountJson: string
-): Promise<string> {
-  const sa = JSON.parse(serviceAccountJson);
-  const now = Math.floor(Date.now() / 1000);
-
-  const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const payload = base64url(
-    JSON.stringify({
-      iss: sa.client_email,
-      scope: "https://www.googleapis.com/auth/calendar",
-      aud: "https://oauth2.googleapis.com/token",
-      iat: now,
-      exp: now + 3600,
-    })
-  );
-
-  const textEncoder = new TextEncoder();
-  const signingInput = textEncoder.encode(`${header}.${payload}`);
-
-  // Import private key
-  const pemContent = sa.private_key
-    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\s/g, "");
-  const binaryKey = Uint8Array.from(atob(pemContent), (c) => c.charCodeAt(0));
-
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    signingInput
-  );
-
-  const signatureB64 = base64url(
-    String.fromCharCode(...new Uint8Array(signature))
-  );
-  const jwt = `${header}.${payload}.${signatureB64}`;
-
-  // Exchange JWT for access token
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-  });
-
-  if (!tokenRes.ok) {
-    const err = await tokenRes.text();
-    throw new Error(`Google OAuth failed: ${err}`);
-  }
-
-  const tokenData = await tokenRes.json();
-  return tokenData.access_token;
-}
+// ── Google Meet event creation ──
 
 async function createGoogleMeetEvent(
   accessToken: string,
@@ -145,9 +179,7 @@ async function createGoogleMeetEvent(
 ): Promise<{ meetLink: string; eventId: string }> {
   const calendarId = calendarEmail || "primary";
   const res = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
-      calendarId
-    )}/events?conferenceDataVersion=1`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1`,
     {
       method: "POST",
       headers: {
@@ -181,7 +213,7 @@ async function createGoogleMeetEvent(
     )?.uri;
 
   if (!meetLink) {
-    throw new Error("Google Meet link not generated. Verifique que o calendário suporta conferências.");
+    throw new Error("Google Meet link não gerado. Verifique que o calendário suporta conferências.");
   }
 
   return { meetLink, eventId: event.id };
@@ -222,66 +254,44 @@ Deno.serve(async (req) => {
       );
     }
 
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     // ── TEST ACTION ──
     if (action === "test") {
-      if (provider === "zoom" && test_credentials) {
-        const creds = test_credentials;
-        const accountId = creds.zoom_account_id;
-        const clientId = creds.zoom_client_id;
-        let clientSecret = creds.zoom_client_secret;
+      if (!workspace_id) {
+        return new Response(
+          JSON.stringify({ error: "workspace_id é obrigatório" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-        // If using stored credentials, fetch from DB
-        if (clientSecret === "__use_stored__") {
-          const adminClient = createClient(
-            Deno.env.get("SUPABASE_URL")!,
-            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-          );
-          const { data: cfg } = await adminClient
-            .from("workspace_video_config")
-            .select("zoom_client_secret_encrypted")
-            .eq("workspace_id", workspace_id)
-            .single();
-          clientSecret = cfg?.zoom_client_secret_encrypted;
-        }
+      const { data: videoConfig } = await adminClient
+        .from("workspace_video_config")
+        .select("*")
+        .eq("workspace_id", workspace_id)
+        .single();
 
-        if (!clientSecret) {
-          return new Response(
-            JSON.stringify({ error: "Client Secret não encontrado" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      if (!videoConfig) {
+        return new Response(
+          JSON.stringify({ error: "Configuração não encontrada" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-        await getZoomAccessToken(accountId, clientId, clientSecret);
+      if (provider === "zoom") {
+        // Test by getting a valid token (will refresh if needed)
+        await getValidZoomToken(videoConfig, adminClient);
         return new Response(
           JSON.stringify({ success: true }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      if (provider === "google_meet" && test_credentials) {
-        let saJson = test_credentials.google_service_account_json;
-
-        if (saJson === "__use_stored__") {
-          const adminClient = createClient(
-            Deno.env.get("SUPABASE_URL")!,
-            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-          );
-          const { data: cfg } = await adminClient
-            .from("workspace_video_config")
-            .select("google_service_account_json")
-            .eq("workspace_id", workspace_id)
-            .single();
-          saJson = cfg?.google_service_account_json;
-        }
-
-        if (!saJson) {
-          return new Response(
-            JSON.stringify({ error: "Service Account JSON não encontrado" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        await getGoogleAccessToken(saJson);
+      if (provider === "google_meet") {
+        await getValidGoogleToken(videoConfig, adminClient);
         return new Response(
           JSON.stringify({ success: true }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -301,12 +311,6 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Fetch credentials from DB using service role
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     const { data: videoConfig, error: configError } = await adminClient
       .from("workspace_video_config")
@@ -330,11 +334,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const accessToken = await getZoomAccessToken(
-        videoConfig.zoom_account_id,
-        videoConfig.zoom_client_id,
-        videoConfig.zoom_client_secret_encrypted
-      );
+      const accessToken = await getValidZoomToken(videoConfig, adminClient);
 
       const zoomMeeting = await createZoomMeeting(
         accessToken,
@@ -362,13 +362,11 @@ Deno.serve(async (req) => {
         );
       }
 
-      const accessToken = await getGoogleAccessToken(
-        videoConfig.google_service_account_json
-      );
+      const accessToken = await getValidGoogleToken(videoConfig, adminClient);
 
       const result = await createGoogleMeetEvent(
         accessToken,
-        videoConfig.google_calendar_email,
+        videoConfig.google_calendar_email || "primary",
         meeting.title,
         meeting.start_time,
         meeting.end_time
