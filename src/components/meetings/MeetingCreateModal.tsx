@@ -3,6 +3,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, addMinutes } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useWorkspaceVideoConfig } from '@/hooks/useWorkspaceVideoConfig';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +42,8 @@ import {
   Users,
   Building2,
   User,
-  Link2
+  Link2,
+  Monitor
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EntityPicker } from '@/components/common/EntityPicker';
@@ -62,6 +66,7 @@ const meetingSchema = z.object({
   duration: z.number().min(15).max(480),
   location: z.string().optional(),
   meeting_url: z.string().optional(),
+  meeting_provider_selection: z.enum(['manual', 'zoom', 'google_meet']).optional(),
   phone_number: z.string().optional(),
   contact_id: z.string().optional(),
   company_id: z.string().optional(),
@@ -107,6 +112,9 @@ export function MeetingCreateModal({
     companyId: null,
     leadId: null,
   });
+  const { currentWorkspace } = useWorkspace();
+  const { isZoomConfigured, isGoogleMeetConfigured } = useWorkspaceVideoConfig();
+  const hasVideoProviders = isZoomConfigured || isGoogleMeetConfigured;
 
   const form = useForm<MeetingFormData>({
     resolver: zodResolver(meetingSchema),
@@ -193,6 +201,7 @@ export function MeetingCreateModal({
 
   const selectedCategory = form.watch('category');
   const selectedMode = form.watch('mode');
+  const selectedProvider = form.watch('meeting_provider_selection');
 
   const handleSubmit = async (data: MeetingFormData) => {
     setIsSubmitting(true);
@@ -201,6 +210,43 @@ export function MeetingCreateModal({
       const startTime = new Date(data.start_date);
       startTime.setHours(hours, minutes, 0, 0);
       const endTime = addMinutes(startTime, data.duration);
+
+      let meetingUrl = data.meeting_url;
+      let meetingProvider: 'zoom' | 'google_meet' | 'custom' | 'none' | undefined;
+
+      // Auto-create meeting if provider selected
+      if (data.mode === 'online' && data.meeting_provider_selection && data.meeting_provider_selection !== 'manual') {
+        try {
+          const { data: result, error: fnError } = await supabase.functions.invoke('create-video-meeting', {
+            body: {
+              provider: data.meeting_provider_selection,
+              workspace_id: currentWorkspace?.id,
+              meeting: {
+                title: data.title,
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                duration: data.duration,
+              },
+            },
+          });
+
+          if (fnError) throw fnError;
+          if (result?.error) throw new Error(result.error);
+
+          meetingUrl = result.meeting_url;
+          meetingProvider = result.meeting_provider;
+        } catch (err) {
+          console.error('Error creating video meeting:', err);
+          // Don't block meeting creation, just warn
+          const errMsg = err instanceof Error ? err.message : 'Erro desconhecido';
+          if (!confirm(`Não foi possível criar o link automaticamente: ${errMsg}\n\nDeseja criar a reunião sem link?`)) {
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      } else if (data.mode === 'online' && data.meeting_url) {
+        meetingProvider = 'custom';
+      }
 
       await onSubmit({
         title: data.title,
@@ -211,7 +257,8 @@ export function MeetingCreateModal({
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         location: data.location,
-        meeting_url: data.meeting_url,
+        meeting_url: meetingUrl,
+        meeting_provider: meetingProvider,
         phone_number: data.phone_number,
         contact_id: entityValue.contactId || undefined,
         company_id: entityValue.companyId || undefined,
@@ -409,22 +456,84 @@ export function MeetingCreateModal({
 
             {/* Mode-specific fields */}
             {selectedMode === 'online' && (
-              <FormField
-                control={form.control}
-                name="meeting_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1">
-                      <Link2 className="h-3 w-3" />
-                      Link da reunião
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://zoom.us/j/..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <div className="space-y-4">
+                {/* Provider selector - only show if at least one provider is configured */}
+                {hasVideoProviders && (
+                  <FormField
+                    control={form.control}
+                    name="meeting_provider_selection"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1">
+                          <Video className="h-3 w-3" />
+                          Criar link automaticamente
+                        </FormLabel>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={field.value === 'manual' || !field.value ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => field.onChange('manual')}
+                          >
+                            <Link2 className="h-4 w-4 mr-1" />
+                            Manual
+                          </Button>
+                          {isZoomConfigured && (
+                            <Button
+                              type="button"
+                              variant={field.value === 'zoom' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => field.onChange('zoom')}
+                            >
+                              <Monitor className="h-4 w-4 mr-1" />
+                              Zoom
+                            </Button>
+                          )}
+                          {isGoogleMeetConfigured && (
+                            <Button
+                              type="button"
+                              variant={field.value === 'google_meet' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => field.onChange('google_meet')}
+                            >
+                              <Video className="h-4 w-4 mr-1" />
+                              Google Meet
+                            </Button>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
+
+                {/* Manual URL field - show when manual mode or no providers */}
+                {(!hasVideoProviders || !selectedProvider || selectedProvider === 'manual') && (
+                  <FormField
+                    control={form.control}
+                    name="meeting_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1">
+                          <Link2 className="h-3 w-3" />
+                          Link da reunião
+                        </FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://zoom.us/j/..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Info message when auto-create selected */}
+                {selectedProvider && selectedProvider !== 'manual' && (
+                  <p className="text-xs text-muted-foreground">
+                    O link será criado automaticamente ao guardar a reunião.
+                  </p>
+                )}
+              </div>
             )}
 
             {selectedMode === 'in_person' && (

@@ -21566,6 +21566,56 @@ export type Database = {
           },
         ]
       }
+      workspace_video_config: {
+        Row: {
+          created_at: string
+          google_calendar_email: string | null
+          google_meet_enabled: boolean
+          google_service_account_json: string | null
+          id: string
+          updated_at: string
+          workspace_id: string
+          zoom_account_id: string | null
+          zoom_client_id: string | null
+          zoom_client_secret_encrypted: string | null
+          zoom_enabled: boolean
+        }
+        Insert: {
+          created_at?: string
+          google_calendar_email?: string | null
+          google_meet_enabled?: boolean
+          google_service_account_json?: string | null
+          id?: string
+          updated_at?: string
+          workspace_id: string
+          zoom_account_id?: string | null
+          zoom_client_id?: string | null
+          zoom_client_secret_encrypted?: string | null
+          zoom_enabled?: boolean
+        }
+        Update: {
+          created_at?: string
+          google_calendar_email?: string | null
+          google_meet_enabled?: boolean
+          google_service_account_json?: string | null
+          id?: string
+          updated_at?: string
+          workspace_id?: string
+          zoom_account_id?: string | null
+          zoom_client_id?: string | null
+          zoom_client_secret_encrypted?: string | null
+          zoom_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_video_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           billing_address: string | null
