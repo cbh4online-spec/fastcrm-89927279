@@ -87,3 +87,9 @@ export { default as BlogPostPage } from './pages/BlogPostPage';
 export { default as GuidePage } from './pages/GuidePage';
 export { default as GlossaryListPage } from './pages/GlossaryListPage';
 export { default as GlossaryTermPage } from './pages/GlossaryTermPage';
+
+// Legal Pages
+export { default as PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+export { default as TermsOfUsePage } from './pages/TermsOfUsePage';
+export { default as GDPRPage } from './pages/GDPRPage';
+export { default as CookiePolicyPage } from './pages/CookiePolicyPage';

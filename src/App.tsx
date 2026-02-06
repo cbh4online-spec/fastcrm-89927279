@@ -130,6 +130,10 @@ import {
   GTMProvider,
   GDPRBanner,
   MetaPixelLoader,
+  PrivacyPolicyPage,
+  TermsOfUsePage,
+  GDPRPage,
+  CookiePolicyPage,
 } from "./modules/growth-seo";
 
 const queryClient = new QueryClient();
@@ -183,6 +187,12 @@ function CRMRoutes() {
                 <Route path="/guides/:slug" element={<GuidePage />} />
                 <Route path="/glossary" element={<GlossaryListPage />} />
                 <Route path="/glossary/:slug" element={<GlossaryTermPage />} />
+                
+                {/* Legal Pages */}
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsOfUsePage />} />
+                <Route path="/gdpr" element={<GDPRPage />} />
+                <Route path="/cookies" element={<CookiePolicyPage />} />
                 
                 {/* Main Routes */}
                 <Route path="/" element={<MarketingHomepage />} />
