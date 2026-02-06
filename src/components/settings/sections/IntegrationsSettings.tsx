@@ -48,7 +48,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
   const { isSuperAdmin } = useUserRole();
   const { isConfigured: isStripeConfigured } = useWorkspaceStripeConfig();
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
-  const { isZoomConfigured, isGoogleMeetConfigured } = useWorkspaceVideoConfig();
+  const { isZoomConfigured, isGoogleMeetConnected } = useWorkspaceVideoConfig();
   const hasSearch = searchQuery.trim().length > 0;
 
   const shouldShow = (sectionId: string) => {

@@ -87,11 +87,12 @@ Deno.serve(async (req) => {
     }
 
     if (provider === "google_meet") {
-      const clientId = config?.google_client_id;
+      // Use platform-level OAuth credentials
+      const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
       if (!clientId) {
         return new Response(
-          JSON.stringify({ error: "Guarde primeiro o Client ID do Google nas configurações" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Credenciais OAuth do Google não configuradas na plataforma" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 

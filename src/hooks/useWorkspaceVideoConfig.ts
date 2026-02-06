@@ -202,10 +202,7 @@ export function useWorkspaceVideoConfig() {
   const isGoogleMeetConnected = !!(config?.google_refresh_token && config?.google_meet_enabled);
 
   const isZoomConfigured = !!(config?.zoom_client_id && config?.zoom_client_secret_encrypted);
-  const isGoogleMeetConfigured = !!(config?.google_client_id && config?.google_client_secret_encrypted);
-
   const hasZoomCredentials = !!(config?.zoom_client_secret_encrypted);
-  const hasGoogleCredentials = !!(config?.google_client_secret_encrypted);
 
   return {
     config,
@@ -214,9 +211,7 @@ export function useWorkspaceVideoConfig() {
     isZoomConnected,
     isGoogleMeetConnected,
     isZoomConfigured,
-    isGoogleMeetConfigured,
     hasZoomCredentials,
-    hasGoogleCredentials,
     saveConfig: saveConfigMutation.mutate,
     saveConfigAsync: saveConfigMutation.mutateAsync,
     isSaving: saveConfigMutation.isPending,
