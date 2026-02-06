@@ -211,7 +211,7 @@ export function PostCard({ post, onViewComments }: PostCardProps) {
         )}
 
         {/* Attachments */}
-        {post.attachments.length > 0 && (
+        {Array.isArray(post.attachments) && post.attachments.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {post.attachments.map((attachment) => (
               <a
