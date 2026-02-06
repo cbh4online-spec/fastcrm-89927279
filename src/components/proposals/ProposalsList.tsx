@@ -65,11 +65,13 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   XCircle,
+  ShoppingCart,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { useProposals, usePublishProposal, useDeleteProposal, useDuplicateProposal, useQuickStatusChange } from "@/hooks/useProposals";
+import { useConvertProposalToOrderNote } from "@/hooks/useConvertProposalToOrderNote";
 import { CreateProposalDialog } from "./CreateProposalDialog";
 import { ProposalDetailDialog } from "./ProposalDetailDialog";
 import { ProposalTemplatesList } from "./ProposalTemplatesList";
@@ -168,6 +170,7 @@ export function ProposalsList() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [taskProposal, setTaskProposal] = useState<Proposal | null>(null);
+  const [convertOrderId, setConvertOrderId] = useState<string | null>(null);
 
   // New state for reorganized UI
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -185,6 +188,7 @@ export function ProposalsList() {
   const deleteProposal = useDeleteProposal();
   const duplicateProposal = useDuplicateProposal();
   const quickStatusChange = useQuickStatusChange();
+  const convertToOrderNote = useConvertProposalToOrderNote();
 
   // Filter and search
   const filteredProposals = useMemo(() => {
@@ -259,6 +263,16 @@ export function ProposalsList() {
   const handleOpenTaskDialog = (proposal: Proposal) => {
     setTaskProposal(proposal);
     setTaskDialogOpen(true);
+  };
+
+  const handleConvertToOrderNote = async () => {
+    if (!convertOrderId) return;
+    try {
+      const result = await convertToOrderNote.mutateAsync({ proposalId: convertOrderId });
+      setConvertOrderId(null);
+    } catch {
+      // Error handled by mutation
+    }
   };
 
   const handleFilterSelect = (filterId: string) => {
@@ -600,6 +614,19 @@ export function ProposalsList() {
                             )}
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
+
+                        {/* Converter em Nota de Encomenda - only for accepted proposals */}
+                        {proposal.status === "accepted" && (proposal.contact_id || proposal.company_id) && (
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConvertOrderId(proposal.id);
+                            }}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Converter em Encomenda
+                          </DropdownMenuItem>
+                        )}
                         
                         {proposal.status === "published" && (
                           <>
@@ -774,6 +801,32 @@ export function ProposalsList() {
               className="bg-destructive text-destructive-foreground"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Convert to Order Note Dialog */}
+      <AlertDialog open={!!convertOrderId} onOpenChange={(open) => !open && setConvertOrderId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Converter em Nota de Encomenda?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os itens desta proposta serão usados para criar uma nova Nota de Encomenda
+              com estado &quot;Submetida&quot;. Se necessário, será criado automaticamente
+              um utilizador cliente associado ao contacto/empresa.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={convertToOrderNote.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConvertToOrderNote}
+              disabled={convertToOrderNote.isPending}
+            >
+              {convertToOrderNote.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Converter
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
