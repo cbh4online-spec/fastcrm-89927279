@@ -113,8 +113,8 @@ export function MeetingCreateModal({
     leadId: null,
   });
   const { currentWorkspace } = useWorkspace();
-  const { isZoomConfigured, isGoogleMeetConfigured } = useWorkspaceVideoConfig();
-  const hasVideoProviders = isZoomConfigured || isGoogleMeetConfigured;
+  const { isZoomConnected, isGoogleMeetConnected } = useWorkspaceVideoConfig();
+  const hasVideoProviders = isZoomConnected || isGoogleMeetConnected;
 
   const form = useForm<MeetingFormData>({
     resolver: zodResolver(meetingSchema),
@@ -478,7 +478,7 @@ export function MeetingCreateModal({
                             <Link2 className="h-4 w-4 mr-1" />
                             Manual
                           </Button>
-                          {isZoomConfigured && (
+                          {isZoomConnected && (
                             <Button
                               type="button"
                               variant={field.value === 'zoom' ? 'default' : 'outline'}
@@ -489,7 +489,7 @@ export function MeetingCreateModal({
                               Zoom
                             </Button>
                           )}
-                          {isGoogleMeetConfigured && (
+                          {isGoogleMeetConnected && (
                             <Button
                               type="button"
                               variant={field.value === 'google_meet' ? 'default' : 'outline'}

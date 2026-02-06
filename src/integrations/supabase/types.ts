@@ -21569,42 +21569,66 @@ export type Database = {
       workspace_video_config: {
         Row: {
           created_at: string
+          google_access_token: string | null
           google_calendar_email: string | null
+          google_client_id: string | null
+          google_client_secret_encrypted: string | null
           google_meet_enabled: boolean
+          google_refresh_token: string | null
           google_service_account_json: string | null
+          google_token_expires_at: string | null
           id: string
           updated_at: string
           workspace_id: string
+          zoom_access_token: string | null
           zoom_account_id: string | null
           zoom_client_id: string | null
           zoom_client_secret_encrypted: string | null
           zoom_enabled: boolean
+          zoom_refresh_token: string | null
+          zoom_token_expires_at: string | null
         }
         Insert: {
           created_at?: string
+          google_access_token?: string | null
           google_calendar_email?: string | null
+          google_client_id?: string | null
+          google_client_secret_encrypted?: string | null
           google_meet_enabled?: boolean
+          google_refresh_token?: string | null
           google_service_account_json?: string | null
+          google_token_expires_at?: string | null
           id?: string
           updated_at?: string
           workspace_id: string
+          zoom_access_token?: string | null
           zoom_account_id?: string | null
           zoom_client_id?: string | null
           zoom_client_secret_encrypted?: string | null
           zoom_enabled?: boolean
+          zoom_refresh_token?: string | null
+          zoom_token_expires_at?: string | null
         }
         Update: {
           created_at?: string
+          google_access_token?: string | null
           google_calendar_email?: string | null
+          google_client_id?: string | null
+          google_client_secret_encrypted?: string | null
           google_meet_enabled?: boolean
+          google_refresh_token?: string | null
           google_service_account_json?: string | null
+          google_token_expires_at?: string | null
           id?: string
           updated_at?: string
           workspace_id?: string
+          zoom_access_token?: string | null
           zoom_account_id?: string | null
           zoom_client_id?: string | null
           zoom_client_secret_encrypted?: string | null
           zoom_enabled?: boolean
+          zoom_refresh_token?: string | null
+          zoom_token_expires_at?: string | null
         }
         Relationships: [
           {
