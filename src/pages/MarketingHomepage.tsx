@@ -397,9 +397,10 @@ export default function MarketingHomepage() {
             <div>
               <h4 className="font-semibold mb-4">Legal</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Privacidade</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Termos</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">RGPD</a></li>
+                <li><Link to="/privacy" className="hover:text-foreground transition-colors">Política de Privacidade</Link></li>
+                <li><Link to="/terms" className="hover:text-foreground transition-colors">Termos de Uso</Link></li>
+                <li><Link to="/cookies" className="hover:text-foreground transition-colors">Política de Cookies</Link></li>
+                <li><Link to="/gdpr" className="hover:text-foreground transition-colors">RGPD</Link></li>
               </ul>
             </div>
           </div>
