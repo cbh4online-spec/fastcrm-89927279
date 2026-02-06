@@ -583,7 +583,7 @@ export function NotesSection({ entityType, entityId, entityName }: NotesSectionP
                     )}
 
                     {/* Attachments */}
-                    {note.attachments && note.attachments.length > 0 && (
+                    {Array.isArray(note.attachments) && note.attachments.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {note.attachments.map((attachment) => (
                           <a
