@@ -84,6 +84,7 @@ export { default as CategoryDetailPage } from './pages/CategoryDetailPage';
 export { default as ComparePage } from './pages/ComparePage';
 export { default as BlogListPage } from './pages/BlogListPage';
 export { default as BlogPostPage } from './pages/BlogPostPage';
+export { default as GuidesListPage } from './pages/GuidesListPage';
 export { default as GuidePage } from './pages/GuidePage';
 export { default as GlossaryListPage } from './pages/GlossaryListPage';
 export { default as GlossaryTermPage } from './pages/GlossaryTermPage';
