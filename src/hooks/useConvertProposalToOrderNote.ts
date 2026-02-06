@@ -1,0 +1,223 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { toast } from "sonner";
+
+interface ConvertToOrderNoteInput {
+  proposalId: string;
+  vatRate?: number;
+  adminNotes?: string;
+}
+
+export function useConvertProposalToOrderNote() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async ({
+      proposalId,
+      vatRate = 23,
+      adminNotes,
+    }: ConvertToOrderNoteInput) => {
+      if (!currentWorkspace) throw new Error("No workspace selected");
+
+      // 1. Fetch proposal with contact/company info
+      const { data: proposal, error: proposalError } = await supabase
+        .from("proposals")
+        .select(`
+          *,
+          contact:contacts(id, name, email, tax_id, address),
+          company:companies(id, name, email, tax_id, address)
+        `)
+        .eq("id", proposalId)
+        .single();
+
+      if (proposalError) throw new Error("Proposta não encontrada");
+
+      // 2. Fetch proposal items (only enabled ones)
+      const { data: proposalItems, error: itemsError } = await supabase
+        .from("proposal_items")
+        .select(`
+          *,
+          product:products(id, name, sku, images, primary_image_index)
+        `)
+        .eq("proposal_id", proposalId)
+        .eq("is_enabled", true)
+        .order("position", { ascending: true });
+
+      if (itemsError) throw itemsError;
+      if (!proposalItems || proposalItems.length === 0) {
+        throw new Error("A proposta não tem itens para converter");
+      }
+
+      // 3. Find or determine the client_user
+      const contactId = proposal.contact_id;
+      const companyId = proposal.company_id;
+
+      if (!contactId && !companyId) {
+        throw new Error("A proposta precisa de ter um contacto ou empresa associado");
+      }
+
+      // Look up existing client_user linked to this contact/company
+      let clientUserId: string | null = null;
+
+      if (contactId) {
+        const { data: existingClient } = await supabase
+          .from("client_users")
+          .select("id")
+          .eq("contact_id", contactId)
+          .eq("workspace_id", currentWorkspace.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingClient) {
+          clientUserId = existingClient.id;
+        }
+      }
+
+      if (!clientUserId && companyId) {
+        const { data: existingClient } = await supabase
+          .from("client_users")
+          .select("id")
+          .eq("company_id", companyId)
+          .eq("workspace_id", currentWorkspace.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingClient) {
+          clientUserId = existingClient.id;
+        }
+      }
+
+      // If no client_user exists, create one from the contact/company data
+      if (!clientUserId) {
+        const contact = proposal.contact;
+        const company = proposal.company;
+        const clientName = contact?.name || company?.name || "Cliente";
+        const clientEmail = contact?.email || company?.email;
+
+        if (!clientEmail) {
+          throw new Error("O contacto/empresa precisa de ter email para criar utilizador cliente");
+        }
+
+        const { data: newClient, error: createError } = await supabase
+          .from("client_users")
+          .insert({
+            workspace_id: currentWorkspace.id,
+            name: clientName,
+            email: clientEmail,
+            contact_id: contactId || null,
+            company_id: companyId || null,
+            tax_id: contact?.tax_id || company?.tax_id || null,
+            billing_address: proposal.billing_address
+              ? { street: proposal.billing_address }
+              : null,
+            status: "active",
+          })
+          .select("id")
+          .single();
+
+        if (createError) throw new Error("Erro ao criar utilizador cliente: " + createError.message);
+        clientUserId = newClient.id;
+      }
+
+      // 4. Calculate totals
+      const itemsWithVat = proposalItems.map((item) => {
+        const lineNet = item.quantity * item.unit_price;
+        const lineVat = lineNet * (vatRate / 100);
+        return {
+          ...item,
+          lineNet,
+          lineVat,
+          lineGross: lineNet + lineVat,
+        };
+      });
+
+      const totalNet = itemsWithVat.reduce((sum, i) => sum + i.lineNet, 0);
+      const totalVat = itemsWithVat.reduce((sum, i) => sum + i.lineVat, 0);
+      const totalGross = itemsWithVat.reduce((sum, i) => sum + i.lineGross, 0);
+
+      // 5. Build billing address from proposal
+      const billingAddress: Record<string, string> = {};
+      if (proposal.billing_address) {
+        billingAddress.street = proposal.billing_address;
+      }
+      if (proposal.billing_nif) {
+        billingAddress.additional_info = `NIF: ${proposal.billing_nif}`;
+      }
+
+      // 6. Create order note (order_number is auto-generated by trigger)
+      const { data: orderNote, error: orderError } = await supabase
+        .from("order_notes")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          client_user_id: clientUserId,
+          order_number: `TEMP-${Date.now()}`, // Will be overridden by trigger
+          status: "submitted",
+          total_net: totalNet,
+          total_vat: totalVat,
+          total_gross: totalGross,
+          currency: proposal.currency || "EUR",
+          billing_address: Object.keys(billingAddress).length > 0 ? billingAddress : null,
+          admin_notes: adminNotes || `Gerada a partir da Proposta "${proposal.title}"`,
+          client_notes: proposal.notes || null,
+          opportunity_id: proposal.opportunity_id || null,
+          submitted_at: new Date().toISOString(),
+          installment_requested: false,
+          installment_count: 0,
+        })
+        .select("id, order_number")
+        .single();
+
+      if (orderError) throw new Error("Erro ao criar nota de encomenda: " + orderError.message);
+
+      // 7. Create order note items
+      const orderItems = itemsWithVat.map((item, index) => {
+        // Get product image URL
+        let productImageUrl: string | null = null;
+        if (item.product?.images && Array.isArray(item.product.images) && item.product.images.length > 0) {
+          const imgIndex = item.product?.primary_image_index ?? 0;
+          productImageUrl = (item.product.images as string[])[imgIndex] || (item.product.images as string[])[0] || null;
+        }
+
+        return {
+          order_note_id: orderNote.id,
+          workspace_id: currentWorkspace.id,
+          product_id: item.product_id || null,
+          product_name: item.name,
+          product_sku: item.product?.sku || null,
+          product_image_url: productImageUrl,
+          quantity: item.quantity,
+          unit_price_net: item.unit_price,
+          vat_rate: vatRate,
+          vat_amount: item.lineVat,
+          line_total_net: item.lineNet,
+          line_total_gross: item.lineGross,
+          position: index,
+          notes: item.description || null,
+        };
+      });
+
+      const { error: orderItemsError } = await supabase
+        .from("order_note_items")
+        .insert(orderItems);
+
+      if (orderItemsError) {
+        // Rollback: delete the order note
+        await supabase.from("order_notes").delete().eq("id", orderNote.id);
+        throw new Error("Erro ao criar itens da encomenda: " + orderItemsError.message);
+      }
+
+      return orderNote;
+    },
+    onSuccess: (orderNote) => {
+      queryClient.invalidateQueries({ queryKey: ["order-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      toast.success(`Nota de Encomenda #${orderNote.order_number} criada com sucesso`);
+    },
+    onError: (error) => {
+      console.error("Error converting proposal to order note:", error);
+      toast.error(error.message || "Erro ao converter proposta em nota de encomenda");
+    },
+  });
+}
