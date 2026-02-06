@@ -1,110 +1,115 @@
 
-# Plano: Integração de Videoconferencia por Workspace (Google Meet + Zoom)
 
-## Contexto
+# Passo a Passo: Integrar Google Meet no FastCRM
 
-Cada workspace representa uma empresa diferente que terá as suas proprias credenciais de Zoom e Google Meet. Vamos seguir o mesmo padrao ja usado para Stripe e GoHighLevel -- uma tabela de configuracao por workspace + edge functions para criar as reunioes.
+## O Que Vai Mudar
 
-## Arquitectura
+Atualmente, cada workspace precisa inserir manualmente Client ID e Client Secret. Vamos simplificar para que o admin do workspace apenas clique em "Conectar com Google" e autorize a sua conta Google -- as reunioes serao criadas no calendario dessa pessoa.
 
-### 1. Nova tabela: `workspace_video_config`
+Para isso, o FastCRM precisa de ter uma unica app OAuth registada no Google, cujas credenciais ficam guardadas como secrets da plataforma.
 
-Armazenara as credenciais de Zoom e Google Meet por workspace:
+---
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | PK |
-| workspace_id | uuid | FK para workspaces (unique) |
-| zoom_account_id | text | Zoom Account ID |
-| zoom_client_id | text | Zoom Client ID |
-| zoom_client_secret_encrypted | text | Zoom Client Secret |
-| google_service_account_json | text | JSON da Service Account do Google (encriptado) |
-| google_calendar_email | text | Email do calendario Google a usar |
-| zoom_enabled | boolean | Se Zoom esta ativo |
-| google_meet_enabled | boolean | Se Google Meet esta ativo |
-| created_at | timestamptz | Data de criacao |
-| updated_at | timestamptz | Data de actualizacao |
+## Passo 1: Criar a App OAuth no Google Cloud Console
 
-RLS: Apenas owners/admins do workspace podem ver e editar (mesmo padrao de `workspace_stripe_config`).
+1. Acede a [console.cloud.google.com](https://console.cloud.google.com)
+2. Cria um projeto novo (ou usa um existente) -- ex: "FastCRM Video"
+3. No menu lateral, vai a **APIs e Servicos > Biblioteca**
+4. Procura e ativa a **Google Calendar API**
+5. Vai a **APIs e Servicos > Tela de consentimento OAuth**
+   - Tipo: **Externo**
+   - Preenche o nome da app: "FastCRM"
+   - Email de suporte: o teu email
+   - Dominios autorizados: `supabase.co` e `lovable.app`
+   - Scopes: adiciona `https://www.googleapis.com/auth/calendar.events`
+6. Vai a **APIs e Servicos > Credenciais**
+   - Clica **Criar credenciais > ID do cliente OAuth**
+   - Tipo: **Aplicacao Web**
+   - Nome: "FastCRM Video"
+   - **URIs de redirecionamento autorizados**: adiciona exatamente:
+     ```
+     https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/video-oauth-callback
+     ```
+   - Clica **Criar**
+7. Copia o **Client ID** e o **Client Secret** que aparecem
 
-### 2. Edge Function: `create-video-meeting`
+---
 
-Uma unica edge function que recebe o `workspace_id`, o `provider` (zoom ou google_meet) e os dados da reuniao, e:
+## Passo 2: Guardar os Secrets na Plataforma
 
-1. Le as credenciais do workspace da tabela `workspace_video_config`
-2. Se `provider = zoom`:
-   - Obtem token OAuth via Server-to-Server (Account ID + Client ID + Client Secret)
-   - Chama `POST https://api.zoom.us/v2/users/me/meetings` para criar a reuniao
-   - Devolve o `join_url`
-3. Se `provider = google_meet`:
-   - Autentica com a Service Account (JWT)
-   - Cria um evento no Google Calendar com `conferenceData` para gerar link do Meet
-   - Devolve o `hangoutLink`
+Depois de teres o Client ID e Client Secret do Google, vou pedir para os guardares como secrets seguros da plataforma:
+- `GOOGLE_OAUTH_CLIENT_ID`
+- `GOOGLE_OAUTH_CLIENT_SECRET`
 
-### 3. Hook: `useWorkspaceVideoConfig`
+Estes valores ficam acessiveis apenas nas funcoes backend e nunca sao expostos no codigo.
 
-Hook React seguindo o padrao de `useWorkspaceStripeConfig` / `useWorkspaceGHLConfig`:
-- Ler configuracao do workspace
-- Guardar/actualizar credenciais
-- Testar conexao
+---
 
-### 4. Componente: `WorkspaceVideoSettings`
+## Passo 3: Alteracoes no Codigo
 
-Componente de settings seguindo o padrao do `WorkspaceGHLSettings`:
-- Secao Zoom: campos para Account ID, Client ID, Client Secret, toggle ativo
-- Secao Google Meet: upload/paste do JSON da Service Account, email do calendario, toggle ativo
-- Botao de testar cada conexao
-- Integrado na pagina de Settings > Integracoes
+### 3.1 Edge Function `video-auth-url`
+Alterar para ler o Client ID do secret da plataforma (`GOOGLE_OAUTH_CLIENT_ID`) em vez de ler da tabela `workspace_video_config`. Mantemos o `state` com o `workspace_id` para saber a que workspace associar os tokens.
 
-### 5. Alteracao no `MeetingCreateModal`
+### 3.2 Edge Function `video-oauth-callback`
+Alterar para usar `GOOGLE_OAUTH_CLIENT_ID` e `GOOGLE_OAUTH_CLIENT_SECRET` dos secrets da plataforma ao trocar o code por tokens. Os tokens resultantes (access_token, refresh_token) continuam a ser guardados na tabela `workspace_video_config` -- associados ao workspace do admin que autorizou.
 
-Quando o modo e "online":
-- Mostrar dropdown com opcao de provider: "Google Meet", "Zoom", "Link manual"
-- Se Google Meet ou Zoom selecionado, ao criar a reuniao:
-  1. Chama a edge function `create-video-meeting`
-  2. Recebe o link gerado
-  3. Preenche automaticamente o campo `meeting_url` e `meeting_provider` na tabela `meetings`
-- A tabela `meetings` ja tem os campos `meeting_url` e `meeting_provider` -- nao precisa de migracao
+### 3.3 Edge Function `create-video-meeting`
+Alterar o `refreshGoogleToken` para usar os secrets da plataforma em vez de credenciais por workspace.
 
-### 6. Integracao na pagina de Settings
+### 3.4 UI `WorkspaceVideoSettings.tsx`
+Simplificar a seccao Google Meet:
+- Remover campos de Client ID e Client Secret
+- Manter apenas o botao "Conectar com Google"
+- Quando conectado, mostrar badge verde + botoes "Testar" e "Desligar"
 
-Adicionar nova seccao "Videoconferencia" em `IntegrationsSettings.tsx` com o componente `WorkspaceVideoSettings`.
+### 3.5 Hook `useWorkspaceVideoConfig.ts`
+Simplificar o `connectOAuth` -- ja nao precisa de verificar se ha credenciais guardadas no workspace, basta chamar a edge function que usa os secrets globais.
 
-## Ficheiros a Criar
+---
 
-| Ficheiro | Descricao |
-|----------|-----------|
-| `src/hooks/useWorkspaceVideoConfig.ts` | Hook para gerir config de video |
-| `src/components/settings/sections/WorkspaceVideoSettings.tsx` | UI de settings |
-| `supabase/functions/create-video-meeting/index.ts` | Edge function para criar reunioes |
+## Resumo do Fluxo Final
+
+```text
+Admin clica "Conectar com Google"
+         |
+         v
+Edge function gera URL OAuth 
+(usando GOOGLE_OAUTH_CLIENT_ID da plataforma)
+         |
+         v
+Admin e redirecionado para Google
+e autoriza a sua conta pessoal/empresa
+         |
+         v
+Google redireciona para video-oauth-callback
+         |
+         v
+Callback troca code por tokens 
+(usando secrets da plataforma)
+         |
+         v
+Tokens (access + refresh) guardados 
+na workspace_video_config do workspace
+         |
+         v
+Ao criar reuniao, usa os tokens 
+do workspace para criar evento 
+no calendario do admin
+```
+
+---
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteracao |
 |----------|-----------|
-| `src/components/meetings/MeetingCreateModal.tsx` | Adicionar selector de provider e logica de criacao automatica |
-| `src/components/settings/sections/IntegrationsSettings.tsx` | Adicionar seccao de Videoconferencia |
-| `src/hooks/useMeetings.ts` | Integrar chamada a edge function no `createMeeting` |
+| `supabase/functions/video-auth-url/index.ts` | Usar `GOOGLE_OAUTH_CLIENT_ID` do env em vez da tabela |
+| `supabase/functions/video-oauth-callback/index.ts` | Usar secrets da plataforma para trocar code por tokens |
+| `supabase/functions/create-video-meeting/index.ts` | Usar secrets da plataforma para refresh de tokens |
+| `src/components/settings/sections/WorkspaceVideoSettings.tsx` | Remover campos de credenciais, simplificar para botao "Conectar" |
+| `src/hooks/useWorkspaceVideoConfig.ts` | Simplificar logica de conexao |
 
-## Migracao de Base de Dados
+## Proximo Passo
 
-Criar tabela `workspace_video_config` com RLS policies para owners/admins.
+Depois de aprovares este plano, vou pedir-te os dois secrets (Google Client ID e Secret) e implementar todas as alteracoes.
 
-## Fluxo de Utilizacao
-
-1. Admin do workspace vai a Settings > Integracoes > Videoconferencia
-2. Configura credenciais do Zoom e/ou Google Meet
-3. Ao criar uma reuniao online, seleciona o provider
-4. O sistema cria automaticamente a reuniao na plataforma e preenche o link
-
-## Secao Tecnica
-
-### Zoom Server-to-Server OAuth
-- Endpoint de token: `POST https://zoom.us/oauth/token?grant_type=account_credentials&account_id={accountId}`
-- Header: `Authorization: Basic base64(clientId:clientSecret)`
-- Endpoint de reuniao: `POST https://api.zoom.us/v2/users/me/meetings`
-
-### Google Meet via Calendar API
-- Autenticacao via Service Account JWT
-- Criar evento com `conferenceDataVersion=1` e `createRequest` para gerar Meet link
-- Endpoint: `POST https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events?conferenceDataVersion=1`
