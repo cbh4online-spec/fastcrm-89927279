@@ -112,10 +112,18 @@ async function getValidGoogleToken(
     throw new Error("Google Meet não está conectado. Faça a ligação nas configurações.");
   }
 
+  // Use platform-level OAuth credentials for token refresh
+  const platformClientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
+  const platformClientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
+
+  if (!platformClientId || !platformClientSecret) {
+    throw new Error("Credenciais OAuth do Google não configuradas na plataforma");
+  }
+
   const tokenData = await refreshGoogleToken(
     config.google_refresh_token,
-    config.google_client_id,
-    config.google_client_secret_encrypted
+    platformClientId,
+    platformClientSecret
   );
 
   // Update stored tokens

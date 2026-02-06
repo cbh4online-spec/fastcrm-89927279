@@ -17,7 +17,7 @@ import {
   Unplug,
   ExternalLink,
 } from "lucide-react";
-import { useWorkspaceVideoConfig, SaveVideoConfigInput } from "@/hooks/useWorkspaceVideoConfig";
+import { useWorkspaceVideoConfig, type SaveVideoConfigInput } from "@/hooks/useWorkspaceVideoConfig";
 import { toast } from "sonner";
 
 export function WorkspaceVideoSettings() {
@@ -27,9 +27,7 @@ export function WorkspaceVideoSettings() {
     isZoomConnected,
     isGoogleMeetConnected,
     isZoomConfigured,
-    isGoogleMeetConfigured,
     hasZoomCredentials,
-    hasGoogleCredentials,
     saveConfig,
     saveConfigAsync,
     isSaving,
@@ -47,12 +45,6 @@ export function WorkspaceVideoSettings() {
   const [zoomClientId, setZoomClientId] = useState("");
   const [zoomClientSecret, setZoomClientSecret] = useState("");
   const [showZoomSecret, setShowZoomSecret] = useState(false);
-
-  // Google Meet fields
-  const [googleClientId, setGoogleClientId] = useState("");
-  const [googleClientSecret, setGoogleClientSecret] = useState("");
-  const [showGoogleSecret, setShowGoogleSecret] = useState(false);
-  const [googleCalendarEmail, setGoogleCalendarEmail] = useState("");
 
   // Handle OAuth callback params
   useEffect(() => {
@@ -82,8 +74,6 @@ export function WorkspaceVideoSettings() {
   useEffect(() => {
     if (config) {
       setZoomClientId(config.zoom_client_id || "");
-      setGoogleClientId(config.google_client_id || "");
-      setGoogleCalendarEmail(config.google_calendar_email || "");
     }
   }, [config]);
 
@@ -113,32 +103,8 @@ export function WorkspaceVideoSettings() {
     setZoomClientSecret("");
   };
 
-  const handleSaveGoogle = async () => {
-    if (!googleClientId.trim()) {
-      toast.error("Preencha o Client ID do Google");
-      return;
-    }
-    if (!hasGoogleCredentials && !googleClientSecret.trim()) {
-      toast.error("Insira o Client Secret do Google");
-      return;
-    }
-
-    const input: SaveVideoConfigInput = {
-      zoom_client_id: config?.zoom_client_id || undefined,
-      zoom_enabled: config?.zoom_enabled ?? false,
-      google_client_id: googleClientId.trim(),
-      google_client_secret: googleClientSecret.trim() || undefined,
-      google_calendar_email: googleCalendarEmail.trim(),
-      google_meet_enabled: config?.google_meet_enabled ?? false,
-    };
-
-    await saveConfigAsync(input);
-    setGoogleClientSecret("");
-  };
-
   const handleConnectZoom = async () => {
     if (!isZoomConfigured) {
-      // Save first, then connect
       if (!zoomClientId.trim() || !zoomClientSecret.trim()) {
         toast.error("Preencha Client ID e Client Secret antes de conectar");
         return;
@@ -148,14 +114,7 @@ export function WorkspaceVideoSettings() {
     connectOAuth("zoom");
   };
 
-  const handleConnectGoogle = async () => {
-    if (!isGoogleMeetConfigured) {
-      if (!googleClientId.trim() || !googleClientSecret.trim()) {
-        toast.error("Preencha Client ID e Client Secret antes de conectar");
-        return;
-      }
-      await handleSaveGoogle();
-    }
+  const handleConnectGoogle = () => {
     connectOAuth("google_meet");
   };
 
@@ -336,84 +295,17 @@ export function WorkspaceVideoSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-xs space-y-1">
-              <p>1. Ative a Google Calendar API no{" "}
-                <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                  Google Cloud Console
-                </a>
-              </p>
-              <p>2. Crie credenciais OAuth 2.0 (Web application)</p>
-              <p>3. Configure o Redirect URI: <code className="bg-muted px-1 rounded text-[10px] break-all">{callbackUrl}</code></p>
-              <p>4. Cole o Client ID e Client Secret abaixo e clique "Conectar"</p>
-            </AlertDescription>
-          </Alert>
-
           {!isGoogleMeetConnected ? (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="google-client-id">Client ID</Label>
-                <Input
-                  id="google-client-id"
-                  placeholder="Ex: 123456789.apps.googleusercontent.com"
-                  value={googleClientId}
-                  onChange={(e) => setGoogleClientId(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="google-client-secret">
-                  Client Secret{" "}
-                  {hasGoogleCredentials && (
-                    <span className="text-muted-foreground">(já configurado)</span>
-                  )}
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="google-client-secret"
-                    type={showGoogleSecret ? "text" : "password"}
-                    placeholder={hasGoogleCredentials ? "••••••••••••••••" : "Insira o Client Secret"}
-                    value={googleClientSecret}
-                    onChange={(e) => setGoogleClientSecret(e.target.value)}
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={() => setShowGoogleSecret(!showGoogleSecret)}
-                  >
-                    {showGoogleSecret ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="google-calendar-email">Email do Calendário (opcional)</Label>
-                <Input
-                  id="google-calendar-email"
-                  type="email"
-                  placeholder="primary (ou email específico)"
-                  value={googleCalendarEmail}
-                  onChange={(e) => setGoogleCalendarEmail(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Deixe vazio para usar o calendário principal da conta autorizada.
-                </p>
-              </div>
-
+              <p className="text-sm text-muted-foreground">
+                Clique no botão abaixo para autorizar o FastCRM a criar reuniões no seu Google Calendar.
+              </p>
               <Button
                 onClick={handleConnectGoogle}
-                disabled={isConnecting || isSaving}
+                disabled={isConnecting}
                 className="w-full"
               >
-                {(isConnecting || isSaving) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Conectar com Google
               </Button>
@@ -426,7 +318,6 @@ export function WorkspaceVideoSettings() {
                   <p className="text-sm font-medium">Google Meet ligado com sucesso</p>
                   <p className="text-xs text-muted-foreground">
                     As reuniões Meet serão criadas automaticamente
-                    {config?.google_calendar_email && ` no calendário ${config.google_calendar_email}`}
                   </p>
                 </div>
               </div>

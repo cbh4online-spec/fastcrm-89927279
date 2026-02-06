@@ -97,11 +97,13 @@ Deno.serve(async (req) => {
     }
 
     if (provider === "google_meet") {
-      const clientId = config.google_client_id;
-      const clientSecret = config.google_client_secret_encrypted;
+      // Use platform-level OAuth credentials
+      const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
+      const clientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
 
       if (!clientId || !clientSecret) {
-        return redirectWithError(redirect_url, "Credenciais Google não encontradas");
+        console.error("Platform Google OAuth credentials not configured");
+        return redirectWithError(redirect_url, "Credenciais OAuth do Google não configuradas na plataforma");
       }
 
       // Exchange code for tokens
