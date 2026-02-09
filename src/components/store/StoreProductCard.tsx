@@ -17,9 +17,13 @@ interface StoreProductCardProps {
   wishlistProductIds?: string[];
   tierPricing?: { tier: import("@/types/pricing-tier").ClientPriceTier | null; tierPrices: Map<string, number>; isB2B: boolean } | null;
   index?: number;
+  /** Batch review stats: Map<productId, { sum, count }> */
+  reviewStats?: Map<string, { sum: number; count: number }>;
+  /** Batch sales counts: Map<productId, number> */
+  salesCounts?: Map<string, number>;
 }
 
-export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlistProductIds = [], tierPricing, index = 0 }: StoreProductCardProps) {
+export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlistProductIds = [], tierPricing, index = 0, reviewStats, salesCounts }: StoreProductCardProps) {
   const { addItem } = useStoreCart();
   const toggleWishlist = useToggleWishlist();
   const isInWishlist = wishlistProductIds.includes(product.id);
@@ -27,6 +31,15 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
   const isOutOfStock = product.stock_status === "out_of_stock";
   const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
+
+  // Review stats
+  const reviewData = reviewStats?.get(product.id);
+  const reviewCount = reviewData?.count || 0;
+  const reviewAvg = reviewCount > 0 ? reviewData!.sum / reviewCount : 0;
+
+  // Sales count
+  const soldCount = salesCounts?.get(product.id) || 0;
+  const soldLabel = soldCount >= 500 ? "500+" : soldCount >= 100 ? "100+" : soldCount >= 50 ? "50+" : soldCount >= 10 ? `${soldCount}+` : null;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -87,6 +100,15 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               />
             </div>
 
+            {/* Social proof badge - sold count */}
+            {soldLabel && (
+              <div className="absolute top-3 right-3">
+                <Badge variant="secondary" className="text-[10px] bg-background/90 backdrop-blur-sm shadow-sm">
+                  {soldLabel} vendidos
+                </Badge>
+              </div>
+            )}
+
             {isOutOfStock && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
                 <Badge variant="secondary" className="text-sm font-medium px-4 py-1">
@@ -132,6 +154,27 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
             <h3 className="font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors duration-200">
               {product.name}
             </h3>
+
+            {/* Stars + review count */}
+            {reviewCount > 0 && (
+              <div className="flex items-center gap-1">
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      className={cn(
+                        "h-3 w-3",
+                        s <= Math.round(reviewAvg)
+                          ? "fill-warning text-warning"
+                          : "text-muted-foreground/30"
+                      )}
+                    />
+                  ))}
+                </div>
+                <span className="text-[11px] text-muted-foreground">({reviewCount})</span>
+              </div>
+            )}
+
             {product.short_description && (
               <p className="text-sm text-muted-foreground line-clamp-2 mt-auto">
                 {product.short_description}

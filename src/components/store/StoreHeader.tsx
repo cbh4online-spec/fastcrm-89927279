@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Search, X, Heart, ClipboardList, User } from "lucide-react";
+import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,15 +12,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
+import type { StoreCategory } from "@/hooks/useStoreProducts";
 
 interface StoreHeaderProps {
   storeName?: string;
   logoUrl?: string;
   onSearch?: (query: string) => void;
   workspaceSlug: string;
+  categories?: StoreCategory[];
+  onSelectCategory?: (id?: string) => void;
 }
 
-export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSlug }: StoreHeaderProps) {
+export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSlug, categories = [], onSelectCategory }: StoreHeaderProps) {
   const { totalItems, setIsOpen } = useStoreCart();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,15 +43,54 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link
-          to={`/store/${workspaceSlug}`}
-          className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
-        >
-          {logoUrl && (
-            <img src={logoUrl} alt={storeName} className="h-8 w-8 object-contain rounded" />
+        <div className="flex items-center gap-4">
+          <Link
+            to={`/store/${workspaceSlug}`}
+            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+          >
+            {logoUrl && (
+              <img src={logoUrl} alt={storeName} className="h-8 w-8 object-contain rounded" />
+            )}
+            <span className="text-xl font-bold tracking-tight">{storeName}</span>
+          </Link>
+
+          {/* Mega Menu - Categories */}
+          {categories.length > 0 && onSelectCategory && (
+            <NavigationMenu className="hidden md:flex">
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="h-9 gap-1 text-sm">
+                    <Grid3X3 className="h-4 w-4" />
+                    Categorias
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid gap-1 p-4 w-[300px]">
+                      <button
+                        onClick={() => onSelectCategory(undefined)}
+                        className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors text-left"
+                      >
+                        <Grid3X3 className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Todos os Produtos</span>
+                      </button>
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.id}
+                          onClick={() => onSelectCategory(cat.id)}
+                          className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors text-left"
+                        >
+                          <span className="font-medium">{cat.name}</span>
+                          {cat.description && (
+                            <span className="text-xs text-muted-foreground ml-auto truncate max-w-[120px]">{cat.description}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
           )}
-          <span className="text-xl font-bold tracking-tight">{storeName}</span>
-        </Link>
+        </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
           <AnimatePresence mode="wait">

@@ -9,10 +9,16 @@ import { StoreHeroSection } from "@/components/store/sections/StoreHeroSection";
 import { StoreTrustSection } from "@/components/store/sections/StoreTrustSection";
 import { StoreFeaturedSection } from "@/components/store/sections/StoreFeaturedSection";
 import { StoreCTABanner } from "@/components/store/sections/StoreCTABanner";
+import { StoreDealsSection } from "@/components/store/sections/StoreDealsSection";
+import { StoreCategoryCarousel } from "@/components/store/sections/StoreCategoryCarousel";
+import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
+import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreFilterSidebar";
 import { useStoreProducts, useStoreCategories } from "@/hooks/useStoreProducts";
 import { useStoreTierPricing } from "@/hooks/useStoreTierPricing";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import { useBatchReviewStats, useProductSalesCount } from "@/hooks/useProductSalesCount";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Package } from "lucide-react";
 
@@ -46,10 +52,16 @@ export default function StorePage() {
   const { data: categories = [] } = useStoreCategories(wsId);
   const { data: tierPricing } = useStoreTierPricing(wsId);
   const { data: storeSettings } = usePublicStoreSettings(wsId);
+  const { items: recentlyViewed } = useRecentlyViewed();
+  const { data: reviewStats } = useBatchReviewStats(wsId);
+  const { data: salesCounts } = useProductSalesCount(wsId);
 
   const storeName = storeSettings?.store_name || "Loja";
   const showHero = !search && !filters.categoryId && !filters.minPrice && !filters.maxPrice && !filters.inStock;
   const isFiltering = !!search || !!filters.categoryId || !!filters.minPrice || !!filters.maxPrice || !!filters.inStock;
+
+  // "Deals" — featured products serve as deals for now
+  const dealProducts = featuredProducts.filter(p => p.stock_status !== "out_of_stock");
 
   const maxPrice = useMemo(() => {
     if (allProducts.length === 0) return 500;
@@ -69,8 +81,19 @@ export default function StorePage() {
           logoUrl={storeSettings?.logo_url || undefined}
           onSearch={setSearch}
           workspaceSlug={wsId}
+          categories={categories}
+          onSelectCategory={(id) => setFilters(f => ({ ...f, categoryId: id }))}
         />
         <StoreCartDrawer workspaceSlug={wsId} />
+
+        {/* Category Carousel */}
+        {categories.length > 0 && showHero && (
+          <StoreCategoryCarousel
+            categories={categories}
+            selectedCategoryId={filters.categoryId}
+            onSelectCategory={(id) => setFilters(f => ({ ...f, categoryId: id }))}
+          />
+        )}
 
         {/* Hero */}
         {showHero && (
@@ -83,6 +106,15 @@ export default function StorePage() {
         )}
 
         {showHero && <StoreTrustSection />}
+
+        {/* Deals section */}
+        {showHero && dealProducts.length > 0 && (
+          <StoreDealsSection
+            products={dealProducts}
+            workspaceSlug={wsId}
+            tierPricing={tierPricing}
+          />
+        )}
 
         {showHero && featuredProducts.length > 0 && (
           <StoreFeaturedSection
@@ -169,6 +201,8 @@ export default function StorePage() {
                         workspaceSlug={wsId}
                         tierPricing={tierPricing}
                         index={index}
+                        reviewStats={reviewStats}
+                        salesCounts={salesCounts}
                       />
                     ))}
                   </div>
@@ -176,14 +210,23 @@ export default function StorePage() {
               )}
             </div>
           </div>
+
+          {/* Recently Viewed */}
+          {recentlyViewed.length > 0 && (
+            <StoreRecentlyViewed
+              items={recentlyViewed}
+              workspaceSlug={wsId}
+            />
+          )}
         </section>
 
         {/* Footer */}
-        <footer className="border-t bg-muted/30">
-          <div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-            <p>{storeSettings?.footer_text || `© ${new Date().getFullYear()} Todos os direitos reservados.`}</p>
-          </div>
-        </footer>
+        <StoreFooter
+          workspaceSlug={wsId}
+          storeName={storeName}
+          categories={categories}
+          footerText={storeSettings?.footer_text}
+        />
       </div>
     </>
   );
