@@ -1,116 +1,142 @@
 
-# Analytics da Loja - Estilo Amazon Seller Central
 
-Estudo do Amazon Seller Central e aplicacao ao dashboard de analytics da loja, transformando-o num painel completo e profissional.
+# Frontoffice da Loja - Estrategia Amazon
 
----
-
-## O que o Amazon Seller Central oferece (e vamos replicar)
-
-1. **Business Report Dashboard** - KPIs com sparklines, comparacao temporal
-2. **Sales Dashboard** - Receita, unidades vendidas, encomendas com graficos sobrepostos
-3. **Inventory Performance** - Stock, produtos sem stock, alertas
-4. **Conversion Funnel** - Sessoes -> Visualizacoes -> Carrinho -> Compra
-5. **Customer Metrics** - Novos vs recorrentes, taxa de retorno
-6. **Product Performance Table** - Tabela detalhada tipo spreadsheet com todas as metricas por produto
-7. **Coupons & Promotions Report** - Desempenho de cupoes
-8. **Order Defect Rate** - Cancelamentos, devolucoess
-9. **Geographic/Time Heatmap** - Vendas por hora/dia da semana
+Analise das melhores praticas da Amazon aplicadas ao frontoffice da loja, com foco em conversao, experiencia do utilizador e profissionalismo visual.
 
 ---
 
-## Plano de Implementacao
+## O que a Amazon faz (e falta na loja atual)
 
-### 1. Nova tabela: `store_page_views` (para funil de conversao)
-Criar tabela para tracking de visualizacoes de produto (anonimo, sem auth obrigatorio):
-- `product_id`, `workspace_id`, `session_id` (UUID gerado no browser), `created_at`
-- Componente de tracking automatico na pagina de produto
-- RLS: insert publico, select por workspace admin
+### Elementos Amazon que ja existem
+- Carrinho com upsell ("Pode tambem gostar")
+- Secao "Comprados Juntos" (cross-sell)
+- "Clientes tambem viram" (produtos relacionados)
+- Badges de escassez (ultima unidade, pouco stock)
+- Barra de frete gratis com progresso
+- Reviews com compra verificada
+- Lista de desejos
 
-### 2. Hook `useStoreAnalytics` - Expandir com novas metricas
-Adicionar queries para:
-- **Funil de conversao**: views -> cart adds -> orders -> paid
-- **Unidades vendidas** (total e por periodo)
-- **Clientes unicos** e taxa de recorrencia
-- **Performance de cupoes**: usos, receita com desconto, desconto total dado
-- **Taxa de cancelamento/defeito**
-- **Vendas por dia da semana e hora** (heatmap data)
-- **Stock alerts**: produtos com stock baixo ou esgotados
-- **Revenue por categoria**
+### Elementos Amazon em falta
 
-### 3. Redesign completo do `StoreAnalyticsPage` com tabs Amazon-style
+1. **"Frequently Bought Together" com checkbox** - Na Amazon, o utilizador pode selecionar/deselecionar itens do bundle, nao e so "adicionar todos"
+2. **Rating stars nos cards do catalogo** - Os cards nao mostram estrelas/avaliacoes, elemento critico de prova social
+3. **Contador de reviews nos cards** - "(47 avaliacoes)" nos cards como na Amazon
+4. **Secao "Visto recentemente"** - Historico local de produtos visitados, aparece na homepage e nas paginas de produto
+5. **"Compre outra vez"** - Produtos ja comprados anteriormente (para clientes recorrentes)
+6. **Countdown/urgencia temporal** - Timer de oferta limitada ao lado do preco (como "Oferta termina em 2h 15m")
+7. **Bullet points estilo Amazon** - Na pagina de produto, lista de features ao lado da imagem (nao abaixo)
+8. **Sticky "Add to Cart" bar** - Barra fixa no topo ao fazer scroll para baixo na pagina de produto (mobile e desktop)
+9. **Zoom de imagem on hover** - Lupa/zoom na imagem principal do produto
+10. **Video do produto** - Player de video demo inline na galeria de imagens
+11. **Delivery estimation** - "Entrega estimada: Ter, 12 Fev" ao lado do botao de compra
+12. **Quantidade vendida social proof** - "500+ vendidos no ultimo mes" ou "10 pessoas estao a ver agora"
+13. **"Deals" / Ofertas do dia na homepage** - Secao com countdown e produtos em promocao
+14. **Navegacao por categorias tipo mega-menu** - Menu expandido com categorias e subcategorias
+15. **Breadcrumbs melhorados** - Com links reais para categorias
 
-**Tab "Resumo" (Overview)**
-- KPIs expandidos: Receita, Encomendas, Unidades, AOV, Conversao, Clientes Unicos
-- Cada KPI com mini sparkline inline (como Amazon)
-- Comparacao percentual vs periodo anterior com setas coloridas
-- Grafico principal: Receita + Encomendas em dual-axis chart (Area + Line)
+---
 
-**Tab "Vendas" (Sales)**
-- Grafico de receita diaria com toggle: receita / unidades / encomendas
-- Breakdown por status (paid, shipped, delivered) em stacked bar
-- Revenue por categoria (horizontal bar chart)
-- Vendas por dia da semana (bar chart) + por hora (heatmap simplificado)
+## Plano de Implementacao (priorizado por impacto na conversao)
 
-**Tab "Produtos" (Product Performance)**
-- Tabela completa estilo Amazon com colunas:
-  - Produto (imagem + nome), Unidades, Receita, Views, Conversao, Stock, Rating medio
-- Ordenavel por qualquer coluna
-- Barra de progresso visual para stock
-- Badges de alerta (stock baixo, sem stock, best seller)
+### Fase 1: Social Proof e Urgencia (maior impacto em conversao)
 
-**Tab "Clientes"**
-- Total clientes unicos
-- Novos vs recorrentes (pie chart)
-- Top 10 clientes por valor gasto
-- Taxa de recompra
+**1.1 Stars + review count nos product cards**
+- Carregar review stats (media + count) por produto
+- Mostrar 5 estrelas + "(X)" nos cards do catalogo
+- Nova query otimizada para buscar stats em batch para todos os produtos visiveis
 
-**Tab "Cupoes"**
-- Lista de cupoes com metricas: usos, receita gerada, desconto total
-- Grafico de uso ao longo do tempo
+**1.2 "Visto recentemente" (localStorage)**
+- Guardar ultimos 10 produtos visitados em localStorage
+- Nova secao `StoreRecentlyViewed` na homepage (abaixo do catalogo)
+- Tambem aparece na pagina de produto, abaixo dos relacionados
 
-**Tab "Inventario"**
-- Vista geral do stock: em stock, baixo, esgotado (donut chart)
-- Lista de produtos com stock critico
-- Alertas visuais
+**1.3 Social proof "X vendidos"**
+- Contar encomendas pagas por produto
+- Badge "50+ vendidos" nos cards e pagina de produto
+- Criar hook `useProductSalesCount`
 
-### 4. Componente de tracking `StoreProductViewTracker`
-- Componente invisivel colocado na pagina de produto
-- Gera `session_id` em localStorage
-- Regista view ao montar (com debounce para evitar duplicados na mesma sessao)
+**1.4 Secao "Ofertas do Dia" na homepage**
+- Buscar produtos com desconto ativo (tier pricing ou featured)
+- Countdown timer ate meia-noite
+- Cards com badge vermelha de % desconto e preco riscado
 
-### 5. Melhorias visuais gerais
-- Cards com gradientes subtis e sombras como Amazon
-- Tooltips ricos nos graficos
-- Animacoes de entrada com framer-motion
-- Skeleton loaders em todos os blocos
-- Responsive: tabs colapsam em mobile, tabelas com scroll horizontal
+### Fase 2: Experiencia de Produto (pagina de produto Amazon-like)
+
+**2.1 Zoom de imagem**
+- On hover na imagem principal, mostrar lupa com zoom 2x
+- Em mobile, tap para fullscreen com pinch-to-zoom (dialog)
+
+**2.2 Video na galeria**
+- Se `demo_video_url` existe, mostrar como primeiro item na galeria
+- Player inline com thumbnail
+
+**2.3 Sticky "Add to Cart" bar**
+- Barra fixa que aparece quando o botao original sai do viewport
+- Mostra: imagem mini + nome + preco + botao "Adicionar"
+- Usa IntersectionObserver para toggle
+
+**2.4 Delivery estimation**
+- Texto "Entrega estimada: [data +3 dias uteis]" junto ao botao
+- Icone de camiao com data formatada
+
+**2.5 Bought Together com checkboxes**
+- Cada item do bundle tem checkbox selecionavel
+- Preco total atualiza em tempo real conforme selecao
+- Layout horizontal com "+" entre itens (ja existe, melhorar)
+
+### Fase 3: Homepage Premium
+
+**3.1 Mega-menu de categorias**
+- No header, hover sobre "Categorias" abre painel com todas as categorias
+- Com icones e contagem de produtos por categoria
+
+**3.2 Carrossel horizontal de categorias**
+- Faixa com cards de categorias (icone + nome) abaixo do hero
+- Scroll horizontal em mobile, grid em desktop
+
+**3.3 Secao "Novidades"**
+- Produtos criados nos ultimos 7 dias, em carrossel
+- Badge "Novo" automatico
+
+### Fase 4: Melhorias de Footer e Confianca
+
+**4.1 Footer completo Amazon-style**
+- 4 colunas: Sobre Nos, Ajuda, Categorias, Legal
+- Links para wishlist, encomendas, contacto
+- Back-to-top button
+
+**4.2 Barra de pagamento seguro**
+- Icones de metodos de pagamento (Visa, Mastercard, etc.)
+- SSL badge, garantia de devolucao
 
 ---
 
 ## Detalhes Tecnicos
 
-### Migracao SQL
-```sql
-CREATE TABLE store_page_views (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid REFERENCES workspaces(id) NOT NULL,
-  product_id uuid REFERENCES products(id) NOT NULL,
-  session_id text NOT NULL,
-  created_at timestamptz DEFAULT now()
-);
-CREATE INDEX idx_store_page_views_ws ON store_page_views(workspace_id, created_at);
-CREATE INDEX idx_store_page_views_product ON store_page_views(product_id, created_at);
--- RLS: public insert, workspace admin select
-```
-
 ### Ficheiros a criar
-- `src/components/store/StoreProductViewTracker.tsx`
+- `src/components/store/sections/StoreRecentlyViewed.tsx` - Historico de produtos visitados
+- `src/components/store/sections/StoreDealsSection.tsx` - Ofertas do dia com countdown
+- `src/components/store/sections/StoreCategoryCarousel.tsx` - Carrossel de categorias
+- `src/components/store/StoreImageZoom.tsx` - Componente de zoom de imagem
+- `src/components/store/StoreStickyAddToCart.tsx` - Barra sticky de add to cart
+- `src/components/store/StoreFooter.tsx` - Footer completo
+- `src/components/store/StoreMegaMenu.tsx` - Mega menu de categorias
+- `src/hooks/useRecentlyViewed.ts` - Hook para historico local
+- `src/hooks/useProductSalesCount.ts` - Hook para contagem de vendas
 
 ### Ficheiros a modificar
-- `src/hooks/useStoreAnalytics.ts` - Expandir com todas as novas queries
-- `src/pages/StoreAnalyticsPage.tsx` - Redesign completo com tabs
-- `src/pages/store/StoreProductPage.tsx` - Adicionar o tracker de views
+- `src/components/store/StoreProductCard.tsx` - Adicionar stars, review count, "X vendidos"
+- `src/pages/store/StoreProductPage.tsx` - Zoom, video, sticky bar, delivery estimate, bought together melhorado
+- `src/pages/store/StorePage.tsx` - Novas secoes (recently viewed, deals, category carousel, footer)
+- `src/components/store/StoreHeader.tsx` - Mega menu de categorias
+- `src/components/store/sections/StoreBoughtTogether.tsx` - Checkboxes de selecao
+
+### Queries novas
+- Review stats em batch (media + count por array de product_ids)
+- Sales count por produto (COUNT de store_orders pago por produto)
+- Produtos com desconto ativo
 
 ### Dependencias
-- Nenhuma nova - usa recharts, framer-motion e radix tabs ja instalados
+- Nenhuma nova - usa recharts, framer-motion, radix e lucide ja instalados
+
