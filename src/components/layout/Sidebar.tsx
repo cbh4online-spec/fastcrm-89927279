@@ -190,8 +190,17 @@ const navigationGroups: NavGroup[] = [
       { name: "Faturas", href: "/dashboard/invoices", icon: PaymentIcon, tooltip: "Gestão de faturas" },
       { name: "Agendamento", href: "/dashboard/scheduling", icon: CalendarDays, tooltip: "Calendários e reuniões" },
       { name: "Produtos", href: "/dashboard/products", icon: Package, tooltip: "Catálogo de produtos" },
-      { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: ShoppingCart, tooltip: "Encomendas B2B" },
+    ],
+  },
+  // PORTAL B2B
+  {
+    name: "Portal B2B",
+    icon: Landmark,
+    tooltip: "Portal de clientes B2B",
+    highlight: true,
+    items: [
       { name: "Clientes B2B", href: "/dashboard/client-users", icon: UsersRound, tooltip: "Clientes profissionais" },
+      { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: ShoppingCart, tooltip: "Encomendas B2B" },
       { name: "Portal B2B", href: "/dashboard/b2b-portal", icon: Store, tooltip: "Configurar portal de clientes", highlight: true },
     ],
   },
