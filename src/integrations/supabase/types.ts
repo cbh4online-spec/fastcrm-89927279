@@ -15943,6 +15943,7 @@ export type Database = {
           store_featured: boolean | null
           store_published: boolean | null
           store_sort_order: number | null
+          store_visibility: string
           target_margin_pct: number | null
           tax_rate_estimate_pct: number | null
           total_units: number | null
@@ -16010,6 +16011,7 @@ export type Database = {
           store_featured?: boolean | null
           store_published?: boolean | null
           store_sort_order?: number | null
+          store_visibility?: string
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
@@ -16077,6 +16079,7 @@ export type Database = {
           store_featured?: boolean | null
           store_published?: boolean | null
           store_sort_order?: number | null
+          store_visibility?: string
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
@@ -19244,6 +19247,96 @@ export type Database = {
           },
         ]
       }
+      store_ai_offers: {
+        Row: {
+          ai_reasoning: string | null
+          approved_at: string | null
+          approved_by: string | null
+          based_on: Json | null
+          confidence_score: number | null
+          contact_id: string | null
+          coupon_code: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_channel: string
+          description: string | null
+          discount_percentage: number | null
+          expires_at: string | null
+          id: string
+          offer_type: string
+          product_ids: string[] | null
+          redeemed_at: string | null
+          special_price: number | null
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_reasoning?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          based_on?: Json | null
+          confidence_score?: number | null
+          contact_id?: string | null
+          coupon_code?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_channel?: string
+          description?: string | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          id?: string
+          offer_type?: string
+          product_ids?: string[] | null
+          redeemed_at?: string | null
+          special_price?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_reasoning?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          based_on?: Json | null
+          confidence_score?: number | null
+          contact_id?: string | null
+          coupon_code?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_channel?: string
+          description?: string | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          id?: string
+          offer_type?: string
+          product_ids?: string[] | null
+          redeemed_at?: string | null
+          special_price?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_ai_offers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_ai_offers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_categories: {
         Row: {
           created_at: string
@@ -19281,6 +19374,92 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "store_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_conditional_offers: {
+        Row: {
+          applies_to: string
+          category_ids: string[] | null
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_fixed: number | null
+          discount_percentage: number | null
+          expires_at: string | null
+          free_product_ids: string[] | null
+          id: string
+          is_active: boolean
+          min_order_value: number | null
+          name: string
+          offer_type: string
+          priority: number
+          product_ids: string[] | null
+          special_price: number | null
+          starts_at: string | null
+          updated_at: string
+          usage_count: number
+          usage_limit: number | null
+          workspace_id: string
+        }
+        Insert: {
+          applies_to?: string
+          category_ids?: string[] | null
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_fixed?: number | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          free_product_ids?: string[] | null
+          id?: string
+          is_active?: boolean
+          min_order_value?: number | null
+          name: string
+          offer_type?: string
+          priority?: number
+          product_ids?: string[] | null
+          special_price?: number | null
+          starts_at?: string | null
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+          workspace_id: string
+        }
+        Update: {
+          applies_to?: string
+          category_ids?: string[] | null
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_fixed?: number | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          free_product_ids?: string[] | null
+          id?: string
+          is_active?: boolean
+          min_order_value?: number | null
+          name?: string
+          offer_type?: string
+          priority?: number
+          product_ids?: string[] | null
+          special_price?: number | null
+          starts_at?: string | null
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_conditional_offers_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -19337,6 +19516,163 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "store_coupons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_dynamic_pricing: {
+        Row: {
+          applies_to: string
+          category_ids: string[] | null
+          client_type: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          price_tier_id: string | null
+          pricing_type: string
+          priority: number
+          product_ids: string[] | null
+          segment_id: string | null
+          updated_at: string
+          value: number
+          workspace_id: string
+        }
+        Insert: {
+          applies_to?: string
+          category_ids?: string[] | null
+          client_type?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_tier_id?: string | null
+          pricing_type?: string
+          priority?: number
+          product_ids?: string[] | null
+          segment_id?: string | null
+          updated_at?: string
+          value?: number
+          workspace_id: string
+        }
+        Update: {
+          applies_to?: string
+          category_ids?: string[] | null
+          client_type?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_tier_id?: string | null
+          pricing_type?: string
+          priority?: number
+          product_ids?: string[] | null
+          segment_id?: string | null
+          updated_at?: string
+          value?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_dynamic_pricing_price_tier_id_fkey"
+            columns: ["price_tier_id"]
+            isOneToOne: false
+            referencedRelation: "client_price_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_dynamic_pricing_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_dynamic_pricing_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_offer_redemptions: {
+        Row: {
+          ai_offer_id: string | null
+          contact_id: string | null
+          created_at: string
+          discount_amount: number
+          final_total: number | null
+          id: string
+          offer_id: string | null
+          offer_type: string
+          order_id: string | null
+          original_total: number | null
+          pricing_rule_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_offer_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          final_total?: number | null
+          id?: string
+          offer_id?: string | null
+          offer_type: string
+          order_id?: string | null
+          original_total?: number | null
+          pricing_rule_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ai_offer_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          final_total?: number | null
+          id?: string
+          offer_id?: string | null
+          offer_type?: string
+          order_id?: string | null
+          original_total?: number | null
+          pricing_rule_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_offer_redemptions_ai_offer_id_fkey"
+            columns: ["ai_offer_id"]
+            isOneToOne: false
+            referencedRelation: "store_ai_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_offer_redemptions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_offer_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_offer_redemptions_pricing_rule_id_fkey"
+            columns: ["pricing_rule_id"]
+            isOneToOne: false
+            referencedRelation: "store_dynamic_pricing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_offer_redemptions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
