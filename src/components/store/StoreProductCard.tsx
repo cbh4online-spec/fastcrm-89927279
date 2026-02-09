@@ -44,10 +44,12 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
   const soldCount = salesCounts?.get(product.id) || 0;
   const soldLabel = soldCount >= 500 ? "500+" : soldCount >= 100 ? "100+" : soldCount >= 50 ? "50+" : soldCount >= 10 ? `${soldCount}+` : null;
 
+  const canAddToCart = !isOutOfStock && !(product.track_stock && product.stock_quantity != null && product.stock_quantity <= 0);
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isOutOfStock) return;
+    if (!canAddToCart) return;
     addItem({
       productId: product.id,
       name: product.name,
@@ -153,7 +155,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                 size="icon"
                 className="h-10 w-10 rounded-full shadow-lg transition-transform duration-200 active:scale-90"
                 onClick={handleAddToCart}
-                disabled={isOutOfStock}
+                disabled={!canAddToCart}
               >
                 <ShoppingBag className="h-4 w-4" />
               </Button>

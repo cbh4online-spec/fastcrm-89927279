@@ -129,7 +129,7 @@ serve(async (req) => {
     const productIds = items.map((i: { productId: string }) => i.productId);
     const { data: products, error: productsError } = await supabaseClient
       .from("products")
-      .select("id, name, base_price, currency, images, primary_image_index, sku, short_description")
+      .select("id, name, base_price, currency, images, primary_image_index, sku, short_description, stock_quantity, track_stock, stock_status")
       .eq("workspace_id", workspaceId)
       .eq("store_published", true)
       .eq("status", "active")
@@ -139,6 +139,20 @@ serve(async (req) => {
     if (!products || products.length === 0) throw new Error("No valid products found");
 
     logStep("Products validated", { count: products.length });
+
+    // Stock validation — block checkout if insufficient stock
+    for (const item of items as Array<{ productId: string; quantity: number }>) {
+      const product = products.find((p) => p.id === item.productId);
+      if (!product) throw new Error(`Produto ${item.productId} não encontrado`);
+      if (product.track_stock && product.stock_status === "out_of_stock") {
+        throw new Error(`"${product.name}" está esgotado`);
+      }
+      if (product.track_stock && product.stock_quantity !== null && item.quantity > product.stock_quantity) {
+        throw new Error(`Stock insuficiente para "${product.name}". Disponível: ${product.stock_quantity}`);
+      }
+    }
+
+    logStep("Stock validation passed");
 
     // Build line items from DB prices (never trust client prices)
     const lineItems = items.map((item: { productId: string; quantity: number }) => {

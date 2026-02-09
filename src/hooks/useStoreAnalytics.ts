@@ -453,7 +453,7 @@ export function useStoreAnalytics(days: number = 30) {
 
       const { data: products, error } = await supabase
         .from("products")
-        .select("id, name, images, primary_image_index, stock_quantity, stock_status, track_stock, category")
+        .select("id, name, images, primary_image_index, stock_quantity, stock_status, track_stock, category, low_stock_threshold")
         .eq("workspace_id", wsId)
         .eq("store_published", true)
         .eq("track_stock", true);
@@ -465,15 +465,16 @@ export function useStoreAnalytics(days: number = 30) {
       (products || []).forEach(p => {
         const qty = p.stock_quantity ?? 0;
         const status = p.stock_status || "available";
+        const threshold = (p as Record<string, unknown>).low_stock_threshold as number || 5;
         if (status === "out_of_stock" || qty <= 0) {
           outOfStock++;
-        } else if (status === "limited" || qty <= 5) {
+        } else if (status === "limited" || qty <= threshold) {
           lowStock++;
         } else {
           inStock++;
         }
 
-        if (status === "out_of_stock" || qty <= 5) {
+        if (status === "out_of_stock" || qty <= ((p as Record<string, unknown>).low_stock_threshold as number || 5)) {
           const imgIdx = p.primary_image_index ?? 0;
           alerts.push({
             productId: p.id,
