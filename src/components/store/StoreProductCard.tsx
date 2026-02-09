@@ -4,19 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useStoreCart } from "@/contexts/StoreCartContext";
+import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 
 interface StoreProductCardProps {
   product: StoreProduct;
   workspaceSlug: string;
+  tierPricing?: { tier: import("@/types/pricing-tier").ClientPriceTier | null; tierPrices: Map<string, number>; isB2B: boolean } | null;
 }
 
-export function StoreProductCard({ product, workspaceSlug }: StoreProductCardProps) {
+export function StoreProductCard({ product, workspaceSlug, tierPricing }: StoreProductCardProps) {
   const { addItem } = useStoreCart();
   const primaryIndex = product.primary_image_index ?? 0;
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
   const isOutOfStock = product.stock_status === "out_of_stock";
-
+  const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -24,7 +26,7 @@ export function StoreProductCard({ product, workspaceSlug }: StoreProductCardPro
     addItem({
       productId: product.id,
       name: product.name,
-      price: product.base_price,
+      price: effectivePrice,
       currency: product.currency,
       image: imageUrl,
       sku: product.sku || undefined,
@@ -95,14 +97,22 @@ export function StoreProductCard({ product, workspaceSlug }: StoreProductCardPro
               {product.short_description}
             </p>
           )}
-          <div className="flex items-baseline gap-1 pt-1">
+          <div className="flex items-baseline gap-2 pt-1">
             <span className="text-lg font-bold text-primary">
-              €{product.base_price.toFixed(2)}
+              €{effectivePrice.toFixed(2)}
             </span>
+            {isDiscounted && (
+              <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+            )}
             {product.billing_type === "recurring" && (
               <span className="text-xs text-muted-foreground">/mês</span>
             )}
           </div>
+          {discountLabel && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
+              {discountLabel}
+            </Badge>
+          )}
         </div>
       </div>
     </Link>

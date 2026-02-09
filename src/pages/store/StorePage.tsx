@@ -5,6 +5,7 @@ import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreProductCard } from "@/components/store/StoreProductCard";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { useStoreProducts, useStoreCategories } from "@/hooks/useStoreProducts";
+import { useStoreTierPricing } from "@/hooks/useStoreTierPricing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +32,7 @@ export default function StorePage() {
   });
 
   const { data: categories = [] } = useStoreCategories(wsId);
+  const { data: tierPricing } = useStoreTierPricing(wsId);
 
   const showHero = !search && !selectedCategory;
 
@@ -142,6 +144,7 @@ export default function StorePage() {
                   key={product.id}
                   product={product}
                   workspaceSlug={wsId}
+                  tierPricing={tierPricing}
                 />
               ))}
             </div>

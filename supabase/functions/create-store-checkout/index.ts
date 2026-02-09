@@ -126,8 +126,8 @@ serve(async (req) => {
       customer_email: customerId ? undefined : customerEmail,
       line_items: lineItems,
       mode: "payment",
-      success_url: successUrl || `${origin}/store/${workspaceId}?checkout=success`,
-      cancel_url: cancelUrl || `${origin}/store/${workspaceId}?checkout=canceled`,
+      success_url: successUrl || `${origin}/store/${workspaceId}/success`,
+      cancel_url: cancelUrl || `${origin}/store/${workspaceId}/cancel`,
       metadata: {
         workspace_id: workspaceId,
         user_id: userId || "",
