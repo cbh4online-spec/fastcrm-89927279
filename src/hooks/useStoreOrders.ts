@@ -11,6 +11,9 @@ export interface StoreOrder {
   customer_email: string;
   customer_phone: string | null;
   contact_id: string | null;
+  company_id: string | null;
+  opportunity_id: string | null;
+  campaign_id: string | null;
   status: string;
   items: Array<{
     product_id: string;
@@ -29,6 +32,9 @@ export interface StoreOrder {
   shipping_address: Record<string, string> | null;
   notes: string | null;
   paid_at: string | null;
+  shipped_at: string | null;
+  completed_at: string | null;
+  refunded_at: string | null;
   created_at: string;
   updated_at: string;
 }

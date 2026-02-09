@@ -100,6 +100,7 @@ import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
 import LeadEnricher from "./pages/LeadEnricher";
 import StoreOrdersPage from "./pages/StoreOrdersPage";
+import StoreOrderDetailPage from "./pages/StoreOrderDetailPage";
 import StoreSettingsPage from "./pages/StoreSettingsPage";
 import StoreProductsAdminPage from "./pages/StoreProductsAdminPage";
 import StoreCategoriesPage from "./pages/StoreCategoriesPage";
@@ -302,6 +303,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
                 <Route path="/dashboard/b2b-portal" element={<B2BPortalSettingsPage />} />
                 <Route path="/dashboard/store-orders" element={<StoreOrdersPage />} />
+                <Route path="/dashboard/store-orders/:id" element={<StoreOrderDetailPage />} />
                 <Route path="/dashboard/store-settings" element={<StoreSettingsPage />} />
                 <Route path="/dashboard/store-products" element={<StoreProductsAdminPage />} />
                 <Route path="/dashboard/store-categories" element={<StoreCategoriesPage />} />

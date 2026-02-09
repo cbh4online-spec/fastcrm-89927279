@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, ShoppingBag, MoreHorizontal, Eye, Package, Clock, CheckCircle2, XCircle, Truck, UserCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import {
@@ -59,6 +59,7 @@ export default function StoreOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<StoreOrder | null>(null);
   const { data: orders = [], isLoading } = useStoreOrders({ status: statusFilter, search });
   const updateStatus = useUpdateStoreOrderStatus();
+  const navigate = useNavigate();
 
   const handleStatusChange = (orderId: string, newStatus: string) => {
     updateStatus.mutate({ id: orderId, status: newStatus });
@@ -136,7 +137,7 @@ export default function StoreOrdersPage() {
                     </TableRow>
                   ) : (
                     orders.map((order) => (
-                      <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedOrder(order)}>
+                      <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/dashboard/store-orders/${order.id}`)}>
                         <TableCell className="font-mono text-sm">
                           {order.order_number || order.id.slice(0, 8)}
                         </TableCell>
