@@ -7,6 +7,7 @@ import { StoreOrderTimeline } from "@/components/store-orders/StoreOrderTimeline
 import { StoreOrderAssociations } from "@/components/store-orders/StoreOrderAssociations";
 import { StoreOrderTracking } from "@/components/store-orders/StoreOrderTracking";
 import { ReturnRequestManager } from "@/components/store-orders/ReturnRequestManager";
+import { StoreOrderCopilot } from "@/components/store-orders/StoreOrderCopilot";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -182,6 +183,7 @@ export default function StoreOrderDetailPage() {
                 orderTotal={order.total as number}
                 orderStatus={status}
               />
+              <StoreOrderCopilot order={order} />
               <StoreOrderTimeline orderId={id!} />
               <StoreOrderAssociations order={order} />
             </div>

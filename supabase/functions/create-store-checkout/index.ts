@@ -91,9 +91,10 @@ serve(async (req) => {
       shippingMethodId,
       shippingCost,
       shippingMethodName,
+      mode: checkoutMode, // "payment" (default) or "subscription"
     } = await req.json();
 
-    logStep("Request body", { workspaceId, itemCount: items?.length, customerEmail });
+    logStep("Request body", { workspaceId, itemCount: items?.length, customerEmail, mode: checkoutMode });
 
     if (!workspaceId) throw new Error("Workspace ID is required");
     if (!items || items.length === 0) throw new Error("Cart is empty");
@@ -132,7 +133,7 @@ serve(async (req) => {
     const productIds = items.map((i: { productId: string }) => i.productId);
     const { data: products, error: productsError } = await supabaseClient
       .from("products")
-      .select("id, name, base_price, currency, images, primary_image_index, sku, short_description, stock_quantity, track_stock, stock_status")
+      .select("id, name, base_price, currency, images, primary_image_index, sku, short_description, stock_quantity, track_stock, stock_status, billing_type, billing_frequency")
       .eq("workspace_id", workspaceId)
       .eq("store_published", true)
       .eq("status", "active")
@@ -157,6 +158,13 @@ serve(async (req) => {
 
     logStep("Stock validation passed");
 
+    // Determine if this is a subscription checkout
+    const hasRecurringProduct = products.some(p => 
+      p.billing_type === "recurring" || p.billing_type === "subscription" || checkoutMode === "subscription"
+    );
+    const sessionMode = hasRecurringProduct ? "subscription" : "payment";
+    logStep("Checkout mode determined", { sessionMode, hasRecurringProduct });
+
     // Build line items from DB prices (never trust client prices)
     const lineItems = items.map((item: { productId: string; quantity: number }) => {
       const product = products.find((p) => p.id === item.productId);
@@ -166,27 +174,42 @@ serve(async (req) => {
       const primaryIdx = product.primary_image_index ?? 0;
       const imageUrl = images?.[primaryIdx] || images?.[0];
 
-      return {
-        price_data: {
-          currency: (product.currency || "EUR").toLowerCase(),
-          product_data: {
-            name: product.name,
-            description: product.short_description || undefined,
-            ...(imageUrl ? { images: [imageUrl] } : {}),
-            metadata: {
-              product_id: product.id,
-              sku: product.sku || "",
-            },
+      const priceData: Record<string, unknown> = {
+        currency: (product.currency || "EUR").toLowerCase(),
+        product_data: {
+          name: product.name,
+          description: product.short_description || undefined,
+          ...(imageUrl ? { images: [imageUrl] } : {}),
+          metadata: {
+            product_id: product.id,
+            sku: product.sku || "",
           },
-          unit_amount: Math.round(product.base_price * 100),
         },
-        quantity: item.quantity,
+        unit_amount: Math.round(product.base_price * 100),
       };
+
+      // Add recurring interval for subscription products
+      if (sessionMode === "subscription") {
+        const billingFreq = (product.billing_frequency as string) || "monthly";
+        const intervalMap: Record<string, string> = {
+          daily: "day", weekly: "week", monthly: "month", quarterly: "month",
+          semiannual: "month", yearly: "year", annual: "year",
+        };
+        const intervalCountMap: Record<string, number> = {
+          quarterly: 3, semiannual: 6,
+        };
+        priceData.recurring = {
+          interval: intervalMap[billingFreq] || "month",
+          ...(intervalCountMap[billingFreq] ? { interval_count: intervalCountMap[billingFreq] } : {}),
+        };
+      }
+
+      return { price_data: priceData, quantity: item.quantity };
     });
 
-    // Add shipping as a line item if applicable
+    // Add shipping as a line item if applicable (only for one-time payments)
     const parsedShippingCost = parseFloat(shippingCost) || 0;
-    if (parsedShippingCost > 0) {
+    if (parsedShippingCost > 0 && sessionMode === "payment") {
       lineItems.push({
         price_data: {
           currency: (products[0]?.currency || "EUR").toLowerCase(),
@@ -210,11 +233,11 @@ serve(async (req) => {
       userId = userData?.user?.id || null;
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig: Record<string, unknown> = {
       customer: customerId,
       customer_email: customerId ? undefined : customerEmail,
       line_items: lineItems,
-      mode: "payment",
+      mode: sessionMode,
       success_url: successUrl || `${origin}/store/${workspaceId}/success`,
       cancel_url: cancelUrl || `${origin}/store/${workspaceId}/cancel`,
       metadata: {
@@ -224,10 +247,27 @@ serve(async (req) => {
         customer_phone: customerPhone || "",
         source: "store",
       },
-      shipping_address_collection: {
+    };
+
+    // Add shipping collection only for payment mode
+    if (sessionMode === "payment") {
+      sessionConfig.shipping_address_collection = {
         allowed_countries: ["PT", "ES", "FR", "DE", "IT", "GB", "US", "BR"],
-      },
-    });
+      };
+    }
+
+    // Add subscription metadata for recurring
+    if (sessionMode === "subscription") {
+      sessionConfig.subscription_data = {
+        metadata: {
+          workspace_id: workspaceId,
+          user_id: userId || "",
+          source: "store",
+        },
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig as any);
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
