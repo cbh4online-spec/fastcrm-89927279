@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingBag, Search, Menu, X } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, ClipboardList, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useStoreCart } from "@/contexts/StoreCartContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface StoreHeaderProps {
   storeName?: string;
@@ -64,6 +70,28 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
               <Search className="h-5 w-5" />
             </Button>
           )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link to={`/store/${workspaceSlug}/wishlist`} className="flex items-center gap-2">
+                  <Heart className="h-4 w-4" />
+                  Lista de Desejos
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to={`/store/${workspaceSlug}/orders`} className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  As Minhas Encomendas
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
             variant="ghost"

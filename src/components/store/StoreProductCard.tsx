@@ -1,21 +1,26 @@
 import { Link } from "react-router-dom";
-import { ShoppingBag, Star, Package } from "lucide-react";
+import { ShoppingBag, Star, Package, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
+import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 
 interface StoreProductCardProps {
   product: StoreProduct;
   workspaceSlug: string;
+  workspaceId?: string;
+  wishlistProductIds?: string[];
   tierPricing?: { tier: import("@/types/pricing-tier").ClientPriceTier | null; tierPrices: Map<string, number>; isB2B: boolean } | null;
 }
 
-export function StoreProductCard({ product, workspaceSlug, tierPricing }: StoreProductCardProps) {
+export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlistProductIds = [], tierPricing }: StoreProductCardProps) {
   const { addItem } = useStoreCart();
+  const toggleWishlist = useToggleWishlist();
+  const isInWishlist = wishlistProductIds.includes(product.id);
   const primaryIndex = product.primary_image_index ?? 0;
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
   const isOutOfStock = product.stock_status === "out_of_stock";
@@ -79,8 +84,22 @@ export function StoreProductCard({ product, workspaceSlug, tierPricing }: StoreP
             </div>
           )}
 
-          {/* Quick add button */}
-          <div className="absolute bottom-3 right-3 opacity-0 translate-y-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+          {/* Quick actions */}
+          <div className="absolute bottom-3 right-3 flex flex-col gap-2 opacity-0 translate-y-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+            {workspaceId && (
+              <Button
+                size="icon"
+                variant="secondary"
+                className="h-9 w-9 rounded-full shadow-lg"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleWishlist.mutate({ productId: product.id, workspaceId, isInWishlist });
+                }}
+              >
+                <Heart className={cn("h-4 w-4", isInWishlist && "fill-red-500 text-red-500")} />
+              </Button>
+            )}
             <Button
               size="icon"
               className="h-10 w-10 rounded-full shadow-lg"
