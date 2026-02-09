@@ -16,33 +16,50 @@ export interface StoreProduct {
   benefits: string[] | null;
   sku: string | null;
   stock_status: string | null;
+  stock_quantity: number | null;
+  track_stock: boolean | null;
   store_featured: boolean | null;
   store_sort_order: number | null;
+  store_category_id: string | null;
   specifications: Record<string, string> | null;
   demo_video_url: string | null;
 }
 
+export interface StoreCategory {
+  id: string;
+  workspace_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  position: number;
+  is_active: boolean;
+}
+
 interface UseStoreProductsOptions {
   workspaceId: string;
+  categoryId?: string;
   category?: string;
   search?: string;
   featured?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: "price_asc" | "price_desc" | "name" | "newest";
 }
 
-export function useStoreProducts({ workspaceId, category, search, featured }: UseStoreProductsOptions) {
+export function useStoreProducts({ workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy }: UseStoreProductsOptions) {
   return useQuery({
-    queryKey: ["store-products", workspaceId, category, search, featured],
+    queryKey: ["store-products", workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy],
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, store_featured, store_sort_order, specifications, demo_video_url")
+        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
-        .eq("status", "active")
-        .order("store_sort_order", { ascending: true })
-        .order("name", { ascending: true });
+        .eq("status", "active");
 
-      if (category) {
+      if (categoryId) {
+        query = query.eq("store_category_id", categoryId);
+      } else if (category) {
         query = query.eq("category", category);
       }
 
@@ -52,6 +69,24 @@ export function useStoreProducts({ workspaceId, category, search, featured }: Us
 
       if (featured) {
         query = query.eq("store_featured", true);
+      }
+
+      if (minPrice !== undefined) {
+        query = query.gte("base_price", minPrice);
+      }
+      if (maxPrice !== undefined) {
+        query = query.lte("base_price", maxPrice);
+      }
+
+      // Sorting
+      if (sortBy === "price_asc") {
+        query = query.order("base_price", { ascending: true });
+      } else if (sortBy === "price_desc") {
+        query = query.order("base_price", { ascending: false });
+      } else if (sortBy === "newest") {
+        query = query.order("created_at", { ascending: false });
+      } else {
+        query = query.order("store_sort_order", { ascending: true }).order("name", { ascending: true });
       }
 
       const { data, error } = await query;
@@ -70,13 +105,13 @@ export function useStoreProduct(productId: string | undefined) {
 
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, store_featured, store_sort_order, specifications, demo_video_url")
+        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id")
         .eq("id", productId)
         .eq("store_published", true)
         .single();
 
       if (error) throw error;
-      return data as StoreProduct;
+      return data as StoreProduct & { workspace_id: string };
     },
     enabled: !!productId,
   });
@@ -84,19 +119,18 @@ export function useStoreProduct(productId: string | undefined) {
 
 export function useStoreCategories(workspaceId: string) {
   return useQuery({
-    queryKey: ["store-categories", workspaceId],
+    queryKey: ["store-categories-db", workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("products")
-        .select("category")
+        .from("store_categories")
+        .select("*")
         .eq("workspace_id", workspaceId)
-        .eq("store_published", true)
-        .eq("status", "active")
-        .not("category", "is", null);
+        .eq("is_active", true)
+        .order("position", { ascending: true })
+        .order("name", { ascending: true });
 
       if (error) throw error;
-      const categories = [...new Set((data || []).map(p => p.category).filter(Boolean))] as string[];
-      return categories.sort();
+      return (data || []) as StoreCategory[];
     },
     enabled: !!workspaceId,
   });

@@ -1,50 +1,66 @@
 
 
-## Fase 4.5 -- Checkout otimizado + Tracking de clientes
-
-### Problema atual
-O formulario de checkout pede nome, email e telefone mas sem dar destaque ao telefone. Alem disso, os dados dos clientes da loja ficam isolados nas encomendas e nao sao ligados ao CRM (tabela `contacts`).
+## Fase 5 -- Catálogo avançado + Stock + Cupões
 
 ### O que vai mudar
 
-**1. Reorganizar o formulario de checkout**
-- Reordenar os campos: **Nome completo** > **Telefone** > **Email**
-- Tornar o telefone obrigatorio (com validacao)
-- Adicionar mascara/placeholder para formato de telefone portugues
-- Melhorar o UX com icones nos campos e texto explicativo ("Precisamos do seu contacto para atualizacoes da encomenda")
+**1. Gestão de stock**
+- Adicionar coluna `stock_quantity` (integer, nullable) na tabela `products`
+- Adicionar coluna `track_stock` (boolean, default false) para ativar/desativar tracking
+- No webhook/checkout, decrementar stock automaticamente após pagamento
+- Alerta visual no admin quando stock < threshold (default 5)
+- Bloquear compra na loja se stock = 0
 
-**2. Captura automatica de contacto no CRM**
-- Adicionar coluna `contact_id` (UUID, nullable, FK para contacts) na tabela `store_orders`
-- No edge function `create-store-checkout`, apos criar a encomenda:
-  - Procurar contacto existente por email no workspace
-  - Se existir: ligar a encomenda ao contacto e atualizar telefone/nome se estiverem vazios
-  - Se nao existir: criar automaticamente um novo contacto com source = "store" e tags = ["loja-online"]
-- Guardar o `contact_id` na encomenda
+**2. Categorias e filtros**
+- Criar tabela `store_categories` (id, workspace_id, name, slug, description, position, is_active)
+- Adicionar coluna `store_category_id` (FK) na tabela `products`
+- Filtros na loja pública: por categoria, faixa de preço, ordenação
+- Gestão de categorias no admin
 
-**3. Painel de cliente na gestao de encomendas**
-- Na pagina de encomendas do admin, mostrar link direto para o contacto no CRM
-- Mostrar historico de compras do cliente (quantas encomendas, valor total gasto)
+**3. Cupões de desconto**
+- Criar tabela `store_coupons` (id, workspace_id, code, type [percentage|fixed], value, min_order, max_uses, used_count, valid_from, valid_until, is_active)
+- Campo de cupão no checkout (passo 2)
+- Validação do cupão na edge function antes de criar sessão Stripe
+- Aplicar desconto via Stripe coupon/promotion
+
+**4. Página de produto detalhada**
+- Rota `/store/:workspaceSlug/product/:productId`
+- Galeria de imagens com navegação
+- Descrição completa, SKU, preço
+- Produtos relacionados (mesma categoria)
+- Botão de adicionar ao carrinho
 
 ---
 
-### Detalhes tecnicos
+### Detalhes técnicos
 
-**Migracao SQL:**
-- `ALTER TABLE store_orders ADD COLUMN contact_id UUID REFERENCES contacts(id) ON DELETE SET NULL`
+**Migração SQL:**
+```sql
+-- Stock
+ALTER TABLE products ADD COLUMN stock_quantity integer DEFAULT NULL;
+ALTER TABLE products ADD COLUMN track_stock boolean DEFAULT false;
 
-**Ficheiros a modificar:**
-- `src/pages/store/StoreCheckoutPage.tsx` -- reordenar campos, telefone obrigatorio, melhor UX
-- `supabase/functions/create-store-checkout/index.ts` -- logica de upsert de contacto no CRM
-- `src/pages/StoreOrdersPage.tsx` -- mostrar link para contacto e historico
+-- Categories
+CREATE TABLE store_categories (...)
+
+-- Products FK
+ALTER TABLE products ADD COLUMN store_category_id UUID REFERENCES store_categories(id)
+
+-- Coupons
+CREATE TABLE store_coupons (...)
+```
 
 **Ficheiros novos:**
-- Nenhum
+- `src/pages/store/StoreProductPage.tsx` -- página de produto individual
+- `src/pages/StoreCategoriesPage.tsx` -- gestão de categorias admin
+- `src/pages/StoreCouponsPage.tsx` -- gestão de cupões admin
+- `src/hooks/useStoreCategories.ts`
+- `src/hooks/useStoreCoupons.ts`
 
-**Fluxo do checkout atualizado:**
-1. Cliente preenche Nome + Telefone + Email
-2. Frontend valida todos os campos obrigatorios
-3. Edge function recebe dados, valida produtos, cria sessao Stripe
-4. Edge function procura/cria contacto no CRM com source "store"
-5. Encomenda e criada com `contact_id` ligado
-6. Cliente e redirecionado para Stripe Checkout
-
+**Ficheiros a modificar:**
+- `src/pages/store/StorePage.tsx` -- filtros de categoria/preço
+- `src/pages/store/StoreCheckoutPage.tsx` -- campo de cupão
+- `supabase/functions/create-store-checkout/index.ts` -- validar cupão, aplicar desconto
+- `supabase/functions/store-webhook/index.ts` -- decrementar stock
+- `src/App.tsx` -- nova rota de produto
+- Sidebar -- links para categorias e cupões

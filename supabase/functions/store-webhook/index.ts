@@ -110,7 +110,26 @@ serve(async (req) => {
         } else {
           logStep("Order marked as paid", { orderId: order?.id });
 
-          // Send emails
+          // Decrement stock for tracked products
+          if (order?.items) {
+            const orderItems = order.items as Array<{ product_id: string; quantity: number }>;
+            for (const item of orderItems) {
+              const { data: prod } = await supabaseClient
+                .from("products")
+                .select("stock_quantity, track_stock")
+                .eq("id", item.product_id)
+                .single();
+              
+              if (prod?.track_stock && prod.stock_quantity !== null) {
+                const newQty = Math.max(0, prod.stock_quantity - item.quantity);
+                await supabaseClient
+                  .from("products")
+                  .update({ stock_quantity: newQty, stock_status: newQty === 0 ? "out_of_stock" : "in_stock" })
+                  .eq("id", item.product_id);
+              }
+            }
+            logStep("Stock decremented for tracked products");
+          }
           try {
             const resendKey = Deno.env.get("RESEND_API_KEY");
             if (resendKey && order) {
