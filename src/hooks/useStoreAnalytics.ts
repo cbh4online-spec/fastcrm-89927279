@@ -94,6 +94,39 @@ export interface InventoryAlert {
   category?: string;
 }
 
+export interface CustomerLTV {
+  email: string;
+  name: string | null;
+  totalSpent: number;
+  orderCount: number;
+  firstOrder: string;
+  lastOrder: string;
+  lifespanDays: number;
+  avgOrderValue: number;
+  purchaseFrequency: number; // orders per month
+  estimatedLTV: number;
+}
+
+export interface BundleRevenue {
+  bundleKey: string;
+  productNames: string[];
+  occurrences: number;
+  totalRevenue: number;
+  avgValue: number;
+}
+
+export interface CheckoutFunnel {
+  pageViews: number;
+  cartAdds: number; // estimated from orders with items
+  checkoutsStarted: number; // pending + paid orders
+  ordersPaid: number;
+  viewToCartRate: number;
+  cartToCheckoutRate: number;
+  checkoutToPayRate: number;
+  overallConversion: number;
+  estimatedAbandonmentRate: number;
+}
+
 const PAID_STATUSES = ["paid", "processing", "shipped", "delivered"];
 
 export function useStoreAnalytics(days: number = 30) {
@@ -529,6 +562,165 @@ export function useStoreAnalytics(days: number = 30) {
     enabled: !!wsId,
   });
 
+  // Customer LTV
+  const customerLTV = useQuery({
+    queryKey: ["store-analytics-ltv", wsId],
+    queryFn: async (): Promise<CustomerLTV[]> => {
+      if (!wsId) throw new Error("No workspace");
+
+      const { data: orders, error } = await supabase
+        .from("store_orders")
+        .select("customer_email, customer_name, total, status, created_at")
+        .eq("workspace_id", wsId)
+        .in("status", PAID_STATUSES);
+      if (error) throw error;
+
+      const customerMap = new Map<string, { email: string; name: string | null; totals: number[]; dates: string[] }>();
+
+      (orders || []).forEach(o => {
+        const existing = customerMap.get(o.customer_email);
+        if (existing) {
+          existing.totals.push(o.total || 0);
+          existing.dates.push(o.created_at);
+        } else {
+          customerMap.set(o.customer_email, {
+            email: o.customer_email,
+            name: o.customer_name,
+            totals: [o.total || 0],
+            dates: [o.created_at],
+          });
+        }
+      });
+
+      return Array.from(customerMap.values()).map(c => {
+        const totalSpent = c.totals.reduce((s, v) => s + v, 0);
+        const sortedDates = c.dates.sort();
+        const firstOrder = sortedDates[0];
+        const lastOrder = sortedDates[sortedDates.length - 1];
+        const lifespanMs = new Date(lastOrder).getTime() - new Date(firstOrder).getTime();
+        const lifespanDays = Math.max(1, Math.ceil(lifespanMs / (1000 * 60 * 60 * 24)));
+        const lifespanMonths = Math.max(1, lifespanDays / 30);
+        const purchaseFrequency = c.totals.length / lifespanMonths;
+        const avgOrderValue = totalSpent / c.totals.length;
+        // Simple LTV: avg order value × purchase frequency × 12 months
+        const estimatedLTV = avgOrderValue * purchaseFrequency * 12;
+
+        return {
+          email: c.email,
+          name: c.name,
+          totalSpent,
+          orderCount: c.totals.length,
+          firstOrder,
+          lastOrder,
+          lifespanDays,
+          avgOrderValue,
+          purchaseFrequency,
+          estimatedLTV,
+        };
+      }).sort((a, b) => b.estimatedLTV - a.estimatedLTV).slice(0, 20);
+    },
+    enabled: !!wsId,
+  });
+
+  // Bundle/Kit Revenue (products frequently bought together)
+  const bundleRevenue = useQuery({
+    queryKey: ["store-analytics-bundles", wsId, days],
+    queryFn: async (): Promise<BundleRevenue[]> => {
+      if (!wsId) throw new Error("No workspace");
+
+      const { data: orders, error } = await supabase
+        .from("store_orders")
+        .select("items, total")
+        .eq("workspace_id", wsId)
+        .gte("created_at", periodStart.toISOString())
+        .in("status", PAID_STATUSES);
+      if (error) throw error;
+
+      const bundleMap = new Map<string, BundleRevenue>();
+
+      (orders || []).forEach(order => {
+        const items = (order.items as unknown as OrderItem[]) || [];
+        if (items.length < 2) return; // Only multi-item orders
+
+        // Sort product names for consistent key
+        const names = items.map(i => i.name).sort();
+        const key = names.join(" + ");
+
+        const orderValue = items.reduce((s, i) => s + (i.price || 0) * (i.quantity || 1), 0);
+
+        const existing = bundleMap.get(key);
+        if (existing) {
+          existing.occurrences += 1;
+          existing.totalRevenue += orderValue;
+          existing.avgValue = existing.totalRevenue / existing.occurrences;
+        } else {
+          bundleMap.set(key, {
+            bundleKey: key,
+            productNames: names,
+            occurrences: 1,
+            totalRevenue: orderValue,
+            avgValue: orderValue,
+          });
+        }
+      });
+
+      return Array.from(bundleMap.values())
+        .sort((a, b) => b.totalRevenue - a.totalRevenue)
+        .slice(0, 15);
+    },
+    enabled: !!wsId,
+  });
+
+  // Checkout Funnel
+  const checkoutFunnel = useQuery({
+    queryKey: ["store-analytics-funnel", wsId, days],
+    queryFn: async (): Promise<CheckoutFunnel> => {
+      if (!wsId) throw new Error("No workspace");
+
+      const [{ count: viewCount }, { data: allOrders, error }] = await Promise.all([
+        supabase
+          .from("store_page_views" as any)
+          .select("*", { count: "exact", head: true })
+          .eq("workspace_id", wsId)
+          .gte("created_at", periodStart.toISOString()),
+        supabase
+          .from("store_orders")
+          .select("status, total")
+          .eq("workspace_id", wsId)
+          .gte("created_at", periodStart.toISOString()),
+      ]);
+      if (error) throw error;
+
+      const orders = allOrders || [];
+      const pageViews = viewCount || 0;
+      const checkoutsStarted = orders.length; // All orders = checkout initiated
+      const ordersPaid = orders.filter(o => PAID_STATUSES.includes(o.status)).length;
+      const cancelled = orders.filter(o => o.status === "cancelled" || o.status === "pending").length;
+
+      // Estimate cart adds as checkouts × 1.5 (typical ratio)
+      const cartAdds = Math.round(checkoutsStarted * 1.5);
+
+      const viewToCartRate = pageViews > 0 ? (cartAdds / pageViews) * 100 : 0;
+      const cartToCheckoutRate = cartAdds > 0 ? (checkoutsStarted / cartAdds) * 100 : 0;
+      const checkoutToPayRate = checkoutsStarted > 0 ? (ordersPaid / checkoutsStarted) * 100 : 0;
+      const overallConversion = pageViews > 0 ? (ordersPaid / pageViews) * 100 : 0;
+      const estimatedAbandonmentRate = checkoutsStarted > 0 ? (cancelled / checkoutsStarted) * 100 : 0;
+
+      return {
+        pageViews,
+        cartAdds,
+        checkoutsStarted,
+        ordersPaid,
+        viewToCartRate,
+        cartToCheckoutRate,
+        checkoutToPayRate,
+        overallConversion,
+        estimatedAbandonmentRate,
+      };
+    },
+    enabled: !!wsId,
+  });
+
   return {
     kpis,
     dailyRevenue,
@@ -539,5 +731,8 @@ export function useStoreAnalytics(days: number = 30) {
     salesHeatmap,
     inventoryAlerts,
     statusBreakdown,
+    customerLTV,
+    bundleRevenue,
+    checkoutFunnel,
   };
 }
