@@ -17,6 +17,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { EditClientDataDialog } from "./EditClientDataDialog";
 import {
   User,
   Mail,
@@ -29,6 +30,7 @@ import {
   Save,
   Loader2,
   Copy,
+  Pencil,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -43,6 +45,7 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
   const navigate = useNavigate();
   const [newNote, setNewNote] = useState("");
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const [editClientOpen, setEditClientOpen] = useState(false);
 
   if (loading) {
     return (
@@ -203,11 +206,16 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Client Info */}
         <Card>
-          <CardHeader>
+           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
               Dados do Cliente
             </CardTitle>
+            {order.client_user && (
+              <Button variant="ghost" size="icon" onClick={() => setEditClientOpen(true)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -390,6 +398,16 @@ export function OrderNoteDetail({ orderId }: OrderNoteDetailProps) {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Edit Client Dialog */}
+      {order.client_user && (
+        <EditClientDataDialog
+          open={editClientOpen}
+          onOpenChange={setEditClientOpen}
+          clientUser={order.client_user}
+          onSuccess={refetch}
+        />
       )}
     </div>
   );
