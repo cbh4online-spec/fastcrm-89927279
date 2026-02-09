@@ -6800,6 +6800,56 @@ export type Database = {
         }
         Relationships: []
       }
+      document_series: {
+        Row: {
+          created_at: string
+          current_number: number
+          description: string | null
+          document_type: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          series_prefix: string
+          series_year: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_number?: number
+          description?: string | null
+          document_type: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          series_prefix: string
+          series_year?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          current_number?: number
+          description?: string | null
+          document_type?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          series_prefix?: string
+          series_year?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_series_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_connections: {
         Row: {
           auth_type: string
@@ -9155,40 +9205,52 @@ export type Database = {
           created_at: string
           description: string
           discount_percent: number | null
+          gross_total: number | null
           id: string
           invoice_id: string
+          net_total: number | null
           position: number
           product_id: string | null
           quantity: number
+          tax_amount: number | null
           tax_rate: number | null
           total: number
           unit_price: number
+          vat_exemption_reason: string | null
         }
         Insert: {
           created_at?: string
           description: string
           discount_percent?: number | null
+          gross_total?: number | null
           id?: string
           invoice_id: string
+          net_total?: number | null
           position?: number
           product_id?: string | null
           quantity?: number
+          tax_amount?: number | null
           tax_rate?: number | null
           total?: number
           unit_price?: number
+          vat_exemption_reason?: string | null
         }
         Update: {
           created_at?: string
           description?: string
           discount_percent?: number | null
+          gross_total?: number | null
           id?: string
           invoice_id?: string
+          net_total?: number | null
           position?: number
           product_id?: string | null
           quantity?: number
+          tax_amount?: number | null
           tax_rate?: number | null
           total?: number
           unit_price?: number
+          vat_exemption_reason?: string | null
         }
         Relationships: [
           {
@@ -9217,6 +9279,7 @@ export type Database = {
       invoice_settings: {
         Row: {
           bank_name: string | null
+          commercial_registration: string | null
           company_address: string | null
           company_email: string | null
           company_logo_url: string | null
@@ -9226,23 +9289,33 @@ export type Database = {
           created_at: string
           default_currency: string | null
           default_payment_terms: number | null
+          default_vat_rate: number | null
           email_body_template: string | null
           email_subject_template: string | null
+          fiscal_country: string | null
           footer_text: string | null
           iban: string | null
           id: string
           invoice_prefix: string | null
+          legal_form: string | null
           next_number: number | null
           primary_color: string | null
           reminder_days_before: number | null
+          saft_product_id: string | null
+          saft_product_version: string | null
           send_reminders: boolean | null
+          share_capital: string | null
           show_logo: boolean | null
+          software_certificate_number: string | null
           swift_bic: string | null
+          tax_registration_number: string | null
           updated_at: string
+          vat_regime: string | null
           workspace_id: string
         }
         Insert: {
           bank_name?: string | null
+          commercial_registration?: string | null
           company_address?: string | null
           company_email?: string | null
           company_logo_url?: string | null
@@ -9252,23 +9325,33 @@ export type Database = {
           created_at?: string
           default_currency?: string | null
           default_payment_terms?: number | null
+          default_vat_rate?: number | null
           email_body_template?: string | null
           email_subject_template?: string | null
+          fiscal_country?: string | null
           footer_text?: string | null
           iban?: string | null
           id?: string
           invoice_prefix?: string | null
+          legal_form?: string | null
           next_number?: number | null
           primary_color?: string | null
           reminder_days_before?: number | null
+          saft_product_id?: string | null
+          saft_product_version?: string | null
           send_reminders?: boolean | null
+          share_capital?: string | null
           show_logo?: boolean | null
+          software_certificate_number?: string | null
           swift_bic?: string | null
+          tax_registration_number?: string | null
           updated_at?: string
+          vat_regime?: string | null
           workspace_id: string
         }
         Update: {
           bank_name?: string | null
+          commercial_registration?: string | null
           company_address?: string | null
           company_email?: string | null
           company_logo_url?: string | null
@@ -9278,19 +9361,28 @@ export type Database = {
           created_at?: string
           default_currency?: string | null
           default_payment_terms?: number | null
+          default_vat_rate?: number | null
           email_body_template?: string | null
           email_subject_template?: string | null
+          fiscal_country?: string | null
           footer_text?: string | null
           iban?: string | null
           id?: string
           invoice_prefix?: string | null
+          legal_form?: string | null
           next_number?: number | null
           primary_color?: string | null
           reminder_days_before?: number | null
+          saft_product_id?: string | null
+          saft_product_version?: string | null
           send_reminders?: boolean | null
+          share_capital?: string | null
           show_logo?: boolean | null
+          software_certificate_number?: string | null
           swift_bic?: string | null
+          tax_registration_number?: string | null
           updated_at?: string
+          vat_regime?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -9306,27 +9398,37 @@ export type Database = {
       invoices: {
         Row: {
           amount_paid: number | null
+          atcud: string | null
           client_address: string | null
+          client_country: string | null
           client_email: string | null
           client_name: string
+          client_nif_validated: boolean | null
           client_tax_id: string | null
+          client_type: string | null
           company_id: string | null
           contact_id: string | null
           created_at: string
           created_by: string
           currency: string
           discount_amount: number | null
+          document_type: string
           due_date: string
+          fiscal_status: string | null
           footer_text: string | null
+          hash_control: string | null
           id: string
           invoice_number: string
+          is_reverse_charge: boolean | null
           issue_date: string
           lead_id: string | null
           notes: string | null
           opportunity_id: string | null
           paid_at: string | null
           proposal_id: string | null
+          related_invoice_id: string | null
           sent_at: string | null
+          series_id: string | null
           status: string
           subtotal: number
           tax_amount: number
@@ -9334,31 +9436,42 @@ export type Database = {
           terms: string | null
           total: number
           updated_at: string
+          vat_exemption_reason: string | null
           workspace_id: string
         }
         Insert: {
           amount_paid?: number | null
+          atcud?: string | null
           client_address?: string | null
+          client_country?: string | null
           client_email?: string | null
           client_name: string
+          client_nif_validated?: boolean | null
           client_tax_id?: string | null
+          client_type?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
           created_by: string
           currency?: string
           discount_amount?: number | null
+          document_type?: string
           due_date?: string
+          fiscal_status?: string | null
           footer_text?: string | null
+          hash_control?: string | null
           id?: string
           invoice_number: string
+          is_reverse_charge?: boolean | null
           issue_date?: string
           lead_id?: string | null
           notes?: string | null
           opportunity_id?: string | null
           paid_at?: string | null
           proposal_id?: string | null
+          related_invoice_id?: string | null
           sent_at?: string | null
+          series_id?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number
@@ -9366,31 +9479,42 @@ export type Database = {
           terms?: string | null
           total?: number
           updated_at?: string
+          vat_exemption_reason?: string | null
           workspace_id: string
         }
         Update: {
           amount_paid?: number | null
+          atcud?: string | null
           client_address?: string | null
+          client_country?: string | null
           client_email?: string | null
           client_name?: string
+          client_nif_validated?: boolean | null
           client_tax_id?: string | null
+          client_type?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
           created_by?: string
           currency?: string
           discount_amount?: number | null
+          document_type?: string
           due_date?: string
+          fiscal_status?: string | null
           footer_text?: string | null
+          hash_control?: string | null
           id?: string
           invoice_number?: string
+          is_reverse_charge?: boolean | null
           issue_date?: string
           lead_id?: string | null
           notes?: string | null
           opportunity_id?: string | null
           paid_at?: string | null
           proposal_id?: string | null
+          related_invoice_id?: string | null
           sent_at?: string | null
+          series_id?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number
@@ -9398,6 +9522,7 @@ export type Database = {
           terms?: string | null
           total?: number
           updated_at?: string
+          vat_exemption_reason?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -9434,6 +9559,20 @@ export type Database = {
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_related_invoice_id_fkey"
+            columns: ["related_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "document_series"
             referencedColumns: ["id"]
           },
           {
@@ -20850,6 +20989,62 @@ export type Database = {
           },
         ]
       }
+      vat_rules: {
+        Row: {
+          applies_to_products: boolean
+          applies_to_services: boolean
+          client_type: string
+          country_code: string
+          created_at: string
+          exemption_reason: string | null
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          rate: number
+          rate_type: string
+          workspace_id: string
+        }
+        Insert: {
+          applies_to_products?: boolean
+          applies_to_services?: boolean
+          client_type?: string
+          country_code?: string
+          created_at?: string
+          exemption_reason?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: number
+          rate?: number
+          rate_type?: string
+          workspace_id: string
+        }
+        Update: {
+          applies_to_products?: boolean
+          applies_to_services?: boolean
+          client_type?: string
+          country_code?: string
+          created_at?: string
+          exemption_reason?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          rate?: number
+          rate_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vat_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vibe_phrases: {
         Row: {
           context: string | null
@@ -23050,6 +23245,10 @@ export type Database = {
       format_response_for_channel: {
         Args: { p_channel: string; p_response: string; p_workspace_id: string }
         Returns: Json
+      }
+      generate_document_number: {
+        Args: { p_document_type?: string; p_workspace_id: string }
+        Returns: string
       }
       generate_invoice_number: {
         Args: { p_workspace_id: string }
