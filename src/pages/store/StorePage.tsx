@@ -6,11 +6,11 @@ import { StoreProductCard } from "@/components/store/StoreProductCard";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { useStoreProducts, useStoreCategories } from "@/hooks/useStoreProducts";
 import { useStoreTierPricing } from "@/hooks/useStoreTierPricing";
+import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Sparkles, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export default function StorePage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -33,19 +33,22 @@ export default function StorePage() {
 
   const { data: categories = [] } = useStoreCategories(wsId);
   const { data: tierPricing } = useStoreTierPricing(wsId);
+  const { data: storeSettings } = usePublicStoreSettings(wsId);
 
+  const storeName = storeSettings?.store_name || "Loja";
   const showHero = !search && !selectedCategory;
 
   return (
     <>
       <Helmet>
-        <title>Loja | FastCRM</title>
-        <meta name="description" content="Explore os nossos produtos e serviços" />
+        <title>{storeName} | FastCRM</title>
+        <meta name="description" content={storeSettings?.store_description || "Explore os nossos produtos e serviços"} />
       </Helmet>
 
       <div className="min-h-screen bg-background">
         <StoreHeader
-          storeName="Loja"
+          storeName={storeName}
+          logoUrl={storeSettings?.logo_url || undefined}
           onSearch={setSearch}
           workspaceSlug={wsId}
         />
@@ -61,7 +64,7 @@ export default function StorePage() {
                   Novidades
                 </Badge>
                 <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-4">
-                  Descubra os nossos produtos
+                  {storeSettings?.store_description ? storeName : "Descubra os nossos produtos"}
                 </h1>
                 <p className="text-lg text-muted-foreground mb-8 max-w-lg">
                   Explore o nosso catálogo completo de produtos e serviços. Qualidade premium com a melhor experiência de compra.
@@ -154,7 +157,7 @@ export default function StorePage() {
         {/* Footer */}
         <footer className="border-t bg-muted/30">
           <div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} Todos os direitos reservados.</p>
+            <p>{storeSettings?.footer_text || `© ${new Date().getFullYear()} Todos os direitos reservados.`}</p>
           </div>
         </footer>
       </div>

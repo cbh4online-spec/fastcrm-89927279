@@ -18729,6 +18729,65 @@ export type Database = {
           },
         ]
       }
+      store_settings: {
+        Row: {
+          accent_color: string | null
+          banner_url: string | null
+          created_at: string
+          footer_text: string | null
+          id: string
+          logo_url: string | null
+          notification_email: string | null
+          primary_color: string | null
+          show_categories: boolean | null
+          show_search: boolean | null
+          store_description: string | null
+          store_name: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          banner_url?: string | null
+          created_at?: string
+          footer_text?: string | null
+          id?: string
+          logo_url?: string | null
+          notification_email?: string | null
+          primary_color?: string | null
+          show_categories?: boolean | null
+          show_search?: boolean | null
+          store_description?: string | null
+          store_name?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          banner_url?: string | null
+          created_at?: string
+          footer_text?: string | null
+          id?: string
+          logo_url?: string | null
+          notification_email?: string | null
+          primary_color?: string | null
+          show_categories?: boolean | null
+          show_search?: boolean | null
+          store_description?: string | null
+          store_name?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stripe_event_log: {
         Row: {
           created_at: string | null

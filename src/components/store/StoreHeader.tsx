@@ -8,11 +8,12 @@ import { useStoreCart } from "@/contexts/StoreCartContext";
 
 interface StoreHeaderProps {
   storeName?: string;
+  logoUrl?: string;
   onSearch?: (query: string) => void;
   workspaceSlug: string;
 }
 
-export function StoreHeader({ storeName = "Loja", onSearch, workspaceSlug }: StoreHeaderProps) {
+export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSlug }: StoreHeaderProps) {
   const { totalItems, setIsOpen } = useStoreCart();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,9 +28,12 @@ export function StoreHeader({ storeName = "Loja", onSearch, workspaceSlug }: Sto
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link
           to={`/store/${workspaceSlug}`}
-          className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          {storeName}
+          {logoUrl && (
+            <img src={logoUrl} alt={storeName} className="h-8 w-8 object-contain rounded" />
+          )}
+          <span className="text-xl font-bold tracking-tight">{storeName}</span>
         </Link>
 
         <div className="flex items-center gap-3">
