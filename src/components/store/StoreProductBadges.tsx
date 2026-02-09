@@ -5,6 +5,7 @@ interface StoreProductBadgesProps {
   createdAt?: string;
   trackStock?: boolean | null;
   stockQuantity?: number | null;
+  lowStockThreshold?: number;
   isDiscounted?: boolean;
   isFeatured?: boolean | null;
   /** Show compact badges (for cards) or full badges (for product page) */
@@ -15,11 +16,13 @@ export function StoreProductBadges({
   createdAt,
   trackStock,
   stockQuantity,
+  lowStockThreshold = 5,
   isDiscounted,
   isFeatured,
   compact = true,
 }: StoreProductBadgesProps) {
   const badges: { label: string; icon: React.ReactNode; className: string; priority: number }[] = [];
+  const threshold = lowStockThreshold || 5;
 
   // "Última unidade!" — stock_quantity = 1
   if (trackStock && stockQuantity === 1) {
@@ -30,8 +33,8 @@ export function StoreProductBadges({
       priority: 1,
     });
   }
-  // "Pouco stock" — stock_quantity <= 5
-  else if (trackStock && stockQuantity != null && stockQuantity > 1 && stockQuantity <= 5) {
+  // "Pouco stock" — stock_quantity <= threshold
+  else if (trackStock && stockQuantity != null && stockQuantity > 1 && stockQuantity <= threshold) {
     badges.push({
       label: compact ? `Só ${stockQuantity}!` : `Apenas ${stockQuantity} em stock!`,
       icon: <Flame className="h-3 w-3" />,
