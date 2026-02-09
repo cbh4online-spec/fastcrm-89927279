@@ -1,47 +1,122 @@
 
-# Atualizar Auditoria Funcional com Novos Módulos
+# OMS Completo para Store Orders
 
-O problema e que a lista de modulos (`AUDIT_MODULES`) e as categorias de edge functions (`EDGE_FUNCTION_CATEGORIES`) no ficheiro `src/types/audit.ts` sao **listas estaticas hardcoded** que nao foram atualizadas quando novos modulos e funcionalidades foram adicionados ao sistema.
+## Contexto Atual
 
----
+A tabela `store_orders` ja existe com estados basicos (pending, paid, processing, shipped, delivered, cancelled, refunded) e um dialog simples de detalhes. Faltam:
 
-## O que esta em falta
-
-### Modulos Funcionais em falta no `AUDIT_MODULES`:
-| Modulo | Descricao |
-|--------|-----------|
-| Loja Online | StorePage, StoreProductPage, StoreCheckout, StoreCart, StoreCategories |
-| Notas de Encomenda | OrderNotesPage, OrderNoteDetail, OrderAuditTrail |
-| Formularios Inteligentes | SmartForms, FormBuilder, FormSubmissions |
-| Produtividade | ProductivityDashboard, DailyPriorities |
-| Pacotes & Bundles | PackagesPage, BundleCheckout |
-| Portal do Cliente | ClientPortal, ClientUsers, ClientEntitlements |
-| Relatorios & KPIs | ReportsGoals, GoalsVsResults |
-| Perfis de Actividade | ActivityProfiles, EntityProfileData |
-| Video & Reunioes | VideoMeetings, CreateVideoMeeting |
-| Landing Pages | PublicLandingPage, LandingPageCopy |
-| Student Journey (Sao Joao) | SJDashboard, SJCourses, SJCohorts, SJProfiles |
-| AI Assistentes Avancados | AIAssistants, AIProfiles, VibeProfiles, ConversationalFlows |
-| Fichas de Produto Publicas | PublicProductSheet, ProductEmbeddings |
-
-### Edge Functions em falta no `EDGE_FUNCTION_CATEGORIES`:
-- `store-ai-advisor`, `store-webhook`, `create-store-checkout` (Loja Online)
-- `order-note-notify`, `order-note-submit` (Notas de Encomenda)
-- `ai-diagnostic-assistant`, `ai-proposal-assistant` (IA)
-- `create-client-auth-user`, `send-client-invitation`, `activate-client-invite` (Portal Cliente)
-- `create-video-meeting`, `video-auth-url`, `video-oauth-callback` (Video)
-- `admin-module-margin`, `admin-user-management` (Admin)
-- `generate-product-embeddings`, `product-embedding`, `product-semantic-search` (Produtos)
-- `knowledge-document-trigger` (Knowledge Base)
-- `elevenlabs-proposal-token` (Audio)
+1. **Tabela de eventos/timeline** - nao existe nenhum registo de historico para store orders (o `order_audit_log` existente e exclusivo das `order_notes` B2B)
+2. **Colunas de associacao CRM** - a tabela tem `contact_id` mas falta `company_id`, `opportunity_id` e `campaign_id`
+3. **Pagina de detalhe completa** - atualmente so existe um Dialog basico, sem timeline nem associacoes
+4. **Estados completos e configuracao visual** - os estados ja existem no codigo frontend mas faltam "concluida" (delivered) esta ok, e "reembolso" (refunded) esta ok
 
 ---
 
-## Alteracoes
+## Alteracoes na Base de Dados
 
-### Ficheiro: `src/types/audit.ts`
+### 1. Nova tabela `store_order_events`
+Regista cada evento/mudanca de estado com timestamp, utilizador e notas:
 
-1. **Adicionar novos modulos** ao array `AUDIT_MODULES` (13 modulos novos)
-2. **Atualizar `EDGE_FUNCTION_CATEGORIES`** com as edge functions em falta, adicionando-as as categorias existentes ou criando novas categorias quando necessario (ex: "Loja Online", "Portal do Cliente", "Video & Reunioes", "Notas de Encomenda", "Admin & Gestao")
+- `id` (uuid, PK)
+- `order_id` (uuid, FK store_orders)
+- `workspace_id` (uuid, FK workspaces)
+- `event_type` (text) - ex: "status_change", "note_added", "payment_received", "shipment_created", "refund_issued"
+- `from_status` (text, nullable)
+- `to_status` (text, nullable)
+- `description` (text)
+- `metadata` (jsonb, nullable) - dados extra como tracking number, refund amount
+- `created_by` (uuid, nullable) - quem fez a acao
+- `created_at` (timestamptz)
+- RLS: workspace members only
 
-Nenhuma outra alteracao e necessaria - o componente `FunctionalAuditSection.tsx` ja itera sobre `AUDIT_MODULES` dinamicamente e o hook `useSystemAudit` ja conta as edge functions a partir das categorias.
+### 2. Novas colunas em `store_orders`
+- `company_id` (uuid, FK companies, nullable)
+- `opportunity_id` (uuid, FK opportunities, nullable)
+- `campaign_id` (uuid, FK marketing_campaigns, nullable)
+- `completed_at` (timestamptz, nullable)
+- `shipped_at` (timestamptz, nullable)
+- `refunded_at` (timestamptz, nullable)
+
+### 3. Trigger automatico
+Criar trigger em `store_orders` que, ao alterar o `status`, insere automaticamente um registo em `store_order_events`.
+
+---
+
+## Alteracoes no Frontend
+
+### 1. Novo tipo `StoreOrderEvent` (`src/types/store-order.ts`)
+Definicao TypeScript dos tipos de evento e configuracao visual (icones, cores, labels PT).
+
+### 2. Hook `useStoreOrderEvents` (`src/hooks/useStoreOrderEvents.ts`)
+- Query dos eventos por order_id
+- Mutation para adicionar eventos manuais (notas)
+
+### 3. Hook `useStoreOrderDetail` (`src/hooks/useStoreOrderDetail.ts`)
+- Fetch de uma store order com joins para contacto, empresa, oportunidade e campanha
+
+### 4. Componente `StoreOrderTimeline` (`src/components/store-orders/StoreOrderTimeline.tsx`)
+Timeline visual vertical dos eventos (semelhante ao `OrderAuditTrail` das order_notes), mostrando:
+- Icone e cor por tipo de evento
+- Data/hora
+- Utilizador
+- Notas/descricao
+
+### 5. Componente `StoreOrderAssociations` (`src/components/store-orders/StoreOrderAssociations.tsx`)
+Painel lateral com:
+- Link para o Contacto (ja existe)
+- Seletor/link para Empresa
+- Seletor/link para Oportunidade
+- Seletor/link para Campanha
+- Botao para associar/desassociar
+
+### 6. Pagina `StoreOrderDetailPage` (`src/pages/StoreOrderDetailPage.tsx`)
+Pagina completa de detalhe com:
+- Cabecalho com numero, estado e acoes de mudanca de estado
+- Secao de dados do cliente
+- Lista de itens
+- Resumo financeiro (subtotal, IVA, desconto, total)
+- Timeline de eventos (coluna lateral ou tab)
+- Associacoes CRM
+- Moradas de faturacao e envio
+
+### 7. Atualizar `StoreOrdersPage.tsx`
+- Linhas da tabela clicaveis para navegar para a pagina de detalhe (em vez do Dialog)
+- Manter Dialog como opcao de "quick view"
+
+### 8. Atualizar `useStoreOrders.ts`
+- Incluir joins para company e opportunity no select
+- Atualizar o `useUpdateStoreOrderStatus` para tambem registar timestamp (shipped_at, completed_at, refunded_at)
+
+### 9. Rota nova
+Adicionar rota `/dashboard/store-orders/:id` no router.
+
+---
+
+## Detalhe Tecnico
+
+### Migracoes SQL
+
+```text
+1. ALTER TABLE store_orders ADD COLUMN company_id uuid REFERENCES companies(id)
+2. ALTER TABLE store_orders ADD COLUMN opportunity_id uuid REFERENCES opportunities(id)
+3. ALTER TABLE store_orders ADD COLUMN campaign_id uuid REFERENCES marketing_campaigns(id)
+4. ALTER TABLE store_orders ADD COLUMN shipped_at timestamptz
+5. ALTER TABLE store_orders ADD COLUMN completed_at timestamptz
+6. ALTER TABLE store_orders ADD COLUMN refunded_at timestamptz
+7. CREATE TABLE store_order_events (...)
+8. CREATE TRIGGER on store_orders status change -> insert event
+9. RLS policies for store_order_events
+```
+
+### Ficheiros novos
+- `src/types/store-order.ts`
+- `src/hooks/useStoreOrderEvents.ts`
+- `src/hooks/useStoreOrderDetail.ts`
+- `src/components/store-orders/StoreOrderTimeline.tsx`
+- `src/components/store-orders/StoreOrderAssociations.tsx`
+- `src/pages/StoreOrderDetailPage.tsx`
+
+### Ficheiros a modificar
+- `src/hooks/useStoreOrders.ts` - adicionar timestamps e joins
+- `src/pages/StoreOrdersPage.tsx` - navegacao para detalhe
+- Router principal - nova rota
