@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { motion } from "framer-motion";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { useStoreProduct } from "@/hooks/useStoreProducts";
@@ -116,7 +117,11 @@ export default function StoreProductPage() {
 
         <div className="container mx-auto px-4 py-6">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+          <motion.nav
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 text-sm text-muted-foreground mb-6"
+          >
             <Link to={`/store/${wsSlug}`} className="hover:text-foreground transition-colors">
               Loja
             </Link>
@@ -133,14 +138,23 @@ export default function StoreProductPage() {
               </>
             )}
             <span className="text-foreground font-medium truncate">{product.name}</span>
-          </nav>
+          </motion.nav>
 
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
             {/* Image Gallery */}
-            <div className="space-y-4">
-              <div className="aspect-square overflow-hidden rounded-2xl bg-muted border">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-4"
+            >
+              <div className="aspect-square overflow-hidden rounded-2xl bg-muted border relative group">
                 {images.length > 0 ? (
-                  <img
+                  <motion.img
+                    key={selectedImage}
+                    initial={{ opacity: 0, scale: 1.05 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
                     src={images[selectedImage]}
                     alt={product.name}
                     className="h-full w-full object-cover"
@@ -152,16 +166,16 @@ export default function StoreProductPage() {
                 )}
               </div>
               {images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto">
+                <div className="flex gap-2 overflow-x-auto pb-1">
                   {images.map((img, i) => (
                     <button
                       key={i}
                       onClick={() => setSelectedImage(i)}
                       className={cn(
-                        "h-20 w-20 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all",
+                        "h-20 w-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all duration-200",
                         selectedImage === i
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-transparent hover:border-muted-foreground/30"
+                          ? "border-primary ring-2 ring-primary/20 scale-105"
+                          : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
                       )}
                     >
                       <img src={img} alt="" className="h-full w-full object-cover" />
@@ -169,13 +183,18 @@ export default function StoreProductPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </motion.div>
 
             {/* Product Info */}
-            <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="space-y-6"
+            >
               <div>
                 {product.category && (
-                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  <p className="text-sm font-semibold text-primary/70 uppercase tracking-widest mb-2">
                     {product.category}
                   </p>
                 )}
@@ -186,10 +205,10 @@ export default function StoreProductPage() {
                   <p className="text-xs text-muted-foreground mt-1">SKU: {product.sku}</p>
                 )}
                 {reviewCount > 0 && (
-                  <div className="flex items-center gap-1 mt-2">
+                  <div className="flex items-center gap-1 mt-3">
                     <div className="flex gap-0.5">
                       {[1,2,3,4,5].map(s => (
-                        <Star key={s} className={cn("h-4 w-4", s <= Math.round(reviewAvg) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
+                        <Star key={s} className={cn("h-4 w-4", s <= Math.round(reviewAvg) ? "fill-warning text-warning" : "text-muted-foreground/30")} />
                       ))}
                     </div>
                     <span className="text-sm text-muted-foreground ml-1">({reviewCount})</span>
@@ -220,7 +239,6 @@ export default function StoreProductPage() {
                 </p>
               )}
 
-              {/* Badges */}
               <StoreProductBadges
                 createdAt={product.created_at}
                 trackStock={product.track_stock}
@@ -230,11 +248,10 @@ export default function StoreProductPage() {
                 compact={false}
               />
 
-              {/* Stock status */}
               {isOutOfStock ? (
                 <Badge variant="secondary">Esgotado</Badge>
               ) : (
-                <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                <Badge variant="outline" className="text-success border-success/30 bg-success/5">
                   <Check className="h-3 w-3 mr-1" />
                   Em stock
                 </Badge>
@@ -246,11 +263,11 @@ export default function StoreProductPage() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium">Quantidade:</span>
-                  <div className="flex items-center border rounded-lg">
+                  <div className="flex items-center border rounded-xl overflow-hidden">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10"
+                      className="h-10 w-10 rounded-none"
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     >
                       <Minus className="h-4 w-4" />
@@ -259,31 +276,30 @@ export default function StoreProductPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10"
+                      className="h-10 w-10 rounded-none"
                       onClick={() => setQuantity(quantity + 1)}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
 
-                {/* Wishlist button */}
-                <Button
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={() => product && toggleWishlist.mutate({
-                    productId: product.id,
-                    workspaceId: (product as any).workspace_id,
-                    isInWishlist,
-                  })}
-                >
-                  <Heart className={cn("h-4 w-4", isInWishlist && "fill-red-500 text-red-500")} />
-                  {isInWishlist ? "Na Lista de Desejos" : "Adicionar à Lista de Desejos"}
-                </Button>
-              </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 rounded-xl ml-auto"
+                    onClick={() => product && toggleWishlist.mutate({
+                      productId: product.id,
+                      workspaceId: (product as any).workspace_id,
+                      isInWishlist,
+                    })}
+                  >
+                    <Heart className={cn("h-4 w-4 transition-colors", isInWishlist && "fill-destructive text-destructive")} />
+                  </Button>
+                </div>
 
                 <Button
                   size="lg"
-                  className="w-full gap-2 text-base h-12"
+                  className="w-full gap-2 text-base h-12 rounded-xl transition-transform duration-200 active:scale-[0.98]"
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
                 >
@@ -294,21 +310,25 @@ export default function StoreProductPage() {
 
               {/* Trust signals */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Truck className="h-4 w-4" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground rounded-xl bg-muted/50 p-3">
+                  <Truck className="h-4 w-4 text-primary" />
                   Envio rápido
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Shield className="h-4 w-4" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground rounded-xl bg-muted/50 p-3">
+                  <Shield className="h-4 w-4 text-primary" />
                   Pagamento seguro
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Details Section */}
-          <div className="mt-12 grid md:grid-cols-2 gap-8">
-            {/* Description */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-12 grid md:grid-cols-2 gap-8"
+          >
             {product.commercial_description && (
               <div>
                 <h2 className="text-xl font-semibold mb-4">Descrição</h2>
@@ -318,7 +338,6 @@ export default function StoreProductPage() {
               </div>
             )}
 
-            {/* Benefits */}
             {product.benefits && product.benefits.length > 0 && (
               <div>
                 <h2 className="text-xl font-semibold mb-4">Benefícios</h2>
@@ -332,13 +351,13 @@ export default function StoreProductPage() {
                 </ul>
               </div>
             )}
-          </div>
+          </motion.div>
 
           {/* Specifications */}
           {Object.keys(specs).length > 0 && (
             <div className="mt-12">
               <h2 className="text-xl font-semibold mb-4">Especificações</h2>
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-xl overflow-hidden">
                 {Object.entries(specs).map(([key, value], i) => (
                   <div
                     key={key}
@@ -358,7 +377,7 @@ export default function StoreProductPage() {
           {/* Reviews */}
           <StoreReviewsSection productId={product.id} workspaceId={(product as any).workspace_id} />
 
-          {/* Cross-sell: Frequentemente comprados juntos */}
+          {/* Cross-sell */}
           <StoreBoughtTogether
             productId={product.id}
             categoryId={product.store_category_id}
@@ -367,7 +386,7 @@ export default function StoreProductPage() {
             currency={product.currency}
           />
 
-          {/* Related: Clientes também viram */}
+          {/* Related */}
           <StoreRelatedProducts
             productId={product.id}
             categoryId={product.store_category_id}

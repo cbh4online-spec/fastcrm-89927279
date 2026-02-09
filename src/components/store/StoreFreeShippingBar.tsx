@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { Truck, PartyPopper } from "lucide-react";
 
@@ -14,12 +15,21 @@ export function StoreFreeShippingBar({ subtotal, threshold = FREE_SHIPPING_THRES
   const achieved = remaining <= 0;
 
   return (
-    <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="rounded-xl border bg-muted/30 p-3 space-y-2"
+    >
       {achieved ? (
-        <div className="flex items-center gap-2 text-sm font-medium text-green-600">
+        <motion.div
+          initial={{ scale: 0.9 }}
+          animate={{ scale: 1 }}
+          className="flex items-center gap-2 text-sm font-medium text-success"
+        >
           <PartyPopper className="h-4 w-4" />
           <span>Parabéns! Envio grátis!</span>
-        </div>
+        </motion.div>
       ) : (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Truck className="h-4 w-4 flex-shrink-0" />
@@ -29,6 +39,6 @@ export function StoreFreeShippingBar({ subtotal, threshold = FREE_SHIPPING_THRES
         </div>
       )}
       <Progress value={progress} className="h-2" />
-    </div>
+    </motion.div>
   );
 }

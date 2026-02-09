@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingBag, Search, Menu, X, Heart, ClipboardList, User } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingBag, Search, X, Heart, ClipboardList, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -30,11 +31,11 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link
           to={`/store/${workspaceSlug}`}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
         >
           {logoUrl && (
             <img src={logoUrl} alt={storeName} className="h-8 w-8 object-contain rounded" />
@@ -42,42 +43,55 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
           <span className="text-xl font-bold tracking-tight">{storeName}</span>
         </Link>
 
-        <div className="flex items-center gap-3">
-          {searchOpen ? (
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <Input
-                placeholder="Pesquisar produtos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-48 md:w-64"
-                autoFocus
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                type="button"
-                onClick={() => {
-                  setSearchOpen(false);
-                  setSearchQuery("");
-                  onSearch?.("");
-                }}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <AnimatePresence mode="wait">
+            {searchOpen ? (
+              <motion.form
+                key="search"
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: "auto", opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                onSubmit={handleSearch}
+                className="flex items-center gap-2 overflow-hidden"
               >
-                <X className="h-4 w-4" />
-              </Button>
-            </form>
-          ) : (
-            <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)}>
-              <Search className="h-5 w-5" />
-            </Button>
-          )}
+                <Input
+                  placeholder="Pesquisar produtos..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-40 sm:w-64 h-9"
+                  autoFocus
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  className="h-9 w-9"
+                  onClick={() => {
+                    setSearchOpen(false);
+                    setSearchQuery("");
+                    onSearch?.("");
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </motion.form>
+            ) : (
+              <motion.div key="search-btn" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setSearchOpen(true)}>
+                  <Search className="h-5 w-5" />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
                 <Link to={`/store/${workspaceSlug}/wishlist`} className="flex items-center gap-2">
                   <Heart className="h-4 w-4" />
@@ -96,15 +110,24 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
           <Button
             variant="ghost"
             size="icon"
-            className="relative"
+            className="relative h-9 w-9"
             onClick={() => setIsOpen(true)}
           >
             <ShoppingBag className="h-5 w-5" />
-            {totalItems > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
-                {totalItems}
-              </Badge>
-            )}
+            <AnimatePresence>
+              {totalItems > 0 && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                >
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                    {totalItems}
+                  </Badge>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Button>
         </div>
       </div>
