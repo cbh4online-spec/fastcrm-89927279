@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2, Ticket, X } from "lucide-react";
+import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2, Ticket, X, Truck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useActiveShippingMethods } from "@/hooks/useShippingMethods";
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -22,6 +24,8 @@ export default function StoreCheckoutPage() {
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: string; discount_value: number } | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [selectedShippingId, setSelectedShippingId] = useState<string>("");
+  const { data: shippingMethods = [] } = useActiveShippingMethods(wsSlug);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -90,7 +94,12 @@ export default function StoreCheckoutPage() {
       ? subtotal * (appliedCoupon.discount_value / 100)
       : Math.min(appliedCoupon.discount_value, subtotal)
     : 0;
-  const finalTotal = subtotal - discountAmount;
+  
+  const selectedShipping = shippingMethods.find((m) => m.id === selectedShippingId);
+  const shippingCost = selectedShipping?.base_price ?? 0;
+  // Free shipping threshold check
+  const effectiveShippingCost = selectedShipping?.free_shipping_threshold && subtotal >= selectedShipping.free_shipping_threshold ? 0 : shippingCost;
+  const finalTotal = subtotal - discountAmount + effectiveShippingCost;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,6 +123,9 @@ export default function StoreCheckoutPage() {
           customerEmail: formData.email,
           customerPhone: formData.phone || undefined,
           couponCode: appliedCoupon?.code || undefined,
+          shippingMethodId: selectedShippingId || undefined,
+          shippingCost: effectiveShippingCost,
+          shippingMethodName: selectedShipping?.name || undefined,
           successUrl: `${window.location.origin}/store/${wsSlug}/success`,
           cancelUrl: `${window.location.origin}/store/${wsSlug}/cancel`,
         },
@@ -271,7 +283,44 @@ export default function StoreCheckoutPage() {
                         required
                         autoFocus
                       />
+                  </div>
+
+                  {/* Shipping method selection */}
+                  {shippingMethods.length > 0 && (
+                    <div className="space-y-3">
+                      <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <Truck className="h-5 w-5" /> Método de Envio
+                      </h2>
+                      <RadioGroup value={selectedShippingId} onValueChange={setSelectedShippingId}>
+                        {shippingMethods.map((method) => {
+                          const isFree = method.free_shipping_threshold && subtotal >= method.free_shipping_threshold;
+                          return (
+                            <div key={method.id} className={cn(
+                              "flex items-center justify-between border rounded-lg p-3 cursor-pointer transition-colors",
+                              selectedShippingId === method.id ? "border-primary bg-primary/5" : "hover:border-muted-foreground/30"
+                            )} onClick={() => setSelectedShippingId(method.id)}>
+                              <div className="flex items-center gap-3">
+                                <RadioGroupItem value={method.id} />
+                                <div>
+                                  <p className="text-sm font-medium">{method.name}</p>
+                                  {method.estimated_delivery && (
+                                    <p className="text-xs text-muted-foreground">{method.estimated_delivery}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-sm font-medium">
+                                {isFree ? (
+                                  <span className="text-green-600">Grátis</span>
+                                ) : (
+                                  <span>€{method.base_price.toFixed(2)}</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </RadioGroup>
                     </div>
+                  )}
                   </div>
 
                   <Button
@@ -350,16 +399,30 @@ export default function StoreCheckoutPage() {
                   </div>
                 )}
 
-                {appliedCoupon && (
+                {(appliedCoupon || effectiveShippingCost > 0) && (
                   <>
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
                       <span>€{subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Desconto</span>
-                      <span>-€{discountAmount.toFixed(2)}</span>
-                    </div>
+                    {appliedCoupon && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Desconto</span>
+                        <span>-€{discountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {effectiveShippingCost > 0 && selectedShipping && (
+                      <div className="flex justify-between text-sm">
+                        <span>Envio ({selectedShipping.name})</span>
+                        <span>€{effectiveShippingCost.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {selectedShipping && effectiveShippingCost === 0 && shippingCost > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Envio</span>
+                        <span>Grátis</span>
+                      </div>
+                    )}
                   </>
                 )}
 

@@ -15813,6 +15813,7 @@ export type Database = {
           unit_name: string | null
           updated_at: string
           validity_days: number | null
+          weight: number | null
           workspace_id: string
         }
         Insert: {
@@ -15879,6 +15880,7 @@ export type Database = {
           unit_name?: string | null
           updated_at?: string
           validity_days?: number | null
+          weight?: number | null
           workspace_id: string
         }
         Update: {
@@ -15945,6 +15947,7 @@ export type Database = {
           unit_name?: string | null
           updated_at?: string
           validity_days?: number | null
+          weight?: number | null
           workspace_id?: string
         }
         Relationships: [
@@ -17870,6 +17873,110 @@ export type Database = {
           },
         ]
       }
+      shipping_methods: {
+        Row: {
+          base_price: number
+          created_at: string
+          description: string | null
+          estimated_delivery: string | null
+          free_shipping_threshold: number | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          base_price?: number
+          created_at?: string
+          description?: string | null
+          estimated_delivery?: string | null
+          free_shipping_threshold?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          base_price?: number
+          created_at?: string
+          description?: string | null
+          estimated_delivery?: string | null
+          free_shipping_threshold?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_methods_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_zones: {
+        Row: {
+          countries: string[]
+          created_at: string
+          flat_price: number | null
+          id: string
+          is_active: boolean
+          name: string
+          shipping_method_id: string
+          sort_order: number
+          weight_rules: Json
+          workspace_id: string
+        }
+        Insert: {
+          countries?: string[]
+          created_at?: string
+          flat_price?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          shipping_method_id: string
+          sort_order?: number
+          weight_rules?: Json
+          workspace_id: string
+        }
+        Update: {
+          countries?: string[]
+          created_at?: string
+          flat_price?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          shipping_method_id?: string
+          sort_order?: number
+          weight_rules?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_zones_shipping_method_id_fkey"
+            columns: ["shipping_method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_zones_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_ai_suggestions: {
         Row: {
           created_at: string | null
@@ -19036,12 +19143,20 @@ export type Database = {
           refunded_at: string | null
           shipped_at: string | null
           shipping_address: Json | null
+          shipping_cost: number | null
+          shipping_method_id: string | null
+          shipping_method_name: string | null
+          shipping_weight: number | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
           subtotal: number
           tax_total: number
           total: number
+          tracking_added_at: string | null
+          tracking_carrier: string | null
+          tracking_number: string | null
+          tracking_url: string | null
           updated_at: string
           user_id: string | null
           workspace_id: string
@@ -19068,12 +19183,20 @@ export type Database = {
           refunded_at?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
+          shipping_cost?: number | null
+          shipping_method_id?: string | null
+          shipping_method_name?: string | null
+          shipping_weight?: number | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           subtotal?: number
           tax_total?: number
           total?: number
+          tracking_added_at?: string | null
+          tracking_carrier?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string
           user_id?: string | null
           workspace_id: string
@@ -19100,12 +19223,20 @@ export type Database = {
           refunded_at?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
+          shipping_cost?: number | null
+          shipping_method_id?: string | null
+          shipping_method_name?: string | null
+          shipping_weight?: number | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           subtotal?: number
           tax_total?: number
           total?: number
+          tracking_added_at?: string | null
+          tracking_carrier?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string
           user_id?: string | null
           workspace_id?: string
@@ -19144,6 +19275,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_orders_shipping_method_id_fkey"
+            columns: ["shipping_method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
             referencedColumns: ["id"]
           },
           {

@@ -11,8 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, ExternalLink, Copy } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, ExternalLink, Copy, Truck } from "lucide-react";
 import { toast } from "sonner";
+import { ShippingMethodsManager } from "@/components/store-settings/ShippingMethodsManager";
 
 export default function StoreSettingsPage() {
   const { currentWorkspace } = useWorkspace();
@@ -118,6 +119,7 @@ export default function StoreSettingsPage() {
               <TabsTrigger value="general" className="gap-1"><Store className="h-4 w-4" /> Geral</TabsTrigger>
               <TabsTrigger value="branding" className="gap-1"><Palette className="h-4 w-4" /> Branding</TabsTrigger>
               <TabsTrigger value="notifications" className="gap-1"><Bell className="h-4 w-4" /> Notificações</TabsTrigger>
+              <TabsTrigger value="shipping" className="gap-1"><Truck className="h-4 w-4" /> Envio</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-4 mt-4">
@@ -259,6 +261,10 @@ export default function StoreSettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="shipping" className="mt-4">
+              <ShippingMethodsManager />
             </TabsContent>
           </Tabs>
         </div>
