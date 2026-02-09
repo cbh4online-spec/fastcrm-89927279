@@ -15607,6 +15607,9 @@ export type Database = {
           status: string
           stock_notes: string | null
           stock_status: Database["public"]["Enums"]["stock_status"] | null
+          store_featured: boolean | null
+          store_published: boolean | null
+          store_sort_order: number | null
           target_margin_pct: number | null
           tax_rate_estimate_pct: number | null
           total_units: number | null
@@ -15666,6 +15669,9 @@ export type Database = {
           status?: string
           stock_notes?: string | null
           stock_status?: Database["public"]["Enums"]["stock_status"] | null
+          store_featured?: boolean | null
+          store_published?: boolean | null
+          store_sort_order?: number | null
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
@@ -15725,6 +15731,9 @@ export type Database = {
           status?: string
           stock_notes?: string | null
           stock_status?: Database["public"]["Enums"]["stock_status"] | null
+          store_featured?: boolean | null
+          store_published?: boolean | null
+          store_sort_order?: number | null
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
@@ -18633,6 +18642,83 @@ export type Database = {
           },
           {
             foreignKeyName: "sj_touchpoints_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_orders: {
+        Row: {
+          billing_address: Json | null
+          created_at: string
+          currency: string
+          customer_email: string
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          items: Json
+          notes: string | null
+          order_number: string
+          paid_at: string | null
+          shipping_address: Json | null
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          subtotal: number
+          tax_total: number
+          total: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          billing_address?: Json | null
+          created_at?: string
+          currency?: string
+          customer_email: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_number: string
+          paid_at?: string | null
+          shipping_address?: Json | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal?: number
+          tax_total?: number
+          total?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          billing_address?: Json | null
+          created_at?: string
+          currency?: string
+          customer_email?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_number?: string
+          paid_at?: string | null
+          shipping_address?: Json | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal?: number
+          tax_total?: number
+          total?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_orders_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

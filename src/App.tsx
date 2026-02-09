@@ -100,6 +100,12 @@ import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
 import LeadEnricher from "./pages/LeadEnricher";
 
+// Store (Public E-commerce)
+import { StoreCartProvider } from "@/contexts/StoreCartContext";
+import StorePage from "./pages/store/StorePage";
+import StoreProductPage from "./pages/store/StoreProductPage";
+import StoreCheckoutPage from "./pages/store/StoreCheckoutPage";
+
 // Student Journey Pages
 import {
   SJDashboard,
@@ -138,6 +144,19 @@ import {
 } from "./modules/growth-seo";
 
 const queryClient = new QueryClient();
+
+// Store Routes - ISOLATED from CRM providers
+function StoreRoutes() {
+  return (
+    <StoreCartProvider>
+      <Routes>
+        <Route path=":workspaceSlug" element={<StorePage />} />
+        <Route path=":workspaceSlug/product/:productId" element={<StoreProductPage />} />
+        <Route path=":workspaceSlug/checkout" element={<StoreCheckoutPage />} />
+      </Routes>
+    </StoreCartProvider>
+  );
+}
 
 // Client Portal Routes - ISOLATED from CRM providers
 function ClientPortalRoutes() {
@@ -303,6 +322,9 @@ const App = () => (
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
             <Routes>
+              {/* Store - ISOLATED from CRM providers */}
+              <Route path="/store/*" element={<StoreRoutes />} />
+              
               {/* Client Portal - ISOLATED from CRM providers */}
               <Route path="/client/*" element={<ClientPortalRoutes />} />
               
