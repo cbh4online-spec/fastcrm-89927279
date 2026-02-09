@@ -218,7 +218,8 @@ export function useProductivityCoach() {
         .eq('user_id', user.id)
         .eq('priority_date', today);
 
-      // Insert new priorities
+      // Insert new priorities - validate linked_entity_id is a valid UUID or null
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const { data, error } = await supabase
         .from('daily_priorities')
         .insert(
@@ -231,8 +232,8 @@ export function useProductivityCoach() {
             description: p.description,
             ai_generated: true,
             ai_reasoning: p.reasoning,
-            linked_entity_type: p.linked_entity_type,
-            linked_entity_id: p.linked_entity_id,
+            linked_entity_type: p.linked_entity_type || null,
+            linked_entity_id: p.linked_entity_id && uuidRegex.test(p.linked_entity_id) ? p.linked_entity_id : null,
           }))
         )
         .select();
