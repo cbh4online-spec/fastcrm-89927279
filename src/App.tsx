@@ -112,6 +112,8 @@ import StoreProductPage from "./pages/store/StoreProductPage";
 import StoreCheckoutPage from "./pages/store/StoreCheckoutPage";
 import StoreSuccessPage from "./pages/store/StoreSuccessPage";
 import StoreCancelPage from "./pages/store/StoreCancelPage";
+import StoreWishlistPage from "./pages/store/StoreWishlistPage";
+import StoreOrderHistoryPage from "./pages/store/StoreOrderHistoryPage";
 
 // Student Journey Pages
 import {
@@ -162,6 +164,8 @@ function StoreRoutes() {
         <Route path=":workspaceSlug/checkout" element={<StoreCheckoutPage />} />
         <Route path=":workspaceSlug/success" element={<StoreSuccessPage />} />
         <Route path=":workspaceSlug/cancel" element={<StoreCancelPage />} />
+        <Route path=":workspaceSlug/wishlist" element={<StoreWishlistPage />} />
+        <Route path=":workspaceSlug/orders" element={<StoreOrderHistoryPage />} />
       </Routes>
     </StoreCartProvider>
   );

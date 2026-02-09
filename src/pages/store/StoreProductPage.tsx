@@ -8,6 +8,8 @@ import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing"
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
+import { StoreReviewsSection } from "@/components/store/StoreReviewsSection";
+import { useStoreReviewStats, useStoreWishlist, useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +23,8 @@ import {
   Plus,
   Truck,
   Shield,
+  Heart,
+  Star,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -38,6 +42,10 @@ export default function StoreProductPage() {
   const { data: tierPricing } = useStoreTierPricing(wsSlug);
   const isOutOfStock = product?.stock_status === "out_of_stock";
   const pricing = product ? getStorePrice(product.base_price, product.id, tierPricing) : null;
+  const { average: reviewAvg, count: reviewCount } = useStoreReviewStats(productId);
+  const { data: wishlist = [] } = useStoreWishlist((product as any)?.workspace_id);
+  const toggleWishlist = useToggleWishlist();
+  const isInWishlist = product ? wishlist.some((w) => w.product_id === product.id) : false;
 
   const handleAddToCart = () => {
     if (!product || isOutOfStock) return;
@@ -177,6 +185,16 @@ export default function StoreProductPage() {
                 {product.sku && (
                   <p className="text-xs text-muted-foreground mt-1">SKU: {product.sku}</p>
                 )}
+                {reviewCount > 0 && (
+                  <div className="flex items-center gap-1 mt-2">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} className={cn("h-4 w-4", s <= Math.round(reviewAvg) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
+                      ))}
+                    </div>
+                    <span className="text-sm text-muted-foreground ml-1">({reviewCount})</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-baseline gap-2">
@@ -247,7 +265,21 @@ export default function StoreProductPage() {
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
+
+                {/* Wishlist button */}
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() => product && toggleWishlist.mutate({
+                    productId: product.id,
+                    workspaceId: (product as any).workspace_id,
+                    isInWishlist,
+                  })}
+                >
+                  <Heart className={cn("h-4 w-4", isInWishlist && "fill-red-500 text-red-500")} />
+                  {isInWishlist ? "Na Lista de Desejos" : "Adicionar à Lista de Desejos"}
+                </Button>
+              </div>
 
                 <Button
                   size="lg"
@@ -322,6 +354,9 @@ export default function StoreProductPage() {
               </div>
             </div>
           )}
+
+          {/* Reviews */}
+          <StoreReviewsSection productId={product.id} workspaceId={(product as any).workspace_id} />
 
           {/* Cross-sell: Frequentemente comprados juntos */}
           <StoreBoughtTogether
