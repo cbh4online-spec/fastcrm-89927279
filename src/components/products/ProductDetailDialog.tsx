@@ -40,6 +40,7 @@ import {
   Trash2,
   ClipboardList,
   Video,
+  Link2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -64,6 +65,7 @@ import { ProductProgressionsTab } from "./ProductProgressionsTab";
 import { ProductCyclesTabEnhanced } from "./ProductCyclesTabEnhanced";
 import { ProductSheetSettings } from "./ProductSheetSettings";
 import { ProductVideoPreview } from "./ProductVideoPreview";
+import { ProductRelationsTab } from "./ProductRelationsTab";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -251,6 +253,10 @@ export function ProductDetailDialog({
                 <TabsTrigger value="progressions">Progressões</TabsTrigger>
                 <TabsTrigger value="cycles">Ciclos</TabsTrigger>
                 <TabsTrigger value="sheet">Ficha</TabsTrigger>
+                <TabsTrigger value="relations">
+                  <Link2 className="h-4 w-4 mr-1" />
+                  Relações
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="mt-4 space-y-4">
@@ -463,6 +469,10 @@ export function ProductDetailDialog({
 
               <TabsContent value="sheet" className="mt-4">
                 <ProductSheetSettings product={product} />
+              </TabsContent>
+
+              <TabsContent value="relations" className="mt-4">
+                <ProductRelationsTab product={product} />
               </TabsContent>
             </Tabs>
           </ScrollArea>

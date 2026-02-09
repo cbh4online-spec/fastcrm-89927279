@@ -21,6 +21,34 @@ export function StoreBoughtTogether({ productId, categoryId, workspaceId, curren
   const { data: related } = useQuery({
     queryKey: ["store-bought-together", productId, categoryId],
     queryFn: async () => {
+      // First try: get "bundle" relations from product_relations
+      const { data: relations } = await supabase
+        .from("product_relations" as any)
+        .select("target_product_id")
+        .eq("source_product_id", productId)
+        .eq("relation_type", "bundle")
+        .eq("is_active", true)
+        .order("sort_order")
+        .limit(3);
+
+      if (relations && relations.length > 0) {
+        const targetIds = relations.map((r: any) => r.target_product_id);
+        const { data: prods } = await supabase
+          .from("products")
+          .select("id, name, base_price, currency, images, primary_image_index, sku")
+          .in("id", targetIds)
+          .eq("store_published", true)
+          .eq("status", "active")
+          .neq("stock_status", "out_of_stock");
+
+        if (prods && prods.length > 0) {
+          return targetIds
+            .map((tid: string) => prods.find((p) => p.id === tid))
+            .filter(Boolean) as typeof prods;
+        }
+      }
+
+      // Fallback: same category
       if (!categoryId) return [];
       const { data } = await supabase
         .from("products")
@@ -35,7 +63,6 @@ export function StoreBoughtTogether({ productId, categoryId, workspaceId, curren
         .limit(3);
       return data || [];
     },
-    enabled: !!categoryId,
     staleTime: 60_000,
   });
 

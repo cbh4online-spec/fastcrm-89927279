@@ -17,6 +17,8 @@ import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing"
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
+import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
+import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreReviewsSection } from "@/components/store/StoreReviewsSection";
 import { useStoreReviewStats, useStoreWishlist, useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
@@ -498,6 +500,13 @@ export default function StoreProductPage() {
           {/* Reviews */}
           <StoreReviewsSection productId={product.id} workspaceId={(product as any).workspace_id} />
 
+          {/* Compatible Products */}
+          <StoreCompatibleProducts
+            productId={product.id}
+            workspaceId={(product as any).workspace_id}
+            workspaceSlug={wsSlug}
+          />
+
           {/* Cross-sell */}
           <StoreBoughtTogether
             productId={product.id}
@@ -526,6 +535,13 @@ export default function StoreProductPage() {
         <StoreFooter
           workspaceSlug={wsSlug}
           storeName="Loja"
+        />
+
+        {/* AI Advisor */}
+        <StoreAIAdvisor
+          workspaceId={(product as any).workspace_id}
+          workspaceSlug={wsSlug}
+          productContext={{ name: product.name, category: product.category || undefined }}
         />
       </div>
     </>

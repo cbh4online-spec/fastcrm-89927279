@@ -189,3 +189,6 @@ verify_jwt = false
 
 [functions.store-webhook]
 verify_jwt = false
+
+[functions.store-ai-advisor]
+verify_jwt = false

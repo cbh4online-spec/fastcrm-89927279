@@ -7,7 +7,9 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video";
+  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations";
+  productId?: string;
+  workspaceId?: string;
   productName?: string;
   sku?: string;
   category?: string;
@@ -77,7 +79,7 @@ serve(async (req) => {
   }
 
   try {
-    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories } = await req.json() as AssistantRequest;
+    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId } = await req.json() as AssistantRequest;
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
@@ -1044,6 +1046,119 @@ DO NOT include any text or labels in the image.`;
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+
+    } else if (mode === 'suggest-relations' && reqProductId && reqWorkspaceId) {
+      // Suggest product relations using AI
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Get the source product
+      const { data: sourceProduct } = await supabase
+        .from('products')
+        .select('id, name, category, short_description, specifications, sku')
+        .eq('id', reqProductId)
+        .single();
+
+      if (!sourceProduct) {
+        return new Response(JSON.stringify({ success: false, error: 'Product not found' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Get other products in workspace
+      const { data: otherProducts } = await supabase
+        .from('products')
+        .select('id, name, category, short_description, base_price, sku')
+        .eq('workspace_id', reqWorkspaceId)
+        .eq('status', 'active')
+        .neq('id', reqProductId)
+        .limit(50);
+
+      if (!otherProducts || otherProducts.length === 0) {
+        return new Response(JSON.stringify({ success: true, data: { added: 0 } }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Get existing relations to avoid duplicates
+      const { data: existingRelations } = await supabase
+        .from('product_relations')
+        .select('target_product_id, relation_type')
+        .eq('source_product_id', reqProductId);
+
+      const existingSet = new Set((existingRelations || []).map((r: any) => `${r.target_product_id}:${r.relation_type}`));
+
+      const catalog = otherProducts.map((p: any) => `ID:${p.id} | ${p.name} | ${p.category || ''} | ${p.short_description || ''} | SKU:${p.sku || ''}`).join('\n');
+
+      const suggestPrompt = `Analisa o produto "${sourceProduct.name}" (categoria: ${sourceProduct.category || 'N/A'}, SKU: ${sourceProduct.sku || 'N/A'}) e sugere relações com outros produtos do catálogo.
+
+CATÁLOGO:
+${catalog}
+
+Responde APENAS em JSON válido com o formato:
+{
+  "suggestions": [
+    { "targetId": "uuid", "type": "compatible|related|bundle", "reason": "Motivo curto" }
+  ]
+}
+
+REGRAS:
+- compatible: acessórios, complementos, peças que funcionam juntos
+- related: alternativas similares, mesmo tipo de produto
+- bundle: produtos que faz sentido comprar juntos como kit
+- Máximo 8 sugestões no total
+- Razão máxima de 50 caracteres`;
+
+      const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: 'Especialista em catálogo de produtos. Sugere relações inteligentes entre produtos. Responde só em JSON.' },
+            { role: 'user', content: suggestPrompt },
+          ],
+          temperature: 0.5,
+        }),
+      });
+
+      if (!aiResp.ok) throw new Error(`AI error: ${aiResp.status}`);
+
+      const aiData = await aiResp.json();
+      const aiContent = aiData.choices?.[0]?.message?.content || '';
+      let suggestions: any[] = [];
+      try {
+        const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+        const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { suggestions: [] };
+        suggestions = parsed.suggestions || [];
+      } catch { suggestions = []; }
+
+      // Filter out existing relations and invalid IDs
+      const validProductIds = new Set(otherProducts.map((p: any) => p.id));
+      const toInsert = suggestions
+        .filter((s: any) => validProductIds.has(s.targetId) && !existingSet.has(`${s.targetId}:${s.type}`))
+        .map((s: any, i: number) => ({
+          workspace_id: reqWorkspaceId,
+          source_product_id: reqProductId,
+          target_product_id: s.targetId,
+          relation_type: s.type,
+          reason: s.reason || null,
+          sort_order: i,
+        }));
+
+      let added = 0;
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from('product_relations').insert(toInsert);
+        if (!insertError) added = toInsert.length;
+        else console.error('Insert error:', insertError);
+      }
+
+      return new Response(JSON.stringify({ success: true, data: { added, suggestions: toInsert.length } }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
     }
 
     return new Response(JSON.stringify({

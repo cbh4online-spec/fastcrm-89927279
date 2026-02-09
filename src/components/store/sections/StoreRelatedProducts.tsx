@@ -15,6 +15,34 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
   const { data: products } = useQuery({
     queryKey: ["store-related", productId, categoryId],
     queryFn: async () => {
+      // First try: get "related" relations from product_relations
+      const { data: relations } = await supabase
+        .from("product_relations" as any)
+        .select("target_product_id")
+        .eq("source_product_id", productId)
+        .eq("relation_type", "related")
+        .eq("is_active", true)
+        .order("sort_order")
+        .limit(8);
+
+      if (relations && relations.length > 0) {
+        const targetIds = relations.map((r: any) => r.target_product_id);
+        const { data: prods } = await supabase
+          .from("products")
+          .select("id, name, base_price, images, primary_image_index, category")
+          .in("id", targetIds)
+          .eq("store_published", true)
+          .eq("status", "active");
+
+        if (prods && prods.length > 0) {
+          // Maintain sort order from relations
+          return targetIds
+            .map((tid: string) => prods.find((p) => p.id === tid))
+            .filter(Boolean) as typeof prods;
+        }
+      }
+
+      // Fallback: same category
       if (!categoryId) return [];
       const { data } = await supabase
         .from("products")
@@ -28,7 +56,6 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
         .limit(8);
       return data || [];
     },
-    enabled: !!categoryId,
     staleTime: 60_000,
   });
 
