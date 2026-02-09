@@ -198,6 +198,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Cupões", href: "/dashboard/store-coupons", icon: Layers, tooltip: "Cupões de desconto" },
       { name: "Encomendas Loja", href: "/dashboard/store-orders", icon: Package, tooltip: "Encomendas da loja online" },
       { name: "Config. Loja", href: "/dashboard/store-settings", icon: Store, tooltip: "Personalizar loja" },
+      { name: "Analytics Loja", href: "/dashboard/store-analytics", icon: BarChart3, tooltip: "Métricas e desempenho da loja" },
     ],
   },
   // MARKETING
