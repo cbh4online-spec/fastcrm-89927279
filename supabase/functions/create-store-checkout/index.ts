@@ -12,6 +12,62 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[STORE-CHECKOUT] ${step}${detailsStr}`);
 };
 
+async function upsertContact(
+  supabaseClient: ReturnType<typeof createClient>,
+  workspaceId: string,
+  name: string,
+  email: string,
+  phone: string | null
+): Promise<string | null> {
+  try {
+    // Search by email first
+    const { data: existing } = await supabaseClient
+      .from("contacts")
+      .select("id, name, phone")
+      .eq("workspace_id", workspaceId)
+      .eq("email", email)
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      // Update missing fields
+      const updates: Record<string, string> = {};
+      if (!existing.name && name) updates.name = name;
+      if (!existing.phone && phone) updates.phone = phone;
+      if (Object.keys(updates).length > 0) {
+        await supabaseClient.from("contacts").update(updates).eq("id", existing.id);
+        logStep("Updated existing contact", { contactId: existing.id, updates });
+      }
+      return existing.id;
+    }
+
+    // Create new contact
+    const { data: newContact, error } = await supabaseClient
+      .from("contacts")
+      .insert({
+        workspace_id: workspaceId,
+        name,
+        email,
+        phone: phone || null,
+        source: "store",
+        tags: ["loja-online"],
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      logStep("Contact insert error", { message: error.message });
+      return null;
+    }
+
+    logStep("Created new CRM contact", { contactId: newContact.id });
+    return newContact.id;
+  } catch (err) {
+    logStep("Contact upsert error", { message: String(err) });
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -40,6 +96,7 @@ serve(async (req) => {
     if (!items || items.length === 0) throw new Error("Cart is empty");
     if (!customerEmail) throw new Error("Customer email is required");
     if (!customerName) throw new Error("Customer name is required");
+    if (!customerPhone) throw new Error("Customer phone is required");
 
     // Get workspace Stripe config
     const { data: stripeConfig, error: configError } = await supabaseClient
@@ -142,6 +199,15 @@ serve(async (req) => {
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
+    // Upsert contact in CRM
+    const contactId = await upsertContact(
+      supabaseClient,
+      workspaceId,
+      customerName,
+      customerEmail,
+      customerPhone || null
+    );
+
     // Create store order record
     const orderItems = items.map((item: { productId: string; quantity: number; name: string; price: number }) => {
       const product = products.find((p) => p.id === item.productId);
@@ -162,6 +228,7 @@ serve(async (req) => {
         customer_email: customerEmail,
         customer_phone: customerPhone || null,
         user_id: userId,
+        contact_id: contactId,
         items: orderItems,
         total: lineItems.reduce(
           (sum: number, li: { price_data: { unit_amount: number }; quantity: number }) =>

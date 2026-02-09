@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Lock, Package, ShoppingBag, Loader2 } from "lucide-react";
+import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,8 +25,14 @@ export default function StoreCheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) {
-      toast.error("Preencha o nome e email");
+    if (!formData.name || !formData.phone || !formData.email) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+    // Basic phone validation
+    const phoneClean = formData.phone.replace(/\s/g, "");
+    if (phoneClean.length < 9) {
+      toast.error("Número de telefone inválido");
       return;
     }
     setIsProcessing(true);
@@ -106,32 +112,47 @@ export default function StoreCheckoutPage() {
             <form onSubmit={handleSubmit} className="md:col-span-3 space-y-6">
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold">Informações de contacto</h2>
+                <p className="text-sm text-muted-foreground">Precisamos do seu contacto para atualizações da encomenda</p>
                 <div className="grid gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nome completo *</Label>
+                    <Label htmlFor="name" className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                      Nome completo *
+                    </Label>
                     <Input
                       id="name"
+                      placeholder="O seu nome completo"
                       value={formData.name}
                       onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="phone" className="flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                      Telefone *
+                    </Label>
                     <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+                      id="phone"
+                      type="tel"
+                      placeholder="+351 912 345 678"
+                      value={formData.phone}
+                      onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
+                    <Label htmlFor="email" className="flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                      Email *
+                    </Label>
                     <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+                      id="email"
+                      type="email"
+                      placeholder="o-seu@email.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+                      required
                     />
                   </div>
                 </div>

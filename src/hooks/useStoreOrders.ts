@@ -10,6 +10,7 @@ export interface StoreOrder {
   customer_name: string;
   customer_email: string;
   customer_phone: string | null;
+  contact_id: string | null;
   status: string;
   items: Array<{
     product_id: string;

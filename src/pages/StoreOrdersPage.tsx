@@ -20,7 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, ShoppingBag, MoreHorizontal, Eye, Package, Clock, CheckCircle2, XCircle, Truck } from "lucide-react";
+import { Search, ShoppingBag, MoreHorizontal, Eye, Package, Clock, CheckCircle2, XCircle, Truck, UserCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import {
@@ -140,9 +141,21 @@ export default function StoreOrdersPage() {
                           {order.order_number || order.id.slice(0, 8)}
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <p className="font-medium text-sm">{order.customer_name}</p>
-                            <p className="text-xs text-muted-foreground">{order.customer_email}</p>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium text-sm">{order.customer_name}</p>
+                              <p className="text-xs text-muted-foreground">{order.customer_email}</p>
+                              {order.customer_phone && <p className="text-xs text-muted-foreground">{order.customer_phone}</p>}
+                            </div>
+                            {order.contact_id && (
+                              <Link
+                                to={`/contacts/${order.contact_id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                title="Ver contacto no CRM"
+                              >
+                                <UserCircle className="h-4 w-4 text-primary hover:text-primary/80" />
+                              </Link>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">
@@ -238,7 +251,18 @@ function OrderDetailDialog({ order, onClose }: { order: StoreOrder | null; onClo
         <div className="space-y-4">
           {/* Customer */}
           <div>
-            <h3 className="text-sm font-semibold mb-1">Cliente</h3>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-semibold">Cliente</h3>
+              {order.contact_id && (
+                <Link
+                  to={`/contacts/${order.contact_id}`}
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  <UserCircle className="h-3.5 w-3.5" />
+                  Ver no CRM
+                </Link>
+              )}
+            </div>
             <p className="text-sm">{order.customer_name}</p>
             <p className="text-sm text-muted-foreground">{order.customer_email}</p>
             {order.customer_phone && <p className="text-sm text-muted-foreground">{order.customer_phone}</p>}

@@ -18652,6 +18652,7 @@ export type Database = {
       store_orders: {
         Row: {
           billing_address: Json | null
+          contact_id: string | null
           created_at: string
           currency: string
           customer_email: string
@@ -18675,6 +18676,7 @@ export type Database = {
         }
         Insert: {
           billing_address?: Json | null
+          contact_id?: string | null
           created_at?: string
           currency?: string
           customer_email: string
@@ -18698,6 +18700,7 @@ export type Database = {
         }
         Update: {
           billing_address?: Json | null
+          contact_id?: string | null
           created_at?: string
           currency?: string
           customer_email?: string
@@ -18720,6 +18723,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "store_orders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "store_orders_workspace_id_fkey"
             columns: ["workspace_id"]
