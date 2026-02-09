@@ -5,7 +5,8 @@ import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { useStoreOrderHistory } from "@/hooks/useStoreReviewsWishlist";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, ArrowLeft, Truck, ExternalLink } from "lucide-react";
+import { Package, ArrowLeft, Truck, ExternalLink, RotateCcw } from "lucide-react";
+import { StoreReturnRequestForm } from "@/components/store/StoreReturnRequestForm";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -100,6 +101,24 @@ export default function StoreOrderHistoryPage() {
                         </span>
                       )}
                     </div>
+                    {/* Return Request Button */}
+                    {["paid", "processing", "shipped", "delivered"].includes(order.status) && (
+                      <div className="flex justify-end pt-2 border-t">
+                        <StoreReturnRequestForm
+                          orderId={order.id}
+                          orderNumber={order.order_number || order.id.slice(0, 8)}
+                          orderTotal={Number(order.total)}
+                          orderStatus={order.status}
+                          orderItems={items.map((item: any) => ({
+                            product_id: item.product_id,
+                            name: item.name,
+                            quantity: item.quantity,
+                            unit_price: item.unit_price,
+                          }))}
+                          workspaceId={(order as any).workspace_id || ""}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}
