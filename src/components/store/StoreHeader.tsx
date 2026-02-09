@@ -1,0 +1,81 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { ShoppingBag, Search, Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useStoreCart } from "@/contexts/StoreCartContext";
+
+interface StoreHeaderProps {
+  storeName?: string;
+  onSearch?: (query: string) => void;
+  workspaceSlug: string;
+}
+
+export function StoreHeader({ storeName = "Loja", onSearch, workspaceSlug }: StoreHeaderProps) {
+  const { totalItems, setIsOpen } = useStoreCart();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch?.(searchQuery);
+  };
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <Link
+          to={`/store/${workspaceSlug}`}
+          className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity"
+        >
+          {storeName}
+        </Link>
+
+        <div className="flex items-center gap-3">
+          {searchOpen ? (
+            <form onSubmit={handleSearch} className="flex items-center gap-2">
+              <Input
+                placeholder="Pesquisar produtos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-48 md:w-64"
+                autoFocus
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={() => {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                  onSearch?.("");
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </form>
+          ) : (
+            <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)}>
+              <Search className="h-5 w-5" />
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            onClick={() => setIsOpen(true)}
+          >
+            <ShoppingBag className="h-5 w-5" />
+            {totalItems > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                {totalItems}
+              </Badge>
+            )}
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+}
