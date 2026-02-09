@@ -449,7 +449,7 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
       form.reset({
         name: editRule.name,
         description: editRule.description || "",
-        trigger: editRule.trigger,
+        trigger: editRule.trigger as any,
         trigger_config: editRule.trigger_config || {},
         is_active: editRule.is_active,
         conditions: editRule.conditions?.map((c, i) => ({
@@ -459,7 +459,7 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
           position: c.position ?? i,
         })) || [],
         actions: editRule.actions?.map((a, i) => ({
-          action_type: a.action_type,
+          action_type: a.action_type as any,
           config: a.config as Record<string, unknown>,
           position: a.position ?? i,
         })) || [{ action_type: "notify_user", config: {}, position: 0 }],

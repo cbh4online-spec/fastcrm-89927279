@@ -435,7 +435,7 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
       form.reset({
         name: editRule.name,
         description: editRule.description || "",
-        trigger: editRule.trigger,
+        trigger: editRule.trigger as any,
         is_active: editRule.is_active,
         conditions: editRule.conditions?.map((c, i) => ({
           field_name: c.field_name,
@@ -444,7 +444,7 @@ export function AutomationRuleBuilder({ open, onOpenChange, editRule }: Props) {
           position: c.position ?? i,
         })) || [],
         actions: editRule.actions?.map((a, i) => ({
-          action_type: a.action_type,
+          action_type: a.action_type as any,
           config: a.config as Record<string, unknown>,
           position: a.position ?? i,
         })) || [{ action_type: "notify_user", config: {}, position: 0 }],

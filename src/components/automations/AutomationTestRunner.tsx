@@ -596,6 +596,11 @@ function getTriggerDescription(trigger: AutomationTrigger): string {
     tag_added: "When a tag is added",
     tag_removed: "When a tag is removed",
     form_submitted: "When a form is submitted",
+    store_purchase_completed: "When a store purchase is completed",
+    store_cart_abandoned: "When a cart is abandoned",
+    store_repurchase: "When a customer makes a repeat purchase",
+    store_first_purchase: "When a customer makes their first purchase",
+    store_order_status_changed: "When an order status changes",
   };
   return descriptions[trigger] || trigger;
 }
