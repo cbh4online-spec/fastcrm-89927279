@@ -50,10 +50,11 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
     }
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading || messageCount >= 10) return;
+  const sendMessage = async (overrideInput?: string) => {
+    const messageText = (overrideInput || input).trim();
+    if (!messageText || isLoading || messageCount >= 10) return;
 
-    const userMsg: Message = { role: "user", content: input.trim() };
+    const userMsg: Message = { role: "user", content: messageText };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
@@ -146,10 +147,7 @@ export function StoreAIAdvisor({ workspaceId, workspaceSlug, productContext }: S
                           variant="outline"
                           size="sm"
                           className="text-xs"
-                          onClick={() => {
-                            setInput(q);
-                            setTimeout(() => sendMessage(), 50);
-                          }}
+                          onClick={() => sendMessage(q)}
                         >
                           {q}
                         </Button>
