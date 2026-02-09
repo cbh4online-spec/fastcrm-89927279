@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function StoreCheckoutPage() {
@@ -16,6 +17,7 @@ export default function StoreCheckoutPage() {
   const { items, subtotal, clearCart } = useStoreCart();
   const wsSlug = workspaceSlug || "";
   const [isProcessing, setIsProcessing] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -23,16 +25,30 @@ export default function StoreCheckoutPage() {
     phone: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const isStep1Valid = () => {
+    if (!formData.name.trim() || !formData.phone.trim()) return false;
+    const phoneClean = formData.phone.replace(/\s/g, "");
+    return phoneClean.length >= 9;
+  };
+
+  const handleStep1Continue = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.email) {
-      toast.error("Preencha todos os campos obrigatórios");
+    if (!formData.name.trim()) {
+      toast.error("Preencha o nome");
       return;
     }
-    // Basic phone validation
     const phoneClean = formData.phone.replace(/\s/g, "");
     if (phoneClean.length < 9) {
       toast.error("Número de telefone inválido");
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email.trim()) {
+      toast.error("Preencha o email");
       return;
     }
     setIsProcessing(true);
@@ -105,74 +121,128 @@ export default function StoreCheckoutPage() {
             Voltar à Loja
           </Link>
 
-          <h1 className="text-2xl font-bold mb-8">Checkout</h1>
+          {/* Step indicator */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className={cn(
+              "flex items-center gap-2 text-sm font-medium",
+              step === 1 ? "text-primary" : "text-muted-foreground"
+            )}>
+              {step > 1 ? (
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+              ) : (
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
+              )}
+              <button type="button" onClick={() => step === 2 && setStep(1)} className={step === 2 ? "hover:underline cursor-pointer" : ""}>
+                Dados pessoais
+              </button>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <div className={cn(
+              "flex items-center gap-2 text-sm font-medium",
+              step === 2 ? "text-primary" : "text-muted-foreground"
+            )}>
+              <span className={cn(
+                "h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold",
+                step === 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}>2</span>
+              Pagamento
+            </div>
+          </div>
 
           <div className="grid md:grid-cols-5 gap-8">
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="md:col-span-3 space-y-6">
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Informações de contacto</h2>
-                <p className="text-sm text-muted-foreground">Precisamos do seu contacto para atualizações da encomenda</p>
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5 text-muted-foreground" />
-                      Nome completo *
-                    </Label>
-                    <Input
-                      id="name"
-                      placeholder="O seu nome completo"
-                      value={formData.name}
-                      onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
-                      required
-                    />
+            {/* Step content */}
+            <div className="md:col-span-3">
+              {step === 1 ? (
+                <form onSubmit={handleStep1Continue} className="space-y-6">
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-semibold">Identificação</h2>
+                    <p className="text-sm text-muted-foreground">Precisamos do seu contacto para atualizações da encomenda</p>
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-muted-foreground" />
+                          Nome completo *
+                        </Label>
+                        <Input
+                          id="name"
+                          placeholder="O seu nome completo"
+                          value={formData.name}
+                          onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+                          required
+                          autoFocus
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="flex items-center gap-1.5">
+                          <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                          Telefone *
+                        </Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="+351 912 345 678"
+                          value={formData.phone}
+                          onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">Para podermos contactar sobre a sua encomenda</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="flex items-center gap-1.5">
-                      <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                      Telefone *
-                    </Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="+351 912 345 678"
-                      value={formData.phone}
-                      onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                      Email *
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="o-seu@email.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
 
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full gap-2"
-                disabled={isProcessing}
-              >
-              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                {isProcessing ? "A redirecionar para o Stripe..." : "Pagar com Stripe"}
-              </Button>
+                  <Button type="submit" size="lg" className="w-full gap-2" disabled={!isStep1Valid()}>
+                    Continuar
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Summary of step 1 data */}
+                  <div className="border rounded-lg p-4 bg-muted/30 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold">Os seus dados</h3>
+                      <button type="button" onClick={() => setStep(1)} className="text-xs text-primary hover:underline">Editar</button>
+                    </div>
+                    <p className="text-sm">{formData.name}</p>
+                    <p className="text-sm text-muted-foreground">{formData.phone}</p>
+                  </div>
 
-              <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
-                <Lock className="h-3 w-3" />
-                Pagamento seguro processado pelo Stripe
-              </p>
-            </form>
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-semibold">Email para recibo</h2>
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                        Email *
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="o-seu@email.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full gap-2"
+                    disabled={isProcessing || !formData.email.trim()}
+                  >
+                    {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                    {isProcessing ? "A redirecionar para o Stripe..." : "Pagar com Stripe"}
+                  </Button>
+
+                  <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    Pagamento seguro processado pelo Stripe
+                  </p>
+                </form>
+              )}
+            </div>
 
             {/* Order Summary */}
             <div className="md:col-span-2">
