@@ -193,6 +193,9 @@ const navigationGroups: NavGroup[] = [
       { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: ShoppingCart, tooltip: "Encomendas B2B" },
       { name: "Clientes B2B", href: "/dashboard/client-users", icon: UsersRound, tooltip: "Clientes profissionais" },
       { name: "Portal B2B", href: "/dashboard/b2b-portal", icon: Store, tooltip: "Configurar portal de clientes", highlight: true },
+      { name: "Loja Online", href: "/dashboard/store-products", icon: ShoppingCart, tooltip: "Gerir loja e-commerce", highlight: true },
+      { name: "Encomendas Loja", href: "/dashboard/store-orders", icon: Package, tooltip: "Encomendas da loja online" },
+      { name: "Config. Loja", href: "/dashboard/store-settings", icon: Store, tooltip: "Personalizar loja" },
     ],
   },
   // MARKETING

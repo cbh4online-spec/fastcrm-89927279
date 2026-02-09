@@ -186,3 +186,6 @@ verify_jwt = false
 
 [functions.create-store-checkout]
 verify_jwt = false
+
+[functions.store-webhook]
+verify_jwt = false
