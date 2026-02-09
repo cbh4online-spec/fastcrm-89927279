@@ -5,7 +5,7 @@ import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { useStoreOrderHistory } from "@/hooks/useStoreReviewsWishlist";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, ArrowLeft, Eye } from "lucide-react";
+import { Package, ArrowLeft, Truck, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -85,9 +85,21 @@ export default function StoreOrderHistoryPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {items.length} {items.length === 1 ? "produto" : "produtos"}
-                    </p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>{items.length} {items.length === 1 ? "produto" : "produtos"}</span>
+                      {(order as any).tracking_number && (
+                        <span className="flex items-center gap-1">
+                          <Truck className="h-3 w-3" />
+                          {(order as any).tracking_url ? (
+                            <a href={(order as any).tracking_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5">
+                              {(order as any).tracking_number} <ExternalLink className="h-2.5 w-2.5" />
+                            </a>
+                          ) : (
+                            <span className="font-mono">{(order as any).tracking_number}</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

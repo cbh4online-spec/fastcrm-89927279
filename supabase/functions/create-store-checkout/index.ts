@@ -88,6 +88,9 @@ serve(async (req) => {
       customerPhone,
       successUrl,
       cancelUrl,
+      shippingMethodId,
+      shippingCost,
+      shippingMethodName,
     } = await req.json();
 
     logStep("Request body", { workspaceId, itemCount: items?.length, customerEmail });
@@ -181,6 +184,21 @@ serve(async (req) => {
       };
     });
 
+    // Add shipping as a line item if applicable
+    const parsedShippingCost = parseFloat(shippingCost) || 0;
+    if (parsedShippingCost > 0) {
+      lineItems.push({
+        price_data: {
+          currency: (products[0]?.currency || "EUR").toLowerCase(),
+          product_data: {
+            name: `Envio — ${shippingMethodName || "Standard"}`,
+          },
+          unit_amount: Math.round(parsedShippingCost * 100),
+        },
+        quantity: 1,
+      });
+    }
+
     const origin = req.headers.get("origin") || "https://fastcrm.lovable.app";
 
     // Optional auth - store checkout works for guests too
@@ -244,6 +262,10 @@ serve(async (req) => {
         user_id: userId,
         contact_id: contactId,
         items: orderItems,
+        subtotal: orderItems.reduce((s: number, i: { unit_price: number; quantity: number }) => s + i.unit_price * i.quantity, 0),
+        shipping_cost: parsedShippingCost,
+        shipping_method_id: shippingMethodId || null,
+        shipping_method_name: shippingMethodName || null,
         total: lineItems.reduce(
           (sum: number, li: { price_data: { unit_amount: number }; quantity: number }) =>
             sum + (li.price_data.unit_amount * li.quantity) / 100,

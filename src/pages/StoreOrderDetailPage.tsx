@@ -5,6 +5,7 @@ import { useStoreOrderDetail } from "@/hooks/useStoreOrderDetail";
 import { useUpdateStoreOrderStatus } from "@/hooks/useStoreOrders";
 import { StoreOrderTimeline } from "@/components/store-orders/StoreOrderTimeline";
 import { StoreOrderAssociations } from "@/components/store-orders/StoreOrderAssociations";
+import { StoreOrderTracking } from "@/components/store-orders/StoreOrderTracking";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,6 +112,12 @@ export default function StoreOrderDetailPage() {
                     {order.subtotal != null && (
                       <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>€{(order.subtotal as number).toFixed(2)}</span></div>
                     )}
+                    {(order.shipping_cost as number) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Envio{order.shipping_method_name ? ` (${order.shipping_method_name})` : ""}</span>
+                        <span>€{(order.shipping_cost as number).toFixed(2)}</span>
+                      </div>
+                    )}
                     {order.tax_total != null && (
                       <div className="flex justify-between"><span className="text-muted-foreground">IVA</span><span>€{(order.tax_total as number).toFixed(2)}</span></div>
                     )}
@@ -158,6 +165,16 @@ export default function StoreOrderDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-6">
+              <StoreOrderTracking
+                orderId={id!}
+                trackingNumber={order.tracking_number as string | null}
+                trackingCarrier={order.tracking_carrier as string | null}
+                trackingUrl={order.tracking_url as string | null}
+                trackingAddedAt={order.tracking_added_at as string | null}
+                customerEmail={order.customer_email as string}
+                customerName={order.customer_name as string}
+                orderNumber={order.order_number as string | null}
+              />
               <StoreOrderTimeline orderId={id!} />
               <StoreOrderAssociations order={order} />
             </div>
