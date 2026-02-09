@@ -14,13 +14,15 @@ import { StoreCategoryCarousel } from "@/components/store/sections/StoreCategory
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreFilterSidebar";
-import { useStoreProducts, useStoreCategories } from "@/hooks/useStoreProducts";
+import { useStoreProducts, useStoreCategories, useInfiniteStoreProducts } from "@/hooks/useStoreProducts";
 import { useStoreTierPricing } from "@/hooks/useStoreTierPricing";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useBatchReviewStats, useProductSalesCount } from "@/hooks/useProductSalesCount";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Package } from "lucide-react";
 
 export default function StorePage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -29,7 +31,13 @@ export default function StorePage() {
 
   const wsId = workspaceSlug || "";
 
-  const { data: allProducts = [], isLoading } = useStoreProducts({
+  const {
+    data: infiniteData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteStoreProducts({
     workspaceId: wsId,
     categoryId: filters.categoryId,
     search,
@@ -38,11 +46,22 @@ export default function StorePage() {
     maxPrice: filters.maxPrice,
   });
 
+  const allProducts = useMemo(
+    () => infiniteData?.pages.flat() ?? [],
+    [infiniteData]
+  );
+
   // Client-side stock filter
   const products = useMemo(() => {
     if (!filters.inStock) return allProducts;
     return allProducts.filter(p => p.stock_status !== "out_of_stock");
   }, [allProducts, filters.inStock]);
+
+  const sentinelRef = useInfiniteScroll({
+    hasNextPage: !!hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
 
   const { data: featuredProducts = [] } = useStoreProducts({
     workspaceId: wsId,
@@ -73,6 +92,11 @@ export default function StorePage() {
       <Helmet>
         <title>{storeName} | FastCRM</title>
         <meta name="description" content={storeSettings?.store_description || "Explore os nossos produtos e serviços"} />
+        <meta property="og:title" content={`${storeName} | FastCRM`} />
+        <meta property="og:description" content={storeSettings?.store_description || "Explore os nossos produtos e serviços"} />
+        <meta property="og:type" content="website" />
+        {storeSettings?.logo_url && <meta property="og:image" content={storeSettings.logo_url} />}
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -206,6 +230,24 @@ export default function StorePage() {
                       />
                     ))}
                   </div>
+
+                  {/* Infinite scroll sentinel */}
+                  <div ref={sentinelRef} className="h-1" />
+
+                  {isFetchingNextPage && (
+                    <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span className="text-sm">A carregar mais...</span>
+                    </div>
+                  )}
+
+                  {hasNextPage && !isFetchingNextPage && (
+                    <div className="flex justify-center py-6">
+                      <Button variant="outline" onClick={() => fetchNextPage()}>
+                        Carregar Mais
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </div>

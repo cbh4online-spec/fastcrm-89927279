@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingBag, Star, Package, Heart } from "lucide-react";
+import { ShoppingBag, Star, Package, Heart, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
+import { StoreQuickViewModal } from "@/components/store/StoreQuickViewModal";
 import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 
@@ -26,6 +28,7 @@ interface StoreProductCardProps {
 export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlistProductIds = [], tierPricing, index = 0, reviewStats, salesCounts }: StoreProductCardProps) {
   const { addItem } = useStoreCart();
   const toggleWishlist = useToggleWishlist();
+  const [quickViewOpen, setQuickViewOpen] = useState(false);
   const isInWishlist = wishlistProductIds.includes(product.id);
   const primaryIndex = product.primary_image_index ?? 0;
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
@@ -119,6 +122,19 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
 
             {/* Quick actions */}
             <div className="absolute bottom-3 right-3 flex flex-col gap-2 opacity-0 translate-y-3 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+              {/* Quick View */}
+              <Button
+                size="icon"
+                variant="secondary"
+                className="h-9 w-9 rounded-full shadow-lg backdrop-blur-sm bg-background/80 hover:bg-background transition-transform duration-200 active:scale-90"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setQuickViewOpen(true);
+                }}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
               {workspaceId && (
                 <Button
                   size="icon"
@@ -199,6 +215,16 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
           </div>
         </div>
       </Link>
+
+      {/* Quick View Modal */}
+      <StoreQuickViewModal
+        product={product}
+        workspaceSlug={workspaceSlug}
+        tierPricing={tierPricing}
+        reviewStats={reviewStats}
+        open={quickViewOpen}
+        onOpenChange={setQuickViewOpen}
+      />
     </motion.div>
   );
 }

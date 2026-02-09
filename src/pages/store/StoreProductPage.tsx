@@ -10,6 +10,7 @@ import { StoreImageZoom } from "@/components/store/StoreImageZoom";
 import { StoreStickyAddToCart } from "@/components/store/StoreStickyAddToCart";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
+import { StoreShareButtons } from "@/components/store/StoreShareButtons";
 import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
@@ -150,6 +151,15 @@ export default function StoreProductPage() {
       <Helmet>
         <title>{product.name} | Loja</title>
         <meta name="description" content={product.short_description || product.name} />
+        <meta property="og:title" content={product.name} />
+        <meta property="og:description" content={product.short_description || product.name} />
+        <meta property="og:type" content="product" />
+        <meta property="og:url" content={window.location.href} />
+        {images[primaryIndex] && <meta property="og:image" content={images[primaryIndex]} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={product.name} />
+        <meta name="twitter:description" content={product.short_description || product.name} />
+        {images[primaryIndex] && <meta name="twitter:image" content={images[primaryIndex]} />}
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -349,6 +359,15 @@ export default function StoreProductPage() {
                   Em stock
                 </Badge>
               )}
+
+              <Separator />
+
+              {/* Share Buttons */}
+              <StoreShareButtons
+                url={window.location.href}
+                title={product.name}
+                description={product.short_description || undefined}
+              />
 
               <Separator />
 

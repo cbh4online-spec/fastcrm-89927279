@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { StoreSearchAutocomplete } from "@/components/store/StoreSearchAutocomplete";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import {
   DropdownMenu,
@@ -33,12 +33,6 @@ interface StoreHeaderProps {
 export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSlug, categories = [], onSelectCategory }: StoreHeaderProps) {
   const { totalItems, setIsOpen } = useStoreCart();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearch?.(searchQuery);
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -95,36 +89,25 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
         <div className="flex items-center gap-1 sm:gap-2">
           <AnimatePresence mode="wait">
             {searchOpen ? (
-              <motion.form
+              <motion.div
                 key="search"
                 initial={{ width: 0, opacity: 0 }}
                 animate={{ width: "auto", opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                onSubmit={handleSearch}
-                className="flex items-center gap-2 overflow-hidden"
+                className="overflow-visible"
               >
-                <Input
-                  placeholder="Pesquisar produtos..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-40 sm:w-64 h-9"
-                  autoFocus
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  className="h-9 w-9"
-                  onClick={() => {
+                <StoreSearchAutocomplete
+                  workspaceSlug={workspaceSlug}
+                  onSearch={(q) => {
+                    onSearch?.(q);
+                  }}
+                  onClose={() => {
                     setSearchOpen(false);
-                    setSearchQuery("");
                     onSearch?.("");
                   }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </motion.form>
+                />
+              </motion.div>
             ) : (
               <motion.div key="search-btn" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setSearchOpen(true)}>

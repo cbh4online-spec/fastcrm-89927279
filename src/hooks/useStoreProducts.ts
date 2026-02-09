@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StoreProduct {
@@ -93,6 +93,67 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as StoreProduct[];
+    },
+    enabled: !!workspaceId,
+  });
+}
+
+const PAGE_SIZE = 12;
+
+export function useInfiniteStoreProducts({ workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy }: UseStoreProductsOptions) {
+  return useInfiniteQuery({
+    queryKey: ["store-products-infinite", workspaceId, categoryId, category, search, featured, minPrice, maxPrice, sortBy],
+    queryFn: async ({ pageParam = 0 }) => {
+      let query = supabase
+        .from("products")
+        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at")
+        .eq("workspace_id", workspaceId)
+        .eq("store_published", true)
+        .eq("status", "active");
+
+      if (categoryId) {
+        query = query.eq("store_category_id", categoryId);
+      } else if (category) {
+        query = query.eq("category", category);
+      }
+
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,short_description.ilike.%${search}%,sku.ilike.%${search}%`);
+      }
+
+      if (featured) {
+        query = query.eq("store_featured", true);
+      }
+
+      if (minPrice !== undefined) {
+        query = query.gte("base_price", minPrice);
+      }
+      if (maxPrice !== undefined) {
+        query = query.lte("base_price", maxPrice);
+      }
+
+      if (sortBy === "price_asc") {
+        query = query.order("base_price", { ascending: true });
+      } else if (sortBy === "price_desc") {
+        query = query.order("base_price", { ascending: false });
+      } else if (sortBy === "newest") {
+        query = query.order("created_at", { ascending: false });
+      } else {
+        query = query.order("store_sort_order", { ascending: true }).order("name", { ascending: true });
+      }
+
+      const from = pageParam * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as StoreProduct[];
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < PAGE_SIZE) return undefined;
+      return allPages.length;
     },
     enabled: !!workspaceId,
   });
