@@ -13,6 +13,7 @@ import { StoreDealsSection } from "@/components/store/sections/StoreDealsSection
 import { StoreCategoryCarousel } from "@/components/store/sections/StoreCategoryCarousel";
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
 import { StoreFooter } from "@/components/store/StoreFooter";
+import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreFilterSidebar";
 import { useStoreProducts, useStoreCategories, useInfiniteStoreProducts } from "@/hooks/useStoreProducts";
 import { useStoreTierPricing } from "@/hooks/useStoreTierPricing";
@@ -269,6 +270,14 @@ export default function StorePage() {
           categories={categories}
           footerText={storeSettings?.footer_text}
         />
+
+        {/* AI Advisor - need workspaceId from products */}
+        {allProducts.length > 0 && (
+          <StoreAIAdvisor
+            workspaceId={(allProducts[0] as any).workspace_id}
+            workspaceSlug={wsId}
+          />
+        )}
       </div>
     </>
   );
