@@ -34,6 +34,11 @@ const triggerDescriptions: Record<AutomationTrigger, string> = {
   tag_added: "Quando uma tag é adicionada",
   tag_removed: "Quando uma tag é removida",
   form_submitted: "Quando um formulário é submetido",
+  store_purchase_completed: "Quando uma compra é efetuada na loja",
+  store_cart_abandoned: "Quando um carrinho é abandonado",
+  store_repurchase: "Quando um cliente faz uma recompra",
+  store_first_purchase: "Quando um cliente faz a primeira compra",
+  store_order_status_changed: "Quando o estado de uma encomenda muda",
 };
 
 /**
@@ -110,6 +115,14 @@ const actionDescriptions: Record<AutomationActionType, (config: Record<string, u
   change_lead_status: (config) => {
     const status = config.new_status as string || "novo estado";
     return `Alterar estado do lead para "${status}"`;
+  },
+  send_followup_email: () => `Enviar e-mail de follow-up`,
+  trigger_upsell_offer: () => `Enviar oferta de upsell`,
+  start_onboarding_flow: () => `Iniciar fluxo de onboarding`,
+  activate_ai_assistant: () => `Ativar assistente IA`,
+  schedule_repurchase_reminder: (config) => {
+    const days = config.reminder_days as number || 30;
+    return `Agendar lembrete de recompra (${days} dias)`;
   },
 };
 

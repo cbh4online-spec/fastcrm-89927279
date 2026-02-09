@@ -342,6 +342,90 @@ serve(async (req) => {
           } catch (emailError) {
             logStep("Email sending error (non-blocking)", { message: (emailError as Error).message });
           }
+
+          // ============================
+          // Store Automation Triggers
+          // ============================
+          try {
+            // Check if this is a first purchase or repurchase
+            const contactId = order?.contact_id;
+            let eventType = 'purchase_completed';
+
+            if (contactId) {
+              const { count: previousOrders } = await supabaseClient
+                .from('store_orders')
+                .select('id', { count: 'exact', head: true })
+                .eq('contact_id', contactId)
+                .eq('workspace_id', workspaceId)
+                .in('status', ['paid', 'processing', 'shipped', 'delivered'])
+                .neq('id', order.id);
+
+              if (previousOrders === 0) {
+                eventType = 'first_purchase';
+                // Also log as first_purchase event
+                await supabaseClient.from('store_automation_events').insert({
+                  workspace_id: workspaceId,
+                  event_type: 'first_purchase',
+                  order_id: order.id,
+                  contact_id: contactId,
+                  event_data: {
+                    order_number: order.order_number,
+                    total: order.total,
+                    items: order.items,
+                    customer_email: order.customer_email,
+                    customer_name: order.customer_name,
+                  },
+                });
+              } else {
+                eventType = 'repurchase';
+                // Log repurchase event
+                await supabaseClient.from('store_automation_events').insert({
+                  workspace_id: workspaceId,
+                  event_type: 'repurchase',
+                  order_id: order.id,
+                  contact_id: contactId,
+                  event_data: {
+                    order_number: order.order_number,
+                    total: order.total,
+                    items: order.items,
+                    previous_orders: previousOrders,
+                    customer_email: order.customer_email,
+                  },
+                });
+              }
+            }
+
+            // Always log the general purchase_completed event
+            await supabaseClient.from('store_automation_events').insert({
+              workspace_id: workspaceId,
+              event_type: 'purchase_completed',
+              order_id: order.id,
+              contact_id: contactId || null,
+              event_data: {
+                order_number: order.order_number,
+                total: order.total,
+                items: order.items,
+                customer_email: order.customer_email,
+                customer_name: order.customer_name,
+                is_first_purchase: eventType === 'first_purchase',
+                is_repurchase: eventType === 'repurchase',
+              },
+            });
+
+            // Mark any abandoned cart as recovered
+            if (order.customer_email) {
+              await supabaseClient
+                .from('store_abandoned_carts')
+                .update({ recovery_status: 'recovered', recovered_order_id: order.id, updated_at: new Date().toISOString() })
+                .eq('workspace_id', workspaceId)
+                .eq('customer_email', order.customer_email)
+                .eq('recovery_status', 'abandoned');
+            }
+
+            logStep('Store automation events logged', { eventType });
+          } catch (automationError) {
+            logStep('Store automation event error (non-blocking)', { message: (automationError as Error).message });
+          }
         }
       }
     }

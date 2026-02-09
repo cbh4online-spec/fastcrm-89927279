@@ -19247,6 +19247,88 @@ export type Database = {
           },
         ]
       }
+      store_abandoned_carts: {
+        Row: {
+          abandoned_at: string
+          contact_id: string | null
+          created_at: string
+          currency: string | null
+          customer_email: string | null
+          customer_name: string | null
+          expires_at: string | null
+          id: string
+          items: Json
+          last_recovery_at: string | null
+          recovered_order_id: string | null
+          recovery_attempts: number | null
+          recovery_status: string
+          session_id: string
+          subtotal: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          abandoned_at?: string
+          contact_id?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          expires_at?: string | null
+          id?: string
+          items?: Json
+          last_recovery_at?: string | null
+          recovered_order_id?: string | null
+          recovery_attempts?: number | null
+          recovery_status?: string
+          session_id: string
+          subtotal?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          abandoned_at?: string
+          contact_id?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          expires_at?: string | null
+          id?: string
+          items?: Json
+          last_recovery_at?: string | null
+          recovered_order_id?: string | null
+          recovery_attempts?: number | null
+          recovery_status?: string
+          session_id?: string
+          subtotal?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_abandoned_carts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_abandoned_carts_recovered_order_id_fkey"
+            columns: ["recovered_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_abandoned_carts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_ai_offers: {
         Row: {
           ai_reasoning: string | null
@@ -19330,6 +19412,84 @@ export type Database = {
           },
           {
             foreignKeyName: "store_ai_offers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_automation_events: {
+        Row: {
+          abandoned_cart_id: string | null
+          automation_rule_id: string | null
+          contact_id: string | null
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          order_id: string | null
+          processed: boolean | null
+          processed_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          abandoned_cart_id?: string | null
+          automation_rule_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          order_id?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          abandoned_cart_id?: string | null
+          automation_rule_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          order_id?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_automation_events_abandoned_cart_id_fkey"
+            columns: ["abandoned_cart_id"]
+            isOneToOne: false
+            referencedRelation: "store_abandoned_carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_automation_events_automation_rule_id_fkey"
+            columns: ["automation_rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_automation_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_automation_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_automation_events_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -24182,6 +24342,11 @@ export type Database = {
         | "wait_time"
         | "stop_automation"
         | "change_lead_status"
+        | "send_followup_email"
+        | "trigger_upsell_offer"
+        | "start_onboarding_flow"
+        | "activate_ai_assistant"
+        | "schedule_repurchase_reminder"
       automation_state: "draft" | "active" | "paused" | "error"
       automation_trigger:
         | "lead_created"
@@ -24221,6 +24386,11 @@ export type Database = {
         | "contact_temperature_changed"
         | "company_score_changed"
         | "company_temperature_changed"
+        | "store_purchase_completed"
+        | "store_cart_abandoned"
+        | "store_repurchase"
+        | "store_first_purchase"
+        | "store_order_status_changed"
       billing_cycle:
         | "weekly"
         | "monthly"
@@ -24524,6 +24694,11 @@ export const Constants = {
         "wait_time",
         "stop_automation",
         "change_lead_status",
+        "send_followup_email",
+        "trigger_upsell_offer",
+        "start_onboarding_flow",
+        "activate_ai_assistant",
+        "schedule_repurchase_reminder",
       ],
       automation_state: ["draft", "active", "paused", "error"],
       automation_trigger: [
@@ -24564,6 +24739,11 @@ export const Constants = {
         "contact_temperature_changed",
         "company_score_changed",
         "company_temperature_changed",
+        "store_purchase_completed",
+        "store_cart_abandoned",
+        "store_repurchase",
+        "store_first_purchase",
+        "store_order_status_changed",
       ],
       billing_cycle: [
         "weekly",

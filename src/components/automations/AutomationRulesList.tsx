@@ -80,6 +80,11 @@ const triggerLabels: Record<AutomationTrigger, string> = {
   tag_added: "Tag Adicionada",
   tag_removed: "Tag Removida",
   form_submitted: "Formulário Submetido",
+  store_purchase_completed: "Compra Efetuada",
+  store_cart_abandoned: "Carrinho Abandonado",
+  store_repurchase: "Recompra",
+  store_first_purchase: "1ª Compra",
+  store_order_status_changed: "Estado Encomenda",
 };
 
 const triggerColors: Record<AutomationTrigger, string> = {
@@ -115,6 +120,11 @@ const triggerColors: Record<AutomationTrigger, string> = {
   tag_added: "bg-pink-500",
   tag_removed: "bg-pink-400",
   form_submitted: "bg-violet-500",
+  store_purchase_completed: "bg-green-600",
+  store_cart_abandoned: "bg-orange-600",
+  store_repurchase: "bg-teal-600",
+  store_first_purchase: "bg-emerald-600",
+  store_order_status_changed: "bg-cyan-600",
 };
 
 

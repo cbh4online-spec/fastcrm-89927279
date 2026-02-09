@@ -37,7 +37,12 @@ export type AutomationTrigger =
   | "scheduled_time"
   | "tag_added"
   | "tag_removed"
-  | "form_submitted";
+  | "form_submitted"
+  | "store_purchase_completed"
+  | "store_cart_abandoned"
+  | "store_repurchase"
+  | "store_first_purchase"
+  | "store_order_status_changed";
 
 export type AutomationActionType =
   | "create_task"
@@ -53,7 +58,12 @@ export type AutomationActionType =
   | "send_proposal_link"
   | "wait_time"
   | "stop_automation"
-  | "change_lead_status";
+  | "change_lead_status"
+  | "send_followup_email"
+  | "trigger_upsell_offer"
+  | "start_onboarding_flow"
+  | "activate_ai_assistant"
+  | "schedule_repurchase_reminder";
 
 export type ConditionOperator =
   | "equals"
