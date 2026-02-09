@@ -99,12 +99,15 @@ import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
 import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
 import LeadEnricher from "./pages/LeadEnricher";
+import StoreOrdersPage from "./pages/StoreOrdersPage";
 
 // Store (Public E-commerce)
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
 import StorePage from "./pages/store/StorePage";
 import StoreProductPage from "./pages/store/StoreProductPage";
 import StoreCheckoutPage from "./pages/store/StoreCheckoutPage";
+import StoreSuccessPage from "./pages/store/StoreSuccessPage";
+import StoreCancelPage from "./pages/store/StoreCancelPage";
 
 // Student Journey Pages
 import {
@@ -153,6 +156,8 @@ function StoreRoutes() {
         <Route path=":workspaceSlug" element={<StorePage />} />
         <Route path=":workspaceSlug/product/:productId" element={<StoreProductPage />} />
         <Route path=":workspaceSlug/checkout" element={<StoreCheckoutPage />} />
+        <Route path=":workspaceSlug/success" element={<StoreSuccessPage />} />
+        <Route path=":workspaceSlug/cancel" element={<StoreCancelPage />} />
       </Routes>
     </StoreCartProvider>
   );
@@ -287,6 +292,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
                 <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
                 <Route path="/dashboard/b2b-portal" element={<B2BPortalSettingsPage />} />
+                <Route path="/dashboard/store-orders" element={<StoreOrdersPage />} />
                 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />

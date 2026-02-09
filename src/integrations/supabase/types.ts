@@ -18670,6 +18670,7 @@ export type Database = {
           tax_total: number
           total: number
           updated_at: string
+          user_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -18692,6 +18693,7 @@ export type Database = {
           tax_total?: number
           total?: number
           updated_at?: string
+          user_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -18714,6 +18716,7 @@ export type Database = {
           tax_total?: number
           total?: number
           updated_at?: string
+          user_id?: string | null
           workspace_id?: string
         }
         Relationships: [

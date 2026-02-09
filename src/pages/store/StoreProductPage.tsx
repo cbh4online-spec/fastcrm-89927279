@@ -4,6 +4,7 @@ import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
+import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -30,9 +31,10 @@ export default function StoreProductPage() {
   const { addItem } = useStoreCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-
   const wsSlug = workspaceSlug || "";
+  const { data: tierPricing } = useStoreTierPricing(wsSlug);
   const isOutOfStock = product?.stock_status === "out_of_stock";
+  const pricing = product ? getStorePrice(product.base_price, product.id, tierPricing) : null;
 
   const handleAddToCart = () => {
     if (!product || isOutOfStock) return;
@@ -41,7 +43,7 @@ export default function StoreProductPage() {
       {
         productId: product.id,
         name: product.name,
-        price: product.base_price,
+        price: pricing?.price ?? product.base_price,
         currency: product.currency,
         image: product.images?.[primaryIndex] || product.images?.[0],
         sku: product.sku || undefined,
@@ -176,12 +178,20 @@ export default function StoreProductPage() {
 
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-bold text-primary">
-                  €{product.base_price.toFixed(2)}
+                  €{(pricing?.price ?? product.base_price).toFixed(2)}
                 </span>
+                {pricing?.isDiscounted && (
+                  <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                )}
                 {product.billing_type === "recurring" && (
                   <span className="text-muted-foreground">/mês</span>
                 )}
               </div>
+              {pricing?.discountLabel && (
+                <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
+                  {pricing.discountLabel}
+                </Badge>
+              )}
 
               {product.short_description && (
                 <p className="text-muted-foreground leading-relaxed">

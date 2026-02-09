@@ -44,8 +44,8 @@ export default function StoreCheckoutPage() {
           customerName: formData.name,
           customerEmail: formData.email,
           customerPhone: formData.phone || undefined,
-          successUrl: `${window.location.origin}/store/${wsSlug}?checkout=success`,
-          cancelUrl: `${window.location.origin}/store/${wsSlug}/checkout?checkout=canceled`,
+          successUrl: `${window.location.origin}/store/${wsSlug}/success`,
+          cancelUrl: `${window.location.origin}/store/${wsSlug}/cancel`,
         },
       });
 
