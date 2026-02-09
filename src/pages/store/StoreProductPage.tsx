@@ -1,9 +1,15 @@
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
+import { addDays, format, isWeekend, nextMonday } from "date-fns";
+import { pt } from "date-fns/locale";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreProductViewTracker } from "@/components/store/StoreProductViewTracker";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
+import { StoreImageZoom } from "@/components/store/StoreImageZoom";
+import { StoreStickyAddToCart } from "@/components/store/StoreStickyAddToCart";
+import { StoreFooter } from "@/components/store/StoreFooter";
+import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
 import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
@@ -12,6 +18,8 @@ import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtToge
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreReviewsSection } from "@/components/store/StoreReviewsSection";
 import { useStoreReviewStats, useStoreWishlist, useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import { useProductSalesCount } from "@/hooks/useProductSalesCount";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -27,9 +35,19 @@ import {
   Shield,
   Heart,
   Star,
+  Play,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+
+function getEstimatedDelivery(): string {
+  let date = addDays(new Date(), 3);
+  // Skip weekends
+  while (isWeekend(date)) {
+    date = addDays(date, 1);
+  }
+  return format(date, "EEE, d MMM", { locale: pt });
+}
 
 export default function StoreProductPage() {
   const { workspaceSlug, productId } = useParams<{
@@ -40,6 +58,7 @@ export default function StoreProductPage() {
   const { addItem } = useStoreCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
   const wsSlug = workspaceSlug || "";
   const { data: tierPricing } = useStoreTierPricing(wsSlug);
   const isOutOfStock = product?.stock_status === "out_of_stock";
@@ -48,6 +67,24 @@ export default function StoreProductPage() {
   const { data: wishlist = [] } = useStoreWishlist((product as any)?.workspace_id);
   const toggleWishlist = useToggleWishlist();
   const isInWishlist = product ? wishlist.some((w) => w.product_id === product.id) : false;
+  const { items: recentlyViewed, addItem: addRecentlyViewed } = useRecentlyViewed();
+  const { data: salesCounts } = useProductSalesCount((product as any)?.workspace_id);
+  const addToCartRef = useRef<HTMLButtonElement>(null);
+
+  // Track recently viewed
+  useEffect(() => {
+    if (!product) return;
+    const primaryIndex = product.primary_image_index ?? 0;
+    addRecentlyViewed({
+      id: product.id,
+      name: product.name,
+      price: pricing?.price ?? product.base_price,
+      image: product.images?.[primaryIndex] || product.images?.[0],
+    });
+  }, [product?.id]);
+
+  const soldCount = product ? (salesCounts?.get(product.id) || 0) : 0;
+  const soldLabel = soldCount >= 500 ? "500+ vendidos" : soldCount >= 100 ? "100+ vendidos" : soldCount >= 50 ? "50+ vendidos" : soldCount >= 10 ? `${soldCount}+ vendidos` : null;
 
   const handleAddToCart = () => {
     if (!product || isOutOfStock) return;
@@ -104,6 +141,9 @@ export default function StoreProductPage() {
 
   const images = product.images?.length ? product.images : [];
   const specs = product.specifications || {};
+  const hasVideo = !!product.demo_video_url;
+  const primaryIndex = product.primary_image_index ?? 0;
+  const currentImage = images[selectedImage];
 
   return (
     <>
@@ -116,6 +156,17 @@ export default function StoreProductPage() {
         <StoreHeader workspaceSlug={wsSlug} />
         <StoreCartDrawer workspaceSlug={wsSlug} />
         <StoreProductViewTracker productId={product.id} workspaceId={(product as any).workspace_id} />
+
+        {/* Sticky Add to Cart bar */}
+        <StoreStickyAddToCart
+          name={product.name}
+          price={pricing?.price ?? product.base_price}
+          currency={product.currency}
+          image={images[primaryIndex] || images[0]}
+          isOutOfStock={isOutOfStock}
+          onAddToCart={handleAddToCart}
+          triggerRef={addToCartRef as React.RefObject<HTMLElement>}
+        />
 
         <div className="container mx-auto px-4 py-6">
           {/* Breadcrumb */}
@@ -143,39 +194,58 @@ export default function StoreProductPage() {
           </motion.nav>
 
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-            {/* Image Gallery */}
+            {/* Image Gallery with Zoom */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
               className="space-y-4"
             >
-              <div className="aspect-square overflow-hidden rounded-2xl bg-muted border relative group">
-                {images.length > 0 ? (
-                  <motion.img
-                    key={selectedImage}
-                    initial={{ opacity: 0, scale: 1.05 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    src={images[selectedImage]}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
+              {/* Main image with zoom or video */}
+              {showVideo && hasVideo ? (
+                <div className="aspect-square rounded-2xl overflow-hidden bg-black">
+                  <video
+                    src={product.demo_video_url!}
+                    controls
+                    autoPlay
+                    className="h-full w-full object-contain"
                   />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center">
-                    <Package className="h-24 w-24 text-muted-foreground/20" />
-                  </div>
-                )}
-              </div>
-              {images.length > 1 && (
+                </div>
+              ) : currentImage ? (
+                <StoreImageZoom src={currentImage} alt={product.name} />
+              ) : (
+                <div className="aspect-square rounded-2xl bg-muted border flex items-center justify-center">
+                  <Package className="h-24 w-24 text-muted-foreground/20" />
+                </div>
+              )}
+
+              {/* Thumbnails */}
+              {(images.length > 1 || hasVideo) && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
+                  {/* Video thumbnail */}
+                  {hasVideo && (
+                    <button
+                      onClick={() => { setShowVideo(true); }}
+                      className={cn(
+                        "h-20 w-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all duration-200 relative",
+                        showVideo
+                          ? "border-primary ring-2 ring-primary/20 scale-105"
+                          : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
+                      )}
+                    >
+                      {images[0] && <img src={images[0]} alt="" className="h-full w-full object-cover" />}
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Play className="h-6 w-6 text-white fill-white" />
+                      </div>
+                    </button>
+                  )}
                   {images.map((img, i) => (
                     <button
                       key={i}
-                      onClick={() => setSelectedImage(i)}
+                      onClick={() => { setSelectedImage(i); setShowVideo(false); }}
                       className={cn(
                         "h-20 w-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all duration-200",
-                        selectedImage === i
+                        !showVideo && selectedImage === i
                           ? "border-primary ring-2 ring-primary/20 scale-105"
                           : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
                       )}
@@ -206,16 +276,25 @@ export default function StoreProductPage() {
                 {product.sku && (
                   <p className="text-xs text-muted-foreground mt-1">SKU: {product.sku}</p>
                 )}
-                {reviewCount > 0 && (
-                  <div className="flex items-center gap-1 mt-3">
-                    <div className="flex gap-0.5">
-                      {[1,2,3,4,5].map(s => (
-                        <Star key={s} className={cn("h-4 w-4", s <= Math.round(reviewAvg) ? "fill-warning text-warning" : "text-muted-foreground/30")} />
-                      ))}
+
+                {/* Stars + review count + social proof */}
+                <div className="flex flex-wrap items-center gap-3 mt-3">
+                  {reviewCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(s => (
+                          <Star key={s} className={cn("h-4 w-4", s <= Math.round(reviewAvg) ? "fill-warning text-warning" : "text-muted-foreground/30")} />
+                        ))}
+                      </div>
+                      <span className="text-sm text-muted-foreground ml-1">({reviewCount})</span>
                     </div>
-                    <span className="text-sm text-muted-foreground ml-1">({reviewCount})</span>
-                  </div>
-                )}
+                  )}
+                  {soldLabel && (
+                    <Badge variant="secondary" className="text-xs">
+                      {soldLabel}
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-baseline gap-2">
@@ -241,6 +320,18 @@ export default function StoreProductPage() {
                 </p>
               )}
 
+              {/* Benefits as bullet points (Amazon style - beside image area) */}
+              {product.benefits && product.benefits.length > 0 && (
+                <ul className="space-y-1.5">
+                  {product.benefits.slice(0, 5).map((b, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-muted-foreground">{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
               <StoreProductBadges
                 createdAt={product.created_at}
                 trackStock={product.track_stock}
@@ -260,6 +351,14 @@ export default function StoreProductPage() {
               )}
 
               <Separator />
+
+              {/* Delivery estimation */}
+              <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-xl p-3">
+                <Truck className="h-4 w-4 text-primary flex-shrink-0" />
+                <span className="text-muted-foreground">
+                  Entrega estimada: <span className="font-semibold text-foreground">{getEstimatedDelivery()}</span>
+                </span>
+              </div>
 
               {/* Quantity + Add to Cart */}
               <div className="space-y-4">
@@ -300,6 +399,7 @@ export default function StoreProductPage() {
                 </div>
 
                 <Button
+                  ref={addToCartRef}
                   size="lg"
                   className="w-full gap-2 text-base h-12 rounded-xl transition-transform duration-200 active:scale-[0.98]"
                   onClick={handleAddToCart}
@@ -340,9 +440,9 @@ export default function StoreProductPage() {
               </div>
             )}
 
-            {product.benefits && product.benefits.length > 0 && (
+            {product.benefits && product.benefits.length > 5 && (
               <div>
-                <h2 className="text-xl font-semibold mb-4">Benefícios</h2>
+                <h2 className="text-xl font-semibold mb-4">Todos os Benefícios</h2>
                 <ul className="space-y-2">
                   {product.benefits.map((b, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
@@ -395,13 +495,19 @@ export default function StoreProductPage() {
             workspaceId={(product as any).workspace_id}
             workspaceSlug={wsSlug}
           />
+
+          {/* Recently Viewed */}
+          <StoreRecentlyViewed
+            items={recentlyViewed}
+            workspaceSlug={wsSlug}
+            currentProductId={product.id}
+          />
         </div>
 
-        <footer className="border-t bg-muted/30 mt-16">
-          <div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} Todos os direitos reservados.</p>
-          </div>
-        </footer>
+        <StoreFooter
+          workspaceSlug={wsSlug}
+          storeName="Loja"
+        />
       </div>
     </>
   );
