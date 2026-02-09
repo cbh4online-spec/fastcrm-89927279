@@ -18837,9 +18837,66 @@ export type Database = {
           },
         ]
       }
+      store_order_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          event_type: string
+          from_status: string | null
+          id: string
+          metadata: Json | null
+          order_id: string
+          to_status: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json | null
+          order_id: string
+          to_status?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json | null
+          order_id?: string
+          to_status?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_order_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_orders: {
         Row: {
           billing_address: Json | null
+          campaign_id: string | null
+          company_id: string | null
+          completed_at: string | null
           contact_id: string | null
           coupon_id: string | null
           created_at: string
@@ -18851,8 +18908,11 @@ export type Database = {
           id: string
           items: Json
           notes: string | null
+          opportunity_id: string | null
           order_number: string
           paid_at: string | null
+          refunded_at: string | null
+          shipped_at: string | null
           shipping_address: Json | null
           status: string
           stripe_payment_intent_id: string | null
@@ -18866,6 +18926,9 @@ export type Database = {
         }
         Insert: {
           billing_address?: Json | null
+          campaign_id?: string | null
+          company_id?: string | null
+          completed_at?: string | null
           contact_id?: string | null
           coupon_id?: string | null
           created_at?: string
@@ -18877,8 +18940,11 @@ export type Database = {
           id?: string
           items?: Json
           notes?: string | null
+          opportunity_id?: string | null
           order_number: string
           paid_at?: string | null
+          refunded_at?: string | null
+          shipped_at?: string | null
           shipping_address?: Json | null
           status?: string
           stripe_payment_intent_id?: string | null
@@ -18892,6 +18958,9 @@ export type Database = {
         }
         Update: {
           billing_address?: Json | null
+          campaign_id?: string | null
+          company_id?: string | null
+          completed_at?: string | null
           contact_id?: string | null
           coupon_id?: string | null
           created_at?: string
@@ -18903,8 +18972,11 @@ export type Database = {
           id?: string
           items?: Json
           notes?: string | null
+          opportunity_id?: string | null
           order_number?: string
           paid_at?: string | null
+          refunded_at?: string | null
+          shipped_at?: string | null
           shipping_address?: Json | null
           status?: string
           stripe_payment_intent_id?: string | null
@@ -18918,6 +18990,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "store_orders_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "store_orders_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
@@ -18929,6 +19015,13 @@ export type Database = {
             columns: ["coupon_id"]
             isOneToOne: false
             referencedRelation: "store_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_orders_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
             referencedColumns: ["id"]
           },
           {
