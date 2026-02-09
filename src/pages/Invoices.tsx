@@ -38,6 +38,8 @@ import {
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { InvoiceSettingsTab } from "@/components/invoices/InvoiceSettingsTab";
 import { RecurringInvoicesTab } from "@/components/invoices/RecurringInvoicesTab";
+import { FiscalSettingsTab } from "@/components/invoices/FiscalSettingsTab";
+import { SaftExportTab } from "@/components/invoices/SaftExportTab";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
@@ -81,6 +83,8 @@ const statusConfig: Record<InvoiceStatus, { label: string; variant: "default" | 
 const pageTabs = [
   { id: "invoices", label: "Faturas" },
   { id: "recurring", label: "Recorrentes" },
+  { id: "fiscal", label: "Fiscalidade" },
+  { id: "saft", label: "SAF-T" },
   { id: "settings", label: "Configurações" },
 ];
 
@@ -298,6 +302,10 @@ export default function Invoices() {
             <InvoiceSettingsTab />
           ) : activeTab === "recurring" ? (
             <RecurringInvoicesTab />
+          ) : activeTab === "fiscal" ? (
+            <FiscalSettingsTab />
+          ) : activeTab === "saft" ? (
+            <SaftExportTab />
           ) : (
             <>
               {/* KPI Cards */}
