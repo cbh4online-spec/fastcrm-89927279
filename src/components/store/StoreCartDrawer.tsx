@@ -4,6 +4,8 @@ import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, Trash2, ShoppingBag, Package } from "lucide-react";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useNavigate } from "react-router-dom";
+import { StoreFreeShippingBar } from "@/components/store/StoreFreeShippingBar";
+import { StoreCartUpsell } from "@/components/store/StoreCartUpsell";
 
 interface StoreCartDrawerProps {
   workspaceSlug: string;
@@ -94,6 +96,9 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
             </div>
 
             <div className="border-t pt-4 space-y-4">
+              <StoreFreeShippingBar subtotal={subtotal} />
+              <StoreCartUpsell workspaceSlug={workspaceSlug} />
+              <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span className="text-xl font-bold">€{subtotal.toFixed(2)}</span>
