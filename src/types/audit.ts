@@ -44,11 +44,12 @@ export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
     "ai-agent-client", "ai-agent-lifecycle", "ai-agent-opportunity", "ai-agent-orchestrator",
     "ai-agent-processor", "ai-agent-scheduler", "ai-analyze-entity", "ai-analyze-lead",
     "ai-auto-tags", "ai-automation-explainer", "ai-automation-suggestions", "ai-contextual-automation",
-    "ai-copilot", "ai-credit-analysis", "ai-dashboard-insights", "ai-entity-insights",
-    "ai-field-suggestions", "ai-followup-draft", "ai-generate-automation", "ai-growth-insights",
-    "ai-inbox-actions", "ai-inbox-reply", "ai-kpi-analysis", "ai-member-priorities",
-    "ai-memory-embedder", "ai-memory-manager", "ai-onboarding-setup", "ai-opportunity-coach",
-    "ai-pricing-optimizer", "ai-product-assistant", "ai-template-copilot", "ai-translate-email"
+    "ai-copilot", "ai-credit-analysis", "ai-dashboard-insights", "ai-diagnostic-assistant",
+    "ai-entity-insights", "ai-field-suggestions", "ai-followup-draft", "ai-generate-automation",
+    "ai-growth-insights", "ai-inbox-actions", "ai-inbox-reply", "ai-kpi-analysis",
+    "ai-member-priorities", "ai-memory-embedder", "ai-memory-manager", "ai-onboarding-setup",
+    "ai-opportunity-coach", "ai-pricing-optimizer", "ai-product-assistant", "ai-proposal-assistant",
+    "ai-template-copilot", "ai-translate-email"
   ],
   "Email & Comunicação": [
     "email-connect", "email-disconnect", "email-fetch", "email-fetch-zoho",
@@ -76,7 +77,7 @@ export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
     "module-sso-validate-token", "module-subscribe", "module-usage-stats"
   ],
   "Knowledge Base & RAG": [
-    "knowledge-document-process", "knowledge-embedding", "knowledge-process",
+    "knowledge-document-process", "knowledge-document-trigger", "knowledge-embedding", "knowledge-process",
     "knowledge-query", "knowledge-semantic-search", "rag-index-outcome", "rag-search"
   ],
   "Enriquecimento de Dados": [
@@ -109,6 +110,27 @@ export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
   ],
   "São João Copilot": [
     "sj-copilot", "sj-course-recommendations", "sj-daily-automation"
+  ],
+  "Loja Online": [
+    "store-ai-advisor", "store-webhook", "create-store-checkout"
+  ],
+  "Notas de Encomenda": [
+    "order-note-notify", "order-note-submit"
+  ],
+  "Portal do Cliente": [
+    "create-client-auth-user", "send-client-invitation", "activate-client-invite"
+  ],
+  "Vídeo & Reuniões": [
+    "create-video-meeting", "video-auth-url", "video-oauth-callback"
+  ],
+  "Admin & Gestão": [
+    "admin-module-margin", "admin-user-management"
+  ],
+  "Produtos & Embeddings": [
+    "generate-product-embeddings", "product-embedding", "product-semantic-search"
+  ],
+  "Áudio & Voz": [
+    "elevenlabs-proposal-token"
   ]
 };
 
@@ -171,6 +193,84 @@ export const AUDIT_MODULES: AuditModule[] = [
     name: "Super Admin",
     objective: "Gestão global SaaS, workspaces e utilizadores",
     components: ["SuperAdmin", "WorkspacesSection", "UsersSection", "PlansSection"],
+    status: "implemented"
+  },
+  {
+    name: "Loja Online",
+    objective: "Catálogo de produtos, carrinho, checkout e gestão de loja",
+    components: ["StorePage", "StoreProductPage", "StoreCheckout", "StoreCart", "StoreCategories"],
+    status: "implemented"
+  },
+  {
+    name: "Notas de Encomenda",
+    objective: "Gestão de notas de encomenda e auditoria",
+    components: ["OrderNotesPage", "OrderNoteDetail", "OrderAuditTrail"],
+    status: "implemented"
+  },
+  {
+    name: "Formulários Inteligentes",
+    objective: "Criação e gestão de formulários dinâmicos",
+    components: ["SmartForms", "FormBuilder", "FormSubmissions"],
+    status: "implemented"
+  },
+  {
+    name: "Produtividade",
+    objective: "Dashboard de produtividade e prioridades diárias",
+    components: ["ProductivityDashboard", "DailyPriorities"],
+    status: "implemented"
+  },
+  {
+    name: "Pacotes & Bundles",
+    objective: "Gestão de pacotes de produtos e bundles",
+    components: ["PackagesPage", "BundleCheckout"],
+    status: "implemented"
+  },
+  {
+    name: "Portal do Cliente",
+    objective: "Portal self-service para clientes com autenticação própria",
+    components: ["ClientPortal", "ClientUsers", "ClientEntitlements"],
+    status: "implemented"
+  },
+  {
+    name: "Relatórios & KPIs",
+    objective: "Relatórios de performance e objetivos vs resultados",
+    components: ["ReportsGoals", "GoalsVsResults"],
+    status: "implemented"
+  },
+  {
+    name: "Perfis de Actividade",
+    objective: "Perfis configuráveis por tipo de entidade",
+    components: ["ActivityProfiles", "EntityProfileData"],
+    status: "implemented"
+  },
+  {
+    name: "Vídeo & Reuniões",
+    objective: "Criação e gestão de videochamadas",
+    components: ["VideoMeetings", "CreateVideoMeeting"],
+    status: "implemented"
+  },
+  {
+    name: "Landing Pages",
+    objective: "Páginas públicas de captação e marketing",
+    components: ["PublicLandingPage", "LandingPageCopy"],
+    status: "implemented"
+  },
+  {
+    name: "Student Journey (São João)",
+    objective: "Gestão de alunos, cursos e cohorts",
+    components: ["SJDashboard", "SJCourses", "SJCohorts", "SJProfiles"],
+    status: "implemented"
+  },
+  {
+    name: "AI Assistentes Avançados",
+    objective: "Assistentes IA com personas, vibe profiles e fluxos conversacionais",
+    components: ["AIAssistants", "AIProfiles", "VibeProfiles", "ConversationalFlows"],
+    status: "implemented"
+  },
+  {
+    name: "Fichas de Produto Públicas",
+    objective: "Fichas de produto com embeddings semânticos",
+    components: ["PublicProductSheet", "ProductEmbeddings"],
     status: "implemented"
   }
 ];
