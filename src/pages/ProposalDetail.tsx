@@ -1,18 +1,10 @@
-import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ProposalDetailDialog } from "@/components/proposals/ProposalDetailDialog";
+import { ProposalDetailContent } from "@/components/proposals/ProposalDetailContent";
 
 export default function ProposalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
-  // This page wraps the ProposalDetailDialog for direct URL access
-  // The dialog handles all the proposal editing functionality
-
-  const handleClose = () => {
-    navigate("/dashboard/proposals");
-  };
 
   if (!id) {
     return (
@@ -26,12 +18,10 @@ export default function ProposalDetailPage() {
 
   return (
     <DashboardLayout>
-      <ProposalDetailDialog
-        open={true}
-        onOpenChange={(open) => {
-          if (!open) handleClose();
-        }}
+      <ProposalDetailContent
         proposalId={id}
+        renderMode="page"
+        onClose={() => navigate("/dashboard/proposals")}
       />
     </DashboardLayout>
   );
