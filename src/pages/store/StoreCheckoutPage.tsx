@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2, Ticket, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -18,6 +19,9 @@ export default function StoreCheckoutPage() {
   const wsSlug = workspaceSlug || "";
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: string; discount_value: number } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -45,6 +49,49 @@ export default function StoreCheckoutPage() {
     setStep(2);
   };
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("store_coupons")
+        .select("code, discount_type, discount_value, min_order_amount, max_uses, used_count, valid_until, is_active")
+        .eq("code", couponCode.toUpperCase().trim())
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast.error("Cupão inválido");
+        return;
+      }
+      if (data.max_uses && data.used_count >= data.max_uses) {
+        toast.error("Cupão esgotado");
+        return;
+      }
+      if (data.valid_until && new Date(data.valid_until) < new Date()) {
+        toast.error("Cupão expirado");
+        return;
+      }
+      if (data.min_order_amount && subtotal < data.min_order_amount) {
+        toast.error(`Encomenda mínima de €${data.min_order_amount.toFixed(2)}`);
+        return;
+      }
+      setAppliedCoupon({ code: data.code, discount_type: data.discount_type, discount_value: data.discount_value });
+      setCouponCode("");
+      toast.success("Cupão aplicado!");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const discountAmount = appliedCoupon
+    ? appliedCoupon.discount_type === "percentage"
+      ? subtotal * (appliedCoupon.discount_value / 100)
+      : Math.min(appliedCoupon.discount_value, subtotal)
+    : 0;
+  const finalTotal = subtotal - discountAmount;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.email.trim()) {
@@ -66,6 +113,7 @@ export default function StoreCheckoutPage() {
           customerName: formData.name,
           customerEmail: formData.email,
           customerPhone: formData.phone || undefined,
+          couponCode: appliedCoupon?.code || undefined,
           successUrl: `${window.location.origin}/store/${wsSlug}/success`,
           cancelUrl: `${window.location.origin}/store/${wsSlug}/cancel`,
         },
@@ -269,9 +317,56 @@ export default function StoreCheckoutPage() {
                   ))}
                 </div>
                 <Separator />
+
+                {/* Coupon */}
+                {step === 2 && (
+                  <div className="space-y-2">
+                    {appliedCoupon ? (
+                      <div className="flex items-center justify-between bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <Ticket className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-700 dark:text-green-400">{appliedCoupon.code}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            -{appliedCoupon.discount_type === "percentage" ? `${appliedCoupon.discount_value}%` : `€${appliedCoupon.discount_value.toFixed(2)}`}
+                          </Badge>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAppliedCoupon(null)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Código de cupão"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          className="text-sm"
+                        />
+                        <Button variant="outline" size="sm" onClick={handleApplyCoupon} disabled={couponLoading || !couponCode.trim()}>
+                          Aplicar
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {appliedCoupon && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span>Subtotal</span>
+                      <span>€{subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Desconto</span>
+                      <span>-€{discountAmount.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+
+                <Separator />
                 <div className="flex justify-between items-center font-semibold text-lg">
                   <span>Total</span>
-                  <span className="text-primary">€{subtotal.toFixed(2)}</span>
+                  <span className="text-primary">€{finalTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>

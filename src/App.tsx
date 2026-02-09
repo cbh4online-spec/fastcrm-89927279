@@ -102,6 +102,8 @@ import LeadEnricher from "./pages/LeadEnricher";
 import StoreOrdersPage from "./pages/StoreOrdersPage";
 import StoreSettingsPage from "./pages/StoreSettingsPage";
 import StoreProductsAdminPage from "./pages/StoreProductsAdminPage";
+import StoreCategoriesPage from "./pages/StoreCategoriesPage";
+import StoreCouponsPage from "./pages/StoreCouponsPage";
 
 // Store (Public E-commerce)
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
@@ -297,6 +299,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/store-orders" element={<StoreOrdersPage />} />
                 <Route path="/dashboard/store-settings" element={<StoreSettingsPage />} />
                 <Route path="/dashboard/store-products" element={<StoreProductsAdminPage />} />
+                <Route path="/dashboard/store-categories" element={<StoreCategoriesPage />} />
+                <Route path="/dashboard/store-coupons" element={<StoreCouponsPage />} />
                 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />

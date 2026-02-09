@@ -15606,13 +15606,16 @@ export type Database = {
           specifications: Json | null
           status: string
           stock_notes: string | null
+          stock_quantity: number | null
           stock_status: Database["public"]["Enums"]["stock_status"] | null
+          store_category_id: string | null
           store_featured: boolean | null
           store_published: boolean | null
           store_sort_order: number | null
           target_margin_pct: number | null
           tax_rate_estimate_pct: number | null
           total_units: number | null
+          track_stock: boolean | null
           typical_duration_days: number | null
           unit_duration: number | null
           unit_name: string | null
@@ -15668,13 +15671,16 @@ export type Database = {
           specifications?: Json | null
           status?: string
           stock_notes?: string | null
+          stock_quantity?: number | null
           stock_status?: Database["public"]["Enums"]["stock_status"] | null
+          store_category_id?: string | null
           store_featured?: boolean | null
           store_published?: boolean | null
           store_sort_order?: number | null
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
+          track_stock?: boolean | null
           typical_duration_days?: number | null
           unit_duration?: number | null
           unit_name?: string | null
@@ -15730,13 +15736,16 @@ export type Database = {
           specifications?: Json | null
           status?: string
           stock_notes?: string | null
+          stock_quantity?: number | null
           stock_status?: Database["public"]["Enums"]["stock_status"] | null
+          store_category_id?: string | null
           store_featured?: boolean | null
           store_published?: boolean | null
           store_sort_order?: number | null
           target_margin_pct?: number | null
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
+          track_stock?: boolean | null
           typical_duration_days?: number | null
           unit_duration?: number | null
           unit_name?: string | null
@@ -15745,6 +15754,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_store_category_id_fkey"
+            columns: ["store_category_id"]
+            isOneToOne: false
+            referencedRelation: "store_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -18649,15 +18665,117 @@ export type Database = {
           },
         ]
       }
+      store_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          position: number | null
+          slug: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          position?: number | null
+          slug: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          position?: number | null
+          slug?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          min_order_amount: number | null
+          updated_at: string
+          used_count: number | null
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_order_amount?: number | null
+          updated_at?: string
+          used_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_order_amount?: number | null
+          updated_at?: string
+          used_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_coupons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_orders: {
         Row: {
           billing_address: Json | null
           contact_id: string | null
+          coupon_id: string | null
           created_at: string
           currency: string
           customer_email: string
           customer_name: string | null
           customer_phone: string | null
+          discount_amount: number | null
           id: string
           items: Json
           notes: string | null
@@ -18677,11 +18795,13 @@ export type Database = {
         Insert: {
           billing_address?: Json | null
           contact_id?: string | null
+          coupon_id?: string | null
           created_at?: string
           currency?: string
           customer_email: string
           customer_name?: string | null
           customer_phone?: string | null
+          discount_amount?: number | null
           id?: string
           items?: Json
           notes?: string | null
@@ -18701,11 +18821,13 @@ export type Database = {
         Update: {
           billing_address?: Json | null
           contact_id?: string | null
+          coupon_id?: string | null
           created_at?: string
           currency?: string
           customer_email?: string
           customer_name?: string | null
           customer_phone?: string | null
+          discount_amount?: number | null
           id?: string
           items?: Json
           notes?: string | null
@@ -18728,6 +18850,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "store_coupons"
             referencedColumns: ["id"]
           },
           {

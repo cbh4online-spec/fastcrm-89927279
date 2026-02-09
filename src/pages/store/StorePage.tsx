@@ -15,15 +15,17 @@ import { Package, Sparkles, ArrowRight } from "lucide-react";
 export default function StorePage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
+  const [sortBy, setSortBy] = useState<"price_asc" | "price_desc" | "name" | "newest" | undefined>();
 
   // For now, workspaceSlug maps to workspace_id — we'll handle slug resolution later
   const wsId = workspaceSlug || "";
 
   const { data: products = [], isLoading } = useStoreProducts({
     workspaceId: wsId,
-    category: selectedCategory,
+    categoryId: selectedCategoryId,
     search,
+    sortBy,
   });
 
   const { data: featuredProducts = [] } = useStoreProducts({
@@ -36,7 +38,7 @@ export default function StorePage() {
   const { data: storeSettings } = usePublicStoreSettings(wsId);
 
   const storeName = storeSettings?.store_name || "Loja";
-  const showHero = !search && !selectedCategory;
+  const showHero = !search && !selectedCategoryId;
 
   return (
     <>
@@ -88,22 +90,22 @@ export default function StorePage() {
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 <Button
-                  variant={!selectedCategory ? "default" : "outline"}
+                  variant={!selectedCategoryId ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSelectedCategory(undefined)}
+                  onClick={() => setSelectedCategoryId(undefined)}
                   className="whitespace-nowrap"
                 >
                   Todos
                 </Button>
                 {categories.map((cat) => (
                   <Button
-                    key={cat}
-                    variant={selectedCategory === cat ? "default" : "outline"}
+                    key={cat.id}
+                    variant={selectedCategoryId === cat.id ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => setSelectedCategoryId(cat.id)}
                     className="whitespace-nowrap"
                   >
-                    {cat}
+                    {cat.name}
                   </Button>
                 ))}
               </div>
