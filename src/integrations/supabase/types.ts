@@ -17000,6 +17000,145 @@ export type Database = {
           },
         ]
       }
+      return_request_items: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          reason: string | null
+          return_request_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          reason?: string | null
+          return_request_id: string
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          reason?: string | null
+          return_request_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_request_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "return_request_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_request_items_return_request_id_fkey"
+            columns: ["return_request_id"]
+            isOneToOne: false
+            referencedRelation: "return_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_requests: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          customer_notes: string | null
+          id: string
+          order_id: string
+          reason: string
+          reason_category: string | null
+          refund_amount: number | null
+          refunded_at: string | null
+          rejected_at: string | null
+          request_number: string | null
+          requested_by: string
+          requested_by_user_id: string | null
+          return_type: string
+          status: string
+          stripe_refund_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          customer_notes?: string | null
+          id?: string
+          order_id: string
+          reason: string
+          reason_category?: string | null
+          refund_amount?: number | null
+          refunded_at?: string | null
+          rejected_at?: string | null
+          request_number?: string | null
+          requested_by: string
+          requested_by_user_id?: string | null
+          return_type?: string
+          status?: string
+          stripe_refund_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          customer_notes?: string | null
+          id?: string
+          order_id?: string
+          reason?: string
+          reason_category?: string | null
+          refund_amount?: number | null
+          refunded_at?: string | null
+          rejected_at?: string | null
+          request_number?: string | null
+          requested_by?: string
+          requested_by_user_id?: string | null
+          return_type?: string
+          status?: string
+          stripe_refund_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saas_categories: {
         Row: {
           color: string | null

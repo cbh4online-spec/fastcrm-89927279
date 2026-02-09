@@ -6,6 +6,7 @@ import { useUpdateStoreOrderStatus } from "@/hooks/useStoreOrders";
 import { StoreOrderTimeline } from "@/components/store-orders/StoreOrderTimeline";
 import { StoreOrderAssociations } from "@/components/store-orders/StoreOrderAssociations";
 import { StoreOrderTracking } from "@/components/store-orders/StoreOrderTracking";
+import { ReturnRequestManager } from "@/components/store-orders/ReturnRequestManager";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -174,6 +175,12 @@ export default function StoreOrderDetailPage() {
                 customerEmail={order.customer_email as string}
                 customerName={order.customer_name as string}
                 orderNumber={order.order_number as string | null}
+              />
+              <ReturnRequestManager
+                orderId={id!}
+                orderItems={items}
+                orderTotal={order.total as number}
+                orderStatus={status}
               />
               <StoreOrderTimeline orderId={id!} />
               <StoreOrderAssociations order={order} />
