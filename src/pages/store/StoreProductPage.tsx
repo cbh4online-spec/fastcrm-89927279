@@ -2,6 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { StoreHeader } from "@/components/store/StoreHeader";
+import { StoreProductViewTracker } from "@/components/store/StoreProductViewTracker";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
@@ -114,6 +115,7 @@ export default function StoreProductPage() {
       <div className="min-h-screen bg-background">
         <StoreHeader workspaceSlug={wsSlug} />
         <StoreCartDrawer workspaceSlug={wsSlug} />
+        <StoreProductViewTracker productId={product.id} workspaceId={(product as any).workspace_id} />
 
         <div className="container mx-auto px-4 py-6">
           {/* Breadcrumb */}
