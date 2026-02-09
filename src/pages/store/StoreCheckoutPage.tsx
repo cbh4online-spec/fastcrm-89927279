@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Lock, Package, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Lock, Package, ShoppingBag, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -30,9 +31,38 @@ export default function StoreCheckoutPage() {
     }
     setIsProcessing(true);
 
-    // TODO: Integrate with Stripe Checkout edge function
-    toast.info("Integração com Stripe Checkout será implementada na Fase 2");
-    setIsProcessing(false);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-store-checkout", {
+        body: {
+          workspaceId: wsSlug,
+          items: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            name: item.name,
+            price: item.price,
+          })),
+          customerName: formData.name,
+          customerEmail: formData.email,
+          customerPhone: formData.phone || undefined,
+          successUrl: `${window.location.origin}/store/${wsSlug}?checkout=success`,
+          cancelUrl: `${window.location.origin}/store/${wsSlug}/checkout?checkout=canceled`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.url) {
+        clearCart();
+        window.location.href = data.url;
+      } else {
+        throw new Error("URL de checkout não recebida");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao criar checkout";
+      toast.error(message);
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -113,8 +143,8 @@ export default function StoreCheckoutPage() {
                 className="w-full gap-2"
                 disabled={isProcessing}
               >
-                <Lock className="h-4 w-4" />
-                {isProcessing ? "A processar..." : "Pagar com Stripe"}
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                {isProcessing ? "A redirecionar para o Stripe..." : "Pagar com Stripe"}
               </Button>
 
               <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
