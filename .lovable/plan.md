@@ -1,105 +1,125 @@
 
+# Produtos Relacionados, Compativeis e Consultor IA na Loja
 
-# Melhorias da Loja Online - 4 Funcionalidades
-
-Implementacao das 4 melhorias selecionadas: Pesquisa avancada com autocomplete, Quick View modal, Partilha social + SEO, e Paginacao / Infinite Scroll.
-
----
-
-## 1. Pesquisa Avancada com Autocomplete
-
-Substituir a pesquisa atual (submit manual) por um dropdown com resultados em tempo real enquanto o utilizador escreve.
-
-**Comportamento:**
-- Ao digitar (minimo 2 caracteres), apresentar dropdown com ate 6 produtos correspondentes (imagem, nome, preco)
-- Debounce de 300ms para evitar excesso de queries
-- Clicar num resultado navega para a pagina do produto
-- Tecla Enter continua a funcionar como pesquisa completa no catalogo
-- Historico de pesquisas recentes guardado em localStorage (ultimas 5)
-
-**Ficheiros:**
-- Criar `src/components/store/StoreSearchAutocomplete.tsx` - componente com Input + dropdown de resultados
-- Modificar `src/components/store/StoreHeader.tsx` - substituir o Input atual pelo novo componente
-- Utilizar o hook `useStoreProducts` existente com debounce via `useDebounce`
+Atualmente, a loja ja tem "Frequentemente comprados juntos" e "Clientes tambem viram", mas ambos usam logica simples baseada na mesma categoria. Este plano adiciona **relacoes inteligentes entre produtos** e um **consultor IA** para ajudar o cliente a escolher.
 
 ---
 
-## 2. Quick View (Modal de Produto)
+## 1. Tabela de Relacoes entre Produtos
 
-Permitir ver detalhes do produto sem sair do catalogo, atraves de um botao "Quick View" no hover do card.
+Criar uma nova tabela `product_relations` que suporta 3 tipos de relacao:
 
-**Comportamento:**
-- Botao de "olho" aparece no hover do card (junto dos botoes de wishlist e carrinho)
-- Abre um Dialog/modal com: imagem principal, nome, preco, descricao curta, badges, selector de quantidade, botao "Adicionar ao Carrinho"
-- Botao "Ver Detalhes" navega para a pagina completa do produto
+| Tipo | Descricao | Exemplo |
+|------|-----------|---------|
+| `related` | Produtos semelhantes/alternativos | Camera A vs Camera B |
+| `compatible` | Produtos compativeis/acessorios | Camera + Suporte + Cartao SD |
+| `bundle` | Sugeridos para compra conjunta | Kit completo de videovigilancia |
 
-**Ficheiros:**
-- Criar `src/components/store/StoreQuickViewModal.tsx` - modal com detalhes do produto
-- Modificar `src/components/store/StoreProductCard.tsx` - adicionar botao Quick View no overlay e estado para abrir o modal
-
----
-
-## 3. Partilha Social + SEO (Open Graph)
-
-Adicionar botoes de partilha e melhorar as meta tags para previews ricos em redes sociais.
-
-**Comportamento:**
-- Na pagina do produto, adicionar botoes de partilha: WhatsApp, Facebook, Copiar Link
-- Meta tags Open Graph completas: og:title, og:description, og:image, og:url, og:type
-- Twitter Card meta tags
-
-**Ficheiros:**
-- Criar `src/components/store/StoreShareButtons.tsx` - botoes de partilha (WhatsApp, Facebook, Copiar)
-- Modificar `src/pages/store/StoreProductPage.tsx` - adicionar meta tags OG no Helmet e inserir os botoes de partilha
-- Modificar `src/pages/store/StorePage.tsx` - adicionar meta tags OG basicas para a homepage
+**Campos:** source_product_id, target_product_id, relation_type, reason (texto explicativo), sort_order, is_active, workspace_id
 
 ---
 
-## 4. Paginacao / Infinite Scroll
+## 2. Gestao de Relacoes no Backoffice
 
-Carregar produtos de forma progressiva para melhorar performance em catalogos grandes.
-
-**Comportamento:**
-- Carregar 12 produtos inicialmente
-- Ao fazer scroll ate ao final da grelha, carregar mais 12 automaticamente
-- Indicador de "A carregar mais..." enquanto busca novos produtos
-- Botao "Carregar Mais" como fallback caso o IntersectionObserver nao dispare
+Adicionar um separador "Relacoes" na edicao de produto (dashboard) onde o gestor pode:
+- Pesquisar e adicionar produtos relacionados, compativeis ou de bundle
+- Definir a razao/motivo da relacao (ex: "Acessorio recomendado")
+- Reordenar e ativar/desativar relacoes
+- Botao "Sugerir com IA" que analisa o produto e sugere relacoes automaticamente
 
 **Ficheiros:**
-- Modificar `src/hooks/useStoreProducts.ts` - converter `useQuery` para `useInfiniteQuery` com paginacao via `.range()`
-- Criar `src/hooks/useInfiniteScroll.ts` - hook com IntersectionObserver para detectar final da lista
-- Modificar `src/pages/store/StorePage.tsx` - adaptar a grelha para usar dados paginados e inserir o trigger de scroll
+- Criar `src/components/products/ProductRelationsTab.tsx` - UI de gestao das relacoes
+
+---
+
+## 3. Seccoes na Pagina de Produto da Loja
+
+Substituir/complementar as seccoes atuais com dados reais da tabela `product_relations`:
+
+### "Produtos Compativeis" (novo)
+- Mostra produtos com relacao `compatible`
+- Icone de puzzle/link para transmitir compatibilidade
+- Permite adicionar diretamente ao carrinho
+
+### "Produtos Relacionados" (melhorado)
+- Usa relacoes `related` da tabela em vez de apenas mesma categoria
+- Fallback para logica atual (mesma categoria) se nao houver relacoes definidas
+
+### "Compre Junto" (melhorado)
+- Usa relacoes `bundle` da tabela em vez de produtos aleatorios da mesma categoria
+- Fallback para logica atual se nao houver bundles definidos
+
+**Ficheiros:**
+- Criar `src/components/store/sections/StoreCompatibleProducts.tsx`
+- Modificar `StoreRelatedProducts.tsx` - usar relacoes da BD com fallback
+- Modificar `StoreBoughtTogether.tsx` - usar relacoes da BD com fallback
+- Modificar `StoreProductPage.tsx` - adicionar seccao de compativeis
+
+---
+
+## 4. Consultor IA na Loja (Chat de Aconselhamento)
+
+Widget flutuante na loja que permite ao visitante pedir ajuda para escolher produtos. Usa IA (Gemini) para analisar o catalogo e recomendar.
+
+### Comportamento
+- Botao flutuante "Precisa de ajuda?" no canto inferior direito da loja
+- Abre um painel de chat onde o visitante descreve o que precisa
+- A IA analisa o catalogo do workspace e recomenda produtos com links diretos
+- Suporta perguntas como "Qual a melhor camera para exterior?" ou "O que preciso para montar um sistema completo?"
+
+### Backend
+- Nova edge function `store-ai-advisor` que:
+  1. Recebe a pergunta do visitante e o workspaceId
+  2. Busca produtos relevantes do catalogo (usando pesquisa por texto)
+  3. Usa Gemini para gerar recomendacao personalizada com links
+  4. Retorna resposta formatada com produtos sugeridos
+
+### Frontend
+- Criar `src/components/store/StoreAIAdvisor.tsx` - widget de chat flutuante
+- Integrar na `StoreProductPage.tsx` e `StorePage.tsx`
+
+---
+
+## 5. Sugestao Automatica de Relacoes por IA
+
+Novo modo no `ai-product-assistant` que analisa um produto e sugere relacoes:
+- Analisa nome, categoria, especificacoes e descricao do produto
+- Compara com todos os outros produtos do workspace
+- Sugere compativeis (acessorios), relacionados (alternativas) e bundles
+- O gestor revisa e confirma as sugestoes
+
+**Ficheiro:** Adicionar modo `suggest-relations` ao `ai-product-assistant/index.ts`
 
 ---
 
 ## Detalhe Tecnico
 
-### StoreSearchAutocomplete
-- Usa `useStoreProducts` com `search` debounced (300ms) e limite de 6 resultados
-- Dropdown posicionado com `absolute` abaixo do input
-- Fecha ao clicar fora (onBlur com delay) ou ao pressionar Escape
-- Historico em `localStorage` key `store-search-history`
+### Tabela product_relations (SQL)
+```text
+- id (uuid, PK)
+- workspace_id (uuid, FK workspaces)
+- source_product_id (uuid, FK products)
+- target_product_id (uuid, FK products)
+- relation_type (text: 'related' | 'compatible' | 'bundle')
+- reason (text, nullable - ex: "Acessorio recomendado")
+- sort_order (integer, default 0)
+- is_active (boolean, default true)
+- created_at (timestamptz)
+- UNIQUE(source_product_id, target_product_id, relation_type)
+- RLS: workspace members podem gerir; leitura publica para store_published
+```
 
-### StoreQuickViewModal
-- Utiliza `Dialog` do Radix UI (ja disponivel)
-- Reutiliza logica de preco/badges do `StoreProductCard`
-- Imagem principal com aspect-ratio fixo
-
-### StoreShareButtons
-- WhatsApp: `https://wa.me/?text=...`
-- Facebook: `https://www.facebook.com/sharer/sharer.php?u=...`
-- Copiar link: `navigator.clipboard.writeText()`
-- Toast de confirmacao ao copiar
-
-### useInfiniteQuery
-- Usa `.range(from, to)` do Supabase para paginacao
-- `getNextPageParam` calcula offset baseado no tamanho da pagina (12)
-- `hasNextPage` retorna false quando pagina retorna menos de 12 itens
-- Flatten de `data.pages` para array unico na StorePage
+### Edge Function store-ai-advisor
+- Endpoint POST com body: { question, workspaceId, productContext? }
+- Busca ate 20 produtos publicados do workspace
+- Constroi prompt com catalogo e pergunta do visitante
+- Responde em PT-PT com recomendacoes e IDs de produtos
+- Rate limit: maximo 10 perguntas por sessao
 
 ### Ordem de implementacao
-1. Pesquisa Autocomplete (independente)
-2. Quick View Modal (independente)
-3. Partilha Social + SEO (independente)
-4. Infinite Scroll (requer refactor do hook de produtos)
-
+1. Criar tabela `product_relations` (migracao)
+2. Gestao de relacoes no backoffice (ProductRelationsTab)
+3. Seccoes na loja (Compativeis + melhorar Relacionados/Bundles)
+4. Edge function `store-ai-advisor`
+5. Widget de consultor IA na loja
+6. Modo `suggest-relations` na edge function existente
