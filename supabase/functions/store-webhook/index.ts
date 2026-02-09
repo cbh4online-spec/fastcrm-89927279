@@ -3,6 +3,147 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "npm:resend@2.0.0";
 
+// Process digital deliverables after payment
+async function processDeliverables(
+  supabaseClient: ReturnType<typeof createClient>,
+  order: Record<string, unknown>,
+  workspaceId: string
+) {
+  const orderItems = order.items as Array<{ product_id: string; quantity: number }>;
+  const productIds = orderItems.map(i => i.product_id);
+
+  // Fetch deliverables for all products in the order
+  const { data: deliverables } = await supabaseClient
+    .from("product_deliverables")
+    .select("*")
+    .in("product_id", productIds)
+    .eq("workspace_id", workspaceId)
+    .eq("is_active", true)
+    .order("sort_order");
+
+  if (!deliverables || deliverables.length === 0) {
+    logStep("No deliverables to process");
+    return;
+  }
+
+  logStep("Processing deliverables", { count: deliverables.length });
+
+  for (const deliverable of deliverables) {
+    const config = deliverable.config as Record<string, unknown>;
+    let status = "delivered";
+    let deliveryData: Record<string, unknown> = {};
+    let errorMessage: string | null = null;
+
+    try {
+      switch (deliverable.deliverable_type) {
+        case "file": {
+          // Generate a signed URL for the file
+          const storagePath = config.storage_path as string;
+          if (storagePath) {
+            const { data: signedUrl } = await supabaseClient.storage
+              .from("product-deliverables")
+              .createSignedUrl(storagePath, 7 * 24 * 60 * 60); // 7 days
+            deliveryData = { download_url: signedUrl?.signedUrl, file_name: config.file_name, expires_in: "7 days" };
+          }
+          break;
+        }
+        case "portal_access": {
+          // Activate entitlements for the contact
+          const entitlementIds = config.entitlement_ids as string[] || [];
+          const contactId = order.contact_id as string;
+          if (contactId && entitlementIds.length > 0) {
+            // Find client user for this contact
+            const { data: clientUser } = await supabaseClient
+              .from("client_users")
+              .select("id")
+              .eq("contact_id", contactId)
+              .eq("workspace_id", workspaceId)
+              .maybeSingle();
+
+            if (clientUser) {
+              for (const entId of entitlementIds) {
+                await supabaseClient.from("client_entitlements").upsert({
+                  client_user_id: clientUser.id,
+                  workspace_id: workspaceId,
+                  entitlement_type: "product_access",
+                  entitlement_key: entId,
+                  is_active: true,
+                  granted_by: "store_purchase",
+                  metadata: { order_id: order.id, product_id: deliverable.product_id },
+                }, { onConflict: "client_user_id,entitlement_key" });
+              }
+              deliveryData = { entitlements_activated: entitlementIds, client_user_id: clientUser.id };
+            } else {
+              deliveryData = { note: "No client user found for contact, entitlements queued" };
+            }
+          }
+          break;
+        }
+        case "course_enrollment": {
+          // Enroll contact in SJ course
+          const courseId = config.course_id as string;
+          const cohortId = config.cohort_id as string | null;
+          const contactId = order.contact_id as string;
+          if (courseId && contactId) {
+            // Find SJ profile for this contact
+            const { data: sjProfile } = await supabaseClient
+              .from("sj_profiles")
+              .select("id")
+              .eq("contact_id", contactId)
+              .eq("workspace_id", workspaceId)
+              .maybeSingle();
+
+            if (sjProfile) {
+              const { data: enrollment, error: enrollErr } = await supabaseClient
+                .from("sj_enrollments")
+                .insert({
+                  profile_id: sjProfile.id,
+                  course_id: courseId,
+                  cohort_id: cohortId || null,
+                  workspace_id: workspaceId,
+                  status: "active",
+                  source: "store_purchase",
+                })
+                .select("id")
+                .single();
+              if (enrollErr) throw enrollErr;
+              deliveryData = { enrollment_id: enrollment?.id, course_id: courseId };
+            } else {
+              deliveryData = { note: "No SJ profile found for contact" };
+              status = "pending";
+            }
+          }
+          break;
+        }
+        case "license_key": {
+          // Generate a license key
+          const prefix = (config.prefix as string) || "LIC";
+          const key = `${prefix}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+          deliveryData = { license_key: key, max_activations: config.max_activations || 1 };
+          break;
+        }
+      }
+    } catch (err) {
+      status = "failed";
+      errorMessage = (err as Error).message;
+      logStep("Deliverable processing failed", { deliverableId: deliverable.id, error: errorMessage });
+    }
+
+    // Record delivery
+    await supabaseClient.from("order_deliveries").insert({
+      order_id: order.id,
+      deliverable_id: deliverable.id,
+      workspace_id: workspaceId,
+      status,
+      delivered_at: status === "delivered" ? new Date().toISOString() : null,
+      delivery_data: deliveryData,
+      error_message: errorMessage,
+    });
+
+    logStep("Deliverable recorded", { deliverableId: deliverable.id, type: deliverable.deliverable_type, status });
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -129,6 +270,15 @@ serve(async (req) => {
               }
             }
             logStep("Stock decremented for tracked products");
+          }
+
+          // Process digital deliverables
+          if (order?.items && order?.id) {
+            try {
+              await processDeliverables(supabaseClient, order, workspaceId);
+            } catch (deliveryError) {
+              logStep("Delivery processing error (non-blocking)", { message: (deliveryError as Error).message });
+            }
           }
           try {
             const resendKey = Deno.env.get("RESEND_API_KEY");

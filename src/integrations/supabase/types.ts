@@ -13514,6 +13514,64 @@ export type Database = {
           },
         ]
       }
+      order_deliveries: {
+        Row: {
+          created_at: string
+          deliverable_id: string
+          delivered_at: string | null
+          delivery_data: Json | null
+          error_message: string | null
+          id: string
+          order_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deliverable_id: string
+          delivered_at?: string | null
+          delivery_data?: Json | null
+          error_message?: string | null
+          id?: string
+          order_id: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deliverable_id?: string
+          delivered_at?: string | null
+          delivery_data?: Json | null
+          error_message?: string | null
+          id?: string
+          order_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_deliveries_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "product_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_deliveries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_deliveries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_note_items: {
         Row: {
           created_at: string
@@ -15079,6 +15137,67 @@ export type Database = {
           },
           {
             foreignKeyName: "product_cycles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_deliverables: {
+        Row: {
+          config: Json
+          created_at: string
+          deliverable_type: string
+          id: string
+          is_active: boolean
+          label: string
+          product_id: string
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          deliverable_type: string
+          id?: string
+          is_active?: boolean
+          label: string
+          product_id: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          deliverable_type?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          product_id?: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_deliverables_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_deliverables_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_deliverables_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

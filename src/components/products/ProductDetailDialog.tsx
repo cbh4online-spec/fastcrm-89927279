@@ -66,6 +66,7 @@ import { ProductCyclesTabEnhanced } from "./ProductCyclesTabEnhanced";
 import { ProductSheetSettings } from "./ProductSheetSettings";
 import { ProductVideoPreview } from "./ProductVideoPreview";
 import { ProductRelationsTab } from "./ProductRelationsTab";
+import { ProductDeliverablesManager } from "./ProductDeliverablesManager";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -256,6 +257,10 @@ export function ProductDetailDialog({
                 <TabsTrigger value="relations">
                   <Link2 className="h-4 w-4 mr-1" />
                   Relações
+                </TabsTrigger>
+                <TabsTrigger value="deliverables">
+                  <Package className="h-4 w-4 mr-1" />
+                  Entregáveis
                 </TabsTrigger>
               </TabsList>
 
@@ -473,6 +478,10 @@ export function ProductDetailDialog({
 
               <TabsContent value="relations" className="mt-4">
                 <ProductRelationsTab product={product} />
+              </TabsContent>
+
+              <TabsContent value="deliverables" className="mt-4">
+                <ProductDeliverablesManager productId={product.id} />
               </TabsContent>
             </Tabs>
           </ScrollArea>
