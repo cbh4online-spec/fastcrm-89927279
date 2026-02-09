@@ -37,6 +37,14 @@ export default function StoreOrderHistoryPage() {
               <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
             </Link>
             <h1 className="text-2xl font-bold">As Minhas Encomendas</h1>
+            <div className="ml-auto">
+              <Link to={`/store/${wsSlug}/downloads`}>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Package className="h-4 w-4" />
+                  Produtos Digitais
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {orders.length === 0 ? (

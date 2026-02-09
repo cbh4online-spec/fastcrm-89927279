@@ -125,6 +125,56 @@ serve(async (req) => {
       }).eq("id", returnReq.order_id);
     }
 
+    // ============================
+    // AUTOMATIC REVOCATION of digital access
+    // ============================
+    try {
+      // Revoke entitlements linked to this order
+      const { data: deliveries } = await supabaseClient
+        .from("order_deliveries")
+        .select("id, deliverable_id, delivery_data, product_deliverables:deliverable_id(deliverable_type, config)")
+        .eq("order_id", returnReq.order_id)
+        .eq("status", "delivered");
+
+      if (deliveries && deliveries.length > 0) {
+        for (const delivery of deliveries) {
+          const deliverable = (delivery as any).product_deliverables;
+          const deliveryData = delivery.delivery_data as Record<string, unknown> | null;
+
+          if (deliverable?.deliverable_type === "portal_access" && deliveryData?.client_user_id) {
+            // Deactivate client entitlements
+            const entitlementIds = (deliveryData.entitlements_activated as string[]) || [];
+            for (const entKey of entitlementIds) {
+              await supabaseClient
+                .from("client_entitlements")
+                .update({ is_active: false, metadata: { revoked_reason: "refund", return_request_id: returnRequestId } })
+                .eq("client_user_id", deliveryData.client_user_id as string)
+                .eq("entitlement_key", entKey);
+            }
+            logStep("Portal entitlements revoked", { count: entitlementIds.length });
+          }
+
+          if (deliverable?.deliverable_type === "course_enrollment" && deliveryData?.enrollment_id) {
+            // Cancel course enrollment
+            await supabaseClient
+              .from("sj_enrollments")
+              .update({ status: "cancelled" })
+              .eq("id", deliveryData.enrollment_id as string);
+            logStep("Course enrollment cancelled", { enrollmentId: deliveryData.enrollment_id });
+          }
+
+          // Mark delivery as revoked
+          await supabaseClient
+            .from("order_deliveries")
+            .update({ status: "revoked" })
+            .eq("id", delivery.id);
+        }
+        logStep("Digital deliveries revoked", { count: deliveries.length });
+      }
+    } catch (revokeErr) {
+      logStep("Revocation error (non-blocking)", { message: (revokeErr as Error).message });
+    }
+
     // Add event to order timeline
     await supabaseClient.from("store_order_events").insert({
       order_id: returnReq.order_id,
