@@ -183,3 +183,6 @@ verify_jwt = false
 
 [functions.video-oauth-callback]
 verify_jwt = false
+
+[functions.create-store-checkout]
+verify_jwt = false
