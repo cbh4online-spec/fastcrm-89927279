@@ -19,6 +19,7 @@ export interface StoreProduct {
   stock_quantity: number | null;
   track_stock: boolean | null;
   store_featured: boolean | null;
+  created_at?: string;
   store_sort_order: number | null;
   store_category_id: string | null;
   specifications: Record<string, string> | null;
@@ -52,7 +53,7 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url")
+        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
         .eq("status", "active");
@@ -105,7 +106,7 @@ export function useStoreProduct(productId: string | undefined) {
 
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id")
+        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at")
         .eq("id", productId)
         .eq("store_published", true)
         .single();

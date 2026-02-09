@@ -5,6 +5,9 @@ import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
+import { StoreProductBadges } from "@/components/store/StoreProductBadges";
+import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
+import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -199,6 +202,16 @@ export default function StoreProductPage() {
                 </p>
               )}
 
+              {/* Badges */}
+              <StoreProductBadges
+                createdAt={product.created_at}
+                trackStock={product.track_stock}
+                stockQuantity={product.stock_quantity}
+                isDiscounted={pricing?.isDiscounted}
+                isFeatured={product.store_featured}
+                compact={false}
+              />
+
               {/* Stock status */}
               {isOutOfStock ? (
                 <Badge variant="secondary">Esgotado</Badge>
@@ -309,6 +322,23 @@ export default function StoreProductPage() {
               </div>
             </div>
           )}
+
+          {/* Cross-sell: Frequentemente comprados juntos */}
+          <StoreBoughtTogether
+            productId={product.id}
+            categoryId={product.store_category_id}
+            workspaceId={(product as any).workspace_id}
+            currentPrice={pricing?.price ?? product.base_price}
+            currency={product.currency}
+          />
+
+          {/* Related: Clientes também viram */}
+          <StoreRelatedProducts
+            productId={product.id}
+            categoryId={product.store_category_id}
+            workspaceId={(product as any).workspace_id}
+            workspaceSlug={wsSlug}
+          />
         </div>
 
         <footer className="border-t bg-muted/30 mt-16">

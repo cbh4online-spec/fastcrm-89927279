@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
+import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 
 interface StoreProductCardProps {
@@ -54,12 +55,21 @@ export function StoreProductCard({ product, workspaceSlug, tierPricing }: StoreP
             </div>
           )}
 
-          {product.store_featured && (
-            <Badge className="absolute top-3 left-3 bg-primary/90 text-primary-foreground gap-1">
-              <Star className="h-3 w-3" />
-              Destaque
-            </Badge>
-          )}
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
+            {product.store_featured && (
+              <Badge className="bg-primary/90 text-primary-foreground gap-1">
+                <Star className="h-3 w-3" />
+                Destaque
+              </Badge>
+            )}
+            <StoreProductBadges
+              createdAt={product.created_at}
+              trackStock={product.track_stock}
+              stockQuantity={product.stock_quantity}
+              isDiscounted={isDiscounted}
+              compact
+            />
+          </div>
 
           {isOutOfStock && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/70">
