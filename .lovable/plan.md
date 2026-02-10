@@ -1,97 +1,67 @@
 
 
-# Convite para o Club via CRM/Workspace
+# Perguntas de Adesao -- CRUD Completo e Respostas Visiveis para Admin
 
 ## Objectivo
 
-Permitir que administradores do workspace convidem contactos do CRM para a comunidade (FastClub), enviando um email de convite com link de registo na pagina publica da comunidade.
+Implementar o sistema completo de perguntas de adesao: admins criam/editam perguntas, novos membros respondem ao registar-se, e admins podem ver as respostas de cada membro.
 
 ## O Que Vai Ser Feito
 
-### 1. Tabela `community_members`
-Nova tabela para rastrear membros da comunidade (convidados, pendentes, activos):
+### 1. Nova Tabela `community_membership_answers`
+Guardar as respostas dos membros as perguntas de adesao.
 
 | Coluna | Tipo | Descricao |
 |---|---|---|
 | id | uuid PK | Identificador |
-| workspace_id | uuid FK | Workspace da comunidade |
-| user_id | uuid | Auth user ID (preenchido apos registo) |
-| contact_id | uuid FK | Contacto CRM associado (opcional) |
-| email | text | Email do convidado |
-| name | text | Nome do convidado |
-| status | text | "pending", "active", "revoked" |
-| invite_token | uuid | Token unico para o convite |
-| invite_expires_at | timestamptz | Expiracao do convite (7 dias) |
-| invited_by | uuid | Quem convidou (auth.uid) |
-| joined_at | timestamptz | Data de activacao |
-| created_at | timestamptz | Data de criacao |
+| workspace_id | uuid FK | Workspace |
+| question_id | uuid FK | Referencia a pergunta |
+| member_id | uuid FK | Referencia ao community_member |
+| user_id | uuid | Auth user (quem respondeu) |
+| answer_text | text | Resposta livre ou valor seleccionado |
+| created_at | timestamptz | Data |
 
-RLS: admins do workspace podem ler/escrever; membros podem ler os seus proprios registos.
+### 2. CRUD de Perguntas no Tab "Adesao"
+Substituir o placeholder actual no `CommunitySettingsDialog.tsx` (tab "questions") por um CRUD completo:
+- **Lista** de perguntas existentes com drag-to-reorder (sort_order)
+- **Adicionar pergunta**: campo de texto + tipo (text, textarea, select) + opcoes (se select)
+- **Editar**: inline editing do texto e tipo
+- **Remover**: botao de eliminar com confirmacao
+- **Activar/Desactivar**: toggle por pergunta (is_active)
+- Toggle global "Perguntas de Adesao" ja existente mantido
 
-### 2. Edge Function `send-community-invite`
-Nova edge function que:
-- Recebe: email, name, workspaceId, communitySlug
-- Gera token de convite e grava em `community_members`
-- Envia email via Resend com template da comunidade (logo, cores, nome)
-- Link do convite aponta para `/community/:slug/auth?invite=TOKEN`
+### 3. Perguntas no Fluxo de Registo
+Actualizar `CommunityAuthPage.tsx`:
+- Apos preencher nome/email/password, se `membership_questions_enabled` estiver activo, mostrar um passo adicional com as perguntas activas
+- Campos dinamicos baseados no `question_type`: text input, textarea, ou select
+- Respostas guardadas em `community_membership_answers` apos registo
 
-### 3. Dialog de Convite na UI (FastClub)
-Novo componente `InviteToCommunityDialog.tsx`:
-- Botao "Convidar" no tab "Membros" (visivel para admins)
-- Duas opcoes de convite:
-  - **Manual**: Preencher nome e email
-  - **Do CRM**: Seleccionar contactos existentes do workspace (dropdown com pesquisa)
-- Possibilidade de convidar multiplos contactos de uma vez
-- Mostra estado dos convites pendentes
-
-### 4. Pagina de Auth com Token de Convite
-Actualizar `CommunityAuthPage.tsx` para:
-- Detectar `?invite=TOKEN` na URL
-- Validar o token contra `community_members`
-- Apos registo, activar automaticamente o membro (status "active")
-- Preencher nome e email do formulario a partir dos dados do convite
-
-### 5. Lista de Membros Melhorada
-Actualizar `CommunityMembersList.tsx` para:
-- Mostrar membros da tabela `community_members` alem dos workspace members
-- Mostrar badge de estado (pendente, activo)
-- Botao para reenviar convite (pendentes)
+### 4. Respostas Visiveis para Admin
+Novo componente `MemberAnswersDialog.tsx`:
+- Acessivel na lista de membros (botao "Ver respostas" em cada membro)
+- Mostra todas as perguntas e respectivas respostas do membro
+- Formato simples: pergunta em bold, resposta abaixo
 
 ## Detalhes Tecnicos
 
 ### Migracao SQL
 
 ```sql
-CREATE TABLE public.community_members (
+CREATE TABLE public.community_membership_answers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  question_id uuid NOT NULL REFERENCES public.community_membership_questions(id) ON DELETE CASCADE,
+  member_id uuid REFERENCES public.community_members(id) ON DELETE CASCADE,
   user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  contact_id uuid REFERENCES public.contacts(id) ON DELETE SET NULL,
-  email text NOT NULL,
-  name text NOT NULL,
-  status text NOT NULL DEFAULT 'pending',
-  invite_token uuid DEFAULT gen_random_uuid(),
-  invite_expires_at timestamptz DEFAULT (now() + interval '7 days'),
-  invited_by uuid REFERENCES auth.users(id),
-  joined_at timestamptz,
+  answer_text text NOT NULL DEFAULT '',
   created_at timestamptz DEFAULT now()
 );
 
-ALTER TABLE public.community_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_membership_answers ENABLE ROW LEVEL SECURITY;
 
--- Workspace members can read
-CREATE POLICY "Workspace members can read community members"
-  ON public.community_members FOR SELECT
-  TO authenticated
-  USING (
-    workspace_id IN (
-      SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
-    )
-  );
-
--- Workspace admins can insert/update
-CREATE POLICY "Workspace admins can manage community members"
-  ON public.community_members FOR ALL
+-- Admins podem ler/gerir respostas
+CREATE POLICY "Workspace admins can manage answers"
+  ON public.community_membership_answers FOR ALL
   TO authenticated
   USING (
     workspace_id IN (
@@ -100,51 +70,68 @@ CREATE POLICY "Workspace admins can manage community members"
     )
   );
 
--- Public can read by invite_token (for activation)
-CREATE POLICY "Anyone can read own invite by token"
-  ON public.community_members FOR SELECT
-  TO anon
-  USING (true);
+-- Utilizador pode inserir as suas proprias respostas
+CREATE POLICY "Users can insert own answers"
+  ON public.community_membership_answers FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = auth.uid());
 
--- Unique constraint
-ALTER TABLE public.community_members
-  ADD CONSTRAINT community_members_workspace_email_unique
-  UNIQUE (workspace_id, email);
+-- Anon pode inserir (para registo via invite)
+CREATE POLICY "Anon can insert answers"
+  ON public.community_membership_answers FOR INSERT
+  TO anon
+  WITH CHECK (true);
 ```
 
 ### Ficheiros a Criar
 
 | Ficheiro | Descricao |
 |---|---|
-| `supabase/functions/send-community-invite/index.ts` | Edge function para enviar convite com email Resend |
-| `src/components/community/InviteToCommunityDialog.tsx` | Dialog com seleccao de contactos CRM ou input manual |
-| `src/hooks/useCommunityMembers.ts` | Hook CRUD para community_members |
+| `src/hooks/useMembershipQuestions.ts` | Hook CRUD: listar, adicionar, editar, remover, reordenar perguntas + listar respostas |
+| `src/components/community/MemberAnswersDialog.tsx` | Dialog para admin ver respostas de um membro |
 
 ### Ficheiros a Modificar
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/pages/community/FastClubPage.tsx` | Adicionar botao "Convidar" no tab Membros |
-| `src/components/community/CommunityMembersList.tsx` | Mostrar community_members + estado + reenviar |
-| `src/pages/community/CommunityAuthPage.tsx` | Suportar ?invite=TOKEN para pre-fill e activacao |
+| `src/components/community/CommunitySettingsDialog.tsx` | Tab "Adesao" com CRUD completo de perguntas |
+| `src/pages/community/CommunityAuthPage.tsx` | Passo adicional com perguntas apos signup |
+| `src/components/community/CommunityMembersList.tsx` | Botao "Ver respostas" por membro |
 
-### Fluxo do Convite
+### Tipos de Pergunta Suportados
+
+| Tipo | UI | Dados em `options` |
+|---|---|---|
+| text | Input simples | null |
+| textarea | Textarea | null |
+| select | Select dropdown | `["Opcao 1", "Opcao 2", ...]` |
+
+### Fluxo de Registo com Perguntas
 
 ```text
-1. Admin abre FastClub > Membros > "Convidar"
-2. Selecciona contacto(s) do CRM ou preenche manualmente
-3. Sistema chama edge function send-community-invite
-4. Edge function: cria registo em community_members + envia email
-5. Convidado recebe email com link /community/:slug/auth?invite=TOKEN
-6. Convidado abre link, ve formulario pre-preenchido, cria password
-7. Apos registo, community_members actualizado para status "active"
-8. Membro aparece na lista com badge "Activo"
+1. Visitante acede /community/:slug/auth
+2. Preenche nome, email, password
+3. Se membership_questions_enabled:
+   - Formulario mostra as perguntas activas (ordenadas por sort_order)
+   - Campos obrigatorios para avançar
+4. Ao submeter:
+   - Cria conta (auth.signUp)
+   - Guarda respostas em community_membership_answers
+   - Activa membro se invite token presente
+5. Admin ve respostas no painel de membros
 ```
 
-### Template do Email
-Reutilizar o padrao do `send-client-invitation` mas com branding da comunidade:
-- Header com logo e nome da comunidade
-- Mensagem de convite personalizada
-- Botao "Juntar-se a Comunidade" com link directo
-- Cores primarias da community_settings
+### Fluxo Admin -- Gerir Perguntas
 
+```text
+1. Definicoes da Comunidade > Adesao
+2. Toggle "Perguntas de Adesao" (activa/desactiva globalmente)
+3. Lista de perguntas com:
+   - Texto da pergunta (editavel inline)
+   - Tipo (text/textarea/select)
+   - Opcoes (se select, lista editavel)
+   - Toggle activo/inactivo
+   - Botao eliminar
+4. Botao "+ Adicionar pergunta" no fundo
+5. Guardar automatico por accao
+```
