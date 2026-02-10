@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import {
   MessageSquare, Trophy, Star, Crown, Users, TrendingUp,
   ArrowLeft, Plus, Search, Gift, Zap, Heart, Award, Sparkles,
-  Settings, Calendar, Hash, Video, Link as LinkIcon,
+  Settings, Calendar, Hash, Video, Link as LinkIcon, UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +33,7 @@ import { CommunityLeaderboard } from "@/components/community/CommunityLeaderboar
 import { CommunityAbout } from "@/components/community/CommunityAbout";
 import { CommunitySettingsDialog } from "@/components/community/CommunitySettingsDialog";
 import { AddChannelDialog } from "@/components/community/AddChannelDialog";
+import { InviteToCommunityDialog } from "@/components/community/InviteToCommunityDialog";
 
 const tierConfig: Record<string, { label: string; icon: React.ReactNode; gradient: string; bg: string }> = {
   bronze: {
@@ -85,6 +86,7 @@ export default function FastClubPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addChannelOpen, setAddChannelOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const { data: categories = [] } = useForumCategories(workspaceId);
   const { data: topics = [], isLoading } = useForumTopics(workspaceId);
@@ -332,7 +334,16 @@ export default function FastClubPage() {
           </TabsContent>
 
           <TabsContent value="members" className="mt-6">
-            <CommunityMembersList />
+            <div className="space-y-4">
+              {isAdmin && (
+                <div className="flex justify-end">
+                  <Button onClick={() => setInviteOpen(true)} className="gap-1.5 rounded-full" size="sm">
+                    <UserPlus className="h-4 w-4" /> Convidar
+                  </Button>
+                </div>
+              )}
+              <CommunityMembersList />
+            </div>
           </TabsContent>
 
           <TabsContent value="about" className="mt-6">
@@ -343,6 +354,7 @@ export default function FastClubPage() {
 
       <CommunitySettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} workspaceId={workspaceId} />
       <AddChannelDialog open={addChannelOpen} onOpenChange={setAddChannelOpen} workspaceId={workspaceId} />
+      <InviteToCommunityDialog open={inviteOpen} onOpenChange={setInviteOpen} />
     </div>
   );
 }

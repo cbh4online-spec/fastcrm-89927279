@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePublicCommunitySettings } from "@/hooks/usePublicCommunity";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,14 +16,38 @@ export default function CommunityAuthPage() {
   const { user, loading: authLoading, signIn, signUp } = useAuth();
   const { data: settings, isLoading } = usePublicCommunitySettings(slug);
 
+  const inviteToken = searchParams.get("invite");
   const redirectTo = searchParams.get("redirect") || `/community/${slug}`;
   const initialMode = searchParams.get("mode") === "login" ? "login" : "signup";
-  const [mode, setMode] = useState<"login" | "signup">(initialMode);
+  const [mode, setMode] = useState<"login" | "signup">(inviteToken ? "signup" : initialMode);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [inviteData, setInviteData] = useState<{ name: string; email: string } | null>(null);
+
+  // Load invite data if token present
+  useEffect(() => {
+    if (!inviteToken) return;
+    supabase
+      .from("community_members")
+      .select("name, email, status, invite_expires_at")
+      .eq("invite_token", inviteToken)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && (data as any).status === "pending") {
+          const expires = new Date((data as any).invite_expires_at);
+          if (expires > new Date()) {
+            setInviteData({ name: (data as any).name, email: (data as any).email });
+            setFullName((data as any).name);
+            setEmail((data as any).email);
+          } else {
+            toast.error("Este convite expirou");
+          }
+        }
+      });
+  }, [inviteToken]);
 
   // Redirect if already logged in
   if (!authLoading && user) {
@@ -74,6 +99,18 @@ export default function CommunityAuthPage() {
         return;
       }
       toast.success("Conta criada! Verifique o seu email para confirmar.");
+
+      // Activate community member if invite token
+      if (inviteToken) {
+        try {
+          await supabase
+            .from("community_members")
+            .update({ status: "active", joined_at: new Date().toISOString() })
+            .eq("invite_token", inviteToken);
+        } catch (e) {
+          console.error("Error activating invite:", e);
+        }
+      }
     }
 
     setLoading(false);
