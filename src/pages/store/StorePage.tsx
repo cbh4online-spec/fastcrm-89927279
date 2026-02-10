@@ -5,7 +5,10 @@ import { motion } from "framer-motion";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreProductCard } from "@/components/store/StoreProductCard";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
-import { StoreHeroSection } from "@/components/store/sections/StoreHeroSection";
+import { StoreHeroCarousel } from "@/components/store/sections/StoreHeroCarousel";
+import { StoreCategoryGrid } from "@/components/store/sections/StoreCategoryGrid";
+import { StoreBestSellers } from "@/components/store/sections/StoreBestSellers";
+import { StoreNewArrivals } from "@/components/store/sections/StoreNewArrivals";
 import { StoreTrustSection } from "@/components/store/sections/StoreTrustSection";
 import { StoreFeaturedSection } from "@/components/store/sections/StoreFeaturedSection";
 import { StoreCTABanner } from "@/components/store/sections/StoreCTABanner";
@@ -120,17 +123,46 @@ export default function StorePage() {
           />
         )}
 
-        {/* Hero */}
+        {/* Hero Carousel */}
         {showHero && (
-          <StoreHeroSection
+          <StoreHeroCarousel
+            products={featuredProducts}
+            workspaceSlug={wsId}
             storeName={storeName}
             storeDescription={storeSettings?.store_description}
             bannerUrl={storeSettings?.banner_url}
-            featuredProduct={featuredProducts[0]}
           />
         )}
 
         {showHero && <StoreTrustSection />}
+
+        {/* Category Grid — Quad Cards */}
+        {showHero && categories.length > 0 && (
+          <StoreCategoryGrid
+            categories={categories}
+            onSelectCategory={(id) => {
+              setFilters(f => ({ ...f, categoryId: id }));
+              document.getElementById("products-section")?.scrollIntoView({ behavior: "smooth" });
+            }}
+          />
+        )}
+
+        {/* Best Sellers */}
+        {showHero && salesCounts && salesCounts.size > 0 && (
+          <StoreBestSellers
+            products={allProducts}
+            salesCounts={salesCounts}
+            workspaceSlug={wsId}
+          />
+        )}
+
+        {/* New Arrivals */}
+        {showHero && allProducts.length > 0 && (
+          <StoreNewArrivals
+            products={allProducts}
+            workspaceSlug={wsId}
+          />
+        )}
 
         {/* Deals section */}
         {showHero && dealProducts.length > 0 && (
