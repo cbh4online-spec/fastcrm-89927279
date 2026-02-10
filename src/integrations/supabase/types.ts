@@ -20386,6 +20386,122 @@ export type Database = {
           },
         ]
       }
+      store_gift_card_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          description: string | null
+          gift_card_id: string
+          id: string
+          order_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          description?: string | null
+          gift_card_id: string
+          id?: string
+          order_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          description?: string | null
+          gift_card_id?: string
+          id?: string
+          order_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_gift_card_transactions_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            isOneToOne: false
+            referencedRelation: "store_gift_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_gift_card_transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_gift_cards: {
+        Row: {
+          code: string
+          created_at: string
+          currency: string
+          current_balance: number
+          expires_at: string | null
+          id: string
+          initial_balance: number
+          message: string | null
+          purchaser_email: string | null
+          purchaser_name: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          currency?: string
+          current_balance: number
+          expires_at?: string | null
+          id?: string
+          initial_balance: number
+          message?: string | null
+          purchaser_email?: string | null
+          purchaser_name?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          currency?: string
+          current_balance?: number
+          expires_at?: string | null
+          id?: string
+          initial_balance?: number
+          message?: string | null
+          purchaser_email?: string | null
+          purchaser_name?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_gift_cards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_offer_redemptions: {
         Row: {
           ai_offer_id: string | null
