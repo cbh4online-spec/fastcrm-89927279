@@ -57,7 +57,7 @@ const typeLabels: Record<string, string> = {
 
 export default function ClientSupportPage() {
   const { tickets, isLoading, createTicket } = useClientTickets();
-  const { canCreateTickets } = useClientPermissions();
+  const { canCreateTickets, isLoading: permissionsLoading } = useClientPermissions();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -145,6 +145,14 @@ export default function ClientSupportPage() {
       </TableBody>
     </Table>
   );
+
+  if (permissionsLoading || isLoading) {
+    return (
+      <div className="p-6 text-center text-muted-foreground">
+        <p>A carregar...</p>
+      </div>
+    );
+  }
 
   if (!canCreateTickets && tickets.length === 0) {
     return (
