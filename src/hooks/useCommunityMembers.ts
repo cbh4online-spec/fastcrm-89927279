@@ -94,9 +94,9 @@ export function useInviteCommunityMember() {
       const count = variables.length;
       toast.success(`${count} convite${count > 1 ? "s" : ""} enviado${count > 1 ? "s" : ""} com sucesso`);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error inviting:", error);
-      toast.error("Erro ao enviar convites");
+      toast.error(error?.message || "Erro ao enviar convites");
     },
   });
 }
