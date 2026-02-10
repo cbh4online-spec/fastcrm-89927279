@@ -1,42 +1,88 @@
 
-# Adicionar Criacao de Eventos na Comunidade
 
-## Problema
+# Melhorar Dialog de Criacao de Canal -- Icones Configuraveis, Canal Pago e Atributos
 
-O tab "Eventos" no FastClub mostra eventos existentes mas nao tem nenhum botao ou formulario para criar novos eventos. O hook `useCreateCommunityEvent` ja existe mas nunca e usado na UI.
+## Visao Geral
 
-## Solucao
+Melhorar o dialog "Adicionar Canal" com 3 funcionalidades:
+1. **Selector de icones visual** em vez de campo de texto livre
+2. **Opcao de canal pago** com campo de preco
+3. **Atributos adicionais** (cor do canal, limite de membros)
 
-Criar um dialog de criacao de eventos e adicionar um botao "+ Evento" no tab de Eventos (visivel para admins).
+## Alteracoes na Base de Dados
 
-### O que vai ser feito
+Adicionar 3 novas colunas a tabela `forum_categories`:
 
-1. **Botao "+ Criar Evento"** no tab de Eventos, visivel apenas para admins (owner/admin)
-2. **Dialog com formulario** contendo os campos:
-   - Titulo (obrigatorio)
-   - Descricao (opcional)
-   - Tipo de evento: "evento" ou "live" (select)
-   - Data/hora de inicio (obrigatorio)
-   - Data/hora de fim (opcional)
-   - Link externo (opcional, ex: link do Zoom/Meet)
-3. **Validacao** com feedback visual
-4. Ao submeter, usar o hook `useCreateCommunityEvent` que ja existe
+| Coluna | Tipo | Default | Descricao |
+|---|---|---|---|
+| `is_paid` | boolean | false | Canal requer pagamento |
+| `price` | numeric | null | Preco em EUR (ex: 9.99) |
+| `color` | text | null | Cor do canal (hex, ex: #8B5CF6) |
+
+## Alteracoes na UI
+
+### 1. Selector de Icones Visual
+Substituir o campo de texto do icone por uma grelha clicavel com emojis populares organizados por categoria:
+
+- **Geral**: chatbalao, megafone, estrela, coracao, fogo, raio, foguetao, globo
+- **Temas**: livro, paleta, camera, musica, codigo, grafico, trofeu, diamante
+- **Social**: grupo, festa, cafe, pizza, gaming, fitness
+
+Apresentar 18-24 emojis numa grelha 6x3/4 com selecao visual (borda activa). Manter opcao de escrever emoji customizado.
+
+### 2. Opcao Canal Pago
+Novo toggle "Canal Pago" com campo de preco que aparece condicionalmente:
+- Toggle "Canal Pago -- Membros pagam para aceder"
+- Quando activo, mostra campo de preco com prefixo EUR
+- Validacao: preco minimo 0.50 EUR
+
+### 3. Atributos Extra
+- **Cor do canal**: selector de cores predefinidas (8 opcoes) para personalizar a badge do canal na listagem
+- **Limite de membros**: campo numerico opcional para restringir o numero maximo de participantes
 
 ## Detalhes Tecnicos
 
-### Ficheiro a Modificar
+### Ficheiros a Modificar/Criar
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/pages/community/FastClubPage.tsx` | Adicionar dialog de criacao e botao no componente `EventsList`, passando `isAdmin` como prop |
+| `src/components/community/AddChannelDialog.tsx` | Redesign com grelha de icones, toggle pago com preco, selector de cor |
+| `src/hooks/useForumMutations.ts` | Adicionar campos `is_paid`, `price`, `color` ao mutate |
 
-### Implementacao
+### Migracao SQL
 
-- Adicionar estado `createEventOpen` ao componente `EventsList`
-- Criar o formulario inline no dialog usando componentes existentes (`Dialog`, `Input`, `Textarea`, `Select`, `Button`)
-- Chamar `useCreateCommunityEvent(workspaceId)` para submeter
-- Campos do formulario mapeiam directamente para a tabela `community_events`: `title`, `description`, `event_type`, `starts_at`, `ends_at`, `link`
-- Passar `isAdmin` de `FastClubPage` para `EventsList` para controlar visibilidade do botao
+```sql
+ALTER TABLE public.forum_categories
+  ADD COLUMN IF NOT EXISTS is_paid boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS price numeric DEFAULT null,
+  ADD COLUMN IF NOT EXISTS color text DEFAULT null;
+```
 
-### Nao sao necessarias alteracoes na base de dados
-A tabela `community_events` e o hook `useCreateCommunityEvent` ja existem e suportam todos os campos necessarios.
+### Emojis Predefinidos
+
+```text
+GERAL:    💬 📢 ⭐ ❤️ 🔥 ⚡ 🚀 🌍
+TEMAS:    📚 🎨 📸 🎵 💻 📊 🏆 💎
+SOCIAL:   👥 🎉 ☕ 🍕 🎮 💪 🧠 💡
+```
+
+### Cores Predefinidas
+
+```text
+#8B5CF6 (violeta), #3B82F6 (azul), #10B981 (verde), #F59E0B (amarelo),
+#EF4444 (vermelho), #EC4899 (rosa), #6366F1 (indigo), #14B8A6 (teal)
+```
+
+### Fluxo do Dialog
+
+```text
+[Grelha de Icones] -> seleccionar emoji ou escrever custom
+[Nome do Canal] -> max 25 chars
+[Descricao] -> max 60 chars
+[Cor do Canal] -> 8 circulos coloridos clicaveis
+[Toggle Privado]
+[Toggle So Leitura]
+[Toggle Canal Pago] -> se activo, mostra campo Preco (EUR)
+[Cancelar] [Criar Canal]
+```
+
