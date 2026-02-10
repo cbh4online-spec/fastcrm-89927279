@@ -12,12 +12,18 @@ export function useCreateForumCategory(workspaceId: string | undefined) {
       icon,
       isPrivate,
       isReadOnly,
+      isPaid,
+      price,
+      color,
     }: {
       name: string;
       description: string | null;
       icon: string;
       isPrivate: boolean;
       isReadOnly: boolean;
+      isPaid: boolean;
+      price: number | null;
+      color: string | null;
     }) => {
       if (!workspaceId) throw new Error("Sem workspace");
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -31,6 +37,9 @@ export function useCreateForumCategory(workspaceId: string | undefined) {
           icon,
           is_private: isPrivate,
           is_read_only: isReadOnly,
+          is_paid: isPaid,
+          price,
+          color,
         } as any)
         .select()
         .single();

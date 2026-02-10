@@ -9347,40 +9347,49 @@ export type Database = {
       }
       forum_categories: {
         Row: {
+          color: string | null
           created_at: string
           description: string | null
           icon: string | null
           id: string
           is_active: boolean | null
+          is_paid: boolean | null
           is_private: boolean | null
           is_read_only: boolean | null
           name: string
+          price: number | null
           slug: string
           sort_order: number | null
           workspace_id: string
         }
         Insert: {
+          color?: string | null
           created_at?: string
           description?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_paid?: boolean | null
           is_private?: boolean | null
           is_read_only?: boolean | null
           name: string
+          price?: number | null
           slug: string
           sort_order?: number | null
           workspace_id: string
         }
         Update: {
+          color?: string | null
           created_at?: string
           description?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_paid?: boolean | null
           is_private?: boolean | null
           is_read_only?: boolean | null
           name?: string
+          price?: number | null
           slug?: string
           sort_order?: number | null
           workspace_id?: string
