@@ -7,9 +7,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface CommunitySidebarProps {
   workspaceId: string | undefined;
+  onInviteClick?: () => void;
 }
 
-export function CommunitySidebar({ workspaceId }: CommunitySidebarProps) {
+export function CommunitySidebar({ workspaceId, onInviteClick }: CommunitySidebarProps) {
   const { data: settings } = useCommunitySettings(workspaceId);
   const { data: links = [] } = useCommunityLinks(workspaceId);
   const { data: members = [] } = useWorkspaceMembers();
@@ -85,7 +86,7 @@ export function CommunitySidebar({ workspaceId }: CommunitySidebarProps) {
             </div>
           )}
 
-          <Button size="sm" className="w-full gap-1.5 rounded-full">
+          <Button size="sm" className="w-full gap-1.5 rounded-full" onClick={onInviteClick}>
             <UserPlus className="h-3.5 w-3.5" /> Convidar Membros
           </Button>
         </div>
