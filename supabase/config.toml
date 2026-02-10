@@ -192,3 +192,6 @@ verify_jwt = false
 
 [functions.store-ai-advisor]
 verify_jwt = false
+
+[functions.store-capture-lead]
+verify_jwt = false

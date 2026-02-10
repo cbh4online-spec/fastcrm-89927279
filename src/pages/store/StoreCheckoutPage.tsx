@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2, Ticket, X, Truck } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,36 @@ export default function StoreCheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [selectedShippingId, setSelectedShippingId] = useState<string>("");
   const { data: shippingMethods = [] } = useActiveShippingMethods(wsSlug);
+
+  // Lead capture state
+  const sessionId = useMemo(() => crypto.randomUUID(), []);
+  const [contactId, setContactId] = useState<string | null>(null);
+  const emailCapturedRef = useRef(false);
+
+  const captureLead = useCallback(async (data: { name: string; phone: string; email?: string }) => {
+    try {
+      const { data: result, error } = await supabase.functions.invoke("store-capture-lead", {
+        body: {
+          workspaceId: wsSlug,
+          sessionId,
+          name: data.name,
+          phone: data.phone,
+          email: data.email || undefined,
+          cartItems: items.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+        },
+      });
+      if (!error && result?.contactId) {
+        setContactId(result.contactId);
+      }
+    } catch {
+      // Non-blocking — don't interrupt checkout flow
+    }
+  }, [wsSlug, sessionId, items]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -50,7 +80,16 @@ export default function StoreCheckoutPage() {
       toast.error("Número de telefone inválido");
       return;
     }
+    // Capture lead immediately on step 1 completion
+    captureLead({ name: formData.name, phone: formData.phone });
     setStep(2);
+  };
+
+  const handleEmailBlur = () => {
+    if (formData.email.trim() && !emailCapturedRef.current) {
+      emailCapturedRef.current = true;
+      captureLead({ name: formData.name, phone: formData.phone, email: formData.email });
+    }
   };
 
   const handleApplyCoupon = async () => {
@@ -122,6 +161,7 @@ export default function StoreCheckoutPage() {
           customerName: formData.name,
           customerEmail: formData.email,
           customerPhone: formData.phone || undefined,
+          contactId: contactId || undefined,
           couponCode: appliedCoupon?.code || undefined,
           shippingMethodId: selectedShippingId || undefined,
           shippingCost: effectiveShippingCost,
@@ -279,7 +319,11 @@ export default function StoreCheckoutPage() {
                         type="email"
                         placeholder="o-seu@email.com"
                         value={formData.email}
-                        onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+                        onChange={(e) => {
+                          setFormData(p => ({ ...p, email: e.target.value }));
+                          emailCapturedRef.current = false;
+                        }}
+                        onBlur={handleEmailBlur}
                         required
                         autoFocus
                       />
