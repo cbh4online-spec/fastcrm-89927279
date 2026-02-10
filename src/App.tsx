@@ -127,6 +127,7 @@ import C2CFavorites from "./pages/c2c/C2CFavorites";
 import C2CSellerBoost from "./pages/c2c/C2CSellerBoost";
 import C2CSponsorPortal from "./pages/c2c/C2CSponsorPortal";
 import C2CSponsorAdmin from "./pages/c2c/C2CSponsorAdmin";
+import C2CSellerDashboard from "./pages/c2c/C2CSellerDashboard";
 
 // FastClub (Community)
 import FastClubPage from "./pages/community/FastClubPage";
@@ -361,6 +362,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/boost" element={<C2CSellerBoost />} />
                 <Route path="/dashboard/c2c/sellers" element={<C2CSellersAdmin />} />
                 <Route path="/dashboard/c2c/sponsors" element={<C2CSponsorAdmin />} />
+                <Route path="/dashboard/c2c/analytics" element={<C2CSellerDashboard />} />
                 <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
                 
                 {/* FastClub */}

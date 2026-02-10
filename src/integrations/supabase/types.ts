@@ -3016,6 +3016,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           avatar_url: string | null
+          avg_rating: number | null
           bank_name: string | null
           bio: string | null
           commission_rate: number | null
@@ -3030,6 +3031,7 @@ export type Database = {
           rejection_reason: string | null
           status: Database["public"]["Enums"]["c2c_seller_status"]
           total_revenue: number | null
+          total_reviews: number | null
           total_sales: number | null
           updated_at: string
           user_id: string
@@ -3040,6 +3042,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           avatar_url?: string | null
+          avg_rating?: number | null
           bank_name?: string | null
           bio?: string | null
           commission_rate?: number | null
@@ -3054,6 +3057,7 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["c2c_seller_status"]
           total_revenue?: number | null
+          total_reviews?: number | null
           total_sales?: number | null
           updated_at?: string
           user_id: string
@@ -3064,6 +3068,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           avatar_url?: string | null
+          avg_rating?: number | null
           bank_name?: string | null
           bio?: string | null
           commission_rate?: number | null
@@ -3078,6 +3083,7 @@ export type Database = {
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["c2c_seller_status"]
           total_revenue?: number | null
+          total_reviews?: number | null
           total_sales?: number | null
           updated_at?: string
           user_id?: string
