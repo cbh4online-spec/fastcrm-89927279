@@ -4618,6 +4618,66 @@ export type Database = {
           },
         ]
       }
+      community_members: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          email: string
+          id: string
+          invite_expires_at: string | null
+          invite_token: string | null
+          invited_by: string | null
+          joined_at: string | null
+          name: string
+          status: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
+          invited_by?: string | null
+          joined_at?: string | null
+          name: string
+          status?: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
+          invited_by?: string | null
+          joined_at?: string | null
+          name?: string
+          status?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_membership_questions: {
         Row: {
           created_at: string
