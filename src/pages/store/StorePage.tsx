@@ -16,6 +16,7 @@ import { StoreCouponBanner } from "@/components/store/sections/StoreCouponBanner
 import { StoreDealsSection } from "@/components/store/sections/StoreDealsSection";
 import { StoreCategoryCarousel } from "@/components/store/sections/StoreCategoryCarousel";
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
+import { StoreFaqSection } from "@/components/store/sections/StoreFaqSection";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreFilterSidebar";
@@ -299,6 +300,9 @@ export default function StorePage() {
             />
           )}
         </section>
+
+        {/* FAQ Section */}
+        <StoreFaqSection workspaceId={wsId} />
 
         {/* Footer */}
         <StoreFooter
