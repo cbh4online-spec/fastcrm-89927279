@@ -12,6 +12,7 @@ import { StoreNewArrivals } from "@/components/store/sections/StoreNewArrivals";
 import { StoreTrustSection } from "@/components/store/sections/StoreTrustSection";
 import { StoreFeaturedSection } from "@/components/store/sections/StoreFeaturedSection";
 import { StoreCTABanner } from "@/components/store/sections/StoreCTABanner";
+import { StoreCouponBanner } from "@/components/store/sections/StoreCouponBanner";
 import { StoreDealsSection } from "@/components/store/sections/StoreDealsSection";
 import { StoreCategoryCarousel } from "@/components/store/sections/StoreCategoryCarousel";
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
@@ -104,6 +105,9 @@ export default function StorePage() {
       </Helmet>
 
       <div className="min-h-screen bg-background">
+        {/* Coupon Countdown Banner */}
+        <StoreCouponBanner workspaceId={wsId} />
+
         <StoreHeader
           storeName={storeName}
           logoUrl={storeSettings?.logo_url || undefined}
