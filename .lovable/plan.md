@@ -1,87 +1,68 @@
 
-# Criar Produtos com Ajuda de IA - Modo Wizard Inteligente
 
-## Objetivo
-Criar um novo fluxo alternativo de criacao de produtos onde o utilizador descreve o que quer (em linguagem natural ou com SKU) e a IA preenche automaticamente todos os campos, apresentando um resumo para revisao antes de gravar.
+# Sugestoes Automaticas de Cross-sell e Up-sell na Criacao com IA
 
-## O que ja existe
-O sistema ja tem componentes AI robustos no painel lateral do dialogo de criacao:
-- **AIProductAssistant**: sugere categoria, preco, descricao e tipo com base no nome
-- **SKUSearchPanel**: pesquisa por SKU via Firecrawl, extrai nome, descricao, imagens, especificacoes, precos
-- **ProductImageGenerator**: gera imagens com IA (Gemini image model)
-- **ai-product-assistant** edge function: suporta modos suggest, sku-search, generate-description, price-analysis, generate-product-image
+## Contexto
+O sistema ja possui um modo `suggest-relations` na edge function `ai-product-assistant` que analisa o catalogo e cria relacoes do tipo `compatible`, `related` e `bundle` na tabela `product_relations`. Atualmente, este modo so e acionado manualmente no separador de relacoes (`ProductRelationsTab`). O objetivo e disparar automaticamente este processo quando um produto e criado (via formulario normal ou futuro wizard IA), apresentando os resultados ao utilizador.
 
-Contudo, estes componentes funcionam como auxiliares no formulario manual - o utilizador ainda precisa de interagir campo a campo.
+## Plano
 
-## Plano de Implementacao
+### 1. Hook dedicado para sugestoes pos-criacao
+Criar `src/hooks/usePostCreationSuggestions.ts` que:
+- Recebe o ID do produto recem-criado e o workspace ID
+- Chama automaticamente o modo `suggest-relations` da edge function
+- Devolve os resultados (quantas relacoes foram adicionadas)
+- Gere estados de loading e erro
 
-### 1. Novo modo "ai-create" na edge function `ai-product-assistant`
-Adicionar um modo que recebe um prompt livre (ex: "Camera de vigilancia 4K exterior com visao noturna") e devolve TODOS os campos do produto preenchidos de uma so vez:
-- name (tecnico + comercial)
-- category
-- product_type
-- billing_type
-- base_price + price range
-- short_description (comercial)
-- specifications (objeto completo)
-- sku sugerido
-- beneficios
+### 2. Componente de notificacao/card de sugestoes
+Criar `src/components/products/PostCreationSuggestionsCard.tsx`:
+- Aparece como um card/banner apos a criacao bem-sucedida de um produto
+- Mostra estado de loading enquanto a IA analisa o catalogo
+- Exibe as relacoes encontradas agrupadas por tipo (Compatible, Related, Bundle)
+- Botoes para ver o produto e ir ao separador de relacoes
+- Opcao para descartar
 
-A IA usa tool calling para garantir output estruturado.
-
-### 2. Novo componente `AIProductWizard.tsx`
-Um dialogo alternativo com 3 passos:
-
-**Passo 1 - Descrever**
-- Campo de texto grande: "Descreva o produto que quer criar..."
-- Opcao alternativa: "Ou insira um SKU/referencia"
-- Botao "Gerar com IA"
-
-**Passo 2 - Rever e Ajustar**
-- Cards com todos os dados gerados pela IA, organizados por seccao
-- Cada campo e editavel inline
-- Botao para regenerar campos individuais
-- Preview de imagens encontradas/geradas
-- Indicador de confianca por campo
-
-**Passo 3 - Confirmar**
-- Resumo final estilo ficha de produto
-- Botao "Criar Produto" que chama o mesmo `useCreateProduct`
-
-### 3. Integracao na lista de produtos
-Adicionar botao "Criar com IA" ao lado do botao "Criar Produto" existente em `ProductsList.tsx`, abrindo o wizard.
+### 3. Integracao no fluxo de criacao
+Modificar `src/components/products/CreateProductDialog.tsx`:
+- No `onSuccess` do `createProduct`, guardar o produto criado em estado local
+- Mostrar o `PostCreationSuggestionsCard` antes de fechar o dialogo
+- O dialogo so fecha quando o utilizador confirma ou descarta as sugestoes
 
 ### 4. Melhorias na edge function
-- Combinar pesquisa Firecrawl + geracao AI num unico fluxo quando SKU e fornecido
-- Gerar imagem automaticamente se nenhuma for encontrada via web
-- Sugerir beneficios e keywords para SEO da loja
+Editar `supabase/functions/ai-product-assistant/index.ts` no modo `suggest-relations`:
+- Adicionar ao prompt instrucoes para classificar sugestoes como cross-sell (compatible/bundle) ou up-sell (related com preco superior)
+- Incluir um campo `relationship_label` amigavel (ex: "Acessorio recomendado", "Alternativa premium")
+- Devolver as sugestoes inseridas no response para o frontend mostrar detalhes
 
 ## Detalhes Tecnicos
 
-### Edge Function - novo modo `ai-create`
+### Hook `usePostCreationSuggestions`
 ```text
-Request:  { mode: "ai-create", prompt: "...", sku?: "..." }
-Response: { success: true, data: { 
-  name, commercialName, category, productType, billingType,
-  basePrice, priceRange, shortDescription, commercialDescription,
-  specifications, suggestedSku, benefits, images 
-}}
+Input:  { productId: string, workspaceId: string }
+Output: { suggestions: RelationSuggestion[], added: number, isLoading, error }
 ```
+Chama `supabase.functions.invoke("ai-product-assistant", { body: { mode: "suggest-relations", productId, workspaceId } })` e devolve os dados enriquecidos.
 
-Fluxo interno:
-1. Se SKU fornecido -> pesquisa Firecrawl primeiro
-2. Combina dados web + prompt do utilizador
-3. Chama Gemini com tool calling para output estruturado
-4. Se nao encontrou imagens -> gera com modelo de imagem
-5. Devolve pacote completo
-
-### Componentes Frontend
-- `AIProductWizard.tsx` - dialogo wizard com 3 passos
-- Reutiliza `useCreateProduct` para gravar
-- Reutiliza `useProductAIAssistant` (com novo metodo `createFromPrompt`)
+### Resposta melhorada do `suggest-relations`
+```text
+{
+  success: true,
+  data: {
+    added: 5,
+    relations: [
+      { targetId, targetName, type: "compatible", reason: "Cabo compativel", label: "Acessorio" },
+      { targetId, targetName, type: "related", reason: "Versao superior", label: "Upgrade" },
+      { targetId, targetName, type: "bundle", reason: "Kit frequente", label: "Compre junto" }
+    ]
+  }
+}
+```
+Para devolver `targetName`, o edge function ja tem acesso aos `otherProducts` com campo `name` - basta incluir no response.
 
 ### Ficheiros a criar/editar
-- **Editar**: `supabase/functions/ai-product-assistant/index.ts` (novo modo)
-- **Editar**: `src/hooks/useProductAIAssistant.ts` (novo metodo)
-- **Criar**: `src/components/products/AIProductWizard.tsx`
-- **Editar**: `src/components/products/ProductsList.tsx` (botao novo)
+- **Criar**: `src/hooks/usePostCreationSuggestions.ts`
+- **Criar**: `src/components/products/PostCreationSuggestionsCard.tsx`
+- **Editar**: `src/components/products/CreateProductDialog.tsx` (mostrar card pos-criacao)
+- **Editar**: `supabase/functions/ai-product-assistant/index.ts` (enriquecer response do suggest-relations)
+- **Editar**: `src/hooks/useProductAIAssistant.ts` (adicionar metodo `suggestRelations`)
+
