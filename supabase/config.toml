@@ -201,3 +201,6 @@ verify_jwt = false
 
 [functions.community-ai-category]
 verify_jwt = false
+
+[functions.community-ai-suggest-title]
+verify_jwt = false
