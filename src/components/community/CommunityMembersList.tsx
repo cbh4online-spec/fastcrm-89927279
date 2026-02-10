@@ -4,14 +4,17 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Shield, Crown, Clock, CheckCircle2, RotateCcw, Loader2 } from "lucide-react";
+import { Search, Shield, Crown, Clock, CheckCircle2, RotateCcw, Loader2, FileText } from "lucide-react";
 import { useState } from "react";
+import { MemberAnswersDialog } from "./MemberAnswersDialog";
 
 export function CommunityMembersList() {
   const { data: workspaceMembers = [], isLoading: loadingWs } = useWorkspaceMembers();
   const { data: communityMembers = [], isLoading: loadingCm } = useCommunityMembers();
   const resendInvite = useResendCommunityInvite();
   const [search, setSearch] = useState("");
+  const [answersOpen, setAnswersOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<{ id: string; name: string } | null>(null);
 
   const isLoading = loadingWs || loadingCm;
 
@@ -123,6 +126,15 @@ export function CommunityMembersList() {
                     )}
                   </Button>
                 )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => { setSelectedMember({ id: cm.id, name: cm.name }); setAnswersOpen(true); }}
+                  title="Ver respostas"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           ))}
@@ -132,6 +144,13 @@ export function CommunityMembersList() {
       {!isLoading && filteredWs.length === 0 && filteredCm.length === 0 && (
         <p className="text-sm text-muted-foreground py-8 text-center">Nenhum membro encontrado</p>
       )}
+
+      <MemberAnswersDialog
+        open={answersOpen}
+        onOpenChange={setAnswersOpen}
+        memberId={selectedMember?.id}
+        memberName={selectedMember?.name || ""}
+      />
     </div>
   );
 }
