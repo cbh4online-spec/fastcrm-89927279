@@ -86,6 +86,7 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
   });
   const [category, setCategory] = useState("");
   const [isDiscoverable, setIsDiscoverable] = useState(false);
+  const [customDomain, setCustomDomain] = useState("");
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const faviconRef = useRef<HTMLInputElement>(null);
@@ -104,6 +105,7 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       setThemePreset((settings as any).theme_preset || "default");
       setCategory((settings as any).category || "");
       setIsDiscoverable((settings as any).is_discoverable || false);
+      setCustomDomain((settings as any).custom_domain || "");
       if ((settings as any).visible_tabs) {
         setVisibleTabs((settings as any).visible_tabs);
       }
@@ -124,6 +126,7 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       visible_tabs: visibleTabs,
       category: category || null,
       is_discoverable: isDiscoverable,
+      custom_domain: customDomain.trim() || null,
     } as any);
   };
 
@@ -419,20 +422,32 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
                     <Input value={slug} onChange={e => setSlug(e.target.value)} placeholder="fastclub" />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label>Domínio / URL Base</Label>
+                    <Input
+                      value={customDomain}
+                      onChange={e => setCustomDomain(e.target.value)}
+                      placeholder="https://fastcrm.lovable.app"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Defina o domínio base para o link público. Ex: https://meudominio.com
+                    </p>
+                  </div>
+
                   {isDiscoverable && slug && (
                     <div className="space-y-2">
                       <Label>Link Público</Label>
                       <div className="flex gap-2">
                         <Input
                           readOnly
-                          value={`${window.location.origin}/community/${slug}`}
+                          value={`${customDomain.trim() || "https://fastcrm.lovable.app"}/community/${slug}`}
                           className="flex-1 text-xs bg-muted"
                         />
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/community/${slug}`);
+                            navigator.clipboard.writeText(`${(customDomain.trim() || "https://fastcrm.lovable.app")}/community/${slug}`);
                             toast.success("Link copiado!");
                           }}
                         >
