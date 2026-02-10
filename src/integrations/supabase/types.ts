@@ -21076,6 +21076,86 @@ export type Database = {
           },
         ]
       }
+      sponsor_applications: {
+        Row: {
+          amount_paid: number | null
+          approved_at: string | null
+          approved_by: string | null
+          company_name: string
+          contact_email: string
+          contact_phone: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          ends_at: string | null
+          id: string
+          logo_url: string | null
+          rejection_reason: string | null
+          starts_at: string | null
+          status: string
+          stripe_payment_id: string | null
+          tier: string
+          updated_at: string
+          user_id: string
+          website_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount_paid?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          company_name: string
+          contact_email: string
+          contact_phone?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          logo_url?: string | null
+          rejection_reason?: string | null
+          starts_at?: string | null
+          status?: string
+          stripe_payment_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount_paid?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          company_name?: string
+          contact_email?: string
+          contact_phone?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          logo_url?: string | null
+          rejection_reason?: string | null
+          starts_at?: string | null
+          status?: string
+          stripe_payment_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_applications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_abandoned_carts: {
         Row: {
           abandoned_at: string
