@@ -1,68 +1,55 @@
 
 
-# Sugestoes Automaticas de Cross-sell e Up-sell na Criacao com IA
+# Melhorias na Importacao em Lote com IA
 
-## Contexto
-O sistema ja possui um modo `suggest-relations` na edge function `ai-product-assistant` que analisa o catalogo e cria relacoes do tipo `compatible`, `related` e `bundle` na tabela `product_relations`. Atualmente, este modo so e acionado manualmente no separador de relacoes (`ProductRelationsTab`). O objetivo e disparar automaticamente este processo quando um produto e criado (via formulario normal ou futuro wizard IA), apresentando os resultados ao utilizador.
+## Situacao Atual
 
-## Plano
+O componente `BatchSKUImportDialog` ja existe em `src/components/products/BatchSKUImportDialog.tsx` e esta integrado no `ProductsList`. Ele permite:
+- Upload de CSV com SKUs
+- Pesquisa automatica via Firecrawl + IA (edge function `ai-product-assistant`)
+- Selecao/desselecao de resultados
+- Criacao em lote dos produtos seleccionados
 
-### 1. Hook dedicado para sugestoes pos-criacao
-Criar `src/hooks/usePostCreationSuggestions.ts` que:
-- Recebe o ID do produto recem-criado e o workspace ID
-- Chama automaticamente o modo `suggest-relations` da edge function
-- Devolve os resultados (quantas relacoes foram adicionadas)
-- Gere estados de loading e erro
+## Melhorias Propostas
 
-### 2. Componente de notificacao/card de sugestoes
-Criar `src/components/products/PostCreationSuggestionsCard.tsx`:
-- Aparece como um card/banner apos a criacao bem-sucedida de um produto
-- Mostra estado de loading enquanto a IA analisa o catalogo
-- Exibe as relacoes encontradas agrupadas por tipo (Compatible, Related, Bundle)
-- Botoes para ver o produto e ir ao separador de relacoes
-- Opcao para descartar
+### 1. Input manual de SKUs (alem do CSV)
+Adicionar um campo de texto onde o utilizador pode colar SKUs directamente (um por linha), sem precisar de criar um ficheiro CSV.
 
-### 3. Integracao no fluxo de criacao
-Modificar `src/components/products/CreateProductDialog.tsx`:
-- No `onSuccess` do `createProduct`, guardar o produto criado em estado local
-- Mostrar o `PostCreationSuggestionsCard` antes de fechar o dialogo
-- O dialogo so fecha quando o utilizador confirma ou descarta as sugestoes
+### 2. Processamento paralelo com controlo de rate-limit
+Actualmente os SKUs sao processados um a um com 1.5s de delay. Melhorar para processar 2-3 em paralelo, mantendo respeito pelos limites da API.
 
-### 4. Melhorias na edge function
-Editar `supabase/functions/ai-product-assistant/index.ts` no modo `suggest-relations`:
-- Adicionar ao prompt instrucoes para classificar sugestoes como cross-sell (compatible/bundle) ou up-sell (related com preco superior)
-- Incluir um campo `relationship_label` amigavel (ex: "Acessorio recomendado", "Alternativa premium")
-- Devolver as sugestoes inseridas no response para o frontend mostrar detalhes
+### 3. Edicao inline dos resultados antes de criar
+Permitir que o utilizador edite o nome, preco e categoria de cada produto directamente na lista de resultados, antes da criacao em lote.
+
+### 4. Resumo pos-criacao com sugestoes de relacoes
+Apos criar os produtos, mostrar um resumo com links para cada produto criado e disparar o sistema de sugestoes de cross-sell/up-sell (`usePostCreationSuggestions`).
+
+### 5. Exportar relatorio de erros
+Permitir download de CSV com os SKUs que falharam, para reprocessamento posterior.
 
 ## Detalhes Tecnicos
 
-### Hook `usePostCreationSuggestions`
-```text
-Input:  { productId: string, workspaceId: string }
-Output: { suggestions: RelationSuggestion[], added: number, isLoading, error }
-```
-Chama `supabase.functions.invoke("ai-product-assistant", { body: { mode: "suggest-relations", productId, workspaceId } })` e devolve os dados enriquecidos.
+### Ficheiros a modificar:
+- **`src/components/products/BatchSKUImportDialog.tsx`** -- Todas as melhorias de UI (textarea para input manual, edicao inline, resumo pos-criacao, export de erros)
 
-### Resposta melhorada do `suggest-relations`
-```text
-{
-  success: true,
-  data: {
-    added: 5,
-    relations: [
-      { targetId, targetName, type: "compatible", reason: "Cabo compativel", label: "Acessorio" },
-      { targetId, targetName, type: "related", reason: "Versao superior", label: "Upgrade" },
-      { targetId, targetName, type: "bundle", reason: "Kit frequente", label: "Compre junto" }
-    ]
-  }
-}
-```
-Para devolver `targetName`, o edge function ja tem acesso aos `otherProducts` com campo `name` - basta incluir no response.
+### Alteracoes especificas:
 
-### Ficheiros a criar/editar
-- **Criar**: `src/hooks/usePostCreationSuggestions.ts`
-- **Criar**: `src/components/products/PostCreationSuggestionsCard.tsx`
-- **Editar**: `src/components/products/CreateProductDialog.tsx` (mostrar card pos-criacao)
-- **Editar**: `supabase/functions/ai-product-assistant/index.ts` (enriquecer response do suggest-relations)
-- **Editar**: `src/hooks/useProductAIAssistant.ts` (adicionar metodo `suggestRelations`)
+**Input manual (textarea)**:
+- Adicionar tab ou toggle entre "Carregar CSV" e "Colar SKUs"
+- Textarea com placeholder indicando formato (um SKU por linha)
+- Parser que limpa duplicados e linhas vazias
 
+**Edicao inline**:
+- Campos editaveis (nome, preco) directamente na linha de cada resultado com sucesso
+- Os valores editados sao usados na criacao final
+
+**Processamento paralelo**:
+- Processar em batches de 2 SKUs simultaneamente com `Promise.allSettled`
+- Manter delay de 1s entre batches
+
+**Resumo pos-criacao**:
+- Apos criacao, mostrar card com contagem de sucesso/erro
+- Botao para exportar CSV com erros
+- Integrar `PostCreationSuggestionsCard` para o ultimo produto criado
+
+Nao sao necessarias alteracoes na base de dados nem novas edge functions -- toda a logica ja existe.
