@@ -35,10 +35,10 @@ export interface TicketMessage {
 
 export function useClientTickets() {
   const workspaceId = localStorage.getItem("client_workspace_id") || undefined;
-  const { clientUser } = useClientAuth({ workspaceId });
+  const { clientUser, loading: authLoading } = useClientAuth({ workspaceId });
   const queryClient = useQueryClient();
 
-  const { data: tickets = [], isLoading } = useQuery({
+  const { data: tickets = [], isLoading: ticketsLoading } = useQuery({
     queryKey: ["client-tickets", clientUser?.id],
     queryFn: async () => {
       if (!clientUser?.company_id) return [];
@@ -92,6 +92,8 @@ export function useClientTickets() {
   const openCount = tickets.filter(
     (t) => !["resolved", "closed"].includes(t.status)
   ).length;
+
+  const isLoading = authLoading || ticketsLoading;
 
   return { tickets, isLoading, createTicket, openCount };
 }

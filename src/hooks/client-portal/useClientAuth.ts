@@ -43,10 +43,16 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
         query = query.eq("workspace_id", config.workspaceId);
       }
       
-      // Use limit(1) as fallback when no workspace filter, otherwise maybeSingle
-      const { data, error: fetchError } = config?.workspaceId 
-        ? await query.maybeSingle()
-        : await query.limit(1).maybeSingle();
+      // Add timeout to prevent hanging queries
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Client user query timeout")), 8000)
+      );
+      
+      const queryPromise = config?.workspaceId 
+        ? query.maybeSingle()
+        : query.limit(1).maybeSingle();
+      
+      const { data, error: fetchError } = await Promise.race([queryPromise, timeoutPromise]);
       
       if (fetchError) {
         console.error("Error fetching client user:", fetchError);
@@ -71,9 +77,10 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
     
     // Safety timeout - never stay in loading state forever
     const loadingTimeout = setTimeout(() => {
-      if (isMounted && authLoading) {
-        console.warn("Client auth: Loading timeout reached");
+      if (isMounted && (authLoading || clientLoading)) {
+        console.warn("Client auth: Loading timeout reached, resetting all loading states");
         setAuthLoading(false);
+        setClientLoading(false);
         setClientChecked(true);
       }
     }, 10000);

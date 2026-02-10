@@ -27,7 +27,7 @@ interface ClientPermissions {
 
 export function useClientPermissions(): ClientPermissions {
   const workspaceId = localStorage.getItem("client_workspace_id") || undefined;
-  const { clientUser } = useClientAuth({ workspaceId });
+  const { clientUser, loading: authLoading } = useClientAuth({ workspaceId });
 
   const { data, isLoading } = useQuery({
     queryKey: ["client-user-roles", clientUser?.id],
@@ -80,7 +80,7 @@ export function useClientPermissions(): ClientPermissions {
 
   return {
     roles,
-    isLoading,
+    isLoading: authLoading || isLoading,
     // Permissions
     canManageTeam: isAdmin,
     canApprove: isAdmin,
