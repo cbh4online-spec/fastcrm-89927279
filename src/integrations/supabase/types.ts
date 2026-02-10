@@ -3293,6 +3293,54 @@ export type Database = {
           },
         ]
       }
+      client_user_roles: {
+        Row: {
+          allowed_product_categories: Json | null
+          client_user_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["client_role"]
+          spending_limit: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allowed_product_categories?: Json | null
+          client_user_id: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["client_role"]
+          spending_limit?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allowed_product_categories?: Json | null
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["client_role"]
+          spending_limit?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_user_roles_client_user_id_fkey"
+            columns: ["client_user_id"]
+            isOneToOne: false
+            referencedRelation: "client_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_user_roles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_users: {
         Row: {
           auth_user_id: string | null
@@ -23885,6 +23933,10 @@ export type Database = {
         Args: { p_channel: string; p_workspace_id: string }
         Returns: Json
       }
+      get_client_roles: {
+        Args: { _auth_user_id: string }
+        Returns: Database["public"]["Enums"]["client_role"][]
+      }
       get_entity_memory_stats: {
         Args: {
           p_entity_id: string
@@ -23996,6 +24048,13 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: Json
       }
+      has_client_role: {
+        Args: {
+          _auth_user_id: string
+          _role: Database["public"]["Enums"]["client_role"]
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -24038,6 +24097,10 @@ export type Database = {
       }
       is_metodopare_member: {
         Args: { check_workspace_id: string }
+        Returns: boolean
+      }
+      is_same_client_company: {
+        Args: { _auth_user_id: string; _company_id: string }
         Returns: boolean
       }
       is_super_admin:
@@ -24404,6 +24467,11 @@ export type Database = {
         | "semi_annual"
         | "yearly"
       billing_type: "one_time" | "recurring"
+      client_role:
+        | "client_admin"
+        | "client_financial"
+        | "client_operational"
+        | "client_viewer"
       client_user_status: "active" | "suspended" | "pending"
       condition_operator:
         | "equals"
@@ -24760,6 +24828,12 @@ export const Constants = {
         "yearly",
       ],
       billing_type: ["one_time", "recurring"],
+      client_role: [
+        "client_admin",
+        "client_financial",
+        "client_operational",
+        "client_viewer",
+      ],
       client_user_status: ["active", "suspended", "pending"],
       condition_operator: [
         "equals",
