@@ -2868,6 +2868,66 @@ export type Database = {
           },
         ]
       }
+      c2c_sponsored_listings: {
+        Row: {
+          amount_paid: number
+          clicks: number | null
+          created_at: string
+          ends_at: string
+          id: string
+          impressions: number | null
+          is_active: boolean | null
+          listing_id: string
+          seller_id: string
+          starts_at: string
+          stripe_payment_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount_paid?: number
+          clicks?: number | null
+          created_at?: string
+          ends_at: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean | null
+          listing_id: string
+          seller_id: string
+          starts_at?: string
+          stripe_payment_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount_paid?: number
+          clicks?: number | null
+          created_at?: string
+          ends_at?: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean | null
+          listing_id?: string
+          seller_id?: string
+          starts_at?: string
+          stripe_payment_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_sponsored_listings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_sponsored_listings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           all_day: boolean | null
@@ -7885,6 +7945,59 @@ export type Database = {
           },
         ]
       }
+      exclusive_content: {
+        Row: {
+          content: string
+          content_type: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          is_published: boolean | null
+          min_tier: string | null
+          preview: string | null
+          published_at: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean | null
+          min_tier?: string | null
+          preview?: string | null
+          published_at?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean | null
+          min_tier?: string | null
+          preview?: string | null
+          published_at?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exclusive_content_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       field_permissions: {
         Row: {
           created_at: string
@@ -8794,6 +8907,216 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "forms_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          sort_order: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          sort_order?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          sort_order?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_posts: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          is_best_answer: boolean | null
+          moderation_status: string | null
+          topic_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_best_answer?: boolean | null
+          moderation_status?: string | null
+          topic_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_best_answer?: boolean | null
+          moderation_status?: string | null
+          topic_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_posts_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "forum_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string | null
+          reaction_type: string
+          topic_id: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          reaction_type?: string
+          topic_id?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          reaction_type?: string
+          topic_id?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_reactions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "forum_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_reactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_topics: {
+        Row: {
+          author_id: string
+          category_id: string | null
+          content: string
+          created_at: string
+          id: string
+          is_locked: boolean | null
+          is_pinned: boolean | null
+          moderation_status: string | null
+          replies_count: number | null
+          title: string
+          updated_at: string
+          views_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          author_id: string
+          category_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          moderation_status?: string | null
+          replies_count?: number | null
+          title: string
+          updated_at?: string
+          views_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          author_id?: string
+          category_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          moderation_status?: string | null
+          replies_count?: number | null
+          title?: string
+          updated_at?: string
+          views_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_topics_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "forum_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_topics_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -11553,6 +11876,47 @@ export type Database = {
           },
         ]
       }
+      loyalty_points: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          lifetime_points: number
+          tier: string | null
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_points?: number
+          tier?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_points?: number
+          tier?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_points_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_points_transactions: {
         Row: {
           balance_after: number
@@ -11604,6 +11968,56 @@ export type Database = {
           },
         ]
       }
+      loyalty_rewards: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          min_tier: string | null
+          name: string
+          points_cost: number
+          reward_type: string
+          reward_value: number | null
+          stock: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_tier?: string | null
+          name: string
+          points_cost: number
+          reward_type: string
+          reward_value?: number | null
+          stock?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_tier?: string | null
+          name?: string
+          points_cost?: number
+          reward_type?: string
+          reward_value?: number | null
+          stock?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_rewards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_settings: {
         Row: {
           created_at: string
@@ -11640,6 +12054,47 @@ export type Database = {
             foreignKeyName: "loyalty_settings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_transactions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          points: number
+          reference_id: string | null
+          type: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          points: number
+          reference_id?: string | null
+          type: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          points?: number
+          reference_id?: string | null
+          type?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -13513,6 +13968,94 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "metrics_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moderation_filters: {
+        Row: {
+          auto_flag_threshold: number | null
+          banned_words: string[] | null
+          created_at: string
+          id: string
+          max_reports_before_hide: number | null
+          regex_patterns: string[] | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_flag_threshold?: number | null
+          banned_words?: string[] | null
+          created_at?: string
+          id?: string
+          max_reports_before_hide?: number | null
+          regex_patterns?: string[] | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_flag_threshold?: number | null
+          banned_words?: string[] | null
+          created_at?: string
+          id?: string
+          max_reports_before_hide?: number | null
+          regex_patterns?: string[] | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_filters_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moderation_queue: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          flagged_text: string | null
+          id: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          flagged_text?: string | null
+          id?: string
+          reason: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          flagged_text?: string | null
+          id?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_queue_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -16222,6 +16765,64 @@ export type Database = {
           },
         ]
       }
+      product_external_prices: {
+        Row: {
+          currency: string | null
+          expires_at: string
+          fetched_at: string
+          id: string
+          price: number
+          product_id: string
+          source_name: string
+          source_url: string
+          workspace_id: string
+        }
+        Insert: {
+          currency?: string | null
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          price: number
+          product_id: string
+          source_name: string
+          source_url: string
+          workspace_id: string
+        }
+        Update: {
+          currency?: string | null
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          price?: number
+          product_id?: string
+          source_name?: string
+          source_url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_external_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_external_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_external_prices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           ai_prompt: string | null
@@ -16273,6 +16874,58 @@ export type Database = {
           },
           {
             foreignKeyName: "product_images_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_price_history: {
+        Row: {
+          compare_at_price: number | null
+          currency: string | null
+          id: string
+          price: number
+          product_id: string
+          recorded_at: string
+          workspace_id: string
+        }
+        Insert: {
+          compare_at_price?: number | null
+          currency?: string | null
+          id?: string
+          price: number
+          product_id: string
+          recorded_at?: string
+          workspace_id: string
+        }
+        Update: {
+          compare_at_price?: number | null
+          currency?: string | null
+          id?: string
+          price?: number
+          product_id?: string
+          recorded_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_price_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_price_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_price_history_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -20280,6 +20933,116 @@ export type Database = {
           },
         ]
       }
+      store_ad_placements: {
+        Row: {
+          created_at: string
+          description: string | null
+          height: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          width: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          height?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          width?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          height?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          width?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_ad_placements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_ads: {
+        Row: {
+          alt_text: string | null
+          clicks: number | null
+          created_at: string
+          ends_at: string | null
+          id: string
+          image_url: string
+          impressions: number | null
+          is_active: boolean | null
+          link_url: string
+          placement_id: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          alt_text?: string | null
+          clicks?: number | null
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          image_url: string
+          impressions?: number | null
+          is_active?: boolean | null
+          link_url: string
+          placement_id?: string | null
+          starts_at?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          alt_text?: string | null
+          clicks?: number | null
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          image_url?: string
+          impressions?: number | null
+          is_active?: boolean | null
+          link_url?: string
+          placement_id?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_ads_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "store_ad_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_ads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_ai_offers: {
         Row: {
           ai_reasoning: string | null
@@ -21571,6 +22334,56 @@ export type Database = {
             foreignKeyName: "store_settings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_sponsors: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          name: string
+          sort_order: number | null
+          tier: string | null
+          updated_at: string
+          website_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name: string
+          sort_order?: number | null
+          tier?: string | null
+          updated_at?: string
+          website_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name?: string
+          sort_order?: number | null
+          tier?: string | null
+          updated_at?: string
+          website_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_sponsors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
