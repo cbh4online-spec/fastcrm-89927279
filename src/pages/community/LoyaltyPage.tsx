@@ -37,13 +37,13 @@ export default function LoyaltyPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-3xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="mb-4 -ml-2">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+        <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/fastclub")} className="mb-4 -ml-2">
+          <ArrowLeft className="h-4 w-4 mr-1" /> FastClub
         </Button>
 
         <h1 className="text-2xl font-bold flex items-center gap-2 mb-6">
           <Trophy className="h-6 w-6 text-primary" />
-          Programa de Fidelidade
+          Recompensas FastClub
         </h1>
 
         {/* Points & Tier Card */}

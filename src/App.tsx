@@ -122,7 +122,8 @@ import C2CMyListings from "./pages/c2c/C2CMyListings";
 import C2CMessages from "./pages/c2c/C2CMessages";
 import C2CFavorites from "./pages/c2c/C2CFavorites";
 
-// Community
+// FastClub (Community)
+import FastClubPage from "./pages/community/FastClubPage";
 import ForumPage from "./pages/community/ForumPage";
 import ForumTopicPage from "./pages/community/ForumTopicPage";
 import LoyaltyPage from "./pages/community/LoyaltyPage";
@@ -353,10 +354,11 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/favorites" element={<C2CFavorites />} />
                 <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
                 
-                {/* Community */}
-                <Route path="/dashboard/community/forum" element={<ForumPage />} />
-                <Route path="/dashboard/community/forum/:topicId" element={<ForumTopicPage />} />
-                <Route path="/dashboard/community/loyalty" element={<LoyaltyPage />} />
+                {/* FastClub */}
+                <Route path="/dashboard/fastclub" element={<FastClubPage />} />
+                <Route path="/dashboard/fastclub/forum" element={<ForumPage />} />
+                <Route path="/dashboard/fastclub/forum/:topicId" element={<ForumTopicPage />} />
+                <Route path="/dashboard/fastclub/rewards" element={<LoyaltyPage />} />
 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />

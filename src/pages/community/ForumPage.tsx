@@ -44,8 +44,8 @@ export default function ForumPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="mb-4 -ml-2">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+        <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/fastclub")} className="mb-4 -ml-2">
+          <ArrowLeft className="h-4 w-4 mr-1" /> FastClub
         </Button>
 
         <div className="flex items-center justify-between mb-6">
@@ -106,7 +106,7 @@ export default function ForumPage() {
             {topics.map(topic => (
               <button
                 key={topic.id}
-                onClick={() => navigate(`/dashboard/community/forum/${topic.id}`)}
+                onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)}
                 className="w-full text-left p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-start gap-3">
