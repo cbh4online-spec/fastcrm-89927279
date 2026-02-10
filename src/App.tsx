@@ -134,6 +134,9 @@ import FastClubPage from "./pages/community/FastClubPage";
 import ForumPage from "./pages/community/ForumPage";
 import ForumTopicPage from "./pages/community/ForumTopicPage";
 import LoyaltyPage from "./pages/community/LoyaltyPage";
+import PublicCommunityPage from "./pages/community/PublicCommunityPage";
+import PublicCommunityTopicPage from "./pages/community/PublicCommunityTopicPage";
+import CommunityAuthPage from "./pages/community/CommunityAuthPage";
 
 // Store (Public E-commerce)
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
@@ -412,6 +415,11 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug" element={<C2CPublicMarketplace />} />
               <Route path="/c2c/:workspaceSlug/sell" element={<C2CSellerRegistration />} />
               <Route path="/c2c/:workspaceSlug/sponsor" element={<C2CSponsorPortal />} />
+              
+              {/* Public Community */}
+              <Route path="/community/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
+              <Route path="/community/:slug/topic/:topicId" element={<AuthProvider><PublicCommunityTopicPage /></AuthProvider>} />
+              <Route path="/community/:slug/auth" element={<AuthProvider><CommunityAuthPage /></AuthProvider>} />
               
               {/* Client Portal - ISOLATED from CRM providers */}
               <Route path="/client/*" element={<ClientPortalRoutes />} />

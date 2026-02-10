@@ -415,15 +415,43 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
-                      <p className="text-sm font-medium">Descoberta Pública</p>
-                      <p className="text-xs text-muted-foreground">Torna a comunidade visível publicamente</p>
+                      <p className="text-sm font-medium">Comunidade Publicada</p>
+                      <p className="text-xs text-muted-foreground">Torna a comunidade acessível publicamente via link</p>
                     </div>
                     <Switch checked={isDiscoverable} onCheckedChange={setIsDiscoverable} />
                   </div>
+
                   <div className="space-y-2">
                     <Label>Slug / URL da Comunidade</Label>
                     <Input value={slug} onChange={e => setSlug(e.target.value)} placeholder="fastclub" />
                   </div>
+
+                  {isDiscoverable && slug && (
+                    <div className="space-y-2">
+                      <Label>Link Público</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          readOnly
+                          value={`${window.location.origin}/community/${slug}`}
+                          className="flex-1 text-xs bg-muted"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/community/${slug}`);
+                            toast.success("Link copiado!");
+                          }}
+                        >
+                          Copiar
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Visitantes podem ver a comunidade mas precisam registar-se para interagir.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label>Categoria</Label>
                     <div className="flex gap-2">
