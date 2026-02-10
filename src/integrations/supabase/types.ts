@@ -22130,6 +22130,64 @@ export type Database = {
           },
         ]
       }
+      store_product_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          notified_at: string | null
+          product_id: string
+          target_price: number | null
+          workspace_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          notified_at?: string | null
+          product_id: string
+          target_price?: number | null
+          workspace_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          notified_at?: string | null
+          product_id?: string
+          target_price?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_product_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_product_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_referral_codes: {
         Row: {
           code: string

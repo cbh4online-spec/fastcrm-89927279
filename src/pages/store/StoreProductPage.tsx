@@ -22,6 +22,7 @@ import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing"
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreOfferDialog } from "@/components/store/StoreOfferDialog";
+import { StoreProductAlertWidget } from "@/components/store/StoreProductAlertWidget";
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
@@ -514,13 +515,22 @@ export default function StoreProductPage() {
                     Adicionar ao Carrinho
                   </Button>
 
-                  {/* Make Offer button */}
+                   {/* Make Offer button */}
                   <StoreOfferDialog
                     productId={product.id}
                     productName={product.name}
                     originalPrice={pricing?.price ?? product.base_price}
                     currency={product.currency}
                     workspaceId={(product as any).workspace_id}
+                  />
+
+                  {/* Price & Stock Alerts */}
+                  <StoreProductAlertWidget
+                    productId={product.id}
+                    workspaceId={(product as any).workspace_id}
+                    productName={product.name}
+                    currentPrice={pricing?.price ?? product.base_price}
+                    isOutOfStock={isOutOfStock}
                   />
                 </div>
 
