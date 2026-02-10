@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingBag, Star, Package, Heart, Eye } from "lucide-react";
+import { ShoppingBag, Star, Package, Heart, Eye, TrendingUp, Flame } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +19,7 @@ interface StoreProductCardProps {
   wishlistProductIds?: string[];
   tierPricing?: { tier: import("@/types/pricing-tier").ClientPriceTier | null; tierPrices: Map<string, number>; isB2B: boolean } | null;
   index?: number;
-  /** Batch review stats: Map<productId, { sum, count }> */
   reviewStats?: Map<string, { sum: number; count: number }>;
-  /** Batch sales counts: Map<productId, number> */
   salesCounts?: Map<string, number>;
 }
 
@@ -29,19 +27,30 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
   const { addItem } = useStoreCart();
   const toggleWishlist = useToggleWishlist();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const isInWishlist = wishlistProductIds.includes(product.id);
   const primaryIndex = product.primary_image_index ?? 0;
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
+  const secondImageUrl = product.images?.length > 1 ? product.images?.find((_, i) => i !== primaryIndex) : null;
   const isOutOfStock = product.stock_status === "out_of_stock";
   const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
+
+  // Popular badge (>25 sales)
+  const soldCount = salesCounts?.get(product.id) || 0;
+  const isPopular = soldCount > 25;
+
+  // Stock urgency
+  const showStockBar = product.track_stock && product.stock_quantity != null && product.stock_quantity > 0 && product.stock_quantity < 20;
+  const stockPercent = showStockBar ? Math.min((product.stock_quantity! / 20) * 100, 100) : 0;
+
+  // Savings percentage
+  const savingsPercent = isDiscounted ? Math.round(((product.base_price - effectivePrice) / product.base_price) * 100) : 0;
 
   // Review stats
   const reviewData = reviewStats?.get(product.id);
   const reviewCount = reviewData?.count || 0;
   const reviewAvg = reviewCount > 0 ? reviewData!.sum / reviewCount : 0;
 
-  // Sales count
-  const soldCount = salesCounts?.get(product.id) || 0;
   const soldLabel = soldCount >= 500 ? "500+" : soldCount >= 100 ? "100+" : soldCount >= 50 ? "50+" : soldCount >= 10 ? `${soldCount}+` : null;
 
   const canAddToCart = !isOutOfStock && !(product.track_stock && product.stock_quantity != null && product.stock_quantity <= 0);
@@ -70,16 +79,36 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
         to={`/store/${workspaceSlug}/product/${product.id}`}
         className="group block h-full"
       >
-        <div className="relative overflow-hidden rounded-2xl border bg-card h-full flex flex-col transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 hover:border-primary/20">
-          {/* Image */}
+        <div
+          className="relative overflow-hidden rounded-2xl border bg-card h-full flex flex-col transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 hover:border-primary/20"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {/* Image with crossfade on hover */}
           <div className="relative aspect-square overflow-hidden bg-muted">
             {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt={product.name}
-                className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                loading="lazy"
-              />
+              <div className="relative h-full w-full">
+                <img
+                  src={imageUrl}
+                  alt={product.name}
+                  className={cn(
+                    "absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-110",
+                    isHovered && secondImageUrl ? "opacity-0" : "opacity-100"
+                  )}
+                  loading="lazy"
+                />
+                {secondImageUrl && (
+                  <img
+                    src={secondImageUrl}
+                    alt={product.name}
+                    className={cn(
+                      "absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-110",
+                      isHovered ? "opacity-100" : "opacity-0"
+                    )}
+                    loading="lazy"
+                  />
+                )}
+              </div>
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/50">
                 <Package className="h-16 w-16 text-muted-foreground/20" />
@@ -105,14 +134,20 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               />
             </div>
 
-            {/* Social proof badge - sold count */}
-            {soldLabel && (
-              <div className="absolute top-3 right-3">
+            {/* Popular badge or sold count */}
+            <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+              {isPopular && (
+                <Badge className="text-[10px] bg-amber-500/90 text-white border-0 gap-1 shadow-md backdrop-blur-sm">
+                  <TrendingUp className="h-3 w-3" />
+                  Escolha Popular
+                </Badge>
+              )}
+              {!isPopular && soldLabel && (
                 <Badge variant="secondary" className="text-[10px] bg-background/90 backdrop-blur-sm shadow-sm">
                   {soldLabel} vendidos
                 </Badge>
-              </div>
-            )}
+              )}
+            </div>
 
             {isOutOfStock && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
@@ -203,7 +238,15 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                 €{effectivePrice.toFixed(2)}
               </span>
               {isDiscounted && (
-                <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                <>
+                  <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                  {savingsPercent > 0 && (
+                    <Badge className="text-[10px] px-1.5 py-0 bg-destructive/10 text-destructive border-0">
+                      <Flame className="h-2.5 w-2.5 mr-0.5" />
+                      -{savingsPercent}%
+                    </Badge>
+                  )}
+                </>
               )}
               {product.billing_type === "recurring" && (
                 <span className="text-xs text-muted-foreground">/mês</span>
@@ -213,6 +256,24 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-1 w-fit" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
                 {discountLabel}
               </Badge>
+            )}
+
+            {/* Stock urgency bar */}
+            {showStockBar && (
+              <div className="mt-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Flame className="h-3 w-3 text-destructive" />
+                  <span className="text-[11px] font-medium text-destructive">
+                    Quase a esgotar — restam {product.stock_quantity}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-destructive to-orange-400 transition-all duration-500"
+                    style={{ width: `${stockPercent}%` }}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>

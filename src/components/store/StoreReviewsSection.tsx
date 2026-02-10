@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useStoreReviews, useStoreReviewStats, useAddStoreReview } from "@/hooks/useStoreReviewsWishlist";
+import { StoreRatingBreakdown } from "@/components/store/StoreRatingBreakdown";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -58,6 +59,11 @@ export function StoreReviewsSection({ productId, workspaceId }: StoreReviewsSect
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
+  const [filterRating, setFilterRating] = useState<number | null>(null);
+
+  const filteredReviews = filterRating
+    ? reviews.filter((r) => r.rating === filterRating)
+    : reviews;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +110,15 @@ export function StoreReviewsSection({ productId, workspaceId }: StoreReviewsSect
         )}
       </div>
 
+      {/* Rating Breakdown */}
+      <StoreRatingBreakdown
+        reviews={reviews}
+        average={average}
+        count={count}
+        selectedRating={filterRating}
+        onSelectRating={setFilterRating}
+      />
+
       {showForm && (
         <form onSubmit={handleSubmit} className="border rounded-lg p-4 mb-6 space-y-4 bg-muted/20">
           <div>
@@ -133,13 +148,15 @@ export function StoreReviewsSection({ productId, workspaceId }: StoreReviewsSect
         </form>
       )}
 
-      {reviews.length === 0 && !showForm ? (
+      {filteredReviews.length === 0 && !showForm ? (
         <p className="text-sm text-muted-foreground py-4">
-          Ainda não há avaliações. Seja o primeiro a avaliar!
+          {filterRating
+            ? `Sem avaliações de ${filterRating} estrela${filterRating > 1 ? "s" : ""}.`
+            : "Ainda não há avaliações. Seja o primeiro a avaliar!"}
         </p>
       ) : (
         <div className="space-y-4">
-          {reviews.map((r) => (
+          {filteredReviews.map((r) => (
             <div key={r.id} className="border rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
