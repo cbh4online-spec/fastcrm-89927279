@@ -77,6 +77,9 @@ export function useInviteCommunityMember() {
             },
           });
           if (error) throw error;
+          if (data && data.success === false) {
+            throw new Error(data.error || "Erro ao enviar convite");
+          }
           return data;
         })
       );
