@@ -263,7 +263,7 @@ export default function FastClubPage() {
                   )}
                 </div>
 
-                {categories.length > 0 && (
+                {(categories.length > 0 || isAdmin) && (
                   <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                     {categories.map(c => (
                       <button
