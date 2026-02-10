@@ -1,84 +1,51 @@
 
-
-# Funcionalidades Inspiradas no Vinted
+# Gift Cards / Cartoes Presente Digitais
 
 ## Resumo
 
-Implementar 3 funcionalidades inspiradas no Vinted: **Sistema de Ofertas** (negociacao de preco), **Condicao do Produto** (badges visuais de estado) e **Pesquisa Visual por IA** (upload de imagem para encontrar produtos semelhantes).
+Implementar um sistema completo de Gift Cards digitais: o admin cria cartoes presente com valores fixos ou personalizados, cada um com codigo unico. Os clientes podem compra-los na loja e usa-los como metodo de pagamento no checkout, com saldo reutilizavel ate esgotar.
 
 ---
 
-## 1. Condicao do Produto
+## Como funciona
 
-Adicionar um campo `product_condition` a tabela `products` para classificar o estado dos artigos, com badges visuais na loja.
-
-**Valores possiveis:**
-- `new_with_tags` -- Novo com etiqueta
-- `new_without_tags` -- Novo sem etiqueta
-- `very_good` -- Muito bom
-- `good` -- Bom
-- `satisfactory` -- Satisfatorio
-
-**UI na loja:**
-- Badge colorido no card do produto (similar ao Vinted)
-- Indicacao clara na pagina de detalhe do produto
-- Filtro por condicao no sidebar de filtros
-
----
-
-## 2. Sistema de Ofertas / Negociacao
-
-Permitir que clientes facam propostas de preco, que o admin pode aceitar, recusar ou contrapropor.
-
-**Fluxo:**
 ```text
-  Cliente ve produto -> clica "Fazer Oferta"
-       |
-       v
-  Preenche formulario (preco proposto + mensagem opcional)
-       |
-       v
-  Oferta guardada na tabela store_offers (status: pending)
-       |
-       v
-  Admin recebe notificacao e ve oferta no painel de encomendas
-       |
-       v
-  Admin aceita -> gera cupao unico com desconto equivalente
-  Admin recusa -> cliente e notificado
-  Admin contrapropoe -> cliente ve novo valor e decide
+Admin cria Gift Cards (valores pre-definidos: 10, 25, 50, 100 EUR)
+     |
+     v
+Cliente compra Gift Card na loja (pagamento via Stripe)
+     |
+     v
+Codigo unico gerado automaticamente (ex: GC-XXXX-XXXX-XXXX)
+     |
+     v
+Cliente recebe Gift Card por email (ou copia o codigo)
+     |
+     v
+Destinatario usa o codigo no checkout (campo ao lado do cupao)
+     |
+     v
+Saldo e debitado do Gift Card -> se sobrar saldo, pode usar novamente
 ```
 
-**Regras:**
-- Oferta minima: 50% do preco do produto (configuravel)
-- Oferta expira em 48h se nao houver resposta
-- Maximo 3 ofertas ativas por cliente por produto
-
 ---
 
-## 3. Pesquisa Visual por IA
+## Experiencia do Cliente
 
-O cliente faz upload de uma imagem e a IA identifica produtos semelhantes no catalogo.
+- Na loja, seccao "Cartoes Presente" acessivel pelo header
+- Escolhe valor (pre-definido ou personalizado) e preenche nome/email do destinatario + mensagem opcional
+- Apos pagamento, Gift Card fica ativo com codigo unico
+- No checkout, campo dedicado "Tem um Gift Card?" ao lado do cupao existente
+- O saldo e aplicado como desconto; se o total for menor que o saldo, o restante fica para uso futuro
+- O cliente pode consultar o saldo do Gift Card a qualquer momento
 
-**Fluxo:**
-```text
-  Cliente clica no icone de camera na barra de pesquisa
-       |
-       v
-  Seleciona/tira foto
-       |
-       v
-  Imagem enviada para edge function store-visual-search
-       |
-       v
-  IA (Gemini) analisa a imagem e descreve o que ve
-       |
-       v
-  Descricao usada para pesquisar produtos por texto (nome + descricao + keywords)
-       |
-       v
-  Resultados apresentados como pesquisa normal
-```
+## Painel Admin
+
+- Novo separador "Gift Cards" nas configuracoes da loja
+- Criar Gift Cards manuais (para oferecer a clientes)
+- Ver todos os Gift Cards emitidos (codigo, saldo original, saldo restante, status, destinatario)
+- Desativar/reativar Gift Cards
+- Definir valores pre-configurados (ex: 10, 25, 50, 100)
 
 ---
 
@@ -86,47 +53,73 @@ O cliente faz upload de uma imagem e a IA identifica produtos semelhantes no cat
 
 ### Migracao SQL
 
-**Coluna nova em `products`:**
-- `product_condition TEXT DEFAULT NULL` -- condicao do produto
+**Tabela `store_gift_cards`:**
+- `id` UUID PK
+- `workspace_id` UUID FK -> workspaces
+- `code` TEXT UNIQUE -- codigo unico (ex: GC-XXXX-XXXX-XXXX)
+- `initial_balance` NUMERIC NOT NULL -- valor original
+- `current_balance` NUMERIC NOT NULL -- saldo atual
+- `currency` TEXT DEFAULT 'EUR'
+- `status` TEXT DEFAULT 'active' -- active, depleted, disabled
+- `purchaser_name` TEXT -- quem comprou
+- `purchaser_email` TEXT -- email de quem comprou
+- `recipient_name` TEXT -- destinatario
+- `recipient_email` TEXT -- email do destinatario
+- `message` TEXT -- mensagem pessoal
+- `stripe_payment_intent_id` TEXT -- referencia Stripe (se comprado online)
+- `expires_at` TIMESTAMPTZ -- validade (opcional)
+- `created_at` TIMESTAMPTZ DEFAULT now()
+- `updated_at` TIMESTAMPTZ DEFAULT now()
 
-**Tabela `store_offers`:**
-- `id`, `workspace_id`, `product_id`, `customer_email`, `customer_name`, `contact_id` (nullable)
-- `offered_price`, `original_price`, `currency`
-- `counter_price` (nullable, para contrapropostas do admin)
-- `status` (pending, accepted, rejected, countered, expired, cancelled)
-- `message` (mensagem do cliente)
-- `admin_message` (resposta do admin)
-- `coupon_code` (gerado ao aceitar)
-- `expires_at`, `created_at`, `updated_at`
+**Tabela `store_gift_card_transactions`:**
+- `id` UUID PK
+- `gift_card_id` UUID FK -> store_gift_cards
+- `workspace_id` UUID FK -> workspaces
+- `order_id` TEXT -- referencia da encomenda
+- `amount` NUMERIC NOT NULL -- valor usado
+- `balance_before` NUMERIC NOT NULL
+- `balance_after` NUMERIC NOT NULL
+- `description` TEXT -- ex: "Pagamento parcial encomenda #123"
+- `created_at` TIMESTAMPTZ DEFAULT now()
 
-**RLS:** Leitura publica filtrada por email, escrita publica para insercao, update restrito
+**RLS:**
+- Leitura publica filtrada por codigo + workspace (para verificar saldo)
+- Insercao publica (para compra de Gift Cards)
+- Update restrito (apenas saldo via transacoes)
 
 ### Ficheiros a criar
 
-- `src/hooks/useStoreOffers.ts` -- hooks para ofertas (criar, listar por admin, aceitar/recusar/contrapropor)
-- `src/components/store/StoreOfferDialog.tsx` -- modal para o cliente fazer oferta na pagina do produto
-- `src/components/store/StoreProductConditionBadge.tsx` -- badge de condicao (Novo, Muito bom, etc.)
-- `src/components/store-settings/StoreOffersManager.tsx` -- painel admin para gerir ofertas recebidas
-- `src/components/store/StoreVisualSearch.tsx` -- componente de upload de imagem para pesquisa
-- `supabase/functions/store-visual-search/index.ts` -- edge function que usa Gemini para analisar a imagem e devolver termos de pesquisa
+- `src/hooks/useStoreGiftCards.ts` -- hooks para CRUD de Gift Cards (admin) e validacao/uso (checkout)
+- `src/components/store/StoreGiftCardSection.tsx` -- seccao na loja para compra de Gift Cards (escolher valor, destinatario)
+- `src/components/store/StoreGiftCardBalance.tsx` -- componente para consultar saldo de Gift Card
+- `src/components/store-settings/StoreGiftCardsManager.tsx` -- painel admin para gerir Gift Cards
+- `src/pages/store/StoreGiftCardsPage.tsx` -- pagina publica para comprar Gift Cards
 
 ### Ficheiros a modificar
 
-- `src/pages/store/StoreProductPage.tsx` -- adicionar badge de condicao e botao "Fazer Oferta"
-- `src/components/store/StoreProductCard.tsx` -- mostrar badge de condicao no card
-- `src/components/store/StoreFilterSidebar.tsx` -- novo filtro por condicao
-- `src/components/store/StoreSearchAutocomplete.tsx` -- adicionar icone de camera para pesquisa visual
-- `src/hooks/useStoreProducts.ts` -- incluir `product_condition` nos selects e suporte a filtro
-- `src/pages/StoreSettingsPage.tsx` -- novo separador "Ofertas" para gerir propostas recebidas
+- `src/pages/store/StoreCheckoutPage.tsx` -- adicionar campo "Gift Card" ao lado do cupao, logica de saldo
+- `src/components/store/StoreHeader.tsx` -- link "Cartoes Presente" no header
+- `src/pages/StoreSettingsPage.tsx` -- novo separador "Gift Cards"
+- `src/App.tsx` -- nova rota `/store/:workspaceSlug/gift-cards`
+- `supabase/functions/create-store-checkout/index.ts` -- aplicar saldo de Gift Card no total antes de criar sessao Stripe
 
-### Edge Function -- `store-visual-search`
+### Logica de Checkout com Gift Card
 
-- Recebe imagem (base64) via POST
-- Usa Lovable AI (Gemini Flash) para descrever o conteudo da imagem
-- Retorna lista de termos de pesquisa extraidos
-- O frontend usa esses termos para pesquisar no catalogo existente
+1. Cliente insere codigo do Gift Card no checkout
+2. Frontend valida codigo e mostra saldo disponivel
+3. Ao submeter, o saldo e debitado:
+   - Se saldo >= total: pagamento completo via Gift Card, sem Stripe
+   - Se saldo < total: saldo aplicado como desconto, restante via Stripe
+4. Transacao registada em `store_gift_card_transactions`
+5. `current_balance` atualizado; se chegar a 0, status muda para `depleted`
+
+### Edge Function -- ajuste em `create-store-checkout`
+
+- Receber `giftCardCode` no body
+- Validar Gift Card e calcular valor a debitar
+- Se Gift Card cobre tudo: criar encomenda diretamente (sem Stripe), debitar saldo, retornar sucesso
+- Se Gift Card cobre parcialmente: debitar saldo, criar sessao Stripe com o valor restante
 
 ### Dependencias
 
-- Nenhuma nova -- utiliza Lovable AI (Gemini), componentes UI e hooks existentes
-
+Nenhuma nova -- utiliza componentes UI e hooks existentes
