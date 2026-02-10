@@ -124,6 +124,7 @@ import C2CCreateListing from "./pages/c2c/C2CCreateListing";
 import C2CMyListings from "./pages/c2c/C2CMyListings";
 import C2CMessages from "./pages/c2c/C2CMessages";
 import C2CFavorites from "./pages/c2c/C2CFavorites";
+import C2CSellerBoost from "./pages/c2c/C2CSellerBoost";
 
 // FastClub (Community)
 import FastClubPage from "./pages/community/FastClubPage";
@@ -355,6 +356,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/my-listings" element={<C2CMyListings />} />
                 <Route path="/dashboard/c2c/messages" element={<C2CMessages />} />
                 <Route path="/dashboard/c2c/favorites" element={<C2CFavorites />} />
+                <Route path="/dashboard/c2c/boost" element={<C2CSellerBoost />} />
                 <Route path="/dashboard/c2c/sellers" element={<C2CSellersAdmin />} />
                 <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
                 

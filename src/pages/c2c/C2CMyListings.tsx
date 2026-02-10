@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useMyC2CListings, useUpdateC2CListing } from "@/hooks/useC2CListings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ArrowLeft, Plus, Pencil, Pause, Play, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Pause, Play, Trash2, Rocket } from "lucide-react";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   active: { label: "Ativo", variant: "default" },
@@ -29,9 +29,14 @@ export default function C2CMyListings() {
 
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Meus Anúncios</h1>
-          <Button onClick={() => navigate("/dashboard/c2c/create")}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Anúncio
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate("/dashboard/c2c/boost")} className="gap-1">
+              <Rocket className="h-4 w-4" /> Impulsionar
+            </Button>
+            <Button onClick={() => navigate("/dashboard/c2c/create")}>
+              <Plus className="h-4 w-4 mr-1" /> Novo Anúncio
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (

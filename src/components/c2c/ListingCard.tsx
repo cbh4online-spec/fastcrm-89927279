@@ -1,4 +1,4 @@
-import { Heart, MapPin, Eye, Star, TrendingDown, Flame } from "lucide-react";
+import { Heart, MapPin, Eye, Star, TrendingDown, Flame, Megaphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,9 +19,10 @@ interface ListingCardProps {
   onToggleFavorite?: () => void;
   onClick?: () => void;
   variant?: "grid" | "carousel";
+  isSponsored?: boolean;
 }
 
-export function ListingCard({ listing, isFavorite, onToggleFavorite, onClick, variant = "grid" }: ListingCardProps) {
+export function ListingCard({ listing, isFavorite, onToggleFavorite, onClick, variant = "grid", isSponsored }: ListingCardProps) {
   const condition = conditionLabels[listing.condition] || { label: listing.condition, color: "" };
   const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true, locale: pt });
 
@@ -50,7 +51,13 @@ export function ListingCard({ listing, isFavorite, onToggleFavorite, onClick, va
 
         {/* Top badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {listing.is_featured && (
+          {isSponsored && (
+            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] px-1.5 gap-0.5 border-0">
+              <Megaphone className="h-3 w-3" />
+              Patrocinado
+            </Badge>
+          )}
+          {listing.is_featured && !isSponsored && (
             <Badge className="bg-primary text-primary-foreground text-[10px] px-1.5 gap-0.5">
               <Flame className="h-3 w-3" />
               Destaque
