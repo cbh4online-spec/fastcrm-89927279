@@ -34,7 +34,7 @@ export default function C2CMarketplace() {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Voltar
           </Button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10">
                 <Store className="w-6 h-6 text-primary" />
@@ -46,7 +46,7 @@ export default function C2CMarketplace() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {user && (
                 <>
                   <Button
@@ -55,7 +55,7 @@ export default function C2CMarketplace() {
                     onClick={() => navigate("/dashboard/c2c/favorites")}
                   >
                     <Heart className="h-4 w-4 mr-1" />
-                    Favoritos
+                    <span className="hidden sm:inline">Favoritos</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -63,7 +63,7 @@ export default function C2CMarketplace() {
                     onClick={() => navigate("/dashboard/c2c/messages")}
                   >
                     <MessageCircle className="h-4 w-4 mr-1" />
-                    Mensagens
+                    <span className="hidden sm:inline">Mensagens</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -71,9 +71,9 @@ export default function C2CMarketplace() {
                     onClick={() => navigate("/dashboard/c2c/my-listings")}
                   >
                     <User className="h-4 w-4 mr-1" />
-                    Meus Anúncios
+                    <span className="hidden sm:inline">Meus Anúncios</span>
                   </Button>
-                  <Button onClick={() => navigate("/dashboard/c2c/create")}>
+                  <Button onClick={() => navigate("/dashboard/c2c/create")} size="sm">
                     <Plus className="h-4 w-4 mr-1" />
                     Criar Anúncio
                   </Button>

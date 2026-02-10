@@ -97,6 +97,7 @@ const navigation: NavSection[] = [
       { id: "alerts", label: "Alertas", icon: AlertTriangle },
       { id: "incidents", label: "Incidentes", icon: ShieldAlert },
       { id: "blocks", label: "Bloqueios", icon: Lock },
+      { id: "moderation", label: "Moderação", icon: ShieldAlert },
     ],
   },
   {
