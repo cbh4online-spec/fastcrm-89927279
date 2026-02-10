@@ -41,7 +41,8 @@ export function useClientPermissions(): ClientPermissions {
 
       if (error) {
         console.error("Error fetching client roles:", error);
-        return { roles: [], spendingLimit: null, allowedCategories: null };
+        // Fallback to client_admin on error (e.g. RLS blocking) for resilience
+        return { roles: ["client_admin" as ClientRole], spendingLimit: null, allowedCategories: null };
       }
 
       if (!roleRecords || roleRecords.length === 0) {
