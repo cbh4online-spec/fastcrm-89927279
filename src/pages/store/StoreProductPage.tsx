@@ -11,6 +11,8 @@ import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { StoreImageZoom } from "@/components/store/StoreImageZoom";
 import { StoreStickyAddToCart } from "@/components/store/StoreStickyAddToCart";
 import { StoreFooter } from "@/components/store/StoreFooter";
+import { PriceHistoryChart } from "@/components/store/PriceHistoryChart";
+import { PriceComparisonWidget } from "@/components/store/PriceComparisonWidget";
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
 import { StoreLoyaltyWidget } from "@/components/store/StoreLoyaltyWidget";
 import { StoreShareButtons } from "@/components/store/StoreShareButtons";
@@ -595,6 +597,28 @@ export default function StoreProductPage() {
               </div>
             </div>
           )}
+
+          {/* Price Comparison & History */}
+          <div className="mt-12 grid md:grid-cols-2 gap-8">
+            <div className="border rounded-xl p-5">
+              <PriceComparisonWidget
+                productId={product.id}
+                productName={product.name}
+                currentPrice={pricing?.price ?? product.base_price}
+                category={product.category || undefined}
+                workspaceId={(product as any).workspace_id}
+                workspaceSlug={wsSlug}
+                currency={product.currency}
+              />
+            </div>
+            <div className="border rounded-xl p-5">
+              <PriceHistoryChart
+                productId={product.id}
+                currentPrice={pricing?.price ?? product.base_price}
+                currency={product.currency}
+              />
+            </div>
+          </div>
 
           {/* Reviews */}
           <StoreReviewsSection productId={product.id} workspaceId={(product as any).workspace_id} />
