@@ -11,10 +11,11 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, ExternalLink, Copy, Truck, Target } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, Target } from "lucide-react";
 import { toast } from "sonner";
 import { ShippingMethodsManager } from "@/components/store-settings/ShippingMethodsManager";
 import { CrmOffersManager } from "@/components/store-settings/CrmOffersManager";
+import { StoreShareCard } from "@/components/store-settings/StoreShareCard";
 
 export default function StoreSettingsPage() {
   const { currentWorkspace } = useWorkspace();
@@ -95,24 +96,9 @@ export default function StoreSettingsPage() {
             </Button>
           </div>
 
-          {/* Store URL */}
+          {/* Store URL + QR Code */}
           {storeUrl && (
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">URL da Loja:</Label>
-                  <code className="flex-1 text-sm bg-muted px-3 py-1.5 rounded truncate">{storeUrl}</code>
-                  <Button variant="outline" size="icon" onClick={copyUrl}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" asChild>
-                    <a href={storeUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <StoreShareCard storeUrl={storeUrl} storeName={form.store_name || currentWorkspace?.name} />
           )}
 
           <Tabs defaultValue="general">
