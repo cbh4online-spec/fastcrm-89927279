@@ -21344,16 +21344,62 @@ export type Database = {
           },
         ]
       }
+      store_coupon_usage: {
+        Row: {
+          coupon_id: string
+          customer_email: string
+          id: string
+          order_id: string | null
+          used_at: string
+          workspace_id: string
+        }
+        Insert: {
+          coupon_id: string
+          customer_email: string
+          id?: string
+          order_id?: string | null
+          used_at?: string
+          workspace_id: string
+        }
+        Update: {
+          coupon_id?: string
+          customer_email?: string
+          id?: string
+          order_id?: string | null
+          used_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_coupon_usage_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "store_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_coupon_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_coupons: {
         Row: {
+          category_ids: string[] | null
           code: string
           created_at: string
+          description: string | null
           discount_type: string
           discount_value: number
           id: string
           is_active: boolean | null
+          max_discount_amount: number | null
           max_uses: number | null
           min_order_amount: number | null
+          single_use_per_customer: boolean
           updated_at: string
           used_count: number | null
           valid_from: string | null
@@ -21361,14 +21407,18 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          category_ids?: string[] | null
           code: string
           created_at?: string
+          description?: string | null
           discount_type?: string
           discount_value: number
           id?: string
           is_active?: boolean | null
+          max_discount_amount?: number | null
           max_uses?: number | null
           min_order_amount?: number | null
+          single_use_per_customer?: boolean
           updated_at?: string
           used_count?: number | null
           valid_from?: string | null
@@ -21376,14 +21426,18 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          category_ids?: string[] | null
           code?: string
           created_at?: string
+          description?: string | null
           discount_type?: string
           discount_value?: number
           id?: string
           is_active?: boolean | null
+          max_discount_amount?: number | null
           max_uses?: number | null
           min_order_amount?: number | null
+          single_use_per_customer?: boolean
           updated_at?: string
           used_count?: number | null
           valid_from?: string | null

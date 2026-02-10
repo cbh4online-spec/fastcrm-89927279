@@ -23,7 +23,7 @@ export default function StoreCheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: string; discount_value: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: string; discount_value: number; max_discount_amount?: number | null; category_ids?: string[] | null } | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [selectedShippingId, setSelectedShippingId] = useState<string>("");
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ id: string; code: string; current_balance: number } | null>(null);
@@ -100,7 +100,7 @@ export default function StoreCheckoutPage() {
     try {
       const { data, error } = await supabase
         .from("store_coupons")
-        .select("code, discount_type, discount_value, min_order_amount, max_uses, used_count, valid_until, is_active")
+        .select("id, code, discount_type, discount_value, min_order_amount, max_uses, used_count, valid_until, is_active, single_use_per_customer, category_ids, max_discount_amount")
         .eq("code", couponCode.toUpperCase().trim())
         .eq("is_active", true)
         .limit(1)
@@ -110,7 +110,7 @@ export default function StoreCheckoutPage() {
         toast.error("Cupão inválido");
         return;
       }
-      if (data.max_uses && data.used_count >= data.max_uses) {
+      if (data.max_uses && (data.used_count ?? 0) >= data.max_uses) {
         toast.error("Cupão esgotado");
         return;
       }
@@ -119,10 +119,43 @@ export default function StoreCheckoutPage() {
         return;
       }
       if (data.min_order_amount && subtotal < data.min_order_amount) {
-        toast.error(`Encomenda mínima de €${data.min_order_amount.toFixed(2)}`);
+        toast.error(`Encomenda mínima de €${Number(data.min_order_amount).toFixed(2)}`);
         return;
       }
-      setAppliedCoupon({ code: data.code, discount_type: data.discount_type, discount_value: data.discount_value });
+
+      // Check single use per customer
+      if (data.single_use_per_customer && formData.email) {
+        const { data: usageData } = await supabase
+          .from("store_coupon_usage")
+          .select("id")
+          .eq("coupon_id", data.id)
+          .eq("customer_email", formData.email.toLowerCase().trim())
+          .limit(1)
+          .maybeSingle();
+
+        if (usageData) {
+          toast.error("Já utilizou este cupão anteriormente");
+          return;
+        }
+      }
+
+      // Check category restriction
+      if (data.category_ids && data.category_ids.length > 0) {
+        const cartCategories = items.map((item) => (item as any).category).filter(Boolean);
+        const hasMatchingCategory = cartCategories.some((cat: string) => data.category_ids!.includes(cat));
+        if (!hasMatchingCategory && cartCategories.length > 0) {
+          toast.error("Cupão válido apenas para categorias específicas");
+          return;
+        }
+      }
+
+      setAppliedCoupon({
+        code: data.code,
+        discount_type: data.discount_type,
+        discount_value: data.discount_value,
+        max_discount_amount: data.max_discount_amount,
+        category_ids: data.category_ids,
+      });
       setCouponCode("");
       toast.success("Cupão aplicado!");
     } finally {
@@ -131,9 +164,16 @@ export default function StoreCheckoutPage() {
   };
 
   const discountAmount = appliedCoupon
-    ? appliedCoupon.discount_type === "percentage"
-      ? subtotal * (appliedCoupon.discount_value / 100)
-      : Math.min(appliedCoupon.discount_value, subtotal)
+    ? (() => {
+        let discount = appliedCoupon.discount_type === "percentage"
+          ? subtotal * (appliedCoupon.discount_value / 100)
+          : Math.min(appliedCoupon.discount_value, subtotal);
+        // Cap percentage discounts if max_discount_amount is set
+        if (appliedCoupon.discount_type === "percentage" && appliedCoupon.max_discount_amount) {
+          discount = Math.min(discount, appliedCoupon.max_discount_amount);
+        }
+        return discount;
+      })()
     : 0;
   
   const selectedShipping = shippingMethods.find((m) => m.id === selectedShippingId);
