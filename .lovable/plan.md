@@ -1,92 +1,55 @@
 
-# Fase 3 -- Mega-Menu Premium e Categorias Visuais
+# Pagina de Link da Loja + QR Code
 
 ## Resumo
 
-Esta fase transforma a navegacao da loja em dois pontos: (1) o Mega-Menu no header ganha layout expandido com imagens de categorias e produtos sugeridos, e (2) o Carousel de categorias passa de pills simples para cards visuais com imagem de fundo.
+Melhorar a secao de URL da loja na pagina de configuracoes, transformando o card basico atual num painel completo de partilha com QR code, botoes de partilha social e opcao de download do QR.
 
 ---
 
-## 1. Migracao de Base de Dados
+## O que existe atualmente
 
-A tabela `store_categories` nao tem coluna `image_url`. E necessario adicioná-la para suportar categorias visuais com imagem de fundo.
+A pagina `StoreSettingsPage.tsx` (linhas 98-116) ja tem um card simples com:
+- URL da loja em texto
+- Botao copiar
+- Botao abrir em nova aba
 
-**SQL:**
-```sql
-ALTER TABLE store_categories ADD COLUMN image_url text;
-```
+## O que sera adicionado
 
-Tambem atualizar a interface `StoreCategory` em `useStoreProducts.ts` para incluir `image_url`.
+### 1. Card de Partilha expandido
 
----
+Substituir o card atual por uma seccao mais completa com:
+- URL da loja com botao copiar (manter)
+- QR Code renderizado com `react-qr-code` (ja instalado)
+- Botao para download do QR code como imagem PNG
+- Botoes de partilha rapida (WhatsApp, Email)
+- Preview visual do link
 
-## 2. Mega-Menu Expandido (StoreHeader.tsx)
+### 2. Componente `StoreShareCard`
 
-Substituir o dropdown simples de categorias por um mega-menu com layout de 2 zonas:
-
-```text
-+----------------------------+--------------------+
-|  Lista de Categorias       |  Produto Top       |
-|  (com imagem miniatura)    |  (card do produto  |
-|  - Categoria 1             |   mais vendido da  |
-|  - Categoria 2             |   categoria hover) |
-|  - Categoria 3             |                    |
-|  ...                       |                    |
-+----------------------------+--------------------+
-```
-
-**Detalhes:**
-- Largura expandida: `w-[500px]` em vez de `w-[300px]`
-- Coluna esquerda: lista de categorias com imagem miniatura (se disponivel) e contagem de produtos
-- Coluna direita: card de produto sugerido (primeiro produto featured da categoria em hover)
-- Estado de hover nas categorias com highlight visual
-- Botao "Ver Todos" no final da lista
-- Aceitar props adicionais: `products` para alimentar o produto sugerido por categoria
-
-**Novas props no StoreHeader:**
-- `products?: StoreProduct[]` -- para mostrar produto sugerido no mega-menu
-
----
-
-## 3. Categorias Visuais (StoreCategoryCarousel.tsx)
-
-Transformar as pills de texto em cards visuais com imagem de fundo:
-
-**Antes:** Botoes pill (`rounded-full`, texto apenas)
-**Depois:** Cards retangulares com:
-- Imagem de fundo da categoria (se existir) com overlay gradiente escuro
-- Nome da categoria centrado em branco sobre a imagem
-- Fallback para gradiente colorido se nao tiver imagem
-- Tamanho: `w-[140px] h-[80px]` com `rounded-xl`
-- Scroll horizontal mantido com snap points
-- Estado ativo com borda primary e escala ligeiramente maior
+Novo componente isolado em `src/components/store-settings/StoreShareCard.tsx`:
+- Recebe `storeUrl` como prop
+- Renderiza QR code (tamanho 180px, com margem branca)
+- Botao "Descarregar QR Code" que converte o SVG para PNG via canvas
+- Botao "Copiar Link" com feedback visual
+- Botoes de partilha: WhatsApp (`https://wa.me/?text=...`) e Email (`mailto:?subject=...&body=...`)
+- Botao "Abrir Loja" para preview
 
 ---
 
 ## Seccao Tecnica
 
-### Migracao
-- Adicionar coluna `image_url text` na tabela `store_categories`
+### Ficheiros a criar
+- `src/components/store-settings/StoreShareCard.tsx` -- componente de partilha com QR code
 
-### Ficheiros a Modificar
+### Ficheiros a modificar
+- `src/pages/StoreSettingsPage.tsx` -- substituir o card de URL atual (linhas 98-116) pelo novo `StoreShareCard`
 
-1. **`src/hooks/useStoreProducts.ts`**
-   - Adicionar `image_url: string | null` na interface `StoreCategory`
+### Dependencias utilizadas (ja instaladas)
+- `react-qr-code` -- renderizacao do QR code
+- Nenhuma dependencia nova necessaria
 
-2. **`src/components/store/StoreHeader.tsx`**
-   - Aceitar nova prop `products`
-   - Expandir `NavigationMenuContent` para layout 2 colunas
-   - Estado local `hoveredCategoryId` para mostrar produto sugerido
-   - Logica para encontrar produto featured/top da categoria em hover
-
-3. **`src/components/store/sections/StoreCategoryCarousel.tsx`**
-   - Substituir pills por cards visuais com imagem de fundo
-   - Usar `image_url` da categoria para background
-   - Fallback com gradientes coloridos (reutilizar paleta do `StoreCategoryGrid`)
-   - Scroll com snap-x
-
-4. **`src/pages/store/StorePage.tsx`**
-   - Passar `allProducts` ao `StoreHeader` via nova prop `products`
-
-### Sem novas dependencias
-- Tudo com Tailwind, framer-motion e Radix NavigationMenu existentes
+### Logica de download do QR
+- Usar `ref` no componente QR code para obter o SVG
+- Converter SVG para canvas via `new Image()` + `canvas.toDataURL("image/png")`
+- Trigger download automatico com `<a>` temporario
