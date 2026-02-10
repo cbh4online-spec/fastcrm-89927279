@@ -6,18 +6,26 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useForumCategories, useForumTopics } from "@/hooks/useForum";
 import { useLoyaltyProfile, getTierProgress } from "@/hooks/useLoyalty";
+import { useCommunityEvents } from "@/hooks/useCommunityEvents";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   MessageSquare, Trophy, Star, Crown, Users, TrendingUp,
-  ArrowLeft, ChevronRight, Plus, Search, Eye, Pin, Lock,
-  Zap, Gift, Flame, Heart, Award, Sparkles, Target, Shield,
+  ArrowLeft, Plus, Search, Gift, Zap, Heart, Award, Sparkles,
+  Settings, Calendar,
 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
-import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+
+import { SocialPostCard } from "@/components/community/SocialPostCard";
+import { CommunitySidebar } from "@/components/community/CommunitySidebar";
+import { CommunityEventBanner } from "@/components/community/CommunityEventBanner";
+import { CommunityMembersList } from "@/components/community/CommunityMembersList";
+import { CommunityLeaderboard } from "@/components/community/CommunityLeaderboard";
+import { CommunityAbout } from "@/components/community/CommunityAbout";
+import { CommunitySettingsDialog } from "@/components/community/CommunitySettingsDialog";
 
 const tierConfig: Record<string, { label: string; icon: React.ReactNode; gradient: string; bg: string }> = {
   bronze: {
@@ -57,11 +65,15 @@ export default function FastClubPage() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
+  const isAdmin = currentWorkspace?.role === "owner" || currentWorkspace?.role === "admin";
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const { data: categories = [] } = useForumCategories(workspaceId);
   const { data: topics = [], isLoading } = useForumTopics(workspaceId);
   const { data: loyaltyProfile } = useLoyaltyProfile(workspaceId);
+  const { data: events = [] } = useCommunityEvents(workspaceId);
 
   const tierInfo = loyaltyProfile ? getTierProgress(loyaltyProfile.lifetime_points) : getTierProgress(0);
   const tier = tierConfig[tierInfo.tier] || tierConfig.bronze;
@@ -70,10 +82,7 @@ export default function FastClubPage() {
     ? topics.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.content.toLowerCase().includes(searchQuery.toLowerCase()))
     : topics;
 
-  const pinnedTopics = filteredTopics.filter(t => t.is_pinned);
-  const recentTopics = filteredTopics.filter(t => !t.is_pinned).slice(0, 8);
-  const hotTopics = [...filteredTopics].sort((a, b) => b.replies_count - a.replies_count).slice(0, 5);
-
+  const categoryMap = new Map(categories.map(c => [c.id, c]));
   const totalTopics = topics.length;
   const totalPosts = topics.reduce((sum, t) => sum + t.replies_count, 0);
 
@@ -84,17 +93,29 @@ export default function FastClubPage() {
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, hsl(var(--primary-foreground)) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
         <div className="relative container mx-auto px-4 pt-6 pb-10">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/dashboard")}
-            className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 mb-4"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+              className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSettingsOpen(true)}
+                className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
 
           <motion.div {...fadeUp} className="max-w-2xl">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-6">
               <div className="h-12 w-12 rounded-2xl bg-primary-foreground/15 backdrop-blur-md flex items-center justify-center shadow-lg">
                 <Zap className="h-6 w-6 text-primary-foreground" />
               </div>
@@ -102,31 +123,6 @@ export default function FastClubPage() {
                 <h1 className="text-3xl font-extrabold tracking-tight text-primary-foreground">FastClub</h1>
                 <p className="text-primary-foreground/60 text-sm">Comunidade · Gamificação · Recompensas</p>
               </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mb-8">
-              <Button
-                onClick={() => navigate("/dashboard/fastclub/forum")}
-                className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 gap-2 rounded-full shadow-md"
-              >
-                <MessageSquare className="h-4 w-4" /> Discussões
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/dashboard/fastclub/rewards")}
-                className="border-primary-foreground/25 text-primary-foreground hover:bg-primary-foreground/10 gap-2 rounded-full"
-              >
-                <Gift className="h-4 w-4" /> Recompensas
-              </Button>
-              {user && (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/dashboard/fastclub/forum")}
-                  className="border-primary-foreground/25 text-primary-foreground hover:bg-primary-foreground/10 gap-2 rounded-full"
-                >
-                  <Plus className="h-4 w-4" /> Novo Tópico
-                </Button>
-              )}
             </div>
           </motion.div>
 
@@ -136,6 +132,7 @@ export default function FastClubPage() {
               { value: totalTopics, label: "Tópicos", icon: <MessageSquare className="h-3.5 w-3.5" /> },
               { value: totalPosts, label: "Respostas", icon: <TrendingUp className="h-3.5 w-3.5" /> },
               { value: categories.length, label: "Canais", icon: <Users className="h-3.5 w-3.5" /> },
+              { value: events.length, label: "Eventos", icon: <Calendar className="h-3.5 w-3.5" /> },
             ].map(s => (
               <div key={s.label} className="flex items-center gap-2">
                 <span className="text-primary-foreground/40">{s.icon}</span>
@@ -149,7 +146,7 @@ export default function FastClubPage() {
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
+      <main className="container mx-auto px-4 py-6 max-w-6xl space-y-6">
         {/* Gamification card */}
         {user && (
           <motion.div {...fadeUp} transition={{ delay: 0.15 }} className="-mt-8 relative z-10">
@@ -195,206 +192,131 @@ export default function FastClubPage() {
           </motion.div>
         )}
 
-        {/* Search bar */}
-        <div className="relative max-w-xl">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Pesquisar tópicos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 rounded-full bg-muted/40 border-border h-11"
-          />
-        </div>
-
-        {/* Category pills */}
-        {categories.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-            {categories.map(c => (
-              <button
-                key={c.id}
-                onClick={() => navigate("/dashboard/fastclub/forum")}
-                className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border bg-card hover:bg-muted/50 transition-colors text-xs font-medium"
+        {/* Navigation Tabs */}
+        <Tabs defaultValue="discussion" className="w-full">
+          <TabsList className="w-full justify-start bg-transparent border-b rounded-none p-0 h-auto gap-0">
+            {[
+              { value: "discussion", label: "Discussão", icon: MessageSquare },
+              { value: "events", label: "Eventos", icon: Calendar },
+              { value: "leaderboard", label: "Classificação", icon: Trophy },
+              { value: "members", label: "Membros", icon: Users },
+              { value: "about", label: "Acerca de", icon: Heart },
+            ].map(t => (
+              <TabsTrigger
+                key={t.value}
+                value={t.value}
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 gap-1.5 text-sm"
               >
-                <span>{c.icon || "💬"}</span>
-                {c.name}
-              </button>
+                <t.icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{t.label}</span>
+              </TabsTrigger>
             ))}
-          </div>
-        )}
+          </TabsList>
 
-        {/* Main grid */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Feed */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Pinned */}
-            {pinnedTopics.length > 0 && (
-              <section>
-                <SectionHeader icon={<Pin className="h-3.5 w-3.5 text-primary" />} title="Fixados" />
-                <div className="space-y-2">
-                  {pinnedTopics.map(topic => (
-                    <TopicCard key={topic.id} topic={topic} onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)} isPinned />
-                  ))}
+          {/* Discussion Tab */}
+          <TabsContent value="discussion" className="mt-6">
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
+                {/* Event banner */}
+                <CommunityEventBanner workspaceId={workspaceId} />
+
+                {/* Search + new topic */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Pesquisar tópicos..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 rounded-full bg-muted/40 border-border h-11"
+                    />
+                  </div>
+                  {user && (
+                    <Button onClick={() => navigate("/dashboard/fastclub/forum")} className="gap-1.5 rounded-full h-11">
+                      <Plus className="h-4 w-4" /> Novo
+                    </Button>
+                  )}
                 </div>
-              </section>
-            )}
 
-            {/* Recent */}
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <SectionHeader icon={<MessageSquare className="h-3.5 w-3.5 text-primary" />} title="Discussões Recentes" />
-                <Button variant="ghost" size="sm" className="text-xs gap-1 text-primary hover:text-primary" onClick={() => navigate("/dashboard/fastclub/forum")}>
-                  Ver todas <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
+                {/* Category pills */}
+                {categories.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                    {categories.map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => navigate("/dashboard/fastclub/forum")}
+                        className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border bg-card hover:bg-muted/50 transition-colors text-xs font-medium"
+                      >
+                        <span>{c.icon || "💬"}</span>
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Feed */}
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Skeleton key={i} className="h-[140px] rounded-2xl" />
+                    ))}
+                  </div>
+                ) : filteredTopics.length > 0 ? (
+                  <div className="space-y-3">
+                    {filteredTopics.slice(0, 15).map(topic => {
+                      const cat = topic.category_id ? categoryMap.get(topic.category_id) : undefined;
+                      return (
+                        <SocialPostCard
+                          key={topic.id}
+                          topic={topic}
+                          categoryName={cat?.name}
+                          categoryIcon={cat?.icon || undefined}
+                          onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState />
+                )}
               </div>
 
-              {isLoading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <Skeleton key={i} className="h-[76px] rounded-xl" />
-                  ))}
-                </div>
-              ) : recentTopics.length > 0 ? (
-                <div className="space-y-2">
-                  {recentTopics.map(topic => (
-                    <TopicCard key={topic.id} topic={topic} onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState />
-              )}
-            </section>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-5">
-            {/* Hot */}
-            {hotTopics.length > 0 && (
-              <SidebarCard title="Em Alta" icon={<Flame className="h-4 w-4 text-destructive" />}>
-                {hotTopics.map((topic, i) => (
-                  <button
-                    key={topic.id}
-                    onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)}
-                    className="w-full text-left flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors group"
-                  >
-                    <span className={cn(
-                      "text-xs font-bold mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0",
-                      i === 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-                    )}>
-                      {i + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium line-clamp-2 leading-snug group-hover:text-primary transition-colors">{topic.title}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-2">
-                        <span className="flex items-center gap-0.5"><MessageSquare className="h-2.5 w-2.5" />{topic.replies_count}</span>
-                        <span className="flex items-center gap-0.5"><Eye className="h-2.5 w-2.5" />{topic.views_count}</span>
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </SidebarCard>
-            )}
-
-            {/* Channels */}
-            {categories.length > 0 && (
-              <SidebarCard title="Canais" icon={<Users className="h-4 w-4 text-primary" />}>
-                {categories.map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => navigate("/dashboard/fastclub/forum")}
-                    className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted/50 transition-colors text-sm group"
-                  >
-                    <span className="text-base w-6 text-center">{cat.icon || "📌"}</span>
-                    <span className="font-medium group-hover:text-primary transition-colors">{cat.name}</span>
-                    <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                ))}
-              </SidebarCard>
-            )}
-
-            {/* Quick Access */}
-            <SidebarCard title="Acesso Rápido" icon={<Zap className="h-4 w-4 text-primary" />}>
-              <QuickLink icon={<MessageSquare className="h-4 w-4" />} label="Fórum" desc="Todas as discussões" onClick={() => navigate("/dashboard/fastclub/forum")} />
-              <QuickLink icon={<Trophy className="h-4 w-4" />} label="Recompensas" desc="Trocar pontos" onClick={() => navigate("/dashboard/fastclub/rewards")} />
-              <QuickLink icon={<Target className="h-4 w-4" />} label="Meu Progresso" desc="Ver nível e pontos" onClick={() => navigate("/dashboard/fastclub/rewards")} />
-            </SidebarCard>
-          </div>
-        </div>
-
-        {/* Value props */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-8 border-t">
-          {[
-            { icon: <Shield className="h-6 w-6" />, title: "Comunidade Segura", desc: "Moderação ativa" },
-            { icon: <Trophy className="h-6 w-6" />, title: "Gamificação", desc: "Pontos e níveis" },
-            { icon: <Gift className="h-6 w-6" />, title: "Recompensas", desc: "Prémios exclusivos" },
-            { icon: <Heart className="h-6 w-6" />, title: "Networking", desc: "Conecta-te" },
-          ].map(item => (
-            <div key={item.title} className="flex flex-col items-center text-center gap-1.5 p-4 rounded-xl hover:bg-muted/30 transition-colors">
-              <div className="text-primary">{item.icon}</div>
-              <span className="text-xs font-semibold">{item.title}</span>
-              <span className="text-[10px] text-muted-foreground">{item.desc}</span>
+              {/* Sidebar */}
+              <div className="hidden lg:block">
+                <CommunitySidebar workspaceId={workspaceId} />
+              </div>
             </div>
-          ))}
-        </div>
+          </TabsContent>
+
+          {/* Events Tab */}
+          <TabsContent value="events" className="mt-6">
+            <EventsList workspaceId={workspaceId} events={events} />
+          </TabsContent>
+
+          {/* Leaderboard Tab */}
+          <TabsContent value="leaderboard" className="mt-6">
+            <CommunityLeaderboard workspaceId={workspaceId} />
+          </TabsContent>
+
+          {/* Members Tab */}
+          <TabsContent value="members" className="mt-6">
+            <CommunityMembersList />
+          </TabsContent>
+
+          {/* About Tab */}
+          <TabsContent value="about" className="mt-6">
+            <CommunityAbout workspaceId={workspaceId} />
+          </TabsContent>
+        </Tabs>
       </main>
+
+      {/* Admin Settings Dialog */}
+      <CommunitySettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} workspaceId={workspaceId} />
     </div>
   );
 }
 
 /* ---------- Sub-components ---------- */
-
-function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-3">
-      {icon} {title}
-    </h2>
-  );
-}
-
-function SidebarCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border bg-card p-4 space-y-2">
-      <h3 className="font-semibold text-sm flex items-center gap-2 pb-2 border-b">
-        {icon} {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-function TopicCard({ topic, onClick, isPinned }: { topic: any; onClick: () => void; isPinned?: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "w-full text-left p-3.5 rounded-xl border transition-all group",
-        isPinned ? "bg-primary/[0.03] border-primary/20 hover:bg-primary/[0.06]" : "bg-card hover:bg-muted/30 hover:shadow-sm"
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <div className={cn(
-          "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
-          isPinned ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-        )}>
-          <MessageSquare className="h-4 w-4" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            {topic.is_pinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
-            {topic.is_locked && <Lock className="h-3 w-3 text-muted-foreground shrink-0" />}
-            <h3 className="font-medium text-sm truncate group-hover:text-primary transition-colors">{topic.title}</h3>
-          </div>
-          <p className="text-xs text-muted-foreground line-clamp-1 mb-1.5">{topic.content}</p>
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-            <span>{formatDistanceToNow(new Date(topic.created_at), { addSuffix: true, locale: pt })}</span>
-            <span className="flex items-center gap-0.5"><Eye className="h-2.5 w-2.5" />{topic.views_count}</span>
-            <span className="flex items-center gap-0.5"><MessageSquare className="h-2.5 w-2.5" />{topic.replies_count}</span>
-          </div>
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-2 shrink-0" />
-      </div>
-    </button>
-  );
-}
 
 function EmptyState() {
   const navigate = useNavigate();
@@ -415,20 +337,41 @@ function EmptyState() {
   );
 }
 
-function QuickLink({ icon, label, desc, onClick }: { icon: React.ReactNode; label: string; desc: string; onClick: () => void }) {
+function EventsList({ workspaceId, events }: { workspaceId: string | undefined; events: any[] }) {
+  if (events.length === 0) {
+    return (
+      <div className="text-center py-16 rounded-2xl border border-dashed bg-muted/20">
+        <Calendar className="h-10 w-10 text-primary/40 mx-auto mb-3" />
+        <p className="font-semibold">Sem eventos agendados</p>
+        <p className="text-sm text-muted-foreground">Os próximos eventos aparecerão aqui.</p>
+      </div>
+    );
+  }
+
   return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group"
-    >
-      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors shrink-0">
-        {icon}
-      </div>
-      <div className="text-left min-w-0">
-        <p className="text-sm font-medium group-hover:text-primary transition-colors">{label}</p>
-        <p className="text-[10px] text-muted-foreground">{desc}</p>
-      </div>
-      <ChevronRight className="h-3.5 w-3.5 ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-    </button>
+    <div className="space-y-3 max-w-2xl">
+      {events.map(event => (
+        <div key={event.id} className="flex items-center gap-4 p-4 rounded-2xl border bg-card hover:bg-muted/30 transition-colors">
+          <div className={cn(
+            "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
+            event.event_type === "live" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+          )}>
+            <Calendar className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <h4 className="font-semibold text-sm truncate">{event.title}</h4>
+              <Badge variant={event.event_type === "live" ? "destructive" : "secondary"} className="text-[10px]">
+                {event.event_type === "live" ? "🔴 Live" : "📅 Evento"}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-1">{event.description}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {new Date(event.starts_at).toLocaleDateString("pt-PT", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
