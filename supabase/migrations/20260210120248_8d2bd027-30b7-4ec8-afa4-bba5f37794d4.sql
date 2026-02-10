@@ -1,0 +1,1 @@
+ALTER TABLE public.store_categories ADD COLUMN image_url text;

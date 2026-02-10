@@ -35,6 +35,7 @@ export interface StoreCategory {
   description: string | null;
   position: number;
   is_active: boolean;
+  image_url: string | null;
 }
 
 interface UseStoreProductsOptions {

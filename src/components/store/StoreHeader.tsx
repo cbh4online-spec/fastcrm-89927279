@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3 } from "lucide-react";
+import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3, TrendingUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StoreSearchAutocomplete } from "@/components/store/StoreSearchAutocomplete";
@@ -19,7 +19,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import type { StoreCategory } from "@/hooks/useStoreProducts";
+import type { StoreCategory, StoreProduct } from "@/hooks/useStoreProducts";
 
 interface StoreHeaderProps {
   storeName?: string;
@@ -28,11 +28,36 @@ interface StoreHeaderProps {
   workspaceSlug: string;
   categories?: StoreCategory[];
   onSelectCategory?: (id?: string) => void;
+  products?: StoreProduct[];
 }
 
-export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSlug, categories = [], onSelectCategory }: StoreHeaderProps) {
+export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSlug, categories = [], onSelectCategory, products = [] }: StoreHeaderProps) {
   const { totalItems, setIsOpen } = useStoreCart();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
+
+  // Find a suggested product for the hovered category
+  const suggestedProduct = useMemo(() => {
+    if (!hoveredCategoryId || products.length === 0) return null;
+    // Prefer featured, then first match
+    const categoryProducts = products.filter(p => p.store_category_id === hoveredCategoryId);
+    return categoryProducts.find(p => p.store_featured) || categoryProducts[0] || null;
+  }, [hoveredCategoryId, products]);
+
+  // Count products per category
+  const productCountByCategory = useMemo(() => {
+    const counts = new Map<string, number>();
+    products.forEach(p => {
+      if (p.store_category_id) {
+        counts.set(p.store_category_id, (counts.get(p.store_category_id) || 0) + 1);
+      }
+    });
+    return counts;
+  }, [products]);
+
+  const formatPrice = (price: number, currency: string) => {
+    return new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(price);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -58,26 +83,91 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
                     Categorias
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <div className="grid gap-1 p-4 w-[300px]">
-                      <button
-                        onClick={() => onSelectCategory(undefined)}
-                        className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors text-left"
-                      >
-                        <Grid3X3 className="h-4 w-4 text-primary" />
-                        <span className="font-medium">Todos os Produtos</span>
-                      </button>
-                      {categories.map((cat) => (
+                    <div className="flex w-[500px]">
+                      {/* Left column: Category list */}
+                      <div className="flex-1 p-4 space-y-1 border-r">
                         <button
-                          key={cat.id}
-                          onClick={() => onSelectCategory(cat.id)}
-                          className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors text-left"
+                          onClick={() => onSelectCategory(undefined)}
+                          onMouseEnter={() => setHoveredCategoryId(null)}
+                          className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-muted transition-colors text-left w-full"
                         >
-                          <span className="font-medium">{cat.name}</span>
-                          {cat.description && (
-                            <span className="text-xs text-muted-foreground ml-auto truncate max-w-[120px]">{cat.description}</span>
-                          )}
+                          <Grid3X3 className="h-4 w-4 text-primary flex-shrink-0" />
+                          <span className="font-medium">Todos os Produtos</span>
+                          <span className="ml-auto text-xs text-muted-foreground">{products.length}</span>
                         </button>
-                      ))}
+                        {categories.map((cat) => (
+                          <button
+                            key={cat.id}
+                            onClick={() => onSelectCategory(cat.id)}
+                            onMouseEnter={() => setHoveredCategoryId(cat.id)}
+                            className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors text-left w-full ${
+                              hoveredCategoryId === cat.id ? "bg-muted" : "hover:bg-muted"
+                            }`}
+                          >
+                            {cat.image_url ? (
+                              <img src={cat.image_url} alt={cat.name} className="h-6 w-6 rounded object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-bold text-primary">{cat.name.charAt(0)}</span>
+                              </div>
+                            )}
+                            <span className="font-medium">{cat.name}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">
+                              {productCountByCategory.get(cat.id) || 0}
+                            </span>
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => {
+                            onSelectCategory(undefined);
+                            document.getElementById("products-section")?.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-primary hover:underline mt-1"
+                        >
+                          Ver Todo o Catálogo
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
+
+                      {/* Right column: Suggested product */}
+                      <div className="w-[200px] p-4 flex flex-col items-center justify-center">
+                        {suggestedProduct ? (
+                          <Link
+                            to={`/store/${workspaceSlug}/product/${suggestedProduct.id}`}
+                            className="group text-center space-y-2"
+                          >
+                            <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-muted">
+                              {suggestedProduct.images?.[0] ? (
+                                <img
+                                  src={suggestedProduct.images[0]}
+                                  alt={suggestedProduct.name}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <TrendingUp className="h-8 w-8 text-muted-foreground/40" />
+                                </div>
+                              )}
+                              {suggestedProduct.store_featured && (
+                                <span className="absolute top-1.5 left-1.5 bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                                  Destaque
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs font-medium line-clamp-2 group-hover:text-primary transition-colors">
+                              {suggestedProduct.name}
+                            </p>
+                            <p className="text-sm font-bold text-primary">
+                              {formatPrice(suggestedProduct.base_price, suggestedProduct.currency)}
+                            </p>
+                          </Link>
+                        ) : (
+                          <div className="text-center text-muted-foreground">
+                            <TrendingUp className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                            <p className="text-xs">Passe o rato sobre uma categoria</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
