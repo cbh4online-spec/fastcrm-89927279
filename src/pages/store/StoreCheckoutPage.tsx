@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2, Ticket, X, Truck } from "lucide-react";
+import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2, Ticket, X, Truck, Gift } from "lucide-react";
 import { useState, useRef, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useActiveShippingMethods } from "@/hooks/useShippingMethods";
+import { StoreGiftCardBalance } from "@/components/store/StoreGiftCardBalance";
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -25,6 +26,7 @@ export default function StoreCheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: string; discount_value: number } | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [selectedShippingId, setSelectedShippingId] = useState<string>("");
+  const [appliedGiftCard, setAppliedGiftCard] = useState<{ id: string; code: string; current_balance: number } | null>(null);
   const { data: shippingMethods = [] } = useActiveShippingMethods(wsSlug);
 
   // Lead capture state
@@ -138,7 +140,8 @@ export default function StoreCheckoutPage() {
   const shippingCost = selectedShipping?.base_price ?? 0;
   // Free shipping threshold check
   const effectiveShippingCost = selectedShipping?.free_shipping_threshold && subtotal >= selectedShipping.free_shipping_threshold ? 0 : shippingCost;
-  const finalTotal = subtotal - discountAmount + effectiveShippingCost;
+  const giftCardAmount = appliedGiftCard ? Math.min(appliedGiftCard.current_balance, subtotal - discountAmount + effectiveShippingCost) : 0;
+  const finalTotal = Math.max(0, subtotal - discountAmount + effectiveShippingCost - giftCardAmount);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +166,7 @@ export default function StoreCheckoutPage() {
           customerPhone: formData.phone || undefined,
           contactId: contactId || undefined,
           couponCode: appliedCoupon?.code || undefined,
+          giftCardCode: appliedGiftCard?.code || undefined,
           shippingMethodId: selectedShippingId || undefined,
           shippingCost: effectiveShippingCost,
           shippingMethodName: selectedShipping?.name || undefined,
@@ -174,7 +178,10 @@ export default function StoreCheckoutPage() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      if (data?.url) {
+      if (data?.paidWithGiftCard) {
+        clearCart();
+        window.location.href = `/store/${wsSlug}/success`;
+      } else if (data?.url) {
         clearCart();
         window.location.href = data.url;
       } else {
@@ -443,7 +450,19 @@ export default function StoreCheckoutPage() {
                   </div>
                 )}
 
-                {(appliedCoupon || effectiveShippingCost > 0) && (
+                {/* Gift Card */}
+                {step === 2 && (
+                  <div className="space-y-2">
+                    <StoreGiftCardBalance
+                      workspaceId={wsSlug}
+                      appliedGiftCard={appliedGiftCard}
+                      onApply={setAppliedGiftCard}
+                      onRemove={() => setAppliedGiftCard(null)}
+                    />
+                  </div>
+                )}
+
+                {(appliedCoupon || effectiveShippingCost > 0 || appliedGiftCard) && (
                   <>
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
@@ -453,6 +472,12 @@ export default function StoreCheckoutPage() {
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Desconto</span>
                         <span>-€{discountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {appliedGiftCard && giftCardAmount > 0 && (
+                      <div className="flex justify-between text-sm text-purple-600">
+                        <span>Gift Card</span>
+                        <span>-€{giftCardAmount.toFixed(2)}</span>
                       </div>
                     )}
                     {effectiveShippingCost > 0 && selectedShipping && (

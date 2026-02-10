@@ -92,10 +92,11 @@ serve(async (req) => {
       shippingMethodId,
       shippingCost,
       shippingMethodName,
+      giftCardCode,
       mode: checkoutMode, // "payment" (default) or "subscription"
     } = await req.json();
 
-    logStep("Request body", { workspaceId, itemCount: items?.length, customerEmail, mode: checkoutMode });
+    logStep("Request body", { workspaceId, itemCount: items?.length, customerEmail, mode: checkoutMode, giftCardCode: !!giftCardCode });
 
     if (!workspaceId) throw new Error("Workspace ID is required");
     if (!items || items.length === 0) throw new Error("Cart is empty");
@@ -234,6 +235,148 @@ serve(async (req) => {
       userId = userData?.user?.id || null;
     }
 
+    // ── Gift Card processing ──
+    let giftCardDeduction = 0;
+    let giftCardId: string | null = null;
+    if (giftCardCode) {
+      const { data: gc, error: gcError } = await supabaseClient
+        .from("store_gift_cards")
+        .select("id, current_balance, status, expires_at")
+        .eq("code", giftCardCode.toUpperCase().trim())
+        .eq("workspace_id", workspaceId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (gcError || !gc) {
+        throw new Error("Gift Card inválido ou não encontrado");
+      }
+      if (gc.expires_at && new Date(gc.expires_at) < new Date()) {
+        throw new Error("Gift Card expirado");
+      }
+      if (gc.current_balance <= 0) {
+        throw new Error("Gift Card sem saldo");
+      }
+
+      // Calculate order total before gift card
+      const orderTotalBeforeGC = lineItems.reduce(
+        (sum: number, li: { price_data: { unit_amount: number }; quantity: number }) =>
+          sum + (li.price_data.unit_amount * li.quantity) / 100,
+        0
+      );
+
+      giftCardDeduction = Math.min(gc.current_balance, orderTotalBeforeGC);
+      giftCardId = gc.id;
+      logStep("Gift card validated", { giftCardId, deduction: giftCardDeduction, balance: gc.current_balance });
+    }
+
+    // Calculate final total after gift card
+    const orderTotal = lineItems.reduce(
+      (sum: number, li: { price_data: { unit_amount: number }; quantity: number }) =>
+        sum + (li.price_data.unit_amount * li.quantity) / 100,
+      0
+    );
+    const remainingAfterGC = orderTotal - giftCardDeduction;
+
+    // Use provided contactId or upsert contact in CRM
+    const contactId = providedContactId || await upsertContact(
+      supabaseClient,
+      workspaceId,
+      customerName,
+      customerEmail,
+      customerPhone || null
+    );
+
+    const orderItems = items.map((item: { productId: string; quantity: number; name: string; price: number }) => {
+      const product = products.find((p) => p.id === item.productId);
+      return {
+        product_id: item.productId,
+        name: product?.name || item.name,
+        quantity: item.quantity,
+        unit_price: product?.base_price || item.price,
+        sku: product?.sku || null,
+      };
+    });
+
+    // If gift card covers full amount, skip Stripe
+    if (giftCardId && remainingAfterGC <= 0) {
+      logStep("Gift card covers full amount, skipping Stripe");
+
+      // Debit gift card
+      const gc = (await supabaseClient.from("store_gift_cards").select("current_balance").eq("id", giftCardId).single()).data!;
+      const newBalance = gc.current_balance - giftCardDeduction;
+      await supabaseClient.from("store_gift_cards").update({
+        current_balance: newBalance,
+        status: newBalance <= 0 ? "depleted" : "active",
+      }).eq("id", giftCardId);
+
+      // Record transaction
+      await supabaseClient.from("store_gift_card_transactions").insert({
+        gift_card_id: giftCardId,
+        workspace_id: workspaceId,
+        amount: giftCardDeduction,
+        balance_before: gc.current_balance,
+        balance_after: newBalance,
+        description: `Pagamento completo via Gift Card`,
+      });
+
+      // Create paid order directly
+      const { error: orderError } = await supabaseClient.from("store_orders").insert({
+        workspace_id: workspaceId,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone || null,
+        user_id: userId,
+        contact_id: contactId,
+        items: orderItems,
+        subtotal: orderItems.reduce((s: number, i: { unit_price: number; quantity: number }) => s + i.unit_price * i.quantity, 0),
+        shipping_cost: parsedShippingCost,
+        shipping_method_id: shippingMethodId || null,
+        shipping_method_name: shippingMethodName || null,
+        total: orderTotal,
+        currency: (products[0]?.currency || "EUR").toUpperCase(),
+        status: "paid",
+      });
+
+      if (orderError) logStep("Order insert error", { message: orderError.message });
+
+      return new Response(JSON.stringify({ success: true, paidWithGiftCard: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // If gift card partial, debit now and create Stripe session for remainder
+    if (giftCardId && giftCardDeduction > 0) {
+      const gc = (await supabaseClient.from("store_gift_cards").select("current_balance").eq("id", giftCardId).single()).data!;
+      const newBalance = gc.current_balance - giftCardDeduction;
+      await supabaseClient.from("store_gift_cards").update({
+        current_balance: newBalance,
+        status: newBalance <= 0 ? "depleted" : "active",
+      }).eq("id", giftCardId);
+
+      await supabaseClient.from("store_gift_card_transactions").insert({
+        gift_card_id: giftCardId,
+        workspace_id: workspaceId,
+        amount: giftCardDeduction,
+        balance_before: gc.current_balance,
+        balance_after: newBalance,
+        description: `Pagamento parcial via Gift Card (€${giftCardDeduction.toFixed(2)})`,
+      });
+
+      logStep("Gift card partially deducted", { deducted: giftCardDeduction, remaining: remainingAfterGC });
+
+      // Replace line items with a single item for remaining amount
+      lineItems.length = 0;
+      lineItems.push({
+        price_data: {
+          currency: (products[0]?.currency || "EUR").toLowerCase(),
+          product_data: { name: `Encomenda (restante após Gift Card)` },
+          unit_amount: Math.round(remainingAfterGC * 100),
+        },
+        quantity: 1,
+      });
+    }
+
     const sessionConfig: Record<string, unknown> = {
       customer: customerId,
       customer_email: customerId ? undefined : customerEmail,
@@ -247,6 +390,8 @@ serve(async (req) => {
         customer_name: customerName,
         customer_phone: customerPhone || "",
         source: "store",
+        gift_card_id: giftCardId || "",
+        gift_card_deduction: giftCardDeduction.toString(),
       },
     };
 
@@ -272,27 +417,7 @@ serve(async (req) => {
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
-    // Use provided contactId or upsert contact in CRM
-    const contactId = providedContactId || await upsertContact(
-      supabaseClient,
-      workspaceId,
-      customerName,
-      customerEmail,
-      customerPhone || null
-    );
-
     // Create store order record
-    const orderItems = items.map((item: { productId: string; quantity: number; name: string; price: number }) => {
-      const product = products.find((p) => p.id === item.productId);
-      return {
-        product_id: item.productId,
-        name: product?.name || item.name,
-        quantity: item.quantity,
-        unit_price: product?.base_price || item.price,
-        sku: product?.sku || null,
-      };
-    });
-
     const { error: orderError } = await supabaseClient
       .from("store_orders")
       .insert({
@@ -307,11 +432,7 @@ serve(async (req) => {
         shipping_cost: parsedShippingCost,
         shipping_method_id: shippingMethodId || null,
         shipping_method_name: shippingMethodName || null,
-        total: lineItems.reduce(
-          (sum: number, li: { price_data: { unit_amount: number }; quantity: number }) =>
-            sum + (li.price_data.unit_amount * li.quantity) / 100,
-          0
-        ),
+        total: remainingAfterGC,
         currency: (products[0]?.currency || "EUR").toUpperCase(),
         status: "pending",
         stripe_session_id: session.id,
