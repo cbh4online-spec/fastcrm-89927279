@@ -20737,6 +20737,146 @@ export type Database = {
           },
         ]
       }
+      store_referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+          uses_count: number
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+          uses_count?: number
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          uses_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_referral_codes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_referral_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          min_order_value: number | null
+          referee_discount_amount: number | null
+          referee_discount_percent: number | null
+          referrer_reward_points: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_order_value?: number | null
+          referee_discount_amount?: number | null
+          referee_discount_percent?: number | null
+          referrer_reward_points?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_order_value?: number | null
+          referee_discount_amount?: number | null
+          referee_discount_percent?: number | null
+          referrer_reward_points?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_referral_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_referrals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          referee_order_id: string | null
+          referee_user_id: string | null
+          referral_code_id: string
+          referrer_rewarded: boolean
+          referrer_user_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referee_order_id?: string | null
+          referee_user_id?: string | null
+          referral_code_id: string
+          referrer_rewarded?: boolean
+          referrer_user_id: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referee_order_id?: string | null
+          referee_user_id?: string | null
+          referral_code_id?: string
+          referrer_rewarded?: boolean
+          referrer_user_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_referrals_referee_order_id_fkey"
+            columns: ["referee_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_referrals_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "store_referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_referrals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_reviews: {
         Row: {
           comment: string | null

@@ -11,13 +11,14 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ShippingMethodsManager } from "@/components/store-settings/ShippingMethodsManager";
 import { CrmOffersManager } from "@/components/store-settings/CrmOffersManager";
 import { StoreShareCard } from "@/components/store-settings/StoreShareCard";
 import { StoreFaqManager } from "@/components/store-settings/StoreFaqManager";
 import { StoreLoyaltyManager } from "@/components/store-settings/StoreLoyaltyManager";
+import { StoreReferralManager } from "@/components/store-settings/StoreReferralManager";
 
 export default function StoreSettingsPage() {
   const { currentWorkspace } = useWorkspace();
@@ -112,6 +113,7 @@ export default function StoreSettingsPage() {
               <TabsTrigger value="crm-offers" className="gap-1"><Target className="h-4 w-4" /> CRM & Ofertas</TabsTrigger>
               <TabsTrigger value="faq" className="gap-1"><HelpCircle className="h-4 w-4" /> FAQ</TabsTrigger>
               <TabsTrigger value="loyalty" className="gap-1"><Star className="h-4 w-4" /> Fidelidade</TabsTrigger>
+              <TabsTrigger value="referrals" className="gap-1"><Users className="h-4 w-4" /> Referrals</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-4 mt-4">
@@ -269,6 +271,10 @@ export default function StoreSettingsPage() {
 
             <TabsContent value="loyalty" className="mt-4">
               <StoreLoyaltyManager />
+            </TabsContent>
+
+            <TabsContent value="referrals" className="mt-4">
+              <StoreReferralManager />
             </TabsContent>
           </Tabs>
         </div>
