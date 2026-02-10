@@ -114,6 +114,14 @@ import StoreCategoriesPage from "./pages/StoreCategoriesPage";
 import StoreCouponsPage from "./pages/StoreCouponsPage";
 import StoreAnalyticsPage from "./pages/StoreAnalyticsPage";
 
+// C2C Marketplace
+import C2CMarketplace from "./pages/c2c/C2CMarketplace";
+import C2CListingDetail from "./pages/c2c/C2CListingDetail";
+import C2CCreateListing from "./pages/c2c/C2CCreateListing";
+import C2CMyListings from "./pages/c2c/C2CMyListings";
+import C2CMessages from "./pages/c2c/C2CMessages";
+import C2CFavorites from "./pages/c2c/C2CFavorites";
+
 // Store (Public E-commerce)
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
 import StorePage from "./pages/store/StorePage";
@@ -331,6 +339,14 @@ function CRMRoutes() {
                 <Route path="/dashboard/store-categories" element={<StoreCategoriesPage />} />
                 <Route path="/dashboard/store-coupons" element={<StoreCouponsPage />} />
                 <Route path="/dashboard/store-analytics" element={<StoreAnalyticsPage />} />
+                
+                {/* C2C Marketplace */}
+                <Route path="/dashboard/c2c" element={<C2CMarketplace />} />
+                <Route path="/dashboard/c2c/create" element={<C2CCreateListing />} />
+                <Route path="/dashboard/c2c/my-listings" element={<C2CMyListings />} />
+                <Route path="/dashboard/c2c/messages" element={<C2CMessages />} />
+                <Route path="/dashboard/c2c/favorites" element={<C2CFavorites />} />
+                <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
                 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
