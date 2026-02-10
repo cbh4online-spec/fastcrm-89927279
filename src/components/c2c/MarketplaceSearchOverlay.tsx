@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Clock, TrendingUp, ArrowLeft, Trash2 } from "lucide-react";
+import { Search, X, Clock, TrendingUp, ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const SEARCH_HISTORY_KEY = "c2c-search-history";
 const MAX_HISTORY = 10;
@@ -52,7 +54,9 @@ export function MarketplaceSearchOverlay({
 }: MarketplaceSearchOverlayProps) {
   const [query, setQuery] = useState(initialQuery);
   const [history, setHistory] = useState<string[]>([]);
+  const [isVisualLoading, setIsVisualLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -80,6 +84,42 @@ export function MarketplaceSearchOverlay({
     setHistory([]);
   };
 
+  const handleVisualSearch = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor selecione uma imagem");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem demasiado grande (máx. 5MB)");
+      return;
+    }
+    setIsVisualLoading(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const { data, error } = await supabase.functions.invoke("store-visual-search", {
+        body: { image: base64 },
+      });
+      if (error) throw error;
+      if (data?.searchTerms) {
+        setQuery(data.searchTerms);
+        handleSubmit(data.searchTerms);
+        toast.success("Pesquisa visual concluída!");
+      } else {
+        toast.error("Não foi possível analisar a imagem");
+      }
+    } catch {
+      toast.error("Erro na pesquisa visual");
+    } finally {
+      setIsVisualLoading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -93,20 +133,12 @@ export function MarketplaceSearchOverlay({
           {/* Search header */}
           <div className="sticky top-0 bg-background border-b z-10">
             <div className="flex items-center gap-2 p-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0"
-                onClick={onClose}
-              >
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={onClose}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <form
                 className="flex-1 relative"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSubmit();
-                }}
+                onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
               >
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
@@ -128,6 +160,28 @@ export function MarketplaceSearchOverlay({
                   </button>
                 )}
               </form>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleVisualSearch(file);
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                className="shrink-0"
+                disabled={isVisualLoading}
+                onClick={() => fileRef.current?.click()}
+                title="Pesquisar com imagem"
+              >
+                {isVisualLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
