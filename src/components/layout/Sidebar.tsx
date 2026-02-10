@@ -229,6 +229,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Marketplace", href: "/dashboard/c2c", icon: Store, tooltip: "Ver anúncios C2C", highlight: true },
       { name: "Meus Anúncios", href: "/dashboard/c2c/my-listings", icon: Package, tooltip: "Gerir os meus anúncios" },
       { name: "Mensagens C2C", href: "/dashboard/c2c/messages", icon: MessageSquare, tooltip: "Mensagens do marketplace" },
+      { name: "Vendedores", href: "/dashboard/c2c/sellers", icon: Users, tooltip: "Gerir vendedores" },
     ],
   },
   // FASTCLUB
