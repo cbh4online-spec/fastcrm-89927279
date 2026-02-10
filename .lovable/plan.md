@@ -1,103 +1,150 @@
 
 
-# Publicar Comunidade com Acesso por Registo
+# Convite para o Club via CRM/Workspace
 
 ## Objectivo
 
-Criar uma pagina publica da comunidade acessivel via `/community/:slug` que mostra o conteudo do FastClub mas exige registo/login para interagir (comentar, criar topicos, etc.). Visitantes nao autenticados veem uma landing page com preview limitado e formulario de registo.
-
-## Arquitectura
-
-A pagina publica tera 2 estados:
-1. **Visitante (sem login)**: Ve o hero, descricao, estatisticas, lista de topicos recentes (preview), eventos -- mas com um overlay/CTA de registo para interagir
-2. **Registado (com login)**: Acesso completo ao feed, pode criar topicos, responder, participar
+Permitir que administradores do workspace convidem contactos do CRM para a comunidade (FastClub), enviando um email de convite com link de registo na pagina publica da comunidade.
 
 ## O Que Vai Ser Feito
 
-### 1. Pagina Publica da Comunidade
-Nova pagina `PublicCommunityPage.tsx` que:
-- Resolve o `workspace_id` a partir do slug na URL
-- Carrega `community_settings`, `forum_topics`, `forum_categories`, `community_events`
-- Mostra hero com banner, logo, nome e descricao
-- Mostra estatisticas (topicos, membros, eventos)
-- Lista os ultimos topicos como preview cards (sem poder clicar para ver detalhes se nao autenticado)
-- Mostra eventos proximos
-- Se o utilizador NAO esta autenticado: mostra banner fixo de CTA "Registar para participar" com botoes Login/Registo
-- Se o utilizador ESTA autenticado: permite navegacao completa e interaccao
+### 1. Tabela `community_members`
+Nova tabela para rastrear membros da comunidade (convidados, pendentes, activos):
 
-### 2. Pagina de Registo/Login para Comunidade
-Nova pagina `CommunityAuthPage.tsx` com:
-- Login e Registo (reutilizando a autenticacao existente do Supabase Auth)
-- Apos login, redireciona de volta para `/community/:slug`
-- Design simples com branding da comunidade (logo, nome)
+| Coluna | Tipo | Descricao |
+|---|---|---|
+| id | uuid PK | Identificador |
+| workspace_id | uuid FK | Workspace da comunidade |
+| user_id | uuid | Auth user ID (preenchido apos registo) |
+| contact_id | uuid FK | Contacto CRM associado (opcional) |
+| email | text | Email do convidado |
+| name | text | Nome do convidado |
+| status | text | "pending", "active", "revoked" |
+| invite_token | uuid | Token unico para o convite |
+| invite_expires_at | timestamptz | Expiracao do convite (7 dias) |
+| invited_by | uuid | Quem convidou (auth.uid) |
+| joined_at | timestamptz | Data de activacao |
+| created_at | timestamptz | Data de criacao |
 
-### 3. Pagina de Topico Publica
-Nova pagina `PublicCommunityTopicPage.tsx`:
-- Acessivel em `/community/:slug/topic/:topicId`
-- Mostra topico completo e respostas
-- Se nao autenticado: mostra conteudo mas bloqueia resposta com CTA de registo
-- Se autenticado: permite responder
+RLS: admins do workspace podem ler/escrever; membros podem ler os seus proprios registos.
 
-### 4. Rota e Integracao
-- Adicionar rotas publicas no `App.tsx` (fora dos CRM providers)
-- Adicionar botao "Publicar" nas definicoes da comunidade que gera/mostra o link publico
+### 2. Edge Function `send-community-invite`
+Nova edge function que:
+- Recebe: email, name, workspaceId, communitySlug
+- Gera token de convite e grava em `community_members`
+- Envia email via Resend com template da comunidade (logo, cores, nome)
+- Link do convite aponta para `/community/:slug/auth?invite=TOKEN`
 
-### 5. Botao de Publicacao nas Definicoes
-No `CommunitySettingsDialog.tsx`, no tab "Descobrir":
-- Toggle "Comunidade Publicada" (usa `is_discoverable`)
-- Campo slug (ja existe)
-- Preview do URL publico
-- Botao copiar link
+### 3. Dialog de Convite na UI (FastClub)
+Novo componente `InviteToCommunityDialog.tsx`:
+- Botao "Convidar" no tab "Membros" (visivel para admins)
+- Duas opcoes de convite:
+  - **Manual**: Preencher nome e email
+  - **Do CRM**: Seleccionar contactos existentes do workspace (dropdown com pesquisa)
+- Possibilidade de convidar multiplos contactos de uma vez
+- Mostra estado dos convites pendentes
+
+### 4. Pagina de Auth com Token de Convite
+Actualizar `CommunityAuthPage.tsx` para:
+- Detectar `?invite=TOKEN` na URL
+- Validar o token contra `community_members`
+- Apos registo, activar automaticamente o membro (status "active")
+- Preencher nome e email do formulario a partir dos dados do convite
+
+### 5. Lista de Membros Melhorada
+Actualizar `CommunityMembersList.tsx` para:
+- Mostrar membros da tabela `community_members` alem dos workspace members
+- Mostrar badge de estado (pendente, activo)
+- Botao para reenviar convite (pendentes)
 
 ## Detalhes Tecnicos
+
+### Migracao SQL
+
+```sql
+CREATE TABLE public.community_members (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  contact_id uuid REFERENCES public.contacts(id) ON DELETE SET NULL,
+  email text NOT NULL,
+  name text NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  invite_token uuid DEFAULT gen_random_uuid(),
+  invite_expires_at timestamptz DEFAULT (now() + interval '7 days'),
+  invited_by uuid REFERENCES auth.users(id),
+  joined_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.community_members ENABLE ROW LEVEL SECURITY;
+
+-- Workspace members can read
+CREATE POLICY "Workspace members can read community members"
+  ON public.community_members FOR SELECT
+  TO authenticated
+  USING (
+    workspace_id IN (
+      SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
+    )
+  );
+
+-- Workspace admins can insert/update
+CREATE POLICY "Workspace admins can manage community members"
+  ON public.community_members FOR ALL
+  TO authenticated
+  USING (
+    workspace_id IN (
+      SELECT workspace_id FROM public.workspace_members
+      WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
+    )
+  );
+
+-- Public can read by invite_token (for activation)
+CREATE POLICY "Anyone can read own invite by token"
+  ON public.community_members FOR SELECT
+  TO anon
+  USING (true);
+
+-- Unique constraint
+ALTER TABLE public.community_members
+  ADD CONSTRAINT community_members_workspace_email_unique
+  UNIQUE (workspace_id, email);
+```
 
 ### Ficheiros a Criar
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/pages/community/PublicCommunityPage.tsx` | Pagina publica principal com hero, preview de topicos, CTA registo |
-| `src/pages/community/PublicCommunityTopicPage.tsx` | Pagina publica de topico individual |
-| `src/pages/community/CommunityAuthPage.tsx` | Login/Registo dedicado para comunidade |
-| `src/hooks/usePublicCommunity.ts` | Hook para resolver workspace por slug e carregar dados publicos |
+| `supabase/functions/send-community-invite/index.ts` | Edge function para enviar convite com email Resend |
+| `src/components/community/InviteToCommunityDialog.tsx` | Dialog com seleccao de contactos CRM ou input manual |
+| `src/hooks/useCommunityMembers.ts` | Hook CRUD para community_members |
 
 ### Ficheiros a Modificar
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/App.tsx` | Adicionar 3 rotas publicas: `/community/:slug`, `/community/:slug/topic/:topicId`, `/community/:slug/auth` |
-| `src/components/community/CommunitySettingsDialog.tsx` | Melhorar tab "Descobrir" com toggle publicacao, preview URL e botao copiar |
+| `src/pages/community/FastClubPage.tsx` | Adicionar botao "Convidar" no tab Membros |
+| `src/components/community/CommunityMembersList.tsx` | Mostrar community_members + estado + reenviar |
+| `src/pages/community/CommunityAuthPage.tsx` | Suportar ?invite=TOKEN para pre-fill e activacao |
 
-### Hook `usePublicCommunity`
+### Fluxo do Convite
+
 ```text
-- Recebe slug como parametro
-- Faz query a community_settings WHERE slug = :slug AND is_discoverable = true
-- Retorna workspace_id, settings, topics, categories, events
-- Funciona sem autenticacao (RLS ja permite SELECT publico)
+1. Admin abre FastClub > Membros > "Convidar"
+2. Selecciona contacto(s) do CRM ou preenche manualmente
+3. Sistema chama edge function send-community-invite
+4. Edge function: cria registo em community_members + envia email
+5. Convidado recebe email com link /community/:slug/auth?invite=TOKEN
+6. Convidado abre link, ve formulario pre-preenchido, cria password
+7. Apos registo, community_members actualizado para status "active"
+8. Membro aparece na lista com badge "Activo"
 ```
 
-### Rotas Publicas (fora dos CRM providers)
-```text
-/community/:slug          -> PublicCommunityPage
-/community/:slug/topic/:topicId -> PublicCommunityTopicPage
-/community/:slug/auth     -> CommunityAuthPage (login/registo)
-```
-
-### Fluxo do Visitante
-```text
-1. Acede a /community/fastclub
-2. Ve hero + preview dos topicos + eventos
-3. Tenta interagir -> redirecionado para /community/fastclub/auth
-4. Regista-se ou faz login
-5. Redirecionado de volta para /community/fastclub com sessao activa
-6. Pode agora criar topicos, responder, etc.
-```
-
-### Seguranca
-- As politicas RLS ja permitem SELECT publico em `community_settings`, `forum_topics`, `forum_posts`, `forum_categories` e `community_events`
-- INSERT em topicos/posts requer `auth.uid()` -- apenas utilizadores autenticados podem criar conteudo
-- O slug deve ser unico (ja existe constraint)
-- Apenas comunidades com `is_discoverable = true` sao visiveis publicamente
-
-### Nao sao necessarias alteracoes na base de dados
-As tabelas e politicas RLS ja suportam leitura publica e escrita autenticada.
+### Template do Email
+Reutilizar o padrao do `send-client-invitation` mas com branding da comunidade:
+- Header com logo e nome da comunidade
+- Mensagem de convite personalizada
+- Botao "Juntar-se a Comunidade" com link directo
+- Cores primarias da community_settings
 
