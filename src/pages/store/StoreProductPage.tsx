@@ -3,6 +3,8 @@ import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { addDays, format, isWeekend, nextMonday } from "date-fns";
 import { pt } from "date-fns/locale";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreProductViewTracker } from "@/components/store/StoreProductViewTracker";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
@@ -39,6 +41,9 @@ import {
   Heart,
   Star,
   Play,
+  Eye,
+  RotateCcw,
+  Lock,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -50,6 +55,25 @@ function getEstimatedDelivery(): string {
     date = addDays(date, 1);
   }
   return format(date, "EEE, d MMM", { locale: pt });
+}
+
+function useRecentViewers(productId: string | undefined) {
+  return useQuery({
+    queryKey: ["store-recent-viewers", productId],
+    queryFn: async () => {
+      if (!productId) return 0;
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count, error } = await supabase
+        .from("store_page_views" as any)
+        .select("*", { count: "exact", head: true })
+        .eq("product_id", productId)
+        .gte("viewed_at", since);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!productId,
+    staleTime: 60_000,
+  });
 }
 
 export default function StoreProductPage() {
@@ -72,6 +96,7 @@ export default function StoreProductPage() {
   const isInWishlist = product ? wishlist.some((w) => w.product_id === product.id) : false;
   const { items: recentlyViewed, addItem: addRecentlyViewed } = useRecentlyViewed();
   const { data: salesCounts } = useProductSalesCount((product as any)?.workspace_id);
+  const { data: recentViewers = 0 } = useRecentViewers(productId);
   const addToCartRef = useRef<HTMLButtonElement>(null);
 
   // Track recently viewed
@@ -205,76 +230,85 @@ export default function StoreProductPage() {
             <span className="text-foreground font-medium truncate">{product.name}</span>
           </motion.nav>
 
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-            {/* Image Gallery with Zoom */}
+          {/* 3-Zone Layout: Gallery | Info | Buy Box */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_1fr_320px] gap-6 lg:gap-8">
+            {/* ZONE 1: Gallery with vertical thumbnails */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="space-y-4"
             >
-              {/* Main image with zoom or video */}
-              {showVideo && hasVideo ? (
-                <div className="aspect-square rounded-2xl overflow-hidden bg-black">
-                  <video
-                    src={product.demo_video_url!}
-                    controls
-                    autoPlay
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-              ) : currentImage ? (
-                <StoreImageZoom src={currentImage} alt={product.name} />
-              ) : (
-                <div className="aspect-square rounded-2xl bg-muted border flex items-center justify-center">
-                  <Package className="h-24 w-24 text-muted-foreground/20" />
-                </div>
-              )}
-
-              {/* Thumbnails */}
-              {(images.length > 1 || hasVideo) && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {/* Video thumbnail */}
-                  {hasVideo && (
-                    <button
-                      onClick={() => { setShowVideo(true); }}
-                      className={cn(
-                        "h-20 w-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all duration-200 relative",
-                        showVideo
-                          ? "border-primary ring-2 ring-primary/20 scale-105"
-                          : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
-                      )}
-                    >
-                      {images[0] && <img src={images[0]} alt="" className="h-full w-full object-cover" />}
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <Play className="h-6 w-6 text-white fill-white" />
-                      </div>
-                    </button>
+              <div className="flex flex-col lg:flex-row-reverse gap-3">
+                {/* Main image */}
+                <div className="flex-1">
+                  {showVideo && hasVideo ? (
+                    <div className="aspect-square rounded-2xl overflow-hidden bg-black">
+                      <video
+                        src={product.demo_video_url!}
+                        controls
+                        autoPlay
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                  ) : currentImage ? (
+                    <StoreImageZoom src={currentImage} alt={product.name} />
+                  ) : (
+                    <div className="aspect-square rounded-2xl bg-muted border flex items-center justify-center">
+                      <Package className="h-24 w-24 text-muted-foreground/20" />
+                    </div>
                   )}
-                  {images.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setSelectedImage(i); setShowVideo(false); }}
-                      className={cn(
-                        "h-20 w-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all duration-200",
-                        !showVideo && selectedImage === i
-                          ? "border-primary ring-2 ring-primary/20 scale-105"
-                          : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
-                      )}
-                    >
-                      <img src={img} alt="" className="h-full w-full object-cover" />
-                    </button>
-                  ))}
+                  {/* Counter */}
+                  {images.length > 1 && (
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      {selectedImage + 1} de {images.length}
+                    </p>
+                  )}
                 </div>
-              )}
+
+                {/* Thumbnails — vertical on lg, horizontal on mobile */}
+                {(images.length > 1 || hasVideo) && (
+                  <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[500px] pb-1 lg:pb-0 lg:pr-1">
+                    {hasVideo && (
+                      <button
+                        onClick={() => { setShowVideo(true); }}
+                        className={cn(
+                          "h-16 w-16 lg:h-14 lg:w-14 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all duration-200 relative",
+                          showVideo
+                            ? "border-primary ring-2 ring-primary/20"
+                            : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
+                        )}
+                      >
+                        {images[0] && <img src={images[0]} alt="" className="h-full w-full object-cover" />}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Play className="h-5 w-5 text-white fill-white" />
+                        </div>
+                      </button>
+                    )}
+                    {images.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setSelectedImage(i); setShowVideo(false); }}
+                        className={cn(
+                          "h-16 w-16 lg:h-14 lg:w-14 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all duration-200",
+                          !showVideo && selectedImage === i
+                            ? "border-primary ring-2 ring-primary/20"
+                            : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
+                        )}
+                      >
+                        <img src={img} alt="" className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </motion.div>
 
-            {/* Product Info */}
+            {/* ZONE 2: Product Info */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="space-y-6"
+              className="space-y-5"
             >
               <div>
                 {product.category && (
@@ -282,7 +316,7 @@ export default function StoreProductPage() {
                     {product.category}
                   </p>
                 )}
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                <h1 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
                   {product.name}
                 </h1>
                 {product.sku && (
@@ -295,7 +329,7 @@ export default function StoreProductPage() {
                     <div className="flex items-center gap-1">
                       <div className="flex gap-0.5">
                         {[1,2,3,4,5].map(s => (
-                          <Star key={s} className={cn("h-4 w-4", s <= Math.round(reviewAvg) ? "fill-warning text-warning" : "text-muted-foreground/30")} />
+                          <Star key={s} className={cn("h-4 w-4", s <= Math.round(reviewAvg) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
                         ))}
                       </div>
                       <span className="text-sm text-muted-foreground ml-1">({reviewCount})</span>
@@ -307,24 +341,35 @@ export default function StoreProductPage() {
                     </Badge>
                   )}
                 </div>
+
+                {/* Recent viewers */}
+                {recentViewers > 2 && (
+                  <div className="flex items-center gap-1.5 mt-3 text-sm text-muted-foreground">
+                    <Eye className="h-4 w-4 text-primary" />
+                    <span>{recentViewers} pessoas viram este produto recentemente</span>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-primary">
-                  €{(pricing?.price ?? product.base_price).toFixed(2)}
-                </span>
-                {pricing?.isDiscounted && (
-                  <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
-                )}
-                {product.billing_type === "recurring" && (
-                  <span className="text-muted-foreground">/mês</span>
+              {/* Price — visible on mobile/tablet, hidden on lg (shown in Buy Box) */}
+              <div className="lg:hidden">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-primary">
+                    €{(pricing?.price ?? product.base_price).toFixed(2)}
+                  </span>
+                  {pricing?.isDiscounted && (
+                    <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                  )}
+                  {product.billing_type === "recurring" && (
+                    <span className="text-muted-foreground">/mês</span>
+                  )}
+                </div>
+                {pricing?.discountLabel && (
+                  <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
+                    {pricing.discountLabel}
+                  </Badge>
                 )}
               </div>
-              {pricing?.discountLabel && (
-                <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
-                  {pricing.discountLabel}
-                </Badge>
-              )}
 
               {product.short_description && (
                 <p className="text-muted-foreground leading-relaxed">
@@ -332,7 +377,6 @@ export default function StoreProductPage() {
                 </p>
               )}
 
-              {/* Benefits as bullet points (Amazon style - beside image area) */}
               {product.benefits && product.benefits.length > 0 && (
                 <ul className="space-y-1.5">
                   {product.benefits.slice(0, 5).map((b, i) => (
@@ -353,93 +397,128 @@ export default function StoreProductPage() {
                 compact={false}
               />
 
-              {isOutOfStock ? (
-                <Badge variant="secondary">Esgotado</Badge>
-              ) : (
-                <Badge variant="outline" className="text-success border-success/30 bg-success/5">
-                  <Check className="h-3 w-3 mr-1" />
-                  Em stock
-                </Badge>
-              )}
-
               <Separator />
 
-              {/* Share Buttons */}
               <StoreShareButtons
                 url={window.location.href}
                 title={product.name}
                 description={product.short_description || undefined}
               />
+            </motion.div>
 
-              <Separator />
+            {/* ZONE 3: Buy Box (sticky on desktop) */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="md:col-span-2 lg:col-span-1"
+            >
+              <div className="lg:sticky lg:top-24 space-y-4 border rounded-2xl p-5 bg-card shadow-sm">
+                {/* Price in Buy Box (desktop only) */}
+                <div className="hidden lg:block">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-primary">
+                      €{(pricing?.price ?? product.base_price).toFixed(2)}
+                    </span>
+                    {pricing?.isDiscounted && (
+                      <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                    )}
+                    {product.billing_type === "recurring" && (
+                      <span className="text-muted-foreground">/mês</span>
+                    )}
+                  </div>
+                  {pricing?.discountLabel && (
+                    <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
+                      {pricing.discountLabel}
+                    </Badge>
+                  )}
+                </div>
 
-              {/* Delivery estimation */}
-              <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-xl p-3">
-                <Truck className="h-4 w-4 text-primary flex-shrink-0" />
-                <span className="text-muted-foreground">
-                  Entrega estimada: <span className="font-semibold text-foreground">{getEstimatedDelivery()}</span>
-                </span>
-              </div>
+                {/* Stock status */}
+                {isOutOfStock ? (
+                  <Badge variant="secondary">Esgotado</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                    <Check className="h-3 w-3 mr-1" />
+                    Em stock
+                  </Badge>
+                )}
 
-              {/* Quantity + Add to Cart */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">Quantidade:</span>
-                  <div className="flex items-center border rounded-xl overflow-hidden">
+                {/* Delivery */}
+                <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-xl p-3">
+                  <Truck className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className="text-muted-foreground">
+                    Entrega estimada: <span className="font-semibold text-foreground">{getEstimatedDelivery()}</span>
+                  </span>
+                </div>
+
+                {/* Quantity + Add to Cart */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium">Qtd:</span>
+                    <div className="flex items-center border rounded-xl overflow-hidden">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-none"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="w-10 text-center font-medium text-sm">{quantity}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-none"
+                        onClick={() => setQuantity(quantity + 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-10 w-10 rounded-none"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="h-9 w-9 rounded-xl ml-auto"
+                      onClick={() => product && toggleWishlist.mutate({
+                        productId: product.id,
+                        workspaceId: (product as any).workspace_id,
+                        isInWishlist,
+                      })}
                     >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="w-12 text-center font-medium">{quantity}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 rounded-none"
-                      onClick={() => setQuantity(quantity + 1)}
-                    >
-                      <Plus className="h-4 w-4" />
+                      <Heart className={cn("h-4 w-4 transition-colors", isInWishlist && "fill-destructive text-destructive")} />
                     </Button>
                   </div>
 
                   <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-xl ml-auto"
-                    onClick={() => product && toggleWishlist.mutate({
-                      productId: product.id,
-                      workspaceId: (product as any).workspace_id,
-                      isInWishlist,
-                    })}
+                    ref={addToCartRef}
+                    size="lg"
+                    className="w-full gap-2 text-base h-12 rounded-xl transition-transform duration-200 active:scale-[0.98]"
+                    onClick={handleAddToCart}
+                    disabled={isOutOfStock}
                   >
-                    <Heart className={cn("h-4 w-4 transition-colors", isInWishlist && "fill-destructive text-destructive")} />
+                    <ShoppingBag className="h-5 w-5" />
+                    Adicionar ao Carrinho
                   </Button>
                 </div>
 
-                <Button
-                  ref={addToCartRef}
-                  size="lg"
-                  className="w-full gap-2 text-base h-12 rounded-xl transition-transform duration-200 active:scale-[0.98]"
-                  onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                >
-                  <ShoppingBag className="h-5 w-5" />
-                  Adicionar ao Carrinho
-                </Button>
-              </div>
-
-              {/* Trust signals */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground rounded-xl bg-muted/50 p-3">
-                  <Truck className="h-4 w-4 text-primary" />
-                  Envio rápido
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground rounded-xl bg-muted/50 p-3">
-                  <Shield className="h-4 w-4 text-primary" />
-                  Pagamento seguro
+                {/* Trust signals — compact inline */}
+                <Separator />
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Truck className="h-3.5 w-3.5 text-primary" />
+                    <span>Envio Grátis</span>
+                  </div>
+                  <div className="h-3 w-px bg-border" />
+                  <div className="flex items-center gap-1">
+                    <RotateCcw className="h-3.5 w-3.5 text-primary" />
+                    <span>Devolução</span>
+                  </div>
+                  <div className="h-3 w-px bg-border" />
+                  <div className="flex items-center gap-1">
+                    <Lock className="h-3.5 w-3.5 text-primary" />
+                    <span>Seguro</span>
+                  </div>
                 </div>
               </div>
             </motion.div>
