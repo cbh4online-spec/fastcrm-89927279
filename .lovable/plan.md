@@ -1,39 +1,48 @@
 
 
-# Corrigir Email de Convite da Comunidade
+# Permitir Alteracao do Link Publico da Comunidade
 
-## Problemas Identificados
+## Problema Actual
 
-1. **Botao CTA invisivel**: O botao "Juntar-se a Comunidade" usa `background: linear-gradient(...)` que muitos clientes de email (Gmail, Outlook) nao suportam. Resultado: botao aparece branco/invisivel.
-
-2. **Link expoe dominio lovable**: O URL de fallback mostra `fastcrm.lovable.app`, deveria usar o dominio proprio ou pelo menos nao mostrar "lovable" no rodape.
+O "Link Publico" e gerado automaticamente usando `window.location.origin`, que no ambiente de preview mostra o URL do Lovable (ex: `https://3e82dfd9-...lovableproject...`). Nao e editavel e expoe o dominio interno.
 
 ## Solucao
 
-### Corrigir o botao CTA
-Substituir `linear-gradient` por `background-color` solida (compativel com todos os clientes de email). Gradientes CSS nao sao suportados em Gmail, Outlook, Yahoo Mail, etc.
+Adicionar um campo `custom_domain` na tabela `community_settings` para que o admin possa definir o dominio/URL base personalizado. O link publico sera construido a partir desse valor quando definido, ou usara o dominio publicado (`fastcrm.lovable.app`) como fallback.
 
-### Limpar rodape
-Remover referencia ao dominio lovable no texto de fallback. Usar apenas o texto "Juntar-se a Comunidade" como link clicavel sem expor o URL completo em texto.
+### 1. Migracao SQL
 
-## Detalhes Tecnicos
+Adicionar coluna `custom_domain` (text, nullable) a tabela `community_settings`.
 
-### Ficheiro: `supabase/functions/send-community-invite/index.ts`
+```sql
+ALTER TABLE public.community_settings
+  ADD COLUMN IF NOT EXISTS custom_domain text;
+```
 
-**Botao CTA (linha 138):**
-- De: `background:linear-gradient(135deg,${primaryColor} 0%,${primaryColor}cc 100%)`
-- Para: `background-color:${primaryColor}`
-- Remover `box-shadow` com cor alpha (tambem mal suportado)
+### 2. Alteracoes no Dialog de Definicoes
 
-**Header gradient (linha 114):**
-- De: `background:linear-gradient(135deg,...)`
-- Para: `background-color:${primaryColor}`
+No tab "Descobrir" do `CommunitySettingsDialog.tsx`:
 
-**Fallback link (linhas 143-146):**
-- Simplificar para mostrar apenas o link clicavel sem expor o URL raw
-- Ou encurtar a apresentacao do URL
+- Adicionar campo editavel "Dominio / URL Base" onde o admin pode colocar o seu dominio (ex: `https://fastcrm.lovable.app` ou `https://meudominio.com`)
+- O "Link Publico" passa a usar esse dominio como base: `${customDomain}/community/${slug}`
+- Se nao houver dominio customizado, usa `https://fastcrm.lovable.app` como fallback (o dominio publicado)
+- Campo com placeholder e texto explicativo
 
-**Rodape (linhas 153-158):**
-- Manter apenas "Este email foi enviado por [NomeComunidade]"
-- Remover qualquer menção a lovable
+### 3. Ficheiros a Modificar
+
+| Ficheiro | Alteracao |
+|---|---|
+| `src/components/community/CommunitySettingsDialog.tsx` | Novo campo "Dominio / URL Base", logica de construcao do link publico |
+| `src/hooks/useCommunitySettings.ts` | Adicionar `custom_domain` ao interface `CommunitySettings` |
+
+### 4. Logica do Link Publico
+
+```text
+Se custom_domain definido:
+  Link = custom_domain + "/community/" + slug
+Senao:
+  Link = "https://fastcrm.lovable.app" + "/community/" + slug
+```
+
+O campo sera salvo junto com as outras definicoes ao clicar "Guardar".
 
