@@ -9,10 +9,10 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
 const tierColors: Record<string, string> = {
-  bronze: "bg-orange-100 text-orange-700 border-orange-300",
-  silver: "bg-gray-100 text-gray-700 border-gray-300",
-  gold: "bg-amber-100 text-amber-700 border-amber-300",
-  platinum: "bg-purple-100 text-purple-700 border-purple-300",
+  bronze: "bg-accent text-accent-foreground border-border",
+  silver: "bg-muted text-muted-foreground border-border",
+  gold: "bg-primary/10 text-primary border-primary/30",
+  platinum: "bg-secondary text-secondary-foreground border-border",
 };
 
 const tierLabels: Record<string, string> = {

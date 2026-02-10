@@ -219,6 +219,29 @@ const navigationGroups: NavGroup[] = [
       { name: "Config. Loja", href: "/dashboard/store-settings", icon: Store, tooltip: "Personalizar loja" },
     ],
   },
+  // MARKETPLACE C2C
+  {
+    name: "Marketplace C2C",
+    icon: Store,
+    tooltip: "Compra e venda entre utilizadores",
+    highlight: true,
+    items: [
+      { name: "Marketplace", href: "/dashboard/c2c", icon: Store, tooltip: "Ver anúncios C2C", highlight: true },
+      { name: "Meus Anúncios", href: "/dashboard/c2c/my-listings", icon: Package, tooltip: "Gerir os meus anúncios" },
+      { name: "Mensagens C2C", href: "/dashboard/c2c/messages", icon: MessageSquare, tooltip: "Mensagens do marketplace" },
+    ],
+  },
+  // COMUNIDADE
+  {
+    name: "Comunidade",
+    icon: Users,
+    tooltip: "Fórum e programa de fidelidade",
+    highlight: true,
+    items: [
+      { name: "Fórum", href: "/dashboard/community/forum", icon: MessageSquare, tooltip: "Discussões da comunidade", highlight: true },
+      { name: "Fidelidade", href: "/dashboard/community/loyalty", icon: Crown, tooltip: "Pontos e recompensas" },
+    ],
+  },
   // MARKETING
   {
     name: "Marketing",
