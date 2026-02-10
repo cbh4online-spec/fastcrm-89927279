@@ -1,93 +1,78 @@
 
 
-# Classificacao Epica com Engajamento Maximo
+# Redesign da Pagina do Forum
 
-## Visao Geral
+## Problema Actual
 
-Transformar o leaderboard atual (uma lista simples) numa experiencia visual premium e gamificada, inspirada em jogos e plataformas competitivas.
+A pagina do Forum (/dashboard/fastclub/forum) e muito basica: layout de coluna unica, cards simples sem avatares, sem pesquisa, sem ordenacao, sem sidebar, e sem integracao com IA. Contrasta com a experiencia premium do FastClub hub.
 
-## Componentes Visuais
+## Melhorias a Implementar
 
-### 1. Podio Top 3 com Destaque Visual
-Em vez de listar as 3 primeiras posicoes como as restantes, criar um **podio visual** com cards elevados:
-- **1. lugar**: Card central maior com borda dourada, animacao de brilho (shimmer), icone de coroa, tamanho XL
-- **2. lugar**: Card a esquerda com borda prateada, tamanho medio
-- **3. lugar**: Card a direita com borda bronze, tamanho medio
-- Cada card mostra avatar grande, nome, tier badge e pontos com animacao de contagem
+### 1. Layout com Sidebar
+Adoptar o layout de 2 colunas que ja existe no FastClub hub, reutilizando o `CommunitySidebar` existente no lado direito.
 
-### 2. Barra de Progresso do Tier
-Para cada membro no leaderboard, mostrar uma mini barra de progresso visual ate ao proximo tier:
-- Bronze -> Silver -> Gold -> Platinum
-- Cor da barra muda conforme o tier atual
-- Texto "Faltam X pts para Silver"
+### 2. Header Estilizado
+Substituir o header simples por um mini-hero com gradiente subtil, icone animado e estatisticas rapidas (total de topicos, respostas totais, membros activos).
 
-### 3. Stats Banner no Topo
-Painel de estatisticas gerais da comunidade antes do leaderboard:
-- Total de pontos distribuidos
-- Membro mais activo (mais pontos no ultimo mes)
-- Numero de membros com pontos
-- Animacao de numeros a contar (framer-motion)
+### 3. Cards Sociais
+Substituir os cards basicos pelo componente `SocialPostCard` ja existente, que inclui avatares, hashtags destacados, badges de categoria, icones de pinned/locked e barra de interacoes (likes, comentarios, views).
 
-### 4. Badges de Conquista
-Icones visuais ao lado do nome baseados em marcos:
-- Icone de fogo para membros com actividade consecutiva
-- Icone de estrela para top 5 historico
-- Icone de seta para quem subiu posicoes recentemente
+### 4. Pesquisa e Ordenacao
+Adicionar barra de pesquisa com filtro client-side por titulo/conteudo e botoes de ordenacao:
+- **Recentes** (por updated_at desc, default)
+- **Populares** (por views_count desc)
+- **Mais comentados** (por replies_count desc)
 
-### 5. Animacoes com Framer Motion
-- Entrada escalonada (stagger) dos cards do leaderboard
-- Podio aparece com animacao de "reveal" de baixo para cima
-- Numeros de pontos animam de 0 ate ao valor real (countUp)
-- Hover nos cards expande ligeiramente com sombra
+### 5. Canal Activo com Destaque
+Quando se filtra por canal, mostrar um banner informativo com o nome, icone e descricao do canal seleccionado.
 
-### 6. Filtros de Periodo
-Permitir ver a classificacao por diferentes periodos:
-- Sempre (lifetime -- default)
-- Este mes
-- Esta semana
-- Hoje
+### 6. Botao "+ Canal" para Admins
+Adicionar o botao de criacao de canal na barra de categorias, reutilizando o `AddChannelDialog` existente.
+
+### 7. Dialog de Criacao Melhorado com IA
+Enriquecer o dialog de novo topico com:
+- Selecao de canal com icones
+- Sugestao de titulo via IA (botao Sparkles que chama edge function com gemini-2.5-flash para sugerir 3 titulos baseados no conteudo)
+- Contador de caracteres no conteudo
+- Preview visual antes de publicar
+
+### 8. Edge Function para Sugestao de Titulo
+Nova edge function `community-ai-suggest-title`:
+- Recebe o conteudo parcial do post
+- Retorna 3 sugestoes de titulo
+- Usa modelo gemini-2.5-flash via Lovable AI
+
+### 9. Animacoes
+Usar framer-motion para:
+- Entrada escalonada (stagger) dos cards
+- Transicao suave nos filtros de categoria
+- Hover nos cards com sombra
 
 ## Detalhes Tecnicos
 
-### Ficheiro a Modificar
+### Ficheiros a Modificar/Criar
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/components/community/CommunityLeaderboard.tsx` | Redesign completo com podio, animacoes, stats e filtros |
+| `src/pages/community/ForumPage.tsx` | Redesign completo: layout 2 colunas, SocialPostCard, pesquisa, ordenacao, header com gradiente, dialog IA, AddChannelDialog |
+| `supabase/functions/community-ai-suggest-title/index.ts` | Nova edge function para sugestao de titulos via gemini-2.5-flash |
 
-### Dados
-Reutilizar a tabela `loyalty_points` existente (campos: `user_id`, `lifetime_points`, `balance`, `tier`).
-Para filtros temporais, usar `loyalty_points_transactions` agrupando por `user_id` e somando `points` filtrado por data.
+### Componentes Reutilizados (sem alteracao)
+- `SocialPostCard` -- cards de topicos estilo social
+- `CommunitySidebar` -- sidebar com info da comunidade, membros, admins
+- `AddChannelDialog` -- dialog para criar canais
 
-### Dependencias Existentes
-- `framer-motion` (ja instalado) -- animacoes de entrada, countUp, hover
-- `lucide-react` -- icones (Trophy, Crown, Flame, Star, TrendingUp, Medal)
-- `recharts` (ja instalado) -- opcional: mini grafico de actividade no card
+### Ordenacao (client-side)
+Os 3 modos ordenam o array `topics` ja carregado:
+- Recentes: `updated_at` desc
+- Populares: `views_count` desc
+- Mais comentados: `replies_count` desc
 
-### Estrutura do Componente
+### Pesquisa (client-side)
+Filtro por `title` e `content` com `toLowerCase().includes(query)`.
 
-```text
-CommunityLeaderboard
-+-- StatsBar (total pontos, membro mais activo, total membros)
-+-- PeriodFilter (Sempre | Este mes | Esta semana | Hoje)
-+-- PodiumSection (top 3 com cards elevados e animacao)
-|   +-- PodiumCard (1o, 2o, 3o com estilos distintos)
-+-- LeaderboardList (4o em diante, com stagger animation)
-    +-- LeaderboardRow (avatar, nome, tier badge, barra progresso, pontos)
-```
+### IA -- Sugestao de Titulo
+Edge function recebe `{ content: string }` e devolve `{ suggestions: string[] }`. Botao Sparkles no dialog de criacao faz fetch a esta funcao e mostra as sugestoes como botoes clicaveis que preenchem o campo titulo.
 
-### Animacoes Especificas
-- **CountUp**: Pontos animam de 0 ao valor final em 1.5s com easing
-- **Stagger**: Cada row do leaderboard aparece com 50ms de delay
-- **Podio reveal**: Cards do podio escalam de 0.8 a 1 com spring animation
-- **Shimmer no 1o lugar**: Gradiente animado na borda do card dourado
-
-### Tier Progress
-Calcular progresso ate ao proximo tier usando thresholds fixos:
-- Bronze: 0-499 pts
-- Silver: 500-1999 pts
-- Gold: 2000-4999 pts
-- Platinum: 5000+ pts
-
-Barra de progresso mostra percentagem ate ao proximo nivel.
+### Nao sao necessarias alteracoes na base de dados.
 
