@@ -89,6 +89,8 @@ import ReportsSales from "./pages/ReportsSales";
 import ReportsGoals from "./pages/ReportsGoals";
 import Marketplace from "./pages/Marketplace";
 import C2CPublicMarketplace from "./pages/c2c/C2CPublicMarketplace";
+import C2CSellerRegistration from "./pages/c2c/C2CSellerRegistration";
+import C2CSellersAdmin from "./pages/c2c/C2CSellersAdmin";
 import MarketplaceAdmin from "./pages/admin/MarketplaceAdmin";
 import GoogleLocalProspecting from "./pages/GoogleLocalProspecting";
 import WebSearchProspecting from "./pages/WebSearchProspecting";
@@ -353,6 +355,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/my-listings" element={<C2CMyListings />} />
                 <Route path="/dashboard/c2c/messages" element={<C2CMessages />} />
                 <Route path="/dashboard/c2c/favorites" element={<C2CFavorites />} />
+                <Route path="/dashboard/c2c/sellers" element={<C2CSellersAdmin />} />
                 <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
                 
                 {/* FastClub */}
@@ -400,6 +403,7 @@ const App = () => (
               
               {/* C2C Public Marketplace */}
               <Route path="/c2c/:workspaceSlug" element={<C2CPublicMarketplace />} />
+              <Route path="/c2c/:workspaceSlug/sell" element={<C2CSellerRegistration />} />
               
               {/* Client Portal - ISOLATED from CRM providers */}
               <Route path="/client/*" element={<ClientPortalRoutes />} />

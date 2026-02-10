@@ -2554,6 +2554,79 @@ export type Database = {
           },
         ]
       }
+      c2c_commissions: {
+        Row: {
+          buyer_id: string | null
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          currency: string
+          id: string
+          listing_id: string
+          paid_at: string | null
+          payment_reference: string | null
+          sale_amount: number
+          seller_amount: number
+          seller_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          buyer_id?: string | null
+          commission_amount: number
+          commission_rate?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          listing_id: string
+          paid_at?: string | null
+          payment_reference?: string | null
+          sale_amount: number
+          seller_amount: number
+          seller_id: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          buyer_id?: string | null
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          listing_id?: string
+          paid_at?: string | null
+          payment_reference?: string | null
+          sale_amount?: number
+          seller_amount?: number
+          seller_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_commissions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_commissions_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_commissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_favorites: {
         Row: {
           created_at: string
@@ -2861,6 +2934,89 @@ export type Database = {
           },
           {
             foreignKeyName: "c2c_reviews_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_sellers: {
+        Row: {
+          account_holder: string | null
+          approved_at: string | null
+          approved_by: string | null
+          avatar_url: string | null
+          bank_name: string | null
+          bio: string | null
+          commission_rate: number | null
+          created_at: string
+          display_name: string
+          iban: string | null
+          id: string
+          is_verified: boolean | null
+          location: string | null
+          nif: string | null
+          phone: string | null
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["c2c_seller_status"]
+          total_revenue: number | null
+          total_sales: number | null
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          account_holder?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          avatar_url?: string | null
+          bank_name?: string | null
+          bio?: string | null
+          commission_rate?: number | null
+          created_at?: string
+          display_name: string
+          iban?: string | null
+          id?: string
+          is_verified?: boolean | null
+          location?: string | null
+          nif?: string | null
+          phone?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["c2c_seller_status"]
+          total_revenue?: number | null
+          total_sales?: number | null
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          account_holder?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          avatar_url?: string | null
+          bank_name?: string | null
+          bio?: string | null
+          commission_rate?: number | null
+          created_at?: string
+          display_name?: string
+          iban?: string | null
+          id?: string
+          is_verified?: boolean | null
+          location?: string | null
+          nif?: string | null
+          phone?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["c2c_seller_status"]
+          total_revenue?: number | null
+          total_sales?: number | null
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_sellers_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -26690,6 +26846,7 @@ export type Database = {
         | "semi_annual"
         | "yearly"
       billing_type: "one_time" | "recurring"
+      c2c_seller_status: "pending" | "approved" | "rejected" | "suspended"
       client_role:
         | "client_admin"
         | "client_financial"
@@ -27069,6 +27226,7 @@ export const Constants = {
         "yearly",
       ],
       billing_type: ["one_time", "recurring"],
+      c2c_seller_status: ["pending", "approved", "rejected", "suspended"],
       client_role: [
         "client_admin",
         "client_financial",

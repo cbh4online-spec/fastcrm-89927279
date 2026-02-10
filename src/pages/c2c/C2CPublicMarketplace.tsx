@@ -335,7 +335,7 @@ export default function C2CPublicMarketplace() {
   const showBrowse = showListings || hasActiveFilters;
 
   const handleSell = () => {
-    navigate("/signup");
+    navigate(`/c2c/${workspaceSlug}/sell`);
   };
 
   const handleExplore = () => {
