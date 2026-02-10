@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3, TrendingUp, ArrowRight, Star } from "lucide-react";
+import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3, TrendingUp, ArrowRight, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StoreSearchAutocomplete } from "@/components/store/StoreSearchAutocomplete";
@@ -238,6 +238,12 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
                 <Link to={`/store/${workspaceSlug}/loyalty`} className="flex items-center gap-2">
                   <Star className="h-4 w-4" />
                   Pontos de Fidelidade
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to={`/store/${workspaceSlug}/referrals`} className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Referrals
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUp, Shield, CreditCard, Truck, Heart, ClipboardList, Lock, RotateCcw, BadgeCheck, Star } from "lucide-react";
+import { ArrowUp, Shield, CreditCard, Truck, Heart, ClipboardList, Lock, RotateCcw, BadgeCheck, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { StoreCategory } from "@/hooks/useStoreProducts";
@@ -105,6 +105,12 @@ export function StoreFooter({ workspaceSlug, storeName, categories = [], footerT
                 <Link to={`/store/${workspaceSlug}/loyalty`} className="hover:text-foreground transition-colors flex items-center gap-1.5">
                   <Star className="h-3.5 w-3.5" />
                   Pontos de Fidelidade
+                </Link>
+              </li>
+              <li>
+                <Link to={`/store/${workspaceSlug}/referrals`} className="hover:text-foreground transition-colors flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  Referrals
                 </Link>
               </li>
             </ul>
