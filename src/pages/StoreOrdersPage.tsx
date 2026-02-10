@@ -61,8 +61,8 @@ export default function StoreOrdersPage() {
   const updateStatus = useUpdateStoreOrderStatus();
   const navigate = useNavigate();
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    updateStatus.mutate({ id: orderId, status: newStatus });
+  const handleStatusChange = (orderId: string, newStatus: string, oldStatus?: string) => {
+    updateStatus.mutate({ id: orderId, status: newStatus, oldStatus });
   };
 
   return (

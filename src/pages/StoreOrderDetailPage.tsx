@@ -47,7 +47,7 @@ export default function StoreOrderDetailPage() {
   const status = order.status as string;
   const statusConf = ORDER_STATUS_CONFIG[status] || { label: status, color: "bg-muted" };
   const items = Array.isArray(order.items) ? (order.items as Array<{ name: string; quantity: number; unit_price: number; sku?: string }>) : [];
-  const handleStatus = (s: string) => updateStatus.mutate({ id: id!, status: s });
+  const handleStatus = (s: string) => updateStatus.mutate({ id: id!, status: s, oldStatus: status });
 
   return (
     <>

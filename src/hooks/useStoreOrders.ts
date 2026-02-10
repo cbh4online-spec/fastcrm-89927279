@@ -75,7 +75,7 @@ export function useUpdateStoreOrderStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status, notes }: { id: string; status: string; notes?: string }) => {
+    mutationFn: async ({ id, status, notes, oldStatus }: { id: string; status: string; notes?: string; oldStatus?: string }) => {
       const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
       if (notes !== undefined) updates.notes = notes;
       if (status === "paid") updates.paid_at = new Date().toISOString();
@@ -86,6 +86,11 @@ export function useUpdateStoreOrderStatus() {
         .eq("id", id);
 
       if (error) throw error;
+
+      // Send status notification email (non-blocking)
+      supabase.functions.invoke("send-order-status-notification", {
+        body: { orderId: id, newStatus: status, oldStatus },
+      }).catch((err) => console.warn("Status notification email failed:", err));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["store-orders"] });
