@@ -182,17 +182,41 @@ export function useProductAIAssistant() {
     },
   });
 
+  const suggestRelations = useMutation({
+    mutationFn: async ({
+      productId,
+      workspaceId,
+    }: {
+      productId: string;
+      workspaceId: string;
+    }): Promise<{ added: number; relations: Array<{ targetId: string; targetName: string; type: string; reason: string; label: string }> }> => {
+      const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
+        body: {
+          mode: "suggest-relations",
+          productId,
+          workspaceId,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || "Failed to suggest relations");
+      return data.data;
+    },
+  });
+
   return {
     suggestFromName,
     searchBySKU,
     generateDescription,
     analyzePrice,
     generateProductImage,
+    suggestRelations,
     isLoading:
       suggestFromName.isPending ||
       searchBySKU.isPending ||
       generateDescription.isPending ||
       analyzePrice.isPending ||
-      generateProductImage.isPending,
+      generateProductImage.isPending ||
+      suggestRelations.isPending,
   };
 }
