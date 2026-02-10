@@ -16,6 +16,10 @@ export interface StoreCoupon {
   valid_until: string | null;
   is_active: boolean;
   created_at: string;
+  single_use_per_customer: boolean;
+  category_ids: string[] | null;
+  max_discount_amount: number | null;
+  description: string | null;
 }
 
 export function useStoreCoupons() {
@@ -47,6 +51,10 @@ export function useCreateStoreCoupon() {
       min_order_amount?: number;
       max_uses?: number | null;
       valid_until?: string | null;
+      single_use_per_customer?: boolean;
+      category_ids?: string[] | null;
+      max_discount_amount?: number | null;
+      description?: string | null;
     }) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
       const { error } = await supabase.from("store_coupons").insert({
@@ -57,6 +65,10 @@ export function useCreateStoreCoupon() {
         min_order_amount: coupon.min_order_amount || 0,
         max_uses: coupon.max_uses || null,
         valid_until: coupon.valid_until || null,
+        single_use_per_customer: coupon.single_use_per_customer || false,
+        category_ids: coupon.category_ids?.length ? coupon.category_ids : null,
+        max_discount_amount: coupon.max_discount_amount || null,
+        description: coupon.description || null,
       });
       if (error) throw error;
     },
