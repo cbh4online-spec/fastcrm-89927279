@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStoreProducts, type StoreProduct } from "@/hooks/useStoreProducts";
+import { StoreVisualSearch } from "@/components/store/StoreVisualSearch";
 
 const HISTORY_KEY = "store-search-history";
 const MAX_HISTORY = 5;
@@ -107,6 +108,12 @@ export function StoreSearchAutocomplete({ workspaceSlug, onSearch, onClose }: St
             autoFocus
           />
         </div>
+        <StoreVisualSearch
+          onSearchTerms={(terms) => {
+            setQuery(terms);
+            onSearch(terms);
+          }}
+        />
         <Button
           variant="ghost"
           size="icon"

@@ -28,6 +28,7 @@ export interface StoreFilters {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  condition?: string;
   sortBy?: "price_asc" | "price_desc" | "name" | "newest";
 }
 
@@ -68,9 +69,17 @@ function FilterSection({ title, children, defaultOpen = true }: { title: string;
   );
 }
 
+const CONDITION_OPTIONS = [
+  { value: "new_with_tags", label: "Novo com etiqueta" },
+  { value: "new_without_tags", label: "Novo sem etiqueta" },
+  { value: "very_good", label: "Muito bom" },
+  { value: "good", label: "Bom" },
+  { value: "satisfactory", label: "Satisfatório" },
+];
+
 function FilterContent({ categories, filters, onFiltersChange, maxProductPrice = 500 }: Omit<StoreFilterSidebarProps, "totalProducts">) {
   const priceRange = [filters.minPrice ?? 0, filters.maxPrice ?? maxProductPrice];
-  const activeCount = [filters.categoryId, filters.minPrice, filters.maxPrice, filters.inStock].filter(Boolean).length;
+  const activeCount = [filters.categoryId, filters.minPrice, filters.maxPrice, filters.inStock, filters.condition].filter(Boolean).length;
 
   return (
     <div className="space-y-1">
@@ -148,6 +157,34 @@ function FilterContent({ categories, filters, onFiltersChange, maxProductPrice =
 
       <Separator />
 
+      <FilterSection title="Condição" defaultOpen={false}>
+        <div className="space-y-2">
+          <button
+            className={cn(
+              "block w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors",
+              !filters.condition ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+            onClick={() => onFiltersChange({ ...filters, condition: undefined })}
+          >
+            Todas
+          </button>
+          {CONDITION_OPTIONS.map((c) => (
+            <button
+              key={c.value}
+              className={cn(
+                "block w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors",
+                filters.condition === c.value ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+              onClick={() => onFiltersChange({ ...filters, condition: c.value })}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      <Separator />
+
       <FilterSection title="Ordenar por">
         <Select
           value={filters.sortBy || "default"}
@@ -170,7 +207,7 @@ function FilterContent({ categories, filters, onFiltersChange, maxProductPrice =
 }
 
 export function StoreFilterSidebar(props: StoreFilterSidebarProps) {
-  const activeCount = [props.filters.categoryId, props.filters.minPrice, props.filters.maxPrice, props.filters.inStock].filter(Boolean).length;
+  const activeCount = [props.filters.categoryId, props.filters.minPrice, props.filters.maxPrice, props.filters.inStock, props.filters.condition].filter(Boolean).length;
 
   return (
     <>

@@ -16505,6 +16505,7 @@ export type Database = {
           order_multiple: number | null
           pack_size: number | null
           primary_image_index: number | null
+          product_condition: string | null
           product_type: string
           recommended_frequency: string | null
           recurring_fee: number | null
@@ -16573,6 +16574,7 @@ export type Database = {
           order_multiple?: number | null
           pack_size?: number | null
           primary_image_index?: number | null
+          product_condition?: string | null
           product_type?: string
           recommended_frequency?: string | null
           recurring_fee?: number | null
@@ -16641,6 +16643,7 @@ export type Database = {
           order_multiple?: number | null
           pack_size?: number | null
           primary_image_index?: number | null
+          product_condition?: string | null
           product_type?: string
           recommended_frequency?: string | null
           recurring_fee?: number | null
@@ -20457,6 +20460,95 @@ export type Database = {
           },
           {
             foreignKeyName: "store_offer_redemptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_offers: {
+        Row: {
+          admin_message: string | null
+          contact_id: string | null
+          counter_price: number | null
+          coupon_code: string | null
+          created_at: string
+          currency: string
+          customer_email: string
+          customer_name: string
+          expires_at: string
+          id: string
+          message: string | null
+          offered_price: number
+          original_price: number
+          product_id: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          admin_message?: string | null
+          contact_id?: string | null
+          counter_price?: number | null
+          coupon_code?: string | null
+          created_at?: string
+          currency?: string
+          customer_email: string
+          customer_name: string
+          expires_at?: string
+          id?: string
+          message?: string | null
+          offered_price: number
+          original_price: number
+          product_id: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          admin_message?: string | null
+          contact_id?: string | null
+          counter_price?: number | null
+          coupon_code?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string
+          customer_name?: string
+          expires_at?: string
+          id?: string
+          message?: string | null
+          offered_price?: number
+          original_price?: number
+          product_id?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_offers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_offers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_offers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_offers_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
