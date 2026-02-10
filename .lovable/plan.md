@@ -1,78 +1,42 @@
 
+# Adicionar Criacao de Eventos na Comunidade
 
-# Redesign da Pagina do Forum
+## Problema
 
-## Problema Actual
+O tab "Eventos" no FastClub mostra eventos existentes mas nao tem nenhum botao ou formulario para criar novos eventos. O hook `useCreateCommunityEvent` ja existe mas nunca e usado na UI.
 
-A pagina do Forum (/dashboard/fastclub/forum) e muito basica: layout de coluna unica, cards simples sem avatares, sem pesquisa, sem ordenacao, sem sidebar, e sem integracao com IA. Contrasta com a experiencia premium do FastClub hub.
+## Solucao
 
-## Melhorias a Implementar
+Criar um dialog de criacao de eventos e adicionar um botao "+ Evento" no tab de Eventos (visivel para admins).
 
-### 1. Layout com Sidebar
-Adoptar o layout de 2 colunas que ja existe no FastClub hub, reutilizando o `CommunitySidebar` existente no lado direito.
+### O que vai ser feito
 
-### 2. Header Estilizado
-Substituir o header simples por um mini-hero com gradiente subtil, icone animado e estatisticas rapidas (total de topicos, respostas totais, membros activos).
-
-### 3. Cards Sociais
-Substituir os cards basicos pelo componente `SocialPostCard` ja existente, que inclui avatares, hashtags destacados, badges de categoria, icones de pinned/locked e barra de interacoes (likes, comentarios, views).
-
-### 4. Pesquisa e Ordenacao
-Adicionar barra de pesquisa com filtro client-side por titulo/conteudo e botoes de ordenacao:
-- **Recentes** (por updated_at desc, default)
-- **Populares** (por views_count desc)
-- **Mais comentados** (por replies_count desc)
-
-### 5. Canal Activo com Destaque
-Quando se filtra por canal, mostrar um banner informativo com o nome, icone e descricao do canal seleccionado.
-
-### 6. Botao "+ Canal" para Admins
-Adicionar o botao de criacao de canal na barra de categorias, reutilizando o `AddChannelDialog` existente.
-
-### 7. Dialog de Criacao Melhorado com IA
-Enriquecer o dialog de novo topico com:
-- Selecao de canal com icones
-- Sugestao de titulo via IA (botao Sparkles que chama edge function com gemini-2.5-flash para sugerir 3 titulos baseados no conteudo)
-- Contador de caracteres no conteudo
-- Preview visual antes de publicar
-
-### 8. Edge Function para Sugestao de Titulo
-Nova edge function `community-ai-suggest-title`:
-- Recebe o conteudo parcial do post
-- Retorna 3 sugestoes de titulo
-- Usa modelo gemini-2.5-flash via Lovable AI
-
-### 9. Animacoes
-Usar framer-motion para:
-- Entrada escalonada (stagger) dos cards
-- Transicao suave nos filtros de categoria
-- Hover nos cards com sombra
+1. **Botao "+ Criar Evento"** no tab de Eventos, visivel apenas para admins (owner/admin)
+2. **Dialog com formulario** contendo os campos:
+   - Titulo (obrigatorio)
+   - Descricao (opcional)
+   - Tipo de evento: "evento" ou "live" (select)
+   - Data/hora de inicio (obrigatorio)
+   - Data/hora de fim (opcional)
+   - Link externo (opcional, ex: link do Zoom/Meet)
+3. **Validacao** com feedback visual
+4. Ao submeter, usar o hook `useCreateCommunityEvent` que ja existe
 
 ## Detalhes Tecnicos
 
-### Ficheiros a Modificar/Criar
+### Ficheiro a Modificar
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/pages/community/ForumPage.tsx` | Redesign completo: layout 2 colunas, SocialPostCard, pesquisa, ordenacao, header com gradiente, dialog IA, AddChannelDialog |
-| `supabase/functions/community-ai-suggest-title/index.ts` | Nova edge function para sugestao de titulos via gemini-2.5-flash |
+| `src/pages/community/FastClubPage.tsx` | Adicionar dialog de criacao e botao no componente `EventsList`, passando `isAdmin` como prop |
 
-### Componentes Reutilizados (sem alteracao)
-- `SocialPostCard` -- cards de topicos estilo social
-- `CommunitySidebar` -- sidebar com info da comunidade, membros, admins
-- `AddChannelDialog` -- dialog para criar canais
+### Implementacao
 
-### Ordenacao (client-side)
-Os 3 modos ordenam o array `topics` ja carregado:
-- Recentes: `updated_at` desc
-- Populares: `views_count` desc
-- Mais comentados: `replies_count` desc
+- Adicionar estado `createEventOpen` ao componente `EventsList`
+- Criar o formulario inline no dialog usando componentes existentes (`Dialog`, `Input`, `Textarea`, `Select`, `Button`)
+- Chamar `useCreateCommunityEvent(workspaceId)` para submeter
+- Campos do formulario mapeiam directamente para a tabela `community_events`: `title`, `description`, `event_type`, `starts_at`, `ends_at`, `link`
+- Passar `isAdmin` de `FastClubPage` para `EventsList` para controlar visibilidade do botao
 
-### Pesquisa (client-side)
-Filtro por `title` e `content` com `toLowerCase().includes(query)`.
-
-### IA -- Sugestao de Titulo
-Edge function recebe `{ content: string }` e devolve `{ suggestions: string[] }`. Botao Sparkles no dialog de criacao faz fetch a esta funcao e mostra as sugestoes como botoes clicaveis que preenchem o campo titulo.
-
-### Nao sao necessarias alteracoes na base de dados.
-
+### Nao sao necessarias alteracoes na base de dados
+A tabela `community_events` e o hook `useCreateCommunityEvent` ja existem e suportam todos os campos necessarios.
