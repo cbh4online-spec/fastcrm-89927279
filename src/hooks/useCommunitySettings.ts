@@ -20,6 +20,7 @@ export interface CommunitySettings {
   theme_preset: string | null;
   visible_tabs: Record<string, boolean> | null;
   category: string | null;
+  custom_domain: string | null;
   is_discoverable: boolean;
   created_at: string;
   updated_at: string;

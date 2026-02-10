@@ -4776,6 +4776,7 @@ export type Database = {
           banner_url: string | null
           category: string | null
           created_at: string
+          custom_domain: string | null
           description: string | null
           favicon_url: string | null
           id: string
@@ -4798,6 +4799,7 @@ export type Database = {
           banner_url?: string | null
           category?: string | null
           created_at?: string
+          custom_domain?: string | null
           description?: string | null
           favicon_url?: string | null
           id?: string
@@ -4820,6 +4822,7 @@ export type Database = {
           banner_url?: string | null
           category?: string | null
           created_at?: string
+          custom_domain?: string | null
           description?: string | null
           favicon_url?: string | null
           id?: string
