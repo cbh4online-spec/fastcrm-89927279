@@ -3124,6 +3124,84 @@ export type Database = {
           },
         ]
       }
+      client_contracts: {
+        Row: {
+          auto_renew: boolean
+          company_id: string
+          contract_type: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          document_url: string | null
+          end_date: string | null
+          id: string
+          renewal_date: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["contract_status"]
+          terms: Json | null
+          title: string
+          updated_at: string
+          value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          auto_renew?: boolean
+          company_id: string
+          contract_type?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          document_url?: string | null
+          end_date?: string | null
+          id?: string
+          renewal_date?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          terms?: Json | null
+          title: string
+          updated_at?: string
+          value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          auto_renew?: boolean
+          company_id?: string
+          contract_type?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          document_url?: string | null
+          end_date?: string | null
+          id?: string
+          renewal_date?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          terms?: Json | null
+          title?: string
+          updated_at?: string
+          value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_contracts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_entitlements: {
         Row: {
           company_id: string | null
@@ -24622,6 +24700,13 @@ export type Database = {
         | "is_empty"
         | "is_not_empty"
       contact_entity_type: "consumidor_final" | "eni" | "empresa"
+      contract_status:
+        | "draft"
+        | "active"
+        | "expiring"
+        | "expired"
+        | "cancelled"
+        | "renewed"
       conversation_rule_scope: "workspace" | "ai_persona" | "flow" | "channel"
       conversation_rule_type: "DO" | "DONT" | "STOP" | "REDIRECT"
       crm_entity_type: "contacts" | "opportunities"
@@ -24987,6 +25072,14 @@ export const Constants = {
         "is_not_empty",
       ],
       contact_entity_type: ["consumidor_final", "eni", "empresa"],
+      contract_status: [
+        "draft",
+        "active",
+        "expiring",
+        "expired",
+        "cancelled",
+        "renewed",
+      ],
       conversation_rule_scope: ["workspace", "ai_persona", "flow", "channel"],
       conversation_rule_type: ["DO", "DONT", "STOP", "REDIRECT"],
       crm_entity_type: ["contacts", "opportunities"],
