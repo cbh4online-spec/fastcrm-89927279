@@ -111,6 +111,7 @@ export default function StorePage() {
           workspaceSlug={wsId}
           categories={categories}
           onSelectCategory={(id) => setFilters(f => ({ ...f, categoryId: id }))}
+          products={allProducts}
         />
         <StoreCartDrawer workspaceSlug={wsId} />
 
