@@ -1,90 +1,92 @@
 
-# Fase 2 -- Product Card Melhorado, Pagina de Produto Premium e Reviews
+# Fase 3 -- Mega-Menu Premium e Categorias Visuais
 
 ## Resumo
 
-Esta fase foca-se em 3 areas: melhorar o Product Card com indicadores visuais de stock e popularidade, redesenhar a pagina de produto com layout de 3 zonas (Galeria | Info | Buy Box sticky), e adicionar barras de distribuicao de ratings na seccao de reviews.
+Esta fase transforma a navegacao da loja em dois pontos: (1) o Mega-Menu no header ganha layout expandido com imagens de categorias e produtos sugeridos, e (2) o Carousel de categorias passa de pills simples para cards visuais com imagem de fundo.
 
 ---
 
-## 1. Product Card Melhorado (StoreProductCard.tsx)
+## 1. Migracao de Base de Dados
 
-**Barra visual de stock**: Quando `track_stock` esta ativo e `stock_quantity < 20`, mostrar uma mini barra de progresso abaixo do preco com texto "Quase a esgotar - restam X".
+A tabela `store_categories` nao tem coluna `image_url`. E necessario adicioná-la para suportar categorias visuais com imagem de fundo.
 
-**Badge "Escolha Popular"**: Quando o produto tem mais de 25 vendas (via `salesCounts`), exibir badge dourado com icone de tendencia.
-
-**Preco com poupanca**: Quando ha desconto, mostrar "Poupa X%" calculado a partir da diferenca entre `base_price` e `effectivePrice`.
-
-**Hover com 2a imagem**: Se o produto tem mais de 1 imagem, no hover a imagem principal faz crossfade para a segunda imagem. Transicao CSS suave.
-
----
-
-## 2. Pagina de Produto Premium (StoreProductPage.tsx)
-
-**Layout 3 Zonas (apenas em desktop `lg:`):**
-
-```text
-+-------------------+-------------------+-----------------+
-|  Galeria           |  Informacao       |  Buy Box        |
-|  (thumbnails       |  (titulo, stars,  |  (preco, stock, |
-|   verticais a      |   descricao,      |   qty, botao,   |
-|   esquerda)        |   beneficios,     |   entrega,      |
-|                    |   specs)          |   trust)        |
-|                    |                   |  [sticky]       |
-+-------------------+-------------------+-----------------+
+**SQL:**
+```sql
+ALTER TABLE store_categories ADD COLUMN image_url text;
 ```
 
-- Em mobile mantém o layout atual empilhado (1 coluna)
-- Em tablet usa 2 colunas (galeria + info/buybox juntos)
-- Em desktop `lg:` usa grid de 3 colunas com a Buy Box na coluna direita com `sticky top-24`
-
-**Galeria com thumbnails verticais:**
-- Em desktop, as thumbnails passam de horizontais (em baixo) para verticais (a esquerda da imagem principal)
-- Navegacao mantida com setas e contador "X de Y"
-
-**Indicador de visualizacoes:**
-- Texto "X pessoas viram este produto recentemente" baseado nos dados de `store_page_views` (ultimas 24h)
-- Query simples com contagem de page views recentes
-
-**Seccao de confianca dentro da Buy Box:**
-- Icones compactos inline: Entrega Gratis | Devolucao Facil | Pagamento Seguro
-- Separadores verticais entre cada item
+Tambem atualizar a interface `StoreCategory` em `useStoreProducts.ts` para incluir `image_url`.
 
 ---
 
-## 3. Rating Breakdown (StoreRatingBreakdown.tsx -- NOVO)
+## 2. Mega-Menu Expandido (StoreHeader.tsx)
 
-Componente que mostra a distribuicao de ratings com 5 barras horizontais:
+Substituir o dropdown simples de categorias por um mega-menu com layout de 2 zonas:
 
 ```text
-5 estrelas  ████████████████  68%
-4 estrelas  ████████          24%
-3 estrelas  ███               5%
-2 estrelas  █                 2%
-1 estrela   █                 1%
++----------------------------+--------------------+
+|  Lista de Categorias       |  Produto Top       |
+|  (com imagem miniatura)    |  (card do produto  |
+|  - Categoria 1             |   mais vendido da  |
+|  - Categoria 2             |   categoria hover) |
+|  - Categoria 3             |                    |
+|  ...                       |                    |
++----------------------------+--------------------+
 ```
 
-- Integrado na `StoreReviewsSection.tsx` acima da lista de reviews
-- Cada barra e clicavel para filtrar reviews por essa classificacao
-- Media grande com numero e estrelas ao lado
+**Detalhes:**
+- Largura expandida: `w-[500px]` em vez de `w-[300px]`
+- Coluna esquerda: lista de categorias com imagem miniatura (se disponivel) e contagem de produtos
+- Coluna direita: card de produto sugerido (primeiro produto featured da categoria em hover)
+- Estado de hover nas categorias com highlight visual
+- Botao "Ver Todos" no final da lista
+- Aceitar props adicionais: `products` para alimentar o produto sugerido por categoria
+
+**Novas props no StoreHeader:**
+- `products?: StoreProduct[]` -- para mostrar produto sugerido no mega-menu
+
+---
+
+## 3. Categorias Visuais (StoreCategoryCarousel.tsx)
+
+Transformar as pills de texto em cards visuais com imagem de fundo:
+
+**Antes:** Botoes pill (`rounded-full`, texto apenas)
+**Depois:** Cards retangulares com:
+- Imagem de fundo da categoria (se existir) com overlay gradiente escuro
+- Nome da categoria centrado em branco sobre a imagem
+- Fallback para gradiente colorido se nao tiver imagem
+- Tamanho: `w-[140px] h-[80px]` com `rounded-xl`
+- Scroll horizontal mantido com snap points
+- Estado ativo com borda primary e escala ligeiramente maior
 
 ---
 
 ## Seccao Tecnica
 
-### Ficheiro a Criar
-- `src/components/store/StoreRatingBreakdown.tsx`
+### Migracao
+- Adicionar coluna `image_url text` na tabela `store_categories`
 
 ### Ficheiros a Modificar
-- `src/components/store/StoreProductCard.tsx` -- adicionar barra de stock, badge popular, hover 2a imagem, badge de poupanca
-- `src/pages/store/StoreProductPage.tsx` -- layout 3 colunas com Buy Box sticky, thumbnails verticais, contador de views
-- `src/components/store/StoreReviewsSection.tsx` -- integrar o RatingBreakdown
 
-### Hook de Page Views (inline)
-- Query simples ao `store_page_views` com filtro de ultimas 24h para contar visualizacoes recentes do produto
+1. **`src/hooks/useStoreProducts.ts`**
+   - Adicionar `image_url: string | null` na interface `StoreCategory`
 
-### Sem novas tabelas ou migracoes
-- Todos os dados necessarios ja existem nas tabelas `store_page_views`, `store_reviews` e `products`
+2. **`src/components/store/StoreHeader.tsx`**
+   - Aceitar nova prop `products`
+   - Expandir `NavigationMenuContent` para layout 2 colunas
+   - Estado local `hoveredCategoryId` para mostrar produto sugerido
+   - Logica para encontrar produto featured/top da categoria em hover
+
+3. **`src/components/store/sections/StoreCategoryCarousel.tsx`**
+   - Substituir pills por cards visuais com imagem de fundo
+   - Usar `image_url` da categoria para background
+   - Fallback com gradientes coloridos (reutilizar paleta do `StoreCategoryGrid`)
+   - Scroll com snap-x
+
+4. **`src/pages/store/StorePage.tsx`**
+   - Passar `allProducts` ao `StoreHeader` via nova prop `products`
 
 ### Sem novas dependencias
-- Tudo com Tailwind, framer-motion e componentes UI existentes
+- Tudo com Tailwind, framer-motion e Radix NavigationMenu existentes
