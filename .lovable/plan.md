@@ -1,156 +1,87 @@
-# Plano Geral — Funcionalidades E-commerce Avançadas
 
-## Estado
+# Criar Produtos com Ajuda de IA - Modo Wizard Inteligente
 
-- [x] Gift Cards / Cartões Presente ✅ (implementado)
-- [ ] **Fase 1: Marketplace C2C** ← próxima
-- [ ] Fase 2: Comparador de Preços
-- [ ] Fase 3: Sponsors / Publicidade
-- [ ] Fase 4: Clube / Comunidade
+## Objetivo
+Criar um novo fluxo alternativo de criacao de produtos onde o utilizador descreve o que quer (em linguagem natural ou com SKU) e a IA preenche automaticamente todos os campos, apresentando um resumo para revisao antes de gravar.
 
----
+## O que ja existe
+O sistema ja tem componentes AI robustos no painel lateral do dialogo de criacao:
+- **AIProductAssistant**: sugere categoria, preco, descricao e tipo com base no nome
+- **SKUSearchPanel**: pesquisa por SKU via Firecrawl, extrai nome, descricao, imagens, especificacoes, precos
+- **ProductImageGenerator**: gera imagens com IA (Gemini image model)
+- **ai-product-assistant** edge function: suporta modos suggest, sku-search, generate-description, price-analysis, generate-product-image
 
-## Fase 1: Marketplace C2C (Independente)
+Contudo, estes componentes funcionam como auxiliares no formulario manual - o utilizador ainda precisa de interagir campo a campo.
 
-Secção separada tipo OLX/Vinted onde utilizadores registados criam anúncios de produtos próprios. Publicação automática com moderação por filtros.
+## Plano de Implementacao
 
-### Base de Dados
-- `c2c_listings` — anúncios (título, descrição, preço, fotos[], categoria, condição, vendedor_id, status, localização)
-- `c2c_categories` — categorias do marketplace
-- `c2c_messages` — mensagens privadas entre comprador/vendedor
-- `c2c_reviews` — avaliações pós-transação
-- `c2c_favorites` — favoritos/watchlist
-- `c2c_reports` — denúncias de anúncios
-- `c2c_moderation_settings` — config de filtros (palavras proibidas, limites)
+### 1. Novo modo "ai-create" na edge function `ai-product-assistant`
+Adicionar um modo que recebe um prompt livre (ex: "Camera de vigilancia 4K exterior com visao noturna") e devolve TODOS os campos do produto preenchidos de uma so vez:
+- name (tecnico + comercial)
+- category
+- product_type
+- billing_type
+- base_price + price range
+- short_description (comercial)
+- specifications (objeto completo)
+- sku sugerido
+- beneficios
 
-### Funcionalidades
-- Criar/editar/remover anúncios com fotos múltiplas (storage)
-- Pesquisa full-text e filtros (categoria, preço min/max, condição, localização)
-- Mensagens diretas entre utilizadores (realtime)
-- Avaliações e score de reputação do vendedor
-- Favoritos com notificações de alteração de preço
-- **Publicação automática** com filtros: palavras proibidas, detecção de spam, auto-flag para review
-- Painel admin: fila de moderação, anúncios reportados, gestão de categorias
+A IA usa tool calling para garantir output estruturado.
 
-### Páginas
-- `/marketplace` — listagem com pesquisa e filtros
-- `/marketplace/:id` — detalhe do anúncio
-- `/marketplace/criar` — formulário de criação
-- `/marketplace/meus-anuncios` — gestão dos meus anúncios
-- `/marketplace/mensagens` — inbox
-- Admin: separador "Marketplace C2C" nas settings
+### 2. Novo componente `AIProductWizard.tsx`
+Um dialogo alternativo com 3 passos:
 
-### Ficheiros a criar
-- `src/pages/c2c/C2CMarketplace.tsx` — listagem principal
-- `src/pages/c2c/C2CListingDetail.tsx` — detalhe
-- `src/pages/c2c/C2CCreateListing.tsx` — criar anúncio
-- `src/pages/c2c/C2CMyListings.tsx` — meus anúncios
-- `src/pages/c2c/C2CMessages.tsx` — mensagens
-- `src/hooks/useC2CListings.ts` — CRUD de anúncios
-- `src/hooks/useC2CMessages.ts` — mensagens realtime
-- `src/hooks/useC2CModeration.ts` — moderação automática
-- `src/components/c2c/` — ListingCard, ListingFilters, MessageThread, ReviewForm, etc.
+**Passo 1 - Descrever**
+- Campo de texto grande: "Descreva o produto que quer criar..."
+- Opcao alternativa: "Ou insira um SKU/referencia"
+- Botao "Gerar com IA"
 
----
+**Passo 2 - Rever e Ajustar**
+- Cards com todos os dados gerados pela IA, organizados por seccao
+- Cada campo e editavel inline
+- Botao para regenerar campos individuais
+- Preview de imagens encontradas/geradas
+- Indicador de confianca por campo
 
-## Fase 2: Comparador de Preços
+**Passo 3 - Confirmar**
+- Resumo final estilo ficha de produto
+- Botao "Criar Produto" que chama o mesmo `useCreateProduct`
 
-### 2A: Preços Internos
-- Widget "Comparar" na página de produto
-- Compara produtos da mesma categoria lado a lado
-- Tabela comparativa com specs e preços
+### 3. Integracao na lista de produtos
+Adicionar botao "Criar com IA" ao lado do botao "Criar Produto" existente em `ProductsList.tsx`, abrindo o wizard.
 
-### 2B: Preços Externos
-- Edge function usando Firecrawl para buscar preços em lojas externas
-- Widget na página de produto: "Preço noutras lojas"
-- Cache de resultados (24h) para performance
+### 4. Melhorias na edge function
+- Combinar pesquisa Firecrawl + geracao AI num unico fluxo quando SKU e fornecido
+- Gerar imagem automaticamente se nenhuma for encontrada via web
+- Sugerir beneficios e keywords para SEO da loja
 
-### 2C: Histórico de Preços
-- `product_price_history` — registo automático via trigger SQL
-- Gráfico sparkline na página de produto
-- Alerta "Preço mais baixo de sempre" quando aplicável
+## Detalhes Tecnicos
 
-### Ficheiros a criar
-- `src/components/store/PriceComparisonWidget.tsx`
-- `src/components/store/PriceHistoryChart.tsx`
-- `src/hooks/usePriceComparison.ts`
-- `src/hooks/usePriceHistory.ts`
-- Edge function: `compare-prices`
+### Edge Function - novo modo `ai-create`
+```text
+Request:  { mode: "ai-create", prompt: "...", sku?: "..." }
+Response: { success: true, data: { 
+  name, commercialName, category, productType, billingType,
+  basePrice, priceRange, shortDescription, commercialDescription,
+  specifications, suggestedSku, benefits, images 
+}}
+```
 
----
+Fluxo interno:
+1. Se SKU fornecido -> pesquisa Firecrawl primeiro
+2. Combina dados web + prompt do utilizador
+3. Chama Gemini com tool calling para output estruturado
+4. Se nao encontrou imagens -> gera com modelo de imagem
+5. Devolve pacote completo
 
-## Fase 3: Sponsors / Publicidade
+### Componentes Frontend
+- `AIProductWizard.tsx` - dialogo wizard com 3 passos
+- Reutiliza `useCreateProduct` para gravar
+- Reutiliza `useProductAIAssistant` (com novo metodo `createFromPrompt`)
 
-### 3A: Banners na Loja
-- `store_ad_placements` — slots (homepage-hero, sidebar, between-products, category-header)
-- `store_ads` — banner com imagem, link, datas início/fim, impressões, cliques
-- Painel admin para criar/gerir campanhas
-- Tracking automático de impressões e CTR
-
-### 3B: Produtos Patrocinados (C2C)
-- `c2c_sponsored_listings` — boost pago para anúncios C2C
-- Vendedores pagam para aparecer no topo (duração configurável)
-- Badge "Patrocinado" e prioridade na ordenação
-- Integração Stripe para pagamento do boost
-
-### 3C: Parceiros Externos
-- `store_sponsors` — parceiros com logo, link, descrição, tier (Gold/Silver/Bronze)
-- Secção "Parceiros" no footer/página dedicada
-- Painel admin para gerir parceiros
-
-### Ficheiros a criar
-- `src/components/store/AdBanner.tsx`
-- `src/components/store/SponsoredBadge.tsx`
-- `src/components/store-settings/AdsManager.tsx`
-- `src/components/store-settings/SponsorsManager.tsx`
-- `src/hooks/useStoreAds.ts`
-- `src/hooks/useStoreSponsors.ts`
-
----
-
-## Fase 4: Clube / Comunidade
-
-### 4A: Programa de Fidelidade
-- `loyalty_points` — saldo por utilizador/workspace
-- `loyalty_transactions` — histórico (compras, reviews, referrals, resgate)
-- `loyalty_tiers` — Bronze/Silver/Gold/Platinum com multiplicadores
-- `loyalty_rewards` — recompensas (desconto %, produto grátis, frete grátis)
-- Dashboard: saldo, nível, progresso, histórico
-- Pontos automáticos: compra (1pt/€), review (+50pt), referral (+100pt)
-
-### 4B: Fórum / Discussões
-- `forum_categories` — categorias do fórum
-- `forum_topics` — tópicos com título, conteúdo, autor, pins, locks
-- `forum_posts` — respostas em thread
-- `forum_reactions` — likes/útil/concordo
-- Publicação automática com filtros de spam e palavras proibidas
-- Perfil público com stats e reputação
-
-### 4C: Conteúdo Exclusivo
-- `exclusive_content` — artigos/ofertas gated por nível de fidelidade
-- Secção "Clube" na loja com preview + lock
-- Early access a novos produtos para membros Gold+
-
-### Moderação Automática (Transversal)
-- `moderation_filters` — palavras proibidas, regex patterns, config por workspace
-- `moderation_queue` — itens flagged para review
-- Auto-publish por defeito; flag se suspeito
-- Painel admin: fila de moderação, approve/reject, ban user
-- Aplicável a: anúncios C2C, posts do fórum, reviews
-
-### Ficheiros a criar
-- `src/pages/community/` — Forum, Topic, Profile, Loyalty
-- `src/hooks/useLoyalty.ts`, `useForum.ts`, `useModeration.ts`
-- `src/components/community/` — TopicCard, PostThread, LoyaltyDashboard, RewardCard
-- `src/components/store-settings/ModerationManager.tsx`
-
----
-
-## Ordem de Implementação
-
-1. **Fase 1: Marketplace C2C** — fundação para sponsors e comunidade
-2. **Fase 2: Comparador de Preços** — independente
-3. **Fase 3: Sponsors** — depende parcialmente do C2C
-4. **Fase 4: Clube/Comunidade** — mais complexo, beneficia das fases anteriores
-
-Cada fase será implementada incrementalmente dentro de múltiplas mensagens.
+### Ficheiros a criar/editar
+- **Editar**: `supabase/functions/ai-product-assistant/index.ts` (novo modo)
+- **Editar**: `src/hooks/useProductAIAssistant.ts` (novo metodo)
+- **Criar**: `src/components/products/AIProductWizard.tsx`
+- **Editar**: `src/components/products/ProductsList.tsx` (botao novo)
