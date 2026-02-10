@@ -320,7 +320,7 @@ export default function FastClubPage() {
               </div>
 
               <div className="hidden lg:block">
-                <CommunitySidebar workspaceId={workspaceId} />
+                <CommunitySidebar workspaceId={workspaceId} onInviteClick={() => setInviteOpen(true)} />
               </div>
             </div>
           </TabsContent>
