@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3, TrendingUp, ArrowRight } from "lucide-react";
+import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3, TrendingUp, ArrowRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StoreSearchAutocomplete } from "@/components/store/StoreSearchAutocomplete";
+import { StoreLoyaltyWidget } from "@/components/store/StoreLoyaltyWidget";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import {
   DropdownMenu,
@@ -207,6 +208,13 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
             )}
           </AnimatePresence>
 
+          {/* Loyalty Points Badge */}
+          <StoreLoyaltyWidget
+            workspaceId={workspaceSlug}
+            workspaceSlug={workspaceSlug}
+            compact
+          />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -224,6 +232,12 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
                 <Link to={`/store/${workspaceSlug}/orders`} className="flex items-center gap-2">
                   <ClipboardList className="h-4 w-4" />
                   As Minhas Encomendas
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to={`/store/${workspaceSlug}/loyalty`} className="flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Pontos de Fidelidade
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>

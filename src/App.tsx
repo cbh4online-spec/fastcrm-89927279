@@ -124,6 +124,7 @@ import StoreCancelPage from "./pages/store/StoreCancelPage";
 import StoreWishlistPage from "./pages/store/StoreWishlistPage";
 import StoreOrderHistoryPage from "./pages/store/StoreOrderHistoryPage";
 import StoreDigitalAssetsPage from "./pages/store/StoreDigitalAssetsPage";
+import StoreLoyaltyPage from "./pages/store/StoreLoyaltyPage";
 
 // Student Journey Pages
 import {
@@ -177,6 +178,7 @@ function StoreRoutes() {
         <Route path=":workspaceSlug/wishlist" element={<StoreWishlistPage />} />
         <Route path=":workspaceSlug/orders" element={<StoreOrderHistoryPage />} />
         <Route path=":workspaceSlug/downloads" element={<StoreDigitalAssetsPage />} />
+        <Route path=":workspaceSlug/loyalty" element={<StoreLoyaltyPage />} />
       </Routes>
     </StoreCartProvider>
   );

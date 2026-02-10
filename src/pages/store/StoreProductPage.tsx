@@ -12,6 +12,7 @@ import { StoreImageZoom } from "@/components/store/StoreImageZoom";
 import { StoreStickyAddToCart } from "@/components/store/StoreStickyAddToCart";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
+import { StoreLoyaltyWidget } from "@/components/store/StoreLoyaltyWidget";
 import { StoreShareButtons } from "@/components/store/StoreShareButtons";
 import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
@@ -395,6 +396,13 @@ export default function StoreProductPage() {
                 isDiscounted={pricing?.isDiscounted}
                 isFeatured={product.store_featured}
                 compact={false}
+              />
+
+              {/* Loyalty Points */}
+              <StoreLoyaltyWidget
+                workspaceId={wsSlug}
+                workspaceSlug={wsSlug}
+                productPrice={pricing?.price ?? product.base_price}
               />
 
               <Separator />
