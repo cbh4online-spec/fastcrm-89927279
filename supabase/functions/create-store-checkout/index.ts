@@ -86,6 +86,7 @@ serve(async (req) => {
       customerName,
       customerEmail,
       customerPhone,
+      contactId: providedContactId,
       successUrl,
       cancelUrl,
       shippingMethodId,
@@ -271,8 +272,8 @@ serve(async (req) => {
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
-    // Upsert contact in CRM
-    const contactId = await upsertContact(
+    // Use provided contactId or upsert contact in CRM
+    const contactId = providedContactId || await upsertContact(
       supabaseClient,
       workspaceId,
       customerName,

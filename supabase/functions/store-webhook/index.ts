@@ -412,14 +412,22 @@ serve(async (req) => {
               },
             });
 
-            // Mark any abandoned cart as recovered
+            // Mark any abandoned cart as recovered (by session or email)
             if (order.customer_email) {
               await supabaseClient
                 .from('store_abandoned_carts')
                 .update({ recovery_status: 'recovered', recovered_order_id: order.id, updated_at: new Date().toISOString() })
                 .eq('workspace_id', workspaceId)
                 .eq('customer_email', order.customer_email)
-                .eq('recovery_status', 'abandoned');
+                .in('recovery_status', ['abandoned', 'contacted']);
+            }
+            if (order.contact_id) {
+              await supabaseClient
+                .from('store_abandoned_carts')
+                .update({ recovery_status: 'recovered', recovered_order_id: order.id, updated_at: new Date().toISOString() })
+                .eq('workspace_id', workspaceId)
+                .eq('contact_id', order.contact_id)
+                .in('recovery_status', ['abandoned', 'contacted']);
             }
 
             logStep('Store automation events logged', { eventType });
