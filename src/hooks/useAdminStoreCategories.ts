@@ -11,6 +11,7 @@ export interface AdminStoreCategory {
   description: string | null;
   position: number;
   is_active: boolean;
+  image_url: string | null;
   created_at: string;
 }
 
