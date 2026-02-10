@@ -11185,6 +11185,98 @@ export type Database = {
           },
         ]
       }
+      loyalty_points_transactions: {
+        Row: {
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          order_id: string | null
+          points: number
+          type: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          points: number
+          type: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          points?: number
+          type?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_points_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_points_transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          min_redeem_points: number
+          points_per_euro: number
+          points_value_cents: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_redeem_points?: number
+          points_per_euro?: number
+          points_value_cents?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_redeem_points?: number
+          points_per_euro?: number
+          points_value_cents?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_campaigns: {
         Row: {
           ai_insights: Json | null
@@ -24428,6 +24520,10 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: Json
+      }
+      get_loyalty_balance: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: number
       }
       get_module_trial_status: {
         Args: { p_module_id: string; p_workspace_id: string }
