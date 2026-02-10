@@ -1057,7 +1057,7 @@ DO NOT include any text or labels in the image.`;
       // Get the source product
       const { data: sourceProduct } = await supabase
         .from('products')
-        .select('id, name, category, short_description, specifications, sku')
+        .select('id, name, category, short_description, specifications, sku, base_price')
         .eq('id', reqProductId)
         .single();
 
@@ -1092,7 +1092,7 @@ DO NOT include any text or labels in the image.`;
 
       const catalog = otherProducts.map((p: any) => `ID:${p.id} | ${p.name} | ${p.category || ''} | ${p.short_description || ''} | SKU:${p.sku || ''}`).join('\n');
 
-      const suggestPrompt = `Analisa o produto "${sourceProduct.name}" (categoria: ${sourceProduct.category || 'N/A'}, SKU: ${sourceProduct.sku || 'N/A'}) e sugere relações com outros produtos do catálogo.
+      const suggestPrompt = `Analisa o produto "${sourceProduct.name}" (categoria: ${sourceProduct.category || 'N/A'}, SKU: ${sourceProduct.sku || 'N/A'}, preço: ${(sourceProduct as any).base_price || 'N/A'}€) e sugere relações com outros produtos do catálogo.
 
 CATÁLOGO:
 ${catalog}
@@ -1100,17 +1100,17 @@ ${catalog}
 Responde APENAS em JSON válido com o formato:
 {
   "suggestions": [
-    { "targetId": "uuid", "type": "compatible|related|bundle", "reason": "Motivo curto" }
+    { "targetId": "uuid", "type": "compatible|related|bundle", "reason": "Motivo curto", "label": "Etiqueta amigável" }
   ]
 }
 
 REGRAS:
-- compatible: acessórios, complementos, peças que funcionam juntos
-- related: alternativas similares, mesmo tipo de produto
-- bundle: produtos que faz sentido comprar juntos como kit
+- compatible: acessórios, complementos, peças que funcionam juntos (cross-sell). Label: "Acessório recomendado", "Complemento", etc.
+- related: alternativas similares ou versões superiores (up-sell se preço superior). Label: "Alternativa", "Upgrade", "Versão premium", etc.
+- bundle: produtos que faz sentido comprar juntos como kit (cross-sell). Label: "Compre junto", "Kit recomendado", etc.
 - Máximo 8 sugestões no total
-- Razão máxima de 50 caracteres`;
-
+- Razão máxima de 50 caracteres
+- Label máximo de 25 caracteres`;
       const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
@@ -1135,10 +1135,15 @@ REGRAS:
         suggestions = parsed.suggestions || [];
       } catch { suggestions = []; }
 
+      // Build a lookup map for product names
+      const productNameMap = new Map(otherProducts.map((p: any) => [p.id, p.name]));
+
       // Filter out existing relations and invalid IDs
       const validProductIds = new Set(otherProducts.map((p: any) => p.id));
-      const toInsert = suggestions
-        .filter((s: any) => validProductIds.has(s.targetId) && !existingSet.has(`${s.targetId}:${s.type}`))
+      const validSuggestions = suggestions
+        .filter((s: any) => validProductIds.has(s.targetId) && !existingSet.has(`${s.targetId}:${s.type}`));
+
+      const toInsert = validSuggestions
         .map((s: any, i: number) => ({
           workspace_id: reqWorkspaceId,
           source_product_id: reqProductId,
@@ -1155,7 +1160,16 @@ REGRAS:
         else console.error('Insert error:', insertError);
       }
 
-      return new Response(JSON.stringify({ success: true, data: { added, suggestions: toInsert.length } }), {
+      // Build enriched relations for frontend display
+      const relations = validSuggestions.map((s: any) => ({
+        targetId: s.targetId,
+        targetName: productNameMap.get(s.targetId) || 'Produto',
+        type: s.type,
+        reason: s.reason || '',
+        label: s.label || (s.type === 'compatible' ? 'Acessório' : s.type === 'bundle' ? 'Compre junto' : 'Alternativa'),
+      }));
+
+      return new Response(JSON.stringify({ success: true, data: { added, relations } }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 

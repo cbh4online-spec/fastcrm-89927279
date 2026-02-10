@@ -46,6 +46,7 @@ import { ProductImageGenerator } from "./ProductImageGenerator";
 import { ProductImageGalleryManager } from "./ProductImageGalleryManager";
 import { ProductSpecificationsEditor } from "./ProductSpecificationsEditor";
 import { ProductVideoSearch } from "./ProductVideoSearch";
+import { PostCreationSuggestionsCard } from "./PostCreationSuggestionsCard";
 import { ProductImage360Viewer } from "./ProductImage360Viewer";
 import { ProductVariantsManager } from "./ProductVariantsManager";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
@@ -135,6 +136,8 @@ export function CreateProductDialog({
   const [skuSearchTrigger, setSkuSearchTrigger] = useState(0);
   // B2B Portal visibility
   const [b2bPublished, setB2bPublished] = useState(true);
+  // Post-creation suggestions
+  const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string; workspace_id: string } | null>(null);
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -393,6 +396,8 @@ export function CreateProductDialog({
     setLaborNotes("");
     // Reset B2B Portal visibility
     setB2bPublished(true);
+    // Reset post-creation suggestions
+    setCreatedProduct(null);
   };
 
   const handleActualSubmit = async () => {
@@ -439,7 +444,17 @@ export function CreateProductDialog({
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product!.id, ...data });
     } else {
-      await createProduct.mutateAsync(data);
+      const created = await createProduct.mutateAsync(data);
+      // Show post-creation suggestions instead of closing immediately
+      if (created?.id && created?.workspace_id) {
+        setCreatedProduct({ id: created.id, name: created.name, workspace_id: created.workspace_id });
+        // Clear draft after successful save
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        setHasDraft(false);
+        setDraftSavedAt(null);
+        setShowCostWarning(false);
+        return; // Don't close dialog yet - show suggestions
+      }
     }
 
     // Clear draft after successful save
@@ -546,6 +561,28 @@ export function CreateProductDialog({
     // Store SKU found images without auto-applying
     setSkuFoundImages(images);
   };
+
+  // If we have a created product, show suggestions view
+  if (createdProduct) {
+    return (
+      <Dialog open={open} onOpenChange={() => { setCreatedProduct(null); onOpenChange(false); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-500" />
+              Sugestões de Cross-sell & Up-sell
+            </DialogTitle>
+          </DialogHeader>
+          <PostCreationSuggestionsCard
+            productId={createdProduct.id}
+            workspaceId={createdProduct.workspace_id}
+            productName={createdProduct.name}
+            onDismiss={() => { setCreatedProduct(null); onOpenChange(false); }}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
