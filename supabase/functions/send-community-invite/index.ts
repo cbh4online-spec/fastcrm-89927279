@@ -111,7 +111,7 @@ const handler = async (req: Request): Promise<Response> => {
         <tr><td align="center" style="padding:40px 0;">
           <table role="presentation" style="width:600px;max-width:100%;border-collapse:collapse;background-color:#ffffff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
             <tr>
-              <td style="padding:40px 40px 20px;text-align:center;background:linear-gradient(135deg,${primaryColor} 0%,${primaryColor}cc 100%);border-radius:12px 12px 0 0;">
+              <td style="padding:40px 40px 20px;text-align:center;background-color:${primaryColor};border-radius:12px 12px 0 0;">
                 ${logoHtml}
                 <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;">${communityName}</h1>
                 <p style="margin:10px 0 0;color:rgba(255,255,255,0.9);font-size:16px;">Convite para a Comunidade</p>
@@ -135,14 +135,13 @@ const handler = async (req: Request): Promise<Response> => {
                 </ul>
                 <table role="presentation" style="width:100%;border-collapse:collapse;">
                   <tr><td align="center" style="padding:20px 0;">
-                    <a href="${inviteUrl}" style="display:inline-block;padding:16px 40px;background:linear-gradient(135deg,${primaryColor} 0%,${primaryColor}cc 100%);color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;border-radius:8px;box-shadow:0 4px 14px ${primaryColor}66;">
+                    <a href="${inviteUrl}" style="display:inline-block;padding:16px 40px;background-color:${primaryColor};color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;border-radius:8px;">
                       Juntar-se à Comunidade
                     </a>
                   </td></tr>
                 </table>
                 <p style="margin:30px 0 0;color:#71717a;font-size:14px;line-height:1.6;">
-                  Se não conseguir clicar no botão, copie e cole este link:<br>
-                  <a href="${inviteUrl}" style="color:${primaryColor};">${inviteUrl}</a>
+                  Se não conseguir clicar no botão, <a href="${inviteUrl}" style="color:${primaryColor};">clique aqui</a>.
                 </p>
                 <p style="margin:15px 0 0;color:#a1a1aa;font-size:12px;">
                   Este convite expira em 7 dias.
