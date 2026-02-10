@@ -186,6 +186,50 @@ export type Database = {
           },
         ]
       }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string | null
+          metadata: Json | null
+          title: string
+          type: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          metadata?: Json | null
+          title: string
+          type: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          metadata?: Json | null
+          title?: string
+          type?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_settings: {
         Row: {
           created_at: string
@@ -16114,6 +16158,76 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "product_types_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_variants: {
+        Row: {
+          attributes: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          price_override: number | null
+          product_id: string
+          sku: string | null
+          sort_order: number
+          stock_quantity: number
+          track_stock: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attributes?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_override?: number | null
+          product_id: string
+          sku?: string | null
+          sort_order?: number
+          stock_quantity?: number
+          track_stock?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attributes?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_override?: number | null
+          product_id?: string
+          sku?: string | null
+          sort_order?: number
+          stock_quantity?: number
+          track_stock?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

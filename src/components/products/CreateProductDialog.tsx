@@ -47,6 +47,7 @@ import { ProductImageGalleryManager } from "./ProductImageGalleryManager";
 import { ProductSpecificationsEditor } from "./ProductSpecificationsEditor";
 import { ProductVideoSearch } from "./ProductVideoSearch";
 import { ProductImage360Viewer } from "./ProductImage360Viewer";
+import { ProductVariantsManager } from "./ProductVariantsManager";
 import { useProductCategoriesList } from "@/hooks/useProductCategories";
 import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
 
@@ -1122,6 +1123,13 @@ export function CreateProductDialog({
                 </CollapsibleContent>
               </Collapsible>
             </div>
+
+            {/* Variants Manager - only in edit mode */}
+            {isEditing && product && (
+              <div className="mt-4">
+                <ProductVariantsManager productId={product.id} />
+              </div>
+            )}
           </div>
 
           <DialogFooter>
