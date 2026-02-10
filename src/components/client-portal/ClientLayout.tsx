@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useMemo } from "react";
 import { Link, useLocation, Navigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -10,12 +10,19 @@ import {
   X,
   User,
   Heart,
-  Sparkles
+  Sparkles,
+  Users,
+  Receipt,
+  TrendingUp,
+  FileCheck,
+  HeadphonesIcon,
+  CheckCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useCart } from "@/contexts/CartContext";
 import { useClientFavorites } from "@/hooks/client-portal/useClientFavorites";
+import { useClientPermissions } from "@/hooks/client-portal/useClientPermissions";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,13 +37,27 @@ interface WorkspaceBranding {
   logo_url: string | null;
 }
 
-const navItems = [
+interface NavItem {
+  path: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  showBadge?: "cart" | "favorites";
+  requiredPermission?: "canViewInvoices" | "canViewFinancials" | "canViewContracts" | "canManageTeam" | "canApprove" | "canCreateTickets";
+}
+
+const allNavItems: NavItem[] = [
   { path: "/client/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/client/catalog", icon: Package, label: "Catálogo" },
   { path: "/client/assistant", icon: Sparkles, label: "Assistente IA" },
-  { path: "/client/favorites", icon: Heart, label: "Favoritos", showBadge: "favorites" as const },
-  { path: "/client/cart", icon: ShoppingCart, label: "Carrinho", showBadge: "cart" as const },
+  { path: "/client/favorites", icon: Heart, label: "Favoritos", showBadge: "favorites" },
+  { path: "/client/cart", icon: ShoppingCart, label: "Carrinho", showBadge: "cart" },
   { path: "/client/orders", icon: FileText, label: "Encomendas" },
+  { path: "/client/invoices", icon: Receipt, label: "Faturas", requiredPermission: "canViewInvoices" },
+  { path: "/client/financial", icon: TrendingUp, label: "Financeiro", requiredPermission: "canViewFinancials" },
+  { path: "/client/approvals", icon: CheckCircle, label: "Aprovações", requiredPermission: "canApprove" },
+  { path: "/client/contracts", icon: FileCheck, label: "Contratos", requiredPermission: "canViewContracts" },
+  { path: "/client/support", icon: HeadphonesIcon, label: "Suporte", requiredPermission: "canCreateTickets" },
+  { path: "/client/team", icon: Users, label: "Equipa", requiredPermission: "canManageTeam" },
 ];
 
 export function ClientLayout({ children }: ClientLayoutProps) {
@@ -45,8 +66,16 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const { clientUser, loading, signOut, isAuthenticated, hasAuthButNoClient } = useClientAuth({ workspaceId: savedWorkspaceId });
   const { itemCount } = useCart();
   const { favoriteCount } = useClientFavorites();
+  const permissions = useClientPermissions();
   const location = useLocation();
   const [workspaceBranding, setWorkspaceBranding] = useState<WorkspaceBranding | null>(null);
+
+  const navItems = useMemo(() => {
+    return allNavItems.filter((item) => {
+      if (!item.requiredPermission) return true;
+      return permissions[item.requiredPermission];
+    });
+  }, [permissions]);
   
   // Fetch workspace branding based on client's workspace
   useEffect(() => {
