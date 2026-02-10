@@ -1,90 +1,102 @@
 
-# Melhorias ao FastClub inspiradas no GoKollab/PARE CONNECT
+# Melhorias ao FastClub -- Funcionalidades em Falta
 
-## Contexto
+## Resumo
 
-As imagens de referencia mostram uma plataforma de comunidade completa (GoKollab) com funcionalidades avancadas de gestao de grupo, feeds sociais ricos e painel de administracao. O FastClub atual ja tem o hub principal, forum, gamificacao e recompensas. Faltam varias funcionalidades que tornam a experiencia mais profissional e configuravel.
+Comparando o estado atual do FastClub com as referencias do GoKollab, faltam 7 funcionalidades principais no dialog de definicoes e 1 funcionalidade de canais. O plano inclui tambem integracao com IA para sugestao automatica de categoria da comunidade.
 
 ## Funcionalidades a Implementar
 
-### 1. Feed Social Enriquecido (Homepage do FastClub)
-Melhorar o feed atual para se parecer mais com uma rede social:
-- Posts com avatar do autor, nome e canal/categoria como badge
-- Suporte a hashtags no conteudo (highlight visual)
-- Preview de imagens inline nos posts
-- Botoes de like e comentario directamente no card do feed
-- Badge "@everyone" para mencoes globais
+### 1. Gestao de Canais (Adicionar Canal)
+Dialog para criar/gerir canais (forum_categories) com:
+- Nome (max 25 chars) e descricao (max 60 chars)
+- Icone do canal (emoji picker ou texto)
+- Toggle "Tornar canal privado"
+- Toggle "Canal so de leitura" (apenas admins publicam)
 
-### 2. Sidebar Direita -- Info da Comunidade
-Adicionar painel lateral inspirado no GoKollab:
-- Banner/imagem da comunidade
-- Nome, tipo (Publico/Privado) e descricao
-- Links promocionais configuraveis (Youtube, Website, CRM, etc.)
-- Estatisticas: Membros, Posts, Administradores
-- Avatares dos membros mais recentes
-- Botao "Convidar Membros"
+### 2. Tab "Assinatura" nas Definicoes
+Escolha entre acesso gratuito ou pago:
+- Radio: Gratis / Preco (valor mensal editavel)
+- Integracao com campos existentes em community_settings
 
-### 3. Tabs de Navegacao no Topo
-Substituir os botoes do hero por tabs horizontais:
-- Discussao (feed principal)
-- Eventos (lista de eventos/lives agendados)
-- Classificacao (leaderboard de pontos)
-- Membros (lista de membros)
-- Acerca de (descricao da comunidade)
+### 3. Tab "Marca" Melhorada
+Upload de favicon e imagem de capa:
+- Upload de favicon (1:1) para logo_url
+- Upload de imagem de capa (16:9) para banner_url
+- Usa Lovable Cloud Storage para guardar ficheiros
 
-### 4. Dialog de Definicoes da Comunidade (Admin)
-Dialog completo de configuracao com menu lateral e tabs:
-- **Detalhes**: Nome, slug/URL, descricao, publico/privado
-- **Assinatura**: Acesso gratuito ou pago (integracao com planos existentes)
-- **Newsletter**: Frequencia do resumo (diario/semanal/desligado)
-- **Marca**: Logo e cores personalizadas da comunidade
-- **Ligacoes Promocionais**: CRUD de links com titulo e URL (aparecem no sidebar)
-- **Perguntas de Adesao**: Questionario para novos membros com toggle on/off, tipos texto/selecao unica
-- **Gamificacao**: Configurar regras de pontos
+### 4. Tab "Tema"
+Selecao de tema visual da comunidade:
+- Toggle claro/escuro
+- Grid de temas pre-definidos (Predefinicao, Cinzento Citrico, Veludo Real, etc.)
+- Tab "Tema Personalizado" com color picker
+- Guarda em community_settings.primary_color
 
-### 5. Banner de Eventos/Lives
-Barra de alerta no topo do feed quando existe um evento proximo:
-- "Cafe Digital esta a acontecer em 12 horas"
-- Icone de live e link para o evento
+### 5. Tab "Mostrar/Ocultar Separadores"
+Controlar quais tabs aparecem no hub:
+- Discussao, Aprendizagem, Eventos, Tabela de Classificacao, Membros, Acerca de
+- Cada um com icone, descricao e toggle on/off
+- Guarda como JSON em community_settings (novo campo visible_tabs)
+
+### 6. Tab "Duvidas sobre a Associacao" Melhorada
+CRUD completo de perguntas de adesao:
+- Toggle geral on/off (membership_questions_enabled)
+- Lista de perguntas com tipo (Caixa de Texto / Selecao Unica)
+- Botoes editar e eliminar em cada pergunta
+- Botao "+ Adicionar Questao"
+- Usa tabela community_membership_questions existente
+
+### 7. Tab "Gamificacao e Recompensas"
+Personalizar niveis de fidelidade:
+- Lista dos niveis existentes (Bronze, Silver, Gold, Platinum) com % de membros
+- Botao "Editar" para cada nivel (nome, pontos necessarios, recompensas)
+- Possibilidade de adicionar niveis extra
+
+### 8. Tab "Descobrir" com IA
+Sugestao automatica de categoria:
+- Toggle "Descoberta" (comunidade visivel publicamente)
+- Slug/URL da comunidade
+- Campo "Categoria" com sugestao automatica via IA baseada no nome e descricao
+- Botao refresh para re-gerar sugestao
+- Usa Lovable AI (gemini-2.5-flash) para gerar a categoria
 
 ## Detalhes Tecnicos
 
-### Novas Tabelas (Migracoes SQL)
+### Migracao SQL
 
-**`community_settings`** -- Configuracoes gerais da comunidade por workspace:
-- `id`, `workspace_id` (FK), `name`, `description`, `slug`, `is_private` (boolean), `logo_url`, `banner_url`, `primary_color`, `newsletter_frequency` (enum: none/daily/weekly), `membership_questions_enabled` (boolean), `created_at`, `updated_at`
+Nova coluna em `community_settings`:
+- `visible_tabs` (JSONB, default com todas ativas)
+- `subscription_type` (TEXT, 'free' ou 'paid')
+- `subscription_price` (NUMERIC, nullable)
+- `theme_preset` (TEXT, nullable)
+- `category` (TEXT, nullable -- sugerida por IA)
+- `is_discoverable` (BOOLEAN, default false)
 
-**`community_links`** -- Links promocionais do sidebar:
-- `id`, `workspace_id` (FK), `title`, `url`, `sort_order`, `created_at`
+Novas colunas em `forum_categories`:
+- `is_private` (BOOLEAN, default false)
+- `is_read_only` (BOOLEAN, default false)
 
-**`community_membership_questions`** -- Perguntas de adesao:
-- `id`, `workspace_id` (FK), `question_text`, `question_type` (text/single_choice), `options` (jsonb, para selecao unica), `sort_order`, `is_active`, `created_at`
+### Ficheiros a Modificar
 
-**`community_events`** -- Eventos e lives agendados:
-- `id`, `workspace_id` (FK), `title`, `description`, `event_type` (live/event), `starts_at`, `ends_at`, `link`, `created_by`, `created_at`
+| Ficheiro | Descricao |
+|---|---|
+| `src/components/community/CommunitySettingsDialog.tsx` | Adicionar 6 novas tabs (Assinatura, Tema, Mostrar/Ocultar, Duvidas, Gamificacao, Descobrir) |
+| `src/components/community/AddChannelDialog.tsx` | **Novo** -- Dialog para criar canal com nome, descricao, icone, toggles privado/leitura |
+| `src/hooks/useCommunitySettings.ts` | Actualizar interface com novos campos |
+| `src/pages/community/FastClubPage.tsx` | Respeitar visible_tabs para mostrar/esconder separadores; adicionar botao "+ Adicionar Canal" na sidebar |
+| `src/hooks/useForum.ts` | Adicionar mutacao para criar/editar forum_categories |
 
-### Ficheiros a Criar/Modificar
+### Edge Function para IA (sugestao de categoria)
 
-| Ficheiro | Acao | Descricao |
-|---|---|---|
-| `src/pages/community/FastClubPage.tsx` | Modificar | Redesign com tabs, feed social enriquecido e sidebar direito |
-| `src/components/community/CommunitySettingsDialog.tsx` | Criar | Dialog de definicoes com todas as tabs |
-| `src/components/community/CommunitySidebar.tsx` | Criar | Sidebar direito com info, links e stats |
-| `src/components/community/CommunityEventBanner.tsx` | Criar | Banner de eventos/lives proximos |
-| `src/components/community/CommunityMembersList.tsx` | Criar | Tab de membros da comunidade |
-| `src/components/community/CommunityLeaderboard.tsx` | Criar | Tab de classificacao/leaderboard |
-| `src/components/community/CommunityAbout.tsx` | Criar | Tab "Acerca de" |
-| `src/components/community/SocialPostCard.tsx` | Criar | Card de post estilo rede social com avatar, likes, imagens |
-| `src/hooks/useCommunitySettings.ts` | Criar | CRUD para settings, links e questions |
-| `src/hooks/useCommunityEvents.ts` | Criar | Queries para eventos |
-| Migration SQL | Criar | Tabelas community_settings, community_links, community_membership_questions, community_events |
+Reutilizar a infraestrutura existente de Lovable AI para chamar gemini-2.5-flash com prompt:
+- Input: nome e descricao da comunidade
+- Output: uma categoria (ex: "Productivity", "Marketing", "Education")
+- Chamada direta no componente via edge function
 
-### Politicas RLS
-- `community_settings`: leitura publica por workspace, escrita apenas para admins
-- `community_links`: leitura publica, escrita admin
-- `community_membership_questions`: leitura publica, escrita admin
-- `community_events`: leitura publica, escrita admin
+### Storage
+
+Criar bucket `community-assets` para uploads de favicon e banner com politicas de acesso publico para leitura.
 
 ### Fluxo de Dados
 
-O FastClubPage passa a ser o hub central com 5 tabs. O conteudo do feed usa os dados existentes de `forum_topics` e `forum_posts` mas renderiza-os com o novo `SocialPostCard`. O sidebar direito carrega dados de `community_settings` e `community_links`. O dialog de definicoes e acessivel apenas para admins via icone de engrenagem no header.
+O `CommunitySettingsDialog` passa de 4 tabs para 10 tabs com scroll lateral no menu. Cada tab guarda independentemente via `useUpsertCommunitySettings`. O `FastClubPage` le `visible_tabs` do settings para filtrar quais TabsTrigger renderizar. O `AddChannelDialog` cria entradas em `forum_categories` com os novos campos.
