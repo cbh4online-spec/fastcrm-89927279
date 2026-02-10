@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingBag, Star, Package, Heart, Eye, TrendingUp, Flame } from "lucide-react";
+import { ShoppingBag, Star, Package, Heart, Eye, TrendingUp, Flame, GitCompareArrows } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreQuickViewModal } from "@/components/store/StoreQuickViewModal";
 import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
+import { useStoreCompare } from "@/contexts/StoreCompareContext";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 
 interface StoreProductCardProps {
@@ -27,8 +28,10 @@ interface StoreProductCardProps {
 export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlistProductIds = [], tierPricing, index = 0, reviewStats, salesCounts }: StoreProductCardProps) {
   const { addItem } = useStoreCart();
   const toggleWishlist = useToggleWishlist();
+  const { addItem: addToCompare, removeItem: removeFromCompare, isInCompare, isFull: compareFull } = useStoreCompare();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const inCompare = isInCompare(product.id);
   const isInWishlist = wishlistProductIds.includes(product.id);
   const primaryIndex = product.primary_image_index ?? 0;
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
@@ -161,6 +164,27 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
 
             {/* Quick actions */}
             <div className="absolute bottom-3 right-3 flex flex-col gap-2 opacity-0 translate-y-3 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+              {/* Compare */}
+              <Button
+                size="icon"
+                variant="secondary"
+                className={cn(
+                  "h-9 w-9 rounded-full shadow-lg backdrop-blur-sm bg-background/80 hover:bg-background transition-transform duration-200 active:scale-90",
+                  inCompare && "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (inCompare) {
+                    removeFromCompare(product.id);
+                  } else {
+                    addToCompare(product);
+                  }
+                }}
+                disabled={!inCompare && compareFull}
+              >
+                <GitCompareArrows className="h-4 w-4" />
+              </Button>
               {/* Quick View */}
               <Button
                 size="icon"

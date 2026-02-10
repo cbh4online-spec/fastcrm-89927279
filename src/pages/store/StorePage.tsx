@@ -20,6 +20,9 @@ import { StoreFaqSection } from "@/components/store/sections/StoreFaqSection";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreFilterSidebar";
+import { StoreCompareBar } from "@/components/store/StoreCompareBar";
+import { StoreCompareModal } from "@/components/store/StoreCompareModal";
+import { StoreCompareProvider } from "@/contexts/StoreCompareContext";
 import { useStoreProducts, useStoreCategories, useInfiniteStoreProducts } from "@/hooks/useStoreProducts";
 import { useStoreTierPricing } from "@/hooks/useStoreTierPricing";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
@@ -94,6 +97,7 @@ export default function StorePage() {
   }, [allProducts]);
 
   return (
+    <StoreCompareProvider>
     <>
       <Helmet>
         <title>{storeName} | FastCRM</title>
@@ -319,7 +323,15 @@ export default function StorePage() {
             workspaceSlug={wsId}
           />
         )}
+        {/* Compare Bar & Modal */}
+        <StoreCompareBar />
+        <StoreCompareModal
+          workspaceSlug={wsId}
+          tierPricing={tierPricing}
+          reviewStats={reviewStats}
+        />
       </div>
     </>
+    </StoreCompareProvider>
   );
 }
