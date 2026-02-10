@@ -1,125 +1,156 @@
+# Plano Geral — Funcionalidades E-commerce Avançadas
 
-# Gift Cards / Cartoes Presente Digitais
+## Estado
 
-## Resumo
-
-Implementar um sistema completo de Gift Cards digitais: o admin cria cartoes presente com valores fixos ou personalizados, cada um com codigo unico. Os clientes podem compra-los na loja e usa-los como metodo de pagamento no checkout, com saldo reutilizavel ate esgotar.
-
----
-
-## Como funciona
-
-```text
-Admin cria Gift Cards (valores pre-definidos: 10, 25, 50, 100 EUR)
-     |
-     v
-Cliente compra Gift Card na loja (pagamento via Stripe)
-     |
-     v
-Codigo unico gerado automaticamente (ex: GC-XXXX-XXXX-XXXX)
-     |
-     v
-Cliente recebe Gift Card por email (ou copia o codigo)
-     |
-     v
-Destinatario usa o codigo no checkout (campo ao lado do cupao)
-     |
-     v
-Saldo e debitado do Gift Card -> se sobrar saldo, pode usar novamente
-```
+- [x] Gift Cards / Cartões Presente ✅ (implementado)
+- [ ] **Fase 1: Marketplace C2C** ← próxima
+- [ ] Fase 2: Comparador de Preços
+- [ ] Fase 3: Sponsors / Publicidade
+- [ ] Fase 4: Clube / Comunidade
 
 ---
 
-## Experiencia do Cliente
+## Fase 1: Marketplace C2C (Independente)
 
-- Na loja, seccao "Cartoes Presente" acessivel pelo header
-- Escolhe valor (pre-definido ou personalizado) e preenche nome/email do destinatario + mensagem opcional
-- Apos pagamento, Gift Card fica ativo com codigo unico
-- No checkout, campo dedicado "Tem um Gift Card?" ao lado do cupao existente
-- O saldo e aplicado como desconto; se o total for menor que o saldo, o restante fica para uso futuro
-- O cliente pode consultar o saldo do Gift Card a qualquer momento
+Secção separada tipo OLX/Vinted onde utilizadores registados criam anúncios de produtos próprios. Publicação automática com moderação por filtros.
 
-## Painel Admin
+### Base de Dados
+- `c2c_listings` — anúncios (título, descrição, preço, fotos[], categoria, condição, vendedor_id, status, localização)
+- `c2c_categories` — categorias do marketplace
+- `c2c_messages` — mensagens privadas entre comprador/vendedor
+- `c2c_reviews` — avaliações pós-transação
+- `c2c_favorites` — favoritos/watchlist
+- `c2c_reports` — denúncias de anúncios
+- `c2c_moderation_settings` — config de filtros (palavras proibidas, limites)
 
-- Novo separador "Gift Cards" nas configuracoes da loja
-- Criar Gift Cards manuais (para oferecer a clientes)
-- Ver todos os Gift Cards emitidos (codigo, saldo original, saldo restante, status, destinatario)
-- Desativar/reativar Gift Cards
-- Definir valores pre-configurados (ex: 10, 25, 50, 100)
+### Funcionalidades
+- Criar/editar/remover anúncios com fotos múltiplas (storage)
+- Pesquisa full-text e filtros (categoria, preço min/max, condição, localização)
+- Mensagens diretas entre utilizadores (realtime)
+- Avaliações e score de reputação do vendedor
+- Favoritos com notificações de alteração de preço
+- **Publicação automática** com filtros: palavras proibidas, detecção de spam, auto-flag para review
+- Painel admin: fila de moderação, anúncios reportados, gestão de categorias
 
----
-
-## Seccao Tecnica
-
-### Migracao SQL
-
-**Tabela `store_gift_cards`:**
-- `id` UUID PK
-- `workspace_id` UUID FK -> workspaces
-- `code` TEXT UNIQUE -- codigo unico (ex: GC-XXXX-XXXX-XXXX)
-- `initial_balance` NUMERIC NOT NULL -- valor original
-- `current_balance` NUMERIC NOT NULL -- saldo atual
-- `currency` TEXT DEFAULT 'EUR'
-- `status` TEXT DEFAULT 'active' -- active, depleted, disabled
-- `purchaser_name` TEXT -- quem comprou
-- `purchaser_email` TEXT -- email de quem comprou
-- `recipient_name` TEXT -- destinatario
-- `recipient_email` TEXT -- email do destinatario
-- `message` TEXT -- mensagem pessoal
-- `stripe_payment_intent_id` TEXT -- referencia Stripe (se comprado online)
-- `expires_at` TIMESTAMPTZ -- validade (opcional)
-- `created_at` TIMESTAMPTZ DEFAULT now()
-- `updated_at` TIMESTAMPTZ DEFAULT now()
-
-**Tabela `store_gift_card_transactions`:**
-- `id` UUID PK
-- `gift_card_id` UUID FK -> store_gift_cards
-- `workspace_id` UUID FK -> workspaces
-- `order_id` TEXT -- referencia da encomenda
-- `amount` NUMERIC NOT NULL -- valor usado
-- `balance_before` NUMERIC NOT NULL
-- `balance_after` NUMERIC NOT NULL
-- `description` TEXT -- ex: "Pagamento parcial encomenda #123"
-- `created_at` TIMESTAMPTZ DEFAULT now()
-
-**RLS:**
-- Leitura publica filtrada por codigo + workspace (para verificar saldo)
-- Insercao publica (para compra de Gift Cards)
-- Update restrito (apenas saldo via transacoes)
+### Páginas
+- `/marketplace` — listagem com pesquisa e filtros
+- `/marketplace/:id` — detalhe do anúncio
+- `/marketplace/criar` — formulário de criação
+- `/marketplace/meus-anuncios` — gestão dos meus anúncios
+- `/marketplace/mensagens` — inbox
+- Admin: separador "Marketplace C2C" nas settings
 
 ### Ficheiros a criar
+- `src/pages/c2c/C2CMarketplace.tsx` — listagem principal
+- `src/pages/c2c/C2CListingDetail.tsx` — detalhe
+- `src/pages/c2c/C2CCreateListing.tsx` — criar anúncio
+- `src/pages/c2c/C2CMyListings.tsx` — meus anúncios
+- `src/pages/c2c/C2CMessages.tsx` — mensagens
+- `src/hooks/useC2CListings.ts` — CRUD de anúncios
+- `src/hooks/useC2CMessages.ts` — mensagens realtime
+- `src/hooks/useC2CModeration.ts` — moderação automática
+- `src/components/c2c/` — ListingCard, ListingFilters, MessageThread, ReviewForm, etc.
 
-- `src/hooks/useStoreGiftCards.ts` -- hooks para CRUD de Gift Cards (admin) e validacao/uso (checkout)
-- `src/components/store/StoreGiftCardSection.tsx` -- seccao na loja para compra de Gift Cards (escolher valor, destinatario)
-- `src/components/store/StoreGiftCardBalance.tsx` -- componente para consultar saldo de Gift Card
-- `src/components/store-settings/StoreGiftCardsManager.tsx` -- painel admin para gerir Gift Cards
-- `src/pages/store/StoreGiftCardsPage.tsx` -- pagina publica para comprar Gift Cards
+---
 
-### Ficheiros a modificar
+## Fase 2: Comparador de Preços
 
-- `src/pages/store/StoreCheckoutPage.tsx` -- adicionar campo "Gift Card" ao lado do cupao, logica de saldo
-- `src/components/store/StoreHeader.tsx` -- link "Cartoes Presente" no header
-- `src/pages/StoreSettingsPage.tsx` -- novo separador "Gift Cards"
-- `src/App.tsx` -- nova rota `/store/:workspaceSlug/gift-cards`
-- `supabase/functions/create-store-checkout/index.ts` -- aplicar saldo de Gift Card no total antes de criar sessao Stripe
+### 2A: Preços Internos
+- Widget "Comparar" na página de produto
+- Compara produtos da mesma categoria lado a lado
+- Tabela comparativa com specs e preços
 
-### Logica de Checkout com Gift Card
+### 2B: Preços Externos
+- Edge function usando Firecrawl para buscar preços em lojas externas
+- Widget na página de produto: "Preço noutras lojas"
+- Cache de resultados (24h) para performance
 
-1. Cliente insere codigo do Gift Card no checkout
-2. Frontend valida codigo e mostra saldo disponivel
-3. Ao submeter, o saldo e debitado:
-   - Se saldo >= total: pagamento completo via Gift Card, sem Stripe
-   - Se saldo < total: saldo aplicado como desconto, restante via Stripe
-4. Transacao registada em `store_gift_card_transactions`
-5. `current_balance` atualizado; se chegar a 0, status muda para `depleted`
+### 2C: Histórico de Preços
+- `product_price_history` — registo automático via trigger SQL
+- Gráfico sparkline na página de produto
+- Alerta "Preço mais baixo de sempre" quando aplicável
 
-### Edge Function -- ajuste em `create-store-checkout`
+### Ficheiros a criar
+- `src/components/store/PriceComparisonWidget.tsx`
+- `src/components/store/PriceHistoryChart.tsx`
+- `src/hooks/usePriceComparison.ts`
+- `src/hooks/usePriceHistory.ts`
+- Edge function: `compare-prices`
 
-- Receber `giftCardCode` no body
-- Validar Gift Card e calcular valor a debitar
-- Se Gift Card cobre tudo: criar encomenda diretamente (sem Stripe), debitar saldo, retornar sucesso
-- Se Gift Card cobre parcialmente: debitar saldo, criar sessao Stripe com o valor restante
+---
 
-### Dependencias
+## Fase 3: Sponsors / Publicidade
 
-Nenhuma nova -- utiliza componentes UI e hooks existentes
+### 3A: Banners na Loja
+- `store_ad_placements` — slots (homepage-hero, sidebar, between-products, category-header)
+- `store_ads` — banner com imagem, link, datas início/fim, impressões, cliques
+- Painel admin para criar/gerir campanhas
+- Tracking automático de impressões e CTR
+
+### 3B: Produtos Patrocinados (C2C)
+- `c2c_sponsored_listings` — boost pago para anúncios C2C
+- Vendedores pagam para aparecer no topo (duração configurável)
+- Badge "Patrocinado" e prioridade na ordenação
+- Integração Stripe para pagamento do boost
+
+### 3C: Parceiros Externos
+- `store_sponsors` — parceiros com logo, link, descrição, tier (Gold/Silver/Bronze)
+- Secção "Parceiros" no footer/página dedicada
+- Painel admin para gerir parceiros
+
+### Ficheiros a criar
+- `src/components/store/AdBanner.tsx`
+- `src/components/store/SponsoredBadge.tsx`
+- `src/components/store-settings/AdsManager.tsx`
+- `src/components/store-settings/SponsorsManager.tsx`
+- `src/hooks/useStoreAds.ts`
+- `src/hooks/useStoreSponsors.ts`
+
+---
+
+## Fase 4: Clube / Comunidade
+
+### 4A: Programa de Fidelidade
+- `loyalty_points` — saldo por utilizador/workspace
+- `loyalty_transactions` — histórico (compras, reviews, referrals, resgate)
+- `loyalty_tiers` — Bronze/Silver/Gold/Platinum com multiplicadores
+- `loyalty_rewards` — recompensas (desconto %, produto grátis, frete grátis)
+- Dashboard: saldo, nível, progresso, histórico
+- Pontos automáticos: compra (1pt/€), review (+50pt), referral (+100pt)
+
+### 4B: Fórum / Discussões
+- `forum_categories` — categorias do fórum
+- `forum_topics` — tópicos com título, conteúdo, autor, pins, locks
+- `forum_posts` — respostas em thread
+- `forum_reactions` — likes/útil/concordo
+- Publicação automática com filtros de spam e palavras proibidas
+- Perfil público com stats e reputação
+
+### 4C: Conteúdo Exclusivo
+- `exclusive_content` — artigos/ofertas gated por nível de fidelidade
+- Secção "Clube" na loja com preview + lock
+- Early access a novos produtos para membros Gold+
+
+### Moderação Automática (Transversal)
+- `moderation_filters` — palavras proibidas, regex patterns, config por workspace
+- `moderation_queue` — itens flagged para review
+- Auto-publish por defeito; flag se suspeito
+- Painel admin: fila de moderação, approve/reject, ban user
+- Aplicável a: anúncios C2C, posts do fórum, reviews
+
+### Ficheiros a criar
+- `src/pages/community/` — Forum, Topic, Profile, Loyalty
+- `src/hooks/useLoyalty.ts`, `useForum.ts`, `useModeration.ts`
+- `src/components/community/` — TopicCard, PostThread, LoyaltyDashboard, RewardCard
+- `src/components/store-settings/ModerationManager.tsx`
+
+---
+
+## Ordem de Implementação
+
+1. **Fase 1: Marketplace C2C** — fundação para sponsors e comunidade
+2. **Fase 2: Comparador de Preços** — independente
+3. **Fase 3: Sponsors** — depende parcialmente do C2C
+4. **Fase 4: Clube/Comunidade** — mais complexo, beneficia das fases anteriores
+
+Cada fase será implementada incrementalmente dentro de múltiplas mensagens.
