@@ -1,69 +1,148 @@
 
+# Portal B2B 2.0 -- Client Control & Intelligence Hub
 
-# Guardar dados do checkout imediatamente
+## Analise do Estado Atual vs. Spec
 
-## Problema Atual
-O formulario de checkout tem 2 passos, mas os dados do cliente (nome, telefone, email) so sao guardados no momento final quando o utilizador clica "Pagar com Stripe". Se o cliente preencher os dados e abandonar antes de pagar, o CRM nao captura nada.
+O portal atual cobre: login, catalogo com precos B2B, carrinho, checkout com notas de encomenda, historico de encomendas, favoritos, recompra rapida, assistente IA diagnostico e pesquisa semantica.
 
-## Solucao
+**Gaps identificados** (agrupados por prioridade):
 
-Guardar os dados do cliente no CRM (tabela `contacts`) e na tabela `store_abandoned_carts` imediatamente apos o passo 1 (nome + telefone), e atualizar com o email no passo 2 -- tudo antes do redirecionamento para o Stripe.
+---
 
-## Alteracoes
+## Fase 1 -- Gestao de Utilizadores e Permissoes B2B (Core)
 
-### 1. StoreCheckoutPage.tsx
-- No `handleStep1Continue`, apos validacao, fazer um upsert do contacto no backend (nome + telefone) via uma nova chamada a uma edge function ou diretamente via Supabase client
-- Guardar o `contactId` retornado no state local
-- Registar/atualizar um `store_abandoned_cart` com os items e dados do cliente
-- No passo 2, quando o email e preenchido, atualizar o contacto e o carrinho abandonado com o email (via debounce ou on blur)
+Atualmente cada `client_user` e individual. Nao existe conceito de **roles B2B** (Admin do Cliente, Financeiro, Operacional, Viewer) nem gestao de sub-utilizadores por empresa.
 
-### 2. Nova Edge Function: `store-capture-lead`
-- Recebe: `workspaceId`, `name`, `phone`, `email` (opcional), `cartItems`
-- Faz upsert do contacto (por telefone, ja que email pode nao existir ainda)
-- Cria/atualiza registo em `store_abandoned_carts` com status `active`
-- Retorna `contactId` e `cartId`
+### 1.1 Tabela `client_user_roles`
+- Nova tabela com enum: `client_admin`, `client_financial`, `client_operational`, `client_viewer`
+- FK para `client_users`, com RLS por `workspace_id`
+- Campo `spending_limit` (plafond mensal) e `allowed_product_categories` (JSONB)
 
-### 3. Atualizacao do `create-store-checkout`
-- Aceitar `contactId` opcional no body para evitar duplicar o upsert
-- Se `contactId` vier preenchido, usar diretamente em vez de procurar novamente
+### 1.2 Pagina "Equipa" no Portal
+- Nova rota `/client/team` -- so visivel para `client_admin`
+- Listar sub-utilizadores da mesma `company_id`
+- Convidar novos utilizadores (reutiliza edge function `create-client-auth-user`)
+- Atribuir/editar roles e limites
 
-### 4. Fluxo Completo
+### 1.3 Hook `useClientPermissions`
+- Avalia o role do `clientUser` logado
+- Exporta: `canApprove`, `canPurchase`, `canViewInvoices`, `canManageTeam`
+- Usado no `ClientLayout` para filtrar menu e em cada pagina para controlo de acesso
 
-```text
-Passo 1: Nome + Telefone
-  |
-  v
-[Guardar contacto + carrinho abandonado] --> CRM tem o lead
-  |
-  v
-Passo 2: Email + Envio
-  |
-  v  
-[Atualizar contacto com email] --> Lead completo
-  |
-  v
-Clica "Pagar" --> create-store-checkout (usa contactId existente)
-  |
-  v
-Stripe Checkout --> Webhook marca carrinho como "recovered"
-```
+---
 
-## Detalhes Tecnicos
+## Fase 2 -- Fluxos de Aprovacao B2B
 
-### Edge Function `store-capture-lead`
-- Upsert por telefone (fallback por email se disponivel)
-- Cria registo `store_abandoned_carts` com `session_id` gerado no frontend (UUID)
-- Tags automaticas: `["loja-online", "lead-checkout"]`
-- Source: `"store_checkout"`
+### 2.1 Tabela `client_approval_flows`
+- Configuracao por empresa: thresholds de valor, quem aprova
+- Tipos: `purchase`, `refund`, `upgrade`
 
-### Frontend (StoreCheckoutPage.tsx)
-- Gerar `sessionId` (UUID) no mount do componente
-- Chamar `store-capture-lead` no submit do passo 1
-- Chamar update no blur do campo email (passo 2)
-- Guardar `contactId` no state para passar ao `create-store-checkout`
+### 2.2 Tabela `client_approval_requests`
+- FK para `order_notes` ou generica (`entity_type` + `entity_id`)
+- Status: `pending`, `approved`, `rejected`
+- Campos: `requested_by`, `decided_by`, `decided_at`, `reason`
+- Trigger de notificacao
 
-### Impacto
-- Zero friccao para o utilizador (o fluxo visual nao muda)
-- O CRM captura leads mesmo com abandono
-- O sistema de automacao de carrinho abandonado fica mais preciso (tem dados reais do contacto)
+### 2.3 UI de Aprovacao no Portal
+- Badge no menu com contagem de pendentes
+- Pagina `/client/approvals` -- lista de pedidos pendentes
+- Acoes: aprovar/rejeitar com comentario
+- Integrado no checkout: se o utilizador nao tiver permissao para o valor, cria um `approval_request` em vez de submeter diretamente
 
+---
+
+## Fase 3 -- Faturacao e Financeiro no Portal
+
+### 3.1 Pagina `/client/invoices`
+- Consulta da tabela `invoices` filtrada por `company_id` ou `contact_id` do `clientUser`
+- Listar: numero, data, valor, estado, download PDF
+- So visivel para roles `client_admin` e `client_financial`
+
+### 3.2 Pagina `/client/financial`
+- Dashboard financeiro: total faturado, pendente, vencido
+- Grafico de evolucao mensal (recharts)
+- Condicoes comerciais do cliente (payment_terms, credit_limit)
+- Visivel para `client_admin` e `client_financial`
+
+---
+
+## Fase 4 -- Contratos e SLAs
+
+### 4.1 Tabela `client_contracts`
+- Campos: `company_id`, `workspace_id`, `title`, `type` (contrato/SLA), `start_date`, `end_date`, `renewal_date`, `status`, `terms` (JSONB), `document_url`
+- RLS por workspace + empresa
+
+### 4.2 Pagina `/client/contracts`
+- Lista de contratos ativos
+- Detalhes: termos, datas, SLA, documento anexo
+- Alerta visual para contratos proximos da expiracao (< 30 dias)
+
+---
+
+## Fase 5 -- Tickets e Suporte B2B
+
+### 5.1 Tabela `client_tickets`
+- Campos: `company_id`, `client_user_id`, `workspace_id`, `type` (suporte/comercial/tecnico), `priority`, `subject`, `description`, `status`, `sla_deadline`
+- Tabela `client_ticket_messages` para historico de conversa
+
+### 5.2 Pagina `/client/support`
+- Criar novo ticket (tipo, prioridade, descricao)
+- Lista de tickets com filtros
+- Detalhe com timeline de mensagens
+- Indicador de SLA (tempo restante)
+
+---
+
+## Fase 6 -- Intelligence Hub (Dashboard Executivo + Copilot B2B)
+
+### 6.1 Dashboard Executivo (`/client/dashboard` melhorado)
+- KPIs: consumo total, evolucao mensal, top produtos, ROI estimado
+- Graficos recharts integrados
+- Alertas inteligentes (subutilizacao, renovacao proxima, oportunidades)
+
+### 6.2 Copilot B2B (upgrade do Assistente IA)
+- Contexto enriquecido: contrato, faturacao, historico de tickets, encomendas
+- Capacidades: resumo da relacao comercial, sugestoes de upgrade/downgrade, rascunho de pedidos
+- Usa edge function `ai-copilot` com contexto expandido
+- Reutiliza a pagina `/client/assistant` existente com prompt system melhorado
+
+---
+
+## Fase 7 -- Navegacao e Layout Atualizado
+
+### 7.1 `ClientLayout.tsx`
+- Menu expandido com seccoes condicionais baseadas em `useClientPermissions`:
+  - Dashboard, Catalogo, Carrinho, Encomendas (todos)
+  - Faturas, Financeiro (admin/financeiro)
+  - Aprovacoes (admin, com badge de contagem)
+  - Contratos (admin/financeiro)
+  - Suporte (todos)
+  - Equipa (admin)
+  - Assistente IA (todos)
+
+---
+
+## Resumo Tecnico de Ficheiros
+
+| Acao | Ficheiro |
+|------|----------|
+| Criar | `supabase/migrations/xxx_b2b_portal_v2.sql` (roles, approvals, contracts, tickets) |
+| Criar | `src/hooks/client-portal/useClientPermissions.ts` |
+| Criar | `src/hooks/client-portal/useClientApprovals.ts` |
+| Criar | `src/hooks/client-portal/useClientInvoices.ts` |
+| Criar | `src/hooks/client-portal/useClientContracts.ts` |
+| Criar | `src/hooks/client-portal/useClientTickets.ts` |
+| Criar | `src/pages/client/ClientTeamPage.tsx` |
+| Criar | `src/pages/client/ClientApprovalsPage.tsx` |
+| Criar | `src/pages/client/ClientInvoicesPage.tsx` |
+| Criar | `src/pages/client/ClientFinancialPage.tsx` |
+| Criar | `src/pages/client/ClientContractsPage.tsx` |
+| Criar | `src/pages/client/ClientSupportPage.tsx` |
+| Criar | `src/pages/client/ClientTicketDetailPage.tsx` |
+| Editar | `src/components/client-portal/ClientLayout.tsx` (menu expandido) |
+| Editar | `src/pages/client/ClientDashboardPage.tsx` (KPIs executivos) |
+| Editar | `src/pages/client/ClientCheckoutPage.tsx` (fluxo de aprovacao) |
+| Editar | `src/App.tsx` (novas rotas) |
+
+### Abordagem de implementacao
+Implementar por fases, comecando pela Fase 1 (roles e permissoes) pois todas as outras fases dependem deste sistema de controlo de acesso. Cada fase e funcional de forma independente.
