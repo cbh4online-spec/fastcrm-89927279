@@ -4678,6 +4678,58 @@ export type Database = {
           },
         ]
       }
+      community_membership_answers: {
+        Row: {
+          answer_text: string
+          created_at: string | null
+          id: string
+          member_id: string | null
+          question_id: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          answer_text?: string
+          created_at?: string | null
+          id?: string
+          member_id?: string | null
+          question_id: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          answer_text?: string
+          created_at?: string | null
+          id?: string
+          member_id?: string | null
+          question_id?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_membership_answers_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "community_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_membership_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "community_membership_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_membership_answers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_membership_questions: {
         Row: {
           created_at: string

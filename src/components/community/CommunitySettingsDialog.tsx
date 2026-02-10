@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCommunitySettings, useUpsertCommunitySettings, useCommunityLinks, useManageCommunityLinks } from "@/hooks/useCommunitySettings";
 import { useSuggestCommunityCategory } from "@/hooks/useCommunityAI";
+import { useMembershipQuestions, useAddMembershipQuestion, useUpdateMembershipQuestion, useDeleteMembershipQuestion } from "@/hooks/useMembershipQuestions";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, Type, Link2, Mail, Palette, Plus, Trash2, Loader2,
@@ -373,19 +374,11 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
 
               {/* PERGUNTAS DE ADESÃO */}
               {tab === "questions" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-lg border">
-                    <div>
-                      <p className="text-sm font-medium">Perguntas de Adesão</p>
-                      <p className="text-xs text-muted-foreground">Novos membros respondem a perguntas ao aderir</p>
-                    </div>
-                    <Switch
-                      checked={settings?.membership_questions_enabled || false}
-                      onCheckedChange={(val) => upsert.mutate({ membership_questions_enabled: val } as any)}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">As perguntas podem ser geridas na secção de membros (em breve: CRUD completo aqui).</p>
-                </div>
+                <QuestionsTabContent
+                  workspaceId={workspaceId}
+                  settings={settings}
+                  upsert={upsert}
+                />
               )}
 
               {/* GAMIFICAÇÃO */}
@@ -476,5 +469,137 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// === Questions Tab CRUD Component ===
+function QuestionsTabContent({ workspaceId, settings, upsert }: { workspaceId: string | undefined; settings: any; upsert: any }) {
+  const { data: questions = [], isLoading } = useMembershipQuestions();
+  const addQuestion = useAddMembershipQuestion();
+  const updateQuestion = useUpdateMembershipQuestion();
+  const deleteQuestion = useDeleteMembershipQuestion();
+
+  const [newText, setNewText] = useState("");
+  const [newType, setNewType] = useState("text");
+  const [newOptions, setNewOptions] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editType, setEditType] = useState("text");
+  const [editOptions, setEditOptions] = useState("");
+
+  const handleAdd = () => {
+    if (!newText.trim()) return;
+    addQuestion.mutate({
+      question_text: newText.trim(),
+      question_type: newType,
+      options: newType === "select" ? newOptions.split(",").map(o => o.trim()).filter(Boolean) : undefined,
+    });
+    setNewText("");
+    setNewType("text");
+    setNewOptions("");
+  };
+
+  const handleStartEdit = (q: any) => {
+    setEditingId(q.id);
+    setEditText(q.question_text);
+    setEditType(q.question_type);
+    setEditOptions(q.options ? q.options.join(", ") : "");
+  };
+
+  const handleSaveEdit = (id: string) => {
+    updateQuestion.mutate({
+      id,
+      question_text: editText.trim(),
+      question_type: editType,
+      options: editType === "select" ? editOptions.split(",").map(o => o.trim()).filter(Boolean) : null,
+    });
+    setEditingId(null);
+  };
+
+  const typeLabel = (t: string) => t === "text" ? "Texto" : t === "textarea" ? "Texto longo" : "Selecção";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between p-3 rounded-lg border">
+        <div>
+          <p className="text-sm font-medium">Perguntas de Adesão</p>
+          <p className="text-xs text-muted-foreground">Novos membros respondem a perguntas ao aderir</p>
+        </div>
+        <Switch
+          checked={settings?.membership_questions_enabled || false}
+          onCheckedChange={(val) => upsert.mutate({ membership_questions_enabled: val } as any)}
+        />
+      </div>
+
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground text-center py-4">A carregar...</p>
+      ) : (
+        <div className="space-y-2">
+          {questions.map((q, idx) => (
+            <div key={q.id} className="p-3 rounded-lg border space-y-2">
+              {editingId === q.id ? (
+                <>
+                  <Input value={editText} onChange={e => setEditText(e.target.value)} placeholder="Texto da pergunta" />
+                  <div className="flex gap-2">
+                    <Select value={editType} onValueChange={setEditType}>
+                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Texto</SelectItem>
+                        <SelectItem value="textarea">Texto longo</SelectItem>
+                        <SelectItem value="select">Selecção</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {editType === "select" && (
+                      <Input value={editOptions} onChange={e => setEditOptions(e.target.value)} placeholder="Opção 1, Opção 2, ..." className="flex-1" />
+                    )}
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancelar</Button>
+                    <Button size="sm" onClick={() => handleSaveEdit(q.id)}>Guardar</Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{q.question_text}</p>
+                    <p className="text-[11px] text-muted-foreground">{typeLabel(q.question_type)}{q.options ? ` · ${(q.options as string[]).length} opções` : ""}</p>
+                  </div>
+                  <Switch
+                    checked={q.is_active}
+                    onCheckedChange={(val) => updateQuestion.mutate({ id: q.id, is_active: val })}
+                  />
+                  <Button variant="ghost" size="sm" onClick={() => handleStartEdit(q)}>Editar</Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteQuestion.mutate(q.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add new question */}
+      <div className="p-3 rounded-lg border border-dashed space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Nova pergunta</p>
+        <Input value={newText} onChange={e => setNewText(e.target.value)} placeholder="Ex: Porque quer juntar-se à comunidade?" />
+        <div className="flex gap-2">
+          <Select value={newType} onValueChange={setNewType}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="text">Texto</SelectItem>
+              <SelectItem value="textarea">Texto longo</SelectItem>
+              <SelectItem value="select">Selecção</SelectItem>
+            </SelectContent>
+          </Select>
+          {newType === "select" && (
+            <Input value={newOptions} onChange={e => setNewOptions(e.target.value)} placeholder="Opção 1, Opção 2, ..." className="flex-1" />
+          )}
+          <Button size="sm" onClick={handleAdd} disabled={addQuestion.isPending || !newText.trim()} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> Adicionar
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
