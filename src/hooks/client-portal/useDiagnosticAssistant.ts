@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useClientAuth } from "./useClientAuth";
 import { toast } from "sonner";
 
 interface Message {
@@ -32,6 +33,7 @@ export function useDiagnosticAssistant(workspaceId: string | undefined): UseDiag
   const [products, setProducts] = useState<RecommendedProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { clientUser } = useClientAuth({ workspaceId });
 
   const sendMessage = useCallback(async (userMessage: string) => {
     if (!userMessage.trim() || !workspaceId) return;
@@ -48,6 +50,8 @@ export function useDiagnosticAssistant(workspaceId: string | undefined): UseDiag
           message: userMessage,
           workspaceId,
           conversationHistory: messages.slice(-6),
+          clientUserId: clientUser?.id,
+          companyId: clientUser?.company_id,
         },
       });
 

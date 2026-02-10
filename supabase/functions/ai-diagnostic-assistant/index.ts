@@ -10,6 +10,8 @@ interface DiagnosticRequest {
   message: string;
   workspaceId: string;
   conversationHistory?: Array<{ role: string; content: string }>;
+  clientUserId?: string;
+  companyId?: string;
 }
 
 serve(async (req) => {
@@ -18,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, workspaceId, conversationHistory = [] }: DiagnosticRequest = await req.json();
+    const { message, workspaceId, conversationHistory = [], clientUserId, companyId }: DiagnosticRequest = await req.json();
 
     if (!message || !workspaceId) {
       return new Response(
@@ -87,7 +89,7 @@ Exemplo: "preciso de ajuda com clientes" -> "clientes CRM gestão vendas relacio
       console.error("Product search error:", searchError);
     }
 
-    // Build context for AI
+    // Build product context
     const productContext = (products || [])
       .map((p: any, i: number) => {
         return `[Produto ${i + 1}]
@@ -99,17 +101,58 @@ Descrição: ${p.short_description || "Sem descrição"}`;
       })
       .join("\n\n");
 
-    const systemPrompt = `Você é um assistente especializado em produtos e serviços. 
-Ajuda clientes a encontrar os produtos mais adequados para as suas necessidades.
+    // Fetch B2B context if client info provided
+    let b2bContext = "";
+    if (companyId) {
+      const [ordersRes, contractsRes, ticketsRes, invoicesRes] = await Promise.all([
+        supabase.from("order_notes").select("id, order_number, status, total_gross, created_at")
+          .eq("company_id", companyId).order("created_at", { ascending: false }).limit(10),
+        supabase.from("client_contracts").select("title, type, status, end_date, renewal_date")
+          .eq("company_id", companyId).limit(10),
+        supabase.from("client_tickets").select("subject, status, priority, type, created_at")
+          .eq("company_id", companyId).order("created_at", { ascending: false }).limit(5),
+        supabase.from("invoices").select("invoice_number, status, total_amount, due_date")
+          .eq("company_id", companyId).order("created_at", { ascending: false }).limit(10),
+      ]);
+
+      const recentOrders = (ordersRes.data || []).map((o: any) =>
+        `- ${o.order_number}: ${o.status}, ${o.total_gross?.toFixed(2)}€`).join("\n");
+      const contracts = (contractsRes.data || []).map((c: any) =>
+        `- ${c.title}: ${c.status}, expira ${c.end_date || "N/A"}`).join("\n");
+      const tickets = (ticketsRes.data || []).map((t: any) =>
+        `- ${t.subject}: ${t.status}, ${t.priority}`).join("\n");
+      const invoices = (invoicesRes.data || []).map((inv: any) =>
+        `- ${inv.invoice_number}: ${inv.status}, ${inv.total_amount?.toFixed(2)}€`).join("\n");
+
+      b2bContext = `
+CONTEXTO DA RELAÇÃO COMERCIAL DO CLIENTE:
+
+Encomendas recentes:
+${recentOrders || "Nenhuma"}
+
+Contratos ativos:
+${contracts || "Nenhum"}
+
+Tickets de suporte:
+${tickets || "Nenhum"}
+
+Faturas recentes:
+${invoices || "Nenhuma"}
+`;
+    }
+
+    const systemPrompt = `Você é um copilot B2B especializado em produtos, serviços e relação comercial.
+Ajuda clientes profissionais com: recomendações de produtos, estado de encomendas, contratos, faturação e suporte.
 
 INSTRUÇÕES:
-- Analise o pedido do cliente e recomende produtos do catálogo
-- Explique brevemente porque cada produto é adequado
-- Se não houver produtos relevantes, diga honestamente
+- Analise o pedido do cliente considerando todo o contexto da relação comercial
+- Recomende produtos do catálogo quando aplicável
+- Responda sobre encomendas, contratos, faturas ou tickets quando perguntado
+- Sugira upgrades ou oportunidades quando relevante
 - Seja conciso e profissional
 - Responda sempre em português de Portugal
-- Use linguagem acessível
-
+- Se não tiver informação suficiente, diga honestamente
+${b2bContext}
 PRODUTOS DISPONÍVEIS:
 ${productContext || "Nenhum produto encontrado no catálogo para esta pesquisa."}`;
 

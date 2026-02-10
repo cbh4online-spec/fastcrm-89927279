@@ -15,9 +15,9 @@ export default function ClientAssistantPage() {
             <Sparkles className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Assistente IA</h1>
+            <h1 className="text-2xl font-bold">Copilot B2B</h1>
             <p className="text-muted-foreground">
-              Descreva o que procura e receba recomendações personalizadas
+              Produtos, encomendas, contratos, faturas — pergunte o que precisar
             </p>
           </div>
         </div>
