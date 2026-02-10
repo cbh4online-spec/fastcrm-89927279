@@ -7,9 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useC2CListingDetail, useC2CSellerReviews, useCreateC2CReport } from "@/hooks/useC2CListings";
 import { useSendC2CMessage } from "@/hooks/useC2CMessages";
+import { useC2CCheckout } from "@/hooks/useC2CCheckout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ArrowLeft, MapPin, Star, MessageCircle, Flag, Eye, Calendar } from "lucide-react";
+import { ArrowLeft, MapPin, Star, MessageCircle, Flag, Eye, Calendar, ShoppingBag, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -31,6 +32,7 @@ export default function C2CListingDetail() {
   const { data: sellerReviews } = useC2CSellerReviews(listing?.seller_id);
   const sendMessage = useSendC2CMessage(workspaceId);
   const createReport = useCreateC2CReport(workspaceId);
+  const checkout = useC2CCheckout();
 
   const [messageText, setMessageText] = useState("");
   const [reportReason, setReportReason] = useState("");
@@ -151,6 +153,27 @@ export default function C2CListingDetail() {
             {/* Actions */}
             {user && !isOwner && (
               <div className="space-y-3 border-t pt-4">
+                {/* Buy button */}
+                <Button
+                  className="w-full gap-2"
+                  size="lg"
+                  onClick={() => {
+                    if (!workspaceId || !listing) return;
+                    checkout.mutate({
+                      listingId: listing.id,
+                      workspaceId,
+                    });
+                  }}
+                  disabled={checkout.isPending}
+                >
+                  {checkout.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShoppingBag className="h-4 w-4" />
+                  )}
+                  Comprar agora — {listing.price.toFixed(2)} {listing.currency}
+                </Button>
+
                 <div className="space-y-2">
                   <Textarea
                     placeholder="Enviar mensagem ao vendedor..."
@@ -159,6 +182,7 @@ export default function C2CListingDetail() {
                     rows={3}
                   />
                   <Button
+                    variant="outline"
                     className="w-full"
                     onClick={handleSendMessage}
                     disabled={!messageText.trim() || sendMessage.isPending}
