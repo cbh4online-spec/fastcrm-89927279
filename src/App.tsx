@@ -70,6 +70,8 @@ import ClientApprovalsPage from "./pages/client/ClientApprovalsPage";
 import ClientInvoicesPage from "./pages/client/ClientInvoicesPage";
 import ClientFinancialPage from "./pages/client/ClientFinancialPage";
 import ClientContractsPage from "./pages/client/ClientContractsPage";
+import ClientSupportPage from "./pages/client/ClientSupportPage";
+import ClientTicketDetailPage from "./pages/client/ClientTicketDetailPage";
 import ClientInvitePage from "./pages/client/ClientInvitePage";
 // Admin Order Notes
 import OrderNotesPage from "./pages/OrderNotesPage";
@@ -203,6 +205,8 @@ function ClientPortalRoutes() {
         <Route path="invoices" element={<ClientInvoicesPage />} />
         <Route path="financial" element={<ClientFinancialPage />} />
         <Route path="contracts" element={<ClientContractsPage />} />
+        <Route path="support" element={<ClientSupportPage />} />
+        <Route path="support/:ticketId" element={<ClientTicketDetailPage />} />
         <Route path="*" element={<Navigate to="/client/login" replace />} />
       </Routes>
     </CartProvider>
