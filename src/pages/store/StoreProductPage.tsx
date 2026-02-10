@@ -18,6 +18,8 @@ import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
+import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
+import { StoreOfferDialog } from "@/components/store/StoreOfferDialog";
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
@@ -397,6 +399,7 @@ export default function StoreProductPage() {
                 isFeatured={product.store_featured}
                 compact={false}
               />
+              <StoreProductConditionBadge condition={(product as any).product_condition} compact={false} />
 
               {/* Loyalty Points */}
               <StoreLoyaltyWidget
@@ -508,6 +511,15 @@ export default function StoreProductPage() {
                     <ShoppingBag className="h-5 w-5" />
                     Adicionar ao Carrinho
                   </Button>
+
+                  {/* Make Offer button */}
+                  <StoreOfferDialog
+                    productId={product.id}
+                    productName={product.name}
+                    originalPrice={pricing?.price ?? product.base_price}
+                    currency={product.currency}
+                    workspaceId={(product as any).workspace_id}
+                  />
                 </div>
 
                 {/* Trust signals — compact inline */}

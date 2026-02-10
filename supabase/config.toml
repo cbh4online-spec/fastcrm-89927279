@@ -195,3 +195,6 @@ verify_jwt = false
 
 [functions.store-capture-lead]
 verify_jwt = false
+
+[functions.store-visual-search]
+verify_jwt = false

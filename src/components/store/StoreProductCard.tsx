@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
+import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreQuickViewModal } from "@/components/store/StoreQuickViewModal";
 import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
@@ -132,6 +133,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                 isDiscounted={isDiscounted}
                 compact
               />
+              <StoreProductConditionBadge condition={(product as any).product_condition} compact />
             </div>
 
             {/* Popular badge or sold count */}
