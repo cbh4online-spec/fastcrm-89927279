@@ -2941,6 +2941,75 @@ export type Database = {
           },
         ]
       }
+      c2c_seller_subscriptions: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          ends_at: string | null
+          features: Json | null
+          id: string
+          plan: string
+          price_amount: number
+          seller_id: string
+          starts_at: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          ends_at?: string | null
+          features?: Json | null
+          id?: string
+          plan?: string
+          price_amount?: number
+          seller_id: string
+          starts_at?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          ends_at?: string | null
+          features?: Json | null
+          id?: string
+          plan?: string
+          price_amount?: number
+          seller_id?: string
+          starts_at?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_seller_subscriptions_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_seller_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_sellers: {
         Row: {
           account_holder: string | null

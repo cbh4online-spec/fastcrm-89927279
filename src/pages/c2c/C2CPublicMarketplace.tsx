@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { MarketplaceSearchOverlay } from "@/components/c2c/MarketplaceSearchOverlay";
+import { useC2CSponsoredListings } from "@/hooks/useC2CBoost";
 import type { C2CListing, C2CCategory, C2CListingFilters } from "@/hooks/useC2CListings";
 import {
   Store, Search, Sparkles, TrendingUp, Clock, ChevronRight, ChevronLeft,
@@ -120,12 +121,13 @@ function CategoryCarousel({ categories, onSelect, selected }: {
 }
 
 /* ── Section Carousel ────────────────────────────────────────────── */
-function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref }: {
+function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, sponsoredIds = [] }: {
   title: string;
   icon: React.ReactNode;
   listings: C2CListing[];
   onNavigate: (id: string) => void;
   seeMoreHref?: () => void;
+  sponsoredIds?: string[];
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scroll = (dir: "left" | "right") => {
@@ -155,6 +157,7 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref }: {
               isFavorite={false}
               onToggleFavorite={() => {}}
               onClick={() => onNavigate(listing.id)}
+              isSponsored={sponsoredIds.includes(listing.id)}
             />
           ))}
         </div>
@@ -324,6 +327,7 @@ export default function C2CPublicMarketplace() {
   const workspaceId = workspace?.id;
   const { data: listings = [], isLoading } = usePublicListings(workspaceId, filters);
   const { data: categories = [] } = usePublicCategories(workspaceId);
+  const { data: sponsoredIds = [] } = useC2CSponsoredListings(workspaceId);
 
   const featuredListings = useMemo(() => listings.filter((l) => l.is_featured), [listings]);
   const recentListings = useMemo(() =>
@@ -446,6 +450,7 @@ export default function C2CPublicMarketplace() {
                       isFavorite={false}
                       onToggleFavorite={() => {}}
                       onClick={() => navigate(`/c2c/${workspaceSlug}/${listing.id}`)}
+                      isSponsored={sponsoredIds.includes(listing.id)}
                     />
                   ))}
                 </div>
@@ -467,6 +472,7 @@ export default function C2CPublicMarketplace() {
                 icon={<Sparkles className="h-5 w-5 text-primary" />}
                 listings={featuredListings}
                 onNavigate={(id) => navigate(`/c2c/${workspaceSlug}/${id}`)}
+                sponsoredIds={sponsoredIds}
               />
             )}
             {recentListings.length > 0 && (
@@ -475,6 +481,7 @@ export default function C2CPublicMarketplace() {
                 icon={<Clock className="h-5 w-5 text-primary" />}
                 listings={recentListings}
                 onNavigate={(id) => navigate(`/c2c/${workspaceSlug}/${id}`)}
+                sponsoredIds={sponsoredIds}
               />
             )}
           </div>
