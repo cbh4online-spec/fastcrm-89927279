@@ -3508,6 +3508,117 @@ export type Database = {
           },
         ]
       }
+      client_ticket_messages: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          id: string
+          message: string
+          sender_id: string | null
+          sender_type: string
+          ticket_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          sender_id?: string | null
+          sender_type?: string
+          ticket_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          sender_id?: string | null
+          sender_type?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "client_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_tickets: {
+        Row: {
+          client_user_id: string
+          closed_at: string | null
+          company_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          resolved_at: string | null
+          sla_deadline: string | null
+          status: Database["public"]["Enums"]["ticket_status"]
+          subject: string
+          type: Database["public"]["Enums"]["ticket_type"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          client_user_id: string
+          closed_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          resolved_at?: string | null
+          sla_deadline?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          subject: string
+          type?: Database["public"]["Enums"]["ticket_type"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          client_user_id?: string
+          closed_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          resolved_at?: string | null
+          sla_deadline?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          subject?: string
+          type?: Database["public"]["Enums"]["ticket_type"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tickets_client_user_id_fkey"
+            columns: ["client_user_id"]
+            isOneToOne: false
+            referencedRelation: "client_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tickets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tickets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_user_roles: {
         Row: {
           allowed_product_categories: Json | null
@@ -24811,6 +24922,15 @@ export type Database = {
         | "other"
       template_tone: "formal" | "direct" | "friendly" | "casual"
       template_type: "email" | "whatsapp" | "instagram_dm" | "proposal" | "sms"
+      ticket_priority: "low" | "medium" | "high" | "urgent"
+      ticket_status:
+        | "open"
+        | "in_progress"
+        | "waiting_client"
+        | "waiting_internal"
+        | "resolved"
+        | "closed"
+      ticket_type: "support" | "commercial" | "technical"
       workspace_role: "owner" | "admin" | "agent" | "viewer" | "agency"
       workspace_status: "active" | "suspended" | "inactive" | "pending"
     }
@@ -25196,6 +25316,16 @@ export const Constants = {
       ],
       template_tone: ["formal", "direct", "friendly", "casual"],
       template_type: ["email", "whatsapp", "instagram_dm", "proposal", "sms"],
+      ticket_priority: ["low", "medium", "high", "urgent"],
+      ticket_status: [
+        "open",
+        "in_progress",
+        "waiting_client",
+        "waiting_internal",
+        "resolved",
+        "closed",
+      ],
+      ticket_type: ["support", "commercial", "technical"],
       workspace_role: ["owner", "admin", "agent", "viewer", "agency"],
       workspace_status: ["active", "suspended", "inactive", "pending"],
     },
