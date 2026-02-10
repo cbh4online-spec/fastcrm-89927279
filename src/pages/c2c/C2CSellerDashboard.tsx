@@ -40,8 +40,14 @@ export default function C2CSellerDashboard() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard do Vendedor</h1>
-          <p className="text-muted-foreground">Visão geral da tua performance no marketplace</p>
+          <h1 className="text-2xl font-bold">
+            {analytics.isSuperAdminView ? "Analytics do Marketplace" : "Dashboard do Vendedor"}
+          </h1>
+          <p className="text-muted-foreground">
+            {analytics.isSuperAdminView
+              ? `Visão agregada de ${analytics.totalSellers || 0} vendedores`
+              : "Visão geral da tua performance no marketplace"}
+          </p>
         </div>
         <div className="flex gap-2">
           <Badge variant="outline" className="gap-1">
