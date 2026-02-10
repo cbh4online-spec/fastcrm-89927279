@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { ListingFilters } from "@/components/c2c/ListingFilters";
+import { MarketplaceSearchOverlay } from "@/components/c2c/MarketplaceSearchOverlay";
 import { useC2CListings, useC2CCategories, useC2CFavorites, useToggleC2CFavorite, type C2CListingFilters } from "@/hooks/useC2CListings";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -136,6 +137,7 @@ export default function C2CMarketplace() {
   const workspaceId = currentWorkspace?.id;
 
   const [filters, setFilters] = useState<C2CListingFilters>({});
+  const [searchOpen, setSearchOpen] = useState(false);
   const { data: listings = [], isLoading } = useC2CListings(workspaceId, filters);
   const { data: categories = [] } = useC2CCategories(workspaceId);
   const { data: favoriteIds = [] } = useC2CFavorites(workspaceId);
@@ -187,18 +189,16 @@ export default function C2CMarketplace() {
               </div>
             </div>
 
-            {/* Search (centered, prominent) */}
+            {/* Search trigger (Vinted-style: opens fullscreen overlay) */}
             <div className="flex-1 max-w-xl mx-auto">
-              <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="w-full h-10 pl-10 pr-4 rounded-full border bg-muted/30 text-sm text-left text-muted-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors relative"
+              >
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Pesquisar produtos, marcas, categorias..."
-                  value={filters.search || ""}
-                  onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-                  className="w-full h-10 pl-10 pr-4 rounded-full border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background transition-colors"
-                />
-              </div>
+                {filters.search || "Pesquisar produtos, marcas, categorias..."}
+              </button>
             </div>
 
             {/* Action buttons */}
@@ -411,6 +411,14 @@ export default function C2CMarketplace() {
           </Button>
         </div>
       )}
+
+      {/* Vinted-style Search Overlay */}
+      <MarketplaceSearchOverlay
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSearch={(q) => setFilters((f) => ({ ...f, search: q }))}
+        initialQuery={filters.search || ""}
+      />
     </div>
   );
 }
