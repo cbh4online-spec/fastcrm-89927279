@@ -231,15 +231,16 @@ const navigationGroups: NavGroup[] = [
       { name: "Mensagens C2C", href: "/dashboard/c2c/messages", icon: MessageSquare, tooltip: "Mensagens do marketplace" },
     ],
   },
-  // COMUNIDADE
+  // FASTCLUB
   {
-    name: "Comunidade",
+    name: "FastClub",
     icon: Users,
-    tooltip: "Fórum e programa de fidelidade",
+    tooltip: "Comunidade, fórum e fidelidade",
     highlight: true,
     items: [
-      { name: "Fórum", href: "/dashboard/community/forum", icon: MessageSquare, tooltip: "Discussões da comunidade", highlight: true },
-      { name: "Fidelidade", href: "/dashboard/community/loyalty", icon: Crown, tooltip: "Pontos e recompensas" },
+      { name: "FastClub", href: "/dashboard/fastclub", icon: Zap, tooltip: "Hub da comunidade", highlight: true },
+      { name: "Fórum", href: "/dashboard/fastclub/forum", icon: MessageSquare, tooltip: "Discussões da comunidade" },
+      { name: "Recompensas", href: "/dashboard/fastclub/rewards", icon: Crown, tooltip: "Pontos e recompensas" },
     ],
   },
   // MARKETING
