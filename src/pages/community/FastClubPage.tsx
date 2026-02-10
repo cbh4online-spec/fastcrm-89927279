@@ -10,12 +10,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useForumCategories, useForumTopics } from "@/hooks/useForum";
 import { useLoyaltyProfile, getTierProgress } from "@/hooks/useLoyalty";
 import { useCommunityEvents } from "@/hooks/useCommunityEvents";
+import { useCommunitySettings } from "@/hooks/useCommunitySettings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   MessageSquare, Trophy, Star, Crown, Users, TrendingUp,
   ArrowLeft, Plus, Search, Gift, Zap, Heart, Award, Sparkles,
-  Settings, Calendar,
+  Settings, Calendar, Hash,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ import { CommunityMembersList } from "@/components/community/CommunityMembersLis
 import { CommunityLeaderboard } from "@/components/community/CommunityLeaderboard";
 import { CommunityAbout } from "@/components/community/CommunityAbout";
 import { CommunitySettingsDialog } from "@/components/community/CommunitySettingsDialog";
+import { AddChannelDialog } from "@/components/community/AddChannelDialog";
 
 const tierConfig: Record<string, { label: string; icon: React.ReactNode; gradient: string; bg: string }> = {
   bronze: {
@@ -60,6 +62,14 @@ const fadeUp = {
   transition: { duration: 0.4 },
 };
 
+const allTabs = [
+  { value: "discussion", key: "discussao", label: "Discussão", icon: MessageSquare },
+  { value: "events", key: "eventos", label: "Eventos", icon: Calendar },
+  { value: "leaderboard", key: "classificacao", label: "Classificação", icon: Trophy },
+  { value: "members", key: "membros", label: "Membros", icon: Users },
+  { value: "about", key: "acerca", label: "Acerca de", icon: Heart },
+];
+
 export default function FastClubPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -69,11 +79,16 @@ export default function FastClubPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [addChannelOpen, setAddChannelOpen] = useState(false);
 
   const { data: categories = [] } = useForumCategories(workspaceId);
   const { data: topics = [], isLoading } = useForumTopics(workspaceId);
   const { data: loyaltyProfile } = useLoyaltyProfile(workspaceId);
   const { data: events = [] } = useCommunityEvents(workspaceId);
+  const { data: communitySettings } = useCommunitySettings(workspaceId);
+
+  const visibleTabs = (communitySettings as any)?.visible_tabs || {};
+  const filteredTabs = allTabs.filter(t => visibleTabs[t.key] !== false);
 
   const tierInfo = loyaltyProfile ? getTierProgress(loyaltyProfile.lifetime_points) : getTierProgress(0);
   const tier = tierConfig[tierInfo.tier] || tierConfig.bronze;
@@ -102,25 +117,43 @@ export default function FastClubPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            {isAdmin && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSettingsOpen(true)}
-                className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <Settings className="h-5 w-5" />
-              </Button>
-            )}
+            <div className="flex items-center gap-1">
+              {isAdmin && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAddChannelOpen(true)}
+                    className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1.5 text-xs"
+                  >
+                    <Hash className="h-4 w-4" /> Canal
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSettingsOpen(true)}
+                    className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           <motion.div {...fadeUp} className="max-w-2xl">
             <div className="flex items-center gap-3 mb-6">
               <div className="h-12 w-12 rounded-2xl bg-primary-foreground/15 backdrop-blur-md flex items-center justify-center shadow-lg">
-                <Zap className="h-6 w-6 text-primary-foreground" />
+                {communitySettings?.logo_url ? (
+                  <img src={communitySettings.logo_url} alt="" className="h-10 w-10 rounded-xl object-cover" />
+                ) : (
+                  <Zap className="h-6 w-6 text-primary-foreground" />
+                )}
               </div>
               <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-primary-foreground">FastClub</h1>
+                <h1 className="text-3xl font-extrabold tracking-tight text-primary-foreground">
+                  {communitySettings?.name || "FastClub"}
+                </h1>
                 <p className="text-primary-foreground/60 text-sm">Comunidade · Gamificação · Recompensas</p>
               </div>
             </div>
@@ -193,15 +226,9 @@ export default function FastClubPage() {
         )}
 
         {/* Navigation Tabs */}
-        <Tabs defaultValue="discussion" className="w-full">
+        <Tabs defaultValue={filteredTabs[0]?.value || "discussion"} className="w-full">
           <TabsList className="w-full justify-start bg-transparent border-b rounded-none p-0 h-auto gap-0">
-            {[
-              { value: "discussion", label: "Discussão", icon: MessageSquare },
-              { value: "events", label: "Eventos", icon: Calendar },
-              { value: "leaderboard", label: "Classificação", icon: Trophy },
-              { value: "members", label: "Membros", icon: Users },
-              { value: "about", label: "Acerca de", icon: Heart },
-            ].map(t => (
+            {filteredTabs.map(t => (
               <TabsTrigger
                 key={t.value}
                 value={t.value}
@@ -217,10 +244,8 @@ export default function FastClubPage() {
           <TabsContent value="discussion" className="mt-6">
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
-                {/* Event banner */}
                 <CommunityEventBanner workspaceId={workspaceId} />
 
-                {/* Search + new topic */}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -238,7 +263,6 @@ export default function FastClubPage() {
                   )}
                 </div>
 
-                {/* Category pills */}
                 {categories.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                     {categories.map(c => (
@@ -251,10 +275,17 @@ export default function FastClubPage() {
                         {c.name}
                       </button>
                     ))}
+                    {isAdmin && (
+                      <button
+                        onClick={() => setAddChannelOpen(true)}
+                        className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-dashed hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground"
+                      >
+                        <Plus className="h-3 w-3" /> Canal
+                      </button>
+                    )}
                   </div>
                 )}
 
-                {/* Feed */}
                 {isLoading ? (
                   <div className="space-y-3">
                     {Array.from({ length: 4 }).map((_, i) => (
@@ -281,37 +312,32 @@ export default function FastClubPage() {
                 )}
               </div>
 
-              {/* Sidebar */}
               <div className="hidden lg:block">
                 <CommunitySidebar workspaceId={workspaceId} />
               </div>
             </div>
           </TabsContent>
 
-          {/* Events Tab */}
           <TabsContent value="events" className="mt-6">
             <EventsList workspaceId={workspaceId} events={events} />
           </TabsContent>
 
-          {/* Leaderboard Tab */}
           <TabsContent value="leaderboard" className="mt-6">
             <CommunityLeaderboard workspaceId={workspaceId} />
           </TabsContent>
 
-          {/* Members Tab */}
           <TabsContent value="members" className="mt-6">
             <CommunityMembersList />
           </TabsContent>
 
-          {/* About Tab */}
           <TabsContent value="about" className="mt-6">
             <CommunityAbout workspaceId={workspaceId} />
           </TabsContent>
         </Tabs>
       </main>
 
-      {/* Admin Settings Dialog */}
       <CommunitySettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} workspaceId={workspaceId} />
+      <AddChannelDialog open={addChannelOpen} onOpenChange={setAddChannelOpen} workspaceId={workspaceId} />
     </div>
   );
 }

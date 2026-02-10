@@ -11,9 +11,16 @@ export interface CommunitySettings {
   is_private: boolean;
   logo_url: string | null;
   banner_url: string | null;
+  favicon_url: string | null;
   primary_color: string | null;
   newsletter_frequency: string;
   membership_questions_enabled: boolean;
+  subscription_type: string;
+  subscription_price: number | null;
+  theme_preset: string | null;
+  visible_tabs: Record<string, boolean> | null;
+  category: string | null;
+  is_discoverable: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -4662,9 +4662,12 @@ export type Database = {
       community_settings: {
         Row: {
           banner_url: string | null
+          category: string | null
           created_at: string
           description: string | null
+          favicon_url: string | null
           id: string
+          is_discoverable: boolean | null
           is_private: boolean
           logo_url: string | null
           membership_questions_enabled: boolean
@@ -4672,14 +4675,21 @@ export type Database = {
           newsletter_frequency: string
           primary_color: string | null
           slug: string | null
+          subscription_price: number | null
+          subscription_type: string | null
+          theme_preset: string | null
           updated_at: string
+          visible_tabs: Json | null
           workspace_id: string
         }
         Insert: {
           banner_url?: string | null
+          category?: string | null
           created_at?: string
           description?: string | null
+          favicon_url?: string | null
           id?: string
+          is_discoverable?: boolean | null
           is_private?: boolean
           logo_url?: string | null
           membership_questions_enabled?: boolean
@@ -4687,14 +4697,21 @@ export type Database = {
           newsletter_frequency?: string
           primary_color?: string | null
           slug?: string | null
+          subscription_price?: number | null
+          subscription_type?: string | null
+          theme_preset?: string | null
           updated_at?: string
+          visible_tabs?: Json | null
           workspace_id: string
         }
         Update: {
           banner_url?: string | null
+          category?: string | null
           created_at?: string
           description?: string | null
+          favicon_url?: string | null
           id?: string
+          is_discoverable?: boolean | null
           is_private?: boolean
           logo_url?: string | null
           membership_questions_enabled?: boolean
@@ -4702,7 +4719,11 @@ export type Database = {
           newsletter_frequency?: string
           primary_color?: string | null
           slug?: string | null
+          subscription_price?: number | null
+          subscription_type?: string | null
+          theme_preset?: string | null
           updated_at?: string
+          visible_tabs?: Json | null
           workspace_id?: string
         }
         Relationships: [
@@ -9331,6 +9352,8 @@ export type Database = {
           icon: string | null
           id: string
           is_active: boolean | null
+          is_private: boolean | null
+          is_read_only: boolean | null
           name: string
           slug: string
           sort_order: number | null
@@ -9342,6 +9365,8 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_private?: boolean | null
+          is_read_only?: boolean | null
           name: string
           slug: string
           sort_order?: number | null
@@ -9353,6 +9378,8 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_private?: boolean | null
+          is_read_only?: boolean | null
           name?: string
           slug?: string
           sort_order?: number | null
