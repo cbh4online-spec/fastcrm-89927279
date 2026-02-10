@@ -66,6 +66,7 @@ import ClientSetPasswordPage from "./pages/client/ClientSetPasswordPage";
 import ClientForgotPasswordPage from "./pages/client/ClientForgotPasswordPage";
 import ClientResetPasswordPage from "./pages/client/ClientResetPasswordPage";
 import ClientTeamPage from "./pages/client/ClientTeamPage";
+import ClientApprovalsPage from "./pages/client/ClientApprovalsPage";
 import ClientInvitePage from "./pages/client/ClientInvitePage";
 // Admin Order Notes
 import OrderNotesPage from "./pages/OrderNotesPage";
@@ -195,6 +196,7 @@ function ClientPortalRoutes() {
         <Route path="favorites" element={<ClientFavoritesPage />} />
         <Route path="assistant" element={<ClientAssistantPage />} />
         <Route path="team" element={<ClientTeamPage />} />
+        <Route path="approvals" element={<ClientApprovalsPage />} />
         <Route path="*" element={<Navigate to="/client/login" replace />} />
       </Routes>
     </CartProvider>
