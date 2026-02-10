@@ -2987,6 +2987,143 @@ export type Database = {
           },
         ]
       }
+      client_approval_flows: {
+        Row: {
+          approval_type: Database["public"]["Enums"]["approval_type"]
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          min_value: number
+          requires_admin_approval: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approval_type: Database["public"]["Enums"]["approval_type"]
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_value?: number
+          requires_admin_approval?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approval_type?: Database["public"]["Enums"]["approval_type"]
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_value?: number
+          requires_admin_approval?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_approval_flows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_approval_flows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_approval_requests: {
+        Row: {
+          approval_type: Database["public"]["Enums"]["approval_type"]
+          company_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          request_reason: string | null
+          requested_by: string
+          status: Database["public"]["Enums"]["approval_status"]
+          total_value: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approval_type?: Database["public"]["Enums"]["approval_type"]
+          company_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          entity_id: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          request_reason?: string | null
+          requested_by: string
+          status?: Database["public"]["Enums"]["approval_status"]
+          total_value?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approval_type?: Database["public"]["Enums"]["approval_type"]
+          company_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          request_reason?: string | null
+          requested_by?: string
+          status?: Database["public"]["Enums"]["approval_status"]
+          total_value?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_approval_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_approval_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "client_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_approval_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "client_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_approval_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_entitlements: {
         Row: {
           company_id: string | null
@@ -24390,6 +24527,8 @@ export type Database = {
         | "rag_retrieval_quality"
       analytics_priority: "low" | "medium" | "high"
       app_role: "super_admin" | "admin" | "user"
+      approval_status: "pending" | "approved" | "rejected"
+      approval_type: "purchase" | "refund" | "upgrade"
       automation_action_type:
         | "create_task"
         | "move_opportunity_stage"
@@ -24747,6 +24886,8 @@ export const Constants = {
       ],
       analytics_priority: ["low", "medium", "high"],
       app_role: ["super_admin", "admin", "user"],
+      approval_status: ["pending", "approved", "rejected"],
+      approval_type: ["purchase", "refund", "upgrade"],
       automation_action_type: [
         "create_task",
         "move_opportunity_stage",
