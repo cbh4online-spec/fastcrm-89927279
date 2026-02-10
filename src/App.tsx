@@ -88,6 +88,7 @@ import ReportsGrowth from "./pages/ReportsGrowth";
 import ReportsSales from "./pages/ReportsSales";
 import ReportsGoals from "./pages/ReportsGoals";
 import Marketplace from "./pages/Marketplace";
+import C2CPublicMarketplace from "./pages/c2c/C2CPublicMarketplace";
 import MarketplaceAdmin from "./pages/admin/MarketplaceAdmin";
 import GoogleLocalProspecting from "./pages/GoogleLocalProspecting";
 import WebSearchProspecting from "./pages/WebSearchProspecting";
@@ -396,6 +397,9 @@ const App = () => (
             <Routes>
               {/* Store - ISOLATED from CRM providers */}
               <Route path="/store/*" element={<StoreRoutes />} />
+              
+              {/* C2C Public Marketplace */}
+              <Route path="/c2c/:workspaceSlug" element={<C2CPublicMarketplace />} />
               
               {/* Client Portal - ISOLATED from CRM providers */}
               <Route path="/client/*" element={<ClientPortalRoutes />} />
