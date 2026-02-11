@@ -1,31 +1,47 @@
 
-# Adicionar Bio e Foto de Perfil ao Vendedor Strongadget
+# Corrigir Perfil Publico do Vendedor - RLS Policy
 
-## O que vai ser feito
+## Problema identificado
 
-Atualizar os dados do vendedor Strongadget na base de dados com uma bio descritiva e uma foto de perfil (avatar).
+A pagina mostra "Marketplace nao encontrado" porque a politica RLS na tabela `workspaces` so permite acesso anonimo quando o workspace tem anuncios ativos com moderacao aprovada. Como o Strongadget ainda nao tem anuncios, o workspace fica invisivel para visitantes anonimos.
 
-## Alteracoes
+A politica atual e:
+```text
+"Public can view workspace for c2c marketplace"
+-> workspace visivel SE existir c2c_listings com status='active' E moderation_status='approved'
+```
 
-### 1. Atualizar bio do vendedor
+Como nao ha listings aprovados no workspace `metodopare`, a query ao workspace falha e a pagina mostra o erro.
 
-Inserir uma bio profissional para o Strongadget diretamente na tabela `c2c_sellers`:
+## Solucao
 
-- **Bio**: Uma descricao curta e profissional (ex: "Especialistas em gadgets e acessorios tecnologicos. Produtos novos e seminovos com garantia de qualidade.")
+Expandir a politica RLS para tambem permitir acesso ao workspace quando existem vendedores aprovados (mesmo sem anuncios). Isto garante que perfis publicos de vendedores funcionam independentemente de terem anuncios.
 
-### 2. Foto de perfil (avatar)
+## Alteracoes tecnicas
 
-Para a foto de perfil, existem duas opcoes:
+### 1. Atualizar a RLS policy na tabela `workspaces`
 
-- **Opcao A (rapida)**: Usar um URL externo de uma imagem (se tiveres uma imagem/logo do Strongadget, podes envia-la no chat e eu uso-a)
-- **Opcao B**: Fazer upload de uma imagem para o bucket `avatars` ja existente e guardar o URL publico
+Substituir a politica "Public can view workspace for c2c marketplace" por uma versao expandida que inclui workspaces com vendedores aprovados:
 
-### 3. Verificar que o perfil publico mostra os novos dados
+```sql
+DROP POLICY "Public can view workspace for c2c marketplace" ON workspaces;
 
-A pagina `C2CPublicSellerProfile.tsx` ja suporta exibir `bio` e `avatar_url`, por isso nao serao necessarias alteracoes de codigo - apenas atualizar os dados na base de dados.
+CREATE POLICY "Public can view workspace for c2c marketplace" ON workspaces
+FOR SELECT USING (
+  id IN (
+    SELECT DISTINCT workspace_id FROM c2c_listings
+    WHERE status = 'active' AND moderation_status = 'approved'
+  )
+  OR
+  id IN (
+    SELECT DISTINCT workspace_id FROM c2c_sellers
+    WHERE status = 'approved'
+  )
+);
+```
 
-## Preciso de input
+### 2. Verificar acesso
 
-Para avancar preciso que me digas:
-- Que texto queres na bio do Strongadget?
-- Tens uma imagem/logo para usar como avatar? Se sim, envia-a no chat. Caso contrario, posso deixar sem foto ou usar as iniciais que ja aparecem.
+Apos aplicar a migracao, testar o link publico para confirmar que a pagina do vendedor carrega corretamente.
+
+Nenhum ficheiro de codigo precisa de ser alterado - o problema e exclusivamente de permissoes na base de dados.
