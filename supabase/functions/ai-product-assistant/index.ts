@@ -1244,6 +1244,7 @@ IMPORTANTE: Crie DUAS versões do nome e descrição:
 2. COMERCIAL: Estilo Amazon, focada em BENEFÍCIOS para o cliente, mais apelativa para vendas
 
 Extraia TODAS as especificações técnicas visíveis na imagem ou que consiga inferir do produto.
+Tente identificar a MARCA e MODELO específico para permitir pesquisa online posterior.
 
 Responda APENAS em JSON válido:
 {
@@ -1255,6 +1256,7 @@ Responda APENAS em JSON válido:
   "priceRange": { "min": 0, "max": 0 },
   "suggestedPrice": 0,
   "category": "Categoria principal do produto",
+  "searchQuery": "Marca Modelo - termos de pesquisa para encontrar este produto online",
   "specifications": {
     "brand": "Marca (se visível)",
     "model": "Modelo (se visível)",
@@ -1273,6 +1275,11 @@ REGRAS para nome comercial:
 REGRAS para descrição comercial:
 - Foca em BENEFÍCIOS (o que o cliente ganha)
 - Pode usar emojis para destaque visual
+
+REGRAS para searchQuery:
+- Inclui marca e modelo se identificáveis
+- Termos que permitam encontrar o produto no Google
+- Ex: "Dahua IPC-HDBW4431 FAS câmara segurança"
 
 Se não conseguir identificar o produto, responda: {"found": false}`;
 
@@ -1325,6 +1332,68 @@ Se não conseguir identificar o produto, responda: {"found": false}`;
       }
 
       console.log('Image analysis result:', JSON.stringify(imageResult, null, 2));
+
+      // If product was identified, enrich with Firecrawl search for images and more data
+      if (imageResult.found && FIRECRAWL_API_KEY) {
+        const searchQuery = (imageResult as any).searchQuery || imageResult.name || '';
+        if (searchQuery) {
+          console.log('Enriching image-to-product with Firecrawl search:', searchQuery);
+          
+          const enrichQueries = [
+            `${searchQuery} produto preço imagens`,
+            `"${(imageResult.specifications as any)?.brand || ''} ${(imageResult.specifications as any)?.model || ''}" ficha técnica`.trim(),
+          ].filter(q => q.trim().length > 5);
+
+          let extractedImages: string[] = [];
+          let enrichedSources: string[] = [];
+
+          const extractImagesFromContent = (content: string): string[] => {
+            const urls: string[] = [];
+            const mdImgRx = /!\[.*?\]\((https?:\/\/[^\s\)]+)\)/g;
+            const imgTagRx = /<img[^>]+src=["']?(https?:\/\/[^\s"'>]+)["']?/gi;
+            const directRx = /(https?:\/\/[^\s<>"]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s<>"]*)?)/gi;
+            let m;
+            while ((m = mdImgRx.exec(content)) !== null) if (m[1]) urls.push(m[1]);
+            while ((m = imgTagRx.exec(content)) !== null) if (m[1]) urls.push(m[1]);
+            while ((m = directRx.exec(content)) !== null) if (m[1]) urls.push(m[1]);
+            return [...new Set(urls)].filter(u => {
+              const l = u.toLowerCase();
+              return !l.includes('icon') && !l.includes('logo') && !l.includes('favicon') && !l.includes('placeholder') && !l.includes('1x1') && u.length < 500;
+            });
+          };
+
+          for (const q of enrichQueries) {
+            try {
+              const sr = await fetch('https://api.firecrawl.dev/v1/search', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${FIRECRAWL_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: q, limit: 5, scrapeOptions: { formats: ['markdown', 'html'] } }),
+              });
+              if (sr.ok) {
+                const sd = await sr.json();
+                for (const r of (sd.data || [])) {
+                  const content = (r.markdown || '') + (r.html || '') + (r.description || '');
+                  extractedImages.push(...extractImagesFromContent(content));
+                  if (r.url) enrichedSources.push(r.url);
+                }
+              }
+            } catch (e) {
+              console.error('Enrich search failed:', q, e);
+            }
+          }
+
+          extractedImages = [...new Set(extractedImages)].slice(0, 10);
+          enrichedSources = [...new Set(enrichedSources)].slice(0, 5);
+
+          console.log('Enrichment found', extractedImages.length, 'images and', enrichedSources.length, 'sources');
+
+          // Merge enriched data
+          imageResult.images = extractedImages;
+          imageResult.imageUrl = extractedImages[0];
+          imageResult.sources = enrichedSources;
+          imageResult.source = enrichedSources[0];
+        }
+      }
 
       return new Response(JSON.stringify({
         success: true,
