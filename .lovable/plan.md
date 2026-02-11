@@ -1,58 +1,30 @@
 
+# Enviar Email de Teste ao Vendedor Strongadget
 
-# Corrigir Acesso Publico ao Marketplace C2C
+## O que vai ser feito
 
-## Problema 1: Marketplace nao encontrado (`/c2c/metodopare`)
+Criar uma edge function utilitaria `send-c2c-seller-email` que permite enviar (ou reenviar) o email de confirmacao a qualquer vendedor C2C aprovado.
 
-A pagina publica do marketplace tenta buscar o workspace pela slug, mas a tabela `workspaces` nao tem uma politica RLS que permita utilizadores anonimos (nao logados) verem workspaces para o contexto C2C. A unica politica para `anon` exige propostas publicadas, o que nao se aplica ao marketplace.
+## Dados do email de teste
 
-**Solucao**: Criar uma nova politica RLS na tabela `workspaces` que permita leitura publica de workspaces que tenham listings C2C ativos, ou simplesmente permitir leitura por slug para o contexto do marketplace.
+- **Destinatario**: strongadget@gmail.com (Strongadget)
+- **Link no email**: `https://fastcrm.metodopare.ai/c2c/metodopare/seller/b4500cb5-3a74-4f7e-b4dc-d48bd528054e`
+- **Assunto**: "Conta ativada - Bem-vindo ao METODOPARE!"
 
-```sql
-CREATE POLICY "Public can view workspace for c2c marketplace"
-ON public.workspaces FOR SELECT
-TO anon, authenticated
-USING (
-  id IN (
-    SELECT DISTINCT workspace_id FROM c2c_listings
-    WHERE status = 'active' AND moderation_status = 'approved'
-  )
-);
-```
+## Alteracoes tecnicas
 
-## Problema 2: Perfil do vendedor da 404 (`/c2c/seller/UUID`)
+### 1. Nova edge function: `supabase/functions/send-c2c-seller-email/index.ts`
 
-Nao existe rota publica para perfis de vendedores. A rota atual e `/dashboard/c2c/seller/:sellerId`, que esta dentro da area autenticada.
+Funcao simples que:
+- Recebe `seller_id` e `workspace_id` no body
+- Busca os dados do vendedor, workspace e store_settings
+- Reutiliza o mesmo template HTML de confirmacao (copiado do activate)
+- Envia o email via Resend
 
-**Solucao**: Adicionar uma rota publica `/c2c/:workspaceSlug/seller/:sellerId` e criar uma pagina publica de perfil de vendedor (ou reutilizar a existente com adaptacoes).
+### 2. Testar imediatamente
 
-### Alteracoes necessarias
+Apos deploy, chamar a funcao com os dados do Strongadget para enviar o email de teste.
 
-1. **Migracao SQL** - Nova politica RLS na tabela `workspaces` para acesso publico via C2C
-2. **Migracao SQL** - Verificar/adicionar politica RLS na tabela `c2c_sellers` para leitura publica de vendedores aprovados
-3. **Nova rota em App.tsx** - Adicionar `/c2c/:workspaceSlug/seller/:sellerId`
-4. **Nova pagina ou adaptacao** - Criar `C2CPublicSellerProfile.tsx` que funcione sem autenticacao, buscando o workspace pela slug em vez de depender do contexto de workspace
-5. **Atualizar links** - O email de confirmacao e o perfil devem apontar para a rota publica correta
+### Ficheiros a criar
 
-### Politica RLS adicional para c2c_sellers
-
-```sql
-CREATE POLICY "Public can view approved c2c sellers"
-ON public.c2c_sellers FOR SELECT
-TO anon, authenticated
-USING (status = 'approved');
-```
-
-### Nova rota
-
-```
-/c2c/:workspaceSlug/seller/:sellerId
-```
-
-### Ficheiros a alterar
-
-- **SQL**: 2 novas politicas RLS (workspaces + c2c_sellers)
-- **src/App.tsx**: Adicionar rota publica para perfil de vendedor
-- **src/pages/c2c/C2CPublicSellerProfile.tsx** (novo): Pagina publica do perfil do vendedor, semelhante a `C2CSellerProfile.tsx` mas sem depender de autenticacao ou contexto de workspace
-- **supabase/functions/activate-c2c-seller-invite/index.ts**: Corrigir o link no email de confirmacao para usar a rota publica correta
-
+- `supabase/functions/send-c2c-seller-email/index.ts` (nova edge function)
