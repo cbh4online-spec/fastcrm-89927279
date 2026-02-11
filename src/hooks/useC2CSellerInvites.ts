@@ -95,10 +95,10 @@ export function useResendSellerInvite(workspaceId: string | undefined) {
     mutationFn: async (invite: C2CSellerInvite) => {
       if (!workspaceId || !user) throw new Error("Sem workspace ou utilizador");
 
-      // Revoke old invite
+      // Delete old invite
       await supabase
         .from("c2c_seller_invites" as any)
-        .update({ status: "revoked" } as any)
+        .delete()
         .eq("id", invite.id);
 
       // Send new invite
