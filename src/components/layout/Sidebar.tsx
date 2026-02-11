@@ -58,6 +58,7 @@ import {
   ShoppingCart,
   BookOpen,
   Store,
+  UserCircle,
 } from "lucide-react";
 import {
   Collapsible,
@@ -230,6 +231,7 @@ const navigationGroups: NavGroup[] = [
     moduleSlug: "marketplace-c2c",
     items: [
       { name: "Marketplace", href: "/dashboard/c2c", icon: Store, tooltip: "Ver anúncios C2C", highlight: true },
+      { name: "Área do Vendedor", href: "/dashboard/c2c/seller-area", icon: UserCircle, tooltip: "Gerir a tua conta de vendedor" },
       { name: "Meus Anúncios", href: "/dashboard/c2c/my-listings", icon: Package, tooltip: "Gerir os meus anúncios" },
       { name: "Mensagens C2C", href: "/dashboard/c2c/messages", icon: MessageSquare, tooltip: "Mensagens do marketplace" },
       { name: "Analytics", href: "/dashboard/c2c/analytics", icon: BarChart3, tooltip: "Dashboard do vendedor" },

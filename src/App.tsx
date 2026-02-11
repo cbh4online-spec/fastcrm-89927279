@@ -129,6 +129,7 @@ import C2CSellerBoost from "./pages/c2c/C2CSellerBoost";
 import C2CSponsorPortal from "./pages/c2c/C2CSponsorPortal";
 import C2CSponsorAdmin from "./pages/c2c/C2CSponsorAdmin";
 import C2CSellerDashboard from "./pages/c2c/C2CSellerDashboard";
+import C2CSellerArea from "./pages/c2c/C2CSellerArea";
 import C2CSellerProfile from "./pages/c2c/C2CSellerProfile";
 import C2CEditListing from "./pages/c2c/C2CEditListing";
 import C2CNotifications from "./pages/c2c/C2CNotifications";
@@ -372,6 +373,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/sellers" element={<C2CSellersAdmin />} />
                 <Route path="/dashboard/c2c/sponsors" element={<C2CSponsorAdmin />} />
                 <Route path="/dashboard/c2c/analytics" element={<C2CSellerDashboard />} />
+                <Route path="/dashboard/c2c/seller-area" element={<C2CSellerArea />} />
                 <Route path="/dashboard/c2c/notifications" element={<C2CNotifications />} />
                 <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
                 <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
