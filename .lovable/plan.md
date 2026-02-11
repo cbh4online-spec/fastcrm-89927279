@@ -1,91 +1,122 @@
 
-# Gestao Avancada de Vendedores C2C
+# Tornar a Plataforma numa Ferramenta de Venda Completa
 
-## Resumo
+## O que ja existe
+- Criacao de anuncios com IA (foto, titulo, descricao, preco, categoria)
+- Marketplace com categorias, pesquisa, favoritos
+- Chat entre comprador e vendedor
+- Sistema de boost/CPC
+- Dashboard do vendedor (KPIs basicos)
+- Reviews e verificacao de vendedores
+- Checkout e comissoes
 
-Expandir a pagina de gestao de vendedores (`/dashboard/c2c/sellers`) de uma simples tabela de aprovacao para um painel de gestao completo com perfil detalhado, historico de vendas por vendedor, edicao de comissoes individuais, anuncios ativos, verificacao manual, comunicacao direta e exportacao de dados.
+## O que falta para competir com Vinted/OLX/KuantoKusta/StandVirtual
 
-## Funcionalidades a Adicionar
+### 1. Perfil Publico do Vendedor
+Na Vinted e OLX, cada vendedor tem uma pagina publica com os seus anuncios, rating, tempo na plataforma e badge de verificacao. Atualmente o comprador ve o anuncio mas nao consegue explorar o vendedor.
 
-### 1. Perfil Expandido do Vendedor (Dialog melhorado)
-O dialog de detalhes atual mostra apenas dados basicos. Sera expandido com tabs:
-- **Perfil**: Dados pessoais, bancarios e fiscais (atual, melhorado com avatar e verificacao)
-- **Anuncios**: Lista de anuncios do vendedor com status (ativos, vendidos, removidos)
-- **Vendas**: Historico de comissoes/transacoes do vendedor com totais
-- **Avaliacoes**: Reviews recebidas pelo vendedor
+**Criar**: Pagina `/c2c/seller/:sellerId` com avatar, nome, bio, rating, numero de vendas, lista de anuncios ativos e reviews recebidas.
 
-### 2. Edicao de Dados do Vendedor pelo Admin
-- Editar comissao individual (override do default 5%)
-- Marcar como verificado/nao verificado (selo de confianca)
-- Editar dados bancarios (IBAN, banco, titular)
-- Reativar vendedor suspenso/rejeitado
+### 2. Sistema de Ofertas/Contraproposta (estilo Vinted)
+Na Vinted, o comprador pode propor um preco diferente. O vendedor aceita, recusa ou contrapropoe. Atualmente so existe "Comprar agora" ou mensagem livre.
 
-### 3. Metricas por Vendedor na Tabela
-- Adicionar colunas: Total Vendas, Receita, Rating, Verificado
-- Ordenacao por qualquer coluna
+**Criar**: Botao "Fazer Oferta" na pagina do anuncio, com dialog para propor valor. O vendedor recebe notificacao e pode aceitar/recusar/contrapropor na pagina "Meus Anuncios".
 
-### 4. Acoes em Massa
-- Selecionar multiplos vendedores
-- Aprovar/suspender em massa
-- Enviar notificacao em massa
+### 3. Editar Anuncio Existente
+Na OLX/Vinted e possivel editar titulo, preco, descricao e fotos depois de publicar. Atualmente so existe pausar/remover, nao editar.
 
-### 5. Exportacao CSV
-- Botao para exportar lista de vendedores com todos os dados para CSV
+**Criar**: Pagina de edicao de anuncio reutilizando o formulario de criacao, pre-preenchido com os dados existentes. Botao "Editar" nos cards de "Meus Anuncios".
 
-### 6. Notas Internas do Admin
-- Campo para o admin adicionar notas internas sobre cada vendedor (nao visiveis ao vendedor)
+### 4. Marcar como Vendido + Avaliar Comprador
+Na Vinted, apos a venda o vendedor pode avaliar o comprador. Atualmente so existe reviews do vendedor.
+
+**Criar**: Acao "Marcar como vendido" com dialog para indicar comprador e deixar review mutua.
+
+### 5. Notificacoes do Vendedor (Centro de Atividade)
+Na Vinted existe um feed de atividade: "Alguem adicionou o teu anuncio aos favoritos", "Nova mensagem", "Nova oferta", "O teu anuncio foi visto X vezes". Atualmente nao existe.
+
+**Criar**: Pagina de notificacoes com feed de eventos relevantes para o vendedor (favoritos recebidos, mensagens, visualizacoes, ofertas).
+
+### 6. Partilha Social do Anuncio
+Na OLX e Vinted, cada anuncio tem botoes de partilha para WhatsApp, Facebook, copiar link. Atualmente nao existe.
+
+**Criar**: Botoes de partilha na pagina de detalhe do anuncio e nos cards de "Meus Anuncios".
+
+### 7. Estatisticas por Anuncio (para o vendedor)
+No OLX Pro, o vendedor ve quantas visualizacoes, favoritos e mensagens cada anuncio recebeu. Atualmente so existe um contador de views global.
+
+**Criar**: Mini-dashboard por anuncio na pagina "Meus Anuncios": views, favoritos recebidos, mensagens recebidas, posicao nos resultados.
 
 ## Seccao Tecnica
 
 ### Migracao SQL
 
-Adicionar tabela de notas internas e campo de notas:
-
 ```sql
-CREATE TABLE public.c2c_seller_notes (
+-- Tabela de ofertas
+CREATE TABLE public.c2c_offers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  seller_id UUID NOT NULL REFERENCES public.c2c_sellers(id) ON DELETE CASCADE,
-  admin_id UUID NOT NULL,
-  note TEXT NOT NULL,
+  workspace_id UUID NOT NULL REFERENCES public.workspaces(id),
+  listing_id UUID NOT NULL REFERENCES public.c2c_listings(id),
+  buyer_id UUID NOT NULL,
+  offer_price NUMERIC NOT NULL,
+  counter_price NUMERIC,
+  status TEXT NOT NULL DEFAULT 'pending',  -- pending, accepted, rejected, countered, expired
+  message TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.c2c_offers ENABLE ROW LEVEL SECURITY;
+
+-- Tabela de notificacoes do vendedor
+CREATE TABLE public.c2c_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES public.workspaces(id),
+  user_id UUID NOT NULL,
+  type TEXT NOT NULL,  -- new_message, new_offer, new_favorite, listing_view_milestone, offer_accepted, offer_rejected
+  title TEXT NOT NULL,
+  body TEXT,
+  listing_id UUID REFERENCES public.c2c_listings(id),
+  related_user_id UUID,
+  is_read BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.c2c_notifications ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE public.c2c_seller_notes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Super admins can manage seller notes"
-  ON public.c2c_seller_notes FOR ALL
-  TO authenticated
-  USING (public.is_super_admin(auth.uid()));
+-- Contadores de favoritos por listing para estatisticas
+ALTER TABLE public.c2c_listings ADD COLUMN favorites_count INTEGER DEFAULT 0;
+ALTER TABLE public.c2c_listings ADD COLUMN messages_count INTEGER DEFAULT 0;
 ```
 
-### Novo Hook: `src/hooks/useC2CSellerAdmin.ts`
+RLS policies para ofertas e notificacoes (comprador ve as suas, vendedor ve as do seu anuncio, utilizador ve as suas notificacoes).
 
-Hook dedicado a gestao avancada com:
-- `useSellerListings(sellerId)` - buscar anuncios de um vendedor
-- `useSellerCommissions(sellerId)` - buscar comissoes/vendas
-- `useSellerReviews(sellerId)` - buscar avaliacoes
-- `useUpdateSellerDetails()` - editar comissao, verificacao, dados bancarios
-- `useSellerNotes(sellerId)` - listar notas internas
-- `useAddSellerNote()` - adicionar nota interna
-- `useBulkUpdateSellers()` - acoes em massa
+### Ficheiros a Criar
 
-### Ficheiro Modificado: `src/pages/c2c/C2CSellersAdmin.tsx`
+| Ficheiro | Descricao |
+|---|---|
+| `src/pages/c2c/C2CSellerProfile.tsx` | Pagina publica do vendedor com anuncios, rating, reviews |
+| `src/pages/c2c/C2CEditListing.tsx` | Formulario de edicao (reutiliza logica do create) |
+| `src/pages/c2c/C2CNotifications.tsx` | Centro de atividade/notificacoes do vendedor |
+| `src/components/c2c/OfferDialog.tsx` | Dialog para fazer/gerir ofertas |
+| `src/components/c2c/ShareButtons.tsx` | Botoes de partilha social (WhatsApp, Facebook, copiar link) |
+| `src/components/c2c/ListingStats.tsx` | Mini-dashboard de estatisticas por anuncio |
+| `src/hooks/useC2COffers.ts` | Hook para criar, aceitar, rejeitar, contrapropor ofertas |
+| `src/hooks/useC2CNotifications.ts` | Hook para listar e marcar notificacoes como lidas |
 
-Redesenho completo:
-- Tabela com mais colunas (vendas, receita, rating, verificado)
-- Checkboxes para selecao em massa
-- Toolbar com acoes em massa e botao exportar CSV
-- Dialog de detalhes com sistema de Tabs (Perfil, Anuncios, Vendas, Avaliacoes, Notas)
-- Formulario de edicao inline para comissao e verificacao
-- Ordenacao de colunas clicavel
-
-### Ficheiro Modificado: `src/hooks/useC2CSellers.ts`
-
-Adicionar mutation para editar detalhes do vendedor (comissao, verificacao, dados bancarios, reativar).
+### Ficheiros a Modificar
 
 | Ficheiro | Alteracao |
 |---|---|
-| Migracao SQL | Criar tabela `c2c_seller_notes` com RLS |
-| `src/hooks/useC2CSellerAdmin.ts` | Novo hook com queries para listings, comissoes, reviews, notas e acoes em massa |
-| `src/hooks/useC2CSellers.ts` | Adicionar mutation `useUpdateSellerDetails` |
-| `src/pages/c2c/C2CSellersAdmin.tsx` | Redesenho com tabela expandida, tabs no dialog, selecao em massa, export CSV |
+| `src/pages/c2c/C2CListingDetail.tsx` | Adicionar botao "Fazer Oferta", link para perfil do vendedor, botoes de partilha |
+| `src/pages/c2c/C2CMyListings.tsx` | Adicionar botao editar, estatisticas por anuncio, gestao de ofertas recebidas |
+| `src/pages/c2c/C2CMarketplace.tsx` | Adicionar icone de notificacoes no header com badge de nao lidas |
+| Routing (App.tsx ou similar) | Adicionar rotas para perfil publico, editar anuncio e notificacoes |
+
+### Prioridade de Implementacao
+
+1. **Perfil Publico do Vendedor** - impacto alto na confianca
+2. **Editar Anuncio** - funcionalidade basica que falta
+3. **Sistema de Ofertas** - diferenciador competitivo (Vinted-style)
+4. **Partilha Social** - rapido de implementar, alto impacto
+5. **Estatisticas por Anuncio** - valor para o vendedor
+6. **Centro de Notificacoes** - engagement e retencao
+7. **Marcar como Vendido + Review Mutua** - fecho do ciclo de venda
