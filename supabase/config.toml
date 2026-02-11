@@ -219,3 +219,9 @@ verify_jwt = false
 
 [functions.generate-prospecting-message]
 verify_jwt = false
+
+[functions.send-c2c-seller-invite]
+verify_jwt = false
+
+[functions.activate-c2c-seller-invite]
+verify_jwt = false
