@@ -5,12 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Search, Camera, Upload, Sparkles, Package } from "lucide-react";
+import type { StockStatus } from "@/types/product-operations";
 
 interface StoreQuickProductDialogProps {
   open: boolean;
@@ -25,6 +28,9 @@ interface ProductPreview {
   sku?: string;
   images: string[];
   specifications?: Record<string, string>;
+  stock_status: StockStatus;
+  stock_quantity: number | null;
+  track_stock: boolean;
 }
 
 export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProductDialogProps) {
@@ -34,6 +40,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
   const [isSearching, setIsSearching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { searchBySKU } = useProductAIAssistant();
@@ -55,6 +62,9 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           sku: skuInput.trim(),
           images: result.images || (result.imageUrl ? [result.imageUrl] : []),
           specifications: result.specifications as Record<string, string> | undefined,
+          stock_status: "available",
+          stock_quantity: null,
+          track_stock: false,
         });
       } else {
         toast.error("Nenhum produto encontrado para este SKU");
@@ -72,6 +82,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
 
     setIsSearching(true);
     setPreview(null);
+    setUploadedFile(file);
 
     // Show image preview
     const objectUrl = URL.createObjectURL(file);
@@ -83,7 +94,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => {
           const result = reader.result as string;
-          resolve(result.split(",")[1]); // Remove data:image/...;base64, prefix
+          resolve(result.split(",")[1]);
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);
@@ -105,6 +116,9 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           category: result.category || "",
           images: [],
           specifications: result.specifications,
+          stock_status: "available",
+          stock_quantity: null,
+          track_stock: false,
         });
       } else {
         toast.error("Não foi possível identificar o produto na imagem");
@@ -116,10 +130,61 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
     }
   };
 
+  const uploadImageToStorage = async (source: string | File, index: number): Promise<string | null> => {
+    const timestamp = Date.now();
+    const ext = source instanceof File ? source.name.split(".").pop() || "jpg" : "jpg";
+    const filePath = `ai-created/${timestamp}-${index}.${ext}`;
+
+    try {
+      let fileBody: Blob;
+      if (source instanceof File) {
+        fileBody = source;
+      } else {
+        // Fetch external URL
+        const response = await fetch(source);
+        if (!response.ok) return null;
+        fileBody = await response.blob();
+      }
+
+      const { error } = await supabase.storage
+        .from("product-images")
+        .upload(filePath, fileBody, { contentType: fileBody.type || "image/jpeg", upsert: true });
+
+      if (error) {
+        console.error("Upload error:", error);
+        return null;
+      }
+
+      const { data: publicData } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(filePath);
+
+      return publicData.publicUrl;
+    } catch (err) {
+      console.error("Failed to upload image:", err);
+      return null;
+    }
+  };
+
   const handleCreate = async () => {
     if (!preview) return;
     setIsCreating(true);
     try {
+      // Upload images to storage
+      let storageUrls: string[] = [];
+
+      if (uploadedFile) {
+        // Photo mode: upload the user's file
+        const url = await uploadImageToStorage(uploadedFile, 0);
+        if (url) storageUrls.push(url);
+      } else if (preview.images.length > 0) {
+        // SKU mode: fetch and upload external URLs
+        const uploads = await Promise.all(
+          preview.images.slice(0, 4).map((img, i) => uploadImageToStorage(img, i))
+        );
+        storageUrls = uploads.filter((u): u is string => u !== null);
+      }
+
       await createProduct.mutateAsync({
         name: preview.name,
         short_description: preview.description,
@@ -127,11 +192,14 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
         base_price: preview.price,
         category: preview.category,
         sku: preview.sku,
-        images: preview.images,
+        images: storageUrls,
         specifications: preview.specifications,
         status: "active",
         product_type: "physical",
         store_published: true,
+        stock_status: preview.stock_status,
+        stock_quantity: preview.stock_quantity,
+        track_stock: preview.track_stock,
       } as any);
 
       queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
@@ -150,6 +218,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
     setPreview(null);
     setSkuInput("");
     setImagePreviewUrl(null);
+    setUploadedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -228,11 +297,16 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
               Dados do Produto
             </h3>
 
-            {preview.images.length > 0 && (
+            {/* Images: show SKU images or uploaded photo */}
+            {(preview.images.length > 0 || imagePreviewUrl) && (
               <div className="flex gap-2 overflow-x-auto pb-2">
-                {preview.images.slice(0, 4).map((img, i) => (
-                  <img key={i} src={img} alt="" className="h-16 w-16 rounded-lg object-cover border flex-shrink-0" />
-                ))}
+                {preview.images.length > 0
+                  ? preview.images.slice(0, 4).map((img, i) => (
+                      <img key={i} src={img} alt="" className="h-16 w-16 rounded-lg object-cover border flex-shrink-0" />
+                    ))
+                  : imagePreviewUrl && (
+                      <img src={imagePreviewUrl} alt="" className="h-16 w-16 rounded-lg object-cover border flex-shrink-0" />
+                    )}
               </div>
             )}
 
@@ -262,6 +336,50 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
                   />
                 </div>
               </div>
+
+              {/* Stock fields */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Estado do Stock</Label>
+                  <Select
+                    value={preview.stock_status}
+                    onValueChange={(v) => setPreview({ ...preview, stock_status: v as StockStatus })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Disponível</SelectItem>
+                      <SelectItem value="limited">Stock Limitado</SelectItem>
+                      <SelectItem value="backorder">Sob Encomenda</SelectItem>
+                      <SelectItem value="out_of_stock">Esgotado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Quantidade</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Ex: 100"
+                    value={preview.stock_quantity ?? ""}
+                    onChange={(e) =>
+                      setPreview({
+                        ...preview,
+                        stock_quantity: e.target.value ? parseInt(e.target.value, 10) : null,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={preview.track_stock}
+                  onCheckedChange={(v) => setPreview({ ...preview, track_stock: v })}
+                />
+                <Label className="text-xs cursor-pointer">Controlar inventário automaticamente</Label>
+              </div>
+
               <div>
                 <Label className="text-xs">Descrição</Label>
                 <Textarea
