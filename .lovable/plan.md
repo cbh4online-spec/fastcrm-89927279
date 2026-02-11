@@ -1,36 +1,27 @@
 
-
-# Corrigir visibilidade dos módulos no menu lateral
+# Esconder Instagram Looter quando não instalado
 
 ## Problema
+O grupo **Instagram Looter** no menu lateral não respeita a lógica de módulos. Está condicionado apenas pelo slug do workspace (`metodopare`), mas não tem `moduleSlug` definido, por isso aparece sempre independentemente de estar instalado ou não.
 
-Os grupos de navegacao **Portal B2B**, **Loja Online**, **Marketplace C2C**, **FastClub** e o item **Email Marketing** aparecem sempre no menu lateral, independentemente de estarem ou nao instalados. Isto acontece porque estes grupos/itens nao tem a propriedade `moduleSlug` definida, ao contrario de "Credito" e "Student Journey" que funcionam correctamente.
+## Solução
+Adicionar `moduleSlug: "instagram-looter"` ao grupo de navegação do Instagram Looter no ficheiro `src/components/layout/Sidebar.tsx` (linha ~574). A lógica de filtragem existente tratará de o esconder automaticamente quando não estiver instalado.
 
-## Solucao
-
-Adicionar `moduleSlug` a cada grupo e item relevante no ficheiro `src/components/layout/Sidebar.tsx`:
-
-| Grupo/Item | moduleSlug a adicionar |
-|---|---|
-| Portal B2B (grupo inteiro) | `b2b-portal` |
-| Loja Online (grupo inteiro) | `online-store` |
-| Marketplace C2C (grupo inteiro) | `marketplace-c2c` |
-| FastClub (grupo inteiro) | `fastclub` |
-| Email Marketing (item dentro de Marketing) | `email-campaigns` |
-
-Quando `moduleSlug` esta definido num grupo, a logica existente no Sidebar (linhas 337-354) ja esconde o grupo/item automaticamente se o slug nao estiver em `installedModuleIds`. Portanto, nao e necessario alterar nenhuma logica -- apenas adicionar a propriedade aos grupos/itens corretos.
-
-## Secao Tecnica
+## Secção Técnica
 
 ### Ficheiro a alterar
 
-**`src/components/layout/Sidebar.tsx`** -- Adicionar `moduleSlug` a 5 locais:
+**`src/components/layout/Sidebar.tsx`** -- linha ~574, adicionar `moduleSlug` ao objecto do grupo:
 
-1. Grupo "Portal B2B" (linha ~196): adicionar `moduleSlug: "b2b-portal"`
-2. Grupo "Loja Online" (linha ~208): adicionar `moduleSlug: "online-store"`
-3. Grupo "Marketplace C2C" (linha ~223): adicionar `moduleSlug: "marketplace-c2c"`
-4. Grupo "FastClub" (linha ~238): adicionar `moduleSlug: "fastclub"`
-5. Item "Email Marketing" (linha ~256): adicionar `moduleSlug: "email-campaigns"`
+```typescript
+{
+  name: "Instagram Looter",
+  icon: Instagram,
+  tooltip: "Prospecção via Instagram",
+  highlight: true,
+  moduleSlug: "instagram-looter",  // <-- adicionar esta linha
+  items: [ ... ]
+}
+```
 
-Nao e necessario alterar mais nenhum ficheiro. A logica de filtragem ja existe e funciona correctamente para os modulos que ja tem `moduleSlug` (ex: Credito, Student Journey).
-
+Apenas 1 linha a adicionar. A condição de workspace `metodopare` continua a funcionar em conjunto com a verificação do módulo instalado.
