@@ -51,6 +51,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!workspace) throw new Error("Workspace não encontrado");
 
+    // Resolve production domain from store_settings
+    const { data: storeSettings } = await supabaseAdmin
+      .from("store_settings")
+      .select("custom_domain")
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+
+    let baseDomain = domain; // fallback to frontend-provided domain
+    if (storeSettings?.custom_domain) {
+      baseDomain = `https://${storeSettings.custom_domain}`;
+    }
+
     const results: Array<{ email: string; success: boolean; error?: string }> = [];
 
     for (const invite of invites) {
@@ -73,7 +85,7 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
-        const inviteUrl = `${domain}/c2c/${workspace.slug}/invite/${inviteRecord.invite_token}`;
+        const inviteUrl = `${baseDomain}/c2c/${workspace.slug}/invite/${inviteRecord.invite_token}`;
 
         // Send email via Resend
         const emailRes = await fetch("https://api.resend.com/emails", {
