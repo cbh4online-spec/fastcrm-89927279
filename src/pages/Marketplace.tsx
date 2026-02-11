@@ -8,7 +8,7 @@ import { CategoryFilter } from "@/components/marketplace/CategoryFilter";
 import { ModuleDetailSheet } from "@/components/marketplace/ModuleDetailSheet";
 import { FeaturedModules } from "@/components/marketplace/FeaturedModules";
 import { MarketplaceModule, ModuleCategory, SAMPLE_MODULES } from "@/types/marketplace";
-import { Search, Store, Package, Sparkles, ArrowLeft } from "lucide-react";
+import { Search, Store, Package, Sparkles, ArrowLeft, Check } from "lucide-react";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 
 export default function Marketplace() {
@@ -99,6 +99,22 @@ export default function Marketplace() {
             Expanda as capacidades do seu CRM com módulos de negócio. 
             Cada módulo resolve um problema específico, sem complexidade técnica.
           </p>
+
+          {/* Module Stats */}
+          <div className="flex items-center gap-3 mt-4">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              <Package className="w-3.5 h-3.5" />
+              <span>{SAMPLE_MODULES.length} módulos</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+              <Check className="w-3.5 h-3.5" />
+              <span>{installedModuleIds.length} instalados</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm font-medium">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{SAMPLE_MODULES.filter(m => m.is_new).length} novos</span>
+            </div>
+          </div>
 
           {/* Search */}
           <div className="relative mt-6 max-w-md">
