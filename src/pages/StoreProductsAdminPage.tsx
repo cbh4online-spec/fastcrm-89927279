@@ -119,9 +119,6 @@ export default function StoreProductsAdminPage() {
       }
       toast.error("Erro: " + err.message);
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
-    },
   });
 
   const dismissSuggestion = useMutation({
@@ -147,9 +144,6 @@ export default function StoreProductsAdminPage() {
       if (context?.previous) {
         queryClient.setQueryData(["price-suggestions", currentWorkspace?.id], context.previous);
       }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
     },
   });
 
