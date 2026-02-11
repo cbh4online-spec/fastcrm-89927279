@@ -287,6 +287,7 @@ Responda no formato JSON:
         `${sku} produto preço ficha técnica imagens`,
         `"${sku}" specifications price images`,
         sku.replace(/-/g, ' ') + ' produto foto',
+        `site:visiotechsecurity.com ${sku}`,
       ];
 
       let allResults: any[] = [];
@@ -327,7 +328,7 @@ Responda no formato JSON:
         }
         
         // If we have enough results, stop searching
-        if (allResults.length >= 5) break;
+        if (allResults.length >= 8) break;
       }
       
       // Deduplicate extracted images
