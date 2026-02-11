@@ -382,6 +382,7 @@ Responda APENAS em JSON válido:
   "commercialDescription": "Descrição comercial focada em benefícios para o cliente, pode usar emojis (máx 300 chars)",
   "priceRange": { "min": 0, "max": 0 },
   "suggestedPrice": 0,
+  "weight": 0.5,
   "category": "Categoria principal do produto",
   "images": ["url1", "url2"],
   "sources": ["url_fonte1", "url_fonte2"],
@@ -402,6 +403,11 @@ Responda APENAS em JSON válido:
     "power": "Alimentação"
   }
 }
+
+REGRAS para weight (peso em kg):
+- Estime o peso real do produto com embalagem em kg
+- Use valores realistas: câmara CCTV ~0.3-0.8kg, router ~0.5kg, NVR ~2-3kg, monitor ~5-8kg
+- Se não souber, use 0.5 como default
 
 REGRAS para nome comercial:
 - Começa com o tipo de produto (ex: "Câmara Vigilância WiFi")
@@ -1320,6 +1326,7 @@ Responda APENAS em JSON válido:
   "commercialDescription": "Descrição comercial focada em benefícios, pode usar emojis (máx 300 chars)",
   "priceRange": { "min": 0, "max": 0 },
   "suggestedPrice": 0,
+  "weight": 0.5,
   "category": "Categoria principal do produto",
   "searchQuery": "Marca Modelo - termos de pesquisa para encontrar este produto online",
   "specifications": {
@@ -1330,6 +1337,11 @@ Responda APENAS em JSON válido:
     "dimensions": "Dimensões aproximadas"
   }
 }
+
+REGRAS para weight (peso em kg):
+- Estime o peso real do produto com embalagem em kg
+- Use valores realistas baseados no tipo/tamanho do produto visível na imagem
+- Se não souber, use 0.5 como default
 
 REGRAS para nome comercial:
 - Começa com o tipo de produto

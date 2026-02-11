@@ -32,6 +32,7 @@ interface ProductPreview {
   stock_quantity: number | null;
   track_stock: boolean;
   brandLogoUrl?: string;
+  weight: number;
 }
 
 export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProductDialogProps) {
@@ -67,6 +68,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           stock_quantity: null,
           track_stock: false,
           brandLogoUrl: (result as any).brandLogoUrl,
+          weight: (result as any).weight || 0.5,
         });
       } else {
         toast.error("Nenhum produto encontrado para este SKU");
@@ -122,6 +124,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           stock_quantity: null,
           track_stock: false,
           brandLogoUrl: result.brandLogoUrl,
+          weight: result.weight || 0.5,
         });
       } else {
         toast.error("Não foi possível identificar o produto na imagem");
@@ -227,6 +230,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
         stock_quantity: preview.stock_quantity,
         track_stock: preview.track_stock,
         brand_logo_url: brandLogoStorageUrl,
+        weight: preview.weight || 0.5,
       } as any);
 
       queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
@@ -348,7 +352,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
                   onChange={(e) => setPreview({ ...preview, name: e.target.value })}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label className="text-xs">Preço (€)</Label>
                   <Input
@@ -356,6 +360,16 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
                     step="0.01"
                     value={preview.price}
                     onChange={(e) => setPreview({ ...preview, price: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Peso (kg)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={preview.weight}
+                    onChange={(e) => setPreview({ ...preview, weight: parseFloat(e.target.value) || 0.5 })}
                   />
                 </div>
                 <div>
