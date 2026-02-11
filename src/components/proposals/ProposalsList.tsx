@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -230,7 +231,7 @@ export function ProposalsList() {
   const filtersActive = !!statusFilter || !!activeFilterId;
 
   const getPublicUrl = (slug: string) => {
-    return `${window.location.origin}/p/${slug}`;
+    return `${getPublicBaseUrl()}/p/${slug}`;
   };
 
   const handleCopyLink = (slug: string) => {

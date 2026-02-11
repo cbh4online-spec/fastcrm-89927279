@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, EyeOff, Link, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useUpdateProductVisibility } from "@/hooks/useStoreConditionalOffers";
 
 interface ProductVisibilityControlProps {
@@ -24,7 +25,7 @@ export function ProductVisibilityControl({ productId, currentVisibility, storeSl
   const Icon = config.icon;
 
   const copyLink = () => {
-    const url = `${window.location.origin}/store/${storeSlug}/product/${productId}`;
+    const url = `${getPublicBaseUrl()}/store/${storeSlug}/product/${productId}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado!");
   };

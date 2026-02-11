@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { addDays, format, isWeekend, nextMonday } from "date-fns";
@@ -192,11 +193,11 @@ export default function StoreProductPage() {
       <Helmet>
         <title>{product.name} | {storeName}</title>
         <meta name="description" content={product.short_description || product.name} />
-        <link rel="canonical" href={`${window.location.origin}/store/${wsSlug}/product/${product.id}`} />
+        <link rel="canonical" href={`${getPublicBaseUrl()}/store/${wsSlug}/product/${product.id}`} />
         <meta property="og:title" content={product.name} />
         <meta property="og:description" content={product.short_description || product.name} />
         <meta property="og:type" content="product" />
-        <meta property="og:url" content={`${window.location.origin}/store/${wsSlug}/product/${product.id}`} />
+        <meta property="og:url" content={`${getPublicBaseUrl()}/store/${wsSlug}/product/${product.id}`} />
         <meta property="og:site_name" content={storeName} />
         {images[primaryIndex] && <meta property="og:image" content={images[primaryIndex]} />}
         <meta name="twitter:card" content="summary_large_image" />

@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Helmet } from "react-helmet-async";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { useStoreCart } from "@/contexts/StoreCartContext";
@@ -272,8 +273,8 @@ export default function StoreCheckoutPage() {
           shippingMethodId: selectedShippingId || undefined,
           shippingCost: effectiveShippingCost,
           shippingMethodName: selectedCttOption?.name || undefined,
-          successUrl: `${window.location.origin}/store/${wsSlug}/success`,
-          cancelUrl: `${window.location.origin}/store/${wsSlug}/cancel`,
+          successUrl: `${getPublicBaseUrl()}/store/${wsSlug}/success`,
+          cancelUrl: `${getPublicBaseUrl()}/store/${wsSlug}/cancel`,
         },
       });
 

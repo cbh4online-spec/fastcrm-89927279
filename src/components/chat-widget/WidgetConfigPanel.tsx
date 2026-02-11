@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -176,7 +177,7 @@ export function WidgetConfigPanel() {
 <script>
   (function() {
     var w = document.createElement('script');
-    w.src = '${window.location.origin}/widget.js';
+    w.src = '${getPublicBaseUrl()}/widget.js';
     w.async = true;
     w.onload = function() {
       FastCRMWidget.init({
