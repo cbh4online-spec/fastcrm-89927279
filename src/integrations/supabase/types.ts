@@ -2670,6 +2670,11 @@ export type Database = {
         Row: {
           category_id: string | null
           condition: string
+          cpc_bid: number | null
+          cpc_clicks: number | null
+          cpc_daily_budget: number | null
+          cpc_is_active: boolean | null
+          cpc_total_spent: number | null
           created_at: string
           currency: string | null
           description: string
@@ -2690,6 +2695,11 @@ export type Database = {
         Insert: {
           category_id?: string | null
           condition?: string
+          cpc_bid?: number | null
+          cpc_clicks?: number | null
+          cpc_daily_budget?: number | null
+          cpc_is_active?: boolean | null
+          cpc_total_spent?: number | null
           created_at?: string
           currency?: string | null
           description: string
@@ -2710,6 +2720,11 @@ export type Database = {
         Update: {
           category_id?: string | null
           condition?: string
+          cpc_bid?: number | null
+          cpc_clicks?: number | null
+          cpc_daily_budget?: number | null
+          cpc_is_active?: boolean | null
+          cpc_total_spent?: number | null
           created_at?: string
           currency?: string | null
           description?: string

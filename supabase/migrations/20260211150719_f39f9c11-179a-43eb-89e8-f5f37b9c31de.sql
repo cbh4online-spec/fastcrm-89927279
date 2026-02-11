@@ -1,0 +1,8 @@
+
+-- Add CPC fields to c2c_listings
+ALTER TABLE public.c2c_listings
+  ADD COLUMN IF NOT EXISTS cpc_bid NUMERIC,
+  ADD COLUMN IF NOT EXISTS cpc_daily_budget NUMERIC,
+  ADD COLUMN IF NOT EXISTS cpc_is_active BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS cpc_total_spent NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS cpc_clicks INTEGER DEFAULT 0;
