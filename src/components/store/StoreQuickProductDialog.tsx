@@ -21,6 +21,8 @@ interface StoreQuickProductDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type ProductCondition = "new" | "used" | "refurbished";
+
 interface ProductPreview {
   name: string;
   description: string;
@@ -34,6 +36,7 @@ interface ProductPreview {
   track_stock: boolean;
   brandLogoUrl?: string;
   weight: number;
+  condition: ProductCondition;
 }
 
 export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProductDialogProps) {
@@ -72,6 +75,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           track_stock: false,
           brandLogoUrl: (result as any).brandLogoUrl,
           weight: (result as any).weight || 0.5,
+          condition: (result as any).condition || "new",
         });
       } else {
         toast.error("Nenhum produto encontrado para este SKU");
@@ -128,6 +132,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           track_stock: false,
           brandLogoUrl: result.brandLogoUrl,
           weight: result.weight || 0.5,
+          condition: result.condition || "new",
         });
       } else {
         toast.error("Não foi possível identificar o produto na imagem");
@@ -270,7 +275,10 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
         store_category_id: storeCategoryId,
         sku: preview.sku,
         images: storageUrls,
-        specifications: preview.specifications,
+        specifications: {
+          ...preview.specifications,
+          condition: preview.condition,
+        },
         status: "active",
         product_type: "physical",
         store_published: true,
@@ -279,6 +287,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
         track_stock: preview.track_stock,
         brand_logo_url: brandLogoStorageUrl,
         weight: preview.weight || 0.5,
+        condition: preview.condition,
       } as any);
 
       queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
@@ -432,8 +441,8 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
                 </div>
               </div>
 
-              {/* Stock fields */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Stock & Condition fields */}
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label className="text-xs">Estado do Stock</Label>
                   <Select
@@ -465,6 +474,22 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
                       })
                     }
                   />
+                </div>
+                <div>
+                  <Label className="text-xs">Condição</Label>
+                  <Select
+                    value={preview.condition}
+                    onValueChange={(v) => setPreview({ ...preview, condition: v as ProductCondition })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">Novo</SelectItem>
+                      <SelectItem value="used">Usado</SelectItem>
+                      <SelectItem value="refurbished">Recondicionado</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex items-center gap-2">
