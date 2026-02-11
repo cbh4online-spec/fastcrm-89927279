@@ -27,9 +27,14 @@ interface Props {
 }
 
 export default function SellerInvitesList({ workspaceId }: Props) {
-  const { data: invites = [], isLoading } = useC2CSellerInvites(workspaceId);
+  const { data: allInvites = [], isLoading } = useC2CSellerInvites(workspaceId);
   const revokeInvite = useRevokeSellerInvite();
   const resendInvite = useResendSellerInvite(workspaceId);
+
+  // Deduplicate: keep only the most recent invite per email
+  const invites = allInvites.filter((invite, index) => 
+    allInvites.findIndex(i => i.email === invite.email) === index
+  );
 
   if (isLoading) {
     return (
