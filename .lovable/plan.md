@@ -1,82 +1,110 @@
 
-# Logótipos de Marca nos Produtos
+
+# Calculo Automatico de Envio CTT no Checkout
 
 ## Objetivo
 
-Quando a IA cria um produto (via SKU ou fotografia), além de guardar o nome da marca nas especificações, deve também pesquisar e guardar o logótipo oficial da marca. Este logótipo será exibido na ficha do produto na loja e no backoffice.
+Substituir os metodos de envio com precos fixos por um calculo automatico baseado na tabela de precos CTT 2026, usando o peso total da encomenda. O sistema oferecera as opcoes CTT reais (Correio Azul e Encomenda Postal) com precos calculados dinamicamente.
+
+## Tabela de Precos CTT (2026)
+
+Os precos obtidos do site oficial dos CTT:
+
+### Correio Azul (Pacote Postal - ate 2kg)
+
+| Escalao de peso | Preco |
+|---|---|
+| Ate 20g | 2,10 EUR |
+| 20g - 50g | 2,10 EUR |
+| 50g - 100g | 2,10 EUR |
+| 100g - 500g | 3,90 EUR |
+| 500g - 2kg | 7,80 EUR |
+
+Prazo: ~1 dia util (continente)
+
+### Encomenda Postal (ate 10kg)
+
+| Escalao de peso | T1 | T2 |
+|---|---|---|
+| Ate 2kg | 8,25 EUR | 9,60 EUR |
+| 2kg - 5kg | 10,50 EUR | 12,10 EUR |
+| 5kg - 10kg | 15,55 EUR | 17,60 EUR |
+
+Prazo: ~3 dias uteis (continente)
+
+O sistema usara trajeto T1 por defeito (pode ser expandido futuramente).
 
 ## O Que Muda
 
-### 1. Nova coluna na tabela `products`
+### 1. Garantir que os produtos tem peso
 
-| Coluna | Tipo | Descrição |
-|---|---|---|
-| `brand_logo_url` | text | URL do logótipo da marca guardado no storage |
+A coluna `weight` ja existe na tabela `products` (tipo `numeric`, em kg). Atualmente nenhum produto tem peso preenchido.
 
-### 2. Edge Function `ai-product-assistant`
+- A criacao de produtos com IA passara a incluir o peso estimado
+- O campo de peso sera visivel no formulario de edicao de produtos
+- Produtos sem peso usarao um peso estimado por defeito (0.5 kg)
 
-Nos modos `sku-search` e `image-to-product`, após identificar a marca:
+### 2. Nova edge function `calculate-shipping`
 
-- Adicionar ao prompt da IA um campo `"brandLogoSearchQuery"` para gerar termos de pesquisa do logótipo (ex: "Hikvision logo PNG transparent")
-- Fazer uma pesquisa Firecrawl adicional: `"{marca} logo png transparent site:logo.com OR site:brandsoftheworld.com OR site:seeklogo.com"`
-- Extrair a melhor imagem de logótipo dos resultados
-- Fazer upload para o bucket `product-images` (pasta `brands/`)
-- Devolver o campo `brandLogoUrl` na resposta
-
-O JSON de resposta passa a incluir:
-```text
-{
-  ...campos existentes,
-  "brandLogoUrl": "url_do_logo_encontrado"
-}
-```
-
-### 3. Frontend - `StoreQuickProductDialog`
-
-- Ler o novo campo `brandLogoUrl` da resposta da IA
-- Fazer upload do logo para o storage (se for URL externo)
-- Guardar na coluna `brand_logo_url` ao criar o produto
-- Mostrar o logótipo no preview do produto (ao lado do nome da marca)
-
-### 4. Exibição na Loja
-
-Nos componentes de listagem e detalhe de produto, mostrar o logótipo da marca quando disponível, em vez de (ou junto a) o texto da marca nas especificações.
-
-## Secção Técnica
-
-### Migração SQL
+Recebe o peso total da encomenda e devolve as opcoes de envio CTT com precos calculados:
 
 ```text
-ALTER TABLE products ADD COLUMN brand_logo_url text;
+Input: { totalWeightKg: 1.2 }
+Output: [
+  { id: "ctt-azul", name: "CTT Correio Azul", price: 7.80, estimate: "1 dia util", maxWeight: 2 },
+  { id: "ctt-encomenda", name: "CTT Encomenda Postal", price: 8.25, estimate: "3 dias uteis", maxWeight: 10 }
+]
 ```
+
+Se o peso exceder 2kg, so aparece Encomenda Postal. Se exceder 10kg, mostra mensagem de contacto.
+
+### 3. Checkout com calculo dinamico
+
+O `StoreCheckoutPage` passara a:
+- Calcular o peso total do carrinho (somando `weight * quantity` de cada item)
+- Chamar a edge function para obter as opcoes CTT com precos reais
+- Mostrar as opcoes com preco calculado em vez do preco fixo dos `shipping_methods`
+- Enviar o custo de envio calculado para o `create-store-checkout`
+
+### 4. IA preenche peso na criacao de produtos
+
+O `ai-product-assistant` passara a incluir o campo `weight` (em kg) na resposta, e o `StoreQuickProductDialog` guardara esse valor ao criar o produto.
+
+## Seccao Tecnica
+
+### Ficheiro: `supabase/functions/calculate-shipping/index.ts` (novo)
+
+Tabela de precos CTT hardcoded na funcao. Recebe `totalWeightKg` e opcionalmente `postalCodeOrigin`/`postalCodeDestination` (para futuro calculo T1/T2). Devolve array de opcoes disponiveis com precos.
+
+### Ficheiro: `src/pages/store/StoreCheckoutPage.tsx`
+
+Alteracoes:
+- Buscar peso de cada produto do carrinho via query a `products` (campo `weight`)
+- Calcular peso total: `sum(weight * quantity)` com fallback de 0.5kg por produto sem peso
+- Chamar `calculate-shipping` quando o peso total estiver calculado
+- Substituir a listagem de `shippingMethods` estáticos pelas opcoes CTT dinamicas
+- Passar o preco calculado para o `create-store-checkout`
 
 ### Ficheiro: `supabase/functions/ai-product-assistant/index.ts`
 
 Nos modos `sku-search` e `image-to-product`:
-
-1. Extrair `brand` das specifications da resposta da IA
-2. Se brand existe, pesquisar logo via Firecrawl:
-   - Query: `"{brand}" logo png transparent`
-   - Filtrar imagens por extensão (.png, .svg, .webp) e tamanho razoável
-3. Fazer upload da melhor imagem para `product-images/brands/{brand_slug}.png`
-4. Incluir `brandLogoUrl` na resposta
+- Adicionar `"weight"` (numero em kg) ao schema de resposta da IA
+- A IA estimara o peso com base no tipo de produto identificado
 
 ### Ficheiro: `src/components/store/StoreQuickProductDialog.tsx`
 
-- Mapear `result.brandLogoUrl` para o preview
-- Incluir `brand_logo_url` no insert do produto
-- Mostrar thumbnail do logo no formulário de preview
-
-### Ficheiro: `src/pages/StoreProductsAdminPage.tsx`
-
-- Incluir `brand_logo_url` na query de produtos
-- Mostrar mini-logo na coluna de marca (se disponível)
+- Ler o campo `weight` da resposta da IA
+- Mostrar campo de peso no formulario de preview (editavel)
+- Incluir `weight` no insert do produto
 
 ### Resumo de ficheiros
 
-| Ficheiro | Alteração |
+| Ficheiro | Alteracao |
 |---|---|
-| Nova migração SQL | Adicionar coluna `brand_logo_url` à tabela `products` |
-| `supabase/functions/ai-product-assistant/index.ts` | Pesquisar e devolver logótipo da marca via Firecrawl |
-| `src/components/store/StoreQuickProductDialog.tsx` | Guardar logo da marca ao criar produto |
-| `src/pages/StoreProductsAdminPage.tsx` | Mostrar logo da marca na tabela de admin |
+| `supabase/functions/calculate-shipping/index.ts` | Nova edge function com tabela CTT e calculo por peso |
+| `src/pages/store/StoreCheckoutPage.tsx` | Calcular peso total, chamar edge function, mostrar opcoes CTT dinamicas |
+| `supabase/functions/ai-product-assistant/index.ts` | Adicionar campo weight ao schema de resposta |
+| `src/components/store/StoreQuickProductDialog.tsx` | Mostrar e guardar peso do produto |
+
+Nao e necessaria migracao SQL -- a coluna `weight` (numeric) ja existe na tabela `products`.
+
