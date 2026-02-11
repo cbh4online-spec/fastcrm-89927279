@@ -1,48 +1,32 @@
 
 
-# Permitir Alteracao do Link Publico da Comunidade
+# Alterar Rota Publica de `/community/` para `/club/`
 
-## Problema Actual
+## Resumo
 
-O "Link Publico" e gerado automaticamente usando `window.location.origin`, que no ambiente de preview mostra o URL do Lovable (ex: `https://3e82dfd9-...lovableproject...`). Nao e editavel e expoe o dominio interno.
+Substituir todas as referencias ao path `/community/` por `/club/` nas rotas publicas e links gerados. Isto afeta rotas, navegacao interna, link publico nas definicoes, e o email de convite.
 
-## Solucao
+## Ficheiros a Alterar
 
-Adicionar um campo `custom_domain` na tabela `community_settings` para que o admin possa definir o dominio/URL base personalizado. O link publico sera construido a partir desse valor quando definido, ou usara o dominio publicado (`fastcrm.lovable.app`) como fallback.
-
-### 1. Migracao SQL
-
-Adicionar coluna `custom_domain` (text, nullable) a tabela `community_settings`.
-
-```sql
-ALTER TABLE public.community_settings
-  ADD COLUMN IF NOT EXISTS custom_domain text;
-```
-
-### 2. Alteracoes no Dialog de Definicoes
-
-No tab "Descobrir" do `CommunitySettingsDialog.tsx`:
-
-- Adicionar campo editavel "Dominio / URL Base" onde o admin pode colocar o seu dominio (ex: `https://fastcrm.lovable.app` ou `https://meudominio.com`)
-- O "Link Publico" passa a usar esse dominio como base: `${customDomain}/community/${slug}`
-- Se nao houver dominio customizado, usa `https://fastcrm.lovable.app` como fallback (o dominio publicado)
-- Campo com placeholder e texto explicativo
-
-### 3. Ficheiros a Modificar
-
-| Ficheiro | Alteracao |
+| Ficheiro | O que muda |
 |---|---|
-| `src/components/community/CommunitySettingsDialog.tsx` | Novo campo "Dominio / URL Base", logica de construcao do link publico |
-| `src/hooks/useCommunitySettings.ts` | Adicionar `custom_domain` ao interface `CommunitySettings` |
+| `src/App.tsx` | Rotas: `/community/:slug` -> `/club/:slug` (3 rotas) |
+| `src/components/community/CommunitySettingsDialog.tsx` | Link publico: `/community/${slug}` -> `/club/${slug}` |
+| `src/pages/community/PublicCommunityPage.tsx` | Navegacao interna: `/community/` -> `/club/` |
+| `src/pages/community/PublicCommunityTopicPage.tsx` | Navegacao interna: `/community/` -> `/club/` |
+| `src/pages/community/CommunityAuthPage.tsx` | Redirect e navegacao: `/community/` -> `/club/` |
+| `supabase/functions/send-community-invite/index.ts` | URL do convite: `/community/` -> `/club/` |
 
-### 4. Logica do Link Publico
+## Detalhes
 
-```text
-Se custom_domain definido:
-  Link = custom_domain + "/community/" + slug
-Senao:
-  Link = "https://fastcrm.lovable.app" + "/community/" + slug
-```
+Todas as ocorrencias de `/community/${slug}` passam a `/club/${slug}`:
 
-O campo sera salvo junto com as outras definicoes ao clicar "Guardar".
+- Rotas no App.tsx (3 rotas publicas)
+- Links de navegacao nos componentes publicos (voltar, auth redirects)
+- Construcao do link publico nas definicoes
+- URL no email de convite
+
+O resultado final sera: `https://fastcrm.metodopare.ai/club/fastclub`
+
+Nenhuma alteracao na base de dados e necessaria -- apenas paths no frontend e na edge function.
 
