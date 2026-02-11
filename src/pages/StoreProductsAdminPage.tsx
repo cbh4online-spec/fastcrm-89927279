@@ -17,9 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Package, Star, Eye, EyeOff, ArrowUp, ArrowDown, Loader2, Sparkles, RefreshCw, TrendingDown, TrendingUp, Check, X, Lightbulb } from "lucide-react";
+import { Search, Package, Star, Eye, EyeOff, ArrowUp, ArrowDown, Loader2, Sparkles, RefreshCw, TrendingDown, TrendingUp, Check, X, Lightbulb, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { StoreQuickProductDialog } from "@/components/store/StoreQuickProductDialog";
+import { StoreProductEditDialog, ProductEditData } from "@/components/store/StoreProductEditDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductStoreData {
@@ -39,6 +40,12 @@ interface ProductStoreData {
   competitor_source: string | null;
   brand_logo_url: string | null;
   specifications: Record<string, string> | null;
+  direct_cost: number | null;
+  operational_cost: number | null;
+  short_description: string | null;
+  product_condition: string | null;
+  stock_status: string | null;
+  stock_quantity: number | null;
 }
 
 interface PriceSuggestion {
@@ -59,6 +66,7 @@ export default function StoreProductsAdminPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [editProduct, setEditProduct] = useState<ProductStoreData | null>(null);
   const [loadingPrices, setLoadingPrices] = useState<Record<string, boolean>>({});
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
@@ -123,7 +131,7 @@ export default function StoreProductsAdminPage() {
       if (!currentWorkspace?.id) return [];
       let query = supabase
         .from("products")
-        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications")
+        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications, direct_cost, operational_cost, short_description, product_condition, stock_status, stock_quantity")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active")
         .order("store_sort_order", { ascending: true, nullsFirst: false })
@@ -141,10 +149,10 @@ export default function StoreProductsAdminPage() {
   });
 
   const updateProduct = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<ProductStoreData>) => {
+    mutationFn: async ({ id, ...updates }: { id: string } & Record<string, any>) => {
       const { error } = await supabase
         .from("products")
-        .update(updates)
+        .update(updates as any)
         .eq("id", id);
       if (error) throw error;
     },
@@ -346,23 +354,26 @@ export default function StoreProductsAdminPage() {
                   <TableHead>Produto</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead className="text-right">Preço</TableHead>
+                  <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-center">Margem</TableHead>
                   <TableHead className="text-right">Concorrência</TableHead>
                   <TableHead className="text-center">Δ%</TableHead>
                   <TableHead className="text-center">Publicado</TableHead>
                   <TableHead className="text-center">Destaque</TableHead>
                   <TableHead className="text-center">Ordem</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={12} className="text-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : products.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       Sem produtos ativos
                     </TableCell>
                   </TableRow>
@@ -400,6 +411,22 @@ export default function StoreProductsAdminPage() {
                         </TableCell>
                         <TableCell className="text-right font-medium text-sm">
                           €{product.base_price.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right text-sm text-muted-foreground">
+                          {product.direct_cost != null ? `€${product.direct_cost.toFixed(2)}` : "—"}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {product.direct_cost != null && product.base_price > 0 ? (() => {
+                            const margin = ((product.base_price - product.direct_cost) / product.base_price) * 100;
+                            return (
+                              <Badge
+                                variant={margin > 30 ? "default" : margin < 15 ? "destructive" : "secondary"}
+                                className={`text-xs ${margin > 30 ? "bg-green-600 hover:bg-green-700" : margin >= 15 ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
+                              >
+                                {margin.toFixed(0)}%
+                              </Badge>
+                            );
+                          })() : "—"}
                         </TableCell>
                         <TableCell className="text-right text-sm">
                           <div className="flex items-center justify-end gap-1">
@@ -479,6 +506,17 @@ export default function StoreProductsAdminPage() {
                             </Button>
                           </div>
                         </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setEditProduct(product)}
+                            title="Editar produto"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })
@@ -487,6 +525,17 @@ export default function StoreProductsAdminPage() {
             </Table>
           </div>
         </main>
+
+        <StoreProductEditDialog
+          product={editProduct}
+          open={!!editProduct}
+          onOpenChange={(open) => { if (!open) setEditProduct(null); }}
+          onSave={(id, updates) => {
+            updateProduct.mutate({ id, ...updates });
+            setEditProduct(null);
+            toast.success("Produto atualizado");
+          }}
+        />
       </DashboardLayout>
     </>
   );
