@@ -32,6 +32,7 @@ import { useStoreReviewStats, useStoreWishlist, useToggleWishlist } from "@/hook
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useProductSalesCount } from "@/hooks/useProductSalesCount";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
+import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -95,6 +96,8 @@ export default function StoreProductPage() {
   const [showVideo, setShowVideo] = useState(false);
   const { workspaceId: resolvedWsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
   const { data: tierPricing } = useStoreTierPricing(resolvedWsId);
+  const { data: storeSettings } = usePublicStoreSettings(resolvedWsId || "");
+  const storeName = storeSettings?.store_name || "Loja";
   const isOutOfStock = product?.stock_status === "out_of_stock";
   const pricing = product ? getStorePrice(product.base_price, product.id, tierPricing) : null;
   const { average: reviewAvg, count: reviewCount } = useStoreReviewStats(productId);
@@ -183,17 +186,42 @@ export default function StoreProductPage() {
   return (
     <>
       <Helmet>
-        <title>{product.name} | Loja</title>
+        <title>{product.name} | {storeName}</title>
         <meta name="description" content={product.short_description || product.name} />
+        <link rel="canonical" href={`${window.location.origin}/store/${wsSlug}/product/${product.id}`} />
         <meta property="og:title" content={product.name} />
         <meta property="og:description" content={product.short_description || product.name} />
         <meta property="og:type" content="product" />
-        <meta property="og:url" content={window.location.href} />
+        <meta property="og:url" content={`${window.location.origin}/store/${wsSlug}/product/${product.id}`} />
+        <meta property="og:site_name" content={storeName} />
         {images[primaryIndex] && <meta property="og:image" content={images[primaryIndex]} />}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={product.name} />
         <meta name="twitter:description" content={product.short_description || product.name} />
         {images[primaryIndex] && <meta name="twitter:image" content={images[primaryIndex]} />}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": product.name,
+            "description": product.short_description || product.name,
+            ...(images[primaryIndex] ? { "image": images[primaryIndex] } : {}),
+            ...(product.sku ? { "sku": product.sku } : {}),
+            "offers": {
+              "@type": "Offer",
+              "price": (pricing?.price ?? product.base_price).toFixed(2),
+              "priceCurrency": product.currency || "EUR",
+              "availability": isOutOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+            },
+            ...(reviewCount > 0 ? {
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": reviewAvg.toFixed(1),
+                "reviewCount": reviewCount,
+              }
+            } : {}),
+          })}
+        </script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -668,7 +696,7 @@ export default function StoreProductPage() {
 
         <StoreFooter
           workspaceSlug={wsSlug}
-          storeName="Loja"
+          storeName={storeName}
         />
 
         {/* AI Advisor */}

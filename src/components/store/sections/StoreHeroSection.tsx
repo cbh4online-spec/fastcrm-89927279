@@ -40,11 +40,17 @@ export function StoreHeroSection({ storeName, storeDescription, bannerUrl, featu
             </Badge>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-              {storeDescription || `Bem-vindo à ${storeName}`}
+              Bem-vindo à {storeName}
             </h1>
 
-            <p className="text-lg md:text-xl text-primary-foreground/80 max-w-lg leading-relaxed">
-              Descubra soluções premium pensadas para si. Qualidade garantida e entrega sem complicações.
+            {storeDescription && (
+              <p className="text-lg md:text-xl text-primary-foreground/80 max-w-lg leading-relaxed">
+                {storeDescription}
+              </p>
+            )}
+
+            <p className="text-base md:text-lg text-primary-foreground/60 max-w-lg leading-relaxed">
+              Qualidade garantida e entrega sem complicações.
             </p>
 
             <div className="flex flex-wrap gap-3 pt-2">
