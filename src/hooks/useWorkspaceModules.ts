@@ -78,13 +78,27 @@ export function useWorkspaceModules() {
 
       const { data: existing } = await supabase
         .from("workspace_modules")
-        .select("id")
+        .select("id, status")
         .eq("workspace_id", workspaceId)
         .eq("module_id", module.id)
         .maybeSingle();
+
       if (existing) {
-        toast.info("Este módulo já está instalado");
-        return false;
+        if (existing.status === "active" || existing.status === "trial") {
+          toast.info("Este módulo já está instalado");
+          return false;
+        }
+        // Reactivate canceled/expired module
+        const { error: reactivateError } = await supabase
+          .from("workspace_modules")
+          .update({
+            status: "active",
+            cancel_at_period_end: false,
+            current_period_start: new Date().toISOString(),
+          })
+          .eq("id", existing.id);
+        if (reactivateError) throw reactivateError;
+        return true;
       }
 
       const { data: { user } } = await supabase.auth.getUser();
