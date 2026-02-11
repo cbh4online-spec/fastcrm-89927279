@@ -1,33 +1,66 @@
 
-
-# Corrigir Modulos Instalados que Nao Aparecem
+# Corrigir Modulos que Dizem "Instalado" Mas Nao Mostram Badge
 
 ## Problema
 
-O hook `useWorkspaceModules` usa `useState` + `useEffect` com fetch manual. Cada componente que o chama (Sidebar, Marketplace, ModuleGuard, etc.) cria a sua propria copia independente do estado. Quando o Marketplace instala um modulo e chama `fetchInstalledModules()`, so o estado local do Marketplace e atualizado. O Sidebar mantem dados antigos ate o utilizador fazer refresh da pagina.
+Quando um modulo e desinstalado, o seu registo na base de dados muda o status para "canceled" mas a linha continua a existir. Quando o utilizador tenta reinstalar esse modulo, o codigo encontra a linha existente (com status "canceled") e mostra a mensagem "Este modulo ja esta instalado" sem realmente reativar o modulo. O resultado: o utilizador pensa que instalou, mas o modulo fica com status "canceled" e nao aparece como instalado em lado nenhum.
 
 ## Solucao
 
-Migrar o `useWorkspaceModules` para usar **React Query**, que partilha automaticamente a cache entre todos os componentes que usam a mesma query key. Quando o Marketplace instala/desinstala um modulo, faz `invalidateQueries` e todos os consumidores (Sidebar, ModuleGuard, etc.) recebem os dados atualizados instantaneamente.
+Alterar a logica de instalacao no `useWorkspaceModules.ts` para tratar o caso de reinstalacao:
+
+1. Em vez de apenas verificar se existe um registo, verificar tambem o **status** desse registo
+2. Se existir um registo com status "canceled" ou "expired", fazer **update** para "active" em vez de inserir novo
+3. Se existir com status "active" ou "trial", ai sim mostrar "ja instalado"
 
 ## Seccao Tecnica
 
 ### Ficheiro: `src/hooks/useWorkspaceModules.ts`
 
-Reescrever o hook para:
+Na `installMutation.mutationFn`, alterar o bloco que verifica registos existentes (linhas 79-88):
 
-1. Substituir `useState` + `useEffect` + `useCallback` por `useQuery` do React Query
-2. A query key sera `["workspace-modules", workspaceId]`
-3. A funcao de fetch mantem-se igual (buscar `workspace_modules` + `marketplace_modules` para slugs)
-4. `installModule` e `uninstallModule` passam a usar `useMutation` com `onSuccess` que chama `queryClient.invalidateQueries(["workspace-modules", workspaceId])`
-5. `installedModuleIds` e `installedModules` passam a ser derivados (`useMemo`) do resultado da query
-6. A interface publica do hook mantem-se identica para nao quebrar nenhum consumidor
+**Antes:**
+```typescript
+const { data: existing } = await supabase
+  .from("workspace_modules")
+  .select("id")
+  .eq("workspace_id", workspaceId)
+  .eq("module_id", module.id)
+  .maybeSingle();
+if (existing) {
+  toast.info("Este modulo ja esta instalado");
+  return false;
+}
+```
 
-Resultado: instalar ou desinstalar um modulo no Marketplace atualiza automaticamente o Sidebar, ModuleGuard e qualquer outro componente que use o hook.
+**Depois:**
+```typescript
+const { data: existing } = await supabase
+  .from("workspace_modules")
+  .select("id, status")
+  .eq("workspace_id", workspaceId)
+  .eq("module_id", module.id)
+  .maybeSingle();
 
-### Resumo
+if (existing) {
+  if (existing.status === "active" || existing.status === "trial") {
+    toast.info("Este modulo ja esta instalado");
+    return false;
+  }
+  // Reactivate canceled/expired module
+  const { error } = await supabase
+    .from("workspace_modules")
+    .update({
+      status: "active",
+      cancel_at_period_end: false,
+      current_period_start: new Date().toISOString(),
+    })
+    .eq("id", existing.id);
+  if (error) throw error;
+  return true;
+}
+```
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/hooks/useWorkspaceModules.ts` | Migrar de useState/useEffect para React Query (useQuery + useMutation) para partilha automatica de estado |
-
+| `src/hooks/useWorkspaceModules.ts` | Tratar reinstalacao de modulos cancelados fazendo update em vez de ignorar |
