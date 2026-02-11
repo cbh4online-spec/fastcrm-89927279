@@ -1,43 +1,91 @@
 
+# Gestao Avancada de Vendedores C2C
 
-# Melhorar UX do Assistente IA por Imagem
+## Resumo
 
-## Problema
-O botao "Assistente IA" ja existe e analisa fotos, mas nao e suficientemente visivel nem intuitivo. O utilizador tem de carregar a foto e depois procurar o botao para ativar a IA.
+Expandir a pagina de gestao de vendedores (`/dashboard/c2c/sellers`) de uma simples tabela de aprovacao para um painel de gestao completo com perfil detalhado, historico de vendas por vendedor, edicao de comissoes individuais, anuncios ativos, verificacao manual, comunicacao direta e exportacao de dados.
 
-## Melhorias Propostas
+## Funcionalidades a Adicionar
 
-### 1. Auto-sugestao apos upload de foto
-Apos o upload da primeira foto, mostrar automaticamente um banner/card destacado a perguntar: "Queres que a IA preencha o anuncio com base nesta foto?" com botao "Preencher com IA". Isto torna a funcionalidade impossivel de ignorar.
+### 1. Perfil Expandido do Vendedor (Dialog melhorado)
+O dialog de detalhes atual mostra apenas dados basicos. Sera expandido com tabs:
+- **Perfil**: Dados pessoais, bancarios e fiscais (atual, melhorado com avatar e verificacao)
+- **Anuncios**: Lista de anuncios do vendedor com status (ativos, vendidos, removidos)
+- **Vendas**: Historico de comissoes/transacoes do vendedor com totais
+- **Avaliacoes**: Reviews recebidas pelo vendedor
 
-### 2. Botao IA na zona de fotos
-Adicionar um botao "Analisar com IA" diretamente na zona de fotos, junto as thumbnails, para ser mais contextual e visivel.
+### 2. Edicao de Dados do Vendedor pelo Admin
+- Editar comissao individual (override do default 5%)
+- Marcar como verificado/nao verificado (selo de confianca)
+- Editar dados bancarios (IBAN, banco, titular)
+- Reativar vendedor suspenso/rejeitado
 
-### 3. Auto-trigger opcional
-Apos a primeira foto ser carregada, se o titulo estiver vazio, disparar automaticamente a analise IA sem necessidade de clique extra.
+### 3. Metricas por Vendedor na Tabela
+- Adicionar colunas: Total Vendas, Receita, Rating, Verificado
+- Ordenacao por qualquer coluna
+
+### 4. Acoes em Massa
+- Selecionar multiplos vendedores
+- Aprovar/suspender em massa
+- Enviar notificacao em massa
+
+### 5. Exportacao CSV
+- Botao para exportar lista de vendedores com todos os dados para CSV
+
+### 6. Notas Internas do Admin
+- Campo para o admin adicionar notas internas sobre cada vendedor (nao visiveis ao vendedor)
 
 ## Seccao Tecnica
 
-### Ficheiro: `src/pages/c2c/C2CCreateListing.tsx`
+### Migracao SQL
 
-Alteracoes:
-- Adicionar um `useEffect` que deteta quando `photos` passa de 0 para 1+ e `title` esta vazio, disparando automaticamente `handleAnalyzeWithAI()`
-- Mostrar banner visual animado durante a analise ("A analisar a tua foto com IA...")
-- Mover/duplicar o botao "Assistente IA" para dentro da zona de fotos com design mais prominente
-- Adicionar estado `autoAnalyzed` para evitar re-trigger
+Adicionar tabela de notas internas e campo de notas:
 
-```text
-+--------------------------------------------------+
-| Fotos                                            |
-| [img1] [img2] [+]                                |
-|                                                  |
-| [sparkles] A analisar a tua foto com IA...       |  <-- banner auto apos upload
-| ou                                               |
-| [Wand2] Preencher tudo com IA                    |  <-- botao na zona de fotos
-+--------------------------------------------------+
+```sql
+CREATE TABLE public.c2c_seller_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  seller_id UUID NOT NULL REFERENCES public.c2c_sellers(id) ON DELETE CASCADE,
+  admin_id UUID NOT NULL,
+  note TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.c2c_seller_notes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Super admins can manage seller notes"
+  ON public.c2c_seller_notes FOR ALL
+  TO authenticated
+  USING (public.is_super_admin(auth.uid()));
 ```
+
+### Novo Hook: `src/hooks/useC2CSellerAdmin.ts`
+
+Hook dedicado a gestao avancada com:
+- `useSellerListings(sellerId)` - buscar anuncios de um vendedor
+- `useSellerCommissions(sellerId)` - buscar comissoes/vendas
+- `useSellerReviews(sellerId)` - buscar avaliacoes
+- `useUpdateSellerDetails()` - editar comissao, verificacao, dados bancarios
+- `useSellerNotes(sellerId)` - listar notas internas
+- `useAddSellerNote()` - adicionar nota interna
+- `useBulkUpdateSellers()` - acoes em massa
+
+### Ficheiro Modificado: `src/pages/c2c/C2CSellersAdmin.tsx`
+
+Redesenho completo:
+- Tabela com mais colunas (vendas, receita, rating, verificado)
+- Checkboxes para selecao em massa
+- Toolbar com acoes em massa e botao exportar CSV
+- Dialog de detalhes com sistema de Tabs (Perfil, Anuncios, Vendas, Avaliacoes, Notas)
+- Formulario de edicao inline para comissao e verificacao
+- Ordenacao de colunas clicavel
+
+### Ficheiro Modificado: `src/hooks/useC2CSellers.ts`
+
+Adicionar mutation para editar detalhes do vendedor (comissao, verificacao, dados bancarios, reativar).
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/pages/c2c/C2CCreateListing.tsx` | Auto-trigger IA apos upload, banner de analise, botao IA na zona de fotos |
-
+| Migracao SQL | Criar tabela `c2c_seller_notes` com RLS |
+| `src/hooks/useC2CSellerAdmin.ts` | Novo hook com queries para listings, comissoes, reviews, notas e acoes em massa |
+| `src/hooks/useC2CSellers.ts` | Adicionar mutation `useUpdateSellerDetails` |
+| `src/pages/c2c/C2CSellersAdmin.tsx` | Redesenho com tabela expandida, tabs no dialog, selecao em massa, export CSV |
