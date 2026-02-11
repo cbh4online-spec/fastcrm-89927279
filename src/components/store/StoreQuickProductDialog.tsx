@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -89,6 +89,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const skuInputRef = useRef<HTMLInputElement>(null);
 
   const { searchBySKU } = useProductAIAssistant();
   const createProduct = useCreateProduct();
@@ -98,6 +99,35 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
   const [marketPrices, setMarketPrices] = useState<MarketPrice[] | null>(null);
   const [isSearchingPrices, setIsSearchingPrices] = useState(false);
   const [showPriceSuggestion, setShowPriceSuggestion] = useState(false);
+
+  // Auto-focus SKU input when dialog opens
+  useEffect(() => {
+    if (open && tab === "sku") {
+      setTimeout(() => skuInputRef.current?.focus(), 100);
+    }
+  }, [open, tab]);
+
+  // Auto-trigger market price search when preview appears
+  const prevPreviewNameRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (preview?.name && preview.name !== prevPreviewNameRef.current) {
+      prevPreviewNameRef.current = preview.name;
+      handleSearchMarketPrices();
+    }
+  }, [preview?.name]);
+
+  // Ctrl+Enter to create product
+  useEffect(() => {
+    if (!open || !preview) return;
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !isCreating && !duplicateWarning) {
+        e.preventDefault();
+        handleCreate();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, preview, isCreating, duplicateWarning]);
 
   const handleSearchMarketPrices = async () => {
     if (!preview?.name) return;
@@ -437,6 +467,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           <TabsContent value="sku" className="space-y-4 mt-4">
             <div className="flex gap-2">
               <Input
+                ref={skuInputRef}
                 placeholder="Inserir código SKU..."
                 value={skuInput}
                 onChange={(e) => setSkuInput(e.target.value)}
@@ -716,11 +747,11 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
               </div>
             )}
 
-            <Button onClick={handleCreate} disabled={isCreating || !!duplicateWarning} className="w-full">
+            <Button onClick={handleCreate} disabled={isCreating || !!duplicateWarning} className="w-full" title="Ctrl+Enter para criar rapidamente">
               {isCreating ? (
                 <><Loader2 className="h-4 w-4 animate-spin mr-2" /> A criar...</>
               ) : (
-                <><Sparkles className="h-4 w-4 mr-2" /> Criar e Publicar na Loja</>
+                <><Sparkles className="h-4 w-4 mr-2" /> Criar e Publicar na Loja <span className="ml-2 text-xs opacity-60">(Ctrl+↵)</span></>
               )}
             </Button>
           </div>
