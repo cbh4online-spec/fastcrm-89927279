@@ -1,25 +1,25 @@
 
-# Limpar Convites Duplicados da Base de Dados
+# Corrigir Reenvio de Convites (Problema Recorrente)
 
 ## Problema
 
-Existem 7 registos na base de dados para apenas 2 pessoas:
-- **Jorge Cardoso**: 4 registos (2 pendentes, 2 revogados)
-- **Strongadget**: 3 registos (1 pendente, 2 revogados)
+Cada vez que se clica "Reenviar", o sistema revoga o convite antigo e cria um novo registo na base de dados. Isto faz com que os duplicados voltem a aparecer. A deduplicacao no frontend so mostra o mais recente, mas nao esta a funcionar corretamente porque ha um breve momento apos o reenvio em que ambos aparecem, e o contador mostra o total errado.
 
 ## Solucao
 
-Executar uma migracao SQL para eliminar os registos antigos, mantendo apenas o convite mais recente (pendente) de cada email:
+### 1. Alterar o hook `useResendSellerInvite` para ELIMINAR o antigo
 
-### Registos a manter:
-- `jorge.cardoso@digital4ads.pt` - o pendente mais recente (56cd78c0)
-- `strongadget@gmail.com` - o pendente mais recente (fc4a1948)
+Em vez de apenas mudar o status para "revoked" (que mantem o registo na base de dados), o reenvio vai **eliminar** o convite antigo antes de criar o novo. Assim nunca existem dois registos para o mesmo email.
 
-### Registos a eliminar (5):
-- Jorge Cardoso: 1 pendente duplicado + 2 revogados
-- Strongadget: 2 revogados
+**Ficheiro: `src/hooks/useC2CSellerInvites.ts`**
 
-### SQL
+Alterar a funcao `useResendSellerInvite`:
+- Substituir `.update({ status: "revoked" })` por `.delete().eq("id", invite.id)`
+- Resultado: apos reenviar, existe apenas 1 registo por email na base de dados
+
+### 2. Limpar os duplicados atuais
+
+Executar SQL para eliminar o registo revogado do Strongadget (id: `fc4a1948-62c2-4715-afec-d59fab3d5914`), mantendo apenas o pendente mais recente.
 
 ```sql
 DELETE FROM c2c_seller_invites
@@ -30,10 +30,8 @@ WHERE id NOT IN (
 );
 ```
 
-Esta query mantem apenas o registo mais recente por email e elimina todos os outros.
+### Resultado
 
-### Resultado final
-- Convites (2): Strongadget (Pendente), Jorge Cardoso (Pendente)
-
-### Sem alteracoes de codigo
-A deduplicacao no frontend ja esta implementada como salvaguarda para o futuro. Esta limpeza garante que a base de dados tambem fica consistente.
+- Reenviar nunca cria duplicados - elimina o antigo e cria um novo
+- A deduplicacao no frontend continua como salvaguarda extra
+- A base de dados fica sempre limpa com 1 registo por pessoa
