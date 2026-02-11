@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface CartItem {
   productId: string;
@@ -25,6 +26,8 @@ interface StoreCartContextType {
 const StoreCartContext = createContext<StoreCartContextType | null>(null);
 
 const STORAGE_KEY = "store-cart";
+const SESSION_KEY = "store_view_session_id";
+const SYNC_DEBOUNCE_MS = 2000;
 
 function loadCart(): CartItem[] {
   try {
@@ -42,9 +45,50 @@ function saveCart(items: CartItem[]) {
 export function StoreCartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(loadCart);
   const [isOpen, setIsOpen] = useState(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Save to localStorage
   useEffect(() => {
     saveCart(items);
+  }, [items]);
+
+  // Sync cart to DB (debounced) using session_id from visitor tracking
+  useEffect(() => {
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+
+    syncTimerRef.current = setTimeout(() => {
+      const sessionId = localStorage.getItem(SESSION_KEY);
+      if (!sessionId) return;
+
+      const cartData = items.length > 0
+        ? items.map(i => ({
+            productId: i.productId,
+            name: i.name,
+            price: i.price,
+            quantity: i.quantity,
+            sku: i.sku,
+          }))
+        : null;
+
+      const subtotalValue = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+      supabase
+        .from("store_visitor_sessions" as any)
+        .update({
+          cart_items: cartData,
+          cart_subtotal: items.length > 0 ? subtotalValue : 0,
+          cart_updated_at: new Date().toISOString(),
+          last_activity_at: new Date().toISOString(),
+        } as any)
+        .eq("session_id", sessionId)
+        .then(({ error }) => {
+          if (error) console.error("[CartSync] error:", error.message);
+        });
+    }, SYNC_DEBOUNCE_MS);
+
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
   }, [items]);
 
   const addItem = useCallback((item: Omit<CartItem, "quantity">, quantity = 1) => {
