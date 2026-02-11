@@ -1,103 +1,43 @@
 
-# Branding com IA e Upload de Logotipo
+# Corrigir IA nao disponivel na loja
 
-## O que muda
+## Problema
+Os pedidos de IA funcionam quando chamados diretamente, mas falham no browser porque os headers CORS da edge function estao incompletos. O browser do Supabase JS SDK envia headers adicionais (`x-supabase-client-platform`, etc.) que nao estao na lista de headers permitidos, fazendo o preflight CORS falhar.
 
-### Tab Branding (StoreSettingsPage)
-Atualmente, os campos de logo e banner sao apenas inputs de texto para colar URLs. Vamos transformar esta secao:
-
-1. **Logotipo -- Upload de ficheiro**: Substituir o campo "URL do Logo" por um componente de upload visual (drag-and-drop ou clique para selecionar). O ficheiro e enviado para o bucket `company-logos` e o URL publico e guardado em `logo_url`.
-
-2. **Banner -- Upload de ficheiro + Gerar com IA**: Substituir o campo "URL do Banner" por upload visual, com um botao adicional "Gerar com IA" que cria um banner fotorealista usando o modo `generate-store-banner` na edge function.
-
-3. **Cores -- Sugestao com IA**: Adicionar um botao "Sugerir cores com IA" que analisa o nome e descricao da loja e propoe uma paleta de cores (primaria + destaque).
+## Solucao
+Atualizar os headers CORS na edge function `ai-product-assistant` para incluir todos os headers enviados pelo SDK do Supabase.
 
 ## Seccao Tecnica
 
-### Migracao SQL
-Criar bucket de storage para assets da loja (se nao existir):
-
-```sql
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('store-assets', 'store-assets', true)
-ON CONFLICT (id) DO NOTHING;
-
--- RLS: utilizadores autenticados podem fazer upload
-CREATE POLICY "Authenticated users can upload store assets"
-ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'store-assets');
-
-CREATE POLICY "Authenticated users can update store assets"
-ON storage.objects FOR UPDATE TO authenticated
-USING (bucket_id = 'store-assets');
-
-CREATE POLICY "Anyone can view store assets"
-ON storage.objects FOR SELECT TO public
-USING (bucket_id = 'store-assets');
-
-CREATE POLICY "Authenticated users can delete store assets"
-ON storage.objects FOR DELETE TO authenticated
-USING (bucket_id = 'store-assets');
-```
-
-### Edge function -- novos modos
-
-Adicionar ao `ai-product-assistant/index.ts`:
-
-| Modo | Input | Output |
-|---|---|---|
-| `generate-store-banner` | `storeName`, `category?`, `description?` | `imageBase64` (banner 16:9 fotorealista) |
-| `suggest-brand-colors` | `storeName`, `description?`, `category?` | `{ primaryColor: "#hex", accentColor: "#hex", rationale: "..." }` |
-
-### Ficheiros a alterar
+### Ficheiro a alterar
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/pages/StoreSettingsPage.tsx` | Redesenhar tab Branding: upload de logo com preview + upload de banner com preview e botao IA + botao IA para cores |
-| `supabase/functions/ai-product-assistant/index.ts` | Adicionar modos `generate-store-banner` e `suggest-brand-colors` |
-| Migracao SQL | Criar bucket `store-assets` com RLS |
+| `supabase/functions/ai-product-assistant/index.ts` | Atualizar `corsHeaders` (linha 3-6) |
 
-### UI da tab Branding (redesenhada)
+### Alteracao especifica
 
-```text
-+------------------------------------------+
-| Logotipo                                 |
-| +----------+  [Escolher ficheiro]        |
-| | preview  |  Formatos: PNG, JPG, SVG    |
-| | da logo  |  Max: 2MB                   |
-| +----------+  [Remover]                  |
-+------------------------------------------+
-| Banner                                   |
-| +--------------------------------+       |
-| |    preview do banner           |       |
-| +--------------------------------+       |
-| [Escolher ficheiro]  [Gerar com IA]      |
-+------------------------------------------+
-| Cores                                    |
-| Cor Primaria    Cor de Destaque           |
-| [#____] [_]     [#____] [_]              |
-|           [Sugerir cores com IA]         |
-+------------------------------------------+
+Substituir:
+```typescript
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+};
 ```
 
-### Logica de upload (logo e banner)
-
-```text
-1. Utilizador seleciona ficheiro ou faz drag-and-drop
-2. Valida tipo (image/*) e tamanho (max 2MB)
-3. Upload para bucket store-assets/{workspaceId}/logo.ext ou banner.ext
-4. Obtem URL publico
-5. Atualiza form.logo_url ou form.banner_url
-6. Preview atualiza imediatamente
+Por:
+```typescript
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+};
 ```
 
-### Logica de geracao do banner com IA
+Alem disso, o modelo usado para gerar banners (`google/gemini-2.5-flash-image`) nao existe na lista de modelos suportados. Sera corrigido para `google/gemini-3-pro-image-preview`.
 
-```text
-1. Clique em "Gerar com IA"
-2. Valida que o nome da loja esta preenchido
-3. Chama edge function modo generate-store-banner
-4. Recebe imageBase64
-5. Converte para blob e faz upload para store-assets
-6. Atualiza form.banner_url com URL publico
-```
+### Resumo das correcoes
+
+1. **CORS headers incompletos** -- Adicionar headers do SDK Supabase para permitir chamadas do browser
+2. **Modelo de imagem invalido** -- Corrigir `google/gemini-2.5-flash-image` para `google/gemini-3-pro-image-preview` (linha 1347)
