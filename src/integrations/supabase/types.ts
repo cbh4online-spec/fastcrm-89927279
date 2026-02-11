@@ -18061,6 +18061,8 @@ export type Database = {
           category: string | null
           commercial_description: string | null
           commission_default: number | null
+          competitor_price_low: number | null
+          competitor_source: string | null
           conditions: string | null
           consumption_model: string | null
           created_at: string
@@ -18130,6 +18132,8 @@ export type Database = {
           category?: string | null
           commercial_description?: string | null
           commission_default?: number | null
+          competitor_price_low?: number | null
+          competitor_source?: string | null
           conditions?: string | null
           consumption_model?: string | null
           created_at?: string
@@ -18199,6 +18203,8 @@ export type Database = {
           category?: string | null
           commercial_description?: string | null
           commission_default?: number | null
+          competitor_price_low?: number | null
+          competitor_source?: string | null
           conditions?: string | null
           consumption_model?: string | null
           created_at?: string

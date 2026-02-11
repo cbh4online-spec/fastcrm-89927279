@@ -33,6 +33,8 @@ interface ProductStoreData {
   store_sort_order: number | null;
   images: string[] | null;
   primary_image_index: number | null;
+  competitor_price_low: number | null;
+  competitor_source: string | null;
 }
 
 export default function StoreProductsAdminPage() {
@@ -47,7 +49,7 @@ export default function StoreProductsAdminPage() {
       if (!currentWorkspace?.id) return [];
       let query = supabase
         .from("products")
-        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index")
+        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active")
         .order("store_sort_order", { ascending: true, nullsFirst: false })
@@ -142,6 +144,8 @@ export default function StoreProductsAdminPage() {
                   <TableHead>Produto</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead className="text-right">Preço</TableHead>
+                  <TableHead className="text-right">Concorrência</TableHead>
+                  <TableHead className="text-center">Δ%</TableHead>
                   <TableHead className="text-center">Publicado</TableHead>
                   <TableHead className="text-center">Destaque</TableHead>
                   <TableHead className="text-center">Ordem</TableHead>
@@ -150,13 +154,13 @@ export default function StoreProductsAdminPage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : products.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Sem produtos ativos
                     </TableCell>
                   </TableRow>
@@ -188,6 +192,32 @@ export default function StoreProductsAdminPage() {
                         </TableCell>
                         <TableCell className="text-right font-medium text-sm">
                           €{product.base_price.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {product.competitor_price_low != null ? (
+                            <div>
+                              <span className="font-medium">€{product.competitor_price_low.toFixed(2)}</span>
+                              {product.competitor_source && (
+                                <p className="text-xs text-muted-foreground truncate max-w-[120px]" title={product.competitor_source}>
+                                  {product.competitor_source}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {product.competitor_price_low != null ? (() => {
+                            const diff = ((product.base_price - product.competitor_price_low) / product.competitor_price_low) * 100;
+                            const isHigher = diff > 0;
+                            const isLower = diff < 0;
+                            return (
+                              <Badge variant={isHigher ? "destructive" : isLower ? "default" : "secondary"} className="text-xs">
+                                {isHigher ? "+" : ""}{diff.toFixed(0)}%
+                              </Badge>
+                            );
+                          })() : "—"}
                         </TableCell>
                         <TableCell className="text-center">
                           <Switch
