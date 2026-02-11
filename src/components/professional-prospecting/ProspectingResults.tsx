@@ -15,10 +15,11 @@ import {
   UserPlus, ThumbsDown, Search, Filter, Loader2,
   ChevronDown, ChevronUp, MapPin, Briefcase, Star,
   CheckCircle, XCircle, AlertCircle, RefreshCw, Instagram,
-  Eye, Facebook, Mail, Phone
+  Eye, Facebook, Mail, Phone, MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
+import { ProspectingMessageDialog } from "./ProspectingMessageDialog";
 
 interface ProspectingResultsProps {
   searchId: string | null;
@@ -96,6 +97,8 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
   const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set());
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [profileToConvert, setProfileToConvert] = useState<Profile | null>(null);
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [messageProfile, setMessageProfile] = useState<Profile | null>(null);
 
   // Fetch profiles - if searchId provided, filter by it; otherwise get recent analyzed profiles
   const { data: profiles = [], isLoading, refetch } = useQuery({
@@ -780,6 +783,19 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
                           </a>
                         </Button>
 
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary hover:text-primary"
+                          onClick={() => {
+                            setMessageProfile(profile);
+                            setMessageDialogOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-1" />
+                          Gerar Mensagem
+                        </Button>
+
                         <div className="flex-1" />
 
                         <Button
@@ -819,6 +835,15 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
           profile={profileToConvert}
           onConfirm={handleConvertConfirm}
           isConverting={convertMutation.isPending}
+        />
+      )}
+
+      {/* Message Generator Dialog */}
+      {messageProfile && (
+        <ProspectingMessageDialog
+          open={messageDialogOpen}
+          onOpenChange={setMessageDialogOpen}
+          profile={messageProfile}
         />
       )}
     </div>
