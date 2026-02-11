@@ -114,7 +114,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           description: result.commercialDescription || result.description || "",
           price: result.suggestedPrice || 0,
           category: result.category || "",
-          images: [],
+          images: result.images || (result.imageUrl ? [result.imageUrl] : []),
           specifications: result.specifications,
           stock_status: "available",
           stock_quantity: null,
