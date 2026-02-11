@@ -69,7 +69,7 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
             className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
           >
             {logoUrl && (
-              <img src={logoUrl} alt={storeName} className="h-8 w-8 object-contain rounded" />
+              <img src={logoUrl} alt={storeName} className="h-10 w-auto max-w-[160px] object-contain rounded" />
             )}
             <span className="text-xl font-bold tracking-tight">{storeName}</span>
           </Link>
