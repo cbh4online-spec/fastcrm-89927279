@@ -1128,5 +1128,366 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2025-02-01T00:00:00Z",
     updated_at: "2025-02-01T00:00:00Z",
     published_at: "2025-02-01T00:00:00Z"
+  },
+  // ============================
+  // AI MODULES
+  // ============================
+  {
+    id: "ai-copilot",
+    slug: "ai-copilot",
+    name: "AI Copilot",
+    tagline: "Classificação de intenções, sugestões e resumos com IA",
+    description: "O seu co-piloto inteligente dentro do CRM. Classifica intenções de mensagens, sugere respostas contextuais, resume conversas longas e recomenda próximas ações — tudo em tempo real.",
+    category: "ai",
+    icon: "Sparkles",
+    target_audience: "Equipas de vendas e suporte que lidam com alto volume de conversas",
+    expected_results: [
+      "Respostas 3x mais rápidas",
+      "Resumos automáticos de conversas",
+      "Sugestões contextuais em tempo real",
+      "Classificação automática de intenções"
+    ],
+    use_cases: [
+      "Sugerir respostas durante conversas",
+      "Resumir conversas longas num clique",
+      "Classificar intenções de mensagens",
+      "Recomendar próximas ações"
+    ],
+    internal_type: "ai_service",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "conversations", read: true, write: false, delete: false },
+        { entity: "leads", read: true, write: false, delete: false },
+        { entity: "contacts", read: true, write: false, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: false
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 59,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: false,
+    is_new: true,
+    rating: 4.8,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-10T00:00:00Z",
+    updated_at: "2025-02-10T00:00:00Z",
+    published_at: "2025-02-10T00:00:00Z"
+  },
+  {
+    id: "ai-assistants",
+    slug: "ai-assistants",
+    name: "AI Assistants",
+    tagline: "Agentes IA multi-canal com personas e knowledge base",
+    description: "Crie agentes IA dedicados por canal (WhatsApp, Widget, Instagram, Email). Cada agente tem a sua persona, base de conhecimento e regras — funciona 24/7 em autopilot.",
+    category: "ai",
+    icon: "Bot",
+    target_audience: "Empresas com atendimento multi-canal que querem automação inteligente",
+    expected_results: [
+      "Atendimento 24/7 automatizado",
+      "Redução de 60% no tempo de resposta",
+      "Agentes especializados por canal",
+      "Handoff inteligente para humanos"
+    ],
+    use_cases: [
+      "Agente WhatsApp para suporte",
+      "Widget de chat no site com IA",
+      "Respostas automáticas no Instagram",
+      "Atendimento por email com IA"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "conversations", read: true, write: true, delete: false },
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "leads", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: true,
+      can_send_whatsapp: true,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 99,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.9,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-10T00:00:00Z",
+    updated_at: "2025-02-10T00:00:00Z",
+    published_at: "2025-02-10T00:00:00Z"
+  },
+  {
+    id: "conversational-engine",
+    slug: "conversational-engine",
+    name: "Conversational Engine",
+    tagline: "Motor conversacional com perfis Vibe e autopilot",
+    description: "O cérebro conversacional da sua IA. Configure perfis Vibe (tom, formalidade, estilo), defina regras de conversa (DO/DON'T/STOP/REDIRECT), objetivos e modo autopilot completo.",
+    category: "ai",
+    icon: "MessageSquareText",
+    target_audience: "Equipas que querem controlo total sobre o comportamento da IA nas conversas",
+    expected_results: [
+      "Controlo total do tom e estilo da IA",
+      "Regras de conversa configuráveis",
+      "Autopilot inteligente com limites",
+      "Consistência na comunicação"
+    ],
+    use_cases: [
+      "Configurar tom formal/informal por canal",
+      "Definir regras DO/DON'T para a IA",
+      "Ativar autopilot com horários",
+      "Criar objetivos de conversa"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "conversations", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: false,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 79,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: false,
+    is_new: true,
+    rating: 4.7,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-10T00:00:00Z",
+    updated_at: "2025-02-10T00:00:00Z",
+    published_at: "2025-02-10T00:00:00Z"
+  },
+  {
+    id: "ai-profiles",
+    slug: "ai-profiles",
+    name: "AI Profiles",
+    tagline: "Personas IA com tom de voz e comportamento configurável",
+    description: "Crie personas IA personalizadas com tom de voz, estilo de linguagem, profundidade técnica e comportamento. Cada persona pode ser associada a agentes e canais diferentes.",
+    category: "ai",
+    icon: "UserCircle",
+    target_audience: "Empresas que querem IA com personalidade consistente e diferenciada",
+    expected_results: [
+      "Personas IA únicas por contexto",
+      "Tom de voz consistente",
+      "Comportamento configurável",
+      "Múltiplas personas por workspace"
+    ],
+    use_cases: [
+      "Criar persona de suporte empático",
+      "Persona comercial directa",
+      "Persona técnica consultiva",
+      "Personalizar por idioma e canal"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "conversations", read: true, write: false, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: false,
+      can_trigger_automations: false
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 39,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: false,
+    is_new: true,
+    rating: 4.6,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-10T00:00:00Z",
+    updated_at: "2025-02-10T00:00:00Z",
+    published_at: "2025-02-10T00:00:00Z"
+  },
+  {
+    id: "knowledge-base",
+    slug: "knowledge-base",
+    name: "Knowledge Base AI",
+    tagline: "Base de conhecimento inteligente para alimentar a IA",
+    description: "Carregue documentos, FAQs e conteúdos para criar uma base de conhecimento que alimenta os seus agentes IA. Suporta PDF, texto, URLs e categorização automática.",
+    category: "ai",
+    icon: "BookOpen",
+    target_audience: "Empresas que querem IA informada com conhecimento específico do negócio",
+    expected_results: [
+      "IA com conhecimento do seu negócio",
+      "Respostas precisas baseadas em docs",
+      "Categorização automática de conteúdo",
+      "Redução de respostas incorretas"
+    ],
+    use_cases: [
+      "Carregar manuais e FAQs",
+      "Alimentar agentes com docs internos",
+      "Criar base de produto/serviço",
+      "Treinar IA com conteúdo específico"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "conversations", read: true, write: false, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: false,
+      can_trigger_automations: false
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 49,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: false,
+    is_new: true,
+    rating: 4.7,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-10T00:00:00Z",
+    updated_at: "2025-02-10T00:00:00Z",
+    published_at: "2025-02-10T00:00:00Z"
+  },
+  {
+    id: "ai-suggestions",
+    slug: "ai-suggestions",
+    name: "AI Suggestions",
+    tagline: "Sugestões inteligentes em tempo real no CRM",
+    description: "Receba sugestões automáticas para campos, ações e decisões em todo o CRM. A IA analisa o contexto e propõe preenchimentos, classificações e próximos passos.",
+    category: "ai",
+    icon: "Lightbulb",
+    target_audience: "Utilizadores de CRM que querem produtividade máxima com assistência IA",
+    expected_results: [
+      "Preenchimento inteligente de campos",
+      "Sugestões de ações contextuais",
+      "Classificação automática de dados",
+      "+30% produtividade no CRM"
+    ],
+    use_cases: [
+      "Auto-preencher campos de leads",
+      "Sugerir próximas ações em deals",
+      "Classificar leads por potencial",
+      "Recomendar templates de email"
+    ],
+    internal_type: "ai_service",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "leads", read: true, write: true, delete: false },
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "opportunities", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: false
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 29,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: false,
+    is_new: true,
+    rating: 4.5,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-10T00:00:00Z",
+    updated_at: "2025-02-10T00:00:00Z",
+    published_at: "2025-02-10T00:00:00Z"
+  },
+  {
+    id: "ai-document-ocr",
+    slug: "ai-document-ocr",
+    name: "AI Document OCR",
+    tagline: "Extração automática de dados de documentos com IA",
+    description: "Extraia automaticamente dados de faturas, contratos, cartões de visita e documentos de identificação. A IA reconhece campos, valida informações e preenche o CRM.",
+    category: "ai",
+    icon: "ScanText",
+    target_audience: "Empresas que processam documentos físicos ou digitalizados",
+    expected_results: [
+      "Extração automática de dados",
+      "95% de precisão no OCR",
+      "Processamento em segundos",
+      "Redução de entrada manual de dados"
+    ],
+    use_cases: [
+      "Digitalizar faturas e extrair dados",
+      "Ler cartões de visita para leads",
+      "Extrair dados de contratos",
+      "Processar documentos de identificação"
+    ],
+    internal_type: "ai_service",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "leads", read: true, write: true, delete: false },
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "invoices", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 69,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: false,
+    is_new: true,
+    rating: 4.6,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-10T00:00:00Z",
+    updated_at: "2025-02-10T00:00:00Z",
+    published_at: "2025-02-10T00:00:00Z"
   }
 ];
