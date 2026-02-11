@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,8 @@ export default function C2CCreateListing() {
   const [location, setLocation] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [autoAnalyzed, setAutoAnalyzed] = useState(false);
+  const prevPhotosLen = useRef(0);
 
   // CPC State
   const [cpcEnabled, setCpcEnabled] = useState(false);
@@ -50,6 +52,15 @@ export default function C2CCreateListing() {
   const generateDescription = useGenerateDescription();
   const suggestPrice = useSuggestPrice();
   const suggestCategory = useSuggestCategory();
+
+  // Auto-trigger AI analysis when first photo is uploaded and title is empty
+  useEffect(() => {
+    if (photos.length > 0 && prevPhotosLen.current === 0 && !title && !autoAnalyzed && !analyzePhoto.isPending) {
+      setAutoAnalyzed(true);
+      handleAnalyzeWithAI();
+    }
+    prevPhotosLen.current = photos.length;
+  }, [photos]);
 
   const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending;
 
@@ -236,6 +247,27 @@ export default function C2CCreateListing() {
                 <ImagePlus className="h-6 w-6 text-muted-foreground" />
               </label>
             </div>
+
+            {/* AI Banner after photo upload */}
+            {analyzePhoto.isPending && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-pulse">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm font-medium text-primary">A analisar a tua foto com IA...</span>
+              </div>
+            )}
+
+            {photos.length > 0 && !analyzePhoto.isPending && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAnalyzeWithAI}
+                disabled={isAnyAILoading}
+                className="mt-3 gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+              >
+                <Wand2 className="h-4 w-4" />
+                Preencher tudo com IA a partir da foto
+              </Button>
+            )}
           </div>
 
           {/* Title */}
