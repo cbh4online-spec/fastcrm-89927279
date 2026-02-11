@@ -1,39 +1,39 @@
 
-
-# Mostrar Apenas o Convite Mais Recente por Email
+# Limpar Convites Duplicados da Base de Dados
 
 ## Problema
 
-Quando se reenvia um convite, o sistema revoga o antigo e cria um novo. Isto resulta em multiplas entradas na lista para a mesma pessoa (ex: 3 entradas para "Jorge Cardoso"), dando a impressao errada de que existem 6 pessoas convidadas quando na realidade sao apenas 2.
+Existem 7 registos na base de dados para apenas 2 pessoas:
+- **Jorge Cardoso**: 4 registos (2 pendentes, 2 revogados)
+- **Strongadget**: 3 registos (1 pendente, 2 revogados)
 
 ## Solucao
 
-Filtrar a lista de convites no frontend para mostrar apenas o convite mais recente de cada email, e atualizar o contador do tab "Convites" para refletir o numero real de pessoas convidadas.
+Executar uma migracao SQL para eliminar os registos antigos, mantendo apenas o convite mais recente (pendente) de cada email:
 
-### Alteracoes
+### Registos a manter:
+- `jorge.cardoso@digital4ads.pt` - o pendente mais recente (56cd78c0)
+- `strongadget@gmail.com` - o pendente mais recente (fc4a1948)
 
-**Ficheiro: `src/components/c2c/SellerInvitesList.tsx`**
-- Apos receber os convites da query, agrupar por email e manter apenas o mais recente (primeiro de cada grupo, ja que a query ordena por `created_at DESC`)
-- A lista passa a mostrar 1 linha por pessoa em vez de 1 linha por convite
+### Registos a eliminar (5):
+- Jorge Cardoso: 1 pendente duplicado + 2 revogados
+- Strongadget: 2 revogados
 
-**Ficheiro onde o contador "(6)" e renderizado** (tab "Convites")
-- Atualizar para usar a mesma logica de deduplicacao, mostrando o numero real de pessoas (ex: "Convites (2)" em vez de "Convites (6)")
+### SQL
 
-### Logica de Deduplicacao
-
-```text
-convites ordenados por created_at DESC (ja vem assim da query)
-  -> agrupar por email
-  -> manter apenas o primeiro (mais recente) de cada grupo
-  -> resultado: 1 entrada por pessoa
+```sql
+DELETE FROM c2c_seller_invites
+WHERE id NOT IN (
+  SELECT DISTINCT ON (email) id
+  FROM c2c_seller_invites
+  ORDER BY email, created_at DESC
+);
 ```
 
-### Exemplo Visual
+Esta query mantem apenas o registo mais recente por email e elimina todos os outros.
 
-Antes: Jorge Cardoso (Pendente), Jorge Cardoso (Pendente), Strongadget (Pendente), Strongadget (Revogado), Jorge Cardoso (Revogado), Jorge Cardoso (Revogado)
+### Resultado final
+- Convites (2): Strongadget (Pendente), Jorge Cardoso (Pendente)
 
-Depois: Jorge Cardoso (Pendente), Strongadget (Pendente)
-
-### Sem alteracoes de base de dados
-A filtragem e feita no frontend. Os registos historicos continuam na base de dados para auditoria.
-
+### Sem alteracoes de codigo
+A deduplicacao no frontend ja esta implementada como salvaguarda para o futuro. Esta limpeza garante que a base de dados tambem fica consistente.
