@@ -39,6 +39,7 @@ export default function StoreSettingsPage() {
     show_search: true,
     notification_email: "",
     store_slug: "",
+    custom_domain: "",
   });
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function StoreSettingsPage() {
         show_search: settings.show_search ?? true,
         notification_email: settings.notification_email || "",
         store_slug: settings.store_slug || "",
+        custom_domain: settings.custom_domain || "",
       });
     }
   }, [settings]);
@@ -79,13 +81,17 @@ export default function StoreSettingsPage() {
     const payload = {
       ...form,
       store_slug: form.store_slug.trim() || null,
+      custom_domain: form.custom_domain.trim() || null,
     };
     upsert.mutate(payload);
   };
 
   const storeSlugOrId = form.store_slug.trim() || currentWorkspace?.id || "";
+  const baseUrl = form.custom_domain.trim()
+    ? `https://${form.custom_domain.trim()}`
+    : "https://fastcrm.metodopare.ai";
   const storeUrl = storeSlugOrId
-    ? `${window.location.origin}/store/${storeSlugOrId}`
+    ? `${baseUrl}/store/${storeSlugOrId}`
     : "";
 
   const copyUrl = () => {
@@ -175,7 +181,7 @@ export default function StoreSettingsPage() {
                     </Label>
                     <div className="flex items-center gap-0">
                       <span className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-l-md border border-r-0 border-input h-10 flex items-center whitespace-nowrap">
-                        {window.location.origin}/store/
+                        {form.custom_domain.trim() ? `https://${form.custom_domain.trim()}` : "https://fastcrm.metodopare.ai"}/store/
                       </span>
                       <Input
                         value={form.store_slug}
@@ -189,6 +195,20 @@ export default function StoreSettingsPage() {
                     )}
                     <p className="text-xs text-muted-foreground">
                       Deixe vazio para usar o link padrão. Apenas letras minúsculas, números e hífens.
+                    </p>
+                   </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      🌐 Domínio Próprio (opcional)
+                    </Label>
+                    <Input
+                      value={form.custom_domain}
+                      onChange={(e) => setForm(p => ({ ...p, custom_domain: e.target.value.trim().replace(/^https?:\/\//, "") }))}
+                      placeholder="loja.minhaempresa.pt"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Para usar um domínio próprio, configure um registo A no seu DNS a apontar para <code className="bg-muted px-1 rounded">185.158.133.1</code>. Deixe vazio para usar o domínio padrão.
                     </p>
                   </div>
                   <Separator />

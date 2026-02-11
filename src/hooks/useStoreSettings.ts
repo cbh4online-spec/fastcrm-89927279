@@ -17,6 +17,7 @@ export interface StoreSettings {
   show_search: boolean;
   notification_email: string | null;
   store_slug: string | null;
+  custom_domain: string | null;
   created_at: string;
   updated_at: string;
 }
