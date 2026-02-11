@@ -1,92 +1,82 @@
 
-# Melhorar Criacao Automatica de Produtos com IA
+# Logótipos de Marca nos Produtos
 
-## Problema Atual
+## Objetivo
 
-O dialogo de criacao rapida de produtos com IA (`StoreQuickProductDialog`) tem duas lacunas:
+Quando a IA cria um produto (via SKU ou fotografia), além de guardar o nome da marca nas especificações, deve também pesquisar e guardar o logótipo oficial da marca. Este logótipo será exibido na ficha do produto na loja e no backoffice.
 
-1. **Imagens nao sao guardadas corretamente**
-   - No modo SKU: as imagens encontradas sao URLs externos que podem desaparecer. Nao sao carregadas para o storage.
-   - No modo Fotografia: a imagem enviada pelo utilizador nao e guardada no produto criado (o campo `images` fica vazio).
+## O Que Muda
 
-2. **Sem campos de stock** — o produto e criado sem quantidade em stock, estado de stock ou indicacao de controlo de inventario.
+### 1. Nova coluna na tabela `products`
 
-## Solucao
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `brand_logo_url` | text | URL do logótipo da marca guardado no storage |
 
-### 1. Persistir Imagens no Storage
+### 2. Edge Function `ai-product-assistant`
 
-Ao criar o produto, as imagens (externas do SKU ou a foto enviada) serao carregadas para o bucket `product-images` do storage antes de gravar o produto. Isto garante que as imagens ficam permanentes e sob o nosso controlo.
+Nos modos `sku-search` e `image-to-product`, após identificar a marca:
 
-**Fluxo:**
+- Adicionar ao prompt da IA um campo `"brandLogoSearchQuery"` para gerar termos de pesquisa do logótipo (ex: "Hikvision logo PNG transparent")
+- Fazer uma pesquisa Firecrawl adicional: `"{marca} logo png transparent site:logo.com OR site:brandsoftheworld.com OR site:seeklogo.com"`
+- Extrair a melhor imagem de logótipo dos resultados
+- Fazer upload para o bucket `product-images` (pasta `brands/`)
+- Devolver o campo `brandLogoUrl` na resposta
 
+O JSON de resposta passa a incluir:
 ```text
-Modo SKU: URLs externos encontrados pela IA
-  -> Fetch de cada imagem
-  -> Upload para bucket product-images
-  -> Guardar URLs do storage no produto
-
-Modo Fotografia: Ficheiro enviado pelo utilizador
-  -> Upload direto para bucket product-images
-  -> Guardar URL do storage no produto
+{
+  ...campos existentes,
+  "brandLogoUrl": "url_do_logo_encontrado"
+}
 ```
 
-### 2. Adicionar Campos de Stock ao Formulario
+### 3. Frontend - `StoreQuickProductDialog`
 
-Antes de criar o produto, o utilizador pode definir:
+- Ler o novo campo `brandLogoUrl` da resposta da IA
+- Fazer upload do logo para o storage (se for URL externo)
+- Guardar na coluna `brand_logo_url` ao criar o produto
+- Mostrar o logótipo no preview do produto (ao lado do nome da marca)
 
-| Campo | Tipo | Default | Descricao |
-|---|---|---|---|
-| stock_status | select | available | Estado do stock (Disponivel, Limitado, Sob Encomenda, Esgotado) |
-| stock_quantity | number | (vazio) | Quantidade em stock |
-| track_stock | checkbox | false | Controlar inventario automaticamente |
+### 4. Exibição na Loja
 
-### 3. Layout do Formulario Atualizado
+Nos componentes de listagem e detalhe de produto, mostrar o logótipo da marca quando disponível, em vez de (ou junto a) o texto da marca nas especificações.
 
-O formulario de preview do produto passara a ter:
+## Secção Técnica
+
+### Migração SQL
 
 ```text
-[Imagens do produto (thumbnails)]       <- ja existe, mas agora funcional em ambos os modos
-[Nome]                                  <- ja existe
-[Preco]  [Categoria]                    <- ja existe
-[Stock]  [Quantidade]  [Controlar?]     <- NOVO
-[Descricao]                             <- ja existe
-[Criar e Publicar]                      <- ja existe
+ALTER TABLE products ADD COLUMN brand_logo_url text;
 ```
-
-## Seccao Tecnica
-
-### Ficheiro: `src/components/store/StoreQuickProductDialog.tsx`
-
-**Alteracoes:**
-
-1. Adicionar campos ao `ProductPreview`:
-   - `stock_status: string` (default: "available")
-   - `stock_quantity: number | null` (default: null)
-   - `track_stock: boolean` (default: false)
-
-2. No modo fotografia (`handleImageUpload`):
-   - Guardar o base64/file reference para upload posterior
-   - Mostrar a imagem no preview do produto
-
-3. Novo `handleCreate` melhorado:
-   - Se existem imagens externas (SKU): fazer fetch e upload para `product-images` bucket
-   - Se existe foto do utilizador: upload direto para `product-images` bucket
-   - Guardar os URLs do storage no campo `images` do produto
-   - Incluir `stock_status`, `stock_quantity` e `track_stock` na criacao
-
-4. Adicionar ao formulario:
-   - Select para `stock_status` com as 4 opcoes (Disponivel, Limitado, Sob Encomenda, Esgotado)
-   - Input numerico para `stock_quantity`
-   - Checkbox para `track_stock`
 
 ### Ficheiro: `supabase/functions/ai-product-assistant/index.ts`
 
-Sem alteracoes necessarias — a funcao ja retorna imagens no modo `sku-search` e dados completos no modo `image-to-product`.
+Nos modos `sku-search` e `image-to-product`:
 
-### Resumo
+1. Extrair `brand` das specifications da resposta da IA
+2. Se brand existe, pesquisar logo via Firecrawl:
+   - Query: `"{brand}" logo png transparent`
+   - Filtrar imagens por extensão (.png, .svg, .webp) e tamanho razoável
+3. Fazer upload da melhor imagem para `product-images/brands/{brand_slug}.png`
+4. Incluir `brandLogoUrl` na resposta
 
-| Ficheiro | Alteracao |
+### Ficheiro: `src/components/store/StoreQuickProductDialog.tsx`
+
+- Mapear `result.brandLogoUrl` para o preview
+- Incluir `brand_logo_url` no insert do produto
+- Mostrar thumbnail do logo no formulário de preview
+
+### Ficheiro: `src/pages/StoreProductsAdminPage.tsx`
+
+- Incluir `brand_logo_url` na query de produtos
+- Mostrar mini-logo na coluna de marca (se disponível)
+
+### Resumo de ficheiros
+
+| Ficheiro | Alteração |
 |---|---|
-| `src/components/store/StoreQuickProductDialog.tsx` | Adicionar upload de imagens para storage, campos de stock (status, quantidade, controlo), e melhorar fluxo de criacao |
-
-Nenhuma migracao SQL necessaria — as colunas `stock_status`, `stock_quantity` e `track_stock` ja existem na tabela `products`.
+| Nova migração SQL | Adicionar coluna `brand_logo_url` à tabela `products` |
+| `supabase/functions/ai-product-assistant/index.ts` | Pesquisar e devolver logótipo da marca via Firecrawl |
+| `src/components/store/StoreQuickProductDialog.tsx` | Guardar logo da marca ao criar produto |
+| `src/pages/StoreProductsAdminPage.tsx` | Mostrar logo da marca na tabela de admin |
