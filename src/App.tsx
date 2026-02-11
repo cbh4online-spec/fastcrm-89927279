@@ -76,6 +76,7 @@ import ClientTicketDetailPage from "./pages/client/ClientTicketDetailPage";
 import ClientInvitePage from "./pages/client/ClientInvitePage";
 // Admin Order Notes
 import OrderNotesPage from "./pages/OrderNotesPage";
+import CreateOrderNotePage from "./pages/CreateOrderNotePage";
 import OrderNoteDetailPage from "./pages/OrderNoteDetailPage";
 import OrderApprovalsPage from "./pages/OrderApprovalsPage";
 import ClientUsersPage from "./pages/ClientUsersPage";
@@ -351,6 +352,7 @@ function CRMRoutes() {
                 
                 {/* Order Notes Admin Routes */}
                 <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />
+                <Route path="/dashboard/order-notes/create" element={<CreateOrderNotePage />} />
                 <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
                 <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
                 <Route path="/dashboard/client-users" element={<ClientUsersPage />} />

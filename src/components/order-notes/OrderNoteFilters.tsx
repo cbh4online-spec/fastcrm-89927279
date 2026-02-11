@@ -58,6 +58,7 @@ export function OrderNoteFilters({ onFiltersChange }: OrderNoteFiltersProps) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos os estados</SelectItem>
+          <SelectItem value="draft">Rascunho</SelectItem>
           <SelectItem value="submitted">Enviado</SelectItem>
           <SelectItem value="awaiting_approval">Aguardando Aprovação</SelectItem>
           <SelectItem value="approved">Aprovado</SelectItem>
