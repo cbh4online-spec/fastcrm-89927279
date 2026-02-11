@@ -1023,5 +1023,110 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2025-02-01T00:00:00Z",
     updated_at: "2025-02-01T00:00:00Z",
     published_at: "2025-02-01T00:00:00Z"
+  },
+  {
+    id: "b2b-portal",
+    slug: "b2b-portal",
+    name: "Portal B2B",
+    tagline: "Portal de vendas para clientes empresariais",
+    description: "Crie um portal self-service para os seus clientes B2B. Catálogo de produtos, encomendas recorrentes, preços personalizados e gestão de contas empresariais.",
+    category: "sales",
+    icon: "Building2",
+    target_audience: "Empresas B2B, distribuidores e grossistas",
+    expected_results: [
+      "Portal operacional em minutos",
+      "Encomendas self-service 24/7",
+      "Preços personalizados por cliente"
+    ],
+    use_cases: [
+      "Portal de encomendas para clientes",
+      "Catálogo B2B com preços diferenciados",
+      "Gestão de contas empresariais",
+      "Histórico de encomendas e faturas"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "products", read: true, write: true, delete: false },
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "companies", read: true, write: true, delete: false },
+        { entity: "invoices", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: true,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 89,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.7,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-01T00:00:00Z",
+    updated_at: "2025-02-01T00:00:00Z",
+    published_at: "2025-02-01T00:00:00Z"
+  },
+  {
+    id: "instagram-looter",
+    slug: "instagram-looter",
+    name: "Instagram Looter",
+    tagline: "Extraia leads qualificados do Instagram",
+    description: "Pesquise perfis Instagram por hashtag, localização ou concorrentes. Extraia seguidores, emails e dados de contacto para converter em leads no CRM.",
+    category: "prospecting",
+    icon: "Instagram",
+    target_audience: "Equipas de marketing e vendas que prospectam via redes sociais",
+    expected_results: [
+      "+1000 leads/mês via Instagram",
+      "Extração automática de contactos",
+      "Conversão direta para CRM"
+    ],
+    use_cases: [
+      "Extrair seguidores de concorrentes",
+      "Pesquisar por hashtags relevantes",
+      "Obter emails de perfis públicos",
+      "Converter perfis em leads qualificados"
+    ],
+    internal_type: "ai_service",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "leads", read: true, write: true, delete: false },
+        { entity: "contacts", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "credits",
+      base_price: 59,
+      currency: "EUR",
+      credits_included: 500,
+      price_per_credit: 0.12,
+      trial_days: 7,
+      trial_credits: 50
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: undefined,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-01T00:00:00Z",
+    updated_at: "2025-02-01T00:00:00Z",
+    published_at: "2025-02-01T00:00:00Z"
   }
 ];
