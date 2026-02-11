@@ -1,59 +1,52 @@
 
-
-# Melhorar a Pagina "Meus Anuncios"
+# Melhorar Pagina Gestao de Vendedores - Responsive e Design Profissional
 
 ## Problema Atual
 
-A pagina esta muito basica e vazia visualmente. Parece uma lista simples sem dashboard de vendedor, sem resumo de performance, e o estado vazio nao inspira acao. Para competir com Vinted/OLX, precisa de parecer um painel profissional de vendas.
+A pagina "Gestao de Vendedores" tem varios problemas visiveis no screenshot:
+- Sem padding lateral (conteudo encostado as bordas)
+- Cards de estatisticas sem design coeso (primeiro card com fundo diferente dos outros)
+- Tabela com muitas colunas que nao funciona em mobile
+- Header sem hierarquia visual forte
+- Estado vazio pobre e sem inspiracao
+- Sem uso dos componentes Nexus (NexusPageHeader, NexusPageSection, NexusStatCard) ja existentes no projeto
 
 ## Melhorias Planeadas
 
-### 1. Dashboard de KPIs no Topo
-Adicionar cards de resumo antes da lista de anuncios:
-- Total de anuncios ativos
-- Total de visualizacoes
-- Total de favoritos recebidos
-- Total de mensagens/ofertas
+### 1. Usar Componentes Nexus Existentes
+Substituir o header manual pelo `NexusPageHeader` e os stat cards pelo `NexusStatCard` com cores diferenciadas por estado, trazendo consistencia visual com o resto do dashboard.
 
-### 2. Estado Vazio Inspirador
-Substituir o texto simples "Ainda nao tens anuncios" por uma secao com:
-- Ilustracao/icone grande atrativo (Package icon)
-- Titulo motivacional
-- 3 beneficios de vender na plataforma (icones + texto)
-- CTA mais visivel
+### 2. Layout Responsive
+- Stats: grid 2 colunas em mobile, 5 em desktop
+- Tabela: em mobile, substituir por cards empilhados com as informacoes essenciais (nome, estado, acoes)
+- Header: botoes empilham verticalmente em mobile
+- Barra de pesquisa e acoes bulk com flex-wrap
 
-### 3. Cards de Anuncio Melhorados
-Cada card passa a ter:
-- Imagem maior (80x80 em vez de 64x64)
-- Data de criacao ("ha X dias")
-- Condicao do item (Novo, Usado, etc.)
-- Botoes de partilha integrados (WhatsApp, copiar link)
-- Separacao visual entre info e acoes com layout mais limpo
-- Dropdown de acoes em vez de botoes soltos (mais limpo)
+### 3. Design Visual Melhorado
+- Adicionar padding geral com container (`max-w-7xl mx-auto px-4`)
+- Stat cards com icones coloridos e hover states
+- Tabs de navegacao (Vendedores/Convites) com componente `TabsList` do Radix em vez de botoes manuais
+- Estado vazio com ilustracao maior, subtitulo motivacional e CTA para convidar vendedor
+- Skeleton loading melhorado com cards em vez de barras simples
 
-### 4. Filtros por Estado
-Tabs ou chips para filtrar anuncios por estado: Todos, Ativos, Pausados, Vendidos - para quem tem muitos anuncios.
-
-### 5. Skeleton Loading
-Substituir o texto "A carregar..." por skeleton cards animados.
+### 4. Tabela Adaptativa
+- Desktop: tabela completa com todas as colunas
+- Mobile: cards com layout vertical mostrando nome, estado, vendas e botoes de acao
+- Usar o hook `useIsMobile` ja existente para alternar entre layouts
 
 ## Seccao Tecnica
 
-### Ficheiro Modificado: `src/pages/c2c/C2CMyListings.tsx`
+### Ficheiro Modificado: `src/pages/c2c/C2CSellersAdmin.tsx`
 
-Reescrever com:
-- Cards de KPI no topo (usando dados agregados dos listings)
-- Tabs de filtro por estado (all, active, paused, sold)
-- Cards de anuncio redesenhados com mais info e dropdown de acoes
-- Estado vazio com ilustracao e beneficios
-- Skeleton loading com 3 cards placeholder
-- Integracao do componente ShareButtons por anuncio
-- Formatacao de datas relativas com date-fns
-
-### Ficheiro Modificado: `src/components/c2c/ListingStats.tsx`
-
-Sem alteracoes estruturais, apenas garantir que o componente esta bem integrado.
+Alteracoes principais:
+- Importar e usar `NexusPageHeader` para o titulo da pagina com icone, subtitulo e botoes de acao
+- Importar e usar `NexusStatCard` para os 5 cards de estatisticas com cores diferenciadas (primary, amber, emerald, rose, violet)
+- Importar `useIsMobile` para layout condicional
+- Usar `Tabs`/`TabsList`/`TabsTrigger`/`TabsContent` do Radix para Vendedores/Convites em vez de botoes manuais
+- Em mobile: renderizar cards em vez da tabela, cada card com nome, badge de estado, metricas resumidas e botoes de acao
+- Melhorar o estado vazio com icone maior, texto motivacional e botao "Convidar Vendedor"
+- Adicionar padding e max-width ao container principal
+- Skeleton loading com grid de cards placeholder
 
 ### Sem alteracoes de base de dados
-Tudo usa dados ja existentes (views_count, favorites_count, messages_count, status).
-
+Tudo usa dados ja existentes.
