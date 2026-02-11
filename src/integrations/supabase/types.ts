@@ -2956,6 +2956,38 @@ export type Database = {
           },
         ]
       }
+      c2c_seller_notes: {
+        Row: {
+          admin_id: string
+          created_at: string | null
+          id: string
+          note: string
+          seller_id: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string | null
+          id?: string
+          note: string
+          seller_id: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string | null
+          id?: string
+          note?: string
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_seller_notes_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_seller_subscriptions: {
         Row: {
           cancelled_at: string | null
