@@ -23038,6 +23038,7 @@ export type Database = {
           accent_color: string | null
           banner_url: string | null
           created_at: string
+          custom_domain: string | null
           footer_text: string | null
           id: string
           logo_url: string | null
@@ -23055,6 +23056,7 @@ export type Database = {
           accent_color?: string | null
           banner_url?: string | null
           created_at?: string
+          custom_domain?: string | null
           footer_text?: string | null
           id?: string
           logo_url?: string | null
@@ -23072,6 +23074,7 @@ export type Database = {
           accent_color?: string | null
           banner_url?: string | null
           created_at?: string
+          custom_domain?: string | null
           footer_text?: string | null
           id?: string
           logo_url?: string | null
