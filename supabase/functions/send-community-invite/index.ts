@@ -94,8 +94,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Build invite URL
-    const baseUrl = "https://fastcrm.lovable.app";
-    const inviteUrl = `${baseUrl}/community/${communitySlug}/auth?invite=${inviteToken}`;
+    const baseUrl = "https://fastcrm.metodopare.ai";
+    const inviteUrl = `${baseUrl}/club/${communitySlug}/auth?invite=${inviteToken}`;
 
     // Logo HTML
     const logoHtml = communityLogo

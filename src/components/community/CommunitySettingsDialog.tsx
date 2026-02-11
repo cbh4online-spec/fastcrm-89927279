@@ -440,14 +440,14 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
                       <div className="flex gap-2">
                         <Input
                           readOnly
-                          value={`${customDomain.trim() || "https://fastcrm.lovable.app"}/community/${slug}`}
+                          value={`${customDomain.trim() || "https://fastcrm.lovable.app"}/club/${slug}`}
                           className="flex-1 text-xs bg-muted"
                         />
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            navigator.clipboard.writeText(`${(customDomain.trim() || "https://fastcrm.lovable.app")}/community/${slug}`);
+                            navigator.clipboard.writeText(`${(customDomain.trim() || "https://fastcrm.lovable.app")}/club/${slug}`);
                             toast.success("Link copiado!");
                           }}
                         >
