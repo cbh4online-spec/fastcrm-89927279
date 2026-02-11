@@ -1,50 +1,33 @@
 
 
-# Sugestoes de Preco Desaparecem Apos Aplicar
+# Corrigir Sugestoes que Reaparecem Apos Aplicar
 
 ## Problema
 
-Quando o utilizador clica no botao verde (check) para aplicar uma sugestao de preco, a sugestao permanece visivel na lista ate que a query seja re-executada pelo servidor. Isto cria uma sensacao de que nada aconteceu, especialmente se a rede for lenta.
+O `onSettled` dispara `invalidateQueries` imediatamente apos cada mutation, o que causa um refetch da base de dados. Se houver varias mutations em paralelo (o utilizador clica rapidamente em varias sugestoes), cada `onSettled` faz um refetch que traz de volta as sugestoes que foram removidas optimisticamente por outras mutations ainda em curso. Alem disso, o refetch pode chegar antes da transacao estar totalmente committed.
 
 ## Solucao
 
-Adicionar **optimistic update** para remover imediatamente a sugestao da lista quando o utilizador clica em "Aplicar" ou "Descartar", sem esperar pela resposta do servidor. Se o servidor falhar, a sugestao volta a aparecer.
+1. **Remover `onSettled`** de ambas as mutations -- o refetch automatico apos cada mutation e a causa do problema
+2. **Mover a invalidacao para `onSuccess`** com a query key exacta (incluindo workspaceId), garantindo que so refetch depois de confirmacao do servidor
+3. **Nao invalidar `["price-suggestions"]`** no `onSuccess` -- a remocao optimistica ja e suficiente; o refetch so e necessario se houver erro (e o rollback ja trata disso)
+4. Invalidar apenas `["store-admin-products"]` no `onSuccess` (para atualizar o preco na tabela de produtos)
 
 ## Seccao Tecnica
 
 ### Ficheiro: `src/pages/StoreProductsAdminPage.tsx`
 
-**applySuggestion (linhas 90-112):**
-- Adicionar `onMutate` para remover optimisticamente a sugestao da cache do React Query antes da chamada ao servidor
-- Guardar o estado anterior para rollback em caso de erro
-- Adicionar `onSettled` para garantir refetch final
+**applySuggestion:**
+- Remover bloco `onSettled` (linhas 122-124)
+- No `onSuccess`, remover a invalidacao de `price-suggestions` -- manter apenas `store-admin-products`
 
-**dismissSuggestion (linhas 114-126):**
-- Mesmo tratamento optimistico
+**dismissSuggestion:**
+- Remover bloco `onSettled` (linhas 151-153)
+- Nao invalidar `price-suggestions` no `onSuccess`
 
-Logica do optimistic update:
-
-```text
-onMutate: async (suggestion) => {
-  await queryClient.cancelQueries({ queryKey: ["price-suggestions"] });
-  const previous = queryClient.getQueryData(["price-suggestions", workspaceId]);
-  queryClient.setQueryData(["price-suggestions", workspaceId], (old) =>
-    old.filter(s => s.id !== suggestion.id)
-  );
-  return { previous };
-},
-onError: (err, vars, context) => {
-  queryClient.setQueryData(["price-suggestions", workspaceId], context.previous);
-},
-onSettled: () => {
-  queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
-}
-```
-
-Isto garante que a sugestao desaparece instantaneamente ao clicar, independentemente da velocidade da rede.
-
-### Resumo
+A ideia: confiar nos optimistic updates para o estado visual. O rollback em `onError` ja garante consistencia se algo falhar. Nao e necessario re-buscar do servidor apos sucesso, pois o estado local ja esta correto.
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/pages/StoreProductsAdminPage.tsx` | Adicionar optimistic updates nas mutations `applySuggestion` e `dismissSuggestion` para remover sugestoes da lista imediatamente ao clicar |
+| `src/pages/StoreProductsAdminPage.tsx` | Remover `onSettled` de ambas mutations e remover invalidacao de `price-suggestions` do `onSuccess` |
+
