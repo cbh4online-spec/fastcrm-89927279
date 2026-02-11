@@ -1,95 +1,97 @@
 
 
-# Criacao Automatica de Categorias da Loja ao Criar Produtos
+# Rastreamento de Carrinhos em Tempo Real e Painel de Carrinhos Abandonados
 
-## Objetivo
+## Problema Atual
 
-Quando um produto e criado (via SKU ou fotografia), o sistema deve automaticamente:
-1. Verificar se a categoria da loja (`store_categories`) ja existe
-2. Se nao existir, criar a categoria com slug, descricao gerada por IA, e imagem gerada por IA
-3. Ligar o produto a essa categoria via `store_category_id`
-4. Garantir unicidade -- nunca duplicar categorias nem produtos
-
-## Situacao Atual
-
-- O `StoreQuickProductDialog` cria produtos com um campo `category` (texto livre) mas **nao cria entradas na tabela `store_categories`** nem preenche o `store_category_id`
-- A tabela `store_categories` tem: `name`, `slug`, `description`, `image_url`, `workspace_id`
-- Os produtos tem `store_category_id` (FK para `store_categories`) mas este campo fica vazio na criacao automatica
-- Ja existe logica para gerar imagens de categorias via `ai-product-assistant` (modo `generate-category-image`)
-- Ja existe logica para sugerir detalhes de categoria (modo `suggest-category-details`)
+O carrinho de compras vive exclusivamente no `localStorage` do browser do visitante. O registo na base de dados (`store_abandoned_carts`) so e criado quando o cliente chega ao checkout e fornece dados de contacto. Isto significa que um visitante com 2 artigos no carrinho que nunca chega ao checkout e **completamente invisivel** para o administrador.
 
 ## O Que Muda
 
-### 1. Edge Function `ai-product-assistant`
+### 1. Sincronizar o carrinho com a base de dados em tempo real
 
-Novo modo `ensure-store-category` que recebe o nome da categoria e o workspace_id, e:
+Sempre que um visitante adiciona ou remove itens do carrinho, o `StoreCartContext` sincroniza automaticamente com a tabela `store_visitor_sessions`, adicionando os dados do carrinho (itens, subtotal) a sessao ja existente.
 
-- Verifica se ja existe uma `store_category` com o mesmo nome (case-insensitive) nesse workspace
-- Se existir, devolve o `id` existente
-- Se nao existir:
-  - Gera slug a partir do nome
-  - Chama a IA para gerar descricao e meta SEO da categoria
-  - Gera imagem da categoria via modelo de imagem (reutilizando a logica existente de `generate-category-image`)
-  - Faz upload da imagem para o bucket `store-category-images`
-  - Insere a nova categoria na tabela `store_categories`
-  - Devolve o `id` da nova categoria
+Novos campos na tabela `store_visitor_sessions`:
 
-Resposta:
-```text
-{
-  "success": true,
-  "data": {
-    "categoryId": "uuid",
-    "categoryName": "Cameras de Vigilancia",
-    "isNew": true,
-    "imageUrl": "https://..."
-  }
-}
-```
+| Coluna | Tipo | Descricao |
+|---|---|---|
+| `cart_items` | jsonb | Array com os itens no carrinho (id, nome, preco, quantidade) |
+| `cart_subtotal` | numeric | Valor total do carrinho |
+| `cart_updated_at` | timestamptz | Ultima alteracao ao carrinho |
 
-### 2. Verificacao de Duplicados de Produtos
+Isto reutiliza a sessao de visitante que ja existe (via `useStoreVisitorTracking`), sem criar registos novos.
 
-Antes de criar o produto, verificar se ja existe um produto com o mesmo SKU ou nome (case-insensitive) no workspace. Se existir, avisar o utilizador em vez de criar duplicado.
+### 2. Detecao automatica de abandono
 
-### 3. Frontend - `StoreQuickProductDialog`
+Adicionar um job `pg_cron` (a cada 15 minutos) que:
+- Procura sessoes com `cart_items IS NOT NULL` e `last_activity_at < NOW() - INTERVAL '30 minutes'` e `converted = false`
+- Cria automaticamente registos em `store_abandoned_carts` para essas sessoes
+- Marca a sessao como processada para nao duplicar
 
-No `handleCreate`, antes de inserir o produto:
+Isto garante que mesmo visitantes anonimos (sem dados de contacto) ficam registados como carrinhos abandonados.
 
-1. Chamar `ensure-store-category` com o nome da categoria do preview
-2. Receber o `categoryId` (existente ou recem-criado)
-3. Incluir `store_category_id` no insert do produto
-4. Verificar se ja existe produto com mesmo SKU/nome e avisar se for duplicado
+### 3. Painel de Carrinhos Ativos e Abandonados
 
-### 4. SEO Automatico
+Novo separador "Carrinhos" no `StoreAnalyticsPage` com dois blocos:
 
-A descricao gerada pela IA para a categoria servira simultaneamente como texto SEO. O campo `description` da `store_categories` sera preenchido automaticamente com texto otimizado para motores de busca.
+**Carrinhos Ativos (Agora):**
+- Lista de visitantes com carrinho ativo (ultimos 30 min de atividade)
+- Mostra: dispositivo, produtos no carrinho, valor, tempo na loja
+- Badge de "ao vivo" com indicador visual
+
+**Carrinhos Abandonados:**
+- Lista da tabela `store_abandoned_carts`
+- Estado (abandonado/contactado/recuperado/expirado)
+- KPIs: total de carrinhos abandonados, valor perdido, taxa de recuperacao
+- Botao para iniciar tentativa de recuperacao
 
 ## Seccao Tecnica
 
-### Ficheiro: `supabase/functions/ai-product-assistant/index.ts`
+### Migracao SQL
 
-Adicionar modo `ensure-store-category`:
-- Receber `categoryName`, `workspaceId`
-- Query a `store_categories` por nome (ilike) e workspace
-- Se nao existe: gerar descricao via IA, gerar imagem via modelo de imagem, upload para bucket, insert na tabela
-- Devolver `categoryId` e `isNew`
+```text
+ALTER TABLE store_visitor_sessions 
+  ADD COLUMN cart_items jsonb,
+  ADD COLUMN cart_subtotal numeric DEFAULT 0,
+  ADD COLUMN cart_updated_at timestamptz;
+```
 
-Requer criar um Supabase client dentro da edge function usando a service role key para operacoes de base de dados.
+### Ficheiro: `src/contexts/StoreCartContext.tsx`
 
-### Ficheiro: `src/components/store/StoreQuickProductDialog.tsx`
+Adicionar sincronizacao com a base de dados:
+- Importar `supabase` e ler o `session_id` do `localStorage` (mesma chave usada pelo `useStoreVisitorTracking`)
+- No `useEffect` que ja observa mudancas em `items`, adicionar um debounce (2 segundos) que faz upsert dos dados do carrinho em `store_visitor_sessions`
+- Incluir `workspace_id` como prop do `StoreCartProvider` (passado via route context)
 
-No `handleCreate`:
-- Obter `workspaceId` do contexto (ja disponivel via `useWorkspace`)
-- Chamar edge function `ensure-store-category`
-- Usar o `categoryId` retornado no `store_category_id` do produto
-- Adicionar verificacao de duplicados (SKU ou nome) antes de criar
+### Ficheiro: `supabase/functions/detect-abandoned-carts/index.ts` (novo)
+
+Edge function invocada por cron que:
+1. Busca sessoes com carrinho ativo e sem atividade ha mais de 30 min
+2. Cria registos em `store_abandoned_carts` com os dados do carrinho
+3. Limpa o campo `cart_items` da sessao processada
+
+### Ficheiro: `src/pages/StoreAnalyticsPage.tsx`
+
+Novo separador "Carrinhos" com:
+- Query a `store_visitor_sessions` onde `cart_items IS NOT NULL` e `last_activity_at > NOW() - 30min` (carrinhos ativos)
+- Query a `store_abandoned_carts` com estatisticas e listagem
+- Botao de recuperacao usando o hook `useSendCartRecovery` ja existente
+
+### Ficheiro: `src/hooks/useStoreVisitorTracking.ts`
+
+Nenhuma alteracao necessaria -- a sincronizacao sera feita pelo `StoreCartContext` diretamente para nao duplicar logica.
+
+### Agendamento Cron
+
+Configurar `pg_cron` para invocar `detect-abandoned-carts` a cada 15 minutos.
 
 ### Resumo de ficheiros
 
 | Ficheiro | Alteracao |
 |---|---|
-| `supabase/functions/ai-product-assistant/index.ts` | Novo modo `ensure-store-category` com criacao automatica, imagem IA e SEO |
-| `src/components/store/StoreQuickProductDialog.tsx` | Chamar ensure-store-category antes de criar produto, verificar duplicados, passar `store_category_id` |
-
-Nao e necessaria migracao SQL -- todas as tabelas e colunas necessarias ja existem.
-
+| Nova migracao SQL | Adicionar `cart_items`, `cart_subtotal`, `cart_updated_at` a `store_visitor_sessions` |
+| `src/contexts/StoreCartContext.tsx` | Sincronizar carrinho com DB via debounce |
+| `supabase/functions/detect-abandoned-carts/index.ts` | Nova funcao para detetar carrinhos abandonados automaticamente |
+| `src/pages/StoreAnalyticsPage.tsx` | Novo separador "Carrinhos" com vista ao vivo e abandonados |
+| Nova migracao SQL (cron) | Agendar detetor de abandono a cada 15 min |
