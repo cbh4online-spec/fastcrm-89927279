@@ -38,6 +38,9 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { LaborConfigEditor } from "./LaborConfigEditor";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
+import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
+import { SectionAIAssistButton } from "@/components/proposals/SectionAIAssistButton";
+import { toast } from "sonner";
 import type { Product, ProductType, BillingType, ConsumptionModel, RecommendedFrequency } from "@/types/product";
 import { consumptionModelLabels, recommendedFrequencyLabels } from "@/types/product";
 import { AIProductAssistant } from "./AIProductAssistant";
@@ -141,6 +144,7 @@ export function CreateProductDialog({
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
+  const { generateDescription } = useProductAIAssistant();
   const { data: existingCategories } = useProductCategoriesList();
   const { data: productTypesConfig } = useProductTypes();
   const { data: billingTypesConfig } = useBillingTypes();
@@ -783,7 +787,38 @@ export function CreateProductDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Descrição curta</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="description">Descrição curta</Label>
+                  <SectionAIAssistButton
+                    onClick={async () => {
+                      if (!name.trim()) {
+                        toast.error("Preencha o nome do produto primeiro");
+                        return;
+                      }
+                      if (shortDescription.trim()) {
+                        toast("Já existe uma descrição. Substituir?", {
+                          action: {
+                            label: "Substituir",
+                            onClick: () => {
+                              generateDescription.mutate(
+                                { productName: name, category, productType },
+                                { onSuccess: (data) => { setShortDescription(data.shortDescription); toast.success("Descrição gerada!"); } }
+                              );
+                            },
+                          },
+                        });
+                        return;
+                      }
+                      generateDescription.mutate(
+                        { productName: name, category, productType },
+                        { onSuccess: (data) => { setShortDescription(data.shortDescription); toast.success("Descrição gerada!"); } }
+                      );
+                    }}
+                    isLoading={generateDescription.isPending}
+                    disabled={!name.trim()}
+                    tooltip="Gerar descrição com IA baseada no nome do produto"
+                  />
+                </div>
                 <Textarea
                   id="description"
                   value={shortDescription}
