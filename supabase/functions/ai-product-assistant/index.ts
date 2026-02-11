@@ -7,7 +7,8 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "generate-store-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product";
+  mode: "suggest" | "sku-search" | "generate-description" | "generate-store-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product" | "generate-store-banner" | "suggest-brand-colors";
+  storeName?: string;
   productId?: string;
   workspaceId?: string;
   productName?: string;
@@ -1328,6 +1329,109 @@ Se não conseguir identificar o produto, responda: {"found": false}`;
       return new Response(JSON.stringify({
         success: true,
         data: imageResult
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } else if (mode === 'generate-store-banner' && storeName) {
+      // Generate a photorealistic banner for the store
+      const bannerPrompt = `Generate a photorealistic wide banner image (16:9 aspect ratio) for an online store called "${storeName}".${description ? ` The store is about: ${description}.` : ''}${category ? ` Main category: ${category}.` : ''} The image should be professional, modern, and suitable as a hero banner for an e-commerce website. Use warm, inviting lighting with a clean composition. Ultra high resolution. Do NOT include any text or logos in the image.`;
+
+      const bannerResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image',
+          messages: [{ role: 'user', content: bannerPrompt }],
+          modalities: ['image', 'text'],
+        }),
+      });
+
+      if (!bannerResponse.ok) {
+        if (bannerResponse.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI banner generation error: ${bannerResponse.status}`);
+      }
+
+      const bannerData = await bannerResponse.json();
+      const bannerImageUrl = bannerData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (!bannerImageUrl) throw new Error('No image returned from AI');
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: { imageBase64: bannerImageUrl }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } else if (mode === 'suggest-brand-colors' && storeName) {
+      // Suggest brand colors based on store name and description
+      const colorPrompt = `Analisa o nome e contexto de uma loja online e sugere uma paleta de cores profissional.
+
+Loja: "${storeName}"
+${description ? `Descrição: ${description}` : ''}
+${category ? `Categoria: ${category}` : ''}
+
+Sugere duas cores em formato hexadecimal:
+1. Cor Primária: a cor principal da marca (botões, links, destaques)
+2. Cor de Destaque: cor secundária complementar (badges, CTAs, acentos)
+
+Considera psicologia das cores e o tipo de negócio. Garante bom contraste.
+
+Responda APENAS em JSON válido:
+{
+  "primaryColor": "#hex",
+  "accentColor": "#hex",
+  "rationale": "Explicação curta em PT de porque estas cores funcionam para esta loja"
+}`;
+
+      const colorResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: 'Você é um designer de branding especializado. Responda apenas em JSON válido.' },
+            { role: 'user', content: colorPrompt }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!colorResponse.ok) {
+        if (colorResponse.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI color suggestion error: ${colorResponse.status}`);
+      }
+
+      const colorData = await colorResponse.json();
+      const colorContent = colorData.choices?.[0]?.message?.content || '';
+
+      let colorResult;
+      try {
+        const jsonMatch = colorContent.match(/\{[\s\S]*\}/);
+        colorResult = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      } catch {
+        colorResult = { primaryColor: '#6366f1', accentColor: '#f59e0b', rationale: 'Cores padrão' };
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: colorResult
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

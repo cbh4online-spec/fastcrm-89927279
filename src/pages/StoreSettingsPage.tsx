@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useStoreSettings, useUpsertStoreSettings } from "@/hooks/useStoreSettings";
@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift, Link as LinkIcon, Sparkles } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift, Link as LinkIcon, Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionAIAssistButton } from "@/components/proposals/SectionAIAssistButton";
 import { toast } from "sonner";
@@ -29,6 +29,12 @@ export default function StoreSettingsPage() {
   const { data: settings, isLoading } = useStoreSettings();
   const upsert = useUpsertStoreSettings();
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [isGeneratingBanner, setIsGeneratingBanner] = useState(false);
+  const [isSuggestingColors, setIsSuggestingColors] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     store_name: "",
@@ -75,6 +81,110 @@ export default function StoreSettingsPage() {
     if (RESERVED_SLUGS.includes(s)) return "Este nome está reservado";
     return null;
   })();
+
+  const handleFileUpload = useCallback(async (file: File, type: "logo" | "banner") => {
+    if (!currentWorkspace?.id) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Ficheiro demasiado grande. Máximo: 2MB");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Apenas ficheiros de imagem são permitidos");
+      return;
+    }
+    const setUploading = type === "logo" ? setIsUploadingLogo : setIsUploadingBanner;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const filePath = `${currentWorkspace.id}/${type}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("store-assets")
+        .upload(filePath, file, { contentType: file.type, upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from("store-assets")
+        .getPublicUrl(filePath);
+      setForm(p => ({ ...p, [type === "logo" ? "logo_url" : "banner_url"]: publicUrl }));
+      toast.success(`${type === "logo" ? "Logotipo" : "Banner"} carregado com sucesso!`);
+    } catch (err: any) {
+      toast.error("Erro no upload: " + (err.message || "Erro desconhecido"));
+    } finally {
+      setUploading(false);
+    }
+  }, [currentWorkspace?.id]);
+
+  const handleGenerateBanner = async () => {
+    if (!form.store_name.trim()) {
+      toast.error("Preencha o nome da loja primeiro");
+      return;
+    }
+    if (!currentWorkspace?.id) return;
+    setIsGeneratingBanner(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
+        body: {
+          mode: "generate-store-banner",
+          storeName: form.store_name,
+          description: form.store_description || undefined,
+        },
+      });
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+      const imageBase64 = data.data.imageBase64;
+      if (!imageBase64) throw new Error("Imagem não gerada");
+      // Convert base64 data URL to blob and upload
+      const base64Match = imageBase64.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
+      if (!base64Match) throw new Error("Formato de imagem inválido");
+      const mimeType = base64Match[1];
+      const base64Data = base64Match[2];
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const ext = mimeType === "jpeg" ? "jpg" : mimeType;
+      const filePath = `${currentWorkspace.id}/banner-ai-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("store-assets")
+        .upload(filePath, bytes, { contentType: `image/${mimeType}`, upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from("store-assets")
+        .getPublicUrl(filePath);
+      setForm(p => ({ ...p, banner_url: publicUrl }));
+      toast.success("Banner gerado com IA!");
+    } catch (err: any) {
+      toast.error("Erro ao gerar banner: " + (err.message || "Erro desconhecido"));
+    } finally {
+      setIsGeneratingBanner(false);
+    }
+  };
+
+  const handleSuggestColors = async () => {
+    if (!form.store_name.trim()) {
+      toast.error("Preencha o nome da loja primeiro");
+      return;
+    }
+    setIsSuggestingColors(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
+        body: {
+          mode: "suggest-brand-colors",
+          storeName: form.store_name,
+          description: form.store_description || undefined,
+        },
+      });
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+      const { primaryColor, accentColor, rationale } = data.data;
+      setForm(p => ({ ...p, primary_color: primaryColor, accent_color: accentColor }));
+      toast.success(rationale || "Cores sugeridas com IA!");
+    } catch (err: any) {
+      toast.error("Erro ao sugerir cores: " + (err.message || "Erro desconhecido"));
+    } finally {
+      setIsSuggestingColors(false);
+    }
+  };
 
   const handleSave = () => {
     if (slugError) {
@@ -290,54 +400,164 @@ export default function StoreSettingsPage() {
                   <CardTitle>Branding</CardTitle>
                   <CardDescription>Logo, cores e banner da loja</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>URL do Logo</Label>
-                    <Input
-                      value={form.logo_url}
-                      onChange={(e) => setForm(p => ({ ...p, logo_url: e.target.value }))}
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>URL do Banner</Label>
-                    <Input
-                      value={form.banner_url}
-                      onChange={(e) => setForm(p => ({ ...p, banner_url: e.target.value }))}
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Cor Primária</Label>
-                      <div className="flex gap-2">
+                <CardContent className="space-y-6">
+                  {/* Logo Upload */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Logotipo</Label>
+                    <div className="flex items-start gap-4">
+                      <div className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/50 flex-shrink-0">
+                        {form.logo_url ? (
+                          <img src={form.logo_url} alt="Logo" className="w-full h-full object-contain" />
+                        ) : (
+                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="space-y-2">
                         <input
-                          type="color"
-                          value={form.primary_color}
-                          onChange={(e) => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                          className="h-10 w-12 rounded border cursor-pointer"
+                          ref={logoInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, "logo");
+                            e.target.value = "";
+                          }}
                         />
-                        <Input
-                          value={form.primary_color}
-                          onChange={(e) => setForm(p => ({ ...p, primary_color: e.target.value }))}
-                          className="flex-1"
-                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => logoInputRef.current?.click()}
+                          disabled={isUploadingLogo}
+                          className="gap-1.5"
+                        >
+                          {isUploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                          Escolher ficheiro
+                        </Button>
+                        {form.logo_url && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setForm(p => ({ ...p, logo_url: "" }))}
+                            className="gap-1.5 text-destructive hover:text-destructive"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                            Remover
+                          </Button>
+                        )}
+                        <p className="text-xs text-muted-foreground">PNG, JPG, SVG ou WebP. Máx: 2MB</p>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Cor de Destaque</Label>
-                      <div className="flex gap-2">
-                        <input
-                          type="color"
-                          value={form.accent_color}
-                          onChange={(e) => setForm(p => ({ ...p, accent_color: e.target.value }))}
-                          className="h-10 w-12 rounded border cursor-pointer"
-                        />
-                        <Input
-                          value={form.accent_color}
-                          onChange={(e) => setForm(p => ({ ...p, accent_color: e.target.value }))}
-                          className="flex-1"
-                        />
+                  </div>
+
+                  <Separator />
+
+                  {/* Banner Upload + AI */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Banner</Label>
+                    <div className="w-full aspect-[16/5] rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/50">
+                      {form.banner_url ? (
+                        <img src={form.banner_url} alt="Banner" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                          <ImageIcon className="h-10 w-10" />
+                          <span className="text-sm">Nenhum banner definido</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        ref={bannerInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file, "banner");
+                          e.target.value = "";
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => bannerInputRef.current?.click()}
+                        disabled={isUploadingBanner}
+                        className="gap-1.5"
+                      >
+                        {isUploadingBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                        Escolher ficheiro
+                      </Button>
+                      <SectionAIAssistButton
+                        onClick={handleGenerateBanner}
+                        isLoading={isGeneratingBanner}
+                        disabled={!form.store_name.trim()}
+                        label="Gerar com IA"
+                        tooltip="Gerar banner fotorealista com IA baseado no nome da loja"
+                      />
+                      {form.banner_url && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setForm(p => ({ ...p, banner_url: "" }))}
+                          className="gap-1.5 text-destructive hover:text-destructive"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Colors + AI */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">Cores</Label>
+                      <SectionAIAssistButton
+                        onClick={handleSuggestColors}
+                        isLoading={isSuggestingColors}
+                        disabled={!form.store_name.trim()}
+                        label="Sugerir cores com IA"
+                        tooltip="Sugerir paleta de cores com IA baseada no nome e descrição da loja"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Cor Primária</Label>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={form.primary_color}
+                            onChange={(e) => setForm(p => ({ ...p, primary_color: e.target.value }))}
+                            className="h-10 w-12 rounded border cursor-pointer"
+                          />
+                          <Input
+                            value={form.primary_color}
+                            onChange={(e) => setForm(p => ({ ...p, primary_color: e.target.value }))}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Cor de Destaque</Label>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={form.accent_color}
+                            onChange={(e) => setForm(p => ({ ...p, accent_color: e.target.value }))}
+                            className="h-10 w-12 rounded border cursor-pointer"
+                          />
+                          <Input
+                            value={form.accent_color}
+                            onChange={(e) => setForm(p => ({ ...p, accent_color: e.target.value }))}
+                            className="flex-1"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
