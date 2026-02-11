@@ -210,3 +210,6 @@ verify_jwt = false
 
 [functions.generate-community-banner]
 verify_jwt = false
+
+[functions.detect-abandoned-carts]
+verify_jwt = false

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { StoreCartsTab } from "@/components/store/StoreCartsTab";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -161,6 +162,9 @@ export default function StoreAnalyticsPage() {
             </TabsTrigger>
             <TabsTrigger value="coupons" className="gap-1.5 text-xs sm:text-sm">
               <Tag className="h-3.5 w-3.5" /> Cupões
+            </TabsTrigger>
+            <TabsTrigger value="carts" className="gap-1.5 text-xs sm:text-sm">
+              <ShoppingCart className="h-3.5 w-3.5" /> Carrinhos
             </TabsTrigger>
             <TabsTrigger value="inventory" className="gap-1.5 text-xs sm:text-sm">
               <Layers className="h-3.5 w-3.5" /> Inventário
@@ -869,6 +873,11 @@ export default function StoreAnalyticsPage() {
                 </Card>
               </motion.div>
             </div>
+          </TabsContent>
+
+          {/* ==================== CARTS TAB ==================== */}
+          <TabsContent value="carts">
+            <StoreCartsTab />
           </TabsContent>
         </Tabs>
       </div>

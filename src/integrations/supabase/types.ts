@@ -23163,6 +23163,10 @@ export type Database = {
           ai_intent: string | null
           ai_recommendation: string | null
           ai_score: number | null
+          cart_items: Json | null
+          cart_processed: boolean | null
+          cart_subtotal: number | null
+          cart_updated_at: string | null
           contact_id: string | null
           converted: boolean | null
           created_at: string | null
@@ -23186,6 +23190,10 @@ export type Database = {
           ai_intent?: string | null
           ai_recommendation?: string | null
           ai_score?: number | null
+          cart_items?: Json | null
+          cart_processed?: boolean | null
+          cart_subtotal?: number | null
+          cart_updated_at?: string | null
           contact_id?: string | null
           converted?: boolean | null
           created_at?: string | null
@@ -23209,6 +23217,10 @@ export type Database = {
           ai_intent?: string | null
           ai_recommendation?: string | null
           ai_score?: number | null
+          cart_items?: Json | null
+          cart_processed?: boolean | null
+          cart_subtotal?: number | null
+          cart_updated_at?: string | null
           contact_id?: string | null
           converted?: boolean | null
           created_at?: string | null
