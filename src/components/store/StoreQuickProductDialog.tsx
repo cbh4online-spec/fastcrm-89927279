@@ -8,14 +8,54 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Search, Camera, Upload, Sparkles, Package, AlertTriangle } from "lucide-react";
+import { Loader2, Search, Camera, Upload, Sparkles, Package, AlertTriangle, TrendingUp, ExternalLink, ChevronDown } from "lucide-react";
 import type { StockStatus } from "@/types/product-operations";
+
+// Price regex patterns (same as compare-prices edge function)
+const pricePatterns = [
+  /€\s*(\d+[.,]\d{2})/g,
+  /(\d+[.,]\d{2})\s*€/g,
+  /EUR\s*(\d+[.,]\d{2})/g,
+];
+
+function extractPricesFromText(text: string, maxPrice: number): number[] {
+  const prices: number[] = [];
+  for (const regex of pricePatterns) {
+    regex.lastIndex = 0;
+    for (const match of text.matchAll(regex)) {
+      const price = parseFloat(match[1].replace(",", "."));
+      if (price > 0 && price < maxPrice) {
+        prices.push(price);
+      }
+    }
+  }
+  return prices;
+}
+
+function extractSourceName(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.replace("www.", "");
+    if (hostname.includes("kuantokusta")) return "KuantoKusta";
+    if (hostname.includes("google")) return "Google Shopping";
+    const name = hostname.split(".")[0];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  } catch {
+    return "Desconhecido";
+  }
+}
+
+interface MarketPrice {
+  source: string;
+  price: number;
+  url: string;
+}
 
 interface StoreQuickProductDialogProps {
   open: boolean;
@@ -55,6 +95,60 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [marketPrices, setMarketPrices] = useState<MarketPrice[] | null>(null);
+  const [isSearchingPrices, setIsSearchingPrices] = useState(false);
+  const [showPriceSuggestion, setShowPriceSuggestion] = useState(false);
+
+  const handleSearchMarketPrices = async () => {
+    if (!preview?.name) return;
+    setIsSearchingPrices(true);
+    setMarketPrices(null);
+    setShowPriceSuggestion(true);
+    try {
+      const maxPrice = (preview.price || 100) * 5;
+      const [kkResult, generalResult] = await Promise.all([
+        supabase.functions.invoke("firecrawl-search", {
+          body: { query: `site:kuantokusta.pt ${preview.name}`, options: { limit: 5, lang: "pt", country: "pt" } },
+        }),
+        supabase.functions.invoke("firecrawl-search", {
+          body: { query: `${preview.name} preço comprar portugal`, options: { limit: 5, lang: "pt", country: "pt" } },
+        }),
+      ]);
+
+      const allResults = [
+        ...(kkResult.data?.data || []),
+        ...(generalResult.data?.data || []),
+      ];
+
+      const seenUrls = new Set<string>();
+      const found: MarketPrice[] = [];
+
+      for (const result of allResults) {
+        if (!result.url || seenUrls.has(result.url)) continue;
+        seenUrls.add(result.url);
+        const text = result.markdown || result.description || "";
+        const prices = extractPricesFromText(text, maxPrice);
+        if (prices.length > 0) {
+          found.push({
+            source: extractSourceName(result.url),
+            price: Math.min(...prices),
+            url: result.url,
+          });
+        }
+      }
+
+      found.sort((a, b) => a.price - b.price);
+      setMarketPrices(found);
+      if (found.length === 0) {
+        toast.info("Nenhum preço de mercado encontrado");
+      }
+    } catch (error) {
+      console.error("Market price search error:", error);
+      toast.error("Erro ao pesquisar preços de mercado");
+    } finally {
+      setIsSearchingPrices(false);
+    }
+  };
 
   const handleSkuSearch = async () => {
     if (!skuInput.trim()) return;
@@ -311,6 +405,9 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
     setImagePreviewUrl(null);
     setUploadedFile(null);
     setDuplicateWarning(null);
+    setMarketPrices(null);
+    setIsSearchingPrices(false);
+    setShowPriceSuggestion(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -417,12 +514,29 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label className="text-xs">Preço (€)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={preview.price}
-                    onChange={(e) => setPreview({ ...preview, price: parseFloat(e.target.value) || 0 })}
-                  />
+                  <div className="flex gap-1">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={preview.price}
+                      onChange={(e) => setPreview({ ...preview, price: parseFloat(e.target.value) || 0 })}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="flex-shrink-0 h-9 w-9"
+                      onClick={handleSearchMarketPrices}
+                      disabled={isSearchingPrices || !preview.name}
+                      title="Pesquisar preços de mercado"
+                    >
+                      {isSearchingPrices ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <TrendingUp className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs">Peso (kg)</Label>
@@ -442,6 +556,84 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
                   />
                 </div>
               </div>
+
+              {/* Market Price Suggestions */}
+              {showPriceSuggestion && (
+                <Collapsible open={showPriceSuggestion} onOpenChange={setShowPriceSuggestion}>
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                    <CollapsibleTrigger asChild>
+                      <button className="flex items-center justify-between w-full text-xs font-medium">
+                        <span className="flex items-center gap-1.5">
+                          <TrendingUp className="h-3.5 w-3.5" />
+                          Preços de Mercado
+                          {marketPrices && <span className="text-muted-foreground">({marketPrices.length} encontrados)</span>}
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-2">
+                      {isSearchingPrices && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          A pesquisar preços...
+                        </div>
+                      )}
+                      {marketPrices && marketPrices.length > 0 && (
+                        <>
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                            {marketPrices.map((mp, i) => (
+                              <div key={i} className="flex items-center justify-between text-xs py-1">
+                                <a
+                                  href={mp.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-primary hover:underline truncate max-w-[60%]"
+                                >
+                                  {mp.source}
+                                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                </a>
+                                <span className="font-medium">{mp.price.toFixed(2)} €</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-7 text-xs flex-1"
+                              onClick={() => {
+                                const lowest = Math.min(...marketPrices.map(p => p.price));
+                                setPreview({ ...preview, price: lowest });
+                                toast.success(`Preço atualizado: ${lowest.toFixed(2)} €`);
+                              }}
+                            >
+                              Mais baixo ({Math.min(...marketPrices.map(p => p.price)).toFixed(2)} €)
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-7 text-xs flex-1"
+                              onClick={() => {
+                                const avg = marketPrices.reduce((s, p) => s + p.price, 0) / marketPrices.length;
+                                const rounded = Math.round(avg * 100) / 100;
+                                setPreview({ ...preview, price: rounded });
+                                toast.success(`Preço atualizado: ${rounded.toFixed(2)} €`);
+                              }}
+                            >
+                              Média ({(marketPrices.reduce((s, p) => s + p.price, 0) / marketPrices.length).toFixed(2)} €)
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                      {marketPrices && marketPrices.length === 0 && !isSearchingPrices && (
+                        <p className="text-xs text-muted-foreground py-1">Nenhum preço encontrado para este produto.</p>
+                      )}
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+              )}
 
               {/* Stock & Condition fields */}
               <div className="grid grid-cols-3 gap-3">
