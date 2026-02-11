@@ -1,97 +1,73 @@
 
+# Editar Produtos na Loja e Melhorar Visibilidade de Custos/Margens
 
-# Rastreamento de Carrinhos em Tempo Real e Painel de Carrinhos Abandonados
+## Objetivo
 
-## Problema Atual
-
-O carrinho de compras vive exclusivamente no `localStorage` do browser do visitante. O registo na base de dados (`store_abandoned_carts`) so e criado quando o cliente chega ao checkout e fornece dados de contacto. Isto significa que um visitante com 2 artigos no carrinho que nunca chega ao checkout e **completamente invisivel** para o administrador.
+Adicionar funcionalidades de edicao inline de produtos na pagina de gestao da loja, um botao de sugestao de preco por produto, e mostrar o preco de custo e margem para melhor acompanhamento.
 
 ## O Que Muda
 
-### 1. Sincronizar o carrinho com a base de dados em tempo real
+### 1. Edicao de Produtos Inline
 
-Sempre que um visitante adiciona ou remove itens do carrinho, o `StoreCartContext` sincroniza automaticamente com a tabela `store_visitor_sessions`, adicionando os dados do carrinho (itens, subtotal) a sessao ja existente.
+Cada linha da tabela de produtos passara a ter um botao "Editar" que abre um dialogo (Dialog) com os campos editaveis:
 
-Novos campos na tabela `store_visitor_sessions`:
+- Nome
+- SKU
+- Categoria
+- Preco de venda (base_price)
+- Preco de custo (direct_cost)
+- Custo operacional (operational_cost)
+- Descricao curta
+- Condicao (novo/usado/recondicionado)
+- Stock (quantidade e estado)
+- Imagens (visualizacao, sem upload neste dialogo)
 
-| Coluna | Tipo | Descricao |
-|---|---|---|
-| `cart_items` | jsonb | Array com os itens no carrinho (id, nome, preco, quantidade) |
-| `cart_subtotal` | numeric | Valor total do carrinho |
-| `cart_updated_at` | timestamptz | Ultima alteracao ao carrinho |
+O dialogo reutiliza a mutation `updateProduct` ja existente na pagina.
 
-Isto reutiliza a sessao de visitante que ja existe (via `useStoreVisitorTracking`), sem criar registos novos.
+### 2. Colunas de Custo e Margem na Tabela
 
-### 2. Detecao automatica de abandono
+Novas colunas visiveis na tabela de produtos:
 
-Adicionar um job `pg_cron` (a cada 15 minutos) que:
-- Procura sessoes com `cart_items IS NOT NULL` e `last_activity_at < NOW() - INTERVAL '30 minutes'` e `converted = false`
-- Cria automaticamente registos em `store_abandoned_carts` para essas sessoes
-- Marca a sessao como processada para nao duplicar
+| Coluna | Dados |
+|---|---|
+| Custo | `direct_cost` do produto |
+| Margem | Calculo automatico: `((base_price - direct_cost) / base_price) * 100` com badge colorido (verde >30%, amarelo 15-30%, vermelho <15%) |
 
-Isto garante que mesmo visitantes anonimos (sem dados de contacto) ficam registados como carrinhos abandonados.
+A query de produtos sera atualizada para incluir `direct_cost` e `operational_cost`.
 
-### 3. Painel de Carrinhos Ativos e Abandonados
+### 3. Botao de Sugestao de Preco por Produto
 
-Novo separador "Carrinhos" no `StoreAnalyticsPage` com dois blocos:
+Cada produto tera um botao com icone de lampada que invoca a edge function `ai-pricing-optimizer` no modo `optimize-table` ou diretamente gera uma sugestao para aquele produto especifico. Ao clicar:
 
-**Carrinhos Ativos (Agora):**
-- Lista de visitantes com carrinho ativo (ultimos 30 min de atividade)
-- Mostra: dispositivo, produtos no carrinho, valor, tempo na loja
-- Badge de "ao vivo" com indicador visual
-
-**Carrinhos Abandonados:**
-- Lista da tabela `store_abandoned_carts`
-- Estado (abandonado/contactado/recuperado/expirado)
-- KPIs: total de carrinhos abandonados, valor perdido, taxa de recuperacao
-- Botao para iniciar tentativa de recuperacao
+- Mostra um pequeno popover/toast com o preco sugerido e o raciocinio
+- Opcao de "Aplicar" ou "Descartar" diretamente
 
 ## Seccao Tecnica
 
-### Migracao SQL
+### Ficheiro: `src/pages/StoreProductsAdminPage.tsx`
 
-```text
-ALTER TABLE store_visitor_sessions 
-  ADD COLUMN cart_items jsonb,
-  ADD COLUMN cart_subtotal numeric DEFAULT 0,
-  ADD COLUMN cart_updated_at timestamptz;
-```
+**Interface `ProductStoreData`:** Adicionar campos `direct_cost`, `operational_cost`, `short_description`, `stock_status`, `stock_quantity`, `condition`, `product_type`.
 
-### Ficheiro: `src/contexts/StoreCartContext.tsx`
+**Query de produtos:** Incluir os novos campos no select.
 
-Adicionar sincronizacao com a base de dados:
-- Importar `supabase` e ler o `session_id` do `localStorage` (mesma chave usada pelo `useStoreVisitorTracking`)
-- No `useEffect` que ja observa mudancas em `items`, adicionar um debounce (2 segundos) que faz upsert dos dados do carrinho em `store_visitor_sessions`
-- Incluir `workspace_id` como prop do `StoreCartProvider` (passado via route context)
+**Nova coluna "Custo":** Depois da coluna "Preco", mostra `direct_cost` formatado ou "--".
 
-### Ficheiro: `supabase/functions/detect-abandoned-carts/index.ts` (novo)
+**Nova coluna "Margem":** Calculo inline com badge colorido baseado na percentagem.
 
-Edge function invocada por cron que:
-1. Busca sessoes com carrinho ativo e sem atividade ha mais de 30 min
-2. Cria registos em `store_abandoned_carts` com os dados do carrinho
-3. Limpa o campo `cart_items` da sessao processada
+**Botao "Editar":** Nova coluna de acoes com icone de edicao. Abre um `Dialog` com formulario pre-preenchido. Ao guardar, chama `updateProduct.mutate()`.
 
-### Ficheiro: `src/pages/StoreAnalyticsPage.tsx`
+**Botao "Sugestao IA":** Icone de lampada por produto que invoca a edge function `ai-pricing-optimizer` com os dados do produto e mostra o resultado num popover.
 
-Novo separador "Carrinhos" com:
-- Query a `store_visitor_sessions` onde `cart_items IS NOT NULL` e `last_activity_at > NOW() - 30min` (carrinhos ativos)
-- Query a `store_abandoned_carts` com estatisticas e listagem
-- Botao de recuperacao usando o hook `useSendCartRecovery` ja existente
+### Componente novo: `src/components/store/StoreProductEditDialog.tsx`
 
-### Ficheiro: `src/hooks/useStoreVisitorTracking.ts`
-
-Nenhuma alteracao necessaria -- a sincronizacao sera feita pelo `StoreCartContext` diretamente para nao duplicar logica.
-
-### Agendamento Cron
-
-Configurar `pg_cron` para invocar `detect-abandoned-carts` a cada 15 minutos.
+Dialogo de edicao com:
+- Formulario com campos editaveis (nome, sku, precos, custos, descricao, condicao, stock)
+- Botao de guardar que chama a mutation
+- Botao de sugestao de preco integrado no dialogo
 
 ### Resumo de ficheiros
 
 | Ficheiro | Alteracao |
 |---|---|
-| Nova migracao SQL | Adicionar `cart_items`, `cart_subtotal`, `cart_updated_at` a `store_visitor_sessions` |
-| `src/contexts/StoreCartContext.tsx` | Sincronizar carrinho com DB via debounce |
-| `supabase/functions/detect-abandoned-carts/index.ts` | Nova funcao para detetar carrinhos abandonados automaticamente |
-| `src/pages/StoreAnalyticsPage.tsx` | Novo separador "Carrinhos" com vista ao vivo e abandonados |
-| Nova migracao SQL (cron) | Agendar detetor de abandono a cada 15 min |
+| `src/pages/StoreProductsAdminPage.tsx` | Adicionar colunas custo/margem, botao editar, botao sugestao IA, expandir query |
+| `src/components/store/StoreProductEditDialog.tsx` | Novo dialogo de edicao de produto |
