@@ -16,8 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Package, Star, Eye, EyeOff, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
+import { Search, Package, Star, Eye, EyeOff, ArrowUp, ArrowDown, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { StoreQuickProductDialog } from "@/components/store/StoreQuickProductDialog";
 
 interface ProductStoreData {
   id: string;
@@ -38,6 +39,7 @@ export default function StoreProductsAdminPage() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["store-admin-products", currentWorkspace?.id, search],
@@ -114,15 +116,23 @@ export default function StoreProductsAdminPage() {
             </p>
           </div>
 
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar produtos..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+          <div className="flex items-center gap-3">
+            <div className="relative max-w-sm flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar produtos..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={() => setAiDialogOpen(true)} className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Criar com IA
+            </Button>
           </div>
+
+          <StoreQuickProductDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
 
           <div className="border rounded-lg">
             <Table>
