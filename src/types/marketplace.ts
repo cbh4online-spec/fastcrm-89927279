@@ -871,5 +871,157 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2025-01-24T00:00:00Z",
     updated_at: "2025-01-24T00:00:00Z",
     published_at: "2025-01-24T00:00:00Z"
+  },
+  {
+    id: "online-store",
+    slug: "online-store",
+    name: "Loja Online",
+    tagline: "A sua loja online integrada no CRM",
+    description: "Venda produtos e serviços com loja pública, carrinho de compras, checkout Stripe e gestão de encomendas — tudo sem sair do CRM.",
+    category: "sales",
+    icon: "ShoppingBag",
+    target_audience: "PMEs, freelancers e negócios com produtos/serviços online",
+    expected_results: [
+      "Loja operacional em minutos",
+      "Checkout seguro com Stripe",
+      "Gestão centralizada de encomendas no CRM"
+    ],
+    use_cases: [
+      "Vender produtos físicos ou digitais",
+      "Criar catálogo público com preços",
+      "Processar pagamentos online",
+      "Gerir encomendas e envios"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "products", read: true, write: true, delete: true },
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "invoices", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: true,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 49,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.7,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-01T00:00:00Z",
+    updated_at: "2025-02-01T00:00:00Z",
+    published_at: "2025-02-01T00:00:00Z"
+  },
+  {
+    id: "marketplace-c2c",
+    slug: "marketplace-c2c",
+    name: "Marketplace C2C",
+    tagline: "Marketplace entre membros da sua comunidade",
+    description: "Permita que os membros comprem e vendam entre si. Anúncios com moderação automática, chat direto, comissões configuráveis e sistema de reputação integrado.",
+    category: "sales",
+    icon: "Store",
+    target_audience: "Comunidades, associações e redes de membros",
+    expected_results: [
+      "Marketplace operacional em minutos",
+      "Comissões automáticas por transação",
+      "Sistema de reputação para confiança"
+    ],
+    use_cases: [
+      "Criar marketplace entre membros",
+      "Moderar anúncios automaticamente",
+      "Cobrar comissões por venda",
+      "Chat direto entre comprador e vendedor"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "products", read: true, write: true, delete: true },
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "conversations", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: true,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 79,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.6,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-01T00:00:00Z",
+    updated_at: "2025-02-01T00:00:00Z",
+    published_at: "2025-02-01T00:00:00Z"
+  },
+  {
+    id: "fastclub",
+    slug: "fastclub",
+    name: "FastClub (Comunidade)",
+    tagline: "Comunidade privada para os seus clientes",
+    description: "Crie uma comunidade exclusiva com fórum de discussão, eventos, canais temáticos e gate de acesso com aprovação. Ideal para fidelização e networking.",
+    category: "communication",
+    icon: "Users",
+    target_audience: "Marcas, coaches, formadores e negócios com base de clientes fiéis",
+    expected_results: [
+      "Comunidade privada operacional em minutos",
+      "Engagement e retenção de clientes",
+      "Networking entre membros com moderação"
+    ],
+    use_cases: [
+      "Criar comunidade exclusiva para clientes",
+      "Organizar eventos e meetups",
+      "Fórum de discussão com canais temáticos",
+      "Gate de acesso com aprovação manual"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "conversations", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: true,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: false
+    },
+    pricing: {
+      type: "fixed_monthly",
+      base_price: 59,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.8,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2025-02-01T00:00:00Z",
+    updated_at: "2025-02-01T00:00:00Z",
+    published_at: "2025-02-01T00:00:00Z"
   }
 ];
