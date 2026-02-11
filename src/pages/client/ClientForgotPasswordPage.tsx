@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ export default function ClientForgotPasswordPage() {
 
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/client/reset-password`,
+        redirectTo: `${getPublicBaseUrl()}/client/reset-password`,
       });
 
       if (resetError) {

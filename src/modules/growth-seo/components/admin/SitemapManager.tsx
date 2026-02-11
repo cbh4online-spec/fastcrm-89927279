@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +74,7 @@ export function SitemapManager() {
   };
 
   const openSitemap = (type?: string) => {
-    const baseUrl = window.location.origin;
+    const baseUrl = getPublicBaseUrl();
     const url = type 
       ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-sitemap?type=${type}&baseUrl=${baseUrl}`
       : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-sitemap?type=index&baseUrl=${baseUrl}`;

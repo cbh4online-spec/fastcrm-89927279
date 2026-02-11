@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useSmartForms, useDeleteSmartForm } from '@/hooks/useSmartForms';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,7 +83,7 @@ export function SmartFormsList({ onCreateNew, onEdit, onViewSubmissions }: Smart
   ) || [];
 
   const handleCopyLink = (form: SmartForm) => {
-    const url = `${window.location.origin}/f/${form.slug}`;
+    const url = `${getPublicBaseUrl()}/f/${form.slug}`;
     navigator.clipboard.writeText(url);
     toast.success('Link copiado!');
   };

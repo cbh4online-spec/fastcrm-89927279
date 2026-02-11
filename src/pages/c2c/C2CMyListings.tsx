@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -167,7 +168,7 @@ export default function C2CMyListings() {
                   const st = statusLabels[listing.status] || statusLabels.active;
                   const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true, locale: pt });
                   const condition = conditionLabels[listing.condition] || listing.condition;
-                  const listingUrl = `${window.location.origin}/dashboard/c2c/listing/${listing.id}`;
+                  const listingUrl = `${getPublicBaseUrl()}/dashboard/c2c/listing/${listing.id}`;
 
                   return (
                     <div

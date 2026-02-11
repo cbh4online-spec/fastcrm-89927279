@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -369,7 +370,7 @@ export function ProposalDetailContent({
   };
 
   const getPublicUrl = (slug: string) => {
-    return `${window.location.origin}/p/${slug}`;
+    return `${getPublicBaseUrl()}/p/${slug}`;
   };
 
   const handleCopyLink = () => {

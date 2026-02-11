@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Helmet } from "react-helmet-async";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
@@ -36,7 +37,7 @@ export default function StoreReferralPage() {
   const { data: referrals = [] } = useMyReferrals(wsId);
 
   const referralUrl = myCode
-    ? `${window.location.origin}/store/${wsSlug}?ref=${myCode.code}`
+    ? `${getPublicBaseUrl()}/store/${wsSlug}?ref=${myCode.code}`
     : "";
 
   const handleCopy = () => {

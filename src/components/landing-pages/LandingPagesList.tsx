@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +42,7 @@ export function LandingPagesList() {
   };
 
   const getPublicUrl = (slug: string) => {
-    return `${window.location.origin}/p/${currentWorkspace?.slug}/${slug}`;
+    return `${getPublicBaseUrl()}/p/${currentWorkspace?.slug}/${slug}`;
   };
 
   if (editingPageId) {

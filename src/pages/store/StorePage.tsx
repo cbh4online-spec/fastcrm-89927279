@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
@@ -114,11 +115,11 @@ export default function StorePage() {
       <Helmet>
         <title>{storeName} | FastCRM</title>
         <meta name="description" content={storeSettings?.store_description || "Explore os nossos produtos e serviços"} />
-        <link rel="canonical" href={`${window.location.origin}/store/${wsSlug}`} />
+        <link rel="canonical" href={`${getPublicBaseUrl()}/store/${wsSlug}`} />
         <meta property="og:title" content={`${storeName} | FastCRM`} />
         <meta property="og:description" content={storeSettings?.store_description || "Explore os nossos produtos e serviços"} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${window.location.origin}/store/${wsSlug}`} />
+        <meta property="og:url" content={`${getPublicBaseUrl()}/store/${wsSlug}`} />
         <meta property="og:site_name" content="FastCRM" />
         {(storeSettings?.banner_url || storeSettings?.logo_url) && (
           <meta property="og:image" content={storeSettings.banner_url || storeSettings.logo_url!} />
@@ -130,7 +131,7 @@ export default function StorePage() {
             "@type": "Store",
             "name": storeName,
             "description": storeSettings?.store_description || "",
-            "url": `${window.location.origin}/store/${wsSlug}`,
+            "url": `${getPublicBaseUrl()}/store/${wsSlug}`,
             ...(storeSettings?.logo_url ? { "logo": storeSettings.logo_url } : {}),
           })}
         </script>

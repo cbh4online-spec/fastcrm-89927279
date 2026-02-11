@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMySellerProfile } from "@/hooks/useC2CSellers";
@@ -34,7 +35,7 @@ export default function C2CSellerArea() {
   const isLoading = sellerLoading || analyticsLoading;
 
   const publicProfileUrl = seller && workspaceSlug
-    ? `${window.location.origin}/c2c/${workspaceSlug}/seller/${seller.user_id}`
+    ? `${getPublicBaseUrl()}/c2c/${workspaceSlug}/seller/${seller.user_id}`
     : null;
 
   const copyLink = () => {
