@@ -168,3 +168,42 @@ export function useCreateStoreSponsor(workspaceId: string | undefined) {
     onError: () => toast.error("Erro ao adicionar parceiro"),
   });
 }
+
+export function useUpdateStoreSponsor(workspaceId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<StoreSponsor> & { id: string }) => {
+      if (!workspaceId) throw new Error("No workspace");
+      const { error } = await supabase.from("store_sponsors").update(updates).eq("id", id).eq("workspace_id", workspaceId);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-store-sponsors"] }); toast.success("Parceiro atualizado!"); },
+    onError: () => toast.error("Erro ao atualizar parceiro"),
+  });
+}
+
+export function useDeleteStoreSponsor(workspaceId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!workspaceId) throw new Error("No workspace");
+      const { error } = await supabase.from("store_sponsors").delete().eq("id", id).eq("workspace_id", workspaceId);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-store-sponsors"] }); toast.success("Parceiro eliminado!"); },
+    onError: () => toast.error("Erro ao eliminar parceiro"),
+  });
+}
+
+export function useToggleSponsorActive(workspaceId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      if (!workspaceId) throw new Error("No workspace");
+      const { error } = await supabase.from("store_sponsors").update({ is_active }).eq("id", id).eq("workspace_id", workspaceId);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-store-sponsors"] }); },
+    onError: () => toast.error("Erro ao alterar estado"),
+  });
+}
