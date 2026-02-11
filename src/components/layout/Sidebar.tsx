@@ -198,6 +198,7 @@ const navigationGroups: NavGroup[] = [
     icon: Landmark,
     tooltip: "Portal de clientes B2B",
     highlight: true,
+    moduleSlug: "b2b-portal",
     items: [
       { name: "Clientes B2B", href: "/dashboard/client-users", icon: UsersRound, tooltip: "Clientes profissionais" },
       { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: ShoppingCart, tooltip: "Encomendas B2B" },
@@ -210,6 +211,7 @@ const navigationGroups: NavGroup[] = [
     icon: Store,
     tooltip: "E-commerce e loja online",
     highlight: true,
+    moduleSlug: "online-store",
     items: [
       { name: "Loja Online", href: "/dashboard/store-products", icon: ShoppingCart, tooltip: "Gerir loja e-commerce", highlight: true },
       { name: "Categorias Loja", href: "/dashboard/store-categories", icon: FolderOpen, tooltip: "Categorias de produtos" },
@@ -225,6 +227,7 @@ const navigationGroups: NavGroup[] = [
     icon: Store,
     tooltip: "Compra e venda entre utilizadores",
     highlight: true,
+    moduleSlug: "marketplace-c2c",
     items: [
       { name: "Marketplace", href: "/dashboard/c2c", icon: Store, tooltip: "Ver anúncios C2C", highlight: true },
       { name: "Meus Anúncios", href: "/dashboard/c2c/my-listings", icon: Package, tooltip: "Gerir os meus anúncios" },
@@ -241,6 +244,7 @@ const navigationGroups: NavGroup[] = [
     icon: Users,
     tooltip: "Comunidade, fórum e fidelidade",
     highlight: true,
+    moduleSlug: "fastclub",
     items: [
       { name: "FastClub", href: "/dashboard/fastclub", icon: Zap, tooltip: "Hub da comunidade", highlight: true },
       { name: "Fórum", href: "/dashboard/fastclub/forum", icon: MessageSquare, tooltip: "Discussões da comunidade" },
@@ -253,7 +257,7 @@ const navigationGroups: NavGroup[] = [
     icon: Compass,
     tooltip: "Prospecção e automação",
     items: [
-      { name: "Email Marketing", href: "/dashboard/marketing", icon: Mail, tooltip: "Campanhas de email", highlight: true },
+      { name: "Email Marketing", href: "/dashboard/marketing", icon: Mail, tooltip: "Campanhas de email", highlight: true, moduleSlug: "email-campaigns" },
       { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar no Google Maps", moduleSlug: "google-local-services" },
       { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar na web", moduleSlug: "web-search-services" },
       { name: "Automações", href: "/dashboard/automations", icon: Zap, tooltip: "Workflows automáticos" },
