@@ -1,44 +1,36 @@
 
 
-# Permitir Instalar/Desinstalar os 5 Módulos
+# Corrigir visibilidade dos módulos no menu lateral
 
-## Problema Identificado
+## Problema
 
-Os módulos **Portal B2B**, **Loja Online**, **Marketplace C2C**, **FastClub** e **Instagram Looter** não podem ser instalados/desinstalados porque:
+Os grupos de navegacao **Portal B2B**, **Loja Online**, **Marketplace C2C**, **FastClub** e o item **Email Marketing** aparecem sempre no menu lateral, independentemente de estarem ou nao instalados. Isto acontece porque estes grupos/itens nao tem a propriedade `moduleSlug` definida, ao contrario de "Credito" e "Student Journey" que funcionam correctamente.
 
-1. **Portal B2B** e **Instagram Looter** nem sequer existem no array `SAMPLE_MODULES` (ficheiro `src/types/marketplace.ts`)
-2. Nenhum dos 5 existe na tabela `marketplace_modules` da base de dados -- e o fluxo de instalação (`installModule`) procura o slug nessa tabela para obter o UUID antes de inserir em `workspace_modules`
+## Solucao
 
-## Solução
+Adicionar `moduleSlug` a cada grupo e item relevante no ficheiro `src/components/layout/Sidebar.tsx`:
 
-### 1. Adicionar os 2 módulos em falta ao `SAMPLE_MODULES`
-
-| Módulo | slug | Categoria |
-|---|---|---|
-| Portal B2B | `b2b-portal` | `sales` |
-| Instagram Looter | `instagram-looter` | `prospecting` |
-
-### 2. Inserir os 5 módulos na tabela `marketplace_modules`
-
-Inserir registos na base de dados para que o fluxo de instalação funcione:
-
-- `b2b-portal` -- Portal B2B
-- `online-store` -- Loja Online
-- `marketplace-c2c` -- Marketplace C2C
-- `fastclub` -- FastClub (Comunidade)
-- `instagram-looter` -- Instagram Looter
-
-### Ficheiros a Alterar
-
-| Ficheiro | Alteracao |
+| Grupo/Item | moduleSlug a adicionar |
 |---|---|
-| `src/types/marketplace.ts` | Adicionar 2 novos modulos (`b2b-portal`, `instagram-looter`) ao array `SAMPLE_MODULES` |
+| Portal B2B (grupo inteiro) | `b2b-portal` |
+| Loja Online (grupo inteiro) | `online-store` |
+| Marketplace C2C (grupo inteiro) | `marketplace-c2c` |
+| FastClub (grupo inteiro) | `fastclub` |
+| Email Marketing (item dentro de Marketing) | `email-campaigns` |
 
-### Dados a Inserir
+Quando `moduleSlug` esta definido num grupo, a logica existente no Sidebar (linhas 337-354) ja esconde o grupo/item automaticamente se o slug nao estiver em `installedModuleIds`. Portanto, nao e necessario alterar nenhuma logica -- apenas adicionar a propriedade aos grupos/itens corretos.
 
-| Tabela | Operacao |
-|---|---|
-| `marketplace_modules` | INSERT de 5 registos com os slugs correspondentes |
+## Secao Tecnica
 
-Depois destas alteracoes, os botoes de instalar/desinstalar no `ModuleDetailSheet` funcionarao correctamente para todos os 5 modulos.
+### Ficheiro a alterar
+
+**`src/components/layout/Sidebar.tsx`** -- Adicionar `moduleSlug` a 5 locais:
+
+1. Grupo "Portal B2B" (linha ~196): adicionar `moduleSlug: "b2b-portal"`
+2. Grupo "Loja Online" (linha ~208): adicionar `moduleSlug: "online-store"`
+3. Grupo "Marketplace C2C" (linha ~223): adicionar `moduleSlug: "marketplace-c2c"`
+4. Grupo "FastClub" (linha ~238): adicionar `moduleSlug: "fastclub"`
+5. Item "Email Marketing" (linha ~256): adicionar `moduleSlug: "email-campaigns"`
+
+Nao e necessario alterar mais nenhum ficheiro. A logica de filtragem ja existe e funciona correctamente para os modulos que ja tem `moduleSlug` (ex: Credito, Student Journey).
 
