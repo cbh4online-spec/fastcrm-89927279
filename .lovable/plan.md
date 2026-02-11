@@ -1,46 +1,51 @@
 
-
-# Corrigir URL base da loja e adicionar dominio proprio
+# Gerar descricoes com IA para Produto e Loja
 
 ## O que muda
+Adicionar botoes "Gerar com IA" junto aos campos de descricao, tanto na criacao/edicao de produtos como nas configuracoes da loja. A IA gera automaticamente textos otimizados para SEO.
 
-### 1. URL base fixo
-Atualmente o link usa `window.location.origin` (que muda conforme o ambiente -- preview, localhost, etc). Vai passar a usar sempre `https://fastcrm.metodopare.ai` como base fixa.
+## Onde aparecem os botoes
 
-Exemplo: `https://fastcrm.metodopare.ai/store/minha-loja`
+### 1. Descricao do Produto (CreateProductDialog)
+- Botao com icone Sparkles ao lado do label "Descricao curta"
+- Usa o modo `generate-description` ja existente no `ai-product-assistant`
+- Precisa do nome do produto preenchido para funcionar
+- Preenche automaticamente o campo de descricao
 
-### 2. Dominio proprio (opcional)
-O cliente pode configurar um dominio proprio (ex: `loja.minhaempresa.pt`). Se definido, o URL partilhado usa esse dominio em vez do dominio padrao.
-
-Exemplo com dominio proprio: `https://loja.minhaempresa.pt/store/minha-loja`
+### 2. Descricao da Loja (StoreSettingsPage)
+- Botao com icone Sparkles ao lado do label "Descricao"
+- Chama um novo modo `generate-store-description` no edge function
+- Usa o nome da loja e categoria de produtos para gerar descricao SEO
+- Preenche automaticamente o campo store_description
 
 ## Seccao Tecnica
-
-### Migracao SQL
-Adicionar coluna `custom_domain` a tabela `store_settings`:
-
-```sql
-ALTER TABLE public.store_settings 
-  ADD COLUMN IF NOT EXISTS custom_domain TEXT;
-```
 
 ### Ficheiros a alterar
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/hooks/useStoreSettings.ts` | Adicionar `custom_domain` ao tipo `StoreSettings` |
-| `src/pages/StoreSettingsPage.tsx` | Mudar URL base de `window.location.origin` para `https://fastcrm.metodopare.ai`. Adicionar campo "Dominio Proprio" ao formulario. A logica de construcao do URL: se `custom_domain` existe usa-o como base, senao usa `https://fastcrm.metodopare.ai` |
-| `src/components/store-settings/StoreShareCard.tsx` | Sem alteracoes (ja recebe o URL como prop) |
+| `src/components/products/CreateProductDialog.tsx` | Adicionar botao IA junto ao label "Descricao curta" que chama `generateDescription` do hook existente `useProductAIAssistant` |
+| `src/pages/StoreSettingsPage.tsx` | Adicionar botao IA junto ao label "Descricao" que invoca `ai-product-assistant` com modo `generate-store-description` |
+| `supabase/functions/ai-product-assistant/index.ts` | Adicionar modo `generate-store-description` que gera descricao SEO para a loja |
 
-### Logica de construcao do URL
+### Logica do botao (ambos os casos)
 
 ```text
-Se custom_domain preenchido:
-  URL = https://{custom_domain}/store/{slug}
-Senao:
-  URL = https://fastcrm.metodopare.ai/store/{slug_ou_id}
+1. Utilizador clica no botao Sparkles
+2. Valida que o campo nome esta preenchido
+3. Mostra estado de loading no botao
+4. Chama a edge function com os dados disponiveis
+5. Preenche o campo de descricao com o resultado
+6. Toast de sucesso
 ```
 
-### UI do campo dominio proprio
-Um campo de texto opcional na tab "Geral" com instrucoes de como apontar o dominio (registo A para 185.158.133.1).
+### Novo modo na edge function
 
+O modo `generate-store-description` recebe `storeName` e opcionalmente `category`, e devolve uma descricao otimizada para SEO da loja (meta description, max 160 caracteres + descricao completa).
+
+### UX dos botoes
+- Botao pequeno inline ao lado do Label com icone Sparkles
+- Texto: "Gerar com IA"
+- Estado loading com Loader2 animado
+- Desativado se o campo nome estiver vazio
+- Nao substitui texto existente sem confirmacao (se ja houver texto, pergunta se quer substituir via toast)
