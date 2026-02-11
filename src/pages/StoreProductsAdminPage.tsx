@@ -36,6 +36,8 @@ interface ProductStoreData {
   primary_image_index: number | null;
   competitor_price_low: number | null;
   competitor_source: string | null;
+  brand_logo_url: string | null;
+  specifications: Record<string, string> | null;
 }
 
 export default function StoreProductsAdminPage() {
@@ -52,7 +54,7 @@ export default function StoreProductsAdminPage() {
       if (!currentWorkspace?.id) return [];
       let query = supabase
         .from("products")
-        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source")
+        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active")
         .order("store_sort_order", { ascending: true, nullsFirst: false })
@@ -251,7 +253,12 @@ export default function StoreProductsAdminPage() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-sm">{product.name}</p>
+                            <div className="flex items-center gap-1.5">
+                              {product.brand_logo_url && (
+                                <img src={product.brand_logo_url} alt="" className="h-4 object-contain flex-shrink-0" />
+                              )}
+                              <p className="font-medium text-sm">{product.name}</p>
+                            </div>
                             {product.sku && <p className="text-xs text-muted-foreground">{product.sku}</p>}
                           </div>
                         </TableCell>

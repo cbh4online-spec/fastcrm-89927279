@@ -31,6 +31,7 @@ interface ProductPreview {
   stock_status: StockStatus;
   stock_quantity: number | null;
   track_stock: boolean;
+  brandLogoUrl?: string;
 }
 
 export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProductDialogProps) {
@@ -65,6 +66,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           stock_status: "available",
           stock_quantity: null,
           track_stock: false,
+          brandLogoUrl: (result as any).brandLogoUrl,
         });
       } else {
         toast.error("Nenhum produto encontrado para este SKU");
@@ -119,6 +121,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
           stock_status: "available",
           stock_quantity: null,
           track_stock: false,
+          brandLogoUrl: result.brandLogoUrl,
         });
       } else {
         toast.error("Não foi possível identificar o produto na imagem");
@@ -185,6 +188,29 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
         storageUrls = uploads.filter((u): u is string => u !== null);
       }
 
+      // Upload brand logo to storage if it's an external URL
+      let brandLogoStorageUrl: string | null = null;
+      if (preview.brandLogoUrl) {
+        const brandSlug = (preview.specifications?.brand || "brand").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+        const timestamp = Date.now();
+        const logoPath = `brands/${brandSlug}-${timestamp}.png`;
+        try {
+          const logoResp = await fetch(preview.brandLogoUrl);
+          if (logoResp.ok) {
+            const logoBlob = await logoResp.blob();
+            const { error } = await supabase.storage
+              .from("product-images")
+              .upload(logoPath, logoBlob, { contentType: logoBlob.type || "image/png", upsert: true });
+            if (!error) {
+              const { data: publicData } = supabase.storage.from("product-images").getPublicUrl(logoPath);
+              brandLogoStorageUrl = publicData.publicUrl;
+            }
+          }
+        } catch (e) {
+          console.error("Brand logo upload failed:", e);
+        }
+      }
+
       await createProduct.mutateAsync({
         name: preview.name,
         short_description: preview.description,
@@ -200,6 +226,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
         stock_status: preview.stock_status,
         stock_quantity: preview.stock_quantity,
         track_stock: preview.track_stock,
+        brand_logo_url: brandLogoStorageUrl,
       } as any);
 
       queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
@@ -295,6 +322,9 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
             <h3 className="text-sm font-medium flex items-center gap-1.5">
               <Package className="h-4 w-4" />
               Dados do Produto
+              {preview.brandLogoUrl && (
+                <img src={preview.brandLogoUrl} alt="Brand" className="h-5 ml-auto object-contain" />
+              )}
             </h3>
 
             {/* Images: show SKU images or uploaded photo */}

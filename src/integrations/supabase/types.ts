@@ -18056,6 +18056,7 @@ export type Database = {
           benefits: string[] | null
           billing_frequency: string | null
           billing_type: string
+          brand_logo_url: string | null
           bundle_price_mode: string | null
           business_types: string[] | null
           category: string | null
@@ -18127,6 +18128,7 @@ export type Database = {
           benefits?: string[] | null
           billing_frequency?: string | null
           billing_type?: string
+          brand_logo_url?: string | null
           bundle_price_mode?: string | null
           business_types?: string[] | null
           category?: string | null
@@ -18198,6 +18200,7 @@ export type Database = {
           benefits?: string[] | null
           billing_frequency?: string | null
           billing_type?: string
+          brand_logo_url?: string | null
           bundle_price_mode?: string | null
           business_types?: string[] | null
           category?: string | null
