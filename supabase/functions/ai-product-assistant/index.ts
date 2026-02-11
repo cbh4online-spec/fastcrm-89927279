@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "generate-store-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product" | "generate-store-banner" | "suggest-brand-colors";
+  mode: "suggest" | "sku-search" | "generate-description" | "generate-store-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product" | "generate-store-banner" | "suggest-brand-colors" | "ensure-store-category";
   storeName?: string;
   productId?: string;
   workspaceId?: string;
@@ -1590,6 +1590,135 @@ Responda APENAS em JSON válido:
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+
+    } else if (mode === 'ensure-store-category' && categoryName && reqWorkspaceId) {
+      // Ensure a store category exists, creating it with AI description + image if needed
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Check if category already exists (case-insensitive)
+      const { data: existing } = await adminClient
+        .from('store_categories')
+        .select('id, name, image_url')
+        .eq('workspace_id', reqWorkspaceId)
+        .ilike('name', categoryName.trim())
+        .maybeSingle();
+
+      if (existing) {
+        console.log('Category already exists:', existing.id);
+        return new Response(JSON.stringify({
+          success: true,
+          data: { categoryId: existing.id, categoryName: existing.name, isNew: false, imageUrl: existing.image_url }
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Generate slug
+      const slug = categoryName.trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+      // Generate AI description (SEO optimized)
+      console.log('Generating AI description for category:', categoryName);
+      const descResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: 'Você é um especialista em SEO para e-commerce. Responda apenas em JSON válido.' },
+            { role: 'user', content: `Gere uma descrição SEO otimizada para a categoria de loja online "${categoryName}". A descrição deve ser apelativa para clientes e otimizada para motores de busca. Máximo 200 caracteres.\n\nResponda em JSON:\n{ "description": "..." }` }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      let categoryDescription = `Explore os nossos produtos de ${categoryName}`;
+      if (descResponse.ok) {
+        const descData = await descResponse.json();
+        const descContent = descData.choices?.[0]?.message?.content || '';
+        try {
+          const jsonMatch = descContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            categoryDescription = parsed.description || categoryDescription;
+          }
+        } catch { /* use default */ }
+      }
+
+      // Generate category image
+      let imageUrl: string | null = null;
+      try {
+        console.log('Generating category image for:', categoryName);
+        const imagePrompt = `Create a simple, professional icon or illustration for a product category called "${categoryName}". ${categoryDescription ? `Category description: ${categoryDescription}` : ''}\nStyle: Modern, clean, minimalist icon style suitable for a business catalog.\nColors: Use vibrant but professional colors.\nComposition: Centered, simple background, no text.\nFormat: Square aspect ratio, suitable as a category thumbnail.`;
+
+        const imgResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash-image-preview',
+            messages: [{ role: 'user', content: imagePrompt }],
+            modalities: ['image', 'text'],
+          }),
+        });
+
+        if (imgResponse.ok) {
+          const imgData = await imgResponse.json();
+          const images = imgData.choices?.[0]?.message?.images || [];
+          const base64Data = images[0]?.image_url?.url || null;
+
+          if (base64Data) {
+            // Upload to storage
+            const base64Content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+            const binaryStr = atob(base64Content);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+            const filePath = `${reqWorkspaceId}/${slug}-${Date.now()}.png`;
+            const { error: uploadError } = await adminClient.storage
+              .from('store-category-images')
+              .upload(filePath, bytes.buffer, { contentType: 'image/png', upsert: true });
+
+            if (!uploadError) {
+              const { data: publicData } = adminClient.storage
+                .from('store-category-images')
+                .getPublicUrl(filePath);
+              imageUrl = publicData.publicUrl;
+              console.log('Category image uploaded:', imageUrl);
+            } else {
+              console.error('Category image upload error:', uploadError);
+            }
+          }
+        }
+      } catch (imgErr) {
+        console.error('Category image generation failed:', imgErr);
+      }
+
+      // Insert the new category
+      const { data: newCat, error: insertError } = await adminClient
+        .from('store_categories')
+        .insert({
+          workspace_id: reqWorkspaceId,
+          name: categoryName.trim(),
+          slug,
+          description: categoryDescription,
+          image_url: imageUrl,
+          is_active: true,
+        })
+        .select('id, name, image_url')
+        .single();
+
+      if (insertError) {
+        console.error('Category insert error:', insertError);
+        throw new Error(`Failed to create category: ${insertError.message}`);
+      }
+
+      console.log('New category created:', newCat.id);
+      return new Response(JSON.stringify({
+        success: true,
+        data: { categoryId: newCat.id, categoryName: newCat.name, isNew: true, imageUrl: newCat.image_url }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     }
 

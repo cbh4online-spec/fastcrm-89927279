@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useQueryClient } from "@tanstack/react-query";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Search, Camera, Upload, Sparkles, Package } from "lucide-react";
+import { Loader2, Search, Camera, Upload, Sparkles, Package, AlertTriangle } from "lucide-react";
 import type { StockStatus } from "@/types/product-operations";
 
 interface StoreQuickProductDialogProps {
@@ -48,6 +49,8 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
   const { searchBySKU } = useProductAIAssistant();
   const createProduct = useCreateProduct();
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
   const handleSkuSearch = async () => {
     if (!skuInput.trim()) return;
@@ -175,16 +178,60 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
   const handleCreate = async () => {
     if (!preview) return;
     setIsCreating(true);
+    setDuplicateWarning(null);
     try {
+      const workspaceId = currentWorkspace?.id;
+      if (!workspaceId) throw new Error("No workspace");
+
+      // Check for duplicate products (by SKU or name)
+      const duplicateChecks = [];
+      if (preview.sku) {
+        duplicateChecks.push(
+          supabase.from("products").select("id, name").eq("workspace_id", workspaceId).ilike("sku", preview.sku.trim()).maybeSingle().then(r => r)
+        );
+      }
+      duplicateChecks.push(
+        supabase.from("products").select("id, name").eq("workspace_id", workspaceId).ilike("name", preview.name.trim()).maybeSingle().then(r => r)
+      );
+
+      const dupResults = await Promise.all(duplicateChecks);
+      for (const { data: dup } of dupResults) {
+        if (dup) {
+          setDuplicateWarning(`Já existe um produto "${dup.name}" com o mesmo ${preview.sku ? 'SKU ou ' : ''}nome.`);
+          setIsCreating(false);
+          return;
+        }
+      }
+
+      // Ensure store category exists (auto-create with AI if needed)
+      let storeCategoryId: string | null = null;
+      if (preview.category?.trim()) {
+        try {
+          const { data: catData, error: catError } = await supabase.functions.invoke("ai-product-assistant", {
+            body: {
+              mode: "ensure-store-category",
+              categoryName: preview.category.trim(),
+              workspaceId,
+            },
+          });
+          if (!catError && catData?.success) {
+            storeCategoryId = catData.data.categoryId;
+            if (catData.data.isNew) {
+              toast.info(`Categoria "${catData.data.categoryName}" criada automaticamente`);
+            }
+          }
+        } catch (e) {
+          console.error("ensure-store-category failed:", e);
+        }
+      }
+
       // Upload images to storage
       let storageUrls: string[] = [];
 
       if (uploadedFile) {
-        // Photo mode: upload the user's file
         const url = await uploadImageToStorage(uploadedFile, 0);
         if (url) storageUrls.push(url);
       } else if (preview.images.length > 0) {
-        // SKU mode: fetch and upload external URLs
         const uploads = await Promise.all(
           preview.images.slice(0, 4).map((img, i) => uploadImageToStorage(img, i))
         );
@@ -220,6 +267,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
         commercial_description: preview.description,
         base_price: preview.price,
         category: preview.category,
+        store_category_id: storeCategoryId,
         sku: preview.sku,
         images: storageUrls,
         specifications: preview.specifications,
@@ -235,6 +283,8 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
 
       queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
       queryClient.invalidateQueries({ queryKey: ["store-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-store-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["store-categories-db"] });
       toast.success("Produto criado e publicado na loja!");
       handleReset();
       onOpenChange(false);
@@ -250,6 +300,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
     setSkuInput("");
     setImagePreviewUrl(null);
     setUploadedFile(null);
+    setDuplicateWarning(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -434,7 +485,19 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
               </div>
             </div>
 
-            <Button onClick={handleCreate} disabled={isCreating} className="w-full">
+            {duplicateWarning && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p>{duplicateWarning}</p>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 text-xs" onClick={() => setDuplicateWarning(null)}>
+                    Criar mesmo assim
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <Button onClick={handleCreate} disabled={isCreating || !!duplicateWarning} className="w-full">
               {isCreating ? (
                 <><Loader2 className="h-4 w-4 animate-spin mr-2" /> A criar...</>
               ) : (
