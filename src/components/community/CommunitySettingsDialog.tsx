@@ -89,6 +89,7 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
   const [customDomain, setCustomDomain] = useState("");
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [generatingBanner, setGeneratingBanner] = useState(false);
   const faviconRef = useRef<HTMLInputElement>(null);
   const bannerRef = useRef<HTMLInputElement>(null);
 
@@ -162,6 +163,24 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       { communityName: name, communityDescription: description },
       { onSuccess: (cat) => setCategory(cat) }
     );
+  };
+
+  const handleGenerateBanner = async () => {
+    if (!workspaceId) return;
+    setGeneratingBanner(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-community-banner", {
+        body: { workspaceId },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao gerar banner");
+      upsert.mutate({ banner_url: data.url } as any);
+      toast.success("Banner gerado com IA!");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao gerar banner com IA");
+    } finally {
+      setGeneratingBanner(false);
+    }
   };
 
   const toggleVisibleTab = (key: string) => {
@@ -276,10 +295,16 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
                         <img src={settings.banner_url} alt="Banner" className="w-full h-32 rounded-lg object-cover border" />
                       )}
                       <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleUpload(e.target.files[0], "banner"); }} />
-                      <Button variant="outline" size="sm" onClick={() => bannerRef.current?.click()} disabled={uploadingBanner} className="gap-1.5">
-                        {uploadingBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                        Carregar
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => bannerRef.current?.click()} disabled={uploadingBanner || generatingBanner} className="gap-1.5">
+                          {uploadingBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                          Carregar
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleGenerateBanner} disabled={generatingBanner || uploadingBanner} className="gap-1.5">
+                          {generatingBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                          {generatingBanner ? "A gerar..." : "Gerar com IA"}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
