@@ -566,7 +566,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
 
             {/* Instagram Looter - Only for metodopare workspace */}
-            {currentWorkspace?.slug === "metodopare" && (
+            {currentWorkspace?.slug === "metodopare" && installedModuleIds.includes("instagram-looter") && (
               <>
                 <div className="my-3 mx-3 border-t border-white/10" />
                 <div className="space-y-1">
