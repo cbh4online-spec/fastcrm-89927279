@@ -132,6 +132,7 @@ import C2CSellerProfile from "./pages/c2c/C2CSellerProfile";
 import C2CEditListing from "./pages/c2c/C2CEditListing";
 import C2CNotifications from "./pages/c2c/C2CNotifications";
 import C2CSellerInviteActivation from "./pages/c2c/C2CSellerInviteActivation";
+import C2CPublicSellerProfile from "./pages/c2c/C2CPublicSellerProfile";
 
 // FastClub (Community)
 import FastClubPage from "./pages/community/FastClubPage";
@@ -423,6 +424,7 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug/sell" element={<C2CSellerRegistration />} />
               <Route path="/c2c/:workspaceSlug/sponsor" element={<C2CSponsorPortal />} />
               <Route path="/c2c/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
+              <Route path="/c2c/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
               
               {/* Public Community */}
               <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />

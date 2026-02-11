@@ -233,7 +233,7 @@ const handler = async (req: Request): Promise<Response> => {
         const baseDomain = storeRes.data?.custom_domain
           ? `https://${storeRes.data.custom_domain}`
           : "https://fastcrm.metodopare.ai";
-        const loginUrl = `${baseDomain}/c2c/${slug}`;
+        const loginUrl = `${baseDomain}/c2c/${slug}/seller/${authUserId}`;
 
         const emailHtml = buildConfirmationEmail(invite.name, workspaceName, loginUrl);
 
