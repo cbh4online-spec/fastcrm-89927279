@@ -1,47 +1,39 @@
 
-# Corrigir botoes "Entrar" e "Comecar a Vender" no Marketplace Publico
 
-## Problemas identificados
+# Corrigir link /sell e publicar alteracoes no dominio personalizado
 
-### 1. Botao "Entrar" redireciona para o onboarding do CRM
-O botao "Entrar" no header do marketplace navega para `/login`. Apos login, o `LoginForm` redireciona sempre para `/dashboard`. Como o utilizador nao tem workspace CRM, o `DashboardLayout` envia-o para `/onboarding`.
+## Problema
 
-### 2. Botao "Comecar a Vender" nao faz nada
-O botao navega para `/c2c/metodopare/sell` que e uma rota valida (`C2CSellerRegistration`). Contudo, essa pagina usa `useAuth()` e quando o utilizador nao esta autenticado, mostra botoes "Entrar" e "Criar Conta" que novamente apontam para `/login` e `/signup` do CRM -- criando o mesmo ciclo de redirecionamento.
+O dominio personalizado (`fastcrm.metodopare.ai`) esta a correr uma versao antiga do codigo que nao inclui as rotas publicas do C2C. Quando se acede a `/c2c/metodopare/sell`, o sistema nao encontra a rota e redireciona para `/onboarding`. As alteracoes feitas anteriormente (rotas publicas, redirect nos formularios de login) nunca foram publicadas.
+
+Como o botao "Publicar" nao mostra alteracoes pendentes, e necessario forcar uma nova compilacao com uma pequena alteracao no codigo.
 
 ## Solucao
 
-Adicionar suporte a redirecionamento pos-login para que o utilizador volte ao marketplace em vez de ir para o dashboard do CRM.
+### 1. Forcar nova compilacao (trigger de publish)
 
-## Alteracoes tecnicas
+Adicionar um comentario inofensivo num ficheiro relevante (por exemplo, `src/App.tsx`) para que o sistema detete uma alteracao e permita publicar.
 
-### 1. Marketplace Public -- passar parametro de retorno nos links de login
+### 2. Publicar
 
-**Ficheiro:** `src/pages/c2c/C2CPublicMarketplace.tsx`
+Apos a alteracao, clicar em "Publicar" para enviar o codigo atualizado para o dominio personalizado.
 
-- Alterar o botao "Entrar" no header de `navigate("/login")` para `navigate("/login?redirect=/c2c/{workspaceSlug}")`
-- O botao "Vender" ja funciona (`/c2c/{slug}/sell`), nao precisa de alteracao
+## O que sera corrigido apos publicar
 
-### 2. Seller Registration -- corrigir botoes de login/signup
+Todas as alteracoes ja feitas anteriormente passarao a funcionar no dominio personalizado:
 
-**Ficheiro:** `src/pages/c2c/C2CSellerRegistration.tsx`
+- **`/c2c/metodopare`** -- marketplace publico acessivel sem login
+- **`/c2c/metodopare/sell`** -- pagina de registo de vendedor acessivel sem login
+- **Botao "Entrar"** -- redireciona de volta ao marketplace apos login (em vez de ir para o onboarding do CRM)
+- **Botao "Comecar a Vender"** -- redireciona de volta a pagina de registo apos login
 
-- Alterar o botao "Entrar" de `navigate("/login")` para `navigate("/login?redirect=/c2c/{workspaceSlug}/sell")`
-- Alterar o botao "Criar Conta" de `navigate("/signup")` para `navigate("/signup?redirect=/c2c/{workspaceSlug}/sell")`
+## Secao tecnica
 
-### 3. LoginForm -- respeitar parametro redirect
+A unica alteracao de codigo e um comentario no `src/App.tsx` para forcar o rebuild:
 
-**Ficheiro:** `src/components/auth/LoginForm.tsx`
+```typescript
+// Force rebuild for C2C public routes deployment
+```
 
-- Ler o parametro `redirect` da URL usando `useSearchParams()`
-- Apos login bem-sucedido, redirecionar para o valor de `redirect` (se existir) em vez de sempre `/dashboard`
-- Validar que o redirect comeca com `/` para evitar redirects maliciosos
+Nao ha alteracoes funcionais -- todas as correcoes ja estao implementadas no codigo, apenas falta publicar.
 
-### 4. SignupForm -- respeitar parametro redirect (se existir)
-
-- Aplicar a mesma logica do LoginForm ao formulario de registo, passando o redirect adiante para que apos confirmar email e fazer login, o utilizador volte ao destino correto
-
-## Resultado esperado
-
-- Visitante clica "Entrar" no marketplace -> faz login -> volta ao marketplace
-- Visitante clica "Comecar a Vender" -> ve pagina de registo de vendedor -> se precisar de login, faz login -> volta a pagina de registo de vendedor
