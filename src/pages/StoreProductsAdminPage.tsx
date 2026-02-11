@@ -89,26 +89,39 @@ export default function StoreProductsAdminPage() {
 
   const applySuggestion = useMutation({
     mutationFn: async (suggestion: PriceSuggestion) => {
-      // Update product price
       const { error: prodErr } = await supabase
         .from("products")
         .update({ base_price: suggestion.suggested_price })
         .eq("id", suggestion.product_id);
       if (prodErr) throw prodErr;
 
-      // Mark suggestion as applied
       const { error: logErr } = await supabase
         .from("price_optimization_logs")
         .update({ applied: true, applied_at: new Date().toISOString(), applied_by: user?.id })
         .eq("id", suggestion.id);
       if (logErr) throw logErr;
     },
+    onMutate: async (suggestion) => {
+      await queryClient.cancelQueries({ queryKey: ["price-suggestions", currentWorkspace?.id] });
+      const previous = queryClient.getQueryData<PriceSuggestion[]>(["price-suggestions", currentWorkspace?.id]);
+      queryClient.setQueryData<PriceSuggestion[]>(["price-suggestions", currentWorkspace?.id], (old) =>
+        old?.filter(s => s.id !== suggestion.id) ?? []
+      );
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
-      queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
       toast.success("Preço atualizado com sucesso");
     },
-    onError: (err: any) => toast.error("Erro: " + err.message),
+    onError: (err: any, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["price-suggestions", currentWorkspace?.id], context.previous);
+      }
+      toast.error("Erro: " + err.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
+    },
   });
 
   const dismissSuggestion = useMutation({
@@ -119,9 +132,24 @@ export default function StoreProductsAdminPage() {
         .eq("id", id);
       if (error) throw error;
     },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["price-suggestions", currentWorkspace?.id] });
+      const previous = queryClient.getQueryData<PriceSuggestion[]>(["price-suggestions", currentWorkspace?.id]);
+      queryClient.setQueryData<PriceSuggestion[]>(["price-suggestions", currentWorkspace?.id], (old) =>
+        old?.filter(s => s.id !== id) ?? []
+      );
+      return { previous };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
       toast.success("Sugestão descartada");
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["price-suggestions", currentWorkspace?.id], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
     },
   });
 
