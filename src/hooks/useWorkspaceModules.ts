@@ -51,12 +51,13 @@ export function useWorkspaceModules() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const workspaceId = currentWorkspace?.id;
-  const queryKey = ["workspace-modules", workspaceId];
+  const queryKey = ["workspace-modules", workspaceId ?? "none"] as const;
 
-  const { data: installedModules = [], isLoading, error: queryError } = useQuery({
-    queryKey,
+  const { data: installedModules = [], isLoading, error: queryError } = useQuery<InstalledModule[], Error>({
+    queryKey: ["workspace-modules", workspaceId ?? "none"],
     queryFn: () => fetchModules(workspaceId!),
     enabled: !!workspaceId,
+    staleTime: 1000 * 60 * 5,
   });
 
   const installedModuleIds = useMemo(
