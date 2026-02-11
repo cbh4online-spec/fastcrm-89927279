@@ -1,43 +1,84 @@
 
-# Corrigir IA nao disponivel na loja
+# Correcoes de Boas Praticas para a Loja Online
 
-## Problema
-Os pedidos de IA funcionam quando chamados diretamente, mas falham no browser porque os headers CORS da edge function estao incompletos. O browser do Supabase JS SDK envia headers adicionais (`x-supabase-client-platform`, etc.) que nao estao na lista de headers permitidos, fazendo o preflight CORS falhar.
+## Problemas Identificados
 
-## Solucao
-Atualizar os headers CORS na edge function `ai-product-assistant` para incluir todos os headers enviados pelo SDK do Supabase.
+Analisando o screenshot e o codigo, existem varios problemas que afetam SEO, usabilidade e boas praticas de e-commerce:
+
+### 1. Hero Banner: Descricao usada como H1 (Critico para SEO)
+No screenshot, a descricao completa da loja aparece como titulo gigante no hero. Isto acontece porque o `StoreHeroCarousel` usa `storeDescription` diretamente como `<h1>`. Um H1 deve ser curto (idealmente 60-70 caracteres). A descricao longa deve ser um paragrafo (`<p>`), nao o titulo.
+
+### 2. Nome da loja hardcoded "Loja" na pagina de produto
+A pagina de produto usa `storeName="Loja"` hardcoded no footer (linha 672) e `| Loja` no titulo SEO, em vez do nome real da loja.
+
+### 3. Falta de dados estruturados (JSON-LD)
+Nao existe markup schema.org para Organization/Store nem para Product. Os motores de busca precisam deste markup para rich snippets (preco, stock, reviews nas SERPs).
+
+### 4. Falta de URL canonica
+Nenhuma pagina define `<link rel="canonical">`, essencial para evitar conteudo duplicado.
+
+### 5. Meta tags incompletas
+Falta `og:url` na homepage e o `og:image` deveria usar o banner em vez do logo.
 
 ## Seccao Tecnica
 
-### Ficheiro a alterar
+### Ficheiros a alterar
 
 | Ficheiro | Alteracao |
 |---|---|
-| `supabase/functions/ai-product-assistant/index.ts` | Atualizar `corsHeaders` (linha 3-6) |
+| `src/components/store/sections/StoreHeroCarousel.tsx` | Separar H1 (nome da loja) do paragrafo (descricao). O H1 passa a ser curto como "Bem-vindo a {storeName}" e a descricao fica como `<p>` |
+| `src/pages/store/StorePage.tsx` | Adicionar JSON-LD Organization + canonical URL |
+| `src/pages/store/StoreProductPage.tsx` | Corrigir titulo hardcoded, adicionar JSON-LD Product, canonical URL, e passar nome real da loja ao footer |
+| `src/pages/store/StoreCheckoutPage.tsx` | Usar nome real da loja no titulo |
 
-### Alteracao especifica
+### Detalhe das correcoes
 
-Substituir:
-```typescript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-};
+**StoreHeroCarousel (fallback sem produtos):**
+- ANTES: `<h1>{storeDescription || "Bem-vindo a ..."}</h1>`
+- DEPOIS: `<h1>Bem-vindo a {storeName}</h1>` + `<p>{storeDescription}</p>`
+
+**StorePage - JSON-LD:**
+```text
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Store",
+  "name": storeName,
+  "description": storeDescription,
+  "url": window.location.href,
+  "logo": logoUrl
+}
+</script>
 ```
 
-Por:
-```typescript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-};
+**StoreProductPage - JSON-LD Product:**
+```text
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": product.name,
+  "description": product.short_description,
+  "image": images[primaryIndex],
+  "sku": product.sku,
+  "offers": {
+    "@type": "Offer",
+    "price": effectivePrice,
+    "priceCurrency": product.currency,
+    "availability": isOutOfStock ? "OutOfStock" : "InStock"
+  },
+  "aggregateRating": (se houver reviews)
+}
+</script>
 ```
 
-Alem disso, o modelo usado para gerar banners (`google/gemini-2.5-flash-image`) nao existe na lista de modelos suportados. Sera corrigido para `google/gemini-3-pro-image-preview`.
+**StoreProductPage - Footer:**
+- ANTES: `storeName="Loja"` (hardcoded)
+- DEPOIS: Buscar `storeSettings` via `usePublicStoreSettings` e usar o nome real
 
-### Resumo das correcoes
+**Canonical URLs:**
+- Adicionar `<link rel="canonical" href={...} />` em ambas as paginas
 
-1. **CORS headers incompletos** -- Adicionar headers do SDK Supabase para permitir chamadas do browser
-2. **Modelo de imagem invalido** -- Corrigir `google/gemini-2.5-flash-image` para `google/gemini-3-pro-image-preview` (linha 1347)
+**Titulo da pagina de produto:**
+- ANTES: `{product.name} | Loja`
+- DEPOIS: `{product.name} | {storeName}`
