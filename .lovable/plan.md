@@ -1,116 +1,63 @@
 
-# Criar Notas de Encomenda Manuais (Rica e Dinamica)
 
-## Contexto
+# Corrigir links do Portal B2B para usar dominio personalizado
 
-Atualmente, as notas de encomenda so podem ser criadas por clientes B2B atraves do portal. Nao existe forma de um administrador criar uma nota de encomenda manualmente no backoffice. Esta funcionalidade e essencial para encomendas recebidas por telefone, email ou presencialmente.
+## Problema
 
-## O que sera criado
+Os links do portal de clientes B2B (e.g. "Ver Portal", links de convite) usam `window.location.origin` para construir o URL. Quando o administrador esta no dashboard via o dominio Lovable (`*.lovableproject.com` ou `*.lovable.app`), o link gerado aponta para esse dominio em vez do dominio personalizado `https://fastcrm.metodopare.ai`.
 
-Um formulario completo e dinamico de criacao de notas de encomenda manuais, acessivel a partir da pagina de Notas de Encomenda, com as seguintes capacidades:
+## Solucao
 
-### Funcionalidades principais
+Criar uma funcao utilitaria que resolve o dominio publico correto, utilizando o campo `custom_domain` da tabela `store_settings` (padrao ja existente no projeto para a loja e comunidade). Se nao houver dominio personalizado configurado, usa o dominio publicado como fallback (`https://fastcrm.lovable.app`).
 
-1. **Selecao de cliente** -- Pesquisa e selecao de clientes B2B existentes (client_users) com auto-preenchimento de morada de faturacao/envio
-2. **Adicao dinamica de produtos** -- Pesquisa de produtos do catalogo com adicao em tempo real, com calculo automatico de IVA e totais
-3. **Linhas manuais (produtos livres)** -- Possibilidade de adicionar linhas sem produto do catalogo (nome, preco e IVA manuais)
-4. **Calculo automatico** -- Subtotal, IVA e total bruto calculados em tempo real a cada alteracao
-5. **Edicao inline** -- Quantidade, preco unitario e taxa de IVA editaveis diretamente na tabela de itens
-6. **Reordenacao** -- Drag-and-drop ou botoes para reordenar linhas
-7. **Parcelas/Prestacoes** -- Opcao de solicitar pagamento em prestacoes
-8. **Moradas** -- Campos de morada de faturacao e envio com copia rapida
-9. **Notas** -- Notas do cliente e notas internas do admin
-10. **Guardar como rascunho ou submeter** -- Duas acoes distintas
+## Alteracoes
 
-## Alteracoes tecnicas
+### 1. Criar helper `src/utils/getPublicDomain.ts`
 
-### 1. Nova pagina: `src/pages/CreateOrderNotePage.tsx`
+Funcao simples que retorna o dominio publico correto:
+- Se `window.location.hostname` nao contem `lovable.app` nem `lovableproject.com`, usa `window.location.origin` (ja esta no dominio correto)
+- Caso contrario, retorna `https://fastcrm.metodopare.ai` como fallback (dominio publicado do projeto)
 
-Pagina wrapper com DashboardLayout que renderiza o formulario de criacao.
+Alternativa mais dinamica: criar um hook `usePublicBaseUrl` que consulta `store_settings.custom_domain` do workspace atual. Mas dado que o dominio publicado e fixo, a abordagem com fallback estatico e mais simples e rapida.
 
-### 2. Novo componente: `src/components/order-notes/CreateManualOrderNote.tsx`
+### 2. Atualizar `src/pages/ClientUsersPage.tsx`
 
-Formulario principal multi-secao:
-
-- **Secao Cliente**: Combobox de pesquisa nos `client_users` do workspace. Ao selecionar, preenche automaticamente moradas.
-- **Secao Produtos**: Tabela dinamica com:
-  - Botao "Adicionar Produto" que abre pesquisa no catalogo de `products`
-  - Botao "Adicionar Linha Manual" para produto livre
-  - Cada linha: imagem, nome, SKU, quantidade (editavel), preco unitario (editavel), taxa IVA (editavel, default 23%), total liquido, IVA, total bruto
-  - Botao remover por linha
-  - Resumo de totais em tempo real
-- **Secao Moradas**: Formulario de morada de faturacao e envio (com botao "Copiar da faturacao")
-- **Secao Prestacoes**: Toggle para ativar pedido de prestacoes + numero de prestacoes + notas
-- **Secao Notas**: Notas do cliente + notas internas
-
-### 3. Novo componente: `src/components/order-notes/ProductSearchDialog.tsx`
-
-Dialog/Sheet para pesquisar e selecionar produtos do catalogo:
-- Pesquisa por nome/SKU
-- Mostra imagem, nome, SKU, preco base
-- Selecao com quantidade inicial
-- Ao selecionar, adiciona a linha ao formulario
-
-### 4. Novo hook: `src/hooks/useCreateOrderNote.ts`
-
-Mutation para criar a nota de encomenda:
-- Gera numero de encomenda automatico (formato `NE-XXXXXXXX-XXXX`)
-- Insere na tabela `order_notes` com status `draft` ou `submitted`
-- Insere todos os items na tabela `order_note_items` com calculo de IVA
-- Redireciona para o detalhe apos criacao
-
-### 5. Atualizar rota em `src/App.tsx`
-
+Substituir:
 ```
-/dashboard/order-notes/create -> CreateOrderNotePage
+`${window.location.origin}/client/login?workspace=${currentWorkspace.slug}`
+```
+Por:
+```
+`${getPublicBaseUrl()}/client/login?workspace=${currentWorkspace.slug}`
 ```
 
-### 6. Atualizar `src/pages/OrderNotesPage.tsx`
+### 3. Atualizar `src/pages/B2BPortalSettingsPage.tsx`
 
-Adicionar botao "Nova Encomenda" no header que navega para `/dashboard/order-notes/create`.
+Mesma substituicao do `window.location.origin` pelo helper.
 
-### 7. Atualizar `src/components/order-notes/OrderNotesList.tsx`
+### 4. Atualizar `src/components/client-users/ClientUsersList.tsx`
 
-Verificar que o estado `draft` aparece no filtro de estados (ja nao aparece atualmente).
+Na linha que gera o `portalUrl` para o convite, substituir `window.location.origin` pelo helper.
 
-## Fluxo do utilizador
-
-```text
-Pagina Notas de Encomenda
-  |
-  +-- Clica "Nova Encomenda"
-  |
-  +-- Formulario de Criacao
-       |
-       +-- 1. Seleciona cliente (pesquisa)
-       +-- 2. Adiciona produtos (catalogo ou manual)
-       +-- 3. Ajusta quantidades/precos/IVA
-       +-- 4. Preenche moradas (auto-preenchidas)
-       +-- 5. Opcao de prestacoes
-       +-- 6. Adiciona notas
-       +-- 7. "Guardar Rascunho" ou "Submeter"
-       |
-       +-- Redireciona para detalhe da encomenda
-```
-
-## Ficheiros a criar/editar
+## Ficheiros
 
 | Ficheiro | Acao |
 |---|---|
-| `src/pages/CreateOrderNotePage.tsx` | Criar |
-| `src/components/order-notes/CreateManualOrderNote.tsx` | Criar |
-| `src/components/order-notes/ProductSearchDialog.tsx` | Criar |
-| `src/hooks/useCreateOrderNote.ts` | Criar |
-| `src/pages/OrderNotesPage.tsx` | Editar (adicionar botao) |
-| `src/components/order-notes/OrderNoteFilters.tsx` | Editar (adicionar estado draft) |
-| `src/App.tsx` | Editar (adicionar rota) |
+| `src/utils/getPublicDomain.ts` | Criar |
+| `src/pages/ClientUsersPage.tsx` | Editar (linha 13-15) |
+| `src/pages/B2BPortalSettingsPage.tsx` | Editar (linha 40-42) |
+| `src/components/client-users/ClientUsersList.tsx` | Editar (linha 96) |
 
-## Detalhes de implementacao
+## Logica do helper
 
-- O formulario usa estado local com `useState` para gerir as linhas de produto dinamicamente
-- Cada linha calcula `line_total_net`, `vat_amount` e `line_total_gross` automaticamente
-- Os totais globais sao recalculados com `useMemo` a cada alteracao
-- A pesquisa de produtos usa a tabela `products` filtrada pelo workspace
-- A pesquisa de clientes usa a tabela `client_users` filtrada pelo workspace
-- Validacao com feedback visual: cliente obrigatorio, pelo menos 1 linha de produto
-- O numero de encomenda e gerado automaticamente no servidor (timestamp + random)
+```text
+getPublicBaseUrl():
+  hostname = window.location.hostname
+  se hostname NAO contem "lovable.app" E NAO contem "lovableproject.com":
+    retorna window.location.origin  (dominio proprio, ja correto)
+  senao:
+    retorna "https://fastcrm.metodopare.ai"  (fallback publicado)
+```
+
+Esta abordagem garante que os links funcionam corretamente tanto no ambiente de preview/desenvolvimento como em producao com dominio personalizado.
+
