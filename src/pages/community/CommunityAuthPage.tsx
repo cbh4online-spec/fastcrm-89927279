@@ -60,9 +60,9 @@ export default function CommunityAuthPage() {
       });
   }, [inviteToken]);
 
-  // Redirect if already logged in
+  // Redirect if already logged in — go back to public page which handles membership check
   if (!authLoading && user) {
-    navigate(redirectTo, { replace: true });
+    navigate(`/club/${slug}`, { replace: true });
     return null;
   }
 
@@ -123,10 +123,25 @@ export default function CommunityAuthPage() {
       }
       toast.success("Conta criada! Verifique o seu email para confirmar.");
 
+      // Create community_members entry with status "pending" (if no invite token)
+      if (!inviteToken && (settings as any)?.workspace_id) {
+        try {
+          await supabase
+            .from("community_members")
+            .insert({
+              workspace_id: (settings as any).workspace_id,
+              email: email,
+              name: fullName,
+              status: "pending",
+            } as any);
+        } catch (err) {
+          console.error("Error creating pending membership:", err);
+        }
+      }
+
       // Save answers if any
       if (hasQuestions && Object.keys(answers).length > 0 && (settings as any)?.workspace_id) {
         try {
-          // Find the community member record (by invite token or email)
           let memberId: string | null = null;
           if (inviteToken) {
             const { data: member } = await supabase
