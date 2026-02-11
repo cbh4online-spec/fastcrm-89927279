@@ -293,7 +293,9 @@ Responda no formato JSON:
       let allResults: any[] = [];
       let extractedImages: string[] = [];
       
-      for (const searchQuery of searchQueries) {
+      // Execute all search queries in parallel for maximum speed
+      console.log('Executing all search queries in parallel...');
+      const searchPromises = searchQueries.map(async (searchQuery) => {
         try {
           console.log('Searching with query:', searchQuery);
           const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
@@ -313,22 +315,24 @@ Responda no formato JSON:
             const searchData = await searchResponse.json();
             const results = searchData.data || [];
             console.log(`Query "${searchQuery}" returned ${results.length} results`);
-            
-            // Extract images from each result
-            for (const result of results) {
-              const content = (result.markdown || '') + (result.html || '') + (result.description || '');
-              const images = extractImagesFromContent(content);
-              extractedImages = [...extractedImages, ...images];
-            }
-            
-            allResults = [...allResults, ...results];
+            return results;
           }
         } catch (e) {
           console.error('Search query failed:', searchQuery, e);
         }
-        
-        // If we have enough results, stop searching
-        if (allResults.length >= 8) break;
+        return [];
+      });
+
+      const searchResultArrays = await Promise.all(searchPromises);
+      
+      // Merge all results and extract images
+      for (const results of searchResultArrays) {
+        for (const result of results) {
+          const content = (result.markdown || '') + (result.html || '') + (result.description || '');
+          const images = extractImagesFromContent(content);
+          extractedImages = [...extractedImages, ...images];
+        }
+        allResults = [...allResults, ...results];
       }
       
       // Deduplicate extracted images
