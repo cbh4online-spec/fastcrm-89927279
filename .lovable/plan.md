@@ -1,77 +1,87 @@
 
-# Redesign da Pagina Publica `/club/:slug`
+# Pagina Publica Identica ao FastClubPage
 
-## Problema
+## Resumo
 
-A pagina publica actual e muito basica - apenas um banner, lista de canais e topicos numa listagem simples. O dashboard interno (`FastClubPage`) tem um design muito mais rico com hero animado, tabs, social cards, sidebar, etc.
+Reescrever o `PublicCommunityPage.tsx` para ser visualmente identico ao `FastClubPage`, incluindo:
+- Hero identico (logo, nome, subtitulo, stats com 4 metricas)
+- Layout 3 colunas com sidebar
+- Todas as tabs visiveis (Discussao, Eventos, Classificacao, Membros, Acerca de)
+- Barra de pesquisa + category pills
+- Sidebar com info da comunidade, stats e membros
 
-## Solucao
+A diferenca: funcionalidades interativas (criar topico, criar evento, convidar, resgatar pontos, admin) ficam bloqueadas -- aparece o CTA de registo/aprovacao.
 
-Redesenhar completamente o `PublicCommunityPage.tsx` para ter o mesmo look & feel do `FastClubPage`, adaptado ao contexto publico (sem funcionalidades de admin/gamificacao).
+## Ficheiros a Alterar
 
-## O que vai mudar visualmente
-
-- Hero com gradiente e pattern de fundo (como o dashboard), com logo, nome, descricao e stats animados
-- Barra de tabs: Discussao, Eventos, Acerca de (sem Classificacao/Membros que sao privados)
-- Tab Discussao: usa o componente `SocialPostCard` em vez da listagem simples, com categorias como pills horizontais
-- Tab Eventos: cards com design melhorado
-- Tab Acerca de: descricao, stats, links da comunidade
-- CTA fixo em baixo para utilizadores nao autenticados (mantido)
-- Animacoes com `framer-motion` (fadeUp)
+| Ficheiro | O que muda |
+|---|---|
+| `src/pages/community/PublicCommunityPage.tsx` | Reescrita completa para espelhar FastClubPage |
+| `src/hooks/usePublicCommunity.ts` | Adicionar hooks para membros e leaderboard publicos |
+| `src/components/community/PublicCommunitySidebar.tsx` | **Novo** - sidebar publica (sem hooks autenticados) |
 
 ## Detalhes Tecnicos
 
-### Ficheiro a modificar
+### 1. Novos hooks publicos (`usePublicCommunity.ts`)
 
-`src/pages/community/PublicCommunityPage.tsx` - reescrita completa
+Adicionar:
+- `usePublicCommunityMembers(workspaceId)` - busca membros via `community_members` ou `workspace_members` (dados publicos)
+- `usePublicCommunityLinks(workspaceId)` - busca links da comunidade
 
-### Componentes reutilizados do dashboard
+### 2. PublicCommunitySidebar (novo componente)
 
-- `SocialPostCard` - para renderizar topicos no estilo social
-- `CommunityEventBanner` - para mostrar proximo evento em destaque
+Versao publica do `CommunitySidebar` que usa os hooks publicos em vez dos autenticados (`useWorkspaceMembers`). Mesmo layout visual:
+- Banner gradient
+- Nome + badge Publico
+- Stats (Membros, Posts, Admins)
+- Avatares de membros recentes
+- Botao "Registar" em vez de "Convidar Membros"
 
-### Hooks ja existentes (sem alteracoes)
+### 3. PublicCommunityPage (reescrita)
 
-- `usePublicCommunitySettings` - settings da comunidade
-- `usePublicCommunityTopics` - topicos
-- `usePublicCommunityCategories` - categorias/canais
-- `usePublicCommunityEvents` - eventos
-
-### Estrutura da nova pagina
+Copiar a estrutura exacta do `FastClubPage`:
 
 ```text
 +-----------------------------------------------+
-|  HERO (gradiente + pattern)                    |
-|  [Logo] Nome da Comunidade                     |
-|          Descricao                             |
-|  Stats: X Topicos | Y Canais | Z Eventos      |
+|  HERO (identico ao FastClubPage)               |
+|  [<-] [Logo] FastClub                          |
+|       Comunidade . Gamificacao . Recompensas   |
+|  Stats: X Topicos | Y Respostas | Z Canais    |
 +-----------------------------------------------+
-|  [Discussao] [Eventos] [Acerca de]   (tabs)   |
+|  Card gamificacao: visivel mas com overlay      |
+|  "Regista-te para ganhar pontos"               |
 +-----------------------------------------------+
+|  Tabs: Discussao | Eventos | Classificacao |   |
+|        Membros | Acerca de                     |
++-----------------------------------------------+
+|  Layout 3 colunas:                             |
+|  [Conteudo principal 2/3] [Sidebar 1/3]        |
 |                                                |
 |  Tab Discussao:                                |
-|    [Evento destaque banner]                    |
-|    [Categoria pills: Fastcrm | Novidades...]  |
-|    [SocialPostCard]                            |
-|    [SocialPostCard]                            |
-|    ...                                         |
+|    [Evento banner]                             |
+|    [Pesquisar topicos...] [+ Novo (disabled)]  |
+|    [Category pills]                            |
+|    [SocialPostCards]                            |
 |                                                |
-|  Tab Eventos:                                  |
-|    Cards com data, titulo, descricao           |
-|                                                |
-|  Tab Acerca de:                                |
-|    Descricao, stats, links                     |
-|                                                |
+|  Tab Eventos: cards (sem criar)                |
+|  Tab Classificacao: placeholder/preview        |
+|  Tab Membros: lista basica                     |
+|  Tab Acerca de: CommunityAbout publico         |
 +-----------------------------------------------+
-|  CTA fixo (Entrar / Registar) se nao logado   |
+|  CTA fixo: "Regista-te para participar"        |
 +-----------------------------------------------+
 ```
 
-### Dependencias adicionadas ao ficheiro
+### Comportamento do gate de acesso
 
-- `framer-motion` (ja instalado)
-- `Tabs, TabsList, TabsTrigger, TabsContent` do radix
-- `SocialPostCard` componente existente
-- `CommunityEventBanner` componente existente
+- Conteudo e **totalmente visivel** (topicos, eventos, membros, etc.)
+- Interacoes bloqueadas: criar topico, responder, votar, resgatar pontos
+- Ao clicar num topico sem estar autenticado: redireciona para `/club/:slug/auth`
+- Botao "+ Novo" aparece mas redireciona para auth
+- Card de gamificacao mostra preview generico com CTA de registo
+- Sidebar mostra "Registar" em vez de "Convidar"
+- Apos registo, o utilizador precisa de aprovacao (fluxo existente mantido)
 
-### Nenhuma alteracao na base de dados ou hooks necessaria
+### Sem alteracoes na base de dados
+
+Os dados publicos ja estao acessiveis via RLS existente. Apenas precisamos de novos hooks que fazem queries directas sem contexto de workspace autenticado.
