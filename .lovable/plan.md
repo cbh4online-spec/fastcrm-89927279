@@ -1,61 +1,57 @@
 
 
-# Corrigir erro "no field price" e isolar lojas por workspace
+# Isolar "Visto Recentemente" por workspace
 
-## Problemas identificados
-
-### 1. Erro nos triggers da tabela products
-Existem dois triggers na tabela `products` que referenciam uma coluna `price` que nao existe -- a coluna chama-se `base_price`:
-- **`trg_record_initial_price`**: usa `NEW.price` e `NEW.compare_at_price`
-- **`trg_record_price_change`**: usa `OLD.price`, `NEW.price`, `OLD.compare_at_price`, `NEW.compare_at_price`
-
-A coluna `compare_at_price` tambem nao existe na tabela. E por isso que ao ativar/editar produtos aparece o erro "record old has no field price".
-
-### 2. Isolamento de loja por workspace
-Cada workspace que instale o modulo `online-store` precisa de ter a sua propria loja acessivel via `/store/:workspaceSlug`. A arquitetura existente ja suporta isto (a loja publica usa o `workspaceSlug` para filtrar produtos). Nao e necessaria nenhuma alteracao estrutural -- apenas confirmar que os dados estao isolados por `workspace_id`.
+## Problema
+O hook `useRecentlyViewed` guarda todos os produtos visitados numa unica chave `localStorage` (`store-recently-viewed`), sem separacao por loja/workspace. Isso faz com que produtos de uma loja aparecam na seccao "Visto recentemente" de outra loja (como os "FASTCRM AGENCY/PRO/BASIC" que aparecem na loja de equipamentos).
 
 ## Solucao
+Separar o `localStorage` por `workspaceId`, de forma que cada loja tenha o seu proprio historico de produtos visitados.
 
-### Migracao SQL -- corrigir os 2 triggers
+## Seccao Tecnica
 
-Substituir as funcoes dos triggers para usar `base_price` em vez de `price`, e remover a referencia a `compare_at_price` (que nao existe):
+### Ficheiros a alterar
 
-```sql
--- Corrigir funcao do trigger de preco inicial
-CREATE OR REPLACE FUNCTION public.record_product_initial_price()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  INSERT INTO public.product_price_history 
-    (product_id, workspace_id, price, currency)
-  VALUES 
-    (NEW.id, NEW.workspace_id, NEW.base_price, COALESCE(NEW.currency, 'EUR'));
-  RETURN NEW;
-END;
-$$;
+**1. `src/hooks/useRecentlyViewed.ts`**
+- Aceitar `workspaceId` como parametro obrigatorio
+- Usar chave `localStorage` com namespace: `store-recently-viewed-{workspaceId}`
+- Ler e gravar apenas no namespace do workspace atual
 
--- Corrigir funcao do trigger de alteracao de preco
-CREATE OR REPLACE FUNCTION public.record_product_price_change()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF OLD.base_price IS DISTINCT FROM NEW.base_price THEN
-    INSERT INTO public.product_price_history 
-      (product_id, workspace_id, price, currency)
-    VALUES 
-      (NEW.id, NEW.workspace_id, NEW.base_price, COALESCE(NEW.currency, 'EUR'));
-  END IF;
-  RETURN NEW;
-END;
-$$;
+**2. `src/pages/store/StoreProductPage.tsx`**
+- Passar o `workspaceId` ao chamar `useRecentlyViewed(workspaceId)`
+
+**3. `src/pages/store/StorePage.tsx`**
+- Passar o `workspaceId` ao chamar `useRecentlyViewed(workspaceId)`
+
+### Exemplo da alteracao principal
+
+```typescript
+// useRecentlyViewed.ts
+const STORAGE_KEY_PREFIX = "store-recently-viewed-";
+
+export function useRecentlyViewed(workspaceId: string) {
+  const storageKey = `${STORAGE_KEY_PREFIX}${workspaceId}`;
+  
+  const [items, setItems] = useState<RecentlyViewedItem[]>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const addItem = useCallback((item: Omit<RecentlyViewedItem, "viewedAt">) => {
+    setItems((prev) => {
+      const filtered = prev.filter((p) => p.id !== item.id);
+      const updated = [{ ...item, viewedAt: Date.now() }, ...filtered].slice(0, MAX_ITEMS);
+      try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }, [storageKey]);
+
+  return { items, addItem };
+}
 ```
 
-### Nenhuma alteracao de codigo necessaria
-
-A loja publica (`/store/:workspaceSlug`) ja filtra produtos por `workspace_id`. Cada workspace que instale o modulo tera a sua propria loja automaticamente. O `StoreQuickProductDialog` e os hooks `useStoreProducts` ja utilizam o `workspace_id` do contexto atual.
-
-## Resumo das alteracoes
-
-| Tipo | Detalhe |
-|---|---|
-| Migracao SQL | Corrigir 2 funcoes de trigger: `record_product_initial_price` e `record_product_price_change` para usar `base_price` em vez de `price` |
-| Codigo | Sem alteracoes necessarias |
-
+Sem alteracoes na base de dados. Apenas 3 ficheiros de frontend a modificar.
