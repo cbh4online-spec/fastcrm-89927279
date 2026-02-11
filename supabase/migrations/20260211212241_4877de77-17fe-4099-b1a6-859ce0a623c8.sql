@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Service role can update jobs" ON public.ai_agent_jobs;
