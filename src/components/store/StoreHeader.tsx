@@ -21,6 +21,7 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import type { StoreCategory, StoreProduct } from "@/hooks/useStoreProducts";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreHeaderProps {
   storeName?: string;
@@ -159,7 +160,7 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
                               {suggestedProduct.name}
                             </p>
                             <p className="text-sm font-bold text-primary">
-                              {formatPrice(suggestedProduct.base_price, suggestedProduct.currency)}
+                              {formatPrice(suggestedProduct.base_price, suggestedProduct.currency)} <StoreVatLabel />
                             </p>
                           </Link>
                         ) : (

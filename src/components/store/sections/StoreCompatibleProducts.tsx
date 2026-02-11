@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Package, Puzzle, ShoppingBag } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreCompatibleProductsProps {
   productId: string;
@@ -99,7 +100,7 @@ export function StoreCompatibleProducts({ productId, workspaceId, workspaceSlug 
                 <div className="mt-2 space-y-0.5">
                   <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">{p.name}</p>
                   {p.reason && <p className="text-xs text-muted-foreground">{p.reason}</p>}
-                  <p className="text-sm font-bold text-primary">€{p.base_price.toFixed(2)}</p>
+                  <p className="text-sm font-bold text-primary">€{p.base_price.toFixed(2)} <StoreVatLabel /></p>
                 </div>
               </div>
             );

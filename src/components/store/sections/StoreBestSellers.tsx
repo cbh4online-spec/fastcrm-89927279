@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreBestSellersProps {
   products: StoreProduct[];
@@ -98,7 +99,7 @@ export function StoreBestSellers({ products, salesCounts, workspaceSlug }: Store
                           {product.name}
                         </p>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-primary">€{product.base_price.toFixed(2)}</span>
+                          <span className="text-sm font-bold text-primary">€{product.base_price.toFixed(2)} <StoreVatLabel /></span>
                           <span className="text-[10px] text-muted-foreground">
                             {sales >= 500 ? "500+" : sales >= 100 ? "100+" : `${sales}+`} vendidos
                           </span>

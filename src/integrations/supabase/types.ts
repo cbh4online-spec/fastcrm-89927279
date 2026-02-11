@@ -23052,6 +23052,7 @@ export type Database = {
           id: string
           logo_url: string | null
           notification_email: string | null
+          prices_include_vat: boolean
           primary_color: string | null
           show_categories: boolean | null
           show_search: boolean | null
@@ -23059,6 +23060,7 @@ export type Database = {
           store_name: string | null
           store_slug: string | null
           updated_at: string
+          vat_rate: number
           workspace_id: string
         }
         Insert: {
@@ -23070,6 +23072,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           notification_email?: string | null
+          prices_include_vat?: boolean
           primary_color?: string | null
           show_categories?: boolean | null
           show_search?: boolean | null
@@ -23077,6 +23080,7 @@ export type Database = {
           store_name?: string | null
           store_slug?: string | null
           updated_at?: string
+          vat_rate?: number
           workspace_id: string
         }
         Update: {
@@ -23088,6 +23092,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           notification_email?: string | null
+          prices_include_vat?: boolean
           primary_color?: string | null
           show_categories?: boolean | null
           show_search?: boolean | null
@@ -23095,6 +23100,7 @@ export type Database = {
           store_name?: string | null
           store_slug?: string | null
           updated_at?: string
+          vat_rate?: number
           workspace_id?: string
         }
         Relationships: [

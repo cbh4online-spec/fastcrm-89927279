@@ -2,6 +2,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreHeroSectionProps {
   storeName: string;
@@ -81,7 +82,7 @@ export function StoreHeroSection({ storeName, storeDescription, bannerUrl, featu
                 {featuredProduct && (
                   <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl p-3 shadow-lg">
                     <p className="text-sm font-semibold text-foreground truncate">{featuredProduct.name}</p>
-                    <p className="text-primary text-lg font-bold">€{featuredProduct.base_price.toFixed(2)}</p>
+                    <p className="text-primary text-lg font-bold">€{featuredProduct.base_price.toFixed(2)} <StoreVatLabel /></p>
                   </div>
                 )}
               </div>

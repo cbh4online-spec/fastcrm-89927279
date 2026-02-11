@@ -34,6 +34,8 @@ import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useProductSalesCount } from "@/hooks/useProductSalesCount";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
+import { StoreVatProvider } from "@/contexts/StoreVatContext";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -185,6 +187,7 @@ export default function StoreProductPage() {
   const currentImage = images[selectedImage];
 
   return (
+    <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23}>
     <>
       <Helmet>
         <title>{product.name} | {storeName}</title>
@@ -391,9 +394,10 @@ export default function StoreProductPage() {
               {/* Price — visible on mobile/tablet, hidden on lg (shown in Buy Box) */}
               <div className="lg:hidden">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-primary">
-                    €{(pricing?.price ?? product.base_price).toFixed(2)}
-                  </span>
+                   <span className="text-3xl font-bold text-primary">
+                     €{(pricing?.price ?? product.base_price).toFixed(2)}
+                   </span>
+                   <StoreVatLabel />
                   {pricing?.isDiscounted && (
                     <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
                   )}
@@ -462,9 +466,10 @@ export default function StoreProductPage() {
                 {/* Price in Buy Box (desktop only) */}
                 <div className="hidden lg:block">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-primary">
-                      €{(pricing?.price ?? product.base_price).toFixed(2)}
-                    </span>
+                     <span className="text-3xl font-bold text-primary">
+                       €{(pricing?.price ?? product.base_price).toFixed(2)}
+                     </span>
+                     <StoreVatLabel />
                     {pricing?.isDiscounted && (
                       <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
                     )}
@@ -699,6 +704,8 @@ export default function StoreProductPage() {
         <StoreFooter
           workspaceSlug={wsSlug}
           storeName={storeName}
+          pricesIncludeVat={storeSettings?.prices_include_vat ?? true}
+          vatRate={storeSettings?.vat_rate ?? 23}
         />
 
         {/* AI Advisor */}
@@ -709,5 +716,6 @@ export default function StoreProductPage() {
         />
       </div>
     </>
+    </StoreVatProvider>
   );
 }

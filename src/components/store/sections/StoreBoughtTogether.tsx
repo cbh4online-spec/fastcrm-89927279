@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Package, Plus, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreBoughtTogetherProps {
   productId: string;
@@ -145,7 +146,7 @@ export function StoreBoughtTogether({ productId, categoryId, workspaceId, curren
                   </div>
                 </div>
                 <p className="text-xs line-clamp-2 font-medium">{p.name}</p>
-                <p className="text-xs font-semibold text-primary">€{p.base_price.toFixed(2)}</p>
+                <p className="text-xs font-semibold text-primary">€{p.base_price.toFixed(2)} <StoreVatLabel /></p>
               </label>
             </div>
           );

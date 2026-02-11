@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreQuickViewModal } from "@/components/store/StoreQuickViewModal";
 import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
@@ -263,6 +264,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               <span className="text-lg font-bold text-primary">
                 €{effectivePrice.toFixed(2)}
               </span>
+              <StoreVatLabel />
               {isDiscounted && (
                 <>
                   <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>

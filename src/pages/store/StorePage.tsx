@@ -24,6 +24,7 @@ import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreF
 import { StoreCompareBar } from "@/components/store/StoreCompareBar";
 import { StoreCompareModal } from "@/components/store/StoreCompareModal";
 import { StoreCompareProvider } from "@/contexts/StoreCompareContext";
+import { StoreVatProvider } from "@/contexts/StoreVatContext";
 import { useStoreProducts, useStoreCategories, useInfiniteStoreProducts } from "@/hooks/useStoreProducts";
 import { useStoreTierPricing } from "@/hooks/useStoreTierPricing";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
@@ -107,6 +108,7 @@ export default function StorePage() {
   }
 
   return (
+    <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23}>
     <StoreCompareProvider>
     <>
       <Helmet>
@@ -342,6 +344,8 @@ export default function StorePage() {
           storeName={storeName}
           categories={categories}
           footerText={storeSettings?.footer_text}
+          pricesIncludeVat={storeSettings?.prices_include_vat ?? true}
+          vatRate={storeSettings?.vat_rate ?? 23}
         />
 
         {/* AI Advisor - need workspaceId from products */}
@@ -361,5 +365,6 @@ export default function StorePage() {
       </div>
     </>
     </StoreCompareProvider>
+    </StoreVatProvider>
   );
 }

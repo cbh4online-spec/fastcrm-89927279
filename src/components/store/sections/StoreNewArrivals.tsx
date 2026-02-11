@@ -4,6 +4,7 @@ import { Sparkles, Package, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreNewArrivalsProps {
   products: StoreProduct[];
@@ -92,7 +93,7 @@ export function StoreNewArrivals({ products, workspaceSlug }: StoreNewArrivalsPr
                       {product.name}
                     </p>
                     <span className="block text-base font-bold text-primary">
-                      €{product.base_price.toFixed(2)}
+                      €{product.base_price.toFixed(2)} <StoreVatLabel />
                     </span>
                   </div>
                 </div>
