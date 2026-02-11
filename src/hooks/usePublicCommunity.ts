@@ -107,3 +107,49 @@ export function usePublicTopicPosts(topicId: string | undefined) {
     enabled: !!topicId,
   });
 }
+
+export function usePublicCommunityMembers(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["public-community-members", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data: members, error } = await supabase
+        .from("workspace_members")
+        .select("id, user_id, role, created_at")
+        .eq("workspace_id", workspaceId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      if (!members || members.length === 0) return [];
+
+      const userIds = members.map((m) => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url")
+        .in("user_id", userIds);
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]));
+
+      return members.map((m) => ({
+        ...m,
+        profile: profileMap.get(m.user_id) || null,
+      }));
+    },
+    enabled: !!workspaceId,
+  });
+}
+
+export function usePublicCommunityLinks(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["public-community-links", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
+        .from("community_links")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .order("sort_order");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!workspaceId,
+  });
+}
