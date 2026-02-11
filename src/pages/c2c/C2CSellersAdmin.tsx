@@ -21,6 +21,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { NexusPageHeader } from "@/components/dashboard/nexus/NexusPageHeader";
+import { NexusStatCard, NexusGrid } from "@/components/dashboard/nexus/NexusPageSection";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Users, Search, CheckCircle2, XCircle, Clock, Ban, Eye,
   Phone, MapPin, CreditCard, FileText, Download, ShieldCheck,
@@ -131,7 +134,7 @@ function SellerDetailDialog({
               <p className="text-xs font-semibold text-muted-foreground uppercase">Ações Admin</p>
 
               {/* Commission override */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Percent className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">Comissão:</span>
                 {editCommission ? (
@@ -336,6 +339,87 @@ function Field({ label, value, icon, className }: { label: string; value?: strin
   );
 }
 
+// ── Mobile Seller Card ──
+function SellerMobileCard({
+  seller,
+  isSelected,
+  onToggleSelect,
+  onView,
+  onApprove,
+  onReject,
+  onSuspend,
+}: {
+  seller: C2CSeller;
+  isSelected: boolean;
+  onToggleSelect: () => void;
+  onView: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+  onSuspend: () => void;
+}) {
+  const sc = STATUS_CONFIG[seller.status];
+  return (
+    <Card className="p-4 space-y-3">
+      <div className="flex items-start gap-3">
+        <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} className="mt-1" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-medium text-sm truncate">{seller.display_name}</p>
+            {seller.is_verified && <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />}
+            <Badge variant={sc.variant} className="text-[10px] shrink-0">{sc.label}</Badge>
+          </div>
+          {seller.location && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+              <MapPin className="h-3 w-3" /> {seller.location}
+            </p>
+          )}
+          {seller.phone && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Phone className="h-3 w-3" /> {seller.phone}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="bg-muted/50 rounded-lg py-1.5 px-2">
+          <p className="text-sm font-bold">{seller.total_sales}</p>
+          <p className="text-[10px] text-muted-foreground">Vendas</p>
+        </div>
+        <div className="bg-muted/50 rounded-lg py-1.5 px-2">
+          <p className="text-sm font-bold">{Number(seller.total_revenue).toFixed(0)}€</p>
+          <p className="text-[10px] text-muted-foreground">Receita</p>
+        </div>
+        <div className="bg-muted/50 rounded-lg py-1.5 px-2">
+          <p className="text-sm font-bold">{seller.commission_rate}%</p>
+          <p className="text-[10px] text-muted-foreground">Comissão</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <Button variant="outline" size="sm" className="flex-1 gap-1.5 h-8 text-xs" onClick={onView}>
+          <Eye className="h-3.5 w-3.5" /> Detalhes
+        </Button>
+        {seller.status === "pending" && (
+          <>
+            <Button size="sm" className="flex-1 gap-1.5 h-8 text-xs" onClick={onApprove}>
+              <CheckCircle2 className="h-3.5 w-3.5" /> Aprovar
+            </Button>
+            <Button size="sm" variant="destructive" className="flex-1 gap-1.5 h-8 text-xs" onClick={onReject}>
+              <XCircle className="h-3.5 w-3.5" /> Rejeitar
+            </Button>
+          </>
+        )}
+        {seller.status === "approved" && (
+          <Button size="sm" variant="outline" className="flex-1 gap-1.5 h-8 text-xs" onClick={onSuspend}>
+            <Ban className="h-3.5 w-3.5" /> Suspender
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 // ── Main Page ──
 export default function C2CSellersAdmin() {
   const { currentWorkspace } = useWorkspace();
@@ -344,6 +428,7 @@ export default function C2CSellersAdmin() {
   const { data: invites = [] } = useC2CSellerInvites(workspaceId);
   const updateStatus = useUpdateSellerStatus(workspaceId);
   const bulkUpdate = useBulkUpdateSellers();
+  const isMobile = useIsMobile();
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -354,7 +439,6 @@ export default function C2CSellersAdmin() {
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortAsc, setSortAsc] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [adminTab, setAdminTab] = useState<"sellers" | "invites">("sellers");
 
   const filtered = useMemo(() => {
     let result = sellers.filter((s) => {
@@ -451,218 +535,264 @@ export default function C2CSellersAdmin() {
     URL.revokeObjectURL(url);
   };
 
+  const statCards = [
+    { key: "all", label: "Total Vendedores", icon: <Users className="h-4 w-4" />, count: counts.all, color: "primary" as const },
+    { key: "pending", label: "Pendentes", icon: <Clock className="h-4 w-4" />, count: counts.pending, color: "amber" as const },
+    { key: "approved", label: "Aprovados", icon: <CheckCircle2 className="h-4 w-4" />, count: counts.approved, color: "emerald" as const },
+    { key: "rejected", label: "Rejeitados", icon: <XCircle className="h-4 w-4" />, count: counts.rejected, color: "rose" as const },
+    { key: "suspended", label: "Suspensos", icon: <Ban className="h-4 w-4" />, count: counts.suspended, color: "violet" as const },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" />
-            Gestão de Vendedores
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Aprovar, rejeitar e gerir vendedores do marketplace C2C</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button className="gap-2" onClick={() => setInviteDialogOpen(true)}>
-            <UserPlus className="h-4 w-4" /> Convidar Vendedor
-          </Button>
-          <Button variant="outline" className="gap-2" onClick={exportCSV}>
-            <Download className="h-4 w-4" /> Exportar CSV
-          </Button>
-        </div>
-      </div>
-
-      {/* Tab navigation */}
-      <div className="flex gap-2 border-b">
-        <button
-          onClick={() => setAdminTab("sellers")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            adminTab === "sellers" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Users className="h-4 w-4 inline mr-1.5" />
-          Vendedores ({sellers.length})
-        </button>
-        <button
-          onClick={() => setAdminTab("invites")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            adminTab === "invites" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Mail className="h-4 w-4 inline mr-1.5" />
-          Convites ({invites.length})
-        </button>
-      </div>
-
-      {adminTab === "invites" ? (
-        <SellerInvitesList workspaceId={workspaceId!} />
-      ) : (
-      <>
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
-          { key: "all", label: "Total", icon: Users, count: counts.all },
-          { key: "pending", label: "Pendentes", icon: Clock, count: counts.pending },
-          { key: "approved", label: "Aprovados", icon: CheckCircle2, count: counts.approved },
-          { key: "rejected", label: "Rejeitados", icon: XCircle, count: counts.rejected },
-          { key: "suspended", label: "Suspensos", icon: Ban, count: counts.suspended },
-        ].map(({ key, label, icon: Icon, count }) => (
-          <button
-            key={key}
-            onClick={() => setFilterStatus(key)}
-            className={`p-3 rounded-xl border text-left transition-colors ${
-              filterStatus === key ? "bg-primary/10 border-primary" : "bg-card hover:bg-muted/50"
-            }`}
-          >
-            <Icon className="h-4 w-4 text-muted-foreground mb-1" />
-            <p className="text-xl font-bold">{count}</p>
-            <p className="text-xs text-muted-foreground">{label}</p>
-          </button>
-        ))}
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Pesquisar vendedores..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-        </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">{selectedIds.size} selecionados</span>
-            <Button size="sm" className="gap-1" onClick={handleBulkApprove}>
-              <CheckCircle2 className="h-3 w-3" /> Aprovar
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+      {/* Header */}
+      <NexusPageHeader
+        title="Gestão de Vendedores"
+        subtitle="Aprovar, rejeitar e gerir vendedores do marketplace C2C"
+        icon={Users}
+        showSearch={false}
+        showFilter={false}
+        showAdd={false}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" className="gap-1.5" onClick={() => setInviteDialogOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              <span className="hidden sm:inline">Convidar Vendedor</span>
             </Button>
-            <Button size="sm" variant="outline" className="gap-1" onClick={handleBulkSuspend}>
-              <Ban className="h-3 w-3" /> Suspender
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Exportar CSV</span>
             </Button>
           </div>
-        )}
-      </div>
+        }
+      />
 
-      {/* Table */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 rounded-lg" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Users className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground">Nenhum vendedor encontrado</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox checked={selectedIds.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
-                </TableHead>
-                <TableHead>
-                  <button className="flex items-center" onClick={() => toggleSort("display_name")}>
-                    Vendedor <SortIcon col="display_name" />
-                  </button>
-                </TableHead>
-                <TableHead>Contacto</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>
-                  <button className="flex items-center" onClick={() => toggleSort("total_sales")}>
-                    Vendas <SortIcon col="total_sales" />
-                  </button>
-                </TableHead>
-                <TableHead>
-                  <button className="flex items-center" onClick={() => toggleSort("total_revenue")}>
-                    Receita <SortIcon col="total_revenue" />
-                  </button>
-                </TableHead>
-                <TableHead>
-                  <button className="flex items-center" onClick={() => toggleSort("commission_rate")}>
-                    Comissão <SortIcon col="commission_rate" />
-                  </button>
-                </TableHead>
-                <TableHead>Verificado</TableHead>
-                <TableHead>
-                  <button className="flex items-center" onClick={() => toggleSort("created_at")}>
-                    Data <SortIcon col="created_at" />
-                  </button>
-                </TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((seller) => {
-                const sc = STATUS_CONFIG[seller.status];
-                return (
-                  <TableRow key={seller.id} data-state={selectedIds.has(seller.id) ? "selected" : undefined}>
-                    <TableCell>
-                      <Checkbox checked={selectedIds.has(seller.id)} onCheckedChange={() => toggleSelect(seller.id)} />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{seller.display_name}</p>
-                        {seller.location && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3" /> {seller.location}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm space-y-0.5">
-                        {seller.phone && <p className="flex items-center gap-1"><Phone className="h-3 w-3" /> {seller.phone}</p>}
-                        {seller.nif && <p className="flex items-center gap-1"><FileText className="h-3 w-3" /> {seller.nif}</p>}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={sc.variant}>{sc.label}</Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{seller.total_sales}</TableCell>
-                    <TableCell className="font-medium">{seller.total_revenue.toFixed(2)}€</TableCell>
-                    <TableCell>{seller.commission_rate}%</TableCell>
-                    <TableCell>
-                      {seller.is_verified ? (
-                        <ShieldCheck className="h-4 w-4 text-primary" />
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(seller.created_at), "dd MMM yyyy", { locale: pt })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center gap-1 justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedSeller(seller)} title="Ver detalhes">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {seller.status === "pending" && (
-                          <>
-                            <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700" onClick={() => handleApprove(seller)} title="Aprovar">
-                              <CheckCircle2 className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700" onClick={() => setRejectDialog(seller)} title="Rejeitar">
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                        {seller.status === "approved" && (
-                          <Button variant="ghost" size="icon" className="text-orange-600 hover:text-orange-700" onClick={() => handleSuspend(seller)} title="Suspender">
-                            <Ban className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+      {/* Tabs: Vendedores / Convites */}
+      <Tabs defaultValue="sellers" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="sellers" className="gap-1.5">
+            <Users className="h-4 w-4" />
+            Vendedores ({sellers.length})
+          </TabsTrigger>
+          <TabsTrigger value="invites" className="gap-1.5">
+            <Mail className="h-4 w-4" />
+            Convites ({invites.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="invites">
+          {workspaceId && <SellerInvitesList workspaceId={workspaceId} />}
+        </TabsContent>
+
+        <TabsContent value="sellers" className="space-y-6">
+          {/* Stats */}
+          <NexusGrid cols={5} gap="sm">
+            {statCards.map(({ key, label, icon, count, color }) => (
+              <NexusStatCard
+                key={key}
+                label={label}
+                value={count}
+                icon={icon}
+                accentColor={color}
+                onClick={() => setFilterStatus(key)}
+              />
+            ))}
+          </NexusGrid>
+
+          {/* Toolbar */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="relative flex-1 sm:max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar vendedores..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 h-9 bg-muted/50 border-transparent focus:border-border"
+              />
+            </div>
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-muted-foreground">{selectedIds.size} selecionados</span>
+                <Button size="sm" className="gap-1 h-8" onClick={handleBulkApprove}>
+                  <CheckCircle2 className="h-3 w-3" /> Aprovar
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1 h-8" onClick={handleBulkSuspend}>
+                  <Ban className="h-3 w-3" /> Suspender
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i} className="p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Skeleton className="h-12 rounded-lg" />
+                    <Skeleton className="h-12 rounded-lg" />
+                    <Skeleton className="h-12 rounded-lg" />
+                  </div>
+                  <Skeleton className="h-8 w-full rounded-lg" />
+                </Card>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <Card>
+              <CardContent className="py-16 text-center space-y-4">
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-muted/80 flex items-center justify-center">
+                  <Users className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-lg font-semibold">Nenhum vendedor encontrado</p>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    {search || filterStatus !== "all"
+                      ? "Tenta ajustar os filtros ou a pesquisa para encontrar o que procuras."
+                      : "Começa por convidar vendedores para o teu marketplace. Eles poderão listar produtos e começar a vender rapidamente."
+                    }
+                  </p>
+                </div>
+                {!search && filterStatus === "all" && (
+                  <Button className="gap-1.5" onClick={() => setInviteDialogOpen(true)}>
+                    <UserPlus className="h-4 w-4" /> Convidar Primeiro Vendedor
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : isMobile ? (
+            /* Mobile: Card Layout */
+            <div className="space-y-3">
+              {filtered.map((seller) => (
+                <SellerMobileCard
+                  key={seller.id}
+                  seller={seller}
+                  isSelected={selectedIds.has(seller.id)}
+                  onToggleSelect={() => toggleSelect(seller.id)}
+                  onView={() => setSelectedSeller(seller)}
+                  onApprove={() => handleApprove(seller)}
+                  onReject={() => setRejectDialog(seller)}
+                  onSuspend={() => handleSuspend(seller)}
+                />
+              ))}
+            </div>
+          ) : (
+            /* Desktop: Table Layout */
+            <Card className="overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox checked={selectedIds.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
+                    </TableHead>
+                    <TableHead>
+                      <button className="flex items-center" onClick={() => toggleSort("display_name")}>
+                        Vendedor <SortIcon col="display_name" />
+                      </button>
+                    </TableHead>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>
+                      <button className="flex items-center" onClick={() => toggleSort("total_sales")}>
+                        Vendas <SortIcon col="total_sales" />
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button className="flex items-center" onClick={() => toggleSort("total_revenue")}>
+                        Receita <SortIcon col="total_revenue" />
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button className="flex items-center" onClick={() => toggleSort("commission_rate")}>
+                        Comissão <SortIcon col="commission_rate" />
+                      </button>
+                    </TableHead>
+                    <TableHead>Verificado</TableHead>
+                    <TableHead>
+                      <button className="flex items-center" onClick={() => toggleSort("created_at")}>
+                        Data <SortIcon col="created_at" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
-      </>
-      )}
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((seller) => {
+                    const sc = STATUS_CONFIG[seller.status];
+                    return (
+                      <TableRow key={seller.id} data-state={selectedIds.has(seller.id) ? "selected" : undefined}>
+                        <TableCell>
+                          <Checkbox checked={selectedIds.has(seller.id)} onCheckedChange={() => toggleSelect(seller.id)} />
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{seller.display_name}</p>
+                            {seller.location && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <MapPin className="h-3 w-3" /> {seller.location}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm space-y-0.5">
+                            {seller.phone && <p className="flex items-center gap-1"><Phone className="h-3 w-3" /> {seller.phone}</p>}
+                            {seller.nif && <p className="flex items-center gap-1"><FileText className="h-3 w-3" /> {seller.nif}</p>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={sc.variant}>{sc.label}</Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">{seller.total_sales}</TableCell>
+                        <TableCell className="font-medium">{Number(seller.total_revenue).toFixed(2)}€</TableCell>
+                        <TableCell>{seller.commission_rate}%</TableCell>
+                        <TableCell>
+                          {seller.is_verified ? (
+                            <ShieldCheck className="h-4 w-4 text-primary" />
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(seller.created_at), "dd MMM yyyy", { locale: pt })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center gap-1 justify-end">
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedSeller(seller)} title="Ver detalhes">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {seller.status === "pending" && (
+                              <>
+                                <Button variant="ghost" size="icon" className="text-emerald-600 hover:text-emerald-700" onClick={() => handleApprove(seller)} title="Aprovar">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => setRejectDialog(seller)} title="Rejeitar">
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                            {seller.status === "approved" && (
+                              <Button variant="ghost" size="icon" className="text-amber-600 hover:text-amber-700" onClick={() => handleSuspend(seller)} title="Suspender">
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Seller Detail Dialog */}
       {selectedSeller && (
