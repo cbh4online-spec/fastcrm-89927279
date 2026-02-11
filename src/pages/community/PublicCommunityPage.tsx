@@ -127,9 +127,9 @@ export default function PublicCommunityPage() {
                   className="flex items-center gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
                   onClick={() => {
                     if (user) {
-                      navigate(`/community/${slug}/topic/${topic.id}`);
+                      navigate(`/club/${slug}/topic/${topic.id}`);
                     } else {
-                      navigate(`/community/${slug}/auth?redirect=/community/${slug}/topic/${topic.id}`);
+                      navigate(`/club/${slug}/auth?redirect=/club/${slug}/topic/${topic.id}`);
                     }
                   }}
                 >
@@ -189,10 +189,10 @@ export default function PublicCommunityPage() {
               <p className="text-xs text-muted-foreground">Registe-se para participar nas discussões</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate(`/community/${slug}/auth?mode=login`)}>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/club/${slug}/auth?mode=login`)}>
                 Entrar
               </Button>
-              <Button size="sm" onClick={() => navigate(`/community/${slug}/auth`)}>
+              <Button size="sm" onClick={() => navigate(`/club/${slug}/auth`)}>
                 Registar
               </Button>
             </div>

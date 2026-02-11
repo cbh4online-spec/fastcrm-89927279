@@ -31,7 +31,7 @@ export default function PublicCommunityTopicPage() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
           <h1 className="text-2xl font-bold">Tópico não encontrado</h1>
-          <Button variant="outline" onClick={() => navigate(`/community/${slug}`)}>Voltar à comunidade</Button>
+          <Button variant="outline" onClick={() => navigate(`/club/${slug}`)}>Voltar à comunidade</Button>
         </div>
       </div>
     );
@@ -42,7 +42,7 @@ export default function PublicCommunityTopicPage() {
       {/* Header */}
       <div className="border-b bg-card">
         <div className="max-w-3xl mx-auto px-6 py-4">
-          <Button variant="ghost" size="sm" className="gap-1.5 mb-3" onClick={() => navigate(`/community/${slug}`)}>
+          <Button variant="ghost" size="sm" className="gap-1.5 mb-3" onClick={() => navigate(`/club/${slug}`)}>
             <ArrowLeft className="h-4 w-4" /> {settings.name}
           </Button>
           <div className="space-y-2">
@@ -93,10 +93,10 @@ export default function PublicCommunityTopicPage() {
             <p className="text-sm font-medium">Registe-se para responder</p>
             <p className="text-xs text-muted-foreground">Crie uma conta ou inicie sessão para participar na discussão</p>
             <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate(`/community/${slug}/auth?mode=login&redirect=/community/${slug}/topic/${topicId}`)}>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/club/${slug}/auth?mode=login&redirect=/club/${slug}/topic/${topicId}`)}>
                 Entrar
               </Button>
-              <Button size="sm" onClick={() => navigate(`/community/${slug}/auth?redirect=/community/${slug}/topic/${topicId}`)}>
+              <Button size="sm" onClick={() => navigate(`/club/${slug}/auth?redirect=/club/${slug}/topic/${topicId}`)}>
                 Registar
               </Button>
             </div>

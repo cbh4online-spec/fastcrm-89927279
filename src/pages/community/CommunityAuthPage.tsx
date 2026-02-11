@@ -20,7 +20,7 @@ export default function CommunityAuthPage() {
   const { data: settings, isLoading } = usePublicCommunitySettings(slug);
 
   const inviteToken = searchParams.get("invite");
-  const redirectTo = searchParams.get("redirect") || `/community/${slug}`;
+  const redirectTo = searchParams.get("redirect") || `/club/${slug}`;
   const initialMode = searchParams.get("mode") === "login" ? "login" : "signup";
   const [mode, setMode] = useState<"login" | "signup">(inviteToken ? "signup" : initialMode);
 
@@ -178,7 +178,7 @@ export default function CommunityAuthPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-6">
         {/* Back link */}
-        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => step === "questions" ? setStep("credentials") : navigate(`/community/${slug}`)}>
+        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => step === "questions" ? setStep("credentials") : navigate(`/club/${slug}`)}>
           <ArrowLeft className="h-4 w-4" /> {step === "questions" ? "Voltar" : "Voltar à comunidade"}
         </Button>
 

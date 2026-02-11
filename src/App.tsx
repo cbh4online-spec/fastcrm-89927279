@@ -417,9 +417,9 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug/sponsor" element={<C2CSponsorPortal />} />
               
               {/* Public Community */}
-              <Route path="/community/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
-              <Route path="/community/:slug/topic/:topicId" element={<AuthProvider><PublicCommunityTopicPage /></AuthProvider>} />
-              <Route path="/community/:slug/auth" element={<AuthProvider><CommunityAuthPage /></AuthProvider>} />
+              <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
+              <Route path="/club/:slug/topic/:topicId" element={<AuthProvider><PublicCommunityTopicPage /></AuthProvider>} />
+              <Route path="/club/:slug/auth" element={<AuthProvider><CommunityAuthPage /></AuthProvider>} />
               
               {/* Client Portal - ISOLATED from CRM providers */}
               <Route path="/client/*" element={<ClientPortalRoutes />} />
