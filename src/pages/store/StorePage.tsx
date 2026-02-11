@@ -80,7 +80,7 @@ export default function StorePage() {
   const { data: categories = [] } = useStoreCategories(wsId);
   const { data: tierPricing } = useStoreTierPricing(wsId);
   const { data: storeSettings } = usePublicStoreSettings(wsId);
-  const { items: recentlyViewed } = useRecentlyViewed();
+  const { items: recentlyViewed } = useRecentlyViewed(wsId || "");
   const { data: reviewStats } = useBatchReviewStats(wsId);
   const { data: salesCounts } = useProductSalesCount(wsId);
 
