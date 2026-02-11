@@ -153,3 +153,56 @@ export function usePublicCommunityLinks(workspaceId: string | undefined) {
     enabled: !!workspaceId,
   });
 }
+
+export function usePublicMembershipStatus(workspaceId: string | undefined, userId: string | undefined) {
+  return useQuery({
+    queryKey: ["public-membership-status", workspaceId, userId],
+    queryFn: async (): Promise<{ status: "none" | "pending" | "active" | "workspace_member" }> => {
+      if (!workspaceId || !userId) return { status: "none" };
+
+      // Check workspace_members first (direct workspace member = full access)
+      const { data: wsMember } = await supabase
+        .from("workspace_members")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (wsMember) return { status: "workspace_member" };
+
+      // Check community_members by user_id
+      const { data: cmByUser } = await supabase
+        .from("community_members")
+        .select("status")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (cmByUser) {
+        const s = (cmByUser as any).status;
+        if (s === "active") return { status: "active" };
+        if (s === "pending") return { status: "pending" };
+      }
+
+      // Check by email (user may have signed up but user_id not yet linked)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        const { data: cmByEmail } = await supabase
+          .from("community_members")
+          .select("status")
+          .eq("workspace_id", workspaceId)
+          .eq("email", user.email)
+          .maybeSingle();
+
+        if (cmByEmail) {
+          const s = (cmByEmail as any).status;
+          if (s === "active") return { status: "active" };
+          if (s === "pending") return { status: "pending" };
+        }
+      }
+
+      return { status: "none" };
+    },
+    enabled: !!workspaceId && !!userId,
+  });
+}

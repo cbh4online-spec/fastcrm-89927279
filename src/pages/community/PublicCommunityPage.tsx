@@ -8,6 +8,7 @@ import {
   usePublicCommunityCategories,
   usePublicCommunityEvents,
   usePublicCommunityMembers,
+  usePublicMembershipStatus,
 } from "@/hooks/usePublicCommunity";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,7 @@ import { PublicCommunitySidebar } from "@/components/community/PublicCommunitySi
 import {
   Loader2, MessageSquare, Users, Calendar, Heart, Trophy,
   Zap, TrendingUp, Video, Globe, ExternalLink, Search, Plus,
-  ArrowLeft, Gift, Award, Star, Crown, Sparkles, UserPlus,
+  ArrowLeft, Gift, Award, Star, Crown, Sparkles, UserPlus, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,8 +54,17 @@ export default function PublicCommunityPage() {
   const { data: categories = [] } = usePublicCommunityCategories(workspaceId);
   const { data: events = [] } = usePublicCommunityEvents(workspaceId);
   const { data: members = [] } = usePublicCommunityMembers(workspaceId);
+  const { data: membershipData, isLoading: membershipLoading } = usePublicMembershipStatus(workspaceId, user?.id);
 
-  if (isLoading || authLoading) {
+  const membershipStatus = membershipData?.status || "none";
+
+  // Redirect approved members to internal dashboard
+  if (!authLoading && !isLoading && !membershipLoading && user && (membershipStatus === "active" || membershipStatus === "workspace_member")) {
+    navigate("/dashboard/fastclub", { replace: true });
+    return null;
+  }
+
+  if (isLoading || authLoading || membershipLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -68,6 +78,30 @@ export default function PublicCommunityPage() {
         <div className="text-center space-y-3">
           <h1 className="text-2xl font-bold">Comunidade não encontrada</h1>
           <p className="text-muted-foreground">Esta comunidade não existe ou não está publicada.</p>
+          <Button variant="outline" onClick={() => navigate("/")}>Voltar ao início</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show pending approval screen
+  if (user && membershipStatus === "pending") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md text-center space-y-6">
+          {(settings as any).logo_url && (
+            <img src={(settings as any).logo_url} alt={settings.name} className="h-16 w-16 rounded-xl mx-auto object-cover border" />
+          )}
+          <h2 className="text-xl font-bold">{settings.name}</h2>
+          <div className="rounded-2xl border bg-card p-8 space-y-4">
+            <div className="h-14 w-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+              <Clock className="h-7 w-7 text-amber-600" />
+            </div>
+            <h3 className="text-lg font-bold">Pedido de Adesão Enviado</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              O teu pedido está a ser analisado pela equipa. Serás notificado quando for aprovado.
+            </p>
+          </div>
           <Button variant="outline" onClick={() => navigate("/")}>Voltar ao início</Button>
         </div>
       </div>
