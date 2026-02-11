@@ -575,6 +575,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     icon: Instagram,
                     tooltip: "Prospecção via Instagram",
                     highlight: true,
+                    moduleSlug: "instagram-looter",
                     items: [
                       { name: "Busca Global", href: "/dashboard/instagram-looter", icon: Search, tooltip: "Pesquisar utilizadores" },
                       { name: "Hashtags", href: "/dashboard/instagram-looter/hashtag", icon: Hash, tooltip: "Pesquisar por hashtag" },
