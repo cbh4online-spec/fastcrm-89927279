@@ -6,6 +6,76 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Price regex patterns: €12.99, €12,99, 12.99€, 12,99€, 12.99 €, EUR 12.99
+const pricePatterns = [
+  /€\s*(\d+[.,]\d{2})/g,
+  /(\d+[.,]\d{2})\s*€/g,
+  /EUR\s*(\d+[.,]\d{2})/g,
+];
+
+function extractPrices(text: string, maxPrice: number): number[] {
+  const prices: number[] = [];
+  for (const regex of pricePatterns) {
+    regex.lastIndex = 0;
+    for (const match of text.matchAll(regex)) {
+      const price = parseFloat(match[1].replace(",", "."));
+      if (price > 0 && price < maxPrice) {
+        prices.push(price);
+      }
+    }
+  }
+  return prices;
+}
+
+function extractSourceName(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.replace("www.", "");
+    if (hostname.includes("kuantokusta")) return "KuantoKusta";
+    if (hostname.includes("google")) return "Google Shopping";
+    const name = hostname.split(".")[0];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  } catch {
+    return "Desconhecido";
+  }
+}
+
+interface ExternalPrice {
+  source_name: string;
+  source_url: string;
+  price: number;
+}
+
+async function searchFirecrawl(
+  apiKey: string,
+  query: string,
+  limit: number
+): Promise<Array<{ url: string; markdown?: string; description?: string }>> {
+  try {
+    const response = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+        limit,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    if (!response.ok) {
+      console.error(`Firecrawl search failed for "${query}":`, response.status);
+      return [];
+    }
+    const data = await response.json();
+    return data.data || [];
+  } catch (err) {
+    console.error(`Firecrawl search error for "${query}":`, err);
+    return [];
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -40,7 +110,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if we have cached results less than 24h old
+    // Check cache (24h)
     const { data: cached } = await supabase
       .from("product_external_prices")
       .select("*")
@@ -49,6 +119,16 @@ Deno.serve(async (req) => {
 
     if (cached && cached.length > 0) {
       console.log("Returning cached external prices");
+      // Even from cache, update competitor_price_low
+      const lowest = cached.reduce((min, c) => (c.price < min.price ? c : min), cached[0]);
+      await supabase
+        .from("products")
+        .update({
+          competitor_price_low: lowest.price,
+          competitor_source: lowest.source_name,
+        })
+        .eq("id", productId);
+
       return new Response(
         JSON.stringify({ success: true, data: cached, source: "cache" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -63,56 +143,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Search for the product on the web
+    const maxPrice = product.base_price * 5;
+
+    // Run KuantoKusta + general search in parallel
     console.log("Searching for:", product.name);
-    const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${firecrawlKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `${product.name} preço comprar`,
-        limit: 5,
-        lang: "pt",
-        country: "PT",
-      }),
-    });
+    const [kkResults, generalResults] = await Promise.all([
+      searchFirecrawl(firecrawlKey, `site:kuantokusta.pt ${product.name}`, 5),
+      searchFirecrawl(firecrawlKey, `${product.name} preço comprar portugal`, 5),
+    ]);
 
-    if (!searchResponse.ok) {
-      console.error("Firecrawl search failed:", searchResponse.status);
-      return new Response(
-        JSON.stringify({ success: true, data: [], source: "search_failed" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const externalPrices: ExternalPrice[] = [];
 
-    const searchData = await searchResponse.json();
-    const results = searchData.data || [];
+    // Process all results
+    const allResults = [...kkResults, ...generalResults];
+    const seenUrls = new Set<string>();
 
-    // Extract prices from results using simple regex
-    const priceRegex = /€\s*(\d+[.,]\d{2})/g;
-    const externalPrices: Array<{
-      source_name: string;
-      source_url: string;
-      price: number;
-    }> = [];
+    for (const result of allResults) {
+      if (!result.url || seenUrls.has(result.url)) continue;
+      seenUrls.add(result.url);
 
-    for (const result of results) {
       const text = result.markdown || result.description || "";
-      const matches = [...text.matchAll(priceRegex)];
-      if (matches.length > 0) {
-        const price = parseFloat(matches[0][1].replace(",", "."));
-        if (price > 0 && price < product.base_price * 5) {
-          // Extract domain name
-          const url = new URL(result.url);
-          const sourceName = url.hostname.replace("www.", "").split(".")[0];
-          externalPrices.push({
-            source_name: sourceName.charAt(0).toUpperCase() + sourceName.slice(1),
-            source_url: result.url,
-            price,
-          });
-        }
+      const prices = extractPrices(text, maxPrice);
+      if (prices.length > 0) {
+        const lowestPrice = Math.min(...prices);
+        externalPrices.push({
+          source_name: extractSourceName(result.url),
+          source_url: result.url,
+          price: lowestPrice,
+        });
       }
     }
 
@@ -136,6 +194,16 @@ Deno.serve(async (req) => {
         .eq("product_id", productId);
 
       await supabase.from("product_external_prices").insert(rows);
+
+      // Update competitor_price_low on products table
+      const lowest = externalPrices.reduce((min, ep) => (ep.price < min.price ? ep : min), externalPrices[0]);
+      await supabase
+        .from("products")
+        .update({
+          competitor_price_low: lowest.price,
+          competitor_source: lowest.source_name,
+        })
+        .eq("id", productId);
     }
 
     console.log(`Found ${externalPrices.length} external prices`);
