@@ -1,63 +1,50 @@
 
 
-# Corrigir links do Portal B2B para usar dominio personalizado
+# Uniformizar todos os links da plataforma com o dominio principal
 
 ## Problema
 
-Os links do portal de clientes B2B (e.g. "Ver Portal", links de convite) usam `window.location.origin` para construir o URL. Quando o administrador esta no dashboard via o dominio Lovable (`*.lovableproject.com` ou `*.lovable.app`), o link gerado aponta para esse dominio em vez do dominio personalizado `https://fastcrm.metodopare.ai`.
+Existem cerca de 20 ficheiros que ainda usam `window.location.origin` para gerar links publicos. Quando acedidos a partir de dominios Lovable (preview/dev), os links gerados apontam para o dominio errado em vez de `https://fastcrm.metodopare.ai`.
 
 ## Solucao
 
-Criar uma funcao utilitaria que resolve o dominio publico correto, utilizando o campo `custom_domain` da tabela `store_settings` (padrao ja existente no projeto para a loja e comunidade). Se nao houver dominio personalizado configurado, usa o dominio publicado como fallback (`https://fastcrm.lovable.app`).
+Substituir `window.location.origin` por `getPublicBaseUrl()` (ja criado em `src/utils/getPublicDomain.ts`) em todos os locais que geram links publicos partilhaveis ou visiveis para utilizadores externos.
 
-## Alteracoes
+## Ficheiros a alterar
 
-### 1. Criar helper `src/utils/getPublicDomain.ts`
+| Ficheiro | Contexto | Acao |
+|---|---|---|
+| `src/components/proposals/ProposalDetailContent.tsx` | URL publica de proposta (`/p/{slug}`) | Substituir |
+| `src/components/proposals/ProposalsList.tsx` | URL publica de proposta (`/p/{slug}`) | Substituir |
+| `src/components/landing-pages/LandingPagesList.tsx` | URL publica de landing page | Substituir |
+| `src/components/smart-forms/SmartFormsList.tsx` | Link publico de formulario (`/f/{slug}`) | Substituir |
+| `src/components/chat-widget/WidgetConfigPanel.tsx` | URL do script do widget | Substituir |
+| `src/components/store-settings/ProductVisibilityControl.tsx` | Link de produto da loja | Substituir |
+| `src/pages/store/StorePage.tsx` | Meta tags OG, canonical, JSON-LD | Substituir |
+| `src/pages/store/StoreProductPage.tsx` | Meta tags OG, canonical | Substituir |
+| `src/pages/store/StoreReferralPage.tsx` | Link de referral | Substituir |
+| `src/pages/store/StoreCheckoutPage.tsx` | successUrl e cancelUrl do checkout | Substituir |
+| `src/pages/c2c/C2CSellerArea.tsx` | URL publica do perfil de vendedor | Substituir |
+| `src/pages/c2c/C2CMyListings.tsx` | URL de listagem C2C | Substituir |
+| `src/pages/client/ClientForgotPasswordPage.tsx` | redirectTo do reset de password | Substituir |
+| `src/hooks/useC2CSellerInvites.ts` | domain enviado ao edge function de convites | Substituir |
+| `src/modules/growth-seo/components/admin/SitemapManager.tsx` | baseUrl do sitemap | Substituir |
 
-Funcao simples que retorna o dominio publico correto:
-- Se `window.location.hostname` nao contem `lovable.app` nem `lovableproject.com`, usa `window.location.origin` (ja esta no dominio correto)
-- Caso contrario, retorna `https://fastcrm.metodopare.ai` como fallback (dominio publicado do projeto)
+## Ficheiros que NAO devem ser alterados
 
-Alternativa mais dinamica: criar um hook `usePublicBaseUrl` que consulta `store_settings.custom_domain` do workspace atual. Mas dado que o dominio publicado e fixo, a abordagem com fallback estatico e mais simples e rapida.
-
-### 2. Atualizar `src/pages/ClientUsersPage.tsx`
-
-Substituir:
-```
-`${window.location.origin}/client/login?workspace=${currentWorkspace.slug}`
-```
-Por:
-```
-`${getPublicBaseUrl()}/client/login?workspace=${currentWorkspace.slug}`
-```
-
-### 3. Atualizar `src/pages/B2BPortalSettingsPage.tsx`
-
-Mesma substituicao do `window.location.origin` pelo helper.
-
-### 4. Atualizar `src/components/client-users/ClientUsersList.tsx`
-
-Na linha que gera o `portalUrl` para o convite, substituir `window.location.origin` pelo helper.
-
-## Ficheiros
-
-| Ficheiro | Acao |
+| Ficheiro | Razao |
 |---|---|
-| `src/utils/getPublicDomain.ts` | Criar |
-| `src/pages/ClientUsersPage.tsx` | Editar (linha 13-15) |
-| `src/pages/B2BPortalSettingsPage.tsx` | Editar (linha 40-42) |
-| `src/components/client-users/ClientUsersList.tsx` | Editar (linha 96) |
+| `src/contexts/AuthContext.tsx` | O `emailRedirectTo` do signup precisa do dominio real onde o utilizador esta (callback OAuth) |
+| `src/hooks/useWorkspaceVideoConfig.ts` | Redirect OAuth -- precisa do dominio atual para callback |
+| `src/utils/getPublicDomain.ts` | Ja contem o fallback correto (o `window.location.origin` aqui e intencional) |
 
-## Logica do helper
+## Detalhes tecnicos
 
-```text
-getPublicBaseUrl():
-  hostname = window.location.hostname
-  se hostname NAO contem "lovable.app" E NAO contem "lovableproject.com":
-    retorna window.location.origin  (dominio proprio, ja correto)
-  senao:
-    retorna "https://fastcrm.metodopare.ai"  (fallback publicado)
-```
+Cada alteracao segue o mesmo padrao simples:
 
-Esta abordagem garante que os links funcionam corretamente tanto no ambiente de preview/desenvolvimento como em producao com dominio personalizado.
+1. Adicionar import: `import { getPublicBaseUrl } from "@/utils/getPublicDomain";`
+2. Substituir `window.location.origin` por `getPublicBaseUrl()`
 
+Nao ha alteracao de logica -- apenas a origem do URL muda para garantir que aponta sempre para o dominio de producao quando acedido a partir de ambientes de desenvolvimento.
+
+Total: 15 ficheiros editados, 0 ficheiros criados.
