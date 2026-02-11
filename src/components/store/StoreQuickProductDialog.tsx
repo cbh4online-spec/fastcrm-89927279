@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -315,7 +316,8 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg p-0">
+        <ScrollArea className="max-h-[80vh] p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
@@ -531,6 +533,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
             </Button>
           </div>
         )}
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
