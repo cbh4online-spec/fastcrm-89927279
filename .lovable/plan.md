@@ -1,78 +1,92 @@
 
-# Pesquisa Automatica de Precos via KuantoKusta e Google Shopping
+# Melhorar Criacao Automatica de Produtos com IA
 
-## Objetivo
+## Problema Atual
 
-Melhorar a edge function `compare-prices` para pesquisar precos especificamente no KuantoKusta e Google Shopping (via Firecrawl), e atualizar automaticamente as colunas `competitor_price_low` e `competitor_source` na tabela `products`.
+O dialogo de criacao rapida de produtos com IA (`StoreQuickProductDialog`) tem duas lacunas:
 
-## O Que Existe Hoje
+1. **Imagens nao sao guardadas corretamente**
+   - No modo SKU: as imagens encontradas sao URLs externos que podem desaparecer. Nao sao carregadas para o storage.
+   - No modo Fotografia: a imagem enviada pelo utilizador nao e guardada no produto criado (o campo `images` fica vazio).
 
-- Edge function `compare-prices` faz pesquisa generica via Firecrawl com query `"{nome} preco comprar"`
-- Resultados guardados em `product_external_prices` (cache 24h)
-- Colunas `competitor_price_low` e `competitor_source` existem na tabela `products` mas nao sao preenchidas automaticamente
-- Firecrawl API key ja esta configurada como conector
+2. **Sem campos de stock** — o produto e criado sem quantidade em stock, estado de stock ou indicacao de controlo de inventario.
 
-## Alteracoes
+## Solucao
 
-### 1. Melhorar a Edge Function `compare-prices`
+### 1. Persistir Imagens no Storage
 
-Fazer duas pesquisas direcionadas via Firecrawl:
+Ao criar o produto, as imagens (externas do SKU ou a foto enviada) serao carregadas para o bucket `product-images` do storage antes de gravar o produto. Isto garante que as imagens ficam permanentes e sob o nosso controlo.
 
-| Pesquisa | Query | Site |
-|---|---|---|
-| KuantoKusta | `site:kuantokusta.pt {nome_produto}` | Comparador de precos PT |
-| Google Shopping | `site:google.pt/shopping {nome_produto}` ou `{nome_produto} preco` com scrape do resultado | Agregador global |
+**Fluxo:**
 
-Para cada fonte, extrair o preco mais baixo encontrado.
+```text
+Modo SKU: URLs externos encontrados pela IA
+  -> Fetch de cada imagem
+  -> Upload para bucket product-images
+  -> Guardar URLs do storage no produto
 
-### 2. Atualizar `competitor_price_low` automaticamente
+Modo Fotografia: Ficheiro enviado pelo utilizador
+  -> Upload direto para bucket product-images
+  -> Guardar URL do storage no produto
+```
 
-Depois de encontrar precos externos, a edge function atualiza diretamente a tabela `products`:
-- `competitor_price_low` = preco mais baixo encontrado entre todas as fontes
-- `competitor_source` = nome do site com o preco mais baixo (ex: "KuantoKusta", "Google Shopping", "Worten")
+### 2. Adicionar Campos de Stock ao Formulario
 
-### 3. Botao de acao na tabela de admin
+Antes de criar o produto, o utilizador pode definir:
 
-Adicionar um botao "Atualizar Precos" na pagina `StoreProductsAdminPage` que:
-- Permite atualizar precos de um produto individual (icone no row)
-- Permite atualizar todos os produtos de uma vez (botao no topo)
-- Mostra feedback de progresso durante a atualizacao
+| Campo | Tipo | Default | Descricao |
+|---|---|---|---|
+| stock_status | select | available | Estado do stock (Disponivel, Limitado, Sob Encomenda, Esgotado) |
+| stock_quantity | number | (vazio) | Quantidade em stock |
+| track_stock | checkbox | false | Controlar inventario automaticamente |
+
+### 3. Layout do Formulario Atualizado
+
+O formulario de preview do produto passara a ter:
+
+```text
+[Imagens do produto (thumbnails)]       <- ja existe, mas agora funcional em ambos os modos
+[Nome]                                  <- ja existe
+[Preco]  [Categoria]                    <- ja existe
+[Stock]  [Quantidade]  [Controlar?]     <- NOVO
+[Descricao]                             <- ja existe
+[Criar e Publicar]                      <- ja existe
+```
 
 ## Seccao Tecnica
 
-### Ficheiro: `supabase/functions/compare-prices/index.ts`
+### Ficheiro: `src/components/store/StoreQuickProductDialog.tsx`
 
-Refatorar a logica de pesquisa para:
+**Alteracoes:**
 
-```text
-1. Pesquisa KuantoKusta:
-   query: "site:kuantokusta.pt {product.name}"
-   Extrair precos com regex €X.XX ou X,XX€
+1. Adicionar campos ao `ProductPreview`:
+   - `stock_status: string` (default: "available")
+   - `stock_quantity: number | null` (default: null)
+   - `track_stock: boolean` (default: false)
 
-2. Pesquisa Google Shopping / geral:
-   query: "{product.name} preço comprar portugal"
-   Filtrar resultados de lojas conhecidas
+2. No modo fotografia (`handleImageUpload`):
+   - Guardar o base64/file reference para upload posterior
+   - Mostrar a imagem no preview do produto
 
-3. Combinar resultados, encontrar o preco mais baixo
+3. Novo `handleCreate` melhorado:
+   - Se existem imagens externas (SKU): fazer fetch e upload para `product-images` bucket
+   - Se existe foto do utilizador: upload direto para `product-images` bucket
+   - Guardar os URLs do storage no campo `images` do produto
+   - Incluir `stock_status`, `stock_quantity` e `track_stock` na criacao
 
-4. Atualizar products.competitor_price_low e competitor_source
+4. Adicionar ao formulario:
+   - Select para `stock_status` com as 4 opcoes (Disponivel, Limitado, Sob Encomenda, Esgotado)
+   - Input numerico para `stock_quantity`
+   - Checkbox para `track_stock`
 
-5. Guardar todos os resultados em product_external_prices (cache)
-```
+### Ficheiro: `supabase/functions/ai-product-assistant/index.ts`
 
-A funcao passa a fazer 2 chamadas ao Firecrawl em paralelo (KuantoKusta + geral) e combina os resultados.
+Sem alteracoes necessarias — a funcao ja retorna imagens no modo `sku-search` e dados completos no modo `image-to-product`.
 
-### Ficheiro: `src/pages/StoreProductsAdminPage.tsx`
-
-Adicionar:
-- Botao "Atualizar Precos" no topo da pagina (junto ao campo de pesquisa)
-- Icone de refresh em cada linha da tabela na coluna "Concorrencia"
-- Ambos chamam a edge function `compare-prices` e fazem refetch da lista
-- Estado de loading individual por produto
-
-### Resumo de ficheiros
+### Resumo
 
 | Ficheiro | Alteracao |
 |---|---|
-| `supabase/functions/compare-prices/index.ts` | Adicionar pesquisas KuantoKusta + Google Shopping, atualizar `competitor_price_low` na tabela products |
-| `src/pages/StoreProductsAdminPage.tsx` | Adicionar botoes de atualizacao de precos (individual e em massa) |
+| `src/components/store/StoreQuickProductDialog.tsx` | Adicionar upload de imagens para storage, campos de stock (status, quantidade, controlo), e melhorar fluxo de criacao |
+
+Nenhuma migracao SQL necessaria — as colunas `stock_status`, `stock_quantity` e `track_stock` ja existem na tabela `products`.
