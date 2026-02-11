@@ -31,6 +31,7 @@ import { StoreReviewsSection } from "@/components/store/StoreReviewsSection";
 import { useStoreReviewStats, useStoreWishlist, useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useProductSalesCount } from "@/hooks/useProductSalesCount";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -92,8 +93,8 @@ export default function StoreProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
-  const wsSlug = workspaceSlug || "";
-  const { data: tierPricing } = useStoreTierPricing(wsSlug);
+  const { workspaceId: resolvedWsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
+  const { data: tierPricing } = useStoreTierPricing(resolvedWsId);
   const isOutOfStock = product?.stock_status === "out_of_stock";
   const pricing = product ? getStorePrice(product.base_price, product.id, tierPricing) : null;
   const { average: reviewAvg, count: reviewCount } = useStoreReviewStats(productId);

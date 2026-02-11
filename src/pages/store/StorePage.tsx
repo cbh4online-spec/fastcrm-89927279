@@ -29,6 +29,7 @@ import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useBatchReviewStats, useProductSalesCount } from "@/hooks/useProductSalesCount";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Loader2, Package } from "lucide-react";
@@ -38,7 +39,7 @@ export default function StorePage() {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<StoreFilters>({});
 
-  const wsId = workspaceSlug || "";
+  const { workspaceId: wsId, slug: wsSlug, isLoading: isResolving } = useResolveStoreWorkspace(workspaceSlug);
 
   const {
     data: infiniteData,
@@ -96,6 +97,14 @@ export default function StorePage() {
     return Math.ceil(Math.max(...allProducts.map(p => p.base_price)) / 10) * 10;
   }, [allProducts]);
 
+  if (isResolving) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <StoreCompareProvider>
     <>
@@ -117,12 +126,12 @@ export default function StorePage() {
           storeName={storeName}
           logoUrl={storeSettings?.logo_url || undefined}
           onSearch={setSearch}
-          workspaceSlug={wsId}
+          workspaceSlug={wsSlug}
           categories={categories}
           onSelectCategory={(id) => setFilters(f => ({ ...f, categoryId: id }))}
           products={allProducts}
         />
-        <StoreCartDrawer workspaceSlug={wsId} />
+        <StoreCartDrawer workspaceSlug={wsSlug} />
 
         {/* Category Carousel */}
         {categories.length > 0 && showHero && (
@@ -137,7 +146,7 @@ export default function StorePage() {
         {showHero && (
           <StoreHeroCarousel
             products={featuredProducts}
-            workspaceSlug={wsId}
+            workspaceSlug={wsSlug}
             storeName={storeName}
             storeDescription={storeSettings?.store_description}
             bannerUrl={storeSettings?.banner_url}
@@ -162,7 +171,7 @@ export default function StorePage() {
           <StoreBestSellers
             products={allProducts}
             salesCounts={salesCounts}
-            workspaceSlug={wsId}
+            workspaceSlug={wsSlug}
           />
         )}
 
@@ -170,7 +179,7 @@ export default function StorePage() {
         {showHero && allProducts.length > 0 && (
           <StoreNewArrivals
             products={allProducts}
-            workspaceSlug={wsId}
+            workspaceSlug={wsSlug}
           />
         )}
 
@@ -178,7 +187,7 @@ export default function StorePage() {
         {showHero && dealProducts.length > 0 && (
           <StoreDealsSection
             products={dealProducts}
-            workspaceSlug={wsId}
+            workspaceSlug={wsSlug}
             tierPricing={tierPricing}
           />
         )}
@@ -186,7 +195,7 @@ export default function StorePage() {
         {showHero && featuredProducts.length > 0 && (
           <StoreFeaturedSection
             products={featuredProducts}
-            workspaceSlug={wsId}
+            workspaceSlug={wsSlug}
             tierPricing={tierPricing}
           />
         )}
@@ -265,7 +274,7 @@ export default function StorePage() {
                       <StoreProductCard
                         key={product.id}
                         product={product}
-                        workspaceSlug={wsId}
+                        workspaceSlug={wsSlug}
                         tierPricing={tierPricing}
                         index={index}
                         reviewStats={reviewStats}
@@ -300,7 +309,7 @@ export default function StorePage() {
           {recentlyViewed.length > 0 && (
             <StoreRecentlyViewed
               items={recentlyViewed}
-              workspaceSlug={wsId}
+              workspaceSlug={wsSlug}
             />
           )}
         </section>
@@ -310,7 +319,7 @@ export default function StorePage() {
 
         {/* Footer */}
         <StoreFooter
-          workspaceSlug={wsId}
+          workspaceSlug={wsSlug}
           storeName={storeName}
           categories={categories}
           footerText={storeSettings?.footer_text}
@@ -320,13 +329,13 @@ export default function StorePage() {
         {allProducts.length > 0 && (
           <StoreAIAdvisor
             workspaceId={(allProducts[0] as any).workspace_id}
-            workspaceSlug={wsId}
+            workspaceSlug={wsSlug}
           />
         )}
         {/* Compare Bar & Modal */}
         <StoreCompareBar />
         <StoreCompareModal
-          workspaceSlug={wsId}
+          workspaceSlug={wsSlug}
           tierPricing={tierPricing}
           reviewStats={reviewStats}
         />

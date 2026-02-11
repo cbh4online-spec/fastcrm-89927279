@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ShippingMethodsManager } from "@/components/store-settings/ShippingMethodsManager";
 import { CrmOffersManager } from "@/components/store-settings/CrmOffersManager";
@@ -38,6 +38,7 @@ export default function StoreSettingsPage() {
     show_categories: true,
     show_search: true,
     notification_email: "",
+    store_slug: "",
   });
 
   useEffect(() => {
@@ -53,16 +54,38 @@ export default function StoreSettingsPage() {
         show_categories: settings.show_categories ?? true,
         show_search: settings.show_search ?? true,
         notification_email: settings.notification_email || "",
+        store_slug: settings.store_slug || "",
       });
     }
   }, [settings]);
 
+  const RESERVED_SLUGS = ["admin", "api", "checkout", "store", "dashboard", "auth", "login", "signup"];
+  const SLUG_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
+
+  const slugError = (() => {
+    const s = form.store_slug.trim();
+    if (!s) return null;
+    if (s.length < 3) return "Mínimo 3 caracteres";
+    if (!SLUG_REGEX.test(s)) return "Apenas letras minúsculas, números e hífens";
+    if (RESERVED_SLUGS.includes(s)) return "Este nome está reservado";
+    return null;
+  })();
+
   const handleSave = () => {
-    upsert.mutate(form);
+    if (slugError) {
+      toast.error(slugError);
+      return;
+    }
+    const payload = {
+      ...form,
+      store_slug: form.store_slug.trim() || null,
+    };
+    upsert.mutate(payload);
   };
 
-  const storeUrl = currentWorkspace?.id
-    ? `${window.location.origin}/store/${currentWorkspace.id}`
+  const storeSlugOrId = form.store_slug.trim() || currentWorkspace?.id || "";
+  const storeUrl = storeSlugOrId
+    ? `${window.location.origin}/store/${storeSlugOrId}`
     : "";
 
   const copyUrl = () => {
@@ -144,6 +167,31 @@ export default function StoreSettingsPage() {
                       rows={3}
                     />
                   </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                      Link Personalizado da Loja
+                    </Label>
+                    <div className="flex items-center gap-0">
+                      <span className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-l-md border border-r-0 border-input h-10 flex items-center whitespace-nowrap">
+                        {window.location.origin}/store/
+                      </span>
+                      <Input
+                        value={form.store_slug}
+                        onChange={(e) => setForm(p => ({ ...p, store_slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
+                        placeholder="minha-loja"
+                        className="rounded-l-none"
+                      />
+                    </div>
+                    {slugError && (
+                      <p className="text-sm text-destructive">{slugError}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Deixe vazio para usar o link padrão. Apenas letras minúsculas, números e hífens.
+                    </p>
+                  </div>
+                  <Separator />
                   <div className="space-y-2">
                     <Label>Texto do Rodapé</Label>
                     <Input
