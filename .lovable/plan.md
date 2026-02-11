@@ -1,39 +1,51 @@
 
+# Criar Area do Vendedor dedicada
 
-# Corrigir link /sell e publicar alteracoes no dominio personalizado
+## Contexto
 
-## Problema
+Atualmente, as funcionalidades de vendedor estao dispersas por varias paginas no sidebar (Meus Anuncios, Analytics, Impulsionar) sem uma pagina central unificada. O vendedor nao tem um hub proprio com acesso rapido a todas as suas ferramentas e link para o seu perfil publico.
 
-O dominio personalizado (`fastcrm.metodopare.ai`) esta a correr uma versao antiga do codigo que nao inclui as rotas publicas do C2C. Quando se acede a `/c2c/metodopare/sell`, o sistema nao encontra a rota e redireciona para `/onboarding`. As alteracoes feitas anteriormente (rotas publicas, redirect nos formularios de login) nunca foram publicadas.
+## O que sera criado
 
-Como o botao "Publicar" nao mostra alteracoes pendentes, e necessario forcar uma nova compilacao com uma pequena alteracao no codigo.
+Uma nova pagina **"Area do Vendedor"** (`/dashboard/c2c/seller-area`) que serve como hub central para vendedores, com:
 
-## Solucao
+1. **Cabecalho do perfil** -- Nome, status de verificacao, rating, e link direto para o perfil publico
+2. **KPIs resumidos** -- Anuncios ativos, vendas, receita, avaliacao media
+3. **Acoes rapidas** -- Botoes para criar anuncio, ver anuncios, mensagens, impulsionar, editar perfil
+4. **Link para perfil publico** -- Botao visivel com URL copiavel para o vendedor partilhar
+5. **Resumo de atividade recente** -- Ultimas vendas e avaliacoes
 
-### 1. Forcar nova compilacao (trigger de publish)
+## Alteracoes tecnicas
 
-Adicionar um comentario inofensivo num ficheiro relevante (por exemplo, `src/App.tsx`) para que o sistema detete uma alteracao e permita publicar.
+### 1. Nova pagina: `src/pages/c2c/C2CSellerArea.tsx`
 
-### 2. Publicar
+Pagina hub que:
+- Usa `useMySellerProfile` para obter dados do vendedor autenticado
+- Usa `useSellerAnalytics` para KPIs
+- Usa `useWorkspace` para obter o slug do workspace e construir o link publico (`/c2c/{slug}/seller/{userId}`)
+- Mostra estado da conta (aprovado, pendente, suspenso)
+- Se o utilizador nao for vendedor, mostra CTA para se registar
 
-Apos a alteracao, clicar em "Publicar" para enviar o codigo atualizado para o dominio personalizado.
+### 2. Atualizar rotas em `src/App.tsx`
 
-## O que sera corrigido apos publicar
-
-Todas as alteracoes ja feitas anteriormente passarao a funcionar no dominio personalizado:
-
-- **`/c2c/metodopare`** -- marketplace publico acessivel sem login
-- **`/c2c/metodopare/sell`** -- pagina de registo de vendedor acessivel sem login
-- **Botao "Entrar"** -- redireciona de volta ao marketplace apos login (em vez de ir para o onboarding do CRM)
-- **Botao "Comecar a Vender"** -- redireciona de volta a pagina de registo apos login
-
-## Secao tecnica
-
-A unica alteracao de codigo e um comentario no `src/App.tsx` para forcar o rebuild:
-
-```typescript
-// Force rebuild for C2C public routes deployment
+Adicionar rota:
+```
+/dashboard/c2c/seller-area -> C2CSellerArea
 ```
 
-Nao ha alteracoes funcionais -- todas as correcoes ja estao implementadas no codigo, apenas falta publicar.
+### 3. Atualizar sidebar em `src/components/layout/Sidebar.tsx`
 
+Adicionar item "Area do Vendedor" ao grupo Marketplace C2C:
+```
+{ name: "Area do Vendedor", href: "/dashboard/c2c/seller-area", icon: UserCircle, tooltip: "Gerir a tua conta de vendedor" }
+```
+
+### 4. Estrutura da pagina
+
+A pagina tera estas secoes:
+
+- **Header**: Avatar, nome, badges (verificado, status), botao "Ver Perfil Publico" com link externo
+- **Grid de KPIs**: 4 cards (Anuncios Ativos, Total Vendas, Receita Liquida, Rating)
+- **Acoes Rapidas**: Grid de botoes (Novo Anuncio, Meus Anuncios, Mensagens, Analytics, Impulsionar)
+- **Link Publico**: Card com URL copiavel do perfil publico para o vendedor partilhar nas redes sociais
+- **Estado nao-vendedor**: Se o utilizador nao tiver perfil de vendedor, mostra card com CTA para se registar
