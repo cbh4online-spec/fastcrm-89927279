@@ -2678,9 +2678,11 @@ export type Database = {
           created_at: string
           currency: string | null
           description: string
+          favorites_count: number | null
           id: string
           is_featured: boolean | null
           location: string | null
+          messages_count: number | null
           moderation_notes: string | null
           moderation_status: string | null
           photos: string[] | null
@@ -2703,9 +2705,11 @@ export type Database = {
           created_at?: string
           currency?: string | null
           description: string
+          favorites_count?: number | null
           id?: string
           is_featured?: boolean | null
           location?: string | null
+          messages_count?: number | null
           moderation_notes?: string | null
           moderation_status?: string | null
           photos?: string[] | null
@@ -2728,9 +2732,11 @@ export type Database = {
           created_at?: string
           currency?: string | null
           description?: string
+          favorites_count?: number | null
           id?: string
           is_featured?: boolean | null
           location?: string | null
+          messages_count?: number | null
           moderation_notes?: string | null
           moderation_status?: string | null
           photos?: string[] | null
@@ -2849,6 +2855,117 @@ export type Database = {
             foreignKeyName: "c2c_moderation_settings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_notifications: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          listing_id: string | null
+          related_user_id: string | null
+          title: string
+          type: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          listing_id?: string | null
+          related_user_id?: string | null
+          title: string
+          type: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          listing_id?: string | null
+          related_user_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_notifications_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_offers: {
+        Row: {
+          buyer_id: string
+          counter_price: number | null
+          created_at: string | null
+          id: string
+          listing_id: string
+          message: string | null
+          offer_price: number
+          seller_id: string
+          status: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          buyer_id: string
+          counter_price?: number | null
+          created_at?: string | null
+          id?: string
+          listing_id: string
+          message?: string | null
+          offer_price: number
+          seller_id: string
+          status?: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          buyer_id?: string
+          counter_price?: number | null
+          created_at?: string | null
+          id?: string
+          listing_id?: string
+          message?: string | null
+          offer_price?: number
+          seller_id?: string
+          status?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_offers_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_offers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },

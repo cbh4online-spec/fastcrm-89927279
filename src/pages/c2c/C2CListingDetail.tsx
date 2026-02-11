@@ -10,7 +10,9 @@ import { useSendC2CMessage } from "@/hooks/useC2CMessages";
 import { useC2CCheckout } from "@/hooks/useC2CCheckout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ArrowLeft, MapPin, Star, MessageCircle, Flag, Eye, Calendar, ShoppingBag, Loader2 } from "lucide-react";
+import { OfferDialog } from "@/components/c2c/OfferDialog";
+import { ShareButtons } from "@/components/c2c/ShareButtons";
+import { ArrowLeft, MapPin, Star, MessageCircle, Flag, Eye, Calendar, ShoppingBag, Loader2, User } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -134,14 +136,21 @@ export default function C2CListingDetail() {
               </span>
             </div>
 
-            {/* Seller reviews */}
-            {sellerReviews && sellerReviews.count > 0 && (
-              <div className="flex items-center gap-2 text-sm">
-                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                <span className="font-medium">{sellerReviews.average}</span>
-                <span className="text-muted-foreground">({sellerReviews.count} avaliações)</span>
-              </div>
-            )}
+            {/* Seller info + link to profile */}
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={() => navigate(`/dashboard/c2c/seller/${listing.seller_id}`)}
+            >
+              <User className="h-4 w-4" />
+              <span>Ver perfil do vendedor</span>
+              {sellerReviews && sellerReviews.count > 0 && (
+                <span className="ml-auto flex items-center gap-1 text-xs">
+                  <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                  {sellerReviews.average} ({sellerReviews.count})
+                </span>
+              )}
+            </Button>
 
             <div className="border-t pt-4">
               <h3 className="font-medium mb-2">Descrição</h3>
@@ -149,6 +158,13 @@ export default function C2CListingDetail() {
                 {listing.description}
               </p>
             </div>
+
+            {/* Share buttons */}
+            <ShareButtons
+              url={window.location.href}
+              title={listing.title}
+              description={`${listing.price.toFixed(2)} ${listing.currency}`}
+            />
 
             {/* Actions */}
             {user && !isOwner && (
@@ -173,6 +189,17 @@ export default function C2CListingDetail() {
                   )}
                   Comprar agora — {listing.price.toFixed(2)} {listing.currency}
                 </Button>
+
+                {/* Make Offer (Vinted-style) */}
+                {workspaceId && (
+                  <OfferDialog
+                    listingId={listing.id}
+                    sellerId={listing.seller_id}
+                    currentPrice={listing.price}
+                    currency={listing.currency}
+                    workspaceId={workspaceId}
+                  />
+                )}
 
                 <div className="space-y-2">
                   <Textarea

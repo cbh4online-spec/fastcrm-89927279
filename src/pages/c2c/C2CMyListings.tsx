@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useMyC2CListings, useUpdateC2CListing } from "@/hooks/useC2CListings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { ListingStats } from "@/components/c2c/ListingStats";
+import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { ArrowLeft, Plus, Pencil, Pause, Play, Trash2, Rocket } from "lucide-react";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -64,9 +66,22 @@ export default function C2CMyListings() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium truncate">{listing.title}</h3>
                     <p className="text-sm font-bold text-foreground">{listing.price.toFixed(2)} €</p>
+                    <ListingStats
+                      views={listing.views_count || 0}
+                      favorites={(listing as any).favorites_count || 0}
+                      messages={(listing as any).messages_count || 0}
+                    />
                   </div>
                   <Badge variant={st.variant}>{st.label}</Badge>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate(`/dashboard/c2c/edit/${listing.id}`)}
+                      title="Editar"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     {listing.status === "active" && (
                       <Button
                         variant="ghost"

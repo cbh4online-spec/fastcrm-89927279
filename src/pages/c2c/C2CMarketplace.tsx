@@ -8,11 +8,12 @@ import { ListingCard } from "@/components/c2c/ListingCard";
 import { ListingFilters } from "@/components/c2c/ListingFilters";
 import { MarketplaceSearchOverlay } from "@/components/c2c/MarketplaceSearchOverlay";
 import { useC2CListings, useC2CCategories, useC2CFavorites, useToggleC2CFavorite, type C2CListingFilters } from "@/hooks/useC2CListings";
+import { useUnreadCount } from "@/hooks/useC2CNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   Plus, Store, ArrowLeft, MessageCircle, User, Heart, ChevronRight, ChevronLeft,
-  ShieldCheck, Truck, Award, Search, Sparkles, TrendingUp, Clock,
+  ShieldCheck, Truck, Award, Search, Sparkles, TrendingUp, Clock, Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -142,6 +143,7 @@ export default function C2CMarketplace() {
   const { data: categories = [] } = useC2CCategories(workspaceId);
   const { data: favoriteIds = [] } = useC2CFavorites(workspaceId);
   const toggleFavorite = useToggleC2CFavorite(workspaceId);
+  const { data: unreadCount = 0 } = useUnreadCount(workspaceId);
 
   // Group listings by category for section carousels
   const featuredListings = listings.filter((l) => l.is_featured);
@@ -219,6 +221,19 @@ export default function C2CMarketplace() {
                     onClick={() => navigate("/dashboard/c2c/messages")}
                   >
                     <MessageCircle className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative"
+                    onClick={() => navigate("/dashboard/c2c/notifications")}
+                  >
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
