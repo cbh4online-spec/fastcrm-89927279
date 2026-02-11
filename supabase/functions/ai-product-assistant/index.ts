@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations";
+  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product";
   productId?: string;
   workspaceId?: string;
   productName?: string;
@@ -19,6 +19,7 @@ interface AssistantRequest {
   categoryName?: string;
   description?: string;
   existingCategories?: string[];
+  imageBase64?: string;
 }
 
 interface VideoResult {
@@ -79,7 +80,7 @@ serve(async (req) => {
   }
 
   try {
-    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId } = await req.json() as AssistantRequest;
+    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64 } = await req.json() as AssistantRequest;
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
@@ -1170,6 +1171,106 @@ REGRAS:
       }));
 
       return new Response(JSON.stringify({ success: true, data: { added, relations } }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } else if (mode === 'image-to-product' && imageBase64) {
+      // Analyze product image using Gemini vision
+      console.log('Image-to-product: analyzing image...');
+
+      const visionPrompt = `Analise esta imagem de um produto e identifique-o completamente.
+
+IMPORTANTE: Crie DUAS versões do nome e descrição:
+1. TÉCNICA: Focada em especificações (como aparece no fabricante)
+2. COMERCIAL: Estilo Amazon, focada em BENEFÍCIOS para o cliente, mais apelativa para vendas
+
+Extraia TODAS as especificações técnicas visíveis na imagem ou que consiga inferir do produto.
+
+Responda APENAS em JSON válido:
+{
+  "found": true,
+  "technicalName": "Nome técnico completo com modelo se visível",
+  "commercialName": "Nome apelativo estilo Amazon focado em benefícios (máx 150 chars)",
+  "technicalDescription": "Descrição técnica com especificações (máx 200 chars)",
+  "commercialDescription": "Descrição comercial focada em benefícios, pode usar emojis (máx 300 chars)",
+  "priceRange": { "min": 0, "max": 0 },
+  "suggestedPrice": 0,
+  "category": "Categoria principal do produto",
+  "specifications": {
+    "brand": "Marca (se visível)",
+    "model": "Modelo (se visível)",
+    "color": "Cor",
+    "material": "Material (se identificável)",
+    "dimensions": "Dimensões aproximadas"
+  }
+}
+
+REGRAS para nome comercial:
+- Começa com o tipo de produto
+- Inclui marca se visível
+- Destaca 2-3 features principais
+- Ex: "Câmara Vigilância WiFi Full HD - Visão Noturna, Exterior IP66"
+
+REGRAS para descrição comercial:
+- Foca em BENEFÍCIOS (o que o cliente ganha)
+- Pode usar emojis para destaque visual
+
+Se não conseguir identificar o produto, responda: {"found": false}`;
+
+      const visionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: 'Você é um especialista em identificação e catálogo de produtos. Analise imagens e extraia dados completos. Responda apenas em JSON válido.' },
+            { 
+              role: 'user', 
+              content: [
+                { type: 'text', text: visionPrompt },
+                { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+              ]
+            }
+          ],
+          temperature: 0.4,
+        }),
+      });
+
+      if (!visionResponse.ok) {
+        if (visionResponse.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI vision error: ${visionResponse.status}`);
+      }
+
+      const visionData = await visionResponse.json();
+      const visionContent = visionData.choices?.[0]?.message?.content || '';
+
+      let imageResult: SKUSearchResult;
+      try {
+        const jsonMatch = visionContent.match(/\{[\s\S]*\}/);
+        const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { found: false };
+        imageResult = {
+          ...parsed,
+          name: parsed.commercialName || parsed.technicalName,
+          description: parsed.commercialDescription || parsed.technicalDescription,
+        };
+      } catch {
+        imageResult = { found: false };
+      }
+
+      console.log('Image analysis result:', JSON.stringify(imageResult, null, 2));
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: imageResult
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 

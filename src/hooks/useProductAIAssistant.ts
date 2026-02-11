@@ -204,6 +204,21 @@ export function useProductAIAssistant() {
     },
   });
 
+  const analyzeImage = useMutation({
+    mutationFn: async (imageBase64: string): Promise<SKUSearchResult> => {
+      const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
+        body: {
+          mode: "image-to-product",
+          imageBase64,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || "Failed to analyze image");
+      return data.data;
+    },
+  });
+
   return {
     suggestFromName,
     searchBySKU,
@@ -211,12 +226,14 @@ export function useProductAIAssistant() {
     analyzePrice,
     generateProductImage,
     suggestRelations,
+    analyzeImage,
     isLoading:
       suggestFromName.isPending ||
       searchBySKU.isPending ||
       generateDescription.isPending ||
       analyzePrice.isPending ||
       generateProductImage.isPending ||
-      suggestRelations.isPending,
+      suggestRelations.isPending ||
+      analyzeImage.isPending,
   };
 }
