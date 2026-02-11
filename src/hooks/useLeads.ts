@@ -59,6 +59,10 @@ export interface Lead {
   // Location
   city: string | null;
   business_category: string | null;
+  
+  // Enrichment
+  company_name: string | null;
+  website: string | null;
 }
 
 export interface CreateLeadInput {
