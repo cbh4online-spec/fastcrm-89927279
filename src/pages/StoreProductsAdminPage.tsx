@@ -17,9 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Package, Star, Eye, EyeOff, ArrowUp, ArrowDown, Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Search, Package, Star, Eye, EyeOff, ArrowUp, ArrowDown, Loader2, Sparkles, RefreshCw, TrendingDown, TrendingUp, Check, X, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { StoreQuickProductDialog } from "@/components/store/StoreQuickProductDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductStoreData {
   id: string;
@@ -40,13 +41,81 @@ interface ProductStoreData {
   specifications: Record<string, string> | null;
 }
 
+interface PriceSuggestion {
+  id: string;
+  product_id: string;
+  original_price: number;
+  suggested_price: number;
+  margin_change: number | null;
+  optimization_type: string;
+  reasoning: string | null;
+  applied: boolean;
+  created_at: string;
+}
+
 export default function StoreProductsAdminPage() {
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [loadingPrices, setLoadingPrices] = useState<Record<string, boolean>>({});
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Fetch pending price suggestions
+  const { data: suggestions = [] } = useQuery({
+    queryKey: ["price-suggestions", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      const { data, error } = await supabase
+        .from("price_optimization_logs")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("applied", false)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as PriceSuggestion[];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+
+  const applySuggestion = useMutation({
+    mutationFn: async (suggestion: PriceSuggestion) => {
+      // Update product price
+      const { error: prodErr } = await supabase
+        .from("products")
+        .update({ base_price: suggestion.suggested_price })
+        .eq("id", suggestion.product_id);
+      if (prodErr) throw prodErr;
+
+      // Mark suggestion as applied
+      const { error: logErr } = await supabase
+        .from("price_optimization_logs")
+        .update({ applied: true, applied_at: new Date().toISOString(), applied_by: user?.id })
+        .eq("id", suggestion.id);
+      if (logErr) throw logErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
+      toast.success("Preço atualizado com sucesso");
+    },
+    onError: (err: any) => toast.error("Erro: " + err.message),
+  });
+
+  const dismissSuggestion = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("price_optimization_logs")
+        .update({ applied: true, applied_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["price-suggestions"] });
+      toast.success("Sugestão descartada");
+    },
+  });
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["store-admin-products", currentWorkspace?.id, search],
@@ -204,6 +273,70 @@ export default function StoreProductsAdminPage() {
           )}
 
           <StoreQuickProductDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
+
+          {/* Price Suggestions Panel */}
+          {suggestions.length > 0 && (
+            <div className="border rounded-lg border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="h-5 w-5 text-amber-500" />
+                <h3 className="font-semibold text-sm">Sugestões de Preço ({suggestions.length})</h3>
+                <Badge variant="outline" className="text-xs">Análise automática</Badge>
+              </div>
+              <div className="space-y-2">
+                {suggestions.slice(0, 5).map((s) => {
+                  const product = products.find((p) => p.id === s.product_id);
+                  const isDecrease = s.suggested_price < s.original_price;
+                  const changePercent = ((s.suggested_price - s.original_price) / s.original_price) * 100;
+
+                  return (
+                    <div key={s.id} className="flex items-center gap-3 p-3 bg-background rounded-lg border">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{product?.name || "Produto"}</p>
+                        <p className="text-xs text-muted-foreground">{s.reasoning}</p>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground line-through">€{s.original_price.toFixed(2)}</p>
+                          <p className="text-sm font-bold flex items-center gap-1">
+                            {isDecrease ? <TrendingDown className="h-3 w-3 text-green-500" /> : <TrendingUp className="h-3 w-3 text-blue-500" />}
+                            €{s.suggested_price.toFixed(2)}
+                          </p>
+                        </div>
+                        <Badge variant={isDecrease ? "default" : "secondary"} className="text-xs">
+                          {changePercent > 0 ? "+" : ""}{changePercent.toFixed(1)}%
+                        </Badge>
+                        <div className="flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="h-7 w-7 text-green-600 hover:bg-green-50"
+                            onClick={() => applySuggestion.mutate(s)}
+                            title="Aplicar sugestão"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground"
+                            onClick={() => dismissSuggestion.mutate(s.id)}
+                            title="Descartar"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {suggestions.length > 5 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    +{suggestions.length - 5} mais sugestões
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="border rounded-lg">
             <Table>
