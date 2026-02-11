@@ -6,17 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2, Ticket, X, Truck, Gift } from "lucide-react";
-import { useState, useRef, useCallback, useMemo } from "react";
+import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2, Ticket, X, Truck, Gift, AlertTriangle } from "lucide-react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useActiveShippingMethods } from "@/hooks/useShippingMethods";
 import { StoreGiftCardBalance } from "@/components/store/StoreGiftCardBalance";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
+
+interface CTTShippingOption {
+  id: string;
+  name: string;
+  price: number;
+  estimate: string;
+  maxWeight: number;
+}
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -31,7 +38,60 @@ export default function StoreCheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [selectedShippingId, setSelectedShippingId] = useState<string>("");
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ id: string; code: string; current_balance: number } | null>(null);
-  const { data: shippingMethods = [] } = useActiveShippingMethods(wsId);
+  const [cttOptions, setCttOptions] = useState<CTTShippingOption[]>([]);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [totalWeight, setTotalWeight] = useState<number>(0);
+  const [overWeight, setOverWeight] = useState(false);
+
+  // Fetch product weights and calculate total cart weight
+  useEffect(() => {
+    if (items.length === 0) return;
+    const fetchWeights = async () => {
+      const productIds = items.map(i => i.productId);
+      const { data } = await supabase
+        .from("products")
+        .select("id, weight")
+        .in("id", productIds);
+      
+      const weightMap = new Map<string, number>();
+      (data || []).forEach((p: any) => {
+        weightMap.set(p.id, p.weight ? Number(p.weight) : 0.5);
+      });
+      
+      const total = items.reduce((sum, item) => {
+        const w = weightMap.get(item.productId) || 0.5;
+        return sum + w * item.quantity;
+      }, 0);
+      setTotalWeight(Math.round(total * 1000) / 1000);
+    };
+    fetchWeights();
+  }, [items]);
+
+  // Fetch CTT shipping options when weight changes
+  useEffect(() => {
+    if (totalWeight <= 0) return;
+    const fetchShipping = async () => {
+      setShippingLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("calculate-shipping", {
+          body: { totalWeightKg: totalWeight },
+        });
+        if (!error && data?.success) {
+          setCttOptions(data.options || []);
+          setOverWeight(data.overWeight || false);
+          // Auto-select first option
+          if (data.options?.length > 0 && !selectedShippingId) {
+            setSelectedShippingId(data.options[0].id);
+          }
+        }
+      } catch {
+        // fallback: no shipping options
+      } finally {
+        setShippingLoading(false);
+      }
+    };
+    fetchShipping();
+  }, [totalWeight]);
 
   // Lead capture state
   const sessionId = useMemo(() => crypto.randomUUID(), []);
@@ -180,10 +240,8 @@ export default function StoreCheckoutPage() {
       })()
     : 0;
   
-  const selectedShipping = shippingMethods.find((m) => m.id === selectedShippingId);
-  const shippingCost = selectedShipping?.base_price ?? 0;
-  // Free shipping threshold check
-  const effectiveShippingCost = selectedShipping?.free_shipping_threshold && subtotal >= selectedShipping.free_shipping_threshold ? 0 : shippingCost;
+  const selectedCttOption = cttOptions.find((o) => o.id === selectedShippingId);
+  const effectiveShippingCost = selectedCttOption?.price ?? 0;
   const giftCardAmount = appliedGiftCard ? Math.min(appliedGiftCard.current_balance, subtotal - discountAmount + effectiveShippingCost) : 0;
   const finalTotal = Math.max(0, subtotal - discountAmount + effectiveShippingCost - giftCardAmount);
 
@@ -213,7 +271,7 @@ export default function StoreCheckoutPage() {
           giftCardCode: appliedGiftCard?.code || undefined,
           shippingMethodId: selectedShippingId || undefined,
           shippingCost: effectiveShippingCost,
-          shippingMethodName: selectedShipping?.name || undefined,
+          shippingMethodName: selectedCttOption?.name || undefined,
           successUrl: `${window.location.origin}/store/${wsSlug}/success`,
           cancelUrl: `${window.location.origin}/store/${wsSlug}/cancel`,
         },
@@ -379,43 +437,47 @@ export default function StoreCheckoutPage() {
                         autoFocus
                       />
                   </div>
+                  </div>
 
-                  {/* Shipping method selection */}
-                  {shippingMethods.length > 0 && (
-                    <div className="space-y-3">
-                      <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <Truck className="h-5 w-5" /> Método de Envio
-                      </h2>
+                  {/* CTT Shipping method selection */}
+                  <div className="space-y-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      <Truck className="h-5 w-5" /> Método de Envio
+                    </h2>
+                    {totalWeight > 0 && (
+                      <p className="text-xs text-muted-foreground">Peso total: {totalWeight >= 1 ? `${totalWeight.toFixed(2)} kg` : `${Math.round(totalWeight * 1000)} g`}</p>
+                    )}
+                    {shippingLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        A calcular portes...
+                      </div>
+                    ) : overWeight ? (
+                      <div className="flex items-center gap-2 text-sm text-amber-600 border border-amber-200 rounded-lg p-3 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
+                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                        <span>Peso excede 10kg. Contacte-nos para orçamento de envio personalizado.</span>
+                      </div>
+                    ) : cttOptions.length > 0 ? (
                       <RadioGroup value={selectedShippingId} onValueChange={setSelectedShippingId}>
-                        {shippingMethods.map((method) => {
-                          const isFree = method.free_shipping_threshold && subtotal >= method.free_shipping_threshold;
-                          return (
-                            <div key={method.id} className={cn(
-                              "flex items-center justify-between border rounded-lg p-3 cursor-pointer transition-colors",
-                              selectedShippingId === method.id ? "border-primary bg-primary/5" : "hover:border-muted-foreground/30"
-                            )} onClick={() => setSelectedShippingId(method.id)}>
-                              <div className="flex items-center gap-3">
-                                <RadioGroupItem value={method.id} />
-                                <div>
-                                  <p className="text-sm font-medium">{method.name}</p>
-                                  {method.estimated_delivery && (
-                                    <p className="text-xs text-muted-foreground">{method.estimated_delivery}</p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="text-sm font-medium">
-                                {isFree ? (
-                                  <span className="text-green-600">Grátis</span>
-                                ) : (
-                                  <span>€{method.base_price.toFixed(2)}</span>
-                                )}
+                        {cttOptions.map((option) => (
+                          <div key={option.id} className={cn(
+                            "flex items-center justify-between border rounded-lg p-3 cursor-pointer transition-colors",
+                            selectedShippingId === option.id ? "border-primary bg-primary/5" : "hover:border-muted-foreground/30"
+                          )} onClick={() => setSelectedShippingId(option.id)}>
+                            <div className="flex items-center gap-3">
+                              <RadioGroupItem value={option.id} />
+                              <div>
+                                <p className="text-sm font-medium">{option.name}</p>
+                                <p className="text-xs text-muted-foreground">{option.estimate}</p>
                               </div>
                             </div>
-                          );
-                        })}
+                            <span className="text-sm font-medium">€{option.price.toFixed(2)}</span>
+                          </div>
+                        ))}
                       </RadioGroup>
-                    </div>
-                  )}
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Nenhuma opção de envio disponível.</p>
+                    )}
                   </div>
 
                   <Button
@@ -524,16 +586,10 @@ export default function StoreCheckoutPage() {
                         <span>-€{giftCardAmount.toFixed(2)}</span>
                       </div>
                     )}
-                    {effectiveShippingCost > 0 && selectedShipping && (
+                    {effectiveShippingCost > 0 && selectedCttOption && (
                       <div className="flex justify-between text-sm">
-                        <span>Envio ({selectedShipping.name})</span>
+                        <span>Envio ({selectedCttOption.name})</span>
                         <span>€{effectiveShippingCost.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {selectedShipping && effectiveShippingCost === 0 && shippingCost > 0 && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Envio</span>
-                        <span>Grátis</span>
                       </div>
                     )}
                   </>
