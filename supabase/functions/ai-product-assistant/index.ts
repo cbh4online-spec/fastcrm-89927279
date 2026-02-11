@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product";
+  mode: "suggest" | "sku-search" | "generate-description" | "generate-store-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product";
   productId?: string;
   workspaceId?: string;
   productName?: string;
@@ -80,7 +80,7 @@ serve(async (req) => {
   }
 
   try {
-    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64 } = await req.json() as AssistantRequest;
+    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64, storeName } = await req.json() as AssistantRequest & { storeName?: string };
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
@@ -565,6 +565,64 @@ Responda em JSON:
       return new Response(JSON.stringify({
         success: true,
         data: descriptions
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } else if (mode === 'generate-store-description' && storeName) {
+      // Generate SEO-optimized store description
+      const storeDescPrompt = `Gere uma descrição otimizada para SEO para a seguinte loja online:
+
+Nome da Loja: ${storeName}
+${category ? `Categoria de Produtos: ${category}` : ''}
+
+Crie:
+1. Uma meta description para SEO (máximo 160 caracteres, apelativa, com call-to-action)
+2. Uma descrição completa da loja (máximo 300 caracteres, profissional, que transmita confiança)
+
+Responda em JSON:
+{
+  "metaDescription": "...",
+  "fullDescription": "..."
+}`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: 'Você é um especialista em SEO e copywriting para e-commerce. Crie descrições que convertem visitantes em clientes. Responda apenas em JSON.' },
+            { role: 'user', content: storeDescPrompt }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+
+      let storeDesc;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        storeDesc = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      } catch {
+        storeDesc = {
+          metaDescription: `${storeName} - A sua loja online de confiança. Descubra os melhores produtos com entrega rápida.`,
+          fullDescription: `Bem-vindo à ${storeName}! Oferecemos produtos de qualidade com atendimento personalizado e entrega rápida.`
+        };
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: storeDesc
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

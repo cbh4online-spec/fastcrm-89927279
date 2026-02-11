@@ -11,7 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift, Link as LinkIcon } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift, Link as LinkIcon, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { SectionAIAssistButton } from "@/components/proposals/SectionAIAssistButton";
 import { toast } from "sonner";
 import { ShippingMethodsManager } from "@/components/store-settings/ShippingMethodsManager";
 import { CrmOffersManager } from "@/components/store-settings/CrmOffersManager";
@@ -26,6 +28,7 @@ export default function StoreSettingsPage() {
   const { currentWorkspace } = useWorkspace();
   const { data: settings, isLoading } = useStoreSettings();
   const upsert = useUpsertStoreSettings();
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
 
   const [form, setForm] = useState({
     store_name: "",
@@ -165,7 +168,43 @@ export default function StoreSettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Descrição</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Descrição</Label>
+                      <SectionAIAssistButton
+                        onClick={async () => {
+                          if (!form.store_name.trim()) {
+                            toast.error("Preencha o nome da loja primeiro");
+                            return;
+                          }
+                          const doGenerate = async () => {
+                            setIsGeneratingDesc(true);
+                            try {
+                              const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
+                                body: { mode: "generate-store-description", storeName: form.store_name },
+                              });
+                              if (error) throw error;
+                              if (!data.success) throw new Error(data.error);
+                              setForm(p => ({ ...p, store_description: data.data.fullDescription || data.data.metaDescription }));
+                              toast.success("Descrição gerada com IA!");
+                            } catch (err: any) {
+                              toast.error("Erro ao gerar descrição: " + (err.message || "Erro desconhecido"));
+                            } finally {
+                              setIsGeneratingDesc(false);
+                            }
+                          };
+                          if (form.store_description.trim()) {
+                            toast("Já existe uma descrição. Substituir?", {
+                              action: { label: "Substituir", onClick: doGenerate },
+                            });
+                            return;
+                          }
+                          doGenerate();
+                        }}
+                        isLoading={isGeneratingDesc}
+                        disabled={!form.store_name.trim()}
+                        tooltip="Gerar descrição SEO com IA baseada no nome da loja"
+                      />
+                    </div>
                     <Textarea
                       value={form.store_description}
                       onChange={(e) => setForm(p => ({ ...p, store_description: e.target.value }))}
