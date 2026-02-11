@@ -100,7 +100,7 @@ export default function StoreProductPage() {
   const { data: wishlist = [] } = useStoreWishlist((product as any)?.workspace_id);
   const toggleWishlist = useToggleWishlist();
   const isInWishlist = product ? wishlist.some((w) => w.product_id === product.id) : false;
-  const { items: recentlyViewed, addItem: addRecentlyViewed } = useRecentlyViewed();
+  const { items: recentlyViewed, addItem: addRecentlyViewed } = useRecentlyViewed((product as any)?.workspace_id || "");
   const { data: salesCounts } = useProductSalesCount((product as any)?.workspace_id);
   const { data: recentViewers = 0 } = useRecentViewers(productId);
   const addToCartRef = useRef<HTMLButtonElement>(null);
