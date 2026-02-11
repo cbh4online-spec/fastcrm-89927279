@@ -15,11 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useActiveShippingMethods } from "@/hooks/useShippingMethods";
 import { StoreGiftCardBalance } from "@/components/store/StoreGiftCardBalance";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { items, subtotal, clearCart } = useStoreCart();
-  const wsSlug = workspaceSlug || "";
+  const { workspaceId: wsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [couponCode, setCouponCode] = useState("");
@@ -27,7 +28,7 @@ export default function StoreCheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [selectedShippingId, setSelectedShippingId] = useState<string>("");
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ id: string; code: string; current_balance: number } | null>(null);
-  const { data: shippingMethods = [] } = useActiveShippingMethods(wsSlug);
+  const { data: shippingMethods = [] } = useActiveShippingMethods(wsId);
 
   // Lead capture state
   const sessionId = useMemo(() => crypto.randomUUID(), []);
@@ -38,7 +39,7 @@ export default function StoreCheckoutPage() {
     try {
       const { data: result, error } = await supabase.functions.invoke("store-capture-lead", {
         body: {
-          workspaceId: wsSlug,
+          workspaceId: wsId,
           sessionId,
           name: data.name,
           phone: data.phone,
@@ -57,7 +58,7 @@ export default function StoreCheckoutPage() {
     } catch {
       // Non-blocking — don't interrupt checkout flow
     }
-  }, [wsSlug, sessionId, items]);
+  }, [wsId, sessionId, items]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -194,7 +195,7 @@ export default function StoreCheckoutPage() {
     try {
       const { data, error } = await supabase.functions.invoke("create-store-checkout", {
         body: {
-          workspaceId: wsSlug,
+          workspaceId: wsId,
           items: items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,

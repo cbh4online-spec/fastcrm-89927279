@@ -12,6 +12,7 @@ import {
   useRedeemPoints,
 } from "@/hooks/useStoreLoyalty";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +25,12 @@ import { pt } from "date-fns/locale";
 
 export default function StoreLoyaltyPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const wsSlug = workspaceSlug || "";
+  const { workspaceId: wsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
 
-  const { data: storeSettings } = usePublicStoreSettings(wsSlug);
-  const { data: settings } = usePublicLoyaltySettings(wsSlug);
-  const { data: balance = 0 } = useLoyaltyBalance(wsSlug);
-  const { data: history = [] } = useLoyaltyHistory(wsSlug);
+  const { data: storeSettings } = usePublicStoreSettings(wsId);
+  const { data: settings } = usePublicLoyaltySettings(wsId);
+  const { data: balance = 0 } = useLoyaltyBalance(wsId);
+  const { data: history = [] } = useLoyaltyHistory(wsId);
   const redeemMutation = useRedeemPoints();
 
   const [redeemAmount, setRedeemAmount] = useState("");
@@ -37,7 +38,7 @@ export default function StoreLoyaltyPage() {
   const handleRedeem = () => {
     const pts = parseInt(redeemAmount);
     if (!pts || pts <= 0) return;
-    redeemMutation.mutate({ workspaceId: wsSlug, pointsToRedeem: pts });
+    redeemMutation.mutate({ workspaceId: wsId, pointsToRedeem: pts });
     setRedeemAmount("");
   };
 

@@ -23047,6 +23047,7 @@ export type Database = {
           show_search: boolean | null
           store_description: string | null
           store_name: string | null
+          store_slug: string | null
           updated_at: string
           workspace_id: string
         }
@@ -23063,6 +23064,7 @@ export type Database = {
           show_search?: boolean | null
           store_description?: string | null
           store_name?: string | null
+          store_slug?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -23079,6 +23081,7 @@ export type Database = {
           show_search?: boolean | null
           store_description?: string | null
           store_name?: string | null
+          store_slug?: string | null
           updated_at?: string
           workspace_id?: string
         }
