@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -16,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Package, Star, Eye, EyeOff, ArrowUp, ArrowDown, Loader2, Sparkles } from "lucide-react";
+import { Search, Package, Star, Eye, EyeOff, ArrowUp, ArrowDown, Loader2, Sparkles, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { StoreQuickProductDialog } from "@/components/store/StoreQuickProductDialog";
 
@@ -42,6 +43,8 @@ export default function StoreProductsAdminPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [loadingPrices, setLoadingPrices] = useState<Record<string, boolean>>({});
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["store-admin-products", currentWorkspace?.id, search],
@@ -97,6 +100,51 @@ export default function StoreProductsAdminPage() {
     updateProduct.mutate({ id, store_sort_order: Math.max(0, newOrder) });
   };
 
+  const updateSinglePrice = async (productId: string) => {
+    setLoadingPrices((prev) => ({ ...prev, [productId]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke("compare-prices", {
+        body: { productId },
+      });
+      if (error) throw error;
+      const count = data?.data?.length || 0;
+      toast.success(count > 0 ? `${count} preços encontrados` : "Sem preços encontrados");
+      queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
+    } catch (err: any) {
+      toast.error("Erro ao pesquisar preços: " + (err.message || "Erro desconhecido"));
+    } finally {
+      setLoadingPrices((prev) => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  const updateAllPrices = async () => {
+    const publishedProducts = products.filter((p) => p.store_published);
+    if (publishedProducts.length === 0) {
+      toast.info("Sem produtos publicados para atualizar");
+      return;
+    }
+
+    setBulkProgress({ current: 0, total: publishedProducts.length });
+
+    let successCount = 0;
+    for (let i = 0; i < publishedProducts.length; i++) {
+      const product = publishedProducts[i];
+      setBulkProgress({ current: i + 1, total: publishedProducts.length });
+      try {
+        await supabase.functions.invoke("compare-prices", {
+          body: { productId: product.id },
+        });
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to update prices for ${product.name}:`, err);
+      }
+    }
+
+    setBulkProgress(null);
+    queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
+    toast.success(`Preços atualizados para ${successCount}/${publishedProducts.length} produtos`);
+  };
+
   const publishedCount = products.filter(p => p.store_published).length;
   const featuredCount = products.filter(p => p.store_featured).length;
 
@@ -128,11 +176,30 @@ export default function StoreProductsAdminPage() {
                 className="pl-9"
               />
             </div>
+            <Button
+              variant="outline"
+              onClick={updateAllPrices}
+              disabled={!!bulkProgress}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${bulkProgress ? "animate-spin" : ""}`} />
+              Atualizar Preços
+            </Button>
             <Button onClick={() => setAiDialogOpen(true)} className="gap-2">
               <Sparkles className="h-4 w-4" />
               Criar com IA
             </Button>
           </div>
+
+          {bulkProgress && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>A pesquisar preços da concorrência...</span>
+                <span>{bulkProgress.current}/{bulkProgress.total}</span>
+              </div>
+              <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2" />
+            </div>
+          )}
 
           <StoreQuickProductDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
 
@@ -168,6 +235,7 @@ export default function StoreProductsAdminPage() {
                   products.map((product) => {
                     const imgIdx = product.primary_image_index ?? 0;
                     const img = product.images?.[imgIdx] || product.images?.[0];
+                    const isLoadingPrice = loadingPrices[product.id];
                     return (
                       <TableRow key={product.id}>
                         <TableCell>
@@ -194,18 +262,30 @@ export default function StoreProductsAdminPage() {
                           €{product.base_price.toFixed(2)}
                         </TableCell>
                         <TableCell className="text-right text-sm">
-                          {product.competitor_price_low != null ? (
-                            <div>
-                              <span className="font-medium">€{product.competitor_price_low.toFixed(2)}</span>
-                              {product.competitor_source && (
-                                <p className="text-xs text-muted-foreground truncate max-w-[120px]" title={product.competitor_source}>
-                                  {product.competitor_source}
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+                          <div className="flex items-center justify-end gap-1">
+                            {product.competitor_price_low != null ? (
+                              <div className="text-right">
+                                <span className="font-medium">€{product.competitor_price_low.toFixed(2)}</span>
+                                {product.competitor_source && (
+                                  <p className="text-xs text-muted-foreground truncate max-w-[120px]" title={product.competitor_source}>
+                                    {product.competitor_source}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 ml-1"
+                              onClick={() => updateSinglePrice(product.id)}
+                              disabled={isLoadingPrice}
+                              title="Pesquisar preços da concorrência"
+                            >
+                              <RefreshCw className={`h-3.5 w-3.5 ${isLoadingPrice ? "animate-spin" : ""}`} />
+                            </Button>
+                          </div>
                         </TableCell>
                         <TableCell className="text-center text-sm">
                           {product.competitor_price_low != null ? (() => {
