@@ -30,6 +30,7 @@ import {
   Bell
 } from "lucide-react";
 import { useState } from "react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 
 export default function B2BPortalSettingsPage() {
   const { currentWorkspace } = useWorkspace();
@@ -38,8 +39,8 @@ export default function B2BPortalSettingsPage() {
 
   // Get portal URL - dynamic based on current origin
   const portalUrl = currentWorkspace?.slug 
-    ? `${window.location.origin}/client/login?workspace=${currentWorkspace.slug}`
-    : `${window.location.origin}/client/login`;
+    ? `${getPublicBaseUrl()}/client/login?workspace=${currentWorkspace.slug}`
+    : `${getPublicBaseUrl()}/client/login`;
 
   // Fetch workspace settings
   const { data: workspace } = useQuery({

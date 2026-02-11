@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -93,7 +94,7 @@ export function ClientUsersList() {
             clientEmail: client.email,
             workspaceName: workspace?.name || "FastCRM",
             workspaceId: client.workspace_id,
-            portalUrl: `${window.location.origin}/client/login`,
+            portalUrl: `${getPublicBaseUrl()}/client/login`,
             temporaryPassword: temporaryPassword,
           },
         }

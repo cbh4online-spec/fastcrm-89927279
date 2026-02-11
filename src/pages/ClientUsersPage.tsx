@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Users, ExternalLink, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 
 export default function ClientUsersPage() {
   const { currentWorkspace } = useWorkspace();
   
   const portalUrl = currentWorkspace?.slug 
-    ? `${window.location.origin}/client/login?workspace=${currentWorkspace.slug}`
-    : `${window.location.origin}/client/login`;
+    ? `${getPublicBaseUrl()}/client/login?workspace=${currentWorkspace.slug}`
+    : `${getPublicBaseUrl()}/client/login`;
 
   const openPortal = () => {
     window.open(portalUrl, "_blank");
