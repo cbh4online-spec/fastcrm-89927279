@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useMemo, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
@@ -18,216 +19,163 @@ export interface InstalledModule {
   module_slug?: string;
 }
 
+async function fetchModules(workspaceId: string): Promise<InstalledModule[]> {
+  const { data: workspaceModules, error: modulesError } = await supabase
+    .from("workspace_modules")
+    .select(`
+      id, workspace_id, module_id, status, subscribed_at,
+      trial_ends_at, current_period_start, current_period_end,
+      cancel_at_period_end, settings
+    `)
+    .eq("workspace_id", workspaceId)
+    .in("status", ["active", "trial"]);
+
+  if (modulesError) throw modulesError;
+  if (!workspaceModules || workspaceModules.length === 0) return [];
+
+  const moduleIds = workspaceModules.map((m) => m.module_id);
+  const { data: marketplaceModules } = await supabase
+    .from("marketplace_modules")
+    .select("id, slug")
+    .in("id", moduleIds);
+
+  const slugMap = new Map(marketplaceModules?.map((m) => [m.id, m.slug]) || []);
+
+  return workspaceModules.map((m) => ({
+    ...m,
+    module_slug: slugMap.get(m.module_id) || undefined,
+  }));
+}
+
 export function useWorkspaceModules() {
   const { currentWorkspace } = useWorkspace();
-  const [installedModules, setInstalledModules] = useState<InstalledModule[]>([]);
-  const [installedModuleIds, setInstalledModuleIds] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const workspaceId = currentWorkspace?.id;
+  const queryKey = ["workspace-modules", workspaceId];
 
-  const fetchInstalledModules = useCallback(async () => {
-    if (!currentWorkspace?.id) {
-      setInstalledModules([]);
-      setInstalledModuleIds([]);
-      setIsLoading(false);
-      return;
-    }
+  const { data: installedModules = [], isLoading, error: queryError } = useQuery({
+    queryKey,
+    queryFn: () => fetchModules(workspaceId!),
+    enabled: !!workspaceId,
+  });
 
-    try {
-      setIsLoading(true);
-      setError(null);
+  const installedModuleIds = useMemo(
+    () => installedModules.map((m) => m.module_slug).filter((s): s is string => !!s),
+    [installedModules]
+  );
 
-      // Fetch installed modules for this workspace from workspace_modules
-      const { data: workspaceModules, error: modulesError } = await supabase
-        .from("workspace_modules")
-        .select(`
-          id,
-          workspace_id,
-          module_id,
-          status,
-          subscribed_at,
-          trial_ends_at,
-          current_period_start,
-          current_period_end,
-          cancel_at_period_end,
-          settings
-        `)
-        .eq("workspace_id", currentWorkspace.id)
-        .in("status", ["active", "trial"]);
+  const installMutation = useMutation({
+    mutationFn: async (moduleSlug: string) => {
+      if (!workspaceId) throw new Error("Nenhum workspace selecionado");
 
-      if (modulesError) {
-        console.error("Error fetching workspace modules:", modulesError);
-        throw modulesError;
-      }
-
-      // If we have modules, fetch their slugs from marketplace_modules
-      if (workspaceModules && workspaceModules.length > 0) {
-        const moduleIds = workspaceModules.map((m) => m.module_id);
-        
-        const { data: marketplaceModules, error: marketplaceError } = await supabase
-          .from("marketplace_modules")
-          .select("id, slug")
-          .in("id", moduleIds);
-
-        if (marketplaceError) {
-          console.error("Error fetching marketplace modules:", marketplaceError);
-        }
-
-        // Create a map of module_id to slug
-        const slugMap = new Map(
-          marketplaceModules?.map((m) => [m.id, m.slug]) || []
-        );
-
-        // Add slugs to the installed modules
-        const modulesWithSlugs = workspaceModules.map((m) => ({
-          ...m,
-          module_slug: slugMap.get(m.module_id) || undefined,
-        }));
-
-        setInstalledModules(modulesWithSlugs);
-        
-        // Set installed module IDs as slugs for compatibility with existing code
-        const slugs = modulesWithSlugs
-          .map((m) => m.module_slug)
-          .filter((slug): slug is string => !!slug);
-        setInstalledModuleIds(slugs);
-      } else {
-        setInstalledModules([]);
-        setInstalledModuleIds([]);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao carregar módulos";
-      setError(errorMessage);
-      console.error("Error in fetchInstalledModules:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentWorkspace?.id]);
-
-  // Refetch when workspace changes
-  useEffect(() => {
-    fetchInstalledModules();
-  }, [fetchInstalledModules]);
-
-  const installModule = useCallback(async (moduleSlug: string) => {
-    if (!currentWorkspace?.id) {
-      toast.error("Nenhum workspace selecionado");
-      return false;
-    }
-
-    try {
-      // First, get the module_id from the slug
       const { data: module, error: moduleError } = await supabase
         .from("marketplace_modules")
         .select("id")
         .eq("slug", moduleSlug)
         .single();
+      if (moduleError || !module) throw new Error("Módulo não encontrado");
 
-      if (moduleError || !module) {
-        throw new Error("Módulo não encontrado");
-      }
-
-      // Check if already installed
       const { data: existing } = await supabase
         .from("workspace_modules")
         .select("id")
-        .eq("workspace_id", currentWorkspace.id)
+        .eq("workspace_id", workspaceId)
         .eq("module_id", module.id)
         .maybeSingle();
-
       if (existing) {
         toast.info("Este módulo já está instalado");
         return false;
       }
 
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Utilizador não autenticado");
-        return false;
-      }
+      if (!user) throw new Error("Utilizador não autenticado");
 
-      // Install the module
       const { error: installError } = await supabase
         .from("workspace_modules")
         .insert({
-          workspace_id: currentWorkspace.id,
+          workspace_id: workspaceId,
           module_id: module.id,
           status: "active",
           subscribed_by: user.id,
           current_period_start: new Date().toISOString(),
         });
-
-      if (installError) {
-        throw installError;
-      }
-
-      toast.success("Módulo instalado com sucesso!");
-      await fetchInstalledModules();
+      if (installError) throw installError;
       return true;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao instalar módulo";
-      toast.error(errorMessage);
-      console.error("Error installing module:", err);
-      return false;
-    }
-  }, [currentWorkspace?.id, fetchInstalledModules]);
+    },
+    onSuccess: (installed) => {
+      if (installed) {
+        toast.success("Módulo instalado com sucesso!");
+        queryClient.invalidateQueries({ queryKey });
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Erro ao instalar módulo");
+    },
+  });
 
-  const uninstallModule = useCallback(async (moduleSlug: string) => {
-    if (!currentWorkspace?.id) {
-      toast.error("Nenhum workspace selecionado");
-      return false;
-    }
+  const uninstallMutation = useMutation({
+    mutationFn: async (moduleSlug: string) => {
+      if (!workspaceId) throw new Error("Nenhum workspace selecionado");
 
-    try {
-      // First, get the module_id from the slug
       const { data: module, error: moduleError } = await supabase
         .from("marketplace_modules")
         .select("id")
         .eq("slug", moduleSlug)
         .single();
+      if (moduleError || !module) throw new Error("Módulo não encontrado");
 
-      if (moduleError || !module) {
-        throw new Error("Módulo não encontrado");
-      }
-
-      // Update status to canceled instead of deleting
       const { error: updateError } = await supabase
         .from("workspace_modules")
-        .update({ 
-          status: "canceled",
-          cancel_at_period_end: true 
-        })
-        .eq("workspace_id", currentWorkspace.id)
+        .update({ status: "canceled", cancel_at_period_end: true })
+        .eq("workspace_id", workspaceId)
         .eq("module_id", module.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
       toast.success("Módulo desinstalado com sucesso!");
-      await fetchInstalledModules();
-      return true;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao desinstalar módulo";
-      toast.error(errorMessage);
-      console.error("Error uninstalling module:", err);
-      return false;
-    }
-  }, [currentWorkspace?.id, fetchInstalledModules]);
+      queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Erro ao desinstalar módulo");
+    },
+  });
 
-  const isModuleInstalled = useCallback((moduleSlug: string) => {
-    return installedModuleIds.includes(moduleSlug);
-  }, [installedModuleIds]);
+  const installModule = useCallback(
+    async (moduleSlug: string) => {
+      try {
+        const result = await installMutation.mutateAsync(moduleSlug);
+        return result;
+      } catch {
+        return false;
+      }
+    },
+    [installMutation]
+  );
+
+  const uninstallModule = useCallback(
+    async (moduleSlug: string) => {
+      try {
+        await uninstallMutation.mutateAsync(moduleSlug);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [uninstallMutation]
+  );
+
+  const isModuleInstalled = useCallback(
+    (moduleSlug: string) => installedModuleIds.includes(moduleSlug),
+    [installedModuleIds]
+  );
 
   return {
     installedModules,
     installedModuleIds,
     isLoading,
-    error,
+    error: queryError ? (queryError as Error).message : null,
     installModule,
     uninstallModule,
     isModuleInstalled,
-    refresh: fetchInstalledModules,
+    refresh: () => queryClient.invalidateQueries({ queryKey }),
   };
 }
