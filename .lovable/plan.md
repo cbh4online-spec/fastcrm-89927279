@@ -1,45 +1,53 @@
 
 
-# Criar Banner Fotográfico para a Comunidade
+# Adicionar 3 Novos Modulos ao Marketplace
 
-## O que vou fazer
+## Modulos a Criar
 
-Gerar uma imagem de banner fotográfica/realista usando IA (modelo de geração de imagem) e implementar a lógica para:
+Adicionar ao array `SAMPLE_MODULES` em `src/types/marketplace.ts` tres novos modulos:
 
-1. **Gerar a imagem** via edge function usando o modelo `google/gemini-2.5-flash-image`
-2. **Guardar no storage** no bucket `community-assets`
-3. **Atualizar o `banner_url`** na tabela `community_settings`
+### 1. Loja Online (E-Commerce)
+- **id/slug**: `online-store`
+- **Categoria**: `sales`
+- **Icon**: `ShoppingBag`
+- **Tagline**: "A sua loja online integrada no CRM"
+- **Descricao**: Venda produtos e servicos com loja publica, carrinho de compras, checkout Stripe e gestao de encomendas -- tudo sem sair do CRM.
+- **Pricing**: fixed_monthly, 49 EUR, trial 14 dias
+- **internal_type**: `native_feature`
+- **is_featured**: true, **is_new**: true
 
-## Abordagem
+### 2. Marketplace C2C
+- **id/slug**: `marketplace-c2c`
+- **Categoria**: `sales`
+- **Icon**: `Store`
+- **Tagline**: "Marketplace entre membros da sua comunidade"
+- **Descricao**: Permita que os membros comprem e vendam entre si. Anuncios com moderacao automatica, chat direto, comissoes configuráveis e sistema de reputacao integrado.
+- **Pricing**: fixed_monthly, 79 EUR, trial 14 dias
+- **internal_type**: `native_feature`
+- **is_featured**: true, **is_new**: true
 
-Como o banner é usado no hero da página e na sidebar, vou criar uma edge function que:
-- Gera uma imagem realista/fotográfica (estilo equipa tech, networking, comunidade digital)
-- Faz upload para o bucket `community-assets`
-- Retorna o URL público
+### 3. FastClub (Comunidade)
+- **id/slug**: `fastclub`
+- **Categoria**: `communication`
+- **Icon**: `Users`
+- **Tagline**: "Comunidade privada para os seus clientes"
+- **Descricao**: Crie uma comunidade exclusiva com forum de discussao, eventos, canais tematicos e gate de acesso com aprovacao. Ideal para fidelizacao e networking.
+- **Pricing**: fixed_monthly, 59 EUR, trial 14 dias
+- **internal_type**: `native_feature`
+- **is_featured**: true, **is_new**: true
 
-Depois, no componente de settings (`CommunitySettingsDialog`), vou adicionar um botão "Gerar com IA" ao lado do upload manual de banner, para que possas gerar e pré-visualizar antes de guardar.
+## Ficheiro a Alterar
 
-## Detalhes Técnicos
-
-### Ficheiros a criar/alterar
-
-| Ficheiro | Acção |
+| Ficheiro | Alteracao |
 |---|---|
-| `supabase/functions/generate-community-banner/index.ts` | Nova edge function para gerar imagem via IA |
-| `src/components/community/CommunitySettingsDialog.tsx` | Adicionar botão "Gerar Banner com IA" |
+| `src/types/marketplace.ts` | Adicionar 3 objetos `MarketplaceModule` ao final do array `SAMPLE_MODULES` |
 
-### Edge Function: `generate-community-banner`
+## Detalhes de Cada Modulo
 
-- Recebe: `{ prompt?: string }` (opcional, para personalizar)
-- Usa modelo `google/gemini-2.5-flash-image` com prompt fotográfico
-- Converte base64 para file e faz upload para `community-assets`
-- Retorna `{ url: string }` com o URL público
+Cada modulo seguira o padrao exacto dos existentes, com:
+- Permissoes adequadas (data_permissions, workspace_isolation)
+- Casos de uso e resultados esperados relevantes
+- Publico-alvo especifico
+- Datas de criacao actuais (2025-02)
 
-### Prompt da imagem
-
-Gerar uma imagem fotográfica realista com tema de comunidade/tecnologia/networking, optimizada para formato banner (16:9), com tons profissionais.
-
-### Botão no Settings
-
-No separador de "Imagem de Capa", adicionar um botão "Gerar com IA" que chama a edge function, mostra loading, e pré-carrega a imagem gerada como banner.
-
+Nenhuma alteracao na base de dados e necessaria -- os modulos sao definidos estaticamente no codigo.
