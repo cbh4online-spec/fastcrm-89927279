@@ -1,87 +1,78 @@
 
-# Pagina Publica Identica ao FastClubPage
 
-## Resumo
+# Gate de Acesso a Comunidade: Registo + Aprovacao
 
-Reescrever o `PublicCommunityPage.tsx` para ser visualmente identico ao `FastClubPage`, incluindo:
-- Hero identico (logo, nome, subtitulo, stats com 4 metricas)
-- Layout 3 colunas com sidebar
-- Todas as tabs visiveis (Discussao, Eventos, Classificacao, Membros, Acerca de)
-- Barra de pesquisa + category pills
-- Sidebar com info da comunidade, stats e membros
+## Problema Actual
 
-A diferenca: funcionalidades interativas (criar topico, criar evento, convidar, resgatar pontos, admin) ficam bloqueadas -- aparece o CTA de registo/aprovacao.
+A pagina publica `/club/:slug` mostra todo o conteudo livremente. Apos registo, o utilizador fica imediatamente autenticado mas nao existe verificacao de membership -- nao ha necessidade de ser aprovado para aceder.
+
+## Solucao
+
+Criar um fluxo de acesso com 3 estados:
+
+1. **Visitante (nao autenticado)** -- ve a pagina publica com CTA para registar
+2. **Registado mas pendente** -- ve um ecra de "pedido pendente" apos registo, a aguardar aprovacao do admin
+3. **Membro aprovado** -- redireccionado para o dashboard interno (`/dashboard/fastclub`)
+
+## Fluxo
+
+```text
+Visitante --> Regista-se (/club/:slug/auth)
+         --> Cria conta + cria registo em community_members (status: "pending")
+         --> Redireccionado para /club/:slug
+         --> PublicCommunityPage detecta user autenticado + status "pending"
+         --> Mostra ecra "Pedido de adesao enviado, aguarda aprovacao"
+
+Admin aprova no painel --> status muda para "active"
+         --> Membro acede /club/:slug
+         --> Detecta status "active" --> redireciona para /dashboard/fastclub
+```
 
 ## Ficheiros a Alterar
 
 | Ficheiro | O que muda |
 |---|---|
-| `src/pages/community/PublicCommunityPage.tsx` | Reescrita completa para espelhar FastClubPage |
-| `src/hooks/usePublicCommunity.ts` | Adicionar hooks para membros e leaderboard publicos |
-| `src/components/community/PublicCommunitySidebar.tsx` | **Novo** - sidebar publica (sem hooks autenticados) |
+| `src/pages/community/PublicCommunityPage.tsx` | Adicionar verificacao de membership: se user autenticado, verificar se e membro e o status |
+| `src/pages/community/CommunityAuthPage.tsx` | Apos signup, criar registo em `community_members` com status "pending" |
+| `src/hooks/usePublicCommunity.ts` | Novo hook `usePublicMembershipStatus` para verificar status do user na comunidade |
 
 ## Detalhes Tecnicos
 
-### 1. Novos hooks publicos (`usePublicCommunity.ts`)
+### 1. Novo hook: `usePublicMembershipStatus(workspaceId, userId)`
 
-Adicionar:
-- `usePublicCommunityMembers(workspaceId)` - busca membros via `community_members` ou `workspace_members` (dados publicos)
-- `usePublicCommunityLinks(workspaceId)` - busca links da comunidade
+Verifica se o utilizador autenticado e membro da comunidade:
+- Procura em `workspace_members` (membros directos do workspace)
+- Procura em `community_members` (membros da comunidade por email/user_id)
+- Retorna: `{ status: "none" | "pending" | "active" | "workspace_member", isLoading }`
 
-### 2. PublicCommunitySidebar (novo componente)
+### 2. CommunityAuthPage -- criar membership apos signup
 
-Versao publica do `CommunitySidebar` que usa os hooks publicos em vez dos autenticados (`useWorkspaceMembers`). Mesmo layout visual:
-- Banner gradient
-- Nome + badge Publico
-- Stats (Membros, Posts, Admins)
-- Avatares de membros recentes
-- Botao "Registar" em vez de "Convidar Membros"
+No `handleFinalSubmit`, apos `signUp` com sucesso:
+- Criar registo em `community_members` com `status: "pending"`, `email`, `name`, `workspace_id`
+- Isto garante que o admin pode ver e aprovar o pedido
 
-### 3. PublicCommunityPage (reescrita)
+### 3. PublicCommunityPage -- logica de acesso
 
-Copiar a estrutura exacta do `FastClubPage`:
+Apos verificar autenticacao:
+- Se `status === "workspace_member"` ou `status === "active"`: redirecionar para `/dashboard/fastclub`
+- Se `status === "pending"`: mostrar ecra de espera com mensagem "O teu pedido de adesao esta a ser analisado"
+- Se `status === "none"` (autenticado mas sem pedido): mostrar a pagina publica normalmente com CTA para pedir adesao
+
+### Ecra de estado "Pendente"
 
 ```text
 +-----------------------------------------------+
-|  HERO (identico ao FastClubPage)               |
-|  [<-] [Logo] FastClub                          |
-|       Comunidade . Gamificacao . Recompensas   |
-|  Stats: X Topicos | Y Respostas | Z Canais    |
-+-----------------------------------------------+
-|  Card gamificacao: visivel mas com overlay      |
-|  "Regista-te para ganhar pontos"               |
-+-----------------------------------------------+
-|  Tabs: Discussao | Eventos | Classificacao |   |
-|        Membros | Acerca de                     |
-+-----------------------------------------------+
-|  Layout 3 colunas:                             |
-|  [Conteudo principal 2/3] [Sidebar 1/3]        |
+|  [Logo] Nome da Comunidade                     |
 |                                                |
-|  Tab Discussao:                                |
-|    [Evento banner]                             |
-|    [Pesquisar topicos...] [+ Novo (disabled)]  |
-|    [Category pills]                            |
-|    [SocialPostCards]                            |
+|  [Icone relogio]                               |
+|  "Pedido de Adesao Enviado"                    |
+|  "O teu pedido esta a ser analisado pela       |
+|   equipa. Seras notificado quando for aprovado"|
 |                                                |
-|  Tab Eventos: cards (sem criar)                |
-|  Tab Classificacao: placeholder/preview        |
-|  Tab Membros: lista basica                     |
-|  Tab Acerca de: CommunityAbout publico         |
-+-----------------------------------------------+
-|  CTA fixo: "Regista-te para participar"        |
+|  [Botao: Voltar ao inicio]                     |
 +-----------------------------------------------+
 ```
 
-### Comportamento do gate de acesso
-
-- Conteudo e **totalmente visivel** (topicos, eventos, membros, etc.)
-- Interacoes bloqueadas: criar topico, responder, votar, resgatar pontos
-- Ao clicar num topico sem estar autenticado: redireciona para `/club/:slug/auth`
-- Botao "+ Novo" aparece mas redireciona para auth
-- Card de gamificacao mostra preview generico com CTA de registo
-- Sidebar mostra "Registar" em vez de "Convidar"
-- Apos registo, o utilizador precisa de aprovacao (fluxo existente mantido)
-
 ### Sem alteracoes na base de dados
 
-Os dados publicos ja estao acessiveis via RLS existente. Apenas precisamos de novos hooks que fazem queries directas sem contexto de workspace autenticado.
+A tabela `community_members` ja tem o campo `status` (text) e ja suporta o valor "pending". Apenas precisamos de utilizar este campo correctamente no fluxo.
