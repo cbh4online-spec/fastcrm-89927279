@@ -1,116 +1,59 @@
 
 
-# Sistema de Convites para o Marketplace C2C
+# Melhorar a Pagina "Meus Anuncios"
 
-## Resumo
+## Problema Atual
 
-Criar um sistema de convites que permite ao admin do workspace convidar pessoas para se tornarem vendedores no Marketplace C2C. O convite e enviado por email com um link unico que leva diretamente ao registo de vendedor, pre-preenchendo dados e agilizando o onboarding.
+A pagina esta muito basica e vazia visualmente. Parece uma lista simples sem dashboard de vendedor, sem resumo de performance, e o estado vazio nao inspira acao. Para competir com Vinted/OLX, precisa de parecer um painel profissional de vendas.
 
-## Funcionalidades
+## Melhorias Planeadas
 
-### 1. Painel de Convites no Admin de Vendedores
-Na pagina de gestao de vendedores (`C2CSellersAdmin`), adicionar uma tab ou botao "Convidar Vendedor" que permite:
-- Inserir nome, email e mensagem personalizada opcional
-- Ver lista de convites enviados (pendentes, aceites, expirados)
-- Reenviar convite expirado
-- Revogar convite pendente
+### 1. Dashboard de KPIs no Topo
+Adicionar cards de resumo antes da lista de anuncios:
+- Total de anuncios ativos
+- Total de visualizacoes
+- Total de favoritos recebidos
+- Total de mensagens/ofertas
 
-### 2. Email de Convite Personalizado
-Email enviado via Resend com template branded do workspace contendo:
-- Nome do marketplace e logo
-- Mensagem personalizada do admin
-- Beneficios de vender na plataforma (comissoes, visibilidade, ferramentas)
-- Botao de acao com link unico de convite
-- Validade de 7 dias
+### 2. Estado Vazio Inspirador
+Substituir o texto simples "Ainda nao tens anuncios" por uma secao com:
+- Ilustracao/icone grande atrativo (Package icon)
+- Titulo motivacional
+- 3 beneficios de vender na plataforma (icones + texto)
+- CTA mais visivel
 
-### 3. Pagina de Ativacao do Convite
-Nova pagina publica `/c2c/:workspaceSlug/invite/:token` que:
-- Valida o token do convite
-- Pre-preenche nome e email no formulario de registo de vendedor
-- Cria conta de auth automaticamente (se nao existir)
-- Ativa o vendedor com status "approved" (aprovacao automatica por convite)
-- Redireciona para o marketplace apos ativacao
+### 3. Cards de Anuncio Melhorados
+Cada card passa a ter:
+- Imagem maior (80x80 em vez de 64x64)
+- Data de criacao ("ha X dias")
+- Condicao do item (Novo, Usado, etc.)
+- Botoes de partilha integrados (WhatsApp, copiar link)
+- Separacao visual entre info e acoes com layout mais limpo
+- Dropdown de acoes em vez de botoes soltos (mais limpo)
 
-### 4. Convites em Massa (CSV)
-Opcao de importar lista de emails via CSV para enviar convites em lote.
+### 4. Filtros por Estado
+Tabs ou chips para filtrar anuncios por estado: Todos, Ativos, Pausados, Vendidos - para quem tem muitos anuncios.
+
+### 5. Skeleton Loading
+Substituir o texto "A carregar..." por skeleton cards animados.
 
 ## Seccao Tecnica
 
-### Migracao SQL
+### Ficheiro Modificado: `src/pages/c2c/C2CMyListings.tsx`
 
-```sql
-CREATE TABLE public.c2c_seller_invites (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES public.workspaces(id),
-  email TEXT NOT NULL,
-  name TEXT NOT NULL,
-  message TEXT,
-  invite_token TEXT NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
-  status TEXT NOT NULL DEFAULT 'pending',  -- pending, accepted, expired, revoked
-  invited_by UUID NOT NULL,
-  accepted_at TIMESTAMPTZ,
-  expires_at TIMESTAMPTZ DEFAULT (now() + interval '7 days'),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+Reescrever com:
+- Cards de KPI no topo (usando dados agregados dos listings)
+- Tabs de filtro por estado (all, active, paused, sold)
+- Cards de anuncio redesenhados com mais info e dropdown de acoes
+- Estado vazio com ilustracao e beneficios
+- Skeleton loading com 3 cards placeholder
+- Integracao do componente ShareButtons por anuncio
+- Formatacao de datas relativas com date-fns
 
-ALTER TABLE public.c2c_seller_invites ENABLE ROW LEVEL SECURITY;
+### Ficheiro Modificado: `src/components/c2c/ListingStats.tsx`
 
--- Super admins podem gerir convites
-CREATE POLICY "Super admins manage seller invites"
-  ON public.c2c_seller_invites FOR ALL
-  TO authenticated
-  USING (public.is_super_admin(auth.uid()));
+Sem alteracoes estruturais, apenas garantir que o componente esta bem integrado.
 
--- Leitura publica por token (para validacao na pagina de convite)
-CREATE POLICY "Anyone can read invite by token"
-  ON public.c2c_seller_invites FOR SELECT
-  TO anon, authenticated
-  USING (true);
-```
-
-### Nova Edge Function: `supabase/functions/send-c2c-seller-invite/index.ts`
-
-- Recebe: email, nome, mensagem, workspaceId
-- Gera registo na tabela `c2c_seller_invites`
-- Busca template/branding do workspace
-- Envia email via Resend com link `{domain}/c2c/{slug}/invite/{token}`
-- Suporta envio em lote (array de convites)
-
-### Nova Edge Function: `supabase/functions/activate-c2c-seller-invite/index.ts`
-
-- Recebe: token, password, dados do vendedor (telefone, IBAN, NIF opcionais)
-- Valida token (existencia, expiracao, status)
-- Cria utilizador auth (ou atualiza password se ja existe)
-- Cria registo em `c2c_sellers` com status "approved"
-- Marca convite como "accepted"
-- Retorna authUserId para login automatico
-
-### Novos Ficheiros
-
-| Ficheiro | Descricao |
-|---|---|
-| `src/hooks/useC2CSellerInvites.ts` | Hook com queries para listar, criar, revogar e reenviar convites |
-| `src/components/c2c/SellerInviteDialog.tsx` | Dialog para enviar convite individual ou em massa (CSV) |
-| `src/components/c2c/SellerInvitesList.tsx` | Tabela de convites enviados com status e acoes |
-| `src/pages/c2c/C2CSellerInviteActivation.tsx` | Pagina publica de ativacao do convite |
-| `supabase/functions/send-c2c-seller-invite/index.ts` | Edge function para envio de email |
-| `supabase/functions/activate-c2c-seller-invite/index.ts` | Edge function para ativacao |
-
-### Ficheiros Modificados
-
-| Ficheiro | Alteracao |
-|---|---|
-| `src/pages/c2c/C2CSellersAdmin.tsx` | Adicionar botao "Convidar Vendedor" e tab de convites |
-| `src/App.tsx` | Adicionar rota publica `/c2c/:workspaceSlug/invite/:token` |
-| `supabase/config.toml` | Registar as 2 novas edge functions |
-
-### Fluxo do Convite
-
-1. Admin abre gestao de vendedores e clica "Convidar Vendedor"
-2. Preenche nome, email e mensagem opcional (ou importa CSV)
-3. Sistema envia email com link unico
-4. Convidado clica no link e chega a pagina de ativacao
-5. Define password e preenche dados de vendedor (IBAN, NIF, etc.)
-6. Conta e criada automaticamente com status "approved" (sem necessidade de aprovacao manual)
-7. Vendedor e redirecionado para o marketplace, pronto a publicar anuncios
+### Sem alteracoes de base de dados
+Tudo usa dados ja existentes (views_count, favorites_count, messages_count, status).
 
