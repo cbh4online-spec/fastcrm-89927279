@@ -112,6 +112,10 @@ export default function FastClubPage() {
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/80">
+        {communitySettings?.banner_url && (
+          <img src={communitySettings.banner_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        )}
+        <div className="absolute inset-0 bg-primary/60" />
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, hsl(var(--primary-foreground)) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
         <div className="relative container mx-auto px-4 pt-6 pb-10">
