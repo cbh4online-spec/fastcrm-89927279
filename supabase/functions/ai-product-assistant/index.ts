@@ -75,7 +75,62 @@ interface SKUSearchResult {
   specifications?: ProductSpecifications;
 }
 
-serve(async (req) => {
+  // Helper: search for brand logo via Firecrawl
+  async function searchBrandLogo(brandName: string, firecrawlKey: string): Promise<string | null> {
+    if (!brandName || !firecrawlKey) return null;
+    
+    try {
+      console.log('Searching brand logo for:', brandName);
+      const logoQuery = `"${brandName}" official logo png transparent`;
+      
+      const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: logoQuery,
+          limit: 3,
+          scrapeOptions: { formats: ['markdown', 'html'] }
+        }),
+      });
+
+      if (!searchResponse.ok) return null;
+      
+      const searchData = await searchResponse.json();
+      const results = searchData.data || [];
+      
+      // Extract logo image URLs from results
+      const logoUrls: string[] = [];
+      for (const result of results) {
+        const content = (result.markdown || '') + (result.html || '') + (result.description || '');
+        
+        // Match image URLs that look like logos
+        const imgRegex = /(https?:\/\/[^\s<>"]+\.(?:png|svg|webp|jpg|jpeg)(?:\?[^\s<>"]*)?)/gi;
+        let match;
+        while ((match = imgRegex.exec(content)) !== null) {
+          const url = match[1];
+          const lower = url.toLowerCase();
+          // Prefer URLs that contain logo-related terms
+          if (lower.includes('logo') || lower.includes('brand') || lower.includes(brandName.toLowerCase().replace(/\s+/g, ''))) {
+            logoUrls.unshift(url); // prioritize
+          } else if (!lower.includes('icon') && !lower.includes('favicon') && !lower.includes('1x1') && !lower.includes('pixel') && !lower.includes('placeholder')) {
+            logoUrls.push(url);
+          }
+        }
+      }
+      
+      const bestLogo = [...new Set(logoUrls)][0] || null;
+      console.log('Brand logo found:', bestLogo ? 'yes' : 'no');
+      return bestLogo;
+    } catch (e) {
+      console.error('Brand logo search failed:', e);
+      return null;
+    }
+  }
+
+  serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -414,6 +469,16 @@ REGRAS para descrição comercial:
       }
 
       console.log('Extraction result with images:', result.images?.length || 0, 'images found');
+
+      // Search for brand logo
+      const brand = result.specifications?.brand;
+      if (brand && FIRECRAWL_API_KEY) {
+        const brandLogoUrl = await searchBrandLogo(brand, FIRECRAWL_API_KEY);
+        if (brandLogoUrl) {
+          (result as any).brandLogoUrl = brandLogoUrl;
+        }
+      }
+
       console.log('Extraction result:', JSON.stringify(result, null, 2));
 
       return new Response(JSON.stringify({
@@ -1392,6 +1457,15 @@ Se não conseguir identificar o produto, responda: {"found": false}`;
           imageResult.imageUrl = extractedImages[0];
           imageResult.sources = enrichedSources;
           imageResult.source = enrichedSources[0];
+        }
+      }
+
+      // Search for brand logo
+      const brand = imageResult.specifications?.brand;
+      if (brand && FIRECRAWL_API_KEY) {
+        const brandLogoUrl = await searchBrandLogo(brand, FIRECRAWL_API_KEY);
+        if (brandLogoUrl) {
+          (imageResult as any).brandLogoUrl = brandLogoUrl;
         }
       }
 
