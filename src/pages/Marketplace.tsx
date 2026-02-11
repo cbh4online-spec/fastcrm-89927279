@@ -45,7 +45,7 @@ export default function Marketplace() {
     }
 
     return modules;
-  }, [searchQuery, selectedCategory, activeTab]);
+  }, [searchQuery, selectedCategory, activeTab, installedModuleIds]);
 
   const featuredModules = useMemo(() => {
     return SAMPLE_MODULES.filter(m => m.is_featured);
