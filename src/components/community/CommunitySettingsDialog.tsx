@@ -31,6 +31,7 @@ const tabs = [
   { id: "subscription", label: "Assinatura", icon: CreditCard },
   { id: "brand", label: "Marca", icon: Palette },
   { id: "theme", label: "Tema", icon: Palette },
+  { id: "privacy", label: "Privacidade", icon: Eye },
   { id: "newsletter", label: "Newsletter", icon: Mail },
   { id: "links", label: "Links", icon: Link2 },
   { id: "tabs", label: "Separadores", icon: Eye },
@@ -87,6 +88,9 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
   const [category, setCategory] = useState("");
   const [isDiscoverable, setIsDiscoverable] = useState(false);
   const [customDomain, setCustomDomain] = useState("");
+  const [allowAnonymousProfiles, setAllowAnonymousProfiles] = useState(false);
+  const [defaultProfilePrivate, setDefaultProfilePrivate] = useState(false);
+  const [forceAnonymous, setForceAnonymous] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [generatingBanner, setGeneratingBanner] = useState(false);
@@ -107,6 +111,9 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       setCategory((settings as any).category || "");
       setIsDiscoverable((settings as any).is_discoverable || false);
       setCustomDomain((settings as any).custom_domain || "");
+      setAllowAnonymousProfiles((settings as any).allow_anonymous_profiles || false);
+      setDefaultProfilePrivate((settings as any).default_profile_private || false);
+      setForceAnonymous((settings as any).force_anonymous || false);
       if ((settings as any).visible_tabs) {
         setVisibleTabs((settings as any).visible_tabs);
       }
@@ -128,6 +135,9 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       category: category || null,
       is_discoverable: isDiscoverable,
       custom_domain: customDomain.trim() || null,
+      allow_anonymous_profiles: allowAnonymousProfiles,
+      default_profile_private: defaultProfilePrivate,
+      force_anonymous: forceAnonymous,
     } as any);
   };
 
@@ -336,6 +346,44 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
                       <Input value={primaryColor} onChange={e => { setPrimaryColor(e.target.value); setThemePreset("custom"); }} placeholder="#6366f1" className="flex-1" />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* PRIVACIDADE */}
+              {tab === "privacy" && (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Configure as opções de privacidade e anonimato para os membros da comunidade.
+                    Ideal para comunidades sensíveis (terapia, saúde, grupos de apoio).
+                  </p>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div>
+                      <p className="text-sm font-medium">Permitir Perfis Anónimos</p>
+                      <p className="text-xs text-muted-foreground">Os membros podem ocultar o seu perfil, usar pseudónimos e esconder o email</p>
+                    </div>
+                    <Switch checked={allowAnonymousProfiles} onCheckedChange={setAllowAnonymousProfiles} />
+                  </div>
+
+                  {allowAnonymousProfiles && (
+                    <>
+                      <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div>
+                          <p className="text-sm font-medium">Perfil Privado por Defeito</p>
+                          <p className="text-xs text-muted-foreground">Novos membros entram com perfil oculto automaticamente</p>
+                        </div>
+                        <Switch checked={defaultProfilePrivate} onCheckedChange={setDefaultProfilePrivate} />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+                        <div>
+                          <p className="text-sm font-medium">Forçar Anonimato Total</p>
+                          <p className="text-xs text-muted-foreground">Todos os membros aparecem como anónimos, sem opção individual</p>
+                        </div>
+                        <Switch checked={forceAnonymous} onCheckedChange={setForceAnonymous} />
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

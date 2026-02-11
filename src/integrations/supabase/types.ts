@@ -4836,13 +4836,17 @@ export type Database = {
         Row: {
           contact_id: string | null
           created_at: string | null
+          display_alias: string | null
           email: string
           id: string
           invite_expires_at: string | null
           invite_token: string | null
           invited_by: string | null
+          is_profile_public: boolean
           joined_at: string | null
           name: string
+          show_avatar: boolean
+          show_email: boolean
           status: string
           user_id: string | null
           workspace_id: string
@@ -4850,13 +4854,17 @@ export type Database = {
         Insert: {
           contact_id?: string | null
           created_at?: string | null
+          display_alias?: string | null
           email: string
           id?: string
           invite_expires_at?: string | null
           invite_token?: string | null
           invited_by?: string | null
+          is_profile_public?: boolean
           joined_at?: string | null
           name: string
+          show_avatar?: boolean
+          show_email?: boolean
           status?: string
           user_id?: string | null
           workspace_id: string
@@ -4864,13 +4872,17 @@ export type Database = {
         Update: {
           contact_id?: string | null
           created_at?: string | null
+          display_alias?: string | null
           email?: string
           id?: string
           invite_expires_at?: string | null
           invite_token?: string | null
           invited_by?: string | null
+          is_profile_public?: boolean
           joined_at?: string | null
           name?: string
+          show_avatar?: boolean
+          show_email?: boolean
           status?: string
           user_id?: string | null
           workspace_id?: string
@@ -4987,12 +4999,15 @@ export type Database = {
       }
       community_settings: {
         Row: {
+          allow_anonymous_profiles: boolean
           banner_url: string | null
           category: string | null
           created_at: string
           custom_domain: string | null
+          default_profile_private: boolean
           description: string | null
           favicon_url: string | null
+          force_anonymous: boolean
           id: string
           is_discoverable: boolean | null
           is_private: boolean
@@ -5010,12 +5025,15 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          allow_anonymous_profiles?: boolean
           banner_url?: string | null
           category?: string | null
           created_at?: string
           custom_domain?: string | null
+          default_profile_private?: boolean
           description?: string | null
           favicon_url?: string | null
+          force_anonymous?: boolean
           id?: string
           is_discoverable?: boolean | null
           is_private?: boolean
@@ -5033,12 +5051,15 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          allow_anonymous_profiles?: boolean
           banner_url?: string | null
           category?: string | null
           created_at?: string
           custom_domain?: string | null
+          default_profile_private?: boolean
           description?: string | null
           favicon_url?: string | null
+          force_anonymous?: boolean
           id?: string
           is_discoverable?: boolean | null
           is_private?: boolean

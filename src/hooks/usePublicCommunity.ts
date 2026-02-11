@@ -113,6 +113,16 @@ export function usePublicCommunityMembers(workspaceId: string | undefined) {
     queryKey: ["public-community-members", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
+
+      // Get community settings for privacy config
+      const { data: csettings } = await supabase
+        .from("community_settings")
+        .select("force_anonymous, allow_anonymous_profiles")
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
+
+      const forceAnon = (csettings as any)?.force_anonymous === true;
+
       const { data: members, error } = await supabase
         .from("workspace_members")
         .select("id, user_id, role, created_at")
@@ -128,10 +138,28 @@ export function usePublicCommunityMembers(workspaceId: string | undefined) {
         .in("user_id", userIds);
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]));
 
-      return members.map((m) => ({
-        ...m,
-        profile: profileMap.get(m.user_id) || null,
-      }));
+      // Also get community_members privacy settings
+      const { data: cmMembers } = await supabase
+        .from("community_members")
+        .select("user_id, is_profile_public, display_alias, show_email, show_avatar")
+        .eq("workspace_id", workspaceId);
+      const cmMap = new Map((cmMembers || []).map((cm: any) => [cm.user_id, cm]));
+
+      return members.map((m) => {
+        const profile = profileMap.get(m.user_id) || null;
+        const privacy = cmMap.get(m.user_id);
+        const isPrivate = privacy?.is_profile_public === false;
+        const showAnon = forceAnon || isPrivate;
+
+        return {
+          ...m,
+          profile: showAnon
+            ? { ...profile, full_name: (privacy as any)?.display_alias || "Membro Anónimo", avatar_url: null }
+            : profile,
+          is_anonymous: showAnon,
+          is_profile_public: !isPrivate,
+        };
+      });
     },
     enabled: !!workspaceId,
   });

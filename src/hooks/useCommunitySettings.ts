@@ -22,6 +22,9 @@ export interface CommunitySettings {
   category: string | null;
   custom_domain: string | null;
   is_discoverable: boolean;
+  allow_anonymous_profiles: boolean;
+  default_profile_private: boolean;
+  force_anonymous: boolean;
   created_at: string;
   updated_at: string;
 }
