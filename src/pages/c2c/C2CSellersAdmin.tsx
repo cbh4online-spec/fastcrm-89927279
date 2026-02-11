@@ -425,7 +425,11 @@ export default function C2CSellersAdmin() {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const { data: sellers = [], isLoading } = useC2CSellers(workspaceId);
-  const { data: invites = [] } = useC2CSellerInvites(workspaceId);
+  const { data: allInvites = [] } = useC2CSellerInvites(workspaceId);
+  // Deduplicate: keep only the most recent invite per email (query ordered by created_at DESC)
+  const invites = allInvites.filter((invite, index) => 
+    allInvites.findIndex(i => i.email === invite.email) === index
+  );
   const updateStatus = useUpdateSellerStatus(workspaceId);
   const bulkUpdate = useBulkUpdateSellers();
   const isMobile = useIsMobile();
