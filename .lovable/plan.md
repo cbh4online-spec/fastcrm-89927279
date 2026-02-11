@@ -1,27 +1,26 @@
 
-# Esconder Instagram Looter quando não instalado
+# Corrigir Instagram Looter no menu lateral
 
 ## Problema
-O grupo **Instagram Looter** no menu lateral não respeita a lógica de módulos. Está condicionado apenas pelo slug do workspace (`metodopare`), mas não tem `moduleSlug` definido, por isso aparece sempre independentemente de estar instalado ou não.
+O Instagram Looter esta renderizado **fora** do array `filteredNavigationGroups`, directamente no JSX com apenas uma verificacao de workspace (`metodopare`). A propriedade `moduleSlug` que adicionamos nao tem efeito porque o `renderNavGroup` nao verifica modulos instalados -- essa logica so existe no `useMemo` que filtra o array `navigationGroups`.
 
-## Solução
-Adicionar `moduleSlug: "instagram-looter"` ao grupo de navegação do Instagram Looter no ficheiro `src/components/layout/Sidebar.tsx` (linha ~574). A lógica de filtragem existente tratará de o esconder automaticamente quando não estiver instalado.
+## Solucao
+Adicionar uma verificacao de `installedModuleIds` ao bloco condicional do Instagram Looter, para que alem de verificar o workspace, tambem verifique se o modulo esta instalado.
 
-## Secção Técnica
+## Seccao Tecnica
 
 ### Ficheiro a alterar
 
-**`src/components/layout/Sidebar.tsx`** -- linha ~574, adicionar `moduleSlug` ao objecto do grupo:
+**`src/components/layout/Sidebar.tsx`** -- linha 569
 
+Alterar de:
 ```typescript
-{
-  name: "Instagram Looter",
-  icon: Instagram,
-  tooltip: "Prospecção via Instagram",
-  highlight: true,
-  moduleSlug: "instagram-looter",  // <-- adicionar esta linha
-  items: [ ... ]
-}
+{currentWorkspace?.slug === "metodopare" && (
 ```
 
-Apenas 1 linha a adicionar. A condição de workspace `metodopare` continua a funcionar em conjunto com a verificação do módulo instalado.
+Para:
+```typescript
+{currentWorkspace?.slug === "metodopare" && installedModuleIds.includes("instagram-looter") && (
+```
+
+Apenas 1 linha a modificar. A variavel `installedModuleIds` ja esta disponivel no componente.
