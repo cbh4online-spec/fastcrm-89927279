@@ -1,52 +1,93 @@
 
-# Melhorar Pagina Gestao de Vendedores - Responsive e Design Profissional
+# Privacidade de Perfil na Comunidade (FastClub)
 
-## Problema Atual
+## Resumo
 
-A pagina "Gestao de Vendedores" tem varios problemas visiveis no screenshot:
-- Sem padding lateral (conteudo encostado as bordas)
-- Cards de estatisticas sem design coeso (primeiro card com fundo diferente dos outros)
-- Tabela com muitas colunas que nao funciona em mobile
-- Header sem hierarquia visual forte
-- Estado vazio pobre e sem inspiracao
-- Sem uso dos componentes Nexus (NexusPageHeader, NexusPageSection, NexusStatCard) ja existentes no projeto
+Adicionar controlos de privacidade ao perfil de cada membro da comunidade, permitindo ocultar total ou parcialmente a sua identidade. Essencial para comunidades sensiveis (terapia, saude mental, grupos de apoio) onde os membros podem querer participar anonimamente.
 
-## Melhorias Planeadas
+## Funcionalidades
 
-### 1. Usar Componentes Nexus Existentes
-Substituir o header manual pelo `NexusPageHeader` e os stat cards pelo `NexusStatCard` com cores diferenciadas por estado, trazendo consistencia visual com o resto do dashboard.
+### 1. Configuracoes de Privacidade do Membro
+Cada membro pode controlar:
+- **Perfil visivel**: mostrar ou ocultar completamente o perfil na lista de membros publica
+- **Nome visivel**: usar nome real ou um pseudonimo/alias
+- **Email visivel**: mostrar ou ocultar email dos outros membros
+- **Avatar visivel**: mostrar avatar ou usar iniciais genericas
 
-### 2. Layout Responsive
-- Stats: grid 2 colunas em mobile, 5 em desktop
-- Tabela: em mobile, substituir por cards empilhados com as informacoes essenciais (nome, estado, acoes)
-- Header: botoes empilham verticalmente em mobile
-- Barra de pesquisa e acoes bulk com flex-wrap
+### 2. Pseudonimo (Alias)
+O membro pode definir um nome alternativo que sera usado em vez do nome real quando a privacidade estiver ativa. Nos posts e comentarios aparecera o alias em vez do nome verdadeiro.
 
-### 3. Design Visual Melhorado
-- Adicionar padding geral com container (`max-w-7xl mx-auto px-4`)
-- Stat cards com icones coloridos e hover states
-- Tabs de navegacao (Vendedores/Convites) com componente `TabsList` do Radix em vez de botoes manuais
-- Estado vazio com ilustracao maior, subtitulo motivacional e CTA para convidar vendedor
-- Skeleton loading melhorado com cards em vez de barras simples
+### 3. Configuracao ao Nivel da Comunidade (Admin)
+O admin pode, nas definicoes da comunidade:
+- **Permitir perfis anonimos**: ativar/desativar a opcao de anonimato para toda a comunidade
+- **Anonimato por defeito**: novos membros entram com perfil privado (util para comunidades sensiveis)
+- **Forcar anonimato total**: todos os membros sao anonimos, sem opcao de mostrar identidade
 
-### 4. Tabela Adaptativa
-- Desktop: tabela completa com todas as colunas
-- Mobile: cards com layout vertical mostrando nome, estado, vendas e botoes de acao
-- Usar o hook `useIsMobile` ja existente para alternar entre layouts
+### 4. Experiencia Visual
+- Membros com perfil privado aparecem como "Membro Anonimo" ou com o alias na lista de membros
+- Avatar generico (icone de utilizador) em vez de iniciais do nome
+- Na sidebar publica, membros privados contam para o total mas nao aparecem nos avatares recentes
+- Nos posts/discussoes, o nome e substituido pelo alias ou "Anonimo"
 
 ## Seccao Tecnica
 
-### Ficheiro Modificado: `src/pages/c2c/C2CSellersAdmin.tsx`
+### Migracao SQL
 
-Alteracoes principais:
-- Importar e usar `NexusPageHeader` para o titulo da pagina com icone, subtitulo e botoes de acao
-- Importar e usar `NexusStatCard` para os 5 cards de estatisticas com cores diferenciadas (primary, amber, emerald, rose, violet)
-- Importar `useIsMobile` para layout condicional
-- Usar `Tabs`/`TabsList`/`TabsTrigger`/`TabsContent` do Radix para Vendedores/Convites em vez de botoes manuais
-- Em mobile: renderizar cards em vez da tabela, cada card com nome, badge de estado, metricas resumidas e botoes de acao
-- Melhorar o estado vazio com icone maior, texto motivacional e botao "Convidar Vendedor"
-- Adicionar padding e max-width ao container principal
-- Skeleton loading com grid de cards placeholder
+Adicionar colunas a tabela `community_members`:
 
-### Sem alteracoes de base de dados
-Tudo usa dados ja existentes.
+```sql
+ALTER TABLE public.community_members
+  ADD COLUMN IF NOT EXISTS is_profile_public BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS display_alias TEXT,
+  ADD COLUMN IF NOT EXISTS show_email BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_avatar BOOLEAN DEFAULT true;
+```
+
+Adicionar colunas a tabela `community_settings` para controlo ao nivel da comunidade:
+
+```sql
+ALTER TABLE public.community_settings
+  ADD COLUMN IF NOT EXISTS allow_anonymous_profiles BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS default_profile_private BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS force_anonymous BOOLEAN DEFAULT false;
+```
+
+### Ficheiros Novos
+
+| Ficheiro | Descricao |
+|---|---|
+| `src/components/community/MemberPrivacySettings.tsx` | Dialog/painel onde o membro configura a sua privacidade (toggle perfil publico, alias, email, avatar) |
+
+### Ficheiros Modificados
+
+| Ficheiro | Alteracao |
+|---|---|
+| `src/hooks/usePublicCommunity.ts` | `usePublicCommunityMembers` filtra membros com `is_profile_public = false` da lista publica, e substitui nome por alias quando aplicavel |
+| `src/components/community/PublicCommunitySidebar.tsx` | Nao mostrar avatares de membros privados nos "Membros recentes"; contar total correto |
+| `src/components/community/CommunityMembersList.tsx` | Admin continua a ver todos os membros com indicador de privacidade; membros normais veem nome/alias conforme configuracao |
+| `src/components/community/SocialPostCard.tsx` | Exibir alias ou "Anonimo" em vez do nome real quando privacidade esta ativa |
+| `src/hooks/useCommunitySettings.ts` | Suportar os novos campos `allow_anonymous_profiles`, `default_profile_private`, `force_anonymous` |
+| `src/hooks/useCommunityMembers.ts` | Adicionar mutacao para atualizar preferencias de privacidade do membro |
+| Componente de definicoes da comunidade (tab Geral ou nova tab "Privacidade") | Adicionar toggles para o admin controlar as opcoes de anonimato ao nivel da comunidade |
+
+### Logica de Exibicao
+
+```text
+Se force_anonymous = true (definido pelo admin):
+  -> Todos os membros aparecem como "Membro Anonimo" + avatar generico
+  -> Sem opcao individual
+
+Se allow_anonymous_profiles = true:
+  -> Cada membro pode escolher:
+     - is_profile_public = false -> oculto da lista publica
+     - display_alias -> nome alternativo nos posts
+     - show_email = false -> email oculto
+     - show_avatar = false -> avatar generico
+
+Se allow_anonymous_profiles = false:
+  -> Todos os perfis sao publicos (comportamento atual)
+```
+
+### RLS
+
+As colunas de privacidade sao editaveis apenas pelo proprio membro (via `user_id = auth.uid()`) ou por admins do workspace. A leitura publica respeita os filtros de privacidade diretamente na query.
