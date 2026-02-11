@@ -87,6 +87,21 @@ interface ModuleDetailSheetProps {
 export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }: ModuleDetailSheetProps) {
   const { installModule, uninstallModule, refresh } = useWorkspaceModules();
   const [isInstalling, setIsInstalling] = useState(false);
+  const [isUninstalling, setIsUninstalling] = useState(false);
+
+  const handleUninstall = async () => {
+    if (!module) return;
+    setIsUninstalling(true);
+    try {
+      const success = await uninstallModule(module.slug);
+      if (success) {
+        await refresh();
+        onClose();
+      }
+    } finally {
+      setIsUninstalling(false);
+    }
+  };
 
   if (!module) return null;
 
@@ -156,7 +171,16 @@ export function ModuleDetailSheet({ module, open, onClose, isInstalled = false }
             </div>
           )}
           {isInstalled ? (
-            <Button className="w-full" variant="outline"><ExternalLink className="w-4 h-4 mr-2" />Abrir</Button>
+            <div className="flex gap-2">
+              <Button className="flex-1" variant="outline"><ExternalLink className="w-4 h-4 mr-2" />Abrir</Button>
+              <Button variant="destructive" onClick={handleUninstall} disabled={isUninstalling}>
+                {isUninstalling ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Desinstalar"
+                )}
+              </Button>
+            </div>
           ) : (
             <Button className="w-full" size="lg" onClick={handleInstall} disabled={isInstalling}>
               {isInstalling ? (
