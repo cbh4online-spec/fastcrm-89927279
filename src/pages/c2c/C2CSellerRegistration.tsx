@@ -84,8 +84,8 @@ export default function C2CSellerRegistration() {
             Para te registares como vendedor, cria uma conta ou faz login.
           </p>
           <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={() => navigate("/login")}>Entrar</Button>
-            <Button onClick={() => navigate("/signup")}>Criar Conta</Button>
+            <Button variant="outline" onClick={() => navigate(`/login?redirect=/c2c/${workspaceSlug}/sell`)}>Entrar</Button>
+            <Button onClick={() => navigate(`/signup?redirect=/c2c/${workspaceSlug}/sell`)}>Criar Conta</Button>
           </div>
         </div>
       </div>

@@ -1,13 +1,15 @@
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 
 export default function Signup() {
   const { user, loading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
 
   if (!loading && user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={redirectTo && redirectTo.startsWith("/") ? redirectTo : "/dashboard"} replace />;
   }
 
   return (
