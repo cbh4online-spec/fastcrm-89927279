@@ -1,122 +1,52 @@
 
-# Tornar a Plataforma numa Ferramenta de Venda Completa
 
-## O que ja existe
-- Criacao de anuncios com IA (foto, titulo, descricao, preco, categoria)
-- Marketplace com categorias, pesquisa, favoritos
-- Chat entre comprador e vendedor
-- Sistema de boost/CPC
-- Dashboard do vendedor (KPIs basicos)
-- Reviews e verificacao de vendedores
-- Checkout e comissoes
+# Gerador de Mensagem IA (Metodo AIDA) na Prospecao Profissional
 
-## O que falta para competir com Vinted/OLX/KuantoKusta/StandVirtual
+## Resumo
 
-### 1. Perfil Publico do Vendedor
-Na Vinted e OLX, cada vendedor tem uma pagina publica com os seus anuncios, rating, tempo na plataforma e badge de verificacao. Atualmente o comprador ve o anuncio mas nao consegue explorar o vendedor.
+Adicionar um botao "Gerar Mensagem" em cada perfil nos resultados de prospecao que usa IA para criar uma mensagem personalizada pronta a colar no Instagram DM, usando o metodo AIDA (Atencao, Interesse, Desejo, Acao) com base nos dados do perfil (profissao, especialidade, bio, localizacao, seguidores).
 
-**Criar**: Pagina `/c2c/seller/:sellerId` com avatar, nome, bio, rating, numero de vendas, lista de anuncios ativos e reviews recebidas.
+## Como Funciona para o Utilizador
 
-### 2. Sistema de Ofertas/Contraproposta (estilo Vinted)
-Na Vinted, o comprador pode propor um preco diferente. O vendedor aceita, recusa ou contrapropoe. Atualmente so existe "Comprar agora" ou mensagem livre.
-
-**Criar**: Botao "Fazer Oferta" na pagina do anuncio, com dialog para propor valor. O vendedor recebe notificacao e pode aceitar/recusar/contrapropor na pagina "Meus Anuncios".
-
-### 3. Editar Anuncio Existente
-Na OLX/Vinted e possivel editar titulo, preco, descricao e fotos depois de publicar. Atualmente so existe pausar/remover, nao editar.
-
-**Criar**: Pagina de edicao de anuncio reutilizando o formulario de criacao, pre-preenchido com os dados existentes. Botao "Editar" nos cards de "Meus Anuncios".
-
-### 4. Marcar como Vendido + Avaliar Comprador
-Na Vinted, apos a venda o vendedor pode avaliar o comprador. Atualmente so existe reviews do vendedor.
-
-**Criar**: Acao "Marcar como vendido" com dialog para indicar comprador e deixar review mutua.
-
-### 5. Notificacoes do Vendedor (Centro de Atividade)
-Na Vinted existe um feed de atividade: "Alguem adicionou o teu anuncio aos favoritos", "Nova mensagem", "Nova oferta", "O teu anuncio foi visto X vezes". Atualmente nao existe.
-
-**Criar**: Pagina de notificacoes com feed de eventos relevantes para o vendedor (favoritos recebidos, mensagens, visualizacoes, ofertas).
-
-### 6. Partilha Social do Anuncio
-Na OLX e Vinted, cada anuncio tem botoes de partilha para WhatsApp, Facebook, copiar link. Atualmente nao existe.
-
-**Criar**: Botoes de partilha na pagina de detalhe do anuncio e nos cards de "Meus Anuncios".
-
-### 7. Estatisticas por Anuncio (para o vendedor)
-No OLX Pro, o vendedor ve quantas visualizacoes, favoritos e mensagens cada anuncio recebeu. Atualmente so existe um contador de views global.
-
-**Criar**: Mini-dashboard por anuncio na pagina "Meus Anuncios": views, favoritos recebidos, mensagens recebidas, posicao nos resultados.
+1. Nos resultados de prospecao, ao lado de "Criar Lead" e "Rejeitar", aparece um botao "Gerar Mensagem"
+2. Abre um dialog com a mensagem gerada pela IA, personalizada ao perfil
+3. O utilizador pode editar a mensagem, regenerar com tom diferente (formal, casual, direto) e copiar com um clique
+4. Cola diretamente no Instagram DM
 
 ## Seccao Tecnica
 
-### Migracao SQL
+### Nova Edge Function: `supabase/functions/generate-prospecting-message/index.ts`
 
-```sql
--- Tabela de ofertas
-CREATE TABLE public.c2c_offers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES public.workspaces(id),
-  listing_id UUID NOT NULL REFERENCES public.c2c_listings(id),
-  buyer_id UUID NOT NULL,
-  offer_price NUMERIC NOT NULL,
-  counter_price NUMERIC,
-  status TEXT NOT NULL DEFAULT 'pending',  -- pending, accepted, rejected, countered, expired
-  message TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.c2c_offers ENABLE ROW LEVEL SECURITY;
+Chama o Lovable AI Gateway (google/gemini-3-flash-preview) com um prompt que:
+- Recebe os dados do perfil (nome, profissao, especialidade, bio, localizacao, seguidores)
+- Recebe o contexto do workspace (nome da empresa, o que vendem)
+- Aplica o metodo AIDA para estruturar a mensagem
+- Gera uma mensagem curta (max 300 caracteres ideal para Instagram DM)
+- Suporta 3 tons: formal, casual, direto
+- Retorna: mensagem formatada + versao sem emojis
 
--- Tabela de notificacoes do vendedor
-CREATE TABLE public.c2c_notifications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES public.workspaces(id),
-  user_id UUID NOT NULL,
-  type TEXT NOT NULL,  -- new_message, new_offer, new_favorite, listing_view_milestone, offer_accepted, offer_rejected
-  title TEXT NOT NULL,
-  body TEXT,
-  listing_id UUID REFERENCES public.c2c_listings(id),
-  related_user_id UUID,
-  is_read BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.c2c_notifications ENABLE ROW LEVEL SECURITY;
+### Novo Componente: `src/components/professional-prospecting/ProspectingMessageDialog.tsx`
 
--- Contadores de favoritos por listing para estatisticas
-ALTER TABLE public.c2c_listings ADD COLUMN favorites_count INTEGER DEFAULT 0;
-ALTER TABLE public.c2c_listings ADD COLUMN messages_count INTEGER DEFAULT 0;
-```
+Dialog com:
+- Mensagem gerada em textarea editavel
+- Seletor de tom (formal/casual/direto)
+- Botao regenerar
+- Botao copiar (com feedback visual)
+- Contador de caracteres
+- Preview do perfil alvo (nome, profissao, plataforma)
 
-RLS policies para ofertas e notificacoes (comprador ve as suas, vendedor ve as do seu anuncio, utilizador ve as suas notificacoes).
+### Ficheiro Modificado: `src/components/professional-prospecting/ProspectingResults.tsx`
 
-### Ficheiros a Criar
+- Adicionar botao "Gerar Mensagem" (icone MessageSquare) na barra de acoes de cada perfil
+- Estado para controlar o dialog e o perfil selecionado
 
-| Ficheiro | Descricao |
-|---|---|
-| `src/pages/c2c/C2CSellerProfile.tsx` | Pagina publica do vendedor com anuncios, rating, reviews |
-| `src/pages/c2c/C2CEditListing.tsx` | Formulario de edicao (reutiliza logica do create) |
-| `src/pages/c2c/C2CNotifications.tsx` | Centro de atividade/notificacoes do vendedor |
-| `src/components/c2c/OfferDialog.tsx` | Dialog para fazer/gerir ofertas |
-| `src/components/c2c/ShareButtons.tsx` | Botoes de partilha social (WhatsApp, Facebook, copiar link) |
-| `src/components/c2c/ListingStats.tsx` | Mini-dashboard de estatisticas por anuncio |
-| `src/hooks/useC2COffers.ts` | Hook para criar, aceitar, rejeitar, contrapropor ofertas |
-| `src/hooks/useC2CNotifications.ts` | Hook para listar e marcar notificacoes como lidas |
+### Ficheiro: `supabase/config.toml`
 
-### Ficheiros a Modificar
+- Registar a nova edge function
 
-| Ficheiro | Alteracao |
-|---|---|
-| `src/pages/c2c/C2CListingDetail.tsx` | Adicionar botao "Fazer Oferta", link para perfil do vendedor, botoes de partilha |
-| `src/pages/c2c/C2CMyListings.tsx` | Adicionar botao editar, estatisticas por anuncio, gestao de ofertas recebidas |
-| `src/pages/c2c/C2CMarketplace.tsx` | Adicionar icone de notificacoes no header com badge de nao lidas |
-| Routing (App.tsx ou similar) | Adicionar rotas para perfil publico, editar anuncio e notificacoes |
+| Ficheiro | Tipo | Descricao |
+|---|---|---|
+| `supabase/functions/generate-prospecting-message/index.ts` | Criar | Edge function com prompt AIDA + Lovable AI |
+| `src/components/professional-prospecting/ProspectingMessageDialog.tsx` | Criar | Dialog de mensagem com edicao, tons e copiar |
+| `src/components/professional-prospecting/ProspectingResults.tsx` | Modificar | Adicionar botao e estado para o dialog de mensagem |
 
-### Prioridade de Implementacao
-
-1. **Perfil Publico do Vendedor** - impacto alto na confianca
-2. **Editar Anuncio** - funcionalidade basica que falta
-3. **Sistema de Ofertas** - diferenciador competitivo (Vinted-style)
-4. **Partilha Social** - rapido de implementar, alto impacto
-5. **Estatisticas por Anuncio** - valor para o vendedor
-6. **Centro de Notificacoes** - engagement e retencao
-7. **Marcar como Vendido + Review Mutua** - fecho do ciclo de venda
