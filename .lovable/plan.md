@@ -1,78 +1,45 @@
 
 
-# Gate de Acesso a Comunidade: Registo + Aprovacao
+# Criar Banner Fotográfico para a Comunidade
 
-## Problema Actual
+## O que vou fazer
 
-A pagina publica `/club/:slug` mostra todo o conteudo livremente. Apos registo, o utilizador fica imediatamente autenticado mas nao existe verificacao de membership -- nao ha necessidade de ser aprovado para aceder.
+Gerar uma imagem de banner fotográfica/realista usando IA (modelo de geração de imagem) e implementar a lógica para:
 
-## Solucao
+1. **Gerar a imagem** via edge function usando o modelo `google/gemini-2.5-flash-image`
+2. **Guardar no storage** no bucket `community-assets`
+3. **Atualizar o `banner_url`** na tabela `community_settings`
 
-Criar um fluxo de acesso com 3 estados:
+## Abordagem
 
-1. **Visitante (nao autenticado)** -- ve a pagina publica com CTA para registar
-2. **Registado mas pendente** -- ve um ecra de "pedido pendente" apos registo, a aguardar aprovacao do admin
-3. **Membro aprovado** -- redireccionado para o dashboard interno (`/dashboard/fastclub`)
+Como o banner é usado no hero da página e na sidebar, vou criar uma edge function que:
+- Gera uma imagem realista/fotográfica (estilo equipa tech, networking, comunidade digital)
+- Faz upload para o bucket `community-assets`
+- Retorna o URL público
 
-## Fluxo
+Depois, no componente de settings (`CommunitySettingsDialog`), vou adicionar um botão "Gerar com IA" ao lado do upload manual de banner, para que possas gerar e pré-visualizar antes de guardar.
 
-```text
-Visitante --> Regista-se (/club/:slug/auth)
-         --> Cria conta + cria registo em community_members (status: "pending")
-         --> Redireccionado para /club/:slug
-         --> PublicCommunityPage detecta user autenticado + status "pending"
-         --> Mostra ecra "Pedido de adesao enviado, aguarda aprovacao"
+## Detalhes Técnicos
 
-Admin aprova no painel --> status muda para "active"
-         --> Membro acede /club/:slug
-         --> Detecta status "active" --> redireciona para /dashboard/fastclub
-```
+### Ficheiros a criar/alterar
 
-## Ficheiros a Alterar
-
-| Ficheiro | O que muda |
+| Ficheiro | Acção |
 |---|---|
-| `src/pages/community/PublicCommunityPage.tsx` | Adicionar verificacao de membership: se user autenticado, verificar se e membro e o status |
-| `src/pages/community/CommunityAuthPage.tsx` | Apos signup, criar registo em `community_members` com status "pending" |
-| `src/hooks/usePublicCommunity.ts` | Novo hook `usePublicMembershipStatus` para verificar status do user na comunidade |
+| `supabase/functions/generate-community-banner/index.ts` | Nova edge function para gerar imagem via IA |
+| `src/components/community/CommunitySettingsDialog.tsx` | Adicionar botão "Gerar Banner com IA" |
 
-## Detalhes Tecnicos
+### Edge Function: `generate-community-banner`
 
-### 1. Novo hook: `usePublicMembershipStatus(workspaceId, userId)`
+- Recebe: `{ prompt?: string }` (opcional, para personalizar)
+- Usa modelo `google/gemini-2.5-flash-image` com prompt fotográfico
+- Converte base64 para file e faz upload para `community-assets`
+- Retorna `{ url: string }` com o URL público
 
-Verifica se o utilizador autenticado e membro da comunidade:
-- Procura em `workspace_members` (membros directos do workspace)
-- Procura em `community_members` (membros da comunidade por email/user_id)
-- Retorna: `{ status: "none" | "pending" | "active" | "workspace_member", isLoading }`
+### Prompt da imagem
 
-### 2. CommunityAuthPage -- criar membership apos signup
+Gerar uma imagem fotográfica realista com tema de comunidade/tecnologia/networking, optimizada para formato banner (16:9), com tons profissionais.
 
-No `handleFinalSubmit`, apos `signUp` com sucesso:
-- Criar registo em `community_members` com `status: "pending"`, `email`, `name`, `workspace_id`
-- Isto garante que o admin pode ver e aprovar o pedido
+### Botão no Settings
 
-### 3. PublicCommunityPage -- logica de acesso
+No separador de "Imagem de Capa", adicionar um botão "Gerar com IA" que chama a edge function, mostra loading, e pré-carrega a imagem gerada como banner.
 
-Apos verificar autenticacao:
-- Se `status === "workspace_member"` ou `status === "active"`: redirecionar para `/dashboard/fastclub`
-- Se `status === "pending"`: mostrar ecra de espera com mensagem "O teu pedido de adesao esta a ser analisado"
-- Se `status === "none"` (autenticado mas sem pedido): mostrar a pagina publica normalmente com CTA para pedir adesao
-
-### Ecra de estado "Pendente"
-
-```text
-+-----------------------------------------------+
-|  [Logo] Nome da Comunidade                     |
-|                                                |
-|  [Icone relogio]                               |
-|  "Pedido de Adesao Enviado"                    |
-|  "O teu pedido esta a ser analisado pela       |
-|   equipa. Seras notificado quando for aprovado"|
-|                                                |
-|  [Botao: Voltar ao inicio]                     |
-+-----------------------------------------------+
-```
-
-### Sem alteracoes na base de dados
-
-A tabela `community_members` ja tem o campo `status` (text) e ja suporta o valor "pending". Apenas precisamos de utilizar este campo correctamente no fluxo.
