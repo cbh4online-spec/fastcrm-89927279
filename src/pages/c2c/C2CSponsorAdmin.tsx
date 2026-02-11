@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAdminSponsorApplications, useUpdateSponsorApplication, type SponsorApplication } from "@/hooks/useSponsorApplications";
 import {
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   CheckCircle, XCircle, Globe, Plus, Pencil, Trash2,
-  Award, Users, TrendingUp, Crown, Medal, Star,
+  Award, Users, TrendingUp, Crown, Medal, Star, ArrowLeft,
 } from "lucide-react";
 
 const STATUS_BADGES: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -61,6 +62,7 @@ const emptySponsorForm: SponsorFormData = {
 };
 
 export default function C2CSponsorAdmin() {
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const wid = currentWorkspace?.id;
 
@@ -148,6 +150,9 @@ export default function C2CSponsorAdmin() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/c2c")} className="mb-4 -ml-2">
+        <ArrowLeft className="h-4 w-4 mr-1" /> Marketplace
+      </Button>
       <div>
         <h1 className="text-2xl font-bold">Gestão de Sponsors</h1>
         <p className="text-muted-foreground">Gerir candidaturas, parceiros ativos e métricas.</p>
