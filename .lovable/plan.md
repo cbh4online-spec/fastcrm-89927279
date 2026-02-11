@@ -1,50 +1,53 @@
 
 
-# Uniformizar todos os links da plataforma com o dominio principal
+# Adicionar partilha via link e redes sociais ao convite de membros do clube
 
 ## Problema
 
-Existem cerca de 20 ficheiros que ainda usam `window.location.origin` para gerar links publicos. Quando acedidos a partir de dominios Lovable (preview/dev), os links gerados apontam para o dominio errado em vez de `https://fastcrm.metodopare.ai`.
+Atualmente, o dialog de convite para a comunidade (`InviteToCommunityDialog`) so permite convidar membros por email (selecionando contactos do CRM ou inserindo manualmente). Nao existe forma de partilhar o link publico do clube via WhatsApp, Facebook ou copiar o link diretamente.
 
 ## Solucao
 
-Substituir `window.location.origin` por `getPublicBaseUrl()` (ja criado em `src/utils/getPublicDomain.ts`) em todos os locais que geram links publicos partilhaveis ou visiveis para utilizadores externos.
+Adicionar um terceiro separador "Link" ao dialog de convite que mostra o URL publico do clube e botoes de partilha rapida para WhatsApp, Facebook, e copiar link.
 
-## Ficheiros a alterar
+## Alteracoes
 
-| Ficheiro | Contexto | Acao |
-|---|---|---|
-| `src/components/proposals/ProposalDetailContent.tsx` | URL publica de proposta (`/p/{slug}`) | Substituir |
-| `src/components/proposals/ProposalsList.tsx` | URL publica de proposta (`/p/{slug}`) | Substituir |
-| `src/components/landing-pages/LandingPagesList.tsx` | URL publica de landing page | Substituir |
-| `src/components/smart-forms/SmartFormsList.tsx` | Link publico de formulario (`/f/{slug}`) | Substituir |
-| `src/components/chat-widget/WidgetConfigPanel.tsx` | URL do script do widget | Substituir |
-| `src/components/store-settings/ProductVisibilityControl.tsx` | Link de produto da loja | Substituir |
-| `src/pages/store/StorePage.tsx` | Meta tags OG, canonical, JSON-LD | Substituir |
-| `src/pages/store/StoreProductPage.tsx` | Meta tags OG, canonical | Substituir |
-| `src/pages/store/StoreReferralPage.tsx` | Link de referral | Substituir |
-| `src/pages/store/StoreCheckoutPage.tsx` | successUrl e cancelUrl do checkout | Substituir |
-| `src/pages/c2c/C2CSellerArea.tsx` | URL publica do perfil de vendedor | Substituir |
-| `src/pages/c2c/C2CMyListings.tsx` | URL de listagem C2C | Substituir |
-| `src/pages/client/ClientForgotPasswordPage.tsx` | redirectTo do reset de password | Substituir |
-| `src/hooks/useC2CSellerInvites.ts` | domain enviado ao edge function de convites | Substituir |
-| `src/modules/growth-seo/components/admin/SitemapManager.tsx` | baseUrl do sitemap | Substituir |
+### 1. Editar `src/components/community/InviteToCommunityDialog.tsx`
 
-## Ficheiros que NAO devem ser alterados
+Adicionar um terceiro tab ao dialog existente:
 
-| Ficheiro | Razao |
+- **Novo tab "Link"** com icone `Share2`
+- Mostrar o URL publico do clube (construido com `getPublicBaseUrl()` + `/club/${slug}`)
+- Campo de texto com o link (readonly, selecao facil)
+- Botoes de partilha:
+  - **WhatsApp**: abre `wa.me` com texto pre-formatado e link
+  - **Facebook**: abre sharer do Facebook com o link
+  - **Copiar link**: copia para o clipboard com feedback visual
+- Texto de contexto explicando que qualquer pessoa com o link pode pedir adesao
+
+Imports adicionais necessarios:
+- `getPublicBaseUrl` de `@/utils/getPublicDomain`
+- `useCommunitySettings` de `@/hooks/useCommunitySettings`
+- `useWorkspace` de `@/contexts/WorkspaceContext`
+- Icones: `Share2`, `Copy`, `Check` do lucide-react
+
+### 2. Logica do link publico
+
+```text
+slug = communitySettings.slug
+baseUrl = getPublicBaseUrl()
+publicUrl = baseUrl + "/club/" + slug
+```
+
+O texto de partilha para WhatsApp sera:
+```
+Junta-te a {communityName}! {publicUrl}
+```
+
+## Ficheiros
+
+| Ficheiro | Acao |
 |---|---|
-| `src/contexts/AuthContext.tsx` | O `emailRedirectTo` do signup precisa do dominio real onde o utilizador esta (callback OAuth) |
-| `src/hooks/useWorkspaceVideoConfig.ts` | Redirect OAuth -- precisa do dominio atual para callback |
-| `src/utils/getPublicDomain.ts` | Ja contem o fallback correto (o `window.location.origin` aqui e intencional) |
+| `src/components/community/InviteToCommunityDialog.tsx` | Editar (adicionar tab de partilha por link) |
 
-## Detalhes tecnicos
-
-Cada alteracao segue o mesmo padrao simples:
-
-1. Adicionar import: `import { getPublicBaseUrl } from "@/utils/getPublicDomain";`
-2. Substituir `window.location.origin` por `getPublicBaseUrl()`
-
-Nao ha alteracao de logica -- apenas a origem do URL muda para garantir que aponta sempre para o dominio de producao quando acedido a partir de ambientes de desenvolvimento.
-
-Total: 15 ficheiros editados, 0 ficheiros criados.
+Apenas 1 ficheiro editado. Reutiliza a logica de `getPublicBaseUrl()` ja existente e o hook `useCommunitySettings` ja disponivel no projeto.
