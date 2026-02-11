@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useC2CSellers, useUpdateSellerStatus } from "@/hooks/useC2CSellers";
+import { useC2CSellerInvites } from "@/hooks/useC2CSellerInvites";
 import {
   useSellerListings,
   useSellerCommissions,
@@ -24,11 +25,13 @@ import {
   Users, Search, CheckCircle2, XCircle, Clock, Ban, Eye,
   Phone, MapPin, CreditCard, FileText, Download, ShieldCheck,
   Star, Package, ArrowUpDown, StickyNote, Send, ChevronUp, ChevronDown,
-  Percent, RotateCcw,
+  Percent, RotateCcw, UserPlus, Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import Papa from "papaparse";
+import SellerInviteDialog from "@/components/c2c/SellerInviteDialog";
+import SellerInvitesList from "@/components/c2c/SellerInvitesList";
 import type { C2CSeller } from "@/hooks/useC2CSellers";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -338,6 +341,7 @@ export default function C2CSellersAdmin() {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const { data: sellers = [], isLoading } = useC2CSellers(workspaceId);
+  const { data: invites = [] } = useC2CSellerInvites(workspaceId);
   const updateStatus = useUpdateSellerStatus(workspaceId);
   const bulkUpdate = useBulkUpdateSellers();
 
@@ -349,6 +353,8 @@ export default function C2CSellersAdmin() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortAsc, setSortAsc] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [adminTab, setAdminTab] = useState<"sellers" | "invites">("sellers");
 
   const filtered = useMemo(() => {
     let result = sellers.filter((s) => {
@@ -455,11 +461,42 @@ export default function C2CSellersAdmin() {
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Aprovar, rejeitar e gerir vendedores do marketplace C2C</p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={exportCSV}>
-          <Download className="h-4 w-4" /> Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button className="gap-2" onClick={() => setInviteDialogOpen(true)}>
+            <UserPlus className="h-4 w-4" /> Convidar Vendedor
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={exportCSV}>
+            <Download className="h-4 w-4" /> Exportar CSV
+          </Button>
+        </div>
       </div>
 
+      {/* Tab navigation */}
+      <div className="flex gap-2 border-b">
+        <button
+          onClick={() => setAdminTab("sellers")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            adminTab === "sellers" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Users className="h-4 w-4 inline mr-1.5" />
+          Vendedores ({sellers.length})
+        </button>
+        <button
+          onClick={() => setAdminTab("invites")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            adminTab === "invites" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Mail className="h-4 w-4 inline mr-1.5" />
+          Convites ({invites.length})
+        </button>
+      </div>
+
+      {adminTab === "invites" ? (
+        <SellerInvitesList workspaceId={workspaceId!} />
+      ) : (
+      <>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
@@ -624,6 +661,8 @@ export default function C2CSellersAdmin() {
           </Table>
         </Card>
       )}
+      </>
+      )}
 
       {/* Seller Detail Dialog */}
       {selectedSeller && (
@@ -652,6 +691,15 @@ export default function C2CSellersAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Invite Dialog */}
+      {workspaceId && (
+        <SellerInviteDialog
+          open={inviteDialogOpen}
+          onOpenChange={setInviteDialogOpen}
+          workspaceId={workspaceId}
+        />
+      )}
     </div>
   );
 }
