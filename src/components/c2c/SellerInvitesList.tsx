@@ -91,16 +91,27 @@ export default function SellerInvitesList({ workspaceId }: Props) {
                 <TableCell className="text-right">
                   <div className="flex items-center gap-1 justify-end">
                     {effectiveStatus === "pending" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive/80"
-                        onClick={() => revokeInvite.mutate(invite.id)}
-                        disabled={revokeInvite.isPending}
-                        title="Revogar"
-                      >
-                        <Ban className="h-4 w-4" />
-                      </Button>
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive/80"
+                          onClick={() => revokeInvite.mutate(invite.id)}
+                          disabled={revokeInvite.isPending}
+                          title="Revogar"
+                        >
+                          <Ban className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => resendInvite.mutate(invite)}
+                          disabled={resendInvite.isPending}
+                          title="Reenviar"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                     {(effectiveStatus === "expired" || effectiveStatus === "revoked") && (
                       <Button
