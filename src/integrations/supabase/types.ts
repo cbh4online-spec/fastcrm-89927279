@@ -23148,6 +23148,93 @@ export type Database = {
           },
         ]
       }
+      store_visitor_sessions: {
+        Row: {
+          ai_classified_at: string | null
+          ai_intent: string | null
+          ai_recommendation: string | null
+          ai_score: number | null
+          contact_id: string | null
+          converted: boolean | null
+          created_at: string | null
+          device_type: string | null
+          first_page: string | null
+          id: string
+          last_activity_at: string | null
+          pages_viewed: number | null
+          products_viewed: string[] | null
+          referrer: string | null
+          session_id: string
+          started_at: string | null
+          time_on_site_seconds: number | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_classified_at?: string | null
+          ai_intent?: string | null
+          ai_recommendation?: string | null
+          ai_score?: number | null
+          contact_id?: string | null
+          converted?: boolean | null
+          created_at?: string | null
+          device_type?: string | null
+          first_page?: string | null
+          id?: string
+          last_activity_at?: string | null
+          pages_viewed?: number | null
+          products_viewed?: string[] | null
+          referrer?: string | null
+          session_id: string
+          started_at?: string | null
+          time_on_site_seconds?: number | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ai_classified_at?: string | null
+          ai_intent?: string | null
+          ai_recommendation?: string | null
+          ai_score?: number | null
+          contact_id?: string | null
+          converted?: boolean | null
+          created_at?: string | null
+          device_type?: string | null
+          first_page?: string | null
+          id?: string
+          last_activity_at?: string | null
+          pages_viewed?: number | null
+          products_viewed?: string[] | null
+          referrer?: string | null
+          session_id?: string
+          started_at?: string | null
+          time_on_site_seconds?: number | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_visitor_sessions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_visitor_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_wishlist: {
         Row: {
           created_at: string

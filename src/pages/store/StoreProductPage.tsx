@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreProductViewTracker } from "@/components/store/StoreProductViewTracker";
+import { StoreVisitorTracker } from "@/components/store/StoreVisitorTracker";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { StoreImageZoom } from "@/components/store/StoreImageZoom";
 import { StoreStickyAddToCart } from "@/components/store/StoreStickyAddToCart";
@@ -228,6 +229,7 @@ export default function StoreProductPage() {
         <StoreHeader workspaceSlug={wsSlug} />
         <StoreCartDrawer workspaceSlug={wsSlug} />
         <StoreProductViewTracker productId={product.id} workspaceId={(product as any).workspace_id} />
+        <StoreVisitorTracker workspaceId={(product as any).workspace_id} currentPage={`/store/${wsSlug}/product/${product.id}`} productId={product.id} />
 
         {/* Sticky Add to Cart bar */}
         <StoreStickyAddToCart

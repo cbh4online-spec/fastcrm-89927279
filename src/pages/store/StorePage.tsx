@@ -19,6 +19,7 @@ import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyVi
 import { StoreFaqSection } from "@/components/store/sections/StoreFaqSection";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
+import { StoreVisitorTracker } from "@/components/store/StoreVisitorTracker";
 import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreFilterSidebar";
 import { StoreCompareBar } from "@/components/store/StoreCompareBar";
 import { StoreCompareModal } from "@/components/store/StoreCompareModal";
@@ -134,6 +135,9 @@ export default function StorePage() {
       </Helmet>
 
       <div className="min-h-screen bg-background">
+        {/* Visitor Tracking */}
+        <StoreVisitorTracker workspaceId={wsId} currentPage={`/store/${wsSlug}`} />
+
         {/* Coupon Countdown Banner */}
         <StoreCouponBanner workspaceId={wsId} />
 
