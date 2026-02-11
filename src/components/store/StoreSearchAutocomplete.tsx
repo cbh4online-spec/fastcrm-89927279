@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStoreProducts, type StoreProduct } from "@/hooks/useStoreProducts";
 import { StoreVisualSearch } from "@/components/store/StoreVisualSearch";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 const HISTORY_KEY = "store-search-history";
 const MAX_HISTORY = 5;
@@ -173,7 +174,7 @@ export function StoreSearchAutocomplete({ workspaceSlug, onSearch, onClose }: St
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">€{product.base_price.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">€{product.base_price.toFixed(2)} <StoreVatLabel /></p>
                       </div>
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                     </button>

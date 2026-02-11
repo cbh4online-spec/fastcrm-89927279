@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Package } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreRelatedProductsProps {
   productId: string;
@@ -86,7 +87,7 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
                 </div>
                 <div className="mt-2 space-y-0.5">
                   <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">{p.name}</p>
-                  <p className="text-sm font-bold text-primary">€{p.base_price.toFixed(2)}</p>
+                  <p className="text-sm font-bold text-primary">€{p.base_price.toFixed(2)} <StoreVatLabel /></p>
                 </div>
               </Link>
             );

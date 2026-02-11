@@ -18,6 +18,8 @@ export interface StoreSettings {
   notification_email: string | null;
   store_slug: string | null;
   custom_domain: string | null;
+  prices_include_vat: boolean;
+  vat_rate: number;
   created_at: string;
   updated_at: string;
 }

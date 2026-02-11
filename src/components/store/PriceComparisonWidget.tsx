@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { usePriceComparison, useExternalPrices } from "@/hooks/usePriceComparison";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, BarChart3 } from "lucide-react";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface PriceComparisonWidgetProps {
   productId: string;
@@ -62,7 +63,7 @@ export function PriceComparisonWidget({
                     <p className="text-xs truncate">{p.name}</p>
                   </div>
                   <span className={`text-sm font-bold ${isCheaper ? "text-green-600" : "text-foreground"}`}>
-                    €{p.base_price.toFixed(2)}
+                    €{p.base_price.toFixed(2)} <StoreVatLabel />
                   </span>
                   {isCheaper && (
                     <Badge variant="secondary" className="text-[10px] px-1 py-0">

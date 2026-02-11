@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Package, Clock } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import type { RecentlyViewedItem } from "@/hooks/useRecentlyViewed";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreRecentlyViewedProps {
   items: RecentlyViewedItem[];
@@ -38,7 +39,7 @@ export function StoreRecentlyViewed({ items, workspaceSlug, currentProductId }: 
               </div>
               <div className="mt-2 space-y-0.5">
                 <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">{item.name}</p>
-                <p className="text-sm font-bold text-primary">€{item.price.toFixed(2)}</p>
+                <p className="text-sm font-bold text-primary">€{item.price.toFixed(2)} <StoreVatLabel /></p>
               </div>
             </Link>
           ))}

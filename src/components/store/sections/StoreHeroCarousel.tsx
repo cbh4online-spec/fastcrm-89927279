@@ -5,6 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreHeroCarouselProps {
   products: StoreProduct[];
@@ -119,7 +120,7 @@ export function StoreHeroCarousel({ products, workspaceSlug, storeName, storeDes
               )}
               <div className="flex items-center gap-4 pt-2">
                 <span className="text-2xl md:text-3xl font-bold text-primary">
-                  €{activeProduct.base_price.toFixed(2)}
+                  €{activeProduct.base_price.toFixed(2)} <StoreVatLabel className="text-xs text-muted-foreground" />
                 </span>
                 <Button asChild size="lg" className="gap-2 font-semibold shadow-lg hover:shadow-xl transition-all rounded-full px-8">
                   <Link to={`/store/${workspaceSlug}/product/${activeProduct.id}`}>

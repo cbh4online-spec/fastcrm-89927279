@@ -9,9 +9,11 @@ interface StoreFooterProps {
   storeName: string;
   categories?: StoreCategory[];
   footerText?: string | null;
+  pricesIncludeVat?: boolean;
+  vatRate?: number;
 }
 
-export function StoreFooter({ workspaceSlug, storeName, categories = [], footerText }: StoreFooterProps) {
+export function StoreFooter({ workspaceSlug, storeName, categories = [], footerText, pricesIncludeVat = true, vatRate = 23 }: StoreFooterProps) {
   return (
     <footer className="border-t bg-muted/30 mt-16">
       {/* Trust & Payment bar */}
@@ -164,6 +166,12 @@ export function StoreFooter({ workspaceSlug, storeName, categories = [], footerT
         </div>
 
         <Separator className="my-8" />
+
+        <p className="text-[11px] text-muted-foreground text-center mb-4">
+          {pricesIncludeVat
+            ? `Todos os preços apresentados incluem IVA à taxa legal em vigor (${vatRate}%).`
+            : `Todos os preços apresentados não incluem IVA. Acresce IVA à taxa legal em vigor (${vatRate}%).`}
+        </p>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <p>{footerText || `© ${new Date().getFullYear()} ${storeName}. Todos os direitos reservados.`}</p>

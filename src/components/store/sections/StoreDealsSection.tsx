@@ -4,6 +4,7 @@ import { Flame, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 
 interface StoreDealsSectionProps {
   products: StoreProduct[];
@@ -80,7 +81,7 @@ export function StoreDealsSection({ products, workspaceSlug }: StoreDealsSection
                   </div>
                   <div className="mt-2 space-y-0.5">
                     <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">{p.name}</p>
-                    <p className="text-sm font-bold text-primary">€{p.base_price.toFixed(2)}</p>
+                    <p className="text-sm font-bold text-primary">€{p.base_price.toFixed(2)} <StoreVatLabel /></p>
                   </div>
                 </Link>
               );

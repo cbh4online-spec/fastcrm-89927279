@@ -8,6 +8,7 @@ import { useStoreCart } from "@/contexts/StoreCartContext";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { cn } from "@/lib/utils";
+import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 
 interface StoreQuickViewModalProps {
@@ -104,6 +105,7 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
 
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
+              <StoreVatLabel />
               {isDiscounted && (
                 <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
               )}
