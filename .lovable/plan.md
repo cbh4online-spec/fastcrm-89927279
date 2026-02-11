@@ -1,30 +1,31 @@
 
-# Enviar Email de Teste ao Vendedor Strongadget
+# Adicionar Bio e Foto de Perfil ao Vendedor Strongadget
 
 ## O que vai ser feito
 
-Criar uma edge function utilitaria `send-c2c-seller-email` que permite enviar (ou reenviar) o email de confirmacao a qualquer vendedor C2C aprovado.
+Atualizar os dados do vendedor Strongadget na base de dados com uma bio descritiva e uma foto de perfil (avatar).
 
-## Dados do email de teste
+## Alteracoes
 
-- **Destinatario**: strongadget@gmail.com (Strongadget)
-- **Link no email**: `https://fastcrm.metodopare.ai/c2c/metodopare/seller/b4500cb5-3a74-4f7e-b4dc-d48bd528054e`
-- **Assunto**: "Conta ativada - Bem-vindo ao METODOPARE!"
+### 1. Atualizar bio do vendedor
 
-## Alteracoes tecnicas
+Inserir uma bio profissional para o Strongadget diretamente na tabela `c2c_sellers`:
 
-### 1. Nova edge function: `supabase/functions/send-c2c-seller-email/index.ts`
+- **Bio**: Uma descricao curta e profissional (ex: "Especialistas em gadgets e acessorios tecnologicos. Produtos novos e seminovos com garantia de qualidade.")
 
-Funcao simples que:
-- Recebe `seller_id` e `workspace_id` no body
-- Busca os dados do vendedor, workspace e store_settings
-- Reutiliza o mesmo template HTML de confirmacao (copiado do activate)
-- Envia o email via Resend
+### 2. Foto de perfil (avatar)
 
-### 2. Testar imediatamente
+Para a foto de perfil, existem duas opcoes:
 
-Apos deploy, chamar a funcao com os dados do Strongadget para enviar o email de teste.
+- **Opcao A (rapida)**: Usar um URL externo de uma imagem (se tiveres uma imagem/logo do Strongadget, podes envia-la no chat e eu uso-a)
+- **Opcao B**: Fazer upload de uma imagem para o bucket `avatars` ja existente e guardar o URL publico
 
-### Ficheiros a criar
+### 3. Verificar que o perfil publico mostra os novos dados
 
-- `supabase/functions/send-c2c-seller-email/index.ts` (nova edge function)
+A pagina `C2CPublicSellerProfile.tsx` ja suporta exibir `bio` e `avatar_url`, por isso nao serao necessarias alteracoes de codigo - apenas atualizar os dados na base de dados.
+
+## Preciso de input
+
+Para avancar preciso que me digas:
+- Que texto queres na bio do Strongadget?
+- Tens uma imagem/logo para usar como avatar? Se sim, envia-a no chat. Caso contrario, posso deixar sem foto ou usar as iniciais que ja aparecem.
