@@ -1,40 +1,25 @@
 
 
-# Corrigir Link do Convite de Vendedor
+# Adicionar Reenvio de Convite para Todos os Estados
 
 ## Problema
-
-O link enviado por email usa `window.location.origin` do browser, que no ambiente de preview e `https://3e82dfd9-...lovableproject.com`. O link correto deveria usar o dominio de producao `https://fast.metodopare.ai` com o path `/c2c/{slug}/invite/{token}`.
+Atualmente, o botao de reenviar convite so aparece para convites com estado "expirado" ou "revogado". Convites "pendentes" so mostram o botao de revogar, mas o admin pode querer reenviar um convite pendente (por exemplo, se o vendedor nao viu o email).
 
 ## Solucao
 
-### 1. Usar dominio de producao no edge function
+### Ficheiro: `src/components/c2c/SellerInvitesList.tsx`
+- Adicionar o botao de reenvio tambem para convites com estado **"pending"**
+- O botao de reenviar aparecera ao lado do botao de revogar nos convites pendentes
+- Manter o comportamento atual para expirados e revogados (so reenviar)
 
-Em vez de confiar no `domain` enviado pelo frontend, o edge function vai determinar o dominio correto:
-- Verificar se o workspace tem um `custom_domain` configurado na tabela `store_settings`
-- Se nao, usar o dominio publicado do projeto (`https://fastcrm.lovable.app`)
-- Fallback para o `domain` enviado pelo frontend
+### Logica Final de Botoes por Estado
 
-### 2. Alteracoes
-
-**Ficheiro: `supabase/functions/send-c2c-seller-invite/index.ts`**
-- Adicionar query a `store_settings` para buscar `custom_domain` do workspace
-- Construir o `inviteUrl` usando o custom domain quando disponivel
-- Manter fallback para o dominio enviado pelo frontend
-
-**Ficheiro: `src/hooks/useC2CSellerInvites.ts`**
-- Continuar a enviar `window.location.origin` como fallback, sem alteracoes necessarias
-
-### 3. Logica de resolucao do dominio no edge function
-
-```text
-1. Buscar store_settings.custom_domain WHERE workspace_id = workspaceId
-2. Se custom_domain existe -> usar https://{custom_domain}
-3. Senao -> usar o domain enviado pelo frontend (fallback)
-4. Construir URL: {dominio_resolvido}/c2c/{workspace.slug}/invite/{token}
-```
-
-Isto garante que mesmo quando o admin envia o convite a partir do ambiente de preview, o link no email aponta sempre para o dominio correto de producao.
+| Estado | Revogar | Reenviar |
+|--------|---------|----------|
+| Pendente | Sim | **Sim (novo)** |
+| Aceite | Nao | Nao |
+| Expirado | Nao | Sim |
+| Revogado | Nao | Sim |
 
 ### Sem alteracoes de base de dados
-Usa a coluna `custom_domain` ja existente em `store_settings`.
+A funcionalidade de reenvio ja existe no hook `useResendSellerInvite` - apenas precisa de ser exposta na UI para convites pendentes.
