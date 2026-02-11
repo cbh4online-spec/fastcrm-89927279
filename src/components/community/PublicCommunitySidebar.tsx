@@ -20,7 +20,9 @@ export function PublicCommunitySidebar({ workspaceId, settings, onRegisterClick,
   const { data: links = [] } = usePublicCommunityLinks(workspaceId);
 
   const admins = members.filter((m: any) => m.role === "owner" || m.role === "admin");
-  const recentMembers = members.slice(-8);
+  const publicMembers = members.filter((m: any) => m.is_profile_public !== false);
+  const recentMembers = publicMembers.slice(-8);
+  const totalMembers = members.length;
   const totalPosts = topicsCount;
 
   return (
@@ -51,7 +53,7 @@ export function PublicCommunitySidebar({ workspaceId, settings, onRegisterClick,
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2 py-2 border-y">
             <div className="text-center">
-              <p className="text-lg font-bold text-foreground">{members.length}</p>
+              <p className="text-lg font-bold text-foreground">{totalMembers}</p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Membros</p>
             </div>
             <div className="text-center">
@@ -69,16 +71,16 @@ export function PublicCommunitySidebar({ workspaceId, settings, onRegisterClick,
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Membros recentes</p>
               <div className="flex -space-x-2">
-                {recentMembers.map((m: any) => (
+                 {recentMembers.map((m: any) => (
                   <Avatar key={m.id} className="h-7 w-7 border-2 border-card">
                     <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                      {(m.profile?.full_name || "U").charAt(0).toUpperCase()}
+                      {m.is_anonymous ? "?" : (m.profile?.full_name || "U").charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                {members.length > 8 && (
+                {totalMembers > 8 && (
                   <div className="h-7 w-7 rounded-full border-2 border-card bg-muted flex items-center justify-center text-[9px] text-muted-foreground font-semibold">
-                    +{members.length - 8}
+                    +{totalMembers - 8}
                   </div>
                 )}
               </div>

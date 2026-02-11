@@ -18,6 +18,8 @@ interface SocialPostCardProps {
   };
   categoryName?: string;
   categoryIcon?: string;
+  authorName?: string;
+  isAnonymous?: boolean;
   onClick: () => void;
 }
 
@@ -34,7 +36,9 @@ function highlightHashtags(text: string) {
   });
 }
 
-export function SocialPostCard({ topic, categoryName, categoryIcon, onClick }: SocialPostCardProps) {
+export function SocialPostCard({ topic, categoryName, categoryIcon, authorName, isAnonymous, onClick }: SocialPostCardProps) {
+  const displayName = isAnonymous ? "Membro Anónimo" : (authorName || "Membro");
+  const avatarInitial = isAnonymous ? "?" : displayName.charAt(0).toUpperCase();
   return (
     <button
       onClick={onClick}
@@ -48,12 +52,19 @@ export function SocialPostCard({ topic, categoryName, categoryIcon, onClick }: S
       <div className="p-4">
         {/* Header: avatar + author + category */}
         <div className="flex items-center gap-3 mb-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-            {topic.title.charAt(0).toUpperCase()}
+          <div className={cn(
+            "h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0",
+            isAnonymous
+              ? "bg-muted text-muted-foreground"
+              : "bg-gradient-to-br from-primary/20 to-primary/40 text-primary"
+          )}>
+            {avatarInitial}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-foreground">Membro</span>
+              <span className={cn("text-sm font-semibold", isAnonymous ? "text-muted-foreground italic" : "text-foreground")}>
+                {displayName}
+              </span>
               {categoryName && (
                 <Badge variant="secondary" className="text-[10px] gap-1 font-normal">
                   {categoryIcon && <span>{categoryIcon}</span>}

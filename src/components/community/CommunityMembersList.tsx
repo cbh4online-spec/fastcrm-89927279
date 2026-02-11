@@ -1,16 +1,20 @@
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useCommunityMembers, useResendCommunityInvite } from "@/hooks/useCommunityMembers";
+import { useCommunitySettings } from "@/hooks/useCommunitySettings";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Shield, Crown, Clock, CheckCircle2, RotateCcw, Loader2, FileText } from "lucide-react";
+import { Search, Shield, Crown, Clock, CheckCircle2, RotateCcw, Loader2, FileText, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { MemberAnswersDialog } from "./MemberAnswersDialog";
 
 export function CommunityMembersList() {
+  const { currentWorkspace } = useWorkspace();
   const { data: workspaceMembers = [], isLoading: loadingWs } = useWorkspaceMembers();
   const { data: communityMembers = [], isLoading: loadingCm } = useCommunityMembers();
+  const { data: communitySettings } = useCommunitySettings(currentWorkspace?.id);
   const resendInvite = useResendCommunityInvite();
   const [search, setSearch] = useState("");
   const [answersOpen, setAnswersOpen] = useState(false);
@@ -97,16 +101,29 @@ export function CommunityMembersList() {
           ))}
 
           {/* Community-only members (invited) */}
-          {filteredCm.map(cm => (
+          {filteredCm.map(cm => {
+            const isPrivate = (cm as any).is_profile_public === false;
+            const forceAnon = (communitySettings as any)?.force_anonymous === true;
+            const showAnon = forceAnon || isPrivate;
+            const displayName = showAnon ? ((cm as any).display_alias || "Membro Anónimo") : cm.name;
+            const displayEmail = (cm as any).show_email === false ? "••••@••••" : cm.email;
+            const showAv = (cm as any).show_avatar !== false && !forceAnon;
+
+            return (
             <div key={cm.id} className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors">
               <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-muted text-muted-foreground font-semibold">
-                  {cm.name.charAt(0).toUpperCase()}
+                <AvatarFallback className={showAnon ? "bg-muted text-muted-foreground font-semibold" : "bg-muted text-muted-foreground font-semibold"}>
+                  {showAnon ? "?" : displayName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{cm.name}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{cm.email}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className={`text-sm font-medium truncate ${showAnon ? "italic text-muted-foreground" : ""}`}>{displayName}</p>
+                  {isPrivate && !forceAnon && (
+                    <EyeOff className="h-3 w-3 text-muted-foreground shrink-0" />
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate">{displayEmail}</p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {statusBadge(cm.status)}
@@ -137,7 +154,8 @@ export function CommunityMembersList() {
                 </Button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
