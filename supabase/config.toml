@@ -213,3 +213,6 @@ verify_jwt = false
 
 [functions.detect-abandoned-carts]
 verify_jwt = false
+
+[functions.ai-c2c-listing-assistant]
+verify_jwt = false
