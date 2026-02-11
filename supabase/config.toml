@@ -199,6 +199,9 @@ verify_jwt = false
 [functions.store-visual-search]
 verify_jwt = false
 
+[functions.store-classify-visitor]
+verify_jwt = false
+
 [functions.community-ai-category]
 verify_jwt = false
 
