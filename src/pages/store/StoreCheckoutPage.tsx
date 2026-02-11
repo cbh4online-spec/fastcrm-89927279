@@ -16,11 +16,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useActiveShippingMethods } from "@/hooks/useShippingMethods";
 import { StoreGiftCardBalance } from "@/components/store/StoreGiftCardBalance";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
+import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { items, subtotal, clearCart } = useStoreCart();
   const { workspaceId: wsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
+  const { data: storeSettings } = usePublicStoreSettings(wsId || "");
+  const storeName = storeSettings?.store_name || "Loja";
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [couponCode, setCouponCode] = useState("");
@@ -257,7 +260,7 @@ export default function StoreCheckoutPage() {
   return (
     <>
       <Helmet>
-        <title>Checkout | Loja</title>
+        <title>Checkout | {storeName}</title>
       </Helmet>
 
       <div className="min-h-screen bg-background">

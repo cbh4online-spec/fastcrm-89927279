@@ -111,11 +111,26 @@ export default function StorePage() {
       <Helmet>
         <title>{storeName} | FastCRM</title>
         <meta name="description" content={storeSettings?.store_description || "Explore os nossos produtos e serviços"} />
+        <link rel="canonical" href={`${window.location.origin}/store/${wsSlug}`} />
         <meta property="og:title" content={`${storeName} | FastCRM`} />
         <meta property="og:description" content={storeSettings?.store_description || "Explore os nossos produtos e serviços"} />
         <meta property="og:type" content="website" />
-        {storeSettings?.logo_url && <meta property="og:image" content={storeSettings.logo_url} />}
+        <meta property="og:url" content={`${window.location.origin}/store/${wsSlug}`} />
+        <meta property="og:site_name" content="FastCRM" />
+        {(storeSettings?.banner_url || storeSettings?.logo_url) && (
+          <meta property="og:image" content={storeSettings.banner_url || storeSettings.logo_url!} />
+        )}
         <meta name="twitter:card" content="summary_large_image" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Store",
+            "name": storeName,
+            "description": storeSettings?.store_description || "",
+            "url": `${window.location.origin}/store/${wsSlug}`,
+            ...(storeSettings?.logo_url ? { "logo": storeSettings.logo_url } : {}),
+          })}
+        </script>
       </Helmet>
 
       <div className="min-h-screen bg-background">

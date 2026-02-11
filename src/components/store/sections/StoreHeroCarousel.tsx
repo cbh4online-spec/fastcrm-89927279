@@ -65,9 +65,14 @@ export function StoreHeroCarousel({ products, workspaceSlug, storeName, storeDes
         )}
         <div className="container mx-auto px-4 py-20 md:py-28 relative z-10 text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-            {storeDescription || `Bem-vindo à ${storeName}`}
+            Bem-vindo à {storeName}
           </h1>
-          <p className="text-lg text-primary-foreground/80 max-w-lg mx-auto mt-4">
+          {storeDescription && (
+            <p className="text-lg text-primary-foreground/80 max-w-lg mx-auto mt-4">
+              {storeDescription}
+            </p>
+          )}
+          <p className="text-base text-primary-foreground/60 max-w-lg mx-auto mt-2">
             Descubra soluções premium pensadas para si.
           </p>
           <Button
