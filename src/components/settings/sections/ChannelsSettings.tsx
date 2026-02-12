@@ -2,6 +2,7 @@ import { SettingsSection, SettingsItem } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InstagramConnectionCard } from "@/components/integrations/InstagramConnectionCard";
+import { WhatsAppConnectionCard } from "@/components/integrations/WhatsAppConnectionCard";
 import { EmailChannelSettings } from "./EmailChannelSettings";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import {
@@ -77,28 +78,7 @@ export function ChannelsSettings({ searchQuery = "", matchedSections }: Channels
             
             <InstagramConnectionCard />
             
-            <div className="border border-border rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/10">
-                    <Phone className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium">WhatsApp Business</p>
-                    <p className="text-sm text-muted-foreground">
-                      {isGHLConfigured 
-                        ? "Conectado via GoHighLevel"
-                        : "Conectar conta WhatsApp Business"}
-                    </p>
-                  </div>
-                </div>
-                {isGHLConfigured ? (
-                  <Badge className="bg-orange-500 text-white">Via GHL</Badge>
-                ) : (
-                  <Badge variant="secondary">Em breve</Badge>
-                )}
-              </div>
-            </div>
+            <WhatsAppConnectionCard />
           </div>
         </SettingsSection>
       )}
