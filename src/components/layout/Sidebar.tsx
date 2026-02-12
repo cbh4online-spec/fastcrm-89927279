@@ -60,6 +60,8 @@ import {
   Store,
   UserCircle,
   Play,
+  FlaskConical,
+  Mic,
 } from "lucide-react";
 import {
   Collapsible,
@@ -262,6 +264,8 @@ const navigationGroups: NavGroup[] = [
       { name: "Implementação Guiada", href: "/dashboard/fastclub/implementacao", icon: BookOpen, tooltip: "Playbooks e checklists" },
       { name: "IA Avançada", href: "/dashboard/fastclub/ia-avancada", icon: Brain, tooltip: "Templates IA e automações" },
       { name: "FastMatch Hub", href: "/dashboard/fastclub/fastmatch", icon: Users, tooltip: "Rede privada de oportunidades" },
+      { name: "Laboratório Fast", href: "/dashboard/fastclub/laboratorio", icon: FlaskConical, tooltip: "Experimentos e funcionalidades beta" },
+      { name: "Hot Seats", href: "/dashboard/fastclub/hot-seats", icon: Mic, tooltip: "Sessões de mentoria ao vivo" },
     ],
   },
   // MARKETING
@@ -495,7 +499,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           )}
         </Tooltip>
         <CollapsibleContent className="space-y-0.5 mt-0.5 animate-fade-in">
-          {group.items.map((item) => renderNavItem(item, true))}
+          {group.name === "FastClub" ? (
+            <>
+              {group.items.filter(item => !["Missão da Semana", "Implementação Guiada", "IA Avançada", "FastMatch Hub", "Laboratório Fast", "Hot Seats"].includes(item.name)).map((item) => renderNavItem(item, true))}
+              <div className="px-3 pt-3 pb-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Zona Premium</span>
+              </div>
+              {group.items.filter(item => ["Missão da Semana", "Implementação Guiada", "IA Avançada", "FastMatch Hub", "Laboratório Fast", "Hot Seats"].includes(item.name)).map((item) => renderNavItem(item, true))}
+            </>
+          ) : (
+            group.items.map((item) => renderNavItem(item, true))
+          )}
         </CollapsibleContent>
       </Collapsible>
     );
