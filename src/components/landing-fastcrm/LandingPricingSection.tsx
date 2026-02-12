@@ -248,16 +248,16 @@ export function LandingPricingSection() {
                 {plan.name === "Free" ? (
                   <Link to="/auth" className="w-full">
                     <Button
-                      className="w-full bg-[hsl(142,76%,36%)] text-white font-semibold hover:bg-[hsl(142,76%,42%)] border-none"
+                      className="w-full bg-[hsl(142,76%,36%)] text-white font-semibold hover:bg-[hsl(142,76%,42%)] border-none text-xs sm:text-sm h-auto py-2.5 whitespace-normal"
                     >
-                      {plan.cta}
-                      <ArrowRight className="h-4 w-4 ml-1" />
+                      <span className="truncate">{plan.cta}</span>
+                      <ArrowRight className="h-4 w-4 ml-1 shrink-0" />
                     </Button>
                   </Link>
                 ) : (
                   <Button
                     onClick={() => openQualification(plan.name.toLowerCase())}
-                    className={`w-full font-semibold border-none ${
+                    className={`w-full font-semibold border-none text-xs sm:text-sm h-auto py-2.5 whitespace-normal ${
                       plan.highlighted
                         ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary)/0.9)]"
                         : plan.name === "Business"
@@ -265,8 +265,8 @@ export function LandingPricingSection() {
                           : "bg-[hsl(38,92%,50%)] text-[hsl(0,0%,10%)] hover:bg-[hsl(38,92%,58%)]"
                     }`}
                   >
-                    {plan.cta}
-                    <ArrowRight className="h-4 w-4 ml-1" />
+                    <span className="truncate">{plan.cta}</span>
+                    <ArrowRight className="h-4 w-4 ml-1 shrink-0" />
                   </Button>
                 )}
 
