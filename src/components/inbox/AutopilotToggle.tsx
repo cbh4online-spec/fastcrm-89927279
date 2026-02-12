@@ -129,7 +129,9 @@ export function AutopilotToggle({ variant = "button", showSettings = true }: Aut
                   Delay de resposta
                 </span>
                 <span className="font-medium">
-                  {config.response_delay_min}-{config.response_delay_max}s
+                  {config.response_delay_min === 0 && config.response_delay_max === 0
+                    ? "Imediato"
+                    : `${config.response_delay_min}-${config.response_delay_max}s`}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
