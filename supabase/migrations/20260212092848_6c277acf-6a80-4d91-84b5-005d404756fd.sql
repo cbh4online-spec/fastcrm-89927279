@@ -1,0 +1,1 @@
+ALTER TABLE public.forum_topics ADD COLUMN comments_enabled boolean DEFAULT true;

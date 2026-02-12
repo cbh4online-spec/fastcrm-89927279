@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useForumCategories, useForumTopics, useCreateForumTopic } from "@/hooks/useForum";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +49,7 @@ export default function ForumPage() {
   const [newContent, setNewContent] = useState("");
   const [newCategoryId, setNewCategoryId] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -85,10 +89,12 @@ export default function ForumPage() {
       title: newTitle.trim(),
       content: newContent.trim(),
       categoryId: newCategoryId || undefined,
+      commentsEnabled,
     });
     setNewTitle("");
     setNewContent("");
     setNewCategoryId("");
+    setCommentsEnabled(true);
     setAiSuggestions([]);
     setDialogOpen(false);
   };
@@ -199,6 +205,19 @@ export default function ForumPage() {
                   <DialogContent className="sm:max-w-lg">
                     <DialogHeader><DialogTitle>Criar Novo Tópico</DialogTitle></DialogHeader>
                     <div className="space-y-4">
+                      {/* Author preview */}
+                      <div className="flex items-center gap-3 pb-3 border-b border-border/50">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-bold text-sm">
+                            {user?.email?.charAt(0).toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-semibold">{user?.email?.split("@")[0] || "Utilizador"}</p>
+                          <p className="text-[11px] text-muted-foreground">A publicar na comunidade</p>
+                        </div>
+                      </div>
+
                       {/* Title with AI suggest */}
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
@@ -263,7 +282,7 @@ export default function ForumPage() {
                       {/* Content with char count */}
                       <div className="relative">
                         <Textarea
-                          placeholder="Escreve o conteúdo do tópico..."
+                          placeholder="O que está na sua mente? Partilhe uma ideia, dúvida ou experiência..."
                           value={newContent}
                           onChange={(e) => setNewContent(e.target.value)}
                           rows={6}
@@ -273,9 +292,26 @@ export default function ForumPage() {
                         </span>
                       </div>
 
-                      <Button className="w-full" onClick={handleCreateTopic} disabled={createTopic.isPending}>
-                        {createTopic.isPending ? "A publicar..." : "Publicar Tópico"}
-                      </Button>
+                      {/* Comments toggle */}
+                      <div className="flex items-center justify-between py-2 px-1">
+                        <Label htmlFor="comments-toggle" className="text-sm text-muted-foreground cursor-pointer flex items-center gap-2">
+                          <MessageCircle className="h-4 w-4" />
+                          Ativar comentários
+                        </Label>
+                        <Switch
+                          id="comments-toggle"
+                          checked={commentsEnabled}
+                          onCheckedChange={setCommentsEnabled}
+                        />
+                      </div>
+
+                      {/* Footer buttons */}
+                      <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleCreateTopic} disabled={createTopic.isPending || !newTitle.trim() || !newContent.trim()}>
+                          {createTopic.isPending ? "A publicar..." : "Publicar Postagem"}
+                        </Button>
+                      </DialogFooter>
                     </div>
                   </DialogContent>
                 </Dialog>

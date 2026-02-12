@@ -25,8 +25,11 @@ export interface ForumTopic {
   views_count: number;
   replies_count: number;
   moderation_status: string;
+  comments_enabled: boolean;
   created_at: string;
   updated_at: string;
+  author_name?: string;
+  author_avatar?: string | null;
 }
 
 export interface ForumPost {
@@ -38,6 +41,31 @@ export interface ForumPost {
   is_best_answer: boolean;
   moderation_status: string;
   created_at: string;
+  author_name?: string;
+  author_avatar?: string | null;
+}
+
+export interface ForumReactionCount {
+  reaction_type: string;
+  count: number;
+}
+
+async function enrichWithProfiles<T extends { author_id: string }>(items: T[]): Promise<(T & { author_name?: string; author_avatar?: string | null })[]> {
+  if (items.length === 0) return items;
+  const authorIds = [...new Set(items.map(i => i.author_id))];
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("user_id, full_name, avatar_url")
+    .in("user_id", authorIds);
+
+  const profileMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
+  profiles?.forEach(p => profileMap.set(p.user_id, p));
+
+  return items.map(item => ({
+    ...item,
+    author_name: profileMap.get(item.author_id)?.full_name || undefined,
+    author_avatar: profileMap.get(item.author_id)?.avatar_url || null,
+  }));
 }
 
 export function useForumCategories(workspaceId: string | undefined) {
@@ -75,7 +103,7 @@ export function useForumTopics(workspaceId: string | undefined, categoryId?: str
 
       const { data, error } = await query.limit(50);
       if (error) throw error;
-      return data as ForumTopic[];
+      return enrichWithProfiles(data as ForumTopic[]);
     },
     enabled: !!workspaceId,
   });
@@ -92,7 +120,8 @@ export function useForumTopic(topicId: string | undefined) {
         .eq("id", topicId)
         .single();
       if (error) throw error;
-      return data as ForumTopic;
+      const enriched = await enrichWithProfiles([data as ForumTopic]);
+      return enriched[0];
     },
     enabled: !!topicId,
   });
@@ -110,9 +139,48 @@ export function useForumPosts(topicId: string | undefined) {
         .eq("moderation_status", "approved")
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as ForumPost[];
+      return enrichWithProfiles(data as ForumPost[]);
     },
     enabled: !!topicId,
+  });
+}
+
+export function useForumReactionCounts(topicId?: string, postId?: string) {
+  return useQuery({
+    queryKey: ["forum-reaction-counts", topicId, postId],
+    queryFn: async () => {
+      let query = supabase.from("forum_reactions").select("reaction_type");
+      if (topicId) query = query.eq("topic_id", topicId).is("post_id", null);
+      if (postId) query = query.eq("post_id", postId);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const counts: Record<string, number> = {};
+      data?.forEach(r => {
+        counts[r.reaction_type] = (counts[r.reaction_type] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: !!(topicId || postId),
+  });
+}
+
+export function useUserReaction(topicId?: string, postId?: string) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["forum-user-reaction", topicId, postId, user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      let query = supabase.from("forum_reactions").select("id, reaction_type").eq("user_id", user.id);
+      if (topicId) query = query.eq("topic_id", topicId).is("post_id", null);
+      if (postId) query = query.eq("post_id", postId);
+
+      const { data, error } = await query.maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!(user && (topicId || postId)),
   });
 }
 
@@ -121,16 +189,15 @@ export function useCreateForumTopic(workspaceId: string | undefined) {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ title, content, categoryId }: { title: string; content: string; categoryId?: string }) => {
+    mutationFn: async ({ title, content, categoryId, commentsEnabled = true }: { title: string; content: string; categoryId?: string; commentsEnabled?: boolean }) => {
       if (!workspaceId || !user) throw new Error("Sem sessão");
 
-      // Auto-moderation
       let moderationStatus = "approved";
       const { data: filters } = await supabase
         .from("moderation_filters")
         .select("banned_words")
         .eq("workspace_id", workspaceId)
-        .single();
+        .maybeSingle();
 
       if (filters?.banned_words) {
         const text = `${title} ${content}`.toLowerCase();
@@ -145,7 +212,8 @@ export function useCreateForumTopic(workspaceId: string | undefined) {
         content,
         category_id: categoryId || null,
         moderation_status: moderationStatus,
-      }).select().single();
+        comments_enabled: commentsEnabled,
+      } as any).select().single();
       if (error) throw error;
 
       if (moderationStatus === "flagged") {
@@ -178,7 +246,7 @@ export function useCreateForumPost(workspaceId: string | undefined) {
         .from("moderation_filters")
         .select("banned_words")
         .eq("workspace_id", workspaceId)
-        .single();
+        .maybeSingle();
 
       if (filters?.banned_words) {
         const found = (filters.banned_words as string[]).filter(w => content.toLowerCase().includes(w.toLowerCase()));
@@ -194,7 +262,6 @@ export function useCreateForumPost(workspaceId: string | undefined) {
       }).select().single();
       if (error) throw error;
 
-      // Update replies count
       const { data: t } = await supabase.from("forum_topics").select("replies_count").eq("id", topicId).single();
       if (t) {
         await supabase.from("forum_topics").update({ replies_count: (t.replies_count || 0) + 1 }).eq("id", topicId);
