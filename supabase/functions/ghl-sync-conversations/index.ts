@@ -1,5 +1,49 @@
-// Version 1.1 - GHL Conversation Sync (fixed message parsing + auto-lead creation)
+// Version 1.2 - GHL Conversation Sync (fixed message parsing + auto-lead creation + autopilot trigger)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Helper: Trigger autopilot for synced inbound messages
+async function triggerAutopilotForSyncedMessage(
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  params: {
+    workspaceId: string;
+    conversationId: string;
+    channel: string;
+    leadId: string;
+    ghlContactId: string;
+    locationId: string;
+  }
+): Promise<void> {
+  try {
+    console.log("[GHL Sync] Triggering autopilot for synced message", { conversationId: params.conversationId });
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/ghl-webhook-message`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${supabaseServiceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "autopilot_trigger",
+        workspace_id: params.workspaceId,
+        conversation_id: params.conversationId,
+        channel: params.channel,
+        lead_id: params.leadId,
+        ghl_contact_id: params.ghlContactId,
+        location_id: params.locationId,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("[GHL Sync] Autopilot trigger failed:", response.status, errText);
+    } else {
+      console.log("[GHL Sync] Autopilot triggered successfully for conv", params.conversationId);
+    }
+  } catch (err) {
+    console.error("[GHL Sync] Error triggering autopilot:", err);
+  }
+}
 
 // Helper: Fetch contact details from GHL API
 async function fetchGHLContact(apiKey: string, contactId: string): Promise<{name: string; email: string | null; phone: string | null; ghl_contact_id: string} | null> {
@@ -577,6 +621,27 @@ Deno.serve(async (req) => {
                               break;
                             }
                           }
+                        }
+                      }
+
+                      // Trigger autopilot if the last message in this conversation is inbound
+                      if (messages.length > 0 && conversationId && leadId) {
+                        const lastMsg = messages[messages.length - 1];
+                        const lastDirection = normalizeDirection(lastMsg?.direction);
+                        if (lastDirection === "inbound") {
+                          // Fire-and-forget autopilot trigger (don't block sync)
+                          triggerAutopilotForSyncedMessage(
+                            supabaseUrl,
+                            supabaseServiceKey,
+                            {
+                              workspaceId: workspace_id,
+                              conversationId,
+                              channel,
+                              leadId,
+                              ghlContactId: ghlConv.contactId,
+                              locationId,
+                            }
+                          ).catch(err => console.error("[GHL Sync] Autopilot trigger error (non-blocking):", err));
                         }
                       }
                     } else {
