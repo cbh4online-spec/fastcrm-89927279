@@ -1,18 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Brain, 
-  TrendingUp, 
-  Users, 
-  Zap, 
-  Target, 
+import {
+  Brain,
+  TrendingUp,
+  Users,
+  Zap,
+  Target,
   BarChart3,
   ArrowRight,
-  Sparkles,
-  MessageSquare,
-  Calendar,
-  CheckCircle2,
-  Play
+  Network,
+  Shield,
+  Eye,
+  Layers,
+  Check,
+  ChevronRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -25,31 +26,32 @@ export default function MarketingHomepage() {
           <div className="flex items-center gap-8">
             <Link to="/" className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                <Brain className="h-5 w-5 text-primary-foreground" />
+                <Layers className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold">FastCRM</span>
+              <span className="text-xl font-bold tracking-tight">FastCRM</span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
-              <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Funcionalidades
+              <a href="#ecossistema" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Ecossistema
               </a>
-              <a href="#ai" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                IA Copiloto
+              <a href="#fastclub" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                FastClub
               </a>
-              <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Preços
+              <a href="#rede" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Rede Privada
+              </a>
+              <a href="#planos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Planos
               </a>
             </nav>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/auth">
-              <Button variant="ghost" size="sm">
-                Entrar
-              </Button>
+              <Button variant="ghost" size="sm">Entrar</Button>
             </Link>
             <Link to="/auth">
-              <Button size="sm" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
-                Começar grátis
+              <Button size="sm">
+                Começar Agora
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -57,306 +59,359 @@ export default function MarketingHomepage() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* 1. HERO — Atenção */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
-        <div className="container relative py-24 md:py-32">
-          <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span>CRM potenciado por Inteligência Artificial</span>
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-              O CRM que{" "}
-              <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-                vende por ti
+        <div className="container relative py-28 md:py-36">
+          <div className="mx-auto max-w-3xl text-center">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+              Infraestrutura Digital para{" "}
+              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Empresas Modernas
               </span>
             </h1>
-            <p className="mt-6 text-lg text-muted-foreground md:text-xl max-w-2xl mx-auto">
-              A IA analisa os teus leads, sugere próximos passos e automatiza tarefas. 
-              Tu focas em fechar negócios, não em preencher fichas.
+            <p className="mt-6 text-xl font-medium text-foreground/80">
+              Organize. Automatize. Conecte.
+            </p>
+            <p className="mt-3 text-lg text-muted-foreground max-w-2xl mx-auto">
+              CRM, Inteligência Artificial e Rede Privada integrados numa única plataforma.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/auth">
-                <Button size="lg" className="h-12 px-8 text-base bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25">
-                  Começar trial grátis
+                <Button size="lg" className="h-12 px-8 text-base">
+                  Começar Agora
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base">
-                <Play className="mr-2 h-4 w-4" />
-                Ver demo
-              </Button>
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Sem cartão de crédito · 14 dias grátis · Cancela quando quiseres
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Product Visual */}
-      <section className="container pb-24">
-        <div className="relative mx-auto max-w-6xl">
-          <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 rounded-3xl blur-2xl opacity-50" />
-          <div className="relative rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-border px-4 py-3 bg-muted/30">
-              <div className="flex gap-1.5">
-                <div className="h-3 w-3 rounded-full bg-red-500/80" />
-                <div className="h-3 w-3 rounded-full bg-yellow-500/80" />
-                <div className="h-3 w-3 rounded-full bg-green-500/80" />
-              </div>
-              <span className="text-xs text-muted-foreground ml-2">FastCRM Dashboard</span>
-            </div>
-            <div className="p-6 md:p-8 bg-gradient-to-br from-muted/20 to-muted/5">
-              {/* Simulated Dashboard */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {[
-                  { label: "Leads Ativos", value: "247", change: "+12%", icon: Users },
-                  { label: "Taxa de Conversão", value: "23%", change: "+5%", icon: TrendingUp },
-                  { label: "Valor Pipeline", value: "€142K", change: "+18%", icon: BarChart3 },
-                ].map((stat, i) => (
-                  <div key={i} className="rounded-xl bg-card border border-border p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">{stat.label}</span>
-                      <stat.icon className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold">{stat.value}</span>
-                      <span className="text-xs text-green-600 font-medium">{stat.change}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-xl bg-card border border-border p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Brain className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">Sugestões da IA</span>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      "Ligar ao João Silva - interesse alto detectado",
-                      "Enviar proposta à TechCorp - deadline amanhã",
-                      "Follow-up com 3 leads inativos há 7 dias",
-                    ].map((suggestion, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span>{suggestion}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="rounded-xl bg-card border border-border p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">Hoje</span>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { time: "10:00", task: "Call com prospect" },
-                      { time: "14:30", task: "Demo para equipa" },
-                      { time: "16:00", task: "Revisão de propostas" },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-3 text-sm">
-                        <span className="text-muted-foreground font-mono text-xs">{item.time}</span>
-                        <span>{item.task}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <a href="#ecossistema">
+                <Button size="lg" variant="outline" className="h-12 px-8 text-base">
+                  Explorar o Ecossistema
+                </Button>
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section id="features" className="container py-24 border-t border-border">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Tudo o que precisas para vender mais
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Ferramentas simples e poderosas que se adaptam à forma como a tua equipa trabalha.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            {
-              icon: Target,
-              title: "Pipeline Visual",
-              description: "Vê todos os teus negócios num pipeline drag-and-drop. Organiza, prioriza e nunca percas uma oportunidade.",
-            },
-            {
-              icon: Zap,
-              title: "Automação Inteligente",
-              description: "Cria workflows que disparam automaticamente. Emails, tarefas e lembretes sem esforço manual.",
-            },
-            {
-              icon: BarChart3,
-              title: "Relatórios em Tempo Real",
-              description: "Dashboards que te mostram o que importa. Previsões de vendas e métricas que guiam decisões.",
-            },
-          ].map((benefit, i) => (
-            <Card key={i} className="group relative overflow-hidden border-border/50 bg-gradient-to-b from-card to-muted/20 hover:border-primary/30 transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardContent className="relative p-8">
-                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <benefit.icon className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{benefit.title}</h3>
-                <p className="text-muted-foreground">{benefit.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* AI Copilot Section */}
-      <section id="ai" className="relative overflow-hidden bg-gradient-to-b from-muted/30 via-muted/50 to-muted/30 py-24">
-        <div className="container">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm text-primary">
-                <Brain className="h-4 w-4" />
-                <span>IA Copiloto</span>
-              </div>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
-                A IA que trabalha contigo, não contra ti
-              </h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                O nosso copiloto analisa cada interação, detecta padrões e sugere ações 
-                concretas. É como ter um assistente de vendas experiente 24/7.
-              </p>
-              <div className="space-y-4">
-                {[
-                  "Análise automática de temperatura de leads",
-                  "Sugestões de próximas ações baseadas em dados",
-                  "Previsão de conversão e priorização inteligente",
-                  "Resumos automáticos de conversas e reuniões",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                    </div>
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-3xl blur-xl" />
-              <div className="relative space-y-4">
-                {[
-                  {
-                    icon: MessageSquare,
-                    title: "Insight detectado",
-                    message: "O lead 'TechCorp' abriu a proposta 5 vezes nas últimas 24h. Probabilidade de fecho: 78%",
-                    action: "Ligar agora",
-                  },
-                  {
-                    icon: TrendingUp,
-                    title: "Tendência identificada",
-                    message: "Leads do setor 'Fintech' convertem 40% mais rápido. Sugiro focar aquisição neste segmento.",
-                    action: "Ver análise",
-                  },
-                  {
-                    icon: Calendar,
-                    title: "Lembrete inteligente",
-                    message: "O João Costa não responde há 5 dias. Baseado no histórico, emails às 10h têm melhor resposta.",
-                    action: "Agendar email",
-                  },
-                ].map((insight, i) => (
-                  <div key={i} className="rounded-xl border border-border bg-card p-5 shadow-lg">
-                    <div className="flex items-start gap-4">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <insight.icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-primary mb-1">{insight.title}</p>
-                        <p className="text-sm text-muted-foreground mb-3">{insight.message}</p>
-                        <Button size="sm" variant="outline" className="h-7 text-xs">
-                          {insight.action}
-                          <ArrowRight className="ml-1 h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof */}
-      <section className="container py-24 border-t border-border">
-        <div className="text-center mb-12">
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            Equipas que já confiam em nós
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8 opacity-60">
-          {["TechStart", "SalesForce.pt", "GrowthCo", "VendaMais", "B2BPro", "DealFlow"].map((company, i) => (
-            <div key={i} className="text-xl font-bold text-muted-foreground/80">
-              {company}
-            </div>
-          ))}
-        </div>
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            {
-              quote: "Reduzimos o tempo de qualificação de leads em 60%. A IA faz o trabalho pesado.",
-              author: "Maria Santos",
-              role: "Sales Manager, TechStart",
-            },
-            {
-              quote: "Finalmente um CRM que não precisamos de forçar a equipa a usar. É intuitivo e útil.",
-              author: "Pedro Almeida",
-              role: "CEO, GrowthCo",
-            },
-            {
-              quote: "As sugestões da IA são incrivelmente precisas. Fechamos 30% mais negócios.",
-              author: "Ana Costa",
-              role: "Head of Sales, B2BPro",
-            },
-          ].map((testimonial, i) => (
-            <Card key={i} className="border-border/50 bg-card">
-              <CardContent className="p-6">
-                <p className="text-muted-foreground mb-4">"{testimonial.quote}"</p>
-                <div>
-                  <p className="font-semibold">{testimonial.author}</p>
-                  <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="container py-24">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary via-primary/90 to-primary/80 p-12 md:p-16 text-center">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtOS45NDEgMC0xOCA4LjA1OS0xOCAxOHM4LjA1OSAxOCAxOCAxOCAxOC04LjA1OSAxOC0xOC04LjA1OS0xOC0xOC0xOHoiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIiBzdHJva2Utd2lkdGg9IjIiLz48L2c+PC9zdmc+')] opacity-30" />
-          <div className="relative">
-            <h2 className="text-3xl font-bold tracking-tight text-primary-foreground sm:text-4xl md:text-5xl mb-4">
-              Pronto para vender mais?
+      {/* 2. PROBLEMA — Interesse */}
+      <section className="border-t border-border">
+        <div className="container py-24 md:py-32">
+          <div className="mx-auto max-w-3xl text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              A maioria das empresas opera com sistemas fragmentados.
             </h2>
-            <p className="text-lg text-primary-foreground/80 max-w-xl mx-auto mb-8">
-              Começa o teu trial gratuito hoje. Setup em 5 minutos, sem complicações.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/auth">
-                <Button size="lg" variant="secondary" className="h-12 px-8 text-base font-semibold shadow-lg">
-                  Começar trial grátis
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Button size="lg" variant="ghost" className="h-12 px-8 text-base text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10">
-                Falar com vendas
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
+            {[
+              { icon: Layers, label: "Ferramentas isoladas" },
+              { icon: Eye, label: "Dados dispersos" },
+              { icon: Zap, label: "Processos manuais" },
+              { icon: BarChart3, label: "Falta de visibilidade" },
+              { icon: TrendingUp, label: "Pouca previsibilidade" },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-6 text-center"
+              >
+                <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <item.icon className="h-5 w-5 text-destructive/70" />
+                </div>
+                <span className="text-sm font-medium text-muted-foreground">{item.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-12 text-center text-lg text-muted-foreground max-w-xl mx-auto">
+            O resultado é ineficiência e crescimento limitado.
+          </p>
+        </div>
+      </section>
+
+      {/* 3. SOLUÇÃO — Interesse */}
+      <section id="ecossistema" className="bg-muted/20 border-t border-border">
+        <div className="container py-24 md:py-32">
+          <div className="mx-auto max-w-3xl text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Uma infraestrutura integrada.
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                icon: Target,
+                title: "CRM",
+                subtitle: "Estrutura operacional.",
+                description: "Leads, pipeline, controlo e métricas.",
+              },
+              {
+                icon: Brain,
+                title: "IA",
+                subtitle: "Automação inteligente.",
+                description: "Sugestões estratégicas. Assistentes integrados.",
+              },
+              {
+                icon: Network,
+                title: "Rede Privada",
+                subtitle: "Oportunidades qualificadas.",
+                description: "Matching estratégico. Reputação e métricas de ROI.",
+              },
+            ].map((item, i) => (
+              <Card
+                key={i}
+                className="group border-border/50 bg-card hover:border-primary/30 transition-all duration-300"
+              >
+                <CardContent className="p-8">
+                  <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <item.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-1">{item.title}</h3>
+                  <p className="text-sm font-medium text-foreground/70 mb-2">{item.subtitle}</p>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="mt-12 text-center">
+            <Link to="/auth">
+              <Button variant="outline" size="lg" className="gap-2">
+                Ver como funciona
+                <ChevronRight className="h-4 w-4" />
               </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. FASTCLUB — Desejo */}
+      <section id="fastclub" className="border-t border-border bg-gradient-to-b from-primary/5 to-transparent">
+        <div className="container py-24 md:py-32">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
+              O ecossistema não termina no software.
+            </h2>
+            <p className="text-lg text-muted-foreground mb-6">
+              O FastClub é o centro estratégico do FastCRM. Um ambiente onde membros aprendem a
+              implementar o Método PARE, otimizar a presença na Rede Privada e gerar resultados
+              reais.
+            </p>
+            <p className="text-base font-medium text-foreground/80 mb-10">
+              Não é um grupo informal. É um espaço estruturado para execução e crescimento.
+            </p>
+            <Link to="/club/fastclub">
+              <Button size="lg" className="gap-2">
+                Aceder ao FastClub
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. REDE PRIVADA — Desejo */}
+      <section id="rede" className="border-t border-border">
+        <div className="container py-24 md:py-32">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
+              Rede Privada de Oportunidades
+            </h2>
+            <p className="text-lg text-muted-foreground mb-4 max-w-2xl">
+              Todos os membros verificados podem conectar-se. A diferença está na quota de matches
+              mensais, ajustada por plano.
+            </p>
+            <p className="text-base text-muted-foreground mb-12 max-w-2xl">
+              O sistema integra automaticamente oportunidades no CRM, criando pipeline real.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+              {[
+                { value: "84", label: "oportunidades geradas esta semana" },
+                { value: "12", label: "novos membros verificados" },
+                { value: "86%", label: "taxa média de resposta" },
+              ].map((stat, i) => (
+                <div key={i} className="rounded-xl border border-border/50 bg-muted/30 p-6 text-center">
+                  <p className="text-4xl font-bold text-foreground mb-2">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                </div>
+              ))}
             </div>
+            <Link to="/auth">
+              <Button variant="outline" size="lg" className="gap-2">
+                Explorar a Rede Privada
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. PROVA SOCIAL — Desejo */}
+      <section className="border-t border-border bg-muted/20">
+        <div className="container py-24 md:py-32">
+          <div className="mx-auto max-w-3xl text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Resultados Reais</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                context:
+                  "Empresa de consultoria B2B com 3 comerciais, sem processo estruturado de follow-up.",
+                action:
+                  "Implementação de pipeline com 5 etapas e automação de follow-up a 48h via FastCRM.",
+                result:
+                  "Taxa de resposta aumentou de 12% para 34% no primeiro mês. Pipeline organizado e previsível.",
+              },
+              {
+                context:
+                  "Agência digital com ciclo de venda longo e propostas manuais que consumiam horas.",
+                action:
+                  "Propostas geradas por IA com personalização automática baseada no briefing do lead.",
+                result:
+                  "Tempo de criação de proposta reduziu de 2h para 8 minutos. Mais propostas enviadas, mais negócios fechados.",
+              },
+              {
+                context:
+                  "Startup SaaS sem canal de distribuição B2B para o mercado português.",
+                action:
+                  "Ativação da Rede Privada com match a distribuidor com carteira de 200+ PMEs.",
+                result:
+                  "Acordo de distribuição assinado em 3 semanas. 12 clientes nos primeiros 90 dias.",
+              },
+            ].map((item, i) => (
+              <Card key={i} className="border-border/50 bg-card">
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                      Contexto
+                    </p>
+                    <p className="text-sm text-foreground/80">{item.context}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                      Ação
+                    </p>
+                    <p className="text-sm text-foreground/80">{item.action}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">
+                      Resultado
+                    </p>
+                    <p className="text-sm font-medium text-foreground">{item.result}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 7. PLANOS — Ação */}
+      <section id="planos" className="border-t border-border">
+        <div className="container py-24 md:py-32">
+          <div className="mx-auto max-w-3xl text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Escolha a infraestrutura certa para o seu negócio.
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                name: "Starter",
+                price: "29",
+                matches: "10 matches/mês",
+                features: [
+                  "CRM completo",
+                  "IA — funcionalidades base",
+                  "Acesso ao FastClub",
+                  "Rede Privada — acesso limitado",
+                ],
+              },
+              {
+                name: "Professional",
+                price: "79",
+                matches: "50 matches/mês",
+                popular: true,
+                features: [
+                  "CRM completo",
+                  "IA — funcionalidades avançadas",
+                  "Acesso ao FastClub",
+                  "Rede Privada — acesso completo",
+                  "Relatórios de ROI",
+                ],
+              },
+              {
+                name: "Enterprise",
+                price: "149",
+                matches: "Matches ilimitados",
+                features: [
+                  "CRM completo",
+                  "IA — sem limites",
+                  "Acesso ao FastClub",
+                  "Rede Privada — prioridade",
+                  "Gestor de conta dedicado",
+                  "API e integrações",
+                ],
+              },
+            ].map((plan, i) => (
+              <Card
+                key={i}
+                className={`border-border/50 bg-card relative ${
+                  plan.popular ? "border-primary/50 shadow-lg" : ""
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="rounded-full bg-primary px-4 py-1 text-xs font-medium text-primary-foreground">
+                      Mais popular
+                    </span>
+                  </div>
+                )}
+                <CardContent className="p-8">
+                  <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-4">{plan.matches}</p>
+                  <div className="flex items-baseline gap-1 mb-6">
+                    <span className="text-4xl font-bold">{plan.price}€</span>
+                    <span className="text-sm text-muted-foreground">/mês</span>
+                  </div>
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((feature, j) => (
+                      <li key={j} className="flex items-center gap-2 text-sm">
+                        <Check className="h-4 w-4 text-primary shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/auth">
+                    <Button
+                      className="w-full"
+                      variant={plan.popular ? "default" : "outline"}
+                    >
+                      Começar
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 8. ENCERRAMENTO — Ação */}
+      <section className="border-t border-border bg-gradient-to-b from-muted/30 to-muted/10">
+        <div className="container py-24 md:py-32">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-8">
+              Construa sobre infraestrutura.{" "}
+              <span className="text-muted-foreground">Não sobre improviso.</span>
+            </h2>
+            <div className="space-y-2 mb-10">
+              <p className="text-lg text-muted-foreground">Organize a sua operação.</p>
+              <p className="text-lg text-muted-foreground">Automatize processos.</p>
+              <p className="text-lg text-muted-foreground">Conecte-se ao mercado.</p>
+            </div>
+            <Link to="/auth">
+              <Button size="lg" className="h-12 px-8 text-base">
+                Iniciar Infraestrutura Digital
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -368,21 +423,21 @@ export default function MarketingHomepage() {
             <div className="col-span-2 md:col-span-1">
               <Link to="/" className="flex items-center gap-2 mb-4">
                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                  <Brain className="h-5 w-5 text-primary-foreground" />
+                  <Layers className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-bold">FastCRM</span>
+                <span className="text-xl font-bold tracking-tight">FastCRM</span>
               </Link>
               <p className="text-sm text-muted-foreground">
-                O CRM com IA para equipas de vendas que querem vender mais.
+                Infraestrutura digital para empresas modernas.
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Produto</h4>
+              <h4 className="font-semibold mb-4">Plataforma</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Funcionalidades</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Preços</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Integrações</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">API</a></li>
+                <li><a href="#ecossistema" className="hover:text-foreground transition-colors">Ecossistema</a></li>
+                <li><a href="#planos" className="hover:text-foreground transition-colors">Planos</a></li>
+                <li><a href="#rede" className="hover:text-foreground transition-colors">Rede Privada</a></li>
+                <li><a href="#fastclub" className="hover:text-foreground transition-colors">FastClub</a></li>
               </ul>
             </div>
             <div>
@@ -390,7 +445,6 @@ export default function MarketingHomepage() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="#" className="hover:text-foreground transition-colors">Sobre</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Carreiras</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Contacto</a></li>
               </ul>
             </div>
@@ -408,16 +462,6 @@ export default function MarketingHomepage() {
             <p className="text-sm text-muted-foreground">
               © 2025 FastCRM. Todos os direitos reservados.
             </p>
-            <div className="flex items-center gap-4">
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                <span className="sr-only">LinkedIn</span>
-                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                <span className="sr-only">Twitter</span>
-                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
-              </a>
-            </div>
           </div>
         </div>
       </footer>
