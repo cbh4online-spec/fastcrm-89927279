@@ -1,33 +1,40 @@
 
 
-# FastClub Freemium -- Fase 1: Infraestrutura + Zona Publica
+# Fase 2: Desafio 7 Dias + Resultados (Prova Social)
 
-Dado o tamanho deste projeto, vamos entregar por fases incrementais. A Fase 1 foca em criar a infraestrutura de base de dados, o sistema de membership tiers (free/premium), a navegacao reestruturada com zonas publica e fechada, e as primeiras 3 paginas publicas: **Start Here**, **Metodo PARE** e **FastCRM em Acao**.
+Esta fase adiciona duas paginas novas ao FastClub: o **Desafio 7 Dias** (sequencia de micro-missoes de ativacao ligadas ao FastCRM) e a pagina **Resultados** (prova social com testemunhos, wins e metricas).
 
 ---
 
-## O que esta incluido nesta fase
+## O que esta incluido
 
-1. Migracao de base de dados:
-   - Campo `membership_tier` na tabela `community_members` (valores: free, premium)
-   - Campo `is_crm_verified` (boolean) para clientes FastCRM verificados
-   - Tabela `fastclub_crm_aggregates` para indicadores vindos do CRM
-   - Tabela `fastclub_content_sections` para conteudo estatico das paginas (Start Here, PARE, Demo)
-   - Tabela `fastclub_challenges` para o Desafio 7 Dias (estrutura)
-   - Dados semente iniciais (10 exemplos de conteudo dummy)
+### 1. Pagina "Desafio 7 Dias" (`/dashboard/fastclub/desafio-7-dias`)
 
-2. Hook `useFastClubMembership` para verificar tier do utilizador (visitor/free/premium/verified)
+Sequencia visual de 7 dias com micro-missoes praticas:
+- Timeline vertical com 7 cards (um por dia), cada um com titulo, descricao, CTA para o FastCRM e estado (bloqueado/disponivel/concluido)
+- Progresso visual no topo (barra + "Dia X de 7")
+- Cada missao tem um botao de acao que aponta para uma funcionalidade real do FastCRM (deep-link)
+- Os dados vem da tabela `fastclub_challenges` ja existente
+- Dados semente: 7 missoes pre-carregadas (criar pipeline, registar contactos, enviar proposta, ativar automacao, etc.)
+- Tabela `fastclub_challenge_progress` para guardar progresso do utilizador (dia completado, data)
 
-3. Reestruturacao da sidebar do FastClub com zonas separadas:
-   - ZONA PUBLICA: Start Here, Metodo PARE, FastCRM em Acao, Desafio 7 Dias, Resultados, Discussao
-   - ZONA FECHADA (com cadeado): Missao da Semana, Implementacao Guiada, IA Avancada, FastMatch Hub, Laboratorio Fast
+### 2. Pagina "Resultados" (`/dashboard/fastclub/resultados`)
 
-4. Tres paginas novas:
-   - `/dashboard/fastclub/start-here` -- Visao do ecossistema com CTAs
-   - `/dashboard/fastclub/metodo-pare` -- Pagina P/A/R/E com conteudo estruturado
-   - `/dashboard/fastclub/demos` -- FastCRM em Acao (biblioteca de demos curtas)
+Pagina de prova social com 3 seccoes:
+- **Metricas agregadas**: cards com numeros do ecossistema (membros ativos, oportunidades criadas, taxa de conversao) vindos da tabela `fastclub_crm_aggregates`
+- **Casos de sucesso**: cards com estrutura "Problema - Acao - Resultado" (dados da tabela `fastclub_content_sections` com page_key = 'resultados')
+- **Testemunhos curtos**: citacoes com nome, cargo e empresa (dados semente)
+- CTA recorrente "Ativar FastCRM" em cada seccao
 
-5. Componente `PremiumGate` -- bloqueia conteudo premium com overlay profissional e CTA de upgrade
+### 3. Migracao de base de dados
+
+- Tabela `fastclub_challenge_progress` para tracking do progresso individual
+- Dados semente: 7 challenges + 5 casos de sucesso + 4 metricas agregadas
+
+### 4. Rotas e navegacao
+
+- Adicionar rotas no App.tsx
+- Atualizar items da Sidebar para incluir links ativos
 
 ---
 
@@ -35,19 +42,15 @@ Dado o tamanho deste projeto, vamos entregar por fases incrementais. A Fase 1 fo
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/hooks/useFastClubMembership.ts` | Hook para tier do utilizador (visitor/free/premium/verified) |
-| `src/components/fastclub/PremiumGate.tsx` | Gate de acesso para conteudo premium |
-| `src/components/fastclub/FastClubSidebar.tsx` | Sidebar dedicada com zonas publica/fechada |
-| `src/pages/fastclub/StartHerePage.tsx` | Pagina "Start Here" |
-| `src/pages/fastclub/MetodoParePage.tsx` | Pagina Metodo PARE (P/A/R/E) |
-| `src/pages/fastclub/DemosPage.tsx` | FastCRM em Acao |
+| `src/pages/fastclub/DesafioPage.tsx` | Pagina Desafio 7 Dias com timeline e progresso |
+| `src/pages/fastclub/ResultadosPage.tsx` | Pagina Resultados (prova social) |
 
 ## Ficheiros a editar
 
 | Ficheiro | Acao |
 |---|---|
-| `src/App.tsx` | Adicionar rotas novas |
-| `src/components/layout/Sidebar.tsx` | Atualizar items do FastClub |
+| `src/App.tsx` | Adicionar 2 rotas novas |
+| `src/components/layout/Sidebar.tsx` | Adicionar links para Desafio e Resultados |
 
 ---
 
@@ -56,120 +59,53 @@ Dado o tamanho deste projeto, vamos entregar por fases incrementais. A Fase 1 fo
 ### Migracao DB
 
 ```sql
--- Membership tier na community_members
-ALTER TABLE public.community_members 
-  ADD COLUMN membership_tier text NOT NULL DEFAULT 'free',
-  ADD COLUMN is_crm_verified boolean NOT NULL DEFAULT false;
-
--- Tabela de agregados do CRM (context bridge)
-CREATE TABLE public.fastclub_crm_aggregates (
+-- Progresso individual no Desafio 7 Dias
+CREATE TABLE public.fastclub_challenge_progress (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid REFERENCES workspaces(id) ON DELETE CASCADE NOT NULL,
-  metric_key text NOT NULL,
-  metric_value jsonb NOT NULL DEFAULT '{}',
-  updated_at timestamptz DEFAULT now(),
-  UNIQUE(workspace_id, metric_key)
+  user_id uuid NOT NULL,
+  challenge_id uuid REFERENCES fastclub_challenges(id) ON DELETE CASCADE NOT NULL,
+  completed_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, challenge_id)
 );
 
-ALTER TABLE public.fastclub_crm_aggregates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fastclub_challenge_progress ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated can read aggregates"
-  ON public.fastclub_crm_aggregates FOR SELECT
-  TO authenticated USING (true);
+CREATE POLICY "Users can read own progress"
+  ON public.fastclub_challenge_progress FOR SELECT
+  TO authenticated USING (user_id = auth.uid());
 
--- Tabela de conteudo das seccoes
-CREATE TABLE public.fastclub_content_sections (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid REFERENCES workspaces(id) ON DELETE CASCADE NOT NULL,
-  page_key text NOT NULL,
-  section_key text NOT NULL,
-  title text,
-  content text,
-  media_url text,
-  media_type text DEFAULT 'image',
-  sort_order int DEFAULT 0,
-  is_premium boolean DEFAULT false,
-  metadata jsonb DEFAULT '{}',
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
-ALTER TABLE public.fastclub_content_sections ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Authenticated can read content"
-  ON public.fastclub_content_sections FOR SELECT
-  TO authenticated USING (true);
-
-CREATE POLICY "Admins can manage content"
-  ON public.fastclub_content_sections FOR ALL
-  TO authenticated USING (
-    EXISTS (
-      SELECT 1 FROM workspace_members
-      WHERE workspace_id = fastclub_content_sections.workspace_id
-        AND user_id = auth.uid()
-        AND role IN ('owner', 'admin')
-    )
-  );
-
--- Tabela do Desafio 7 Dias (estrutura para Fase 2)
-CREATE TABLE public.fastclub_challenges (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid REFERENCES workspaces(id) ON DELETE CASCADE NOT NULL,
-  day_number int NOT NULL,
-  title text NOT NULL,
-  description text,
-  action_label text,
-  action_url text,
-  is_premium boolean DEFAULT false,
-  created_at timestamptz DEFAULT now()
-);
-
-ALTER TABLE public.fastclub_challenges ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Authenticated can read challenges"
-  ON public.fastclub_challenges FOR SELECT
-  TO authenticated USING (true);
+CREATE POLICY "Users can insert own progress"
+  ON public.fastclub_challenge_progress FOR INSERT
+  TO authenticated WITH CHECK (user_id = auth.uid());
 ```
 
-### Dados semente (via insert tool apos migracao)
+### Dados semente
 
-Inserir 10 exemplos de conteudo nas tabelas `fastclub_content_sections` e `fastclub_crm_aggregates` para que a UI pareca viva desde o primeiro dia.
+7 challenges na tabela `fastclub_challenges`:
+- Dia 1: "Configurar o seu pipeline" (action: abrir pipeline)
+- Dia 2: "Registar 5 contactos" (action: abrir contactos)
+- Dia 3: "Criar a primeira oportunidade" (action: abrir oportunidades)
+- Dia 4: "Enviar uma proposta" (action: abrir propostas)
+- Dia 5: "Ativar uma automacao simples" (action: abrir automacoes)
+- Dia 6: "Analisar os seus KPIs" (action: abrir reports)
+- Dia 7: "Explorar a Rede Privada" (action: abrir FastMatch)
 
-### Hook useFastClubMembership
+5 casos de sucesso na tabela `fastclub_content_sections` (page_key = 'resultados'):
+- Estrutura: titulo, content (Problema/Acao/Resultado), metadata (empresa, setor, metrica)
 
-```typescript
-// Retorna: { tier: 'visitor'|'free'|'premium', isCrmVerified, isLoading }
-// Consulta community_members com membership_tier e is_crm_verified
-```
+### Pagina Desafio 7 Dias
 
-### Sidebar reestruturada
+- Barra de progresso no topo com contagem de dias concluidos
+- Timeline vertical com cards animados (stagger, spring)
+- Cada card mostra: numero do dia, titulo, descricao, botao CTA, estado (icone check se completo)
+- Ao clicar "Marcar como concluido" insere registo em `fastclub_challenge_progress`
+- Consulta challenges com `useQuery` + progresso do utilizador
 
-A sidebar do FastClub passa a ter dois blocos visuais:
-- **Aberto** (icone de globo): Start Here, Metodo PARE, FastCRM em Acao, Desafio 7 Dias, Resultados, Discussao, Forum
-- **Premium** (icone de cadeado): Missao da Semana, Implementacao Guiada, IA Avancada, FastMatch Hub, Laboratorio
+### Pagina Resultados
 
-Os itens premium mostram um pequeno icone de cadeado e, ao clicar, mostram o PremiumGate se o utilizador nao for premium.
-
-### PremiumGate
-
-Componente empresarial (sem emojis, sem gamificacao infantil) com:
-- Icone de escudo/lock
-- Titulo: "Conteudo Exclusivo para Membros Premium"
-- Descricao curta do que esta bloqueado
-- Botao "Fazer Upgrade" com estilo corporativo
-- Tom serio e profissional conforme requisitos
-
-### Paginas publicas
-
-Cada pagina usa cards executivos com dados estruturados, animacoes framer-motion subtis (fade-in, stagger), e CTAs recorrentes para o FastCRM. O Metodo PARE mostra os 4 pilares (P/A/R/E) em cards verticais com exemplos praticos aplicados ao FastCRM.
-
----
-
-## Fases futuras (nao incluidas agora)
-
-- **Fase 2**: Desafio 7 Dias + Resultados (prova social) + conteudo semente completo
-- **Fase 3**: Zona Premium (Missao da Semana, Implementacao Guiada, IA Avancada)
-- **Fase 4**: FastMatch Hub comunitario (6 canais do hub)
-- **Fase 5**: Landing publica FastClub + integracao deep-link SSO com FastCRM
-- **Fase 6**: Laboratorio Fast + Hot Seats + refinamentos finais
-
+- 3 seccoes com animacoes de entrada (fade + stagger)
+- Metricas: 4 cards grandes com numeros vindos de `fastclub_crm_aggregates`
+- Casos: cards com gradiente subtil e estrutura Problema/Acao/Resultado
+- Testemunhos: citacoes com aspas, nome e cargo
+- CTA final "Ativar FastCRM" com destaque visual
