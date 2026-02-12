@@ -60,6 +60,7 @@ const fadeUp = {
   viewport: { once: true, margin: "-60px" },
 };
 
+// FastClub Apply Page - v2
 export default function FastClubApplyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
