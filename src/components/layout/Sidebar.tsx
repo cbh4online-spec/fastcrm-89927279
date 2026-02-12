@@ -31,6 +31,9 @@ import {
   UserPlus,
   UserCheck,
   FileText,
+  Rocket,
+  ClipboardList,
+  Gauge,
   Workflow,
   FileCode,
   TrendingUp,
@@ -254,18 +257,36 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "FastClub", href: "/dashboard/fastclub", icon: Zap, tooltip: "Hub da comunidade", highlight: true },
       { name: "Start Here", href: "/dashboard/fastclub/start-here", icon: Compass, tooltip: "Ponto de partida do ecossistema" },
+      // Método PARE subcanais
       { name: "Método PARE", href: "/dashboard/fastclub/metodo-pare", icon: Target, tooltip: "Framework P/A/R/E" },
+      { name: "  Planeamento", href: "/dashboard/fastclub/metodo-pare/planeamento", icon: ClipboardList, tooltip: "Pilar P" },
+      { name: "  Automação", href: "/dashboard/fastclub/metodo-pare/automacao", icon: Zap, tooltip: "Pilar A" },
+      { name: "  Resultados", href: "/dashboard/fastclub/metodo-pare/resultados", icon: BarChart3, tooltip: "Pilar R" },
+      { name: "  Eficiência", href: "/dashboard/fastclub/metodo-pare/eficiencia", icon: Gauge, tooltip: "Pilar E" },
+      // FastCRM em Ação subcanais
       { name: "FastCRM em Ação", href: "/dashboard/fastclub/demos", icon: Play, tooltip: "Demos e casos práticos" },
-      { name: "Rede Privada", href: "/dashboard/fastclub/rede-privada", icon: Users, tooltip: "Hub educativo da rede" },
+      { name: "  Demonstrações", href: "/dashboard/fastclub/demos/demonstracoes", icon: Play, tooltip: "Vídeos e demos" },
+      { name: "  Casos Práticos", href: "/dashboard/fastclub/demos/casos-praticos", icon: Briefcase, tooltip: "Casos reais" },
+      { name: "  Roadmap", href: "/dashboard/fastclub/demos/roadmap", icon: TrendingUp, tooltip: "Roadmap e atualizações" },
+      // Resultados
       { name: "Resultados", href: "/dashboard/fastclub/resultados", icon: TrendingUp, tooltip: "Prova social e métricas" },
-      { name: "Anúncios Oficiais", href: "/dashboard/fastclub/anuncios", icon: Newspaper, tooltip: "Novidades e comunicados" },
-      { name: "Conta & Plano", href: "/dashboard/settings/billing", icon: CreditCard, tooltip: "Gerir plano e faturação" },
+      // Hub Rede Privada subcanais
+      { name: "Rede Privada", href: "/dashboard/fastclub/rede-privada", icon: Users, tooltip: "Hub educativo da rede" },
+      { name: "  Como Funciona", href: "/dashboard/fastclub/rede-privada/como-funciona", icon: BookOpen, tooltip: "Regras e ética" },
+      { name: "  Otimizar Perfil", href: "/dashboard/fastclub/rede-privada/otimizar-perfil", icon: UserCheck, tooltip: "Modelos de oferta e procura" },
+      { name: "  Indicadores", href: "/dashboard/fastclub/rede-privada/indicadores", icon: BarChart3, tooltip: "Dados agregados" },
+      { name: "  Negócios Fechados", href: "/dashboard/fastclub/rede-privada/negocios-fechados", icon: Briefcase, tooltip: "Casos reais aprovados" },
+      { name: "  Estratégias", href: "/dashboard/fastclub/rede-privada/estrategias", icon: Target, tooltip: "Qualificação e conversão" },
       // Premium Zone
       { name: "Missão da Semana", href: "/dashboard/fastclub/missao-semana", icon: CalendarClock, tooltip: "Missão semanal premium" },
       { name: "Implementação Guiada", href: "/dashboard/fastclub/implementacao", icon: BookOpen, tooltip: "Playbooks e checklists" },
       { name: "IA Avançada", href: "/dashboard/fastclub/ia-avancada", icon: Brain, tooltip: "Templates IA e automações" },
       { name: "Laboratório Fast", href: "/dashboard/fastclub/laboratorio", icon: FlaskConical, tooltip: "Experimentos e funcionalidades beta" },
       { name: "Hot Seats", href: "/dashboard/fastclub/hot-seats", icon: Mic, tooltip: "Sessões de mentoria ao vivo" },
+      // Comunicação Institucional
+      { name: "Anúncios Oficiais", href: "/dashboard/fastclub/anuncios", icon: Newspaper, tooltip: "Novidades e comunicados" },
+      { name: "Atualizações", href: "/dashboard/fastclub/atualizacoes", icon: Rocket, tooltip: "Atualizações do ecossistema" },
+      { name: "Conta & Plano", href: "/dashboard/settings/billing", icon: CreditCard, tooltip: "Gerir plano e faturação" },
     ],
   },
   // MARKETING
@@ -501,11 +522,26 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <CollapsibleContent className="space-y-0.5 mt-0.5 animate-fade-in">
           {group.name === "FastClub" ? (
             <>
-              {group.items.filter(item => !["Missão da Semana", "Implementação Guiada", "IA Avançada", "Laboratório Fast", "Hot Seats"].includes(item.name)).map((item) => renderNavItem(item, true))}
+              {/* Zona Pública */}
+              {group.items.filter(item => !["Missão da Semana", "Implementação Guiada", "IA Avançada", "Laboratório Fast", "Hot Seats", "Anúncios Oficiais", "Atualizações", "Conta & Plano"].includes(item.name)).map((item) => renderNavItem(item, item.name.startsWith("  ") ? true : true))}
+              {/* Zona Premium separator */}
               <div className="px-3 pt-3 pb-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Zona Premium</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 border-t border-white/10" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Zona Premium</span>
+                  <div className="flex-1 border-t border-white/10" />
+                </div>
               </div>
               {group.items.filter(item => ["Missão da Semana", "Implementação Guiada", "IA Avançada", "Laboratório Fast", "Hot Seats"].includes(item.name)).map((item) => renderNavItem(item, true))}
+              {/* Comunicação Institucional separator */}
+              <div className="px-3 pt-3 pb-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 border-t border-white/10" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Institucional</span>
+                  <div className="flex-1 border-t border-white/10" />
+                </div>
+              </div>
+              {group.items.filter(item => ["Anúncios Oficiais", "Atualizações", "Conta & Plano"].includes(item.name)).map((item) => renderNavItem(item, true))}
             </>
           ) : (
             group.items.map((item) => renderNavItem(item, true))
