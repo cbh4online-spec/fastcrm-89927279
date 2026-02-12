@@ -140,6 +140,9 @@ export default function StartHerePage() {
             <Button variant="outline" onClick={() => navigate("/dashboard/fastclub/demos")} className="gap-2">
               FastCRM em Ação <ArrowRight className="w-4 h-4" />
             </Button>
+            <Button variant="outline" onClick={() => navigate("/dashboard/fastclub/desafio-7-dias")} className="gap-2">
+              Iniciar Desafio 7 Dias <ArrowRight className="w-4 h-4" />
+            </Button>
           </div>
         </motion.section>
       </main>
