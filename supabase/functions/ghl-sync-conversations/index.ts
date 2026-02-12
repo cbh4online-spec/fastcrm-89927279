@@ -426,7 +426,8 @@ Deno.serve(async (req) => {
                   }
                 }
 
-                const channel = resolveChannel(ghlConv.type, ghlConv.lastMessageType);
+                console.log(`[GHL Sync] Conv ${ghlConv.id} type=${ghlConv.type}, lastMessageType=${ghlConv.lastMessageType}`);
+                let channel = resolveChannel(ghlConv.type, ghlConv.lastMessageType);
                 const externalThreadId = `ghl_${ghlConv.id}`;
 
                 // Check if conversation exists
@@ -555,6 +556,24 @@ Deno.serve(async (req) => {
                         } else {
                           result.messages_created++;
                           existingMessageIds.add(msg.id);
+                        }
+                      }
+                      // After processing messages, infer channel from message types if still "other"
+                      if (channel === "other" && messages.length > 0) {
+                        for (const msg of messages) {
+                          if (msg.type !== undefined) {
+                            const inferredChannel = resolveChannel(msg.type);
+                            if (inferredChannel !== "other") {
+                              console.log(`[GHL Sync] Inferred channel "${inferredChannel}" from message type ${msg.type} for conv ${ghlConv.id}`);
+                              channel = inferredChannel;
+                              // Update the conversation channel in the database
+                              await supabase
+                                .from("conversations")
+                                .update({ channel: inferredChannel })
+                                .eq("id", conversationId);
+                              break;
+                            }
+                          }
                         }
                       }
                     } else {

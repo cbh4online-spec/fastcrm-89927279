@@ -134,12 +134,13 @@ export function useSendMessage() {
       const lead = (Array.isArray(leadData) ? leadData[0] : leadData) as { email: string | null; ghl_contact_id: string | null } | null;
       const isGHLConversation = Boolean(
         channelMeta?.source === "ghl" || 
+        channelMeta?.source === "ghl_sync" ||
         channelMeta?.ghl_contact_id || 
         lead?.ghl_contact_id
       );
 
-      // For GHL-linked conversations (SMS, WhatsApp, Instagram, Messenger, Facebook), use the GHL send function
-      if (isGHLConversation && ["sms", "whatsapp", "instagram", "messenger", "facebook"].includes(conversation.channel)) {
+      // For GHL-linked conversations (SMS, WhatsApp, Instagram, Messenger, Facebook, or "other" with GHL metadata), use the GHL send function
+      if (isGHLConversation && ["sms", "whatsapp", "instagram", "messenger", "facebook", "other"].includes(conversation.channel)) {
         const { data, error } = await mainClient.functions.invoke("ghl-send-message", {
           body: { conversationId, message: content, channel: conversation.channel },
         });
