@@ -32,12 +32,15 @@ export function LandingStickyHeader() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5">
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="flex items-center gap-2.5 cursor-pointer"
+        >
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <Zap className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="text-lg font-bold tracking-tight">FastCRM</span>
-        </Link>
+        </button>
 
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[hsl(215,20%,75%)]">
           {navLinks.map((link) => (
