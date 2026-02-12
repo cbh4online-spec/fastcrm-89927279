@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Hash, Trash2 } from "lucide-react";
+import { Loader2, Hash, Trash2, Sparkles } from "lucide-react";
 import { useCreateForumCategory, useUpdateForumCategory, useDeleteForumCategory } from "@/hooks/useForumMutations";
+import { useSuggestChannelDescription } from "@/hooks/useCommunityAI";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,9 +41,14 @@ interface AddChannelDialogProps {
 }
 
 const EMOJI_GROUPS = [
-  { label: "Geral", emojis: ["💬", "📢", "⭐", "❤️", "🔥", "⚡", "🚀", "🌍"] },
-  { label: "Temas", emojis: ["📚", "🎨", "📸", "🎵", "💻", "📊", "🏆", "💎"] },
-  { label: "Social", emojis: ["👥", "🎉", "☕", "🍕", "🎮", "💪", "🧠", "💡"] },
+  { label: "Geral", emojis: ["💬", "📢", "⭐", "❤️", "🔥", "⚡", "🚀", "🌍", "✅", "📌"] },
+  { label: "Educação", emojis: ["📚", "🎓", "📝", "✏️", "🧪", "🔬", "📖", "🏫", "📐", "🗂️"] },
+  { label: "Negócios", emojis: ["💼", "📊", "💰", "🏦", "📈", "🤝", "🏢", "💳", "🧾", "📋"] },
+  { label: "Criatividade", emojis: ["🎨", "📸", "🎵", "🎬", "🖌️", "🎭", "✨", "🪄", "🎤", "🎹"] },
+  { label: "Tecnologia", emojis: ["💻", "🖥️", "📱", "⚙️", "🔧", "🤖", "🌐", "🔒", "🛠️", "📡"] },
+  { label: "Social", emojis: ["👥", "🎉", "☕", "🍕", "🎮", "💪", "🧠", "💡", "🫂", "🗣️"] },
+  { label: "Lifestyle", emojis: ["🏋️", "🧘", "🍽️", "✈️", "🏠", "🌱", "🎯", "🏆", "💎", "🧳"] },
+  { label: "Emoções", emojis: ["❤️‍🔥", "💯", "👏", "🙌", "🔑", "🌟", "⭕", "🎁", "🪩", "💫"] },
 ];
 
 const CHANNEL_COLORS = [
@@ -72,6 +79,7 @@ export function AddChannelDialog({ open, onOpenChange, workspaceId, channel }: A
   const createCategory = useCreateForumCategory(workspaceId);
   const updateCategory = useUpdateForumCategory(workspaceId);
   const deleteCategory = useDeleteForumCategory(workspaceId);
+  const suggestDescription = useSuggestChannelDescription();
 
   // Pre-fill when editing
   useEffect(() => {
@@ -170,28 +178,30 @@ export function AddChannelDialog({ open, onOpenChange, workspaceId, channel }: A
             {/* Icon Selector */}
             <div className="space-y-2">
               <Label>Ícone</Label>
-              {EMOJI_GROUPS.map((group) => (
-                <div key={group.label}>
-                  <p className="text-[11px] text-muted-foreground mb-1">{group.label}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {group.emojis.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => { setIcon(emoji); setCustomIcon(""); }}
-                        className={cn(
-                          "w-9 h-9 rounded-md text-lg flex items-center justify-center transition-all border",
-                          icon === emoji && !customIcon
-                            ? "border-primary bg-primary/10 ring-1 ring-primary"
-                            : "border-transparent hover:bg-muted"
-                        )}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
+              <ScrollArea className="h-[180px] rounded-md border p-2">
+                {EMOJI_GROUPS.map((group) => (
+                  <div key={group.label} className="mb-2 last:mb-0">
+                    <p className="text-[11px] text-muted-foreground mb-1 font-medium">{group.label}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {group.emojis.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => { setIcon(emoji); setCustomIcon(""); }}
+                          className={cn(
+                            "w-9 h-9 rounded-md text-lg flex items-center justify-center transition-all border",
+                            icon === emoji && !customIcon
+                              ? "border-primary bg-primary/10 ring-1 ring-primary"
+                              : "border-transparent hover:bg-muted"
+                          )}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </ScrollArea>
               <div className="flex items-center gap-2 mt-1">
                 <Input
                   value={customIcon}
@@ -215,7 +225,28 @@ export function AddChannelDialog({ open, onOpenChange, workspaceId, channel }: A
 
             {/* Description */}
             <div className="space-y-2">
-              <Label>Descrição</Label>
+              <div className="flex items-center justify-between">
+                <Label>Descrição</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs text-muted-foreground hover:text-primary"
+                  disabled={!name.trim() || suggestDescription.isPending}
+                  onClick={() => {
+                    suggestDescription.mutate({ channelName: name.trim() }, {
+                      onSuccess: (desc) => setDescription(desc),
+                    });
+                  }}
+                >
+                  {suggestDescription.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  Sugerir com IA
+                </Button>
+              </div>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Breve descrição do canal..." maxLength={60} rows={2} />
               <p className="text-[11px] text-muted-foreground">{description.length}/60 caracteres</p>
             </div>
