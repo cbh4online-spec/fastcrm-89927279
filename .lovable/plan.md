@@ -1,39 +1,60 @@
 
-## Adicionar Canal SMS ao Inbox e Definicoes GHL
+## Corrigir Autopilot: Erro "type must be a valid enum value" e Canal Incorreto
 
-### Contexto
+### Problema
 
-O canal SMS ja esta suportado no sistema a nivel de tipo (`ConversationChannel`), mapeamento GHL (`GHL_TYPE_CODES`), e templates. No entanto, falta em dois sitios visiveis para o utilizador:
+Os logs mostram que o autopilot esta a gerar respostas IA corretamente, mas falha ao enviar porque:
 
-1. **Inbox Sidebar** -- a lista de canais (linha 64-71 de `InboxSidebar.tsx`) nao inclui SMS, tornando impossivel filtrar conversas SMS
-2. **Definicoes de Canais** -- a pagina de settings nao mostra o canal SMS com badge de estado GHL
+1. Conversas do tipo `TYPE_PHONE` / `TYPE_CALL` do GHL estao a ser mapeadas para o canal `"phone"` -- que nao existe como tipo de mensagem valido na API do GHL
+2. A funcao `mapChannelToGHLType` nao tem mapeamento para `"phone"`, resultando em `type: "PHONE"` -- que a API GHL rejeita com `"type must be a valid enum value"`
+3. O autopilot esta a disparar para TODAS as conversas sincronizadas (incluindo conversas antigas), gerando spam desnecessario
 
-### Alteracoes
+Os tipos validos da API GHL sao: `SMS`, `Email`, `WhatsApp`, `IG`, `FB`, `Custom`, `Live_Chat`, `InternalComment`
 
-**Ficheiro 1: `src/components/inbox/InboxSidebar.tsx`**
+### Solucao
 
-Adicionar SMS a lista de canais filtravies na sidebar do Inbox:
+**Ficheiro 1: `supabase/functions/ghl-sync-conversations/index.ts`**
+
+Corrigir o mapeamento de `TYPE_PHONE` e `TYPE_CALL` de `"phone"` para `"sms"` (chamadas telefonicas nao podem ser respondidas por mensagem, SMS e o fallback correto):
 
 ```text
-// Adicionar apos a entrada de "instagram" (linha 68):
-{ id: "sms", label: "SMS", icon: MessageSquare, color: "text-purple-500" },
+"TYPE_PHONE": "sms",    // era "phone"
+"TYPE_CALL": "sms",     // era "phone"
 ```
 
-Isto fara o canal SMS aparecer na barra lateral com icone e contagem automatica (ja calculada no `channelCounts`).
+Adicionar filtro de data para o autopilot trigger -- so acionar para mensagens recentes (ultimas 2 horas), evitando responder a conversas antigas durante o batch sync.
 
----
+**Ficheiro 2: `supabase/functions/ghl-send-message/index.ts`**
 
-**Ficheiro 2: `src/components/settings/sections/ChannelsSettings.tsx`**
+Adicionar mapeamento de seguranca para `"phone"` e `"call"` na funcao `mapChannelToGHLType`:
 
-Adicionar uma seccao SMS dentro do bloco de canais, com badge "Via GHL" quando a integracao GHL estiver configurada:
+```text
+"phone": "SMS",
+"call": "SMS",
+"other": "SMS",
+```
 
-- Adicionar `MessageSquare` ao import de icons
-- Adicionar nova `SettingsSection` para SMS com titulo "SMS", descricao "Mensagens de texto", e icone `MessageSquare`
-- Mostrar badge `Via GHL` quando `isGHLConfigured` for `true`
-- Incluir items de configuracao para numero de telefone e templates SMS
+**Ficheiro 3: `supabase/functions/ghl-webhook-message/index.ts`**
 
-### Resultado
+Aplicar a mesma correcao no mapeamento de `TYPE_PHONE` / `TYPE_CALL` de `"phone"` para `"sms"` na funcao `resolveGHLChannel`, e adicionar `"phone"` e `"call"` ao `mapGHLChannel`:
 
-- O filtro SMS aparecera no Inbox sidebar com contagem de conversas
-- A pagina de definicoes mostrara o canal SMS com indicacao de ligacao GHL
-- Nao e necessaria nenhuma alteracao no backend -- o mapeamento GHL ja reconhece SMS (type codes 1, 14)
+```text
+"phone": "sms",
+"call": "sms",
+```
+
+### Detalhes Tecnicos
+
+Alteracoes especificas:
+
+1. **`ghl-sync-conversations/index.ts`** (linhas 205-206): Mudar `"phone"` para `"sms"` nos mapeamentos `TYPE_PHONE` e `TYPE_CALL`
+2. **`ghl-sync-conversations/index.ts`** (linhas ~674-691): Adicionar validacao de data antes de acionar autopilot -- verificar se `lastMessageDate` e recente (< 2 horas)
+3. **`ghl-send-message/index.ts`** (linhas 484-497): Adicionar `"phone": "SMS"`, `"call": "SMS"`, `"other": "SMS"` ao `mapChannelToGHLType`
+4. **`ghl-webhook-message/index.ts`** (linhas ~570-585): Mudar `TYPE_PHONE` e `TYPE_CALL` para `"sms"` e adicionar fallbacks no `mapGHLChannel`
+
+### Resultado Esperado
+
+- Conversas de chamadas/telefone serao tratadas como SMS (canal valido para envio)
+- O autopilot so respondera a mensagens recentes, nao a historico antigo
+- O erro "type must be a valid enum value" sera eliminado
+- Respostas automaticas serao enviadas com sucesso via GHL
