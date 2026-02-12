@@ -1,87 +1,37 @@
 
 
-# Redesign Completo da Landing Page FastCRM - Modelo AIDA
+# Auditoria Dinamica e Automatica do Sistema
 
-## Objetivo
+## Resumo
 
-Reescrever o ficheiro `src/pages/MarketingHomepage.tsx` (426 linhas) com o novo posicionamento estrategico: FastCRM como Infraestrutura Digital para Empresas Modernas, seguindo o modelo AIDA com 8 seccoes.
+Tornar a auditoria funcional 100% dinamica em 4 ficheiros. Novos modulos e edge functions aparecem automaticamente sem editar codigo.
 
-## Estrutura da Nova Landing (8 Seccoes)
+## Alteracoes
 
-### Header
-- Navegacao atualizada com links para as novas seccoes: Ecossistema, FastClub, Rede Privada, Planos
-- Botoes "Entrar" e "Comecar Agora"
+### 1. `src/types/audit.ts`
 
-### 1. Hero (Atencao)
-- Titulo: "Infraestrutura Digital para Empresas Modernas"
-- Subtitulo: "Organize. Automatize. Conecte." + texto complementar
-- CTA primario: "Comecar Agora" (link para /auth)
-- CTA secundario: "Explorar o Ecossistema" (scroll para seccao solucao)
-- Visual limpo, sem badge informal, sem emojis
+- Adicionar ~40 edge functions em falta ao `EDGE_FUNCTION_CATEGORIES` (community-ai-*, c2c-*, store-*, saft-export, calculate-shipping, etc.)
+- Converter `AUDIT_MODULES` de array estatico para funcao `buildAuditModules(marketplaceModules)` que combina modulos core com dados da BD
+- Mapa `CORE_MODULE_ENRICHMENT` para enriquecer modulos conhecidos; modulos novos recebem dados genericos automaticamente
 
-### 2. Problema (Interesse)
-- Titulo: "A maioria das empresas opera com sistemas fragmentados."
-- Lista de 5 problemas em blocos visuais com icones (sem emojis)
-- Frase de fecho: "O resultado e ineficiencia e crescimento limitado."
+### 2. `src/hooks/useSystemAudit.ts`
 
-### 3. Solucao (Interesse)
-- Titulo: "Uma infraestrutura integrada."
-- 3 cards visuais lado a lado:
-  - CRM: Estrutura operacional. Leads, pipeline, controlo e metricas.
-  - IA: Automacao inteligente. Sugestoes estrategicas. Assistentes integrados.
-  - Rede Privada: Oportunidades qualificadas. Matching estrategico. Reputacao e metricas de ROI.
-- CTA intermedio: "Ver como funciona"
+- Remover `STATIC_METRICS` e `EDGE_FUNCTIONS_LIST` hardcoded
+- Query dinamica a `marketplace_modules` para obter modulos reais
+- Metricas calculadas: modules count real, edge functions derivado de categorias, routes/components/hooks via formula
+- Retornar `modules: AuditModule[]` no hook
 
-### 4. FastClub (Desejo)
-- Seccao nova e dedicada com fundo diferenciado
-- Titulo: "O ecossistema nao termina no software."
-- Texto sobre o FastClub como centro estrategico
-- Enfase: "Nao e um grupo informal. E um espaco estruturado para execucao e crescimento."
-- Botao: "Aceder ao FastClub" (link para /fastclub)
+### 3. `src/components/super-admin/FunctionalAuditSection.tsx`
 
-### 5. Rede Privada (Desejo)
-- Titulo: "Rede Privada de Oportunidades"
-- Texto explicativo sobre matching e integracao com CRM
-- 3 indicadores numericos em destaque:
-  - 84 oportunidades geradas esta semana
-  - 12 novos membros verificados
-  - Taxa media de resposta: 86%
-- CTA: "Explorar a Rede Privada"
+- Usar `modules` do hook em vez de `AUDIT_MODULES` importado
+- Passar `modules` ao gerador de PDF
 
-### 6. Prova Social (Desejo)
-- Titulo: "Resultados Reais"
-- 3 blocos com estrutura: Contexto / Acao / Resultado
-- Estilo case study, sem aspas de testimonial informal
+### 4. `src/utils/pdfAuditGenerator.ts`
 
-### 7. Planos (Acao)
-- Titulo: "Escolha a infraestrutura certa para o seu negocio."
-- 3 cards de planos com:
-  - Quota mensal de matches
-  - Acesso CRM, IA, FastClub, Rede
-- CTA: "Comecar"
+- Receber `modules` como parametro em vez de importar `AUDIT_MODULES`
+- Substituir contagens hardcoded ("10 modulos", "10/10") por `modules.length`
 
-### 8. Encerramento (Acao)
-- Titulo: "Construa sobre infraestrutura. Nao sobre improviso."
-- 3 frases curtas
-- Botao principal: "Iniciar Infraestrutura Digital"
+## Resultado
 
-### Footer
-- Mantido e atualizado com links coerentes
-
-## Detalhe Tecnico
-
-| Ficheiro | Alteracao |
-|---|---|
-| `src/pages/MarketingHomepage.tsx` | Reescrita completa (~550 linhas). Mesma rota `/`, mesmas importacoes base (Button, Card, Link, icones Lucide). Sem dependencias novas. |
-
-### Principios de Design
-- Espacamento generoso (py-24, py-32)
-- Paleta: primary gradient, muted backgrounds, sem cores vivas
-- Tipografia: tracking-tight, tamanhos progressivos
-- Cards com border-border/50, hover subtle
-- Indicadores numericos com text-4xl/5xl font-bold
-- CTAs repetidos estrategicamente com estilo consistente
-- Zero emojis, zero linguagem informal
-
-1 ficheiro editado. Sem migracoes SQL. Sem novos componentes.
+4 ficheiros editados. Sem migracoes SQL. Sem dependencias novas. Qualquer modulo ou edge function nova aparece automaticamente na auditoria e no PDF.
 
