@@ -5,7 +5,7 @@ import { ArrowRight, Lock, Shield, Users } from "lucide-react";
 
 export function LandingFastClubSection() {
   return (
-    <section className="relative py-28 lg:py-36">
+    <section id="fastclub" className="relative py-28 lg:py-36">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-[150px]" />
       </div>

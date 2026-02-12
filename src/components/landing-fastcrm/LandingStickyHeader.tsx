@@ -12,6 +12,7 @@ const navLinks = [
   { href: "#metricas", label: "Métricas" },
   { href: "#pricing", label: "Investimento" },
   { href: "#faq", label: "FAQ" },
+  { href: "#fastclub", label: "FastClub" },
 ];
 
 export function LandingStickyHeader() {
