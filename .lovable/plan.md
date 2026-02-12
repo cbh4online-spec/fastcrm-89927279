@@ -1,60 +1,58 @@
 
-## Corrigir Autopilot: Erro "type must be a valid enum value" e Canal Incorreto
 
-### Problema
+## Autopilot: Resposta Imediata
 
-Os logs mostram que o autopilot esta a gerar respostas IA corretamente, mas falha ao enviar porque:
+### Problema Atual
 
-1. Conversas do tipo `TYPE_PHONE` / `TYPE_CALL` do GHL estao a ser mapeadas para o canal `"phone"` -- que nao existe como tipo de mensagem valido na API do GHL
-2. A funcao `mapChannelToGHLType` nao tem mapeamento para `"phone"`, resultando em `type: "PHONE"` -- que a API GHL rejeita com `"type must be a valid enum value"`
-3. O autopilot esta a disparar para TODAS as conversas sincronizadas (incluindo conversas antigas), gerando spam desnecessario
+O autopilot tem um delay artificial de 5-12 segundos antes de responder, simulando um tempo de resposta "humano". Isto atrasa desnecessariamente as respostas automáticas.
 
-Os tipos validos da API GHL sao: `SMS`, `Email`, `WhatsApp`, `IG`, `FB`, `Custom`, `Live_Chat`, `InternalComment`
+### Solução
 
-### Solucao
+Alterar os valores padrão do delay para 0 segundos e garantir que o sistema responde de imediato quando o delay está a zero.
 
-**Ficheiro 1: `supabase/functions/ghl-sync-conversations/index.ts`**
+### Alterações
 
-Corrigir o mapeamento de `TYPE_PHONE` e `TYPE_CALL` de `"phone"` para `"sms"` (chamadas telefonicas nao podem ser respondidas por mensagem, SMS e o fallback correto):
+**1. Edge Function `ghl-webhook-message/index.ts`**
+- Mudar os defaults de `response_delay_min` e `response_delay_max` de 5/10 para 0/0
+- Saltar o `setTimeout` quando o delay calculado for 0
 
+**2. Hook `useAutopilotConfig.ts`**
+- Mudar os valores padrão de `response_delay_min: 8` e `response_delay_max: 12` para `0` e `0`
+
+**3. Componente `AutopilotToggle.tsx`**
+- Ajustar a exibição para mostrar "Imediato" quando o delay for 0
+
+### Detalhes Técnicos
+
+No ficheiro `ghl-webhook-message/index.ts` (linhas 823-839):
 ```text
-"TYPE_PHONE": "sms",    // era "phone"
-"TYPE_CALL": "sms",     // era "phone"
+// Antes:
+const delayMin = autopilotConfig.response_delay_min || 5;
+const delayMax = autopilotConfig.response_delay_max || 10;
+const delaySeconds = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+
+// Depois:
+const delayMin = autopilotConfig.response_delay_min ?? 0;
+const delayMax = autopilotConfig.response_delay_max ?? 0;
+const delaySeconds = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+if (delaySeconds > 0) {
+  await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+}
 ```
 
-Adicionar filtro de data para o autopilot trigger -- so acionar para mensagens recentes (ultimas 2 horas), evitando responder a conversas antigas durante o batch sync.
+Nota: usar `??` em vez de `||` para que o valor `0` seja respeitado (com `||`, zero seria tratado como falsy e substituído pelo default).
 
-**Ficheiro 2: `supabase/functions/ghl-send-message/index.ts`**
-
-Adicionar mapeamento de seguranca para `"phone"` e `"call"` na funcao `mapChannelToGHLType`:
-
+No `useAutopilotConfig.ts`, os defaults passam a:
 ```text
-"phone": "SMS",
-"call": "SMS",
-"other": "SMS",
+response_delay_min: 0,
+response_delay_max: 0,
 ```
 
-**Ficheiro 3: `supabase/functions/ghl-webhook-message/index.ts`**
+No `AutopilotToggle.tsx`, a exibição do delay mostra "Imediato" quando ambos os valores são 0.
 
-Aplicar a mesma correcao no mapeamento de `TYPE_PHONE` / `TYPE_CALL` de `"phone"` para `"sms"` na funcao `resolveGHLChannel`, e adicionar `"phone"` e `"call"` ao `mapGHLChannel`:
+### Resultado
 
-```text
-"phone": "sms",
-"call": "sms",
-```
-
-### Detalhes Tecnicos
-
-Alteracoes especificas:
-
-1. **`ghl-sync-conversations/index.ts`** (linhas 205-206): Mudar `"phone"` para `"sms"` nos mapeamentos `TYPE_PHONE` e `TYPE_CALL`
-2. **`ghl-sync-conversations/index.ts`** (linhas ~674-691): Adicionar validacao de data antes de acionar autopilot -- verificar se `lastMessageDate` e recente (< 2 horas)
-3. **`ghl-send-message/index.ts`** (linhas 484-497): Adicionar `"phone": "SMS"`, `"call": "SMS"`, `"other": "SMS"` ao `mapChannelToGHLType`
-4. **`ghl-webhook-message/index.ts`** (linhas ~570-585): Mudar `TYPE_PHONE` e `TYPE_CALL` para `"sms"` e adicionar fallbacks no `mapGHLChannel`
-
-### Resultado Esperado
-
-- Conversas de chamadas/telefone serao tratadas como SMS (canal valido para envio)
-- O autopilot so respondera a mensagens recentes, nao a historico antigo
-- O erro "type must be a valid enum value" sera eliminado
-- Respostas automaticas serao enviadas com sucesso via GHL
+- O autopilot responde sem qualquer delay artificial
+- Utilizadores que queiram delay podem configurá-lo manualmente nas definições
+- Configurações existentes com delay personalizado continuam a funcionar normalmente
