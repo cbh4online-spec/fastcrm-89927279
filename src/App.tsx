@@ -153,6 +153,11 @@ import DemosPage from "./pages/fastclub/DemosPage";
 import DesafioPage from "./pages/fastclub/DesafioPage";
 import ResultadosPage from "./pages/fastclub/ResultadosPage";
 
+// FastClub Premium Pages
+import MissaoSemanaPage from "./pages/fastclub/MissaoSemanaPage";
+import ImplementacaoPage from "./pages/fastclub/ImplementacaoPage";
+import IAAvancadaPage from "./pages/fastclub/IAAvancadaPage";
+
 // Store (Public E-commerce)
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
 import StorePage from "./pages/store/StorePage";
@@ -398,6 +403,9 @@ function CRMRoutes() {
                 <Route path="/dashboard/fastclub/demos" element={<DemosPage />} />
                 <Route path="/dashboard/fastclub/desafio-7-dias" element={<DesafioPage />} />
                 <Route path="/dashboard/fastclub/resultados" element={<ResultadosPage />} />
+                <Route path="/dashboard/fastclub/missao-semana" element={<MissaoSemanaPage />} />
+                <Route path="/dashboard/fastclub/implementacao" element={<ImplementacaoPage />} />
+                <Route path="/dashboard/fastclub/ia-avancada" element={<IAAvancadaPage />} />
 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
