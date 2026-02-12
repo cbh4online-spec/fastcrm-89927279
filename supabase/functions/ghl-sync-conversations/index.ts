@@ -171,7 +171,7 @@ const GHL_TYPE_CODES: Record<number, string> = {
   7: "live_chat",
   8: "web_widget",
   9: "whatsapp",
-  10: "phone",
+  10: "sms",
   11: "messenger",
   12: "other",
   13: "other",
@@ -181,7 +181,7 @@ const GHL_TYPE_CODES: Record<number, string> = {
   17: "instagram",
   18: "instagram",
   19: "messenger",
-  20: "phone",
+  20: "sms",
 };
 
 function resolveChannel(typeCode?: number | string, fallback?: string | number): string {
