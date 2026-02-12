@@ -122,11 +122,9 @@ function SocialChannelsViaGHL() {
                         </p>
                       </div>
                     </div>
-                    {count > 0 ? (
-                      <Badge className="bg-emerald-500 text-white text-[10px]">Ativo</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px]">Pendente</Badge>
-                    )}
+                    <Badge className="bg-emerald-500 text-white text-[10px]">
+                      {count > 0 ? `Ativo · ${count}` : "Ativo"}
+                    </Badge>
                   </div>
                 </div>
               );
