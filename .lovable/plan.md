@@ -1,26 +1,22 @@
 
-## Fix Pricing Section CTA Buttons Visibility
+## Add Mobile Navigation Menu to Landing Page
 
-**Problem**: The CTA buttons on the pricing cards (Free, Business, Enterprise) use a thin outline style with very low-opacity borders and text, making them nearly invisible against the dark card backgrounds.
+**Problem**: The landing page navigation (`hidden md:flex`) is completely hidden on mobile with no alternative menu, violating mobile-first principles.
 
-**Solution**: Improve button contrast and visibility by:
-
-1. **Free plan button** — Use a solid green-tinted style matching the plan color, with dark text
-2. **Business plan button** — Use a solid blue style matching its plan color, with white text
-3. **Professional plan button** — Already uses primary color (visible), keep as-is
-4. **Enterprise plan button** — Use a solid amber/gold style matching the plan color, with dark text
-
-This ensures every CTA is immediately visible and color-coded to its plan.
+**Solution**: Add a hamburger menu button (visible only on mobile) that opens a Sheet/drawer from the right side, containing all navigation links and CTA buttons.
 
 ---
 
 ### Technical Details
 
-**File**: `src/components/landing-fastcrm/LandingPricingSection.tsx`
+**File**: `src/components/landing-fastcrm/LandingStickyHeader.tsx`
 
 **Changes**:
-- Remove the generic outline approach for non-highlighted buttons (lines 250-270)
-- Replace with plan-specific solid background colors using each plan's `color` property
-- Use appropriate text colors (dark text on light buttons, white text on dark buttons)
-- Add stronger hover states for each button
-- The Professional card button remains unchanged (already uses primary color and is visible)
+1. Import `Menu` and `X` icons from lucide-react
+2. Import `Sheet`, `SheetContent`, `SheetTrigger` from `@/components/ui/sheet`
+3. Add state `mobileOpen` to control the sheet
+4. Add a hamburger `Menu` button visible only on mobile (`md:hidden`)
+5. Inside the Sheet, render all 6 nav links (Problema, Solucao, Arquitectura, Metricas, Investimento, FAQ) as vertical list items styled for dark theme
+6. Include "Entrar" and "Criar Workspace" CTAs at the bottom of the mobile menu
+7. Auto-close the sheet when a nav link is clicked (using `onClick` to set `mobileOpen = false`)
+8. Hide the "Criar Workspace" desktop button on small screens to avoid clutter (it will be in the mobile menu instead)
