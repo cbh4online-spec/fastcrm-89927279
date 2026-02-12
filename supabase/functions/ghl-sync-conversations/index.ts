@@ -1,5 +1,74 @@
-// Version 1.0 - GHL Conversation Sync
+// Version 1.1 - GHL Conversation Sync (fixed message parsing + auto-lead creation)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Helper: Fetch contact details from GHL API
+async function fetchGHLContact(apiKey: string, contactId: string): Promise<{name: string; email: string | null; phone: string | null; ghl_contact_id: string} | null> {
+  try {
+    const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Version: "2021-04-15",
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`[GHL Sync] Failed to fetch contact ${contactId}: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const contact = data.contact || data;
+
+    const firstName = contact.firstName || contact.first_name || "";
+    const lastName = contact.lastName || contact.last_name || "";
+    const name = `${firstName} ${lastName}`.trim() || contact.name || `GHL Contact ${contactId.substring(0, 8)}`;
+
+    return {
+      name,
+      email: contact.email || null,
+      phone: contact.phone || null,
+      ghl_contact_id: contactId,
+    };
+  } catch (err) {
+    console.error(`[GHL Sync] Error fetching contact ${contactId}:`, err);
+    return null;
+  }
+}
+
+// Helper: Create a lead from GHL contact data
+async function createLeadFromGHLContact(
+  supabase: ReturnType<typeof createClient>,
+  workspace_id: string,
+  contactData: {name: string; email: string | null; phone: string | null; ghl_contact_id: string}
+): Promise<{id: string} | null> {
+  try {
+    const { data: newLead, error } = await supabase
+      .from("leads")
+      .insert({
+        workspace_id,
+        name: contactData.name,
+        email: contactData.email,
+        phone: contactData.phone,
+        ghl_contact_id: contactData.ghl_contact_id,
+        source: "ghl_auto_sync",
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error(`[GHL Sync] Error creating lead for contact ${contactData.ghl_contact_id}:`, error);
+      return null;
+    }
+
+    console.log(`[GHL Sync] Auto-created lead ${newLead.id} for GHL contact ${contactData.ghl_contact_id} (${contactData.name})`);
+    return newLead;
+  } catch (err) {
+    console.error(`[GHL Sync] Exception creating lead:`, err);
+    return null;
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -338,11 +407,23 @@ Deno.serve(async (req) => {
               for (const ghlConv of conversations) {
                 result.total_processed++;
 
-                // Find the lead for this conversation
-                const leadId = leadsByGhlId.get(ghlConv.contactId);
+                // Find or auto-create lead for this conversation
+                let leadId = leadsByGhlId.get(ghlConv.contactId);
                 if (!leadId) {
-                  console.log(`[GHL Sync Conversations] No lead found for contact ${ghlConv.contactId}`);
-                  continue;
+                  console.log(`[GHL Sync] No lead found for contact ${ghlConv.contactId}, auto-creating...`);
+                  const contactData = await fetchGHLContact(apiKey, ghlConv.contactId);
+                  if (contactData) {
+                    const newLead = await createLeadFromGHLContact(supabase, workspace_id, contactData);
+                    if (newLead) {
+                      leadId = newLead.id;
+                      leadsByGhlId.set(ghlConv.contactId, leadId);
+                    }
+                  }
+                  if (!leadId) {
+                    console.log(`[GHL Sync] Could not create lead for contact ${ghlConv.contactId}, skipping conversation`);
+                    result.errors.push(`Failed to create lead for contact ${ghlConv.contactId}`);
+                    continue;
+                  }
                 }
 
                 const channel = resolveChannel(ghlConv.type, ghlConv.lastMessageType);
@@ -420,9 +501,23 @@ Deno.serve(async (req) => {
 
                     if (msgResponse.ok) {
                       const msgData = await msgResponse.json();
-                      const messages: GHLMessage[] = msgData.messages || [];
+                      
+                      // Robust parsing: handle multiple response formats from GHL API
+                      let rawMessages = msgData.messages;
+                      if (rawMessages && !Array.isArray(rawMessages) && typeof rawMessages === "object") {
+                        // Nested format: { messages: { messages: [...] } }
+                        rawMessages = rawMessages.messages || Object.values(rawMessages);
+                      }
+                      if (!rawMessages) {
+                        rawMessages = msgData.data || [];
+                      }
+                      const messages: GHLMessage[] = Array.isArray(rawMessages) ? rawMessages : [];
+                      
+                      console.log(`[GHL Sync] Conv ${ghlConv.id} messages response keys: ${Object.keys(msgData).join(",")}, parsed count: ${messages.length}`);
 
                       for (const msg of messages) {
+                        if (!msg || !msg.id) continue;
+                        
                         // Skip if already synced
                         if (existingMessageIds.has(msg.id)) {
                           result.messages_skipped++;
@@ -455,13 +550,15 @@ Deno.serve(async (req) => {
                           if (msgError.code === "23505") {
                             result.messages_skipped++;
                           } else {
-                            console.error(`[GHL Sync Conversations] Message error`, msgError);
+                            console.error(`[GHL Sync] Message insert error for ${msg.id}:`, msgError);
                           }
                         } else {
                           result.messages_created++;
                           existingMessageIds.add(msg.id);
                         }
                       }
+                    } else {
+                      console.error(`[GHL Sync] Messages API error for conv ${ghlConv.id}: ${msgResponse.status}`);
                     }
                   } catch (msgErr) {
                     console.error(`[GHL Sync Conversations] Error fetching messages`, msgErr);
