@@ -8785,6 +8785,45 @@ export type Database = {
           },
         ]
       }
+      fastclub_challenge_progress: {
+        Row: {
+          challenge_id: string
+          completed_at: string | null
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string | null
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string | null
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fastclub_challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "fastclub_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastclub_challenge_progress_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fastclub_challenges: {
         Row: {
           action_label: string | null
