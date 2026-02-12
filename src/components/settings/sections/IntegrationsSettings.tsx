@@ -1,4 +1,5 @@
 import { SettingsSection, SettingsItem } from "../SettingsSection";
+import { AutopilotMonitorPanel } from "./AutopilotMonitorPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,6 +15,7 @@ import {
   Settings,
   Video,
 } from "lucide-react";
+import { Activity } from "lucide-react";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
 import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
 import { WorkspaceVideoSettings } from "./WorkspaceVideoSettings";
@@ -59,6 +61,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
   const visibleSections = [
     { id: "integrations-stripe", show: shouldShow("integrations-stripe") },
     { id: "integrations-ghl", show: shouldShow("integrations-ghl") },
+    { id: "integrations-autopilot-monitor", show: shouldShow("integrations-autopilot-monitor") },
     { id: "integrations-video", show: shouldShow("integrations-video") },
     { id: "integrations-api", show: shouldShow("integrations-api") },
     { id: "integrations-external", show: shouldShow("integrations-external") },
@@ -94,6 +97,16 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
           icon={<Zap className="h-5 w-5 text-orange-500" />}
         >
           <WorkspaceGHLSettings />
+        </SettingsSection>
+      )}
+
+      {isSuperAdmin && shouldShow("integrations-autopilot-monitor") && (
+        <SettingsSection
+          title="Monitor do Autopilot"
+          description="Eventos recentes, respostas enviadas e erros do autopilot"
+          icon={<Activity className="h-5 w-5" />}
+        >
+          <AutopilotMonitorPanel />
         </SettingsSection>
       )}
 
