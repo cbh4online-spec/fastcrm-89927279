@@ -1,59 +1,99 @@
 
+## Conectar Instagram e WhatsApp Diretamente (sem GHL)
 
-## Integrar Mensagens de Redes Sociais com o GHL
+### Contexto
 
-### Contexto Atual
+O Instagram direto ja tem implementacao completa (edge functions `instagram-auth-url`, `instagram-oauth-callback`, `instagram-webhook`, `instagram-send-message` + componente `InstagramConnectionCard`). Os secrets `META_APP_ID` e `META_APP_SECRET` ja estao configurados.
 
-A integração GHL já suporta tecnicamente os canais sociais (Instagram DM, Facebook Messenger, WhatsApp) tanto para receber como para enviar mensagens. O webhook `ghl-webhook-message` mapeia os tipos GHL (17/18 para Instagram, 5/11/19 para Facebook/Messenger) e o `ghl-send-message` envia por esses canais. No entanto, falta uma configuração clara no UI para os utilizadores verem e gerirem estes canais sociais via GHL.
-
----
+O WhatsApp Business API direto nao tem nenhuma implementacao -- nao existe tabela, edge functions, nem UI para conexao directa.
 
 ### O que sera feito
 
-**1. Secção "Canais Sociais via GHL" nas Definições GHL**
+**1. Tornar o botao Instagram visivel e funcional (mesmo com GHL)**
 
-Adicionar ao `WorkspaceGHLSettings.tsx` uma nova secção (visível quando o GHL está configurado) que mostra:
-- Lista de canais sociais suportados: Instagram, Facebook Messenger, WhatsApp
-- Estado de cada canal (baseado nas conversas existentes com esse canal no workspace)
-- Instruções de como ativar cada canal no GHL (links/guia)
-- Toggle para ativar/desativar a sincronização por canal
+Atualmente, o `InstagramConnectionCard` ja esta presente mas o banner "Via GHL" pode confundir. Vamos:
+- Manter o card do Instagram sempre visivel com botao "Conectar" funcional
+- Adicionar nota a indicar que a conexao direta funciona independentemente do GHL
+- Ja esta 100% funcional (OAuth flow completo)
 
-**2. Atualizar Canais no Settings**
+**2. Criar conexao directa WhatsApp Business API**
 
-Modificar `ChannelsSettings.tsx` para:
-- Na secção "WhatsApp & Instagram", mostrar badge "Via GHL" quando a integração está ativa
-- Na secção "Redes Sociais" (Facebook), mostrar igualmente a indicação de que já está conectado via GHL
-- Remover botões "Conectar" duplicados quando o canal já está coberto pelo GHL
+Este e o trabalho principal. Requer:
 
-**3. Filtro por Canal Social no Inbox**
+**Base de Dados:**
+- Criar tabela `whatsapp_connections` (workspace_id, phone_number_id, waba_id, display_phone_number, access_token, is_active, token_expires_at, connected_by)
+- RLS policies para acesso por workspace
 
-Verificar que o `InboxSidebar` já tem filtros para instagram/messenger/facebook e que funcionam corretamente com conversas vindas do GHL.
+**Edge Functions:**
+- `whatsapp-auth-url` -- Gerar URL OAuth do Facebook/Meta para WhatsApp Business (usa os mesmos `META_APP_ID` / `META_APP_SECRET` ja configurados, com scope `whatsapp_business_management,whatsapp_business_messaging`)
+- `whatsapp-oauth-callback` -- Receber callback, trocar code por token, buscar WhatsApp Business Account ID e Phone Number ID, guardar na tabela
+- `whatsapp-webhook` -- Receber mensagens inbound do WhatsApp Cloud API, criar conversas e mensagens no CRM
+- `whatsapp-send-message` -- Enviar mensagens outbound via WhatsApp Cloud API
 
-**4. Sincronização de Conversas Sociais**
+**UI:**
+- Criar componente `WhatsAppConnectionCard` (seguindo o mesmo padrao do `InstagramConnectionCard`)
+- Substituir o badge "Em breve" pelo card funcional na secao WhatsApp do `ChannelsSettings`
+- Mostrar estado da conexao, numero conectado, opcoes de reconectar/desconectar
 
-Atualizar `ghl-sync-conversations` para filtrar e identificar conversas de canais sociais (Instagram, Messenger, WhatsApp) durante a sincronização em massa, garantindo que o campo `channel` é corretamente mapeado.
+**3. Atualizar ChannelsSettings**
+
+- Remover a logica que esconde botoes quando GHL esta ativo
+- Mostrar ambas opcoes (Via GHL + Conexao Direta) quando aplicavel
+- Cada card indica claramente a fonte da conexao
 
 ---
 
 ### Detalhes Tecnicos
 
-**Ficheiro**: `src/components/settings/sections/WorkspaceGHLSettings.tsx`
-- Adicionar componente `SocialChannelsStatus` que consulta conversas agrupadas por canal para mostrar contagens
-- Mostrar cards para Instagram, Facebook Messenger, WhatsApp com ícone, estado e contagem de conversas
-- Incluir accordion com instruções para ativar cada canal no painel GHL
+**Tabela `whatsapp_connections`:**
+```text
+- id (uuid, PK)
+- workspace_id (uuid, FK workspaces, UNIQUE)
+- phone_number_id (text)
+- waba_id (text) -- WhatsApp Business Account ID
+- display_phone_number (text)
+- access_token (text)
+- is_active (boolean, default true)
+- token_expires_at (timestamptz)
+- connected_by (uuid)
+- created_at (timestamptz)
+- updated_at (timestamptz)
+```
 
-**Ficheiro**: `src/components/settings/sections/ChannelsSettings.tsx`
-- Importar `useWorkspaceGHLConfig` para verificar se GHL está ativo
-- Condicionar a exibição dos botões "Conectar" e mostrar badge "Conectado via GHL" quando aplicável
-- Manter a opção de conexão directa ao Instagram como alternativa
+**Edge Functions -- Fluxo OAuth WhatsApp:**
+1. Frontend chama `whatsapp-auth-url` com workspaceId + userId
+2. Redireciona para `facebook.com/v18.0/dialog/oauth` com scope WhatsApp
+3. Meta redireciona para `whatsapp-oauth-callback`
+4. Callback troca code por token, busca WABA e Phone Number via Graph API
+5. Guarda na tabela e redireciona de volta ao settings
 
-**Ficheiro**: `src/components/inbox/InboxSidebar.tsx`
-- Confirmar que os filtros de canal (instagram, messenger, facebook, whatsapp) estão presentes e funcionais
-- Adicionar contagem de conversas por canal social se não existir
+**Edge Function -- Webhook WhatsApp:**
+- Verificacao GET (hub.verify_token)
+- POST: processa mensagens inbound, cria conversas e mensagens (mesmo padrao do `instagram-webhook`)
 
-**Ficheiro**: `supabase/functions/ghl-sync-conversations/index.ts`
-- Garantir que o mapeamento de canal durante a sincronização usa a mesma função `resolveGHLChannel` do webhook
-- Verificar que conversas do tipo Instagram (17/18), Messenger (5/19), WhatsApp (9/15/16) são corretamente classificadas
+**Edge Function -- Send WhatsApp:**
+- Recebe conversationId + message
+- Busca conexao activa do workspace
+- Envia via `graph.facebook.com/v18.0/{phone_number_id}/messages`
+- Guarda mensagem outbound na BD
 
-**Nenhuma migração de base de dados necessária** - a estrutura existente já suporta os canais sociais com o campo `channel` nas tabelas `conversations` e `messages`.
+**Componente `WhatsAppConnectionCard`:**
+- Mesmo layout do `InstagramConnectionCard`
+- Mostra numero conectado, estado do token
+- Botoes Conectar / Reconectar / Desconectar
 
+**Hook `useWhatsAppConnection`:**
+- Query para buscar conexao activa
+- Mutation para desconectar
+
+**Ficheiros a criar:**
+- `supabase/functions/whatsapp-auth-url/index.ts`
+- `supabase/functions/whatsapp-oauth-callback/index.ts`
+- `supabase/functions/whatsapp-webhook/index.ts`
+- `supabase/functions/whatsapp-send-message/index.ts`
+- `src/components/integrations/WhatsAppConnectionCard.tsx`
+- `src/hooks/useWhatsAppConnection.ts`
+
+**Ficheiros a modificar:**
+- `src/components/settings/sections/ChannelsSettings.tsx` -- substituir badge "Em breve" pelo `WhatsAppConnectionCard`, ajustar logica GHL
+- Migracao SQL para criar tabela `whatsapp_connections`
