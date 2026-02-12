@@ -123,6 +123,48 @@ serve(async (req) => {
       locationId 
     });
     
+    // Handle autopilot_trigger from batch sync
+    if (body.type === "autopilot_trigger") {
+      console.log("[GHL-MESSAGE] Autopilot trigger from batch sync", body);
+      
+      const { workspace_id, conversation_id, channel, lead_id, ghl_contact_id, location_id: triggerLocationId } = body as any;
+      
+      if (!workspace_id || !conversation_id) {
+        return new Response(
+          JSON.stringify({ error: "Missing workspace_id or conversation_id for autopilot trigger" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Get workspace name
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("name")
+        .eq("id", workspace_id)
+        .single();
+
+      try {
+        await triggerAutopilotResponse(supabase, supabaseUrl, supabaseServiceKey, {
+          workspaceId: workspace_id,
+          workspaceName: ws?.name || "Workspace",
+          conversationId: conversation_id,
+          messageId: "sync_trigger",
+          channel: channel || "instagram",
+          leadId: lead_id || null,
+          contactId: null,
+          ghlContactId: ghl_contact_id || "",
+          locationId: triggerLocationId || "",
+        });
+      } catch (err) {
+        console.error("[GHL-MESSAGE] Autopilot trigger error:", err);
+      }
+
+      return new Response(
+        JSON.stringify({ message: "Autopilot trigger processed" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // If this is a contact-only trigger (no message), respond gracefully
     if (!hasMessage) {
       console.log("[GHL-MESSAGE] Contact trigger received (no message content) - skipping");
@@ -626,6 +668,48 @@ async function triggerAutopilotResponse(
     .limit(1)
     .maybeSingle();
 
+  // Fallback: check ai_agents table if no legacy autopilot_config found
+  let agentSource: any = null;
+  if (!autopilotConfig) {
+    console.log("[AUTOPILOT] No legacy config found, checking ai_agents for channel", { workspaceId, channel });
+    
+    const { data: agent } = await supabase
+      .from("ai_agents")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("is_active", true)
+      .eq("channel", channel)
+      .eq("autopilot_enabled", true)
+      .order("priority", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (agent) {
+      agentSource = agent;
+      const settings = (agent.settings || {}) as Record<string, any>;
+      autopilotConfig = {
+        id: agent.id,
+        is_active: true,
+        persona_id: agent.persona_id,
+        response_delay_min: agent.response_delay_min || 8,
+        response_delay_max: agent.response_delay_max || 12,
+        max_messages_per_conversation: agent.max_messages_per_conversation || 25,
+        max_consecutive_bot_messages: agent.max_consecutive_bot_messages || 3,
+        sleep_on_human_reply: agent.sleep_on_human_reply ?? true,
+        respect_working_hours: agent.respect_working_hours ?? false,
+        working_hours_start: agent.working_hours_start || "09:00",
+        working_hours_end: agent.working_hours_end || "18:00",
+        working_days: agent.working_days || [1,2,3,4,5],
+        timezone: agent.timezone || "Europe/Lisbon",
+        out_of_hours_message: agent.out_of_hours_message || null,
+        typing_indicator: agent.typing_indicator ?? true,
+        config_scope: "channel",
+        source: "ai_agent"
+      };
+      console.log("[AUTOPILOT] Using ai_agents config", { agentId: agent.id, agentName: agent.name, channel });
+    }
+  }
+
   if (!autopilotConfig) {
     console.log("[AUTOPILOT] Autopilot not enabled for workspace", { workspaceId });
     return;
@@ -776,9 +860,10 @@ async function triggerAutopilotResponse(
       leadData,
       channel,
       workspaceId,
-      workspaceName, // NEW: Pass workspace name for context when no persona/knowledge
+      workspaceName,
       personaId: autopilotConfig.persona_id,
       useKnowledgeBase: true,
+      knowledgeBaseIds: agentSource?.knowledge_base_ids || undefined,
       conversationId,
       useConversationalFlows: true
     })
