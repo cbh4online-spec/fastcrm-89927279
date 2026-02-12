@@ -202,8 +202,8 @@ function resolveChannel(typeCode?: number | string, fallback?: string | number):
       "TYPE_FB_MESSENGER": "messenger",
       "TYPE_INSTAGRAM": "instagram",
       "TYPE_LIVE_CHAT": "live_chat",
-      "TYPE_PHONE": "phone",
-      "TYPE_CALL": "phone",
+      "TYPE_PHONE": "sms",
+      "TYPE_CALL": "sms",
       "TYPE_CUSTOM_SMS": "sms",
       "TYPE_CUSTOM_EMAIL": "email",
     };
@@ -670,11 +670,14 @@ Deno.serve(async (req) => {
                         }
                       }
 
-                      // Trigger autopilot if the last message in this conversation is inbound
+                      // Trigger autopilot if the last message in this conversation is inbound AND recent (< 2 hours)
                       if (messages.length > 0 && conversationId && leadId) {
                         const lastMsg = messages[messages.length - 1];
                         const lastDirection = normalizeDirection(lastMsg?.direction);
-                        if (lastDirection === "inbound") {
+                        const lastMsgDate = lastMsg?.dateAdded ? new Date(lastMsg.dateAdded) : null;
+                        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+                        const isRecent = lastMsgDate && lastMsgDate > twoHoursAgo;
+                        if (lastDirection === "inbound" && isRecent) {
                           // Fire-and-forget autopilot trigger (don't block sync)
                           triggerAutopilotForSyncedMessage(
                             supabaseUrl,

@@ -490,9 +490,12 @@ function mapChannelToGHLType(channel: string): string {
     "instagram": "IG",
     "ig": "IG",
     "chat": "Live_Chat",
-    "call": "Call",
+    "live_chat": "Live_Chat",
+    "call": "SMS",
+    "phone": "SMS",
+    "other": "SMS",
     "google": "GMB",
   };
   
-  return typeMap[channel.toLowerCase()] || channel.toUpperCase();
+  return typeMap[channel.toLowerCase()] || "SMS";
 }

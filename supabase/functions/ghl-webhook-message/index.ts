@@ -571,7 +571,7 @@ function resolveGHLChannel(
     const typeStringMap: Record<string, string> = {
       "TYPE_SMS": "sms", "TYPE_EMAIL": "email", "TYPE_WHATSAPP": "whatsapp",
       "TYPE_FB_MESSENGER": "messenger", "TYPE_INSTAGRAM": "instagram",
-      "TYPE_LIVE_CHAT": "chat", "TYPE_PHONE": "call", "TYPE_CALL": "call",
+      "TYPE_LIVE_CHAT": "chat", "TYPE_PHONE": "sms", "TYPE_CALL": "sms",
       "TYPE_CUSTOM_SMS": "sms", "TYPE_CUSTOM_EMAIL": "email",
       "TYPE_TWILIO_SMS": "sms", "TYPE_TWILIO_WHATSAPP": "whatsapp",
       "TYPE_WHATSAPP_API": "whatsapp", "TYPE_INSTAGRAM_DM": "instagram",
@@ -627,8 +627,9 @@ function mapGHLChannel(channel: string | number): string {
     "webchat": "chat",
     "gmb": "google",
     "google": "google",
-    "call": "call",
-    "voicemail": "call"
+    "call": "sms",
+    "phone": "sms",
+    "voicemail": "sms"
   };
   
   return channelMap[channelStr] || "sms";
