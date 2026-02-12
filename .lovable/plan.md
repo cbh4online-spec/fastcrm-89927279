@@ -1,44 +1,40 @@
 
 
-# Fase 4: FastMatch Hub Comunitario (6 Canais)
+# Fase 5: Landing Publica FastClub + Integracao Deep-Link SSO com FastCRM
 
-O FastMatch Hub e a rede privada de oportunidades entre membros verificados do FastClub. Funciona como um espaco premium com 6 canais tematicos onde membros podem publicar e interagir em topicos estrategicos de negocio.
+Esta fase cria a pagina de marketing publica do FastClub (acessivel sem autenticacao) e integra deep-links SSO que permitem aos CTAs da landing iniciar sessao automatica no FastCRM.
 
 ---
 
 ## O que esta incluido
 
-### 1. Pagina principal FastMatch Hub (`/dashboard/fastclub/fastmatch`)
+### 1. Landing Publica FastClub (`/fastclub`)
 
-Pagina dedicada com:
-- Header executivo com descricao do conceito (matching estrategico, nao social)
-- 6 canais tematicos apresentados como chips/tabs filtráveis (reutilizando o padrao visual do `DraggableChannelList`)
-- Feed de topicos do forum filtrado pelo canal selecionado
-- Formulario para criar novos topicos dentro de cada canal
-- Toda a pagina envolvida em `PremiumGate`
+Pagina de marketing publica (fora do `/dashboard`) acessivel por qualquer visitante:
 
-### 2. Os 6 Canais do Hub
+- **Hero section**: Titulo impactante, subtitulo, CTA principal ("Ativar FastCRM" / "Entrar no FastClub")
+- **Pilares do ecossistema**: 3 cards (FastCRM, Metodo PARE, Rede Privada) -- reutilizando o conteudo ja definido em `StartHerePage`
+- **Como funciona**: 4 passos visuais (timeline horizontal)
+- **Beneficios/Features**: Grid de cards com icones e descricoes curtas
+- **Prova social**: Metricas agregadas + testemunhos (reutilizando dados de `fastclub_crm_aggregates` e `fastclub_content_sections` page_key='resultados')
+- **CTA final**: Seccao de conversao com botao para registo/login
+- **SEO**: Meta tags com Helmet, canonical URL via `getPublicBaseUrl()`
+- **Responsive**: Mobile-first, animacoes framer-motion
 
-Criados como categorias do forum (`forum_categories`) com um campo identificador no metadata:
+### 2. Integracao Deep-Link SSO
 
-| Canal | Descricao |
-|---|---|
-| Oportunidades de Negocio | Partilha de leads, projetos e oportunidades comerciais |
-| Parcerias Estrategicas | Propostas de colaboracao e joint ventures |
-| Pedidos de Servico | Procura de servicos especificos entre membros |
-| Casos de Estudo | Partilha de resultados e aprendizagens reais |
-| Ferramentas e Recursos | Recomendacoes de ferramentas, templates e recursos |
-| Networking Direto | Apresentacoes profissionais e pedidos de conexao |
+Sistema de deep-links que permite CTAs na landing (e em qualquer pagina do ecossistema) iniciar sessao SSO no FastCRM:
 
-### 3. Dados semente
+- **Componente `FastCRMDeepLink`**: Componente reutilizavel que encapsula a logica SSO. Recebe `moduleId`, `targetPath` (ex: `/dashboard/pipeline`) e renderiza um botao/link. Ao clicar:
+  1. Se utilizador nao autenticado: redireciona para `/auth?redirect=/dashboard/fastclub` (fluxo existente)
+  2. Se autenticado: invoca `useModuleSSO` para gerar token, depois redireciona para o `targetPath` no FastCRM com o token como query param
+- **Hook `useFastCRMDeepLink`**: Simplifica a integracao SSO para deep-links internos. Wrapper sobre `useModuleSSO` que gere o fluxo redirect automaticamente
+- **Integracao nas paginas existentes**: Substituir CTAs estaticos ("Abrir Pipeline", "Executar no FastCRM") nas paginas do Desafio 7 Dias, Missao da Semana e IA Avancada pelo componente `FastCRMDeepLink`
 
-- 6 categorias do forum com `metadata.hub = 'fastmatch'` para distinguir dos canais normais da comunidade
-- 2 topicos exemplo por canal (12 topicos totais) para dar vida ao hub
+### 3. Navegacao e Rotas
 
-### 4. Navegacao
-
-- Novo item na sidebar (zona premium): "FastMatch Hub"
-- Nova rota no App.tsx
+- Nova rota publica `/fastclub` no `App.tsx` (fora do layout autenticado)
+- Meta-navegacao na landing: link para login, link para registo, link para a comunidade publica (`/club/fastclub`)
 
 ---
 
@@ -46,65 +42,87 @@ Criados como categorias do forum (`forum_categories`) com um campo identificador
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/pages/fastclub/FastMatchPage.tsx` | Pagina principal do FastMatch Hub |
+| `src/pages/fastclub/FastClubLandingPage.tsx` | Landing publica de marketing do FastClub |
+| `src/components/fastclub/FastCRMDeepLink.tsx` | Componente reutilizavel de deep-link SSO |
+| `src/hooks/useFastCRMDeepLink.ts` | Hook simplificado para deep-links SSO internos |
 
 ## Ficheiros a editar
 
 | Ficheiro | Acao |
 |---|---|
-| `src/App.tsx` | Adicionar rota `/dashboard/fastclub/fastmatch` |
-| `src/components/layout/Sidebar.tsx` | Adicionar item "FastMatch Hub" na zona premium |
+| `src/App.tsx` | Adicionar rota publica `/fastclub` |
+| `src/pages/fastclub/DesafioPage.tsx` | Integrar `FastCRMDeepLink` nos CTAs das missoes |
+| `src/pages/fastclub/MissaoSemanaPage.tsx` | Integrar `FastCRMDeepLink` nos CTAs |
+| `src/pages/fastclub/IAAvancadaPage.tsx` | Integrar `FastCRMDeepLink` nos CTAs |
 
 ---
 
 ## Detalhe tecnico
 
-### Dados semente (insert via tool, sem migracao)
+### Landing Publica (`FastClubLandingPage.tsx`)
 
-Inserir 6 categorias na tabela `forum_categories` existente com um campo de identificacao no nome/slug que permita filtra-las como canais do FastMatch Hub. Usar um prefixo `fastmatch-` no slug para distingui-las dos canais normais da comunidade.
+- Rota publica `/fastclub` sem `AuthProvider` wrapper (acesso anonimo)
+- Utiliza `getPublicBaseUrl()` para canonical URL e links de partilha
+- SEO com `react-helmet-async`: titulo "FastClub - Ecossistema de Aceleracao Comercial", descricao, og:tags
+- Navbar minima no topo: logo FastClub, link "Entrar", link "Registar" (apontando para `/auth?redirect=/dashboard/fastclub`)
+- Hero com gradiente executivo (padrao visual existente)
+- Seccao "Ecossistema" com 3 pilares (dados estaticos inline, mesmo conteudo de `StartHerePage`)
+- Seccao "Como Funciona" com 4 passos em timeline horizontal
+- Seccao "Resultados" com metricas agregadas (fetch publico de `fastclub_crm_aggregates` com RLS publica ou dados estaticos fallback)
+- Seccao "Testemunhos" com citacoes (dados estaticos inline para nao depender de workspace_id)
+- Footer com links: Comunidade (`/club/fastclub`), Login (`/auth`), Termos
+- Animacoes: `motion.div` com scroll-triggered fade-in
 
-```
-Categorias (forum_categories):
-- slug: fastmatch-oportunidades, icon: 💼, name: "Oportunidades de Negócio"
-- slug: fastmatch-parcerias, icon: 🤝, name: "Parcerias Estratégicas"
-- slug: fastmatch-servicos, icon: 🔧, name: "Pedidos de Serviço"
-- slug: fastmatch-casos, icon: 📊, name: "Casos de Estudo"
-- slug: fastmatch-ferramentas, icon: 🛠️, name: "Ferramentas e Recursos"
-- slug: fastmatch-networking, icon: 🌐, name: "Networking Direto"
-```
+### Componente `FastCRMDeepLink`
 
-12 topicos exemplo (2 por canal) na tabela `forum_topics`.
-
-### Pagina FastMatchPage
-
-- Envolvida em `PremiumGate` com `featureLabel="FastMatch Hub"`
-- Header com gradiente executivo, titulo "FastMatch Hub", subtitulo e badge "Premium"
-- Botao "Voltar" no topo
-- Lista de canais no topo como chips filtráveis (semelhante ao padrao das outras paginas)
-- Ao selecionar canal, mostra topicos desse canal usando `useForumTopics` filtrado por `category_id`
-- Botao "Novo Topico" que abre dialog para criar topico no canal selecionado
-- Cada topico renderizado como card com titulo, preview do conteudo, autor e data
-- Ao clicar num topico, navega para `/dashboard/fastclub/forum/:topicId` (rota ja existente)
-- Animacoes framer-motion consistentes (fade + stagger)
-
-### Filtragem dos canais FastMatch
-
-Os canais FastMatch sao distinguidos dos canais normais da comunidade pelo prefixo `fastmatch-` no slug. A pagina carrega categorias com `useForumCategories` e filtra localmente aquelas cujo slug comeca com `fastmatch-`.
-
-### Sidebar
-
-Adicionar item na zona premium (apos "IA Avancada"):
 ```typescript
-{ name: "FastMatch Hub", href: "/dashboard/fastclub/fastmatch", icon: Users, tooltip: "Rede privada de oportunidades" },
+interface FastCRMDeepLinkProps {
+  targetPath: string;           // ex: "/dashboard/pipeline"
+  moduleId?: string;            // ID do modulo SSO (opcional)
+  children: ReactNode;          // Conteudo do botao
+  variant?: "default" | "outline" | "ghost";
+  className?: string;
+  fallbackBehavior?: "navigate" | "login";  // Se SSO falhar
+}
 ```
 
-### Padrao visual
+Logica:
+1. Verifica se utilizador esta autenticado (via `useAuth`)
+2. Se nao autenticado: navega para `/auth?redirect={targetPath}`
+3. Se autenticado e `moduleId` fornecido: invoca SSO, gera token, navega com `?sso_token=...&nonce=...`
+4. Se autenticado sem `moduleId`: navega diretamente para `targetPath` (deep-link simples sem SSO)
+5. Estados visuais: loading spinner durante SSO, erro com toast
 
-Segue o padrao executivo ja estabelecido:
-- Botao "Voltar" com `ArrowLeft`
-- Titulo e subtitulo com badges
-- Cards com gradientes subtis e hover com elevacao
-- Animacoes `motion.div` com stagger (delay 0.05-0.1s)
-- CTAs para criar topicos com estilo corporativo
-- Empty states motivacionais quando um canal nao tem topicos
+### Hook `useFastCRMDeepLink`
+
+Wrapper simplificado:
+```typescript
+function useFastCRMDeepLink(targetPath: string, moduleId?: string) {
+  // Retorna { navigate: () => void, isLoading: boolean }
+  // Gere automaticamente o fluxo auth check + SSO + redirect
+}
+```
+
+### Integracao nas paginas existentes
+
+Nas paginas do Desafio, Missao da Semana e IA Avancada, os botoes "Abrir no FastCRM" / "Executar" serao substituidos por `<FastCRMDeepLink targetPath="/dashboard/pipeline">`. Isto mantem o visual igual mas adiciona a logica SSO quando aplicavel.
+
+### Rota publica no App.tsx
+
+```typescript
+{/* Public FastClub Landing */}
+<Route path="/fastclub" element={<FastClubLandingPage />} />
+```
+
+Colocada na zona de rotas publicas, fora dos providers de workspace/autenticacao obrigatoria.
+
+### Padrao visual da Landing
+
+- Navbar fixa/sticky com fundo transparente que fica solido ao scroll
+- Hero: gradiente `from-primary via-primary to-primary/80` com pattern overlay (mesmo padrao de `StartHerePage`)
+- Seccoes alternadas fundo branco/cinza claro
+- Cards com `hover:shadow-lg transition-all`
+- CTAs primarios com cor primary, secundarios outline
+- Responsivo: stack vertical em mobile, grid em desktop
+- Animacoes subtis de entrada ao scroll (intersection observer + framer-motion)
 
