@@ -23,12 +23,11 @@ import {
 import { toast } from "sonner";
 import { useSystemAudit } from "@/hooks/useSystemAudit";
 import { generateAuditPDF } from "@/utils/pdfAuditGenerator";
-import { AUDIT_MODULES } from "@/types/audit";
 import { format, formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
 export function FunctionalAuditSection() {
-  const { metrics, edgeFunctions, lastUpdated, isLoading, error, refresh } = useSystemAudit();
+  const { metrics, edgeFunctions, modules, lastUpdated, isLoading, error, refresh } = useSystemAudit();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -52,6 +51,7 @@ export function FunctionalAuditSection() {
         metrics,
         edgeFunctions,
         lastUpdated,
+        modules,
         onProgress: setProgress,
       });
       toast.success("PDF gerado com sucesso!");
@@ -311,7 +311,7 @@ export function FunctionalAuditSection() {
         <CardContent>
           <ScrollArea className="h-[400px] pr-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {AUDIT_MODULES.map((module, index) => (
+              {modules.map((module, index) => (
                 <div 
                   key={module.name}
                   className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"

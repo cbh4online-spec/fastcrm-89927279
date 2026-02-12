@@ -39,6 +39,13 @@ export interface AuditData {
   version: string;
 }
 
+export interface MarketplaceModuleRow {
+  slug: string;
+  name: string;
+  category: string | null;
+  status: string | null;
+}
+
 export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
   "IA & Machine Learning": [
     "ai-agent-client", "ai-agent-lifecycle", "ai-agent-opportunity", "ai-agent-orchestrator",
@@ -49,7 +56,7 @@ export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
     "ai-growth-insights", "ai-inbox-actions", "ai-inbox-reply", "ai-kpi-analysis",
     "ai-member-priorities", "ai-memory-embedder", "ai-memory-manager", "ai-onboarding-setup",
     "ai-opportunity-coach", "ai-pricing-optimizer", "ai-product-assistant", "ai-proposal-assistant",
-    "ai-template-copilot", "ai-translate-email"
+    "ai-template-copilot", "ai-translate-email", "ai-c2c-listing-assistant", "ai-store-offers"
   ],
   "Email & Comunicação": [
     "email-connect", "email-disconnect", "email-fetch", "email-fetch-zoho",
@@ -69,7 +76,8 @@ export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
   "Pagamentos & Billing": [
     "billing-assistant", "bundle-checkout", "create-checkout", "customer-portal",
     "check-renewals", "check-subscription", "proposal-checkout", "proposal-webhook",
-    "stripe-webhook", "subscription-webhook", "test-stripe-connection"
+    "stripe-webhook", "subscription-webhook", "test-stripe-connection",
+    "create-store-checkout", "create-sponsor-checkout"
   ],
   "Módulos & Marketplace": [
     "module-check-credits", "module-checkout", "module-consume-credits",
@@ -101,7 +109,7 @@ export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
   ],
   "Leads & Prospects": [
     "create-demo-lead", "create-public-lead", "professional-prospecting-analyze",
-    "professional-prospecting-search"
+    "professional-prospecting-search", "generate-prospecting-message"
   ],
   "Utilitários": [
     "figma-extract", "firecrawl-search", "process-form-submission",
@@ -112,7 +120,9 @@ export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
     "sj-copilot", "sj-course-recommendations", "sj-daily-automation"
   ],
   "Loja Online": [
-    "store-ai-advisor", "store-webhook", "create-store-checkout"
+    "store-ai-advisor", "store-webhook", "store-capture-lead",
+    "store-cart-abandonment", "store-classify-visitor", "store-visual-search",
+    "detect-abandoned-carts"
   ],
   "Notas de Encomenda": [
     "order-note-notify", "order-note-submit"
@@ -127,150 +137,247 @@ export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
     "admin-module-margin", "admin-user-management"
   ],
   "Produtos & Embeddings": [
-    "generate-product-embeddings", "product-embedding", "product-semantic-search"
+    "generate-product-embeddings", "product-embedding", "product-semantic-search",
+    "process-product-alerts", "compare-prices", "auto-price-monitor"
   ],
   "Áudio & Voz": [
     "elevenlabs-proposal-token"
+  ],
+  "Comunidade & FastClub": [
+    "community-ai-category", "community-ai-suggest-title",
+    "generate-community-banner", "send-community-invite"
+  ],
+  "Marketplace C2C": [
+    "activate-c2c-seller-invite", "c2c-webhook", "create-c2c-boost-checkout",
+    "create-c2c-checkout", "send-c2c-seller-email", "send-c2c-seller-invite"
+  ],
+  "Financeiro": [
+    "saft-export", "process-refund"
+  ],
+  "Envios & Notificações": [
+    "calculate-shipping", "send-order-status-notification", "send-tracking-notification"
   ]
 };
 
-export const AUDIT_MODULES: AuditModule[] = [
-  {
-    name: "CRM Core",
+// Core module enrichment map for known modules
+const CORE_MODULE_ENRICHMENT: Record<string, { objective: string; components: string[]; status: AuditModule["status"] }> = {
+  "crm-core": {
     objective: "Gestão de leads, contactos, empresas e oportunidades",
     components: ["LeadsList", "ContactsPage", "CompaniesPage", "OpportunitiesPage", "Pipeline"],
     status: "implemented"
   },
-  {
-    name: "Vendas & Faturação",
+  "vendas-faturacao": {
     objective: "Propostas, faturas e catálogo de produtos",
     components: ["ProposalsPage", "InvoicesPage", "ProductsPage", "PriceCalculator"],
     status: "implemented"
   },
-  {
-    name: "Automações",
+  "automacoes": {
     objective: "Motor de automação trigger-condition-action",
     components: ["AutomationBuilder", "AutomationRules", "AutomationLogs"],
     status: "implemented"
   },
-  {
-    name: "IA & Assistentes",
+  "ia-assistentes": {
     objective: "Personas de IA, knowledge base e análise inteligente",
     components: ["AIPersonas", "KnowledgeBase", "AIChat", "AIFieldSuggestions"],
     status: "implemented"
   },
-  {
-    name: "Calendário & Agendamento",
+  "calendario": {
     objective: "Gestão de calendários, eventos e disponibilidade",
     components: ["CalendarPage", "BookingPage", "AvailabilitySettings"],
     status: "implemented"
   },
-  {
-    name: "Comunicação",
+  "comunicacao": {
     objective: "Email, WhatsApp, templates e inbox unificado",
     components: ["InboxPage", "EmailComposer", "WhatsAppIntegration", "Templates"],
     status: "implemented"
   },
-  {
-    name: "Intermediação de Crédito",
+  "credito": {
     objective: "Propostas de crédito, simulador e parcerias bancárias",
     components: ["CreditProposals", "CreditSimulator", "BankPartners"],
     status: "implemented"
   },
-  {
-    name: "SEO & Growth",
+  "seo-growth": {
     objective: "Geração dinâmica de conteúdo SEO",
     components: ["KeywordsPage", "BlogPage", "GlossaryPage", "SitemapGenerator"],
     status: "implemented"
   },
-  {
-    name: "Marketplace de Módulos",
+  "marketplace": {
     objective: "Instalação e gestão de módulos adicionais",
     components: ["MarketplacePage", "ModuleInstaller", "WorkspaceModules"],
     status: "implemented"
   },
-  {
-    name: "Super Admin",
+  "super-admin": {
     objective: "Gestão global SaaS, workspaces e utilizadores",
     components: ["SuperAdmin", "WorkspacesSection", "UsersSection", "PlansSection"],
     status: "implemented"
   },
-  {
-    name: "Loja Online",
+  "loja-online": {
     objective: "Catálogo de produtos, carrinho, checkout e gestão de loja",
     components: ["StorePage", "StoreProductPage", "StoreCheckout", "StoreCart", "StoreCategories"],
     status: "implemented"
   },
-  {
-    name: "Notas de Encomenda",
+  "notas-encomenda": {
     objective: "Gestão de notas de encomenda e auditoria",
     components: ["OrderNotesPage", "OrderNoteDetail", "OrderAuditTrail"],
     status: "implemented"
   },
-  {
-    name: "Formulários Inteligentes",
+  "formularios": {
     objective: "Criação e gestão de formulários dinâmicos",
     components: ["SmartForms", "FormBuilder", "FormSubmissions"],
     status: "implemented"
   },
-  {
-    name: "Produtividade",
+  "produtividade": {
     objective: "Dashboard de produtividade e prioridades diárias",
     components: ["ProductivityDashboard", "DailyPriorities"],
     status: "implemented"
   },
-  {
-    name: "Pacotes & Bundles",
+  "pacotes": {
     objective: "Gestão de pacotes de produtos e bundles",
     components: ["PackagesPage", "BundleCheckout"],
     status: "implemented"
   },
-  {
-    name: "Portal do Cliente",
+  "portal-cliente": {
     objective: "Portal self-service para clientes com autenticação própria",
     components: ["ClientPortal", "ClientUsers", "ClientEntitlements"],
     status: "implemented"
   },
-  {
-    name: "Relatórios & KPIs",
+  "relatorios": {
     objective: "Relatórios de performance e objetivos vs resultados",
     components: ["ReportsGoals", "GoalsVsResults"],
     status: "implemented"
   },
-  {
-    name: "Perfis de Actividade",
+  "perfis-actividade": {
     objective: "Perfis configuráveis por tipo de entidade",
     components: ["ActivityProfiles", "EntityProfileData"],
     status: "implemented"
   },
-  {
-    name: "Vídeo & Reuniões",
+  "video-reunioes": {
     objective: "Criação e gestão de videochamadas",
     components: ["VideoMeetings", "CreateVideoMeeting"],
     status: "implemented"
   },
-  {
-    name: "Landing Pages",
+  "landing-pages": {
     objective: "Páginas públicas de captação e marketing",
     components: ["PublicLandingPage", "LandingPageCopy"],
     status: "implemented"
   },
-  {
-    name: "Student Journey (São João)",
+  "student-journey": {
     objective: "Gestão de alunos, cursos e cohorts",
     components: ["SJDashboard", "SJCourses", "SJCohorts", "SJProfiles"],
     status: "implemented"
   },
-  {
-    name: "AI Assistentes Avançados",
+  "ai-assistentes-avancados": {
     objective: "Assistentes IA com personas, vibe profiles e fluxos conversacionais",
     components: ["AIAssistants", "AIProfiles", "VibeProfiles", "ConversationalFlows"],
     status: "implemented"
   },
-  {
-    name: "Fichas de Produto Públicas",
+  "fichas-produto": {
     objective: "Fichas de produto com embeddings semânticos",
     components: ["PublicProductSheet", "ProductEmbeddings"],
     status: "implemented"
-  }
-];
+  },
+  "b2b-portal": {
+    objective: "Portal B2B para clientes empresariais",
+    components: ["B2BPortal", "B2BCatalog", "B2BOrders"],
+    status: "implemented"
+  },
+  "c2c-marketplace": {
+    objective: "Marketplace C2C para vendas entre utilizadores",
+    components: ["C2CListings", "C2CCheckout", "C2CSellers"],
+    status: "implemented"
+  },
+  "fastclub": {
+    objective: "Comunidades e programa de fidelização",
+    components: ["Communities", "Channels", "FastClubDashboard"],
+    status: "implemented"
+  },
+  "instagram-looter": {
+    objective: "Extracção e análise de dados do Instagram",
+    components: ["InstagramLooter", "ProfileAnalysis"],
+    status: "implemented"
+  },
+  "ai-copilot": {
+    objective: "Copilot de IA para assistência contextual",
+    components: ["AICopilot", "CopilotPanel"],
+    status: "implemented"
+  },
+  "ai-motor-conversacional": {
+    objective: "Motor conversacional inteligente com fluxos",
+    components: ["ConversationalEngine", "FlowEditor"],
+    status: "implemented"
+  },
+  "ai-knowledge-base": {
+    objective: "Base de conhecimento com RAG e semantic search",
+    components: ["KnowledgeBase", "DocumentProcessor", "SemanticSearch"],
+    status: "implemented"
+  },
+  "ai-sugestoes": {
+    objective: "Sugestões inteligentes de campos e acções",
+    components: ["FieldSuggestions", "ActionSuggestions"],
+    status: "implemented"
+  },
+  "ai-ocr": {
+    objective: "OCR e processamento inteligente de documentos",
+    components: ["DocumentOCR", "InvoiceScanner"],
+    status: "implemented"
+  },
+};
+
+/**
+ * Build audit modules dynamically from marketplace data + core enrichment.
+ * New modules added to the DB appear automatically without code changes.
+ */
+export function buildAuditModules(marketplaceModules: MarketplaceModuleRow[]): AuditModule[] {
+  // Start with core modules that are always present (not in marketplace)
+  const coreModules: AuditModule[] = [
+    { name: "CRM Core", ...CORE_MODULE_ENRICHMENT["crm-core"] },
+    { name: "Vendas & Faturação", ...CORE_MODULE_ENRICHMENT["vendas-faturacao"] },
+    { name: "Automações", ...CORE_MODULE_ENRICHMENT["automacoes"] },
+    { name: "Calendário & Agendamento", ...CORE_MODULE_ENRICHMENT["calendario"] },
+    { name: "Comunicação", ...CORE_MODULE_ENRICHMENT["comunicacao"] },
+    { name: "Intermediação de Crédito", ...CORE_MODULE_ENRICHMENT["credito"] },
+    { name: "SEO & Growth", ...CORE_MODULE_ENRICHMENT["seo-growth"] },
+    { name: "Marketplace de Módulos", ...CORE_MODULE_ENRICHMENT["marketplace"] },
+    { name: "Super Admin", ...CORE_MODULE_ENRICHMENT["super-admin"] },
+    { name: "Notas de Encomenda", ...CORE_MODULE_ENRICHMENT["notas-encomenda"] },
+    { name: "Formulários Inteligentes", ...CORE_MODULE_ENRICHMENT["formularios"] },
+    { name: "Produtividade", ...CORE_MODULE_ENRICHMENT["produtividade"] },
+    { name: "Pacotes & Bundles", ...CORE_MODULE_ENRICHMENT["pacotes"] },
+    { name: "Portal do Cliente", ...CORE_MODULE_ENRICHMENT["portal-cliente"] },
+    { name: "Relatórios & KPIs", ...CORE_MODULE_ENRICHMENT["relatorios"] },
+    { name: "Perfis de Actividade", ...CORE_MODULE_ENRICHMENT["perfis-actividade"] },
+    { name: "Vídeo & Reuniões", ...CORE_MODULE_ENRICHMENT["video-reunioes"] },
+    { name: "Landing Pages", ...CORE_MODULE_ENRICHMENT["landing-pages"] },
+    { name: "Student Journey (São João)", ...CORE_MODULE_ENRICHMENT["student-journey"] },
+    { name: "Fichas de Produto Públicas", ...CORE_MODULE_ENRICHMENT["fichas-produto"] },
+  ];
+
+  // Track slugs already used
+  const usedSlugs = new Set(Object.keys(CORE_MODULE_ENRICHMENT));
+
+  // Add marketplace modules — enrich known ones, auto-generate unknown
+  marketplaceModules.forEach((mod) => {
+    if (usedSlugs.has(mod.slug)) return; // skip duplicates
+    usedSlugs.add(mod.slug);
+
+    const enrichment = CORE_MODULE_ENRICHMENT[mod.slug];
+    if (enrichment) {
+      coreModules.push({
+        name: mod.name,
+        objective: enrichment.objective,
+        components: enrichment.components,
+        status: enrichment.status,
+      });
+    } else {
+      // Auto-generate for unknown modules
+      coreModules.push({
+        name: mod.name,
+        objective: `Módulo ${mod.name} — ${mod.category || "funcionalidade adicional"}`,
+        components: [],
+        status: "implemented",
+      });
+    }
+  });
+
+  return coreModules;
+}

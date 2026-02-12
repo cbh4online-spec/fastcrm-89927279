@@ -1,15 +1,16 @@
 import jsPDF from "jspdf";
-import { AuditMetrics, EdgeFunctionInfo, AUDIT_MODULES, EDGE_FUNCTION_CATEGORIES } from "@/types/audit";
+import { AuditMetrics, AuditModule, EdgeFunctionInfo, EDGE_FUNCTION_CATEGORIES } from "@/types/audit";
 
 interface PDFGeneratorOptions {
   metrics: AuditMetrics;
   edgeFunctions: EdgeFunctionInfo[];
   lastUpdated: Date;
+  modules: AuditModule[];
   onProgress?: (progress: number) => void;
 }
 
 export async function generateAuditPDF(options: PDFGeneratorOptions): Promise<void> {
-  const { metrics, edgeFunctions, lastUpdated, onProgress } = options;
+  const { metrics, edgeFunctions, lastUpdated, modules, onProgress } = options;
   
   const pdf = new jsPDF("p", "mm", "a4");
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -195,7 +196,7 @@ export async function generateAuditPDF(options: PDFGeneratorOptions): Promise<vo
   
   const kpis = [
     { name: "Cobertura RLS", value: "100%", desc: "Todas as tabelas com dados sensíveis protegidas" },
-    { name: "Módulos Implementados", value: "10/10", desc: "Todos os módulos core em produção" },
+    { name: "Módulos Implementados", value: `${modules.length}/${modules.length}`, desc: "Todos os módulos core em produção" },
     { name: "Edge Functions", value: metrics.edgeFunctions.toString(), desc: "Funções serverless activas" },
     { name: "Categorias de IA", value: "32", desc: "Funções de inteligência artificial" },
   ];
@@ -381,10 +382,10 @@ export async function generateAuditPDF(options: PDFGeneratorOptions): Promise<vo
   addTitle("4. Módulos Funcionais", 18);
   addSpacer(5);
   
-  addText("O FastCRM é composto por 10 módulos funcionais principais, cada um responsável por um domínio específico do sistema.");
+  addText(`O FastCRM é composto por ${modules.length} módulos funcionais, cada um responsável por um domínio específico do sistema.`);
   addSpacer(10);
   
-  AUDIT_MODULES.forEach((module, index) => {
+  modules.forEach((module, index) => {
     addNewPageIfNeeded(50);
     
     // Module card
@@ -668,7 +669,7 @@ export async function generateAuditPDF(options: PDFGeneratorOptions): Promise<vo
   addSpacer(5);
   
   addSubtitle("9.1 Estado Geral");
-  addText("O FastCRM apresenta-se como uma solução madura e robusta para gestão empresarial. Com todos os 10 módulos core implementados e operacionais, o sistema está preparado para produção em escala.");
+  addText(`O FastCRM apresenta-se como uma solução madura e robusta para gestão empresarial. Com todos os ${modules.length} módulos implementados e operacionais, o sistema está preparado para produção em escala.`);
   addSpacer(5);
   
   addSubtitle("9.2 Pontos de Melhoria Identificados");
