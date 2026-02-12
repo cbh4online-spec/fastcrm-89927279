@@ -559,9 +559,29 @@ function resolveGHLChannel(
   attributionMedium?: string
 ): string {
   // 1. First try numeric type code (most reliable for message type)
-  if (typeof typeCode === "number" && GHL_TYPE_CODES[typeCode]) {
-    console.log("[GHL-MESSAGE] Channel resolved from type code", { typeCode, channel: GHL_TYPE_CODES[typeCode] });
-    return GHL_TYPE_CODES[typeCode];
+  const numCode = typeof typeCode === "number" ? typeCode :
+                  typeof typeCode === "string" && !isNaN(Number(typeCode)) ? Number(typeCode) : null;
+  if (numCode !== null && GHL_TYPE_CODES[numCode]) {
+    console.log("[GHL-MESSAGE] Channel resolved from type code", { typeCode, channel: GHL_TYPE_CODES[numCode] });
+    return GHL_TYPE_CODES[numCode];
+  }
+
+  // 1b. Handle GHL string type names like "TYPE_SMS", "TYPE_WHATSAPP"
+  if (typeof typeCode === "string") {
+    const typeStringMap: Record<string, string> = {
+      "TYPE_SMS": "sms", "TYPE_EMAIL": "email", "TYPE_WHATSAPP": "whatsapp",
+      "TYPE_FB_MESSENGER": "messenger", "TYPE_INSTAGRAM": "instagram",
+      "TYPE_LIVE_CHAT": "chat", "TYPE_PHONE": "call", "TYPE_CALL": "call",
+      "TYPE_CUSTOM_SMS": "sms", "TYPE_CUSTOM_EMAIL": "email",
+      "TYPE_TWILIO_SMS": "sms", "TYPE_TWILIO_WHATSAPP": "whatsapp",
+      "TYPE_WHATSAPP_API": "whatsapp", "TYPE_INSTAGRAM_DM": "instagram",
+      "TYPE_FACEBOOK_MESSENGER": "messenger",
+    };
+    const mapped = typeStringMap[typeCode.toUpperCase()];
+    if (mapped) {
+      console.log("[GHL-MESSAGE] Channel resolved from type string", { typeCode, channel: mapped });
+      return mapped;
+    }
   }
   
   // 2. Check attribution medium (indicates source platform)

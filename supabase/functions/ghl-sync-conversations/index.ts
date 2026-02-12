@@ -125,11 +125,11 @@ interface GHLConversation {
   id: string;
   contactId: string;
   locationId: string;
-  type?: number;
+  type?: number | string;
   unreadCount?: number;
   dateAdded?: string;
   dateUpdated?: string;
-  lastMessageType?: string;
+  lastMessageType?: string | number;
   lastMessageBody?: string;
   lastMessageDirection?: string;
   lastMessageDate?: string;
@@ -140,7 +140,7 @@ interface GHLMessage {
   conversationId: string;
   contactId: string;
   body: string;
-  type?: number;
+  type?: number | string;
   direction?: string;
   status?: string;
   dateAdded?: string;
@@ -184,25 +184,56 @@ const GHL_TYPE_CODES: Record<number, string> = {
   20: "phone",
 };
 
-function resolveChannel(typeCode?: number, fallback?: string): string {
-  if (typeof typeCode === "number" && GHL_TYPE_CODES[typeCode]) {
-    return GHL_TYPE_CODES[typeCode];
-  }
+function resolveChannel(typeCode?: number | string, fallback?: string | number): string {
+  // Handle numeric type codes (direct or as string)
+  const numCode = typeof typeCode === "number" ? typeCode : 
+                  typeof typeCode === "string" && !isNaN(Number(typeCode)) ? Number(typeCode) : null;
   
-  if (fallback) {
-    const channelMap: Record<string, string> = {
-      "sms": "sms",
-      "email": "email",
-      "whatsapp": "whatsapp",
-      "facebook": "messenger",
-      "fb": "messenger",
-      "messenger": "messenger",
-      "instagram": "instagram",
-      "ig": "instagram",
-      "live_chat": "live_chat",
-      "webchat": "web_widget",
+  if (numCode !== null && GHL_TYPE_CODES[numCode]) {
+    return GHL_TYPE_CODES[numCode];
+  }
+
+  // Handle GHL string type names like "TYPE_SMS", "TYPE_EMAIL", etc.
+  if (typeof typeCode === "string") {
+    const typeStringMap: Record<string, string> = {
+      "TYPE_SMS": "sms",
+      "TYPE_EMAIL": "email",
+      "TYPE_WHATSAPP": "whatsapp",
+      "TYPE_FB_MESSENGER": "messenger",
+      "TYPE_INSTAGRAM": "instagram",
+      "TYPE_LIVE_CHAT": "live_chat",
+      "TYPE_PHONE": "phone",
+      "TYPE_CALL": "phone",
+      "TYPE_CUSTOM_SMS": "sms",
+      "TYPE_CUSTOM_EMAIL": "email",
     };
-    return channelMap[fallback.toLowerCase()] || "other";
+    const mapped = typeStringMap[typeCode.toUpperCase()] || typeStringMap[typeCode];
+    if (mapped) return mapped;
+  }
+
+  // Try fallback (can also be numeric)
+  if (fallback !== undefined && fallback !== null) {
+    const fallbackNum = typeof fallback === "number" ? fallback :
+                        typeof fallback === "string" && !isNaN(Number(fallback)) ? Number(fallback) : null;
+    if (fallbackNum !== null && GHL_TYPE_CODES[fallbackNum]) {
+      return GHL_TYPE_CODES[fallbackNum];
+    }
+
+    if (typeof fallback === "string") {
+      const channelMap: Record<string, string> = {
+        "sms": "sms",
+        "email": "email",
+        "whatsapp": "whatsapp",
+        "facebook": "messenger",
+        "fb": "messenger",
+        "messenger": "messenger",
+        "instagram": "instagram",
+        "ig": "instagram",
+        "live_chat": "live_chat",
+        "webchat": "web_widget",
+      };
+      return channelMap[fallback.toLowerCase()] || "other";
+    }
   }
   
   return "other";
@@ -521,13 +552,28 @@ Deno.serve(async (req) => {
                   const lastMessageAt = normalizeTimestamp(ghlConv.lastMessageDate) || 
                                         normalizeTimestamp(ghlConv.dateUpdated);
                   
+                  // Re-classify channel if it was "other" and we now have better type info
+                  const updateData: Record<string, unknown> = {
+                    last_message_at: lastMessageAt,
+                    last_message_preview: ghlConv.lastMessageBody?.substring(0, 100),
+                    unread_count: ghlConv.unreadCount || 0,
+                  };
+
+                  // Check if the existing conversation has channel "other" and try to fix it
+                  const { data: existingConv } = await supabase
+                    .from("conversations")
+                    .select("channel")
+                    .eq("id", conversationId)
+                    .single();
+                  
+                  if (existingConv?.channel === "other" && channel !== "other") {
+                    updateData.channel = channel;
+                    console.log(`[GHL Sync] Reclassifying conversation ${conversationId} from "other" to "${channel}"`);
+                  }
+                  
                   await supabase
                     .from("conversations")
-                    .update({
-                      last_message_at: lastMessageAt,
-                      last_message_preview: ghlConv.lastMessageBody?.substring(0, 100),
-                      unread_count: ghlConv.unreadCount || 0,
-                    })
+                    .update(updateData)
                     .eq("id", conversationId);
                   
                   result.conversations_updated++;
