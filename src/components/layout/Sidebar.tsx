@@ -255,15 +255,13 @@ const navigationGroups: NavGroup[] = [
       { name: "Start Here", href: "/dashboard/fastclub/start-here", icon: Compass, tooltip: "Ponto de partida do ecossistema" },
       { name: "Método PARE", href: "/dashboard/fastclub/metodo-pare", icon: Target, tooltip: "Framework P/A/R/E" },
       { name: "FastCRM em Ação", href: "/dashboard/fastclub/demos", icon: Play, tooltip: "Demos e casos práticos" },
-      { name: "Desafio 7 Dias", href: "/dashboard/fastclub/desafio-7-dias", icon: Zap, tooltip: "Micro-missões de ativação" },
+      { name: "Rede Privada", href: "/dashboard/fastclub/rede-privada", icon: Users, tooltip: "Hub educativo da rede" },
       { name: "Resultados", href: "/dashboard/fastclub/resultados", icon: TrendingUp, tooltip: "Prova social e métricas" },
-      { name: "Fórum", href: "/dashboard/fastclub/forum", icon: MessageSquare, tooltip: "Discussões da comunidade" },
-      { name: "Recompensas", href: "/dashboard/fastclub/rewards", icon: Crown, tooltip: "Pontos e recompensas" },
+      { name: "Anúncios Oficiais", href: "/dashboard/fastclub/anuncios", icon: Newspaper, tooltip: "Novidades e comunicados" },
       // Premium Zone
       { name: "Missão da Semana", href: "/dashboard/fastclub/missao-semana", icon: CalendarClock, tooltip: "Missão semanal premium" },
       { name: "Implementação Guiada", href: "/dashboard/fastclub/implementacao", icon: BookOpen, tooltip: "Playbooks e checklists" },
       { name: "IA Avançada", href: "/dashboard/fastclub/ia-avancada", icon: Brain, tooltip: "Templates IA e automações" },
-      { name: "FastMatch Hub", href: "/dashboard/fastclub/fastmatch", icon: Users, tooltip: "Rede privada de oportunidades" },
       { name: "Laboratório Fast", href: "/dashboard/fastclub/laboratorio", icon: FlaskConical, tooltip: "Experimentos e funcionalidades beta" },
       { name: "Hot Seats", href: "/dashboard/fastclub/hot-seats", icon: Mic, tooltip: "Sessões de mentoria ao vivo" },
     ],
@@ -501,11 +499,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <CollapsibleContent className="space-y-0.5 mt-0.5 animate-fade-in">
           {group.name === "FastClub" ? (
             <>
-              {group.items.filter(item => !["Missão da Semana", "Implementação Guiada", "IA Avançada", "FastMatch Hub", "Laboratório Fast", "Hot Seats"].includes(item.name)).map((item) => renderNavItem(item, true))}
+              {group.items.filter(item => !["Missão da Semana", "Implementação Guiada", "IA Avançada", "Laboratório Fast", "Hot Seats"].includes(item.name)).map((item) => renderNavItem(item, true))}
               <div className="px-3 pt-3 pb-1">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Zona Premium</span>
               </div>
-              {group.items.filter(item => ["Missão da Semana", "Implementação Guiada", "IA Avançada", "FastMatch Hub", "Laboratório Fast", "Hot Seats"].includes(item.name)).map((item) => renderNavItem(item, true))}
+              {group.items.filter(item => ["Missão da Semana", "Implementação Guiada", "IA Avançada", "Laboratório Fast", "Hot Seats"].includes(item.name)).map((item) => renderNavItem(item, true))}
             </>
           ) : (
             group.items.map((item) => renderNavItem(item, true))

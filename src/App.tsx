@@ -152,6 +152,8 @@ import MetodoParePage from "./pages/fastclub/MetodoParePage";
 import DemosPage from "./pages/fastclub/DemosPage";
 import DesafioPage from "./pages/fastclub/DesafioPage";
 import ResultadosPage from "./pages/fastclub/ResultadosPage";
+import RedePrivadaPage from "./pages/fastclub/RedePrivadaPage";
+import AnunciosPage from "./pages/fastclub/AnunciosPage";
 
 // FastClub Premium Pages
 import MissaoSemanaPage from "./pages/fastclub/MissaoSemanaPage";
@@ -161,6 +163,9 @@ import FastMatchPage from "./pages/fastclub/FastMatchPage";
 import LaboratorioPage from "./pages/fastclub/LaboratorioPage";
 import HotSeatsPage from "./pages/fastclub/HotSeatsPage";
 import FastClubLandingPage from "./pages/fastclub/FastClubLandingPage";
+
+// FastMatch Discovery (CRM)
+import FastMatchDiscoveryPage from "./pages/fastmatch/FastMatchDiscoveryPage";
 
 // Store (Public E-commerce)
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
@@ -407,12 +412,17 @@ function CRMRoutes() {
                 <Route path="/dashboard/fastclub/demos" element={<DemosPage />} />
                 <Route path="/dashboard/fastclub/desafio-7-dias" element={<DesafioPage />} />
                 <Route path="/dashboard/fastclub/resultados" element={<ResultadosPage />} />
+                <Route path="/dashboard/fastclub/rede-privada" element={<RedePrivadaPage />} />
+                <Route path="/dashboard/fastclub/anuncios" element={<AnunciosPage />} />
                 <Route path="/dashboard/fastclub/missao-semana" element={<MissaoSemanaPage />} />
                 <Route path="/dashboard/fastclub/implementacao" element={<ImplementacaoPage />} />
                 <Route path="/dashboard/fastclub/ia-avancada" element={<IAAvancadaPage />} />
                 <Route path="/dashboard/fastclub/fastmatch" element={<FastMatchPage />} />
                 <Route path="/dashboard/fastclub/laboratorio" element={<LaboratorioPage />} />
                 <Route path="/dashboard/fastclub/hot-seats" element={<HotSeatsPage />} />
+                
+                {/* FastMatch Discovery (CRM) */}
+                <Route path="/dashboard/fastmatch" element={<FastMatchDiscoveryPage />} />
 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
