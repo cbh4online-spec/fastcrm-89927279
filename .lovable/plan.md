@@ -1,37 +1,26 @@
 
+## Fix Pricing Section CTA Buttons Visibility
 
-# Auditoria Dinamica e Automatica do Sistema
+**Problem**: The CTA buttons on the pricing cards (Free, Business, Enterprise) use a thin outline style with very low-opacity borders and text, making them nearly invisible against the dark card backgrounds.
 
-## Resumo
+**Solution**: Improve button contrast and visibility by:
 
-Tornar a auditoria funcional 100% dinamica em 4 ficheiros. Novos modulos e edge functions aparecem automaticamente sem editar codigo.
+1. **Free plan button** — Use a solid green-tinted style matching the plan color, with dark text
+2. **Business plan button** — Use a solid blue style matching its plan color, with white text
+3. **Professional plan button** — Already uses primary color (visible), keep as-is
+4. **Enterprise plan button** — Use a solid amber/gold style matching the plan color, with dark text
 
-## Alteracoes
+This ensures every CTA is immediately visible and color-coded to its plan.
 
-### 1. `src/types/audit.ts`
+---
 
-- Adicionar ~40 edge functions em falta ao `EDGE_FUNCTION_CATEGORIES` (community-ai-*, c2c-*, store-*, saft-export, calculate-shipping, etc.)
-- Converter `AUDIT_MODULES` de array estatico para funcao `buildAuditModules(marketplaceModules)` que combina modulos core com dados da BD
-- Mapa `CORE_MODULE_ENRICHMENT` para enriquecer modulos conhecidos; modulos novos recebem dados genericos automaticamente
+### Technical Details
 
-### 2. `src/hooks/useSystemAudit.ts`
+**File**: `src/components/landing-fastcrm/LandingPricingSection.tsx`
 
-- Remover `STATIC_METRICS` e `EDGE_FUNCTIONS_LIST` hardcoded
-- Query dinamica a `marketplace_modules` para obter modulos reais
-- Metricas calculadas: modules count real, edge functions derivado de categorias, routes/components/hooks via formula
-- Retornar `modules: AuditModule[]` no hook
-
-### 3. `src/components/super-admin/FunctionalAuditSection.tsx`
-
-- Usar `modules` do hook em vez de `AUDIT_MODULES` importado
-- Passar `modules` ao gerador de PDF
-
-### 4. `src/utils/pdfAuditGenerator.ts`
-
-- Receber `modules` como parametro em vez de importar `AUDIT_MODULES`
-- Substituir contagens hardcoded ("10 modulos", "10/10") por `modules.length`
-
-## Resultado
-
-4 ficheiros editados. Sem migracoes SQL. Sem dependencias novas. Qualquer modulo ou edge function nova aparece automaticamente na auditoria e no PDF.
-
+**Changes**:
+- Remove the generic outline approach for non-highlighted buttons (lines 250-270)
+- Replace with plan-specific solid background colors using each plan's `color` property
+- Use appropriate text colors (dark text on light buttons, white text on dark buttons)
+- Add stronger hover states for each button
+- The Professional card button remains unchanged (already uses primary color and is visible)
