@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { ClubLayout } from "@/components/club/ClubLayout";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
@@ -421,37 +422,39 @@ function CRMRoutes() {
                 <Route path="/dashboard/fastclub" element={<Navigate to="/club/fastclub" replace />} />
                 <Route path="/dashboard/fastclub/*" element={<Navigate to="/club/fastclub" replace />} />
                 
-                {/* FastClub Portal Routes (under /club/fastclub) */}
-                <Route path="/club/fastclub" element={<FastClubPage />} />
-                <Route path="/club/fastclub/forum" element={<ForumPage />} />
-                <Route path="/club/fastclub/forum/:topicId" element={<ForumTopicPage />} />
-                <Route path="/club/fastclub/rewards" element={<LoyaltyPage />} />
-                <Route path="/club/fastclub/start-here" element={<StartHerePage />} />
-                <Route path="/club/fastclub/metodo-pare" element={<MetodoParePage />} />
-                <Route path="/club/fastclub/metodo-pare/planeamento" element={<PlaneamentoParePage />} />
-                <Route path="/club/fastclub/metodo-pare/automacao" element={<AutomacaoParePage />} />
-                <Route path="/club/fastclub/metodo-pare/resultados" element={<ResultadosParePage />} />
-                <Route path="/club/fastclub/metodo-pare/eficiencia" element={<EficienciaParePage />} />
-                <Route path="/club/fastclub/demos" element={<DemosPage />} />
-                <Route path="/club/fastclub/demos/demonstracoes" element={<DemonstracoesPage />} />
-                <Route path="/club/fastclub/demos/casos-praticos" element={<CasosPraticosPage />} />
-                <Route path="/club/fastclub/demos/roadmap" element={<RoadmapFCPage />} />
-                <Route path="/club/fastclub/desafio-7-dias" element={<DesafioPage />} />
-                <Route path="/club/fastclub/resultados" element={<ResultadosPage />} />
-                <Route path="/club/fastclub/rede-privada" element={<RedePrivadaPage />} />
-                <Route path="/club/fastclub/rede-privada/como-funciona" element={<ComoFuncionaPage />} />
-                <Route path="/club/fastclub/rede-privada/otimizar-perfil" element={<OtimizarPerfilPage />} />
-                <Route path="/club/fastclub/rede-privada/indicadores" element={<IndicadoresPage />} />
-                <Route path="/club/fastclub/rede-privada/negocios-fechados" element={<NegociosFechadosPage />} />
-                <Route path="/club/fastclub/rede-privada/estrategias" element={<EstrategiasPage />} />
-                <Route path="/club/fastclub/anuncios" element={<AnunciosPage />} />
-                <Route path="/club/fastclub/atualizacoes" element={<AtualizacoesPage />} />
-                <Route path="/club/fastclub/missao-semana" element={<MissaoSemanaPage />} />
-                <Route path="/club/fastclub/implementacao" element={<ImplementacaoPage />} />
-                <Route path="/club/fastclub/ia-avancada" element={<IAAvancadaPage />} />
-                <Route path="/club/fastclub/fastmatch" element={<FastMatchPage />} />
-                <Route path="/club/fastclub/laboratorio" element={<LaboratorioPage />} />
-                <Route path="/club/fastclub/hot-seats" element={<HotSeatsPage />} />
+                {/* FastClub Portal Routes (under /club/fastclub) - wrapped in ClubLayout */}
+                <Route element={<ClubLayout><Outlet /></ClubLayout>}>
+                  <Route path="/club/fastclub" element={<FastClubPage />} />
+                  <Route path="/club/fastclub/forum" element={<ForumPage />} />
+                  <Route path="/club/fastclub/forum/:topicId" element={<ForumTopicPage />} />
+                  <Route path="/club/fastclub/rewards" element={<LoyaltyPage />} />
+                  <Route path="/club/fastclub/start-here" element={<StartHerePage />} />
+                  <Route path="/club/fastclub/metodo-pare" element={<MetodoParePage />} />
+                  <Route path="/club/fastclub/metodo-pare/planeamento" element={<PlaneamentoParePage />} />
+                  <Route path="/club/fastclub/metodo-pare/automacao" element={<AutomacaoParePage />} />
+                  <Route path="/club/fastclub/metodo-pare/resultados" element={<ResultadosParePage />} />
+                  <Route path="/club/fastclub/metodo-pare/eficiencia" element={<EficienciaParePage />} />
+                  <Route path="/club/fastclub/demos" element={<DemosPage />} />
+                  <Route path="/club/fastclub/demos/demonstracoes" element={<DemonstracoesPage />} />
+                  <Route path="/club/fastclub/demos/casos-praticos" element={<CasosPraticosPage />} />
+                  <Route path="/club/fastclub/demos/roadmap" element={<RoadmapFCPage />} />
+                  <Route path="/club/fastclub/desafio-7-dias" element={<DesafioPage />} />
+                  <Route path="/club/fastclub/resultados" element={<ResultadosPage />} />
+                  <Route path="/club/fastclub/rede-privada" element={<RedePrivadaPage />} />
+                  <Route path="/club/fastclub/rede-privada/como-funciona" element={<ComoFuncionaPage />} />
+                  <Route path="/club/fastclub/rede-privada/otimizar-perfil" element={<OtimizarPerfilPage />} />
+                  <Route path="/club/fastclub/rede-privada/indicadores" element={<IndicadoresPage />} />
+                  <Route path="/club/fastclub/rede-privada/negocios-fechados" element={<NegociosFechadosPage />} />
+                  <Route path="/club/fastclub/rede-privada/estrategias" element={<EstrategiasPage />} />
+                  <Route path="/club/fastclub/anuncios" element={<AnunciosPage />} />
+                  <Route path="/club/fastclub/atualizacoes" element={<AtualizacoesPage />} />
+                  <Route path="/club/fastclub/missao-semana" element={<MissaoSemanaPage />} />
+                  <Route path="/club/fastclub/implementacao" element={<ImplementacaoPage />} />
+                  <Route path="/club/fastclub/ia-avancada" element={<IAAvancadaPage />} />
+                  <Route path="/club/fastclub/fastmatch" element={<FastMatchPage />} />
+                  <Route path="/club/fastclub/laboratorio" element={<LaboratorioPage />} />
+                  <Route path="/club/fastclub/hot-seats" element={<HotSeatsPage />} />
+                </Route>
                 
                 {/* FastMatch Discovery (CRM) */}
                 <Route path="/dashboard/fastmatch" element={<FastMatchDiscoveryPage />} />
