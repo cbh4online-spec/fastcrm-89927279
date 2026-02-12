@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import {
   MessageSquare, Trophy, Star, Crown, Users, TrendingUp,
   ArrowLeft, Plus, Search, Gift, Zap, Heart, Award, Sparkles,
-  Settings, Calendar, Hash, Video, Link as LinkIcon, UserPlus,
+  Settings, Calendar, Hash, Video, Link as LinkIcon, UserPlus, Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +32,7 @@ import { CommunityMembersList } from "@/components/community/CommunityMembersLis
 import { CommunityLeaderboard } from "@/components/community/CommunityLeaderboard";
 import { CommunityAbout } from "@/components/community/CommunityAbout";
 import { CommunitySettingsDialog } from "@/components/community/CommunitySettingsDialog";
-import { AddChannelDialog } from "@/components/community/AddChannelDialog";
+import { AddChannelDialog, ChannelData } from "@/components/community/AddChannelDialog";
 import { InviteToCommunityDialog } from "@/components/community/InviteToCommunityDialog";
 
 const tierConfig: Record<string, { label: string; icon: React.ReactNode; gradient: string; bg: string }> = {
@@ -86,6 +86,7 @@ export default function FastClubPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addChannelOpen, setAddChannelOpen] = useState(false);
+  const [editingChannel, setEditingChannel] = useState<ChannelData | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const { data: categories = [] } = useForumCategories(workspaceId);
@@ -277,14 +278,34 @@ export default function FastClubPage() {
                 {(categories.length > 0 || isAdmin) && (
                   <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                     {categories.map(c => (
-                      <button
-                        key={c.id}
-                        onClick={() => navigate("/dashboard/fastclub/forum")}
-                        className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border bg-card hover:bg-muted/50 transition-colors text-xs font-medium"
-                      >
-                        <span>{c.icon || "💬"}</span>
-                        {c.name}
-                      </button>
+                      <div key={c.id} className="shrink-0 flex items-center gap-1 group">
+                        <button
+                          onClick={() => navigate("/dashboard/fastclub/forum")}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border bg-card hover:bg-muted/50 transition-colors text-xs font-medium"
+                        >
+                          <span>{c.icon || "💬"}</span>
+                          {c.name}
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => setEditingChannel({
+                              id: c.id,
+                              name: c.name,
+                              description: c.description,
+                              icon: c.icon,
+                              color: (c as any).color || null,
+                              is_private: (c as any).is_private || false,
+                              is_read_only: (c as any).is_read_only || false,
+                              is_paid: (c as any).is_paid || false,
+                              price: (c as any).price || null,
+                            })}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-muted"
+                            title="Editar canal"
+                          >
+                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
                     ))}
                     {isAdmin && (
                       <button
@@ -358,6 +379,12 @@ export default function FastClubPage() {
 
       <CommunitySettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} workspaceId={workspaceId} />
       <AddChannelDialog open={addChannelOpen} onOpenChange={setAddChannelOpen} workspaceId={workspaceId} />
+      <AddChannelDialog
+        open={!!editingChannel}
+        onOpenChange={(open) => { if (!open) setEditingChannel(null); }}
+        workspaceId={workspaceId}
+        channel={editingChannel}
+      />
       <InviteToCommunityDialog open={inviteOpen} onOpenChange={setInviteOpen} />
     </div>
   );
