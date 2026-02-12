@@ -1,4 +1,5 @@
 import { useState } from "react";
+import pricingBg from "@/assets/pricing-bg.jpg";
 import { motion } from "framer-motion";
 import { 
   AlertTriangle, Check, Crown, Building2, Rocket, Zap,
@@ -128,7 +129,17 @@ export function LandingPricingSection() {
   };
 
   return (
-    <section id="pricing" className="py-24 md:py-32 relative">
+    <section id="pricing" className="py-24 md:py-32 relative overflow-hidden">
+      {/* Futuristic background */}
+      <div
+        className="absolute inset-0 opacity-20 pointer-events-none"
+        style={{
+          backgroundImage: `url(${pricingBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-[hsl(220,20%,4%)] via-transparent to-[hsl(220,20%,4%)] pointer-events-none" />
       <QualificationModal open={modalOpen} onClose={() => setModalOpen(false)} prefilledPlan={selectedPlan} />
       {/* Pre-Anchor */}
       <div className="max-w-4xl mx-auto px-6 mb-20">
