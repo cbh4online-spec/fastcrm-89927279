@@ -7,6 +7,7 @@ import { LandingArchitectureSection } from "@/components/landing-fastcrm/Landing
 import { LandingMetricsSection } from "@/components/landing-fastcrm/LandingMetricsSection";
 import { LandingPositioningSection } from "@/components/landing-fastcrm/LandingPositioningSection";
 import { LandingPricingSection } from "@/components/landing-fastcrm/LandingPricingSection";
+import { LandingFastClubSection } from "@/components/landing-fastcrm/LandingFastClubSection";
 import { LandingFinalCTA } from "@/components/landing-fastcrm/LandingFinalCTA";
 import { LandingFAQSection } from "@/components/landing-fastcrm/LandingFAQSection";
 import { LandingFooter } from "@/components/landing-fastcrm/LandingFooter";
@@ -61,6 +62,7 @@ export default function FastCRMLanding() {
           <LandingMetricsSection />
           <LandingPositioningSection />
           <LandingPricingSection />
+          <LandingFastClubSection />
           <LandingFinalCTA />
           <LandingFAQSection />
         </main>
