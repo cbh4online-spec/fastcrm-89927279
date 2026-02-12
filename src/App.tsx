@@ -158,6 +158,8 @@ import MissaoSemanaPage from "./pages/fastclub/MissaoSemanaPage";
 import ImplementacaoPage from "./pages/fastclub/ImplementacaoPage";
 import IAAvancadaPage from "./pages/fastclub/IAAvancadaPage";
 import FastMatchPage from "./pages/fastclub/FastMatchPage";
+import LaboratorioPage from "./pages/fastclub/LaboratorioPage";
+import HotSeatsPage from "./pages/fastclub/HotSeatsPage";
 import FastClubLandingPage from "./pages/fastclub/FastClubLandingPage";
 
 // Store (Public E-commerce)
@@ -409,6 +411,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/fastclub/implementacao" element={<ImplementacaoPage />} />
                 <Route path="/dashboard/fastclub/ia-avancada" element={<IAAvancadaPage />} />
                 <Route path="/dashboard/fastclub/fastmatch" element={<FastMatchPage />} />
+                <Route path="/dashboard/fastclub/laboratorio" element={<LaboratorioPage />} />
+                <Route path="/dashboard/fastclub/hot-seats" element={<HotSeatsPage />} />
 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
