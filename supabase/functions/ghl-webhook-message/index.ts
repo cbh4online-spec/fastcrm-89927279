@@ -821,8 +821,8 @@ async function triggerAutopilotResponse(
   }
 
   // 5. Calculate response delay
-  const delayMin = autopilotConfig.response_delay_min || 5;
-  const delayMax = autopilotConfig.response_delay_max || 10;
+  const delayMin = autopilotConfig.response_delay_min ?? 0;
+  const delayMax = autopilotConfig.response_delay_max ?? 0;
   const delaySeconds = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
 
   console.log("[AUTOPILOT] Scheduling response", { delaySeconds });
@@ -835,8 +835,10 @@ async function triggerAutopilotResponse(
     event_data: { delay_seconds: delaySeconds, config_id: autopilotConfig.id }
   });
 
-  // 7. Wait for delay (simulates human-like response time)
-  await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+  // 7. Wait for delay (skip if immediate)
+  if (delaySeconds > 0) {
+    await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+  }
 
   // 8. Fetch conversation messages for context
   const { data: messages } = await supabase

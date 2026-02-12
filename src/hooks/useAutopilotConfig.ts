@@ -168,8 +168,8 @@ export function useAutopilotConfig(channel?: string) {
   const defaultConfig: Partial<AutopilotConfigInsert> = {
     is_active: false,
     config_scope: "workspace",
-    response_delay_min: 8,
-    response_delay_max: 12,
+    response_delay_min: 0,
+    response_delay_max: 0,
     typing_indicator: true,
     max_messages_per_conversation: 25,
     max_consecutive_bot_messages: 3,
