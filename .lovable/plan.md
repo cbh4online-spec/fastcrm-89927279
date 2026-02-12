@@ -1,10 +1,8 @@
 
 
-## Fix Logo Click to Scroll to Top
+## Add FastClub Link to Landing Page Navigation
 
-**Problem**: Clicking the FastCRM logo in the header navigates via React Router `Link to="/"` but does not scroll the page back to the top.
-
-**Solution**: Replace the `Link` with a click handler that scrolls to the top of the page smoothly, since clicking the logo on the landing page should reposition to the start rather than triggering a route navigation (the user is already on `/`).
+**Goal**: Add a "FastClub" entry to the navigation menu in the FastCRM landing page header, linking to the dedicated section on the page.
 
 ---
 
@@ -12,5 +10,15 @@
 
 **File**: `src/components/landing-fastcrm/LandingStickyHeader.tsx`
 
-**Change**: Replace the logo `<Link to="/">` with a `<button>` or `<a href="#">` that calls `window.scrollTo({ top: 0, behavior: 'smooth' })` on click. This avoids unnecessary route changes and provides a smooth scroll-to-top experience.
+**Change**: Add a new entry to the `navLinks` array:
+
+```text
+{ href: "#fastclub", label: "FastClub" }
+```
+
+This will automatically appear in both the desktop navigation bar and the mobile drawer menu, since both already iterate over the `navLinks` array. The link will smooth-scroll to the FastClub section on the page.
+
+**File**: `src/components/landing-fastcrm/LandingFastClubSection.tsx`
+
+**Change**: Add `id="fastclub"` to the root `<section>` element so the anchor link scrolls to it correctly.
 
