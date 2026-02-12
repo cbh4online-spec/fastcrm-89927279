@@ -1,9 +1,10 @@
 
-## Add Mobile Navigation Menu to Landing Page
 
-**Problem**: The landing page navigation (`hidden md:flex`) is completely hidden on mobile with no alternative menu, violating mobile-first principles.
+## Fix Logo Click to Scroll to Top
 
-**Solution**: Add a hamburger menu button (visible only on mobile) that opens a Sheet/drawer from the right side, containing all navigation links and CTA buttons.
+**Problem**: Clicking the FastCRM logo in the header navigates via React Router `Link to="/"` but does not scroll the page back to the top.
+
+**Solution**: Replace the `Link` with a click handler that scrolls to the top of the page smoothly, since clicking the logo on the landing page should reposition to the start rather than triggering a route navigation (the user is already on `/`).
 
 ---
 
@@ -11,12 +12,5 @@
 
 **File**: `src/components/landing-fastcrm/LandingStickyHeader.tsx`
 
-**Changes**:
-1. Import `Menu` and `X` icons from lucide-react
-2. Import `Sheet`, `SheetContent`, `SheetTrigger` from `@/components/ui/sheet`
-3. Add state `mobileOpen` to control the sheet
-4. Add a hamburger `Menu` button visible only on mobile (`md:hidden`)
-5. Inside the Sheet, render all 6 nav links (Problema, Solucao, Arquitectura, Metricas, Investimento, FAQ) as vertical list items styled for dark theme
-6. Include "Entrar" and "Criar Workspace" CTAs at the bottom of the mobile menu
-7. Auto-close the sheet when a nav link is clicked (using `onClick` to set `mobileOpen = false`)
-8. Hide the "Criar Workspace" desktop button on small screens to avoid clutter (it will be in the mobile menu instead)
+**Change**: Replace the logo `<Link to="/">` with a `<button>` or `<a href="#">` that calls `window.scrollTo({ top: 0, behavior: 'smooth' })` on click. This avoids unnecessary route changes and provides a smooth scroll-to-top experience.
+
