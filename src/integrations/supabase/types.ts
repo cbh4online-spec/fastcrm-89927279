@@ -8785,6 +8785,54 @@ export type Database = {
           },
         ]
       }
+      fastclub_applications: {
+        Row: {
+          company: string
+          created_at: string
+          email: string | null
+          employees: string | null
+          full_name: string
+          id: string
+          motivation: string
+          revenue: string | null
+          role: string
+          sector: string
+          status: string
+          updated_at: string
+          website_linkedin: string | null
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          email?: string | null
+          employees?: string | null
+          full_name: string
+          id?: string
+          motivation: string
+          revenue?: string | null
+          role: string
+          sector: string
+          status?: string
+          updated_at?: string
+          website_linkedin?: string | null
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          email?: string | null
+          employees?: string | null
+          full_name?: string
+          id?: string
+          motivation?: string
+          revenue?: string | null
+          role?: string
+          sector?: string
+          status?: string
+          updated_at?: string
+          website_linkedin?: string | null
+        }
+        Relationships: []
+      }
       fastclub_challenge_progress: {
         Row: {
           challenge_id: string
