@@ -196,12 +196,20 @@ export default function MarketingHomepage() {
             <p className="text-base font-medium text-foreground/80 mb-10">
               Não é um grupo informal. É um espaço estruturado para execução e crescimento.
             </p>
-            <Link to="/club/fastclub">
-              <Button size="lg" className="gap-2">
-                Aceder ao FastClub
-                <ArrowRight className="h-5 w-5" />
-              </Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <Link to="/club/fastclub">
+                <Button size="lg" className="gap-2">
+                  Aceder ao FastClub
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Link to="/fastclub">
+                <Button size="lg" variant="outline" className="gap-2">
+                  Explorar o FastClub
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
