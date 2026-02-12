@@ -1,53 +1,72 @@
 
-
-# Adicionar partilha via link e redes sociais ao convite de membros do clube
+# Adicionar edição e eliminação de canais do clube
 
 ## Problema
 
-Atualmente, o dialog de convite para a comunidade (`InviteToCommunityDialog`) so permite convidar membros por email (selecionando contactos do CRM ou inserindo manualmente). Nao existe forma de partilhar o link publico do clube via WhatsApp, Facebook ou copiar o link diretamente.
+Atualmente só é possível criar canais na comunidade. Não existe forma de editar (nome, descrição, ícone, cor, privacidade, preço) nem eliminar canais existentes.
 
-## Solucao
+## Solução
 
-Adicionar um terceiro separador "Link" ao dialog de convite que mostra o URL publico do clube e botoes de partilha rapida para WhatsApp, Facebook, e copiar link.
+Reutilizar o `AddChannelDialog` existente, transformando-o num dialog de criação/edição unificado, e adicionar as mutações necessárias para update e delete.
 
-## Alteracoes
+## Alterações
 
-### 1. Editar `src/components/community/InviteToCommunityDialog.tsx`
+### 1. Adicionar mutações em `src/hooks/useForumMutations.ts`
 
-Adicionar um terceiro tab ao dialog existente:
+Criar duas novas funções:
 
-- **Novo tab "Link"** com icone `Share2`
-- Mostrar o URL publico do clube (construido com `getPublicBaseUrl()` + `/club/${slug}`)
-- Campo de texto com o link (readonly, selecao facil)
-- Botoes de partilha:
-  - **WhatsApp**: abre `wa.me` com texto pre-formatado e link
-  - **Facebook**: abre sharer do Facebook com o link
-  - **Copiar link**: copia para o clipboard com feedback visual
-- Texto de contexto explicando que qualquer pessoa com o link pode pedir adesao
+- **`useUpdateForumCategory(workspaceId)`** -- faz `.update()` na tabela `forum_categories` com os campos editados (name, description, icon, color, is_private, is_read_only, is_paid, price). Recalcula o slug a partir do nome.
+- **`useDeleteForumCategory(workspaceId)`** -- faz `.delete()` na tabela `forum_categories` pelo id. Invalida a query `forum-categories`.
 
-Imports adicionais necessarios:
-- `getPublicBaseUrl` de `@/utils/getPublicDomain`
-- `useCommunitySettings` de `@/hooks/useCommunitySettings`
-- `useWorkspace` de `@/contexts/WorkspaceContext`
-- Icones: `Share2`, `Copy`, `Check` do lucide-react
+### 2. Refatorar `src/components/community/AddChannelDialog.tsx`
 
-### 2. Logica do link publico
+- Renomear para suportar modo de edição: aceitar prop opcional `channel` com os dados do canal existente
+- Se `channel` estiver presente, pré-preencher todos os campos do formulário (nome, descrição, ícone, cor, toggles, preço)
+- Alterar o título do dialog: "Editar Canal" vs "Adicionar Canal"
+- Alterar o botão de submissão: "Guardar" vs "Criar Canal"
+- Adicionar botão "Eliminar Canal" (com confirmação) quando em modo de edição
+- No submit, chamar `useUpdateForumCategory` em vez de `useCreateForumCategory` quando estiver a editar
 
-```text
-slug = communitySettings.slug
-baseUrl = getPublicBaseUrl()
-publicUrl = baseUrl + "/club/" + slug
-```
+### 3. Adicionar ações de edição na listagem de canais
 
-O texto de partilha para WhatsApp sera:
-```
-Junta-te a {communityName}! {publicUrl}
-```
+Nas páginas que listam canais (`FastClubPage.tsx` e `ForumPage.tsx`), adicionar um botão de edição (ícone de lápis ou menu de contexto) em cada canal da sidebar, que abre o `AddChannelDialog` em modo de edição com os dados do canal selecionado.
 
 ## Ficheiros
 
-| Ficheiro | Acao |
+| Ficheiro | Ação |
 |---|---|
-| `src/components/community/InviteToCommunityDialog.tsx` | Editar (adicionar tab de partilha por link) |
+| `src/hooks/useForumMutations.ts` | Editar -- adicionar `useUpdateForumCategory` e `useDeleteForumCategory` |
+| `src/components/community/AddChannelDialog.tsx` | Editar -- suportar modo edição com prop `channel`, pré-preenchimento e botão eliminar |
+| `src/pages/community/FastClubPage.tsx` | Editar -- adicionar estado para canal selecionado e botão de edição nos canais |
+| `src/pages/community/ForumPage.tsx` | Editar -- mesmo padrão de edição nos canais |
 
-Apenas 1 ficheiro editado. Reutiliza a logica de `getPublicBaseUrl()` ja existente e o hook `useCommunitySettings` ja disponivel no projeto.
+Total: 4 ficheiros editados, 0 criados.
+
+## Secção técnica
+
+### Schema `forum_categories` (campos editáveis)
+- `name` (string)
+- `slug` (string, recalculado do nome)
+- `description` (string | null)
+- `icon` (string | null)
+- `color` (string | null)
+- `is_private` (boolean)
+- `is_read_only` (boolean)
+- `is_paid` (boolean)
+- `price` (number | null)
+
+### Mutação de update
+```typescript
+supabase.from("forum_categories")
+  .update({ name, slug, description, icon, color, is_private, is_read_only, is_paid, price })
+  .eq("id", categoryId)
+  .eq("workspace_id", workspaceId)
+```
+
+### Mutação de delete
+```typescript
+supabase.from("forum_categories")
+  .delete()
+  .eq("id", categoryId)
+  .eq("workspace_id", workspaceId)
+```
