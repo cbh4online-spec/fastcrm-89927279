@@ -4842,8 +4842,10 @@ export type Database = {
           invite_expires_at: string | null
           invite_token: string | null
           invited_by: string | null
+          is_crm_verified: boolean
           is_profile_public: boolean
           joined_at: string | null
+          membership_tier: string
           name: string
           show_avatar: boolean
           show_email: boolean
@@ -4860,8 +4862,10 @@ export type Database = {
           invite_expires_at?: string | null
           invite_token?: string | null
           invited_by?: string | null
+          is_crm_verified?: boolean
           is_profile_public?: boolean
           joined_at?: string | null
+          membership_tier?: string
           name: string
           show_avatar?: boolean
           show_email?: boolean
@@ -4878,8 +4882,10 @@ export type Database = {
           invite_expires_at?: string | null
           invite_token?: string | null
           invited_by?: string | null
+          is_crm_verified?: boolean
           is_profile_public?: boolean
           joined_at?: string | null
+          membership_tier?: string
           name?: string
           show_avatar?: boolean
           show_email?: boolean
@@ -8772,6 +8778,138 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "exclusive_content_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fastclub_challenges: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          created_at: string | null
+          day_number: number
+          description: string | null
+          id: string
+          is_premium: boolean | null
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string | null
+          day_number: number
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string | null
+          day_number?: number
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fastclub_challenges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fastclub_content_sections: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          is_premium: boolean | null
+          media_type: string | null
+          media_url: string | null
+          metadata: Json | null
+          page_key: string
+          section_key: string
+          sort_order: number | null
+          title: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_premium?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
+          metadata?: Json | null
+          page_key: string
+          section_key: string
+          sort_order?: number | null
+          title?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_premium?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
+          metadata?: Json | null
+          page_key?: string
+          section_key?: string
+          sort_order?: number | null
+          title?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fastclub_content_sections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fastclub_crm_aggregates: {
+        Row: {
+          id: string
+          metric_key: string
+          metric_value: Json
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          metric_key: string
+          metric_value?: Json
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          metric_key?: string
+          metric_value?: Json
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fastclub_crm_aggregates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

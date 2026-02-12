@@ -59,6 +59,7 @@ import {
   BookOpen,
   Store,
   UserCircle,
+  Play,
 } from "lucide-react";
 import {
   Collapsible,
@@ -249,6 +250,9 @@ const navigationGroups: NavGroup[] = [
     moduleSlug: "fastclub",
     items: [
       { name: "FastClub", href: "/dashboard/fastclub", icon: Zap, tooltip: "Hub da comunidade", highlight: true },
+      { name: "Start Here", href: "/dashboard/fastclub/start-here", icon: Compass, tooltip: "Ponto de partida do ecossistema" },
+      { name: "Método PARE", href: "/dashboard/fastclub/metodo-pare", icon: Target, tooltip: "Framework P/A/R/E" },
+      { name: "FastCRM em Ação", href: "/dashboard/fastclub/demos", icon: Play, tooltip: "Demos e casos práticos" },
       { name: "Fórum", href: "/dashboard/fastclub/forum", icon: MessageSquare, tooltip: "Discussões da comunidade" },
       { name: "Recompensas", href: "/dashboard/fastclub/rewards", icon: Crown, tooltip: "Pontos e recompensas" },
     ],
