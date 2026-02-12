@@ -1,29 +1,54 @@
 
-# Adicionar ClubLayout como Wrapper das Rotas FastClub
 
-## Objetivo
+# Integrar Sidebar no Design da Pagina FastClub
 
-Envolver todas as rotas `/club/fastclub/*` no componente `ClubLayout` para que cada pagina tenha automaticamente a sidebar de navegacao, o topbar mobile e o gate de autenticacao.
+## Problema Atual
 
-## Alteracao
+A sidebar do ClubLayout e um painel fixo separado com `border-r` e `bg-card/50`, criando uma divisao visual forte entre a navegacao e o conteudo. O utilizador quer que a sidebar se integre visualmente na pagina, com o mesmo estilo de design.
 
-Editar `src/App.tsx` para agrupar as ~30 rotas `/club/fastclub/*` dentro de uma rota pai com `ClubLayout` como elemento wrapper, usando a pattern `<Route element={<ClubLayout><Outlet /></ClubLayout>}>`.
+## Solucao
 
-### Estrutura resultante
+Transformar a sidebar de painel fixo separado para um elemento integrado no fluxo da pagina, usando o mesmo estilo visual (rounded corners, cards, espacamento).
+
+### Alteracoes
+
+**1. `src/components/club/ClubLayout.tsx`**
+- Remover o padding-left fixo (`lg:pl-64`)
+- Usar layout flex inline em vez de sidebar fixa
+- Envolver tudo num container com padding uniforme
+- A sidebar passa a ser um elemento inline no fluxo da pagina
+
+**2. `src/components/club/ClubSidebar.tsx`**
+- Remover `fixed inset-y-0 left-0` do desktop
+- Remover `border-r` e trocar por estilo card com `rounded-2xl border bg-card`
+- Adicionar `sticky top-4` para manter a sidebar visivel ao fazer scroll
+- Reduzir a largura de `w-64` para `w-60` e usar `shrink-0`
+- Manter comportamento mobile (overlay) inalterado
+- Manter toda a estrutura de navegacao (seccoes, collapsibles, links)
+
+### Resultado Visual
 
 ```text
-<Route element={<ClubLayout><Outlet /></ClubLayout>}>
-  <Route path="/club/fastclub" element={<FastClubPage />} />
-  <Route path="/club/fastclub/start-here" element={<StartHerePage />} />
-  <Route path="/club/fastclub/metodo-pare" element={<MetodoParePage />} />
-  ... (todas as rotas existentes)
-</Route>
++--padding--+------------------------------------------+--padding--+
+|           |                                          |           |
+|           | +----------+  +------------------------+ |           |
+|           | | Sidebar  |  | Conteudo (hero, tabs,  | |           |
+|           | | rounded  |  | forum, etc.)           | |           |
+|           | | card     |  |                        | |           |
+|           | | sticky   |  |                        | |           |
+|           | +----------+  +------------------------+ |           |
+|           |                                          |           |
++--padding--+------------------------------------------+--padding--+
 ```
+
+A sidebar passa a ter o mesmo estilo de card que os outros elementos da pagina (como o card de gamificacao e o CommunitySidebar), criando coerencia visual.
 
 ## Detalhe Tecnico
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/App.tsx` | Importar `Outlet` de react-router-dom e `ClubLayout`. Envolver as rotas `/club/fastclub/*` (linhas 425-454) numa rota pai com `ClubLayout` como layout element. |
+| `src/components/club/ClubLayout.tsx` | Remover pl-64, usar flex inline com gap e container |
+| `src/components/club/ClubSidebar.tsx` | Desktop: remover fixed/border-r, usar rounded-2xl card sticky. Mobile: manter overlay |
 
-Apenas 1 ficheiro editado. Sem migracoes SQL. Sem novos componentes.
+2 ficheiros editados. Sem migracoes SQL.
+
