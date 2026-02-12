@@ -1,99 +1,43 @@
 
-## Conectar Instagram e WhatsApp Diretamente (sem GHL)
+## Receber Mensagens Automaticamente no Inbox (Realtime)
 
-### Contexto
+### Problema
 
-O Instagram direto ja tem implementacao completa (edge functions `instagram-auth-url`, `instagram-oauth-callback`, `instagram-webhook`, `instagram-send-message` + componente `InstagramConnectionCard`). Os secrets `META_APP_ID` e `META_APP_SECRET` ja estao configurados.
+Os webhooks (GHL, WhatsApp, Instagram) ja recebem mensagens e guardam na base de dados automaticamente. A tabela `conversations` e `messages` ja tem realtime ativado. No entanto, o hook `useConversations` nao tem subscricao realtime -- so atualiza quando o utilizador navega ou faz refresh manual. Isto faz parecer que o sistema nao recebe mensagens.
 
-O WhatsApp Business API direto nao tem nenhuma implementacao -- nao existe tabela, edge functions, nem UI para conexao directa.
+### Solucao
+
+Adicionar subscricoes realtime ao hook `useConversations` para que a lista de conversas atualize instantaneamente quando chegam novas mensagens via webhook.
 
 ### O que sera feito
 
-**1. Tornar o botao Instagram visivel e funcional (mesmo com GHL)**
+**1. Adicionar realtime ao `useConversations`**
 
-Atualmente, o `InstagramConnectionCard` ja esta presente mas o banner "Via GHL" pode confundir. Vamos:
-- Manter o card do Instagram sempre visivel com botao "Conectar" funcional
-- Adicionar nota a indicar que a conexao direta funciona independentemente do GHL
-- Ja esta 100% funcional (OAuth flow completo)
+Modificar `src/hooks/useConversations.ts` para incluir uma subscricao `postgres_changes` na tabela `conversations`, filtrando por `workspace_id`. Quando houver INSERT, UPDATE ou DELETE, invalida automaticamente a query cache do React Query, fazendo o UI atualizar.
 
-**2. Criar conexao directa WhatsApp Business API**
+**2. Adicionar realtime ao `ConversationList`**
 
-Este e o trabalho principal. Requer:
+Garantir que o componente `ConversationList` tambem escuta mudancas na tabela `messages` para atualizar contadores e previews quando chega uma nova mensagem (o hook `useMessages` ja tem realtime, mas apenas para a conversa selecionada).
 
-**Base de Dados:**
-- Criar tabela `whatsapp_connections` (workspace_id, phone_number_id, waba_id, display_phone_number, access_token, is_active, token_expires_at, connected_by)
-- RLS policies para acesso por workspace
+**3. Notificacao visual de nova mensagem**
 
-**Edge Functions:**
-- `whatsapp-auth-url` -- Gerar URL OAuth do Facebook/Meta para WhatsApp Business (usa os mesmos `META_APP_ID` / `META_APP_SECRET` ja configurados, com scope `whatsapp_business_management,whatsapp_business_messaging`)
-- `whatsapp-oauth-callback` -- Receber callback, trocar code por token, buscar WhatsApp Business Account ID e Phone Number ID, guardar na tabela
-- `whatsapp-webhook` -- Receber mensagens inbound do WhatsApp Cloud API, criar conversas e mensagens no CRM
-- `whatsapp-send-message` -- Enviar mensagens outbound via WhatsApp Cloud API
-
-**UI:**
-- Criar componente `WhatsAppConnectionCard` (seguindo o mesmo padrao do `InstagramConnectionCard`)
-- Substituir o badge "Em breve" pelo card funcional na secao WhatsApp do `ChannelsSettings`
-- Mostrar estado da conexao, numero conectado, opcoes de reconectar/desconectar
-
-**3. Atualizar ChannelsSettings**
-
-- Remover a logica que esconde botoes quando GHL esta ativo
-- Mostrar ambas opcoes (Via GHL + Conexao Direta) quando aplicavel
-- Cada card indica claramente a fonte da conexao
+Adicionar um efeito sonoro ou visual (badge a piscar, toast) quando chega uma nova conversa ou mensagem inbound para chamar a atencao do utilizador.
 
 ---
 
 ### Detalhes Tecnicos
 
-**Tabela `whatsapp_connections`:**
-```text
-- id (uuid, PK)
-- workspace_id (uuid, FK workspaces, UNIQUE)
-- phone_number_id (text)
-- waba_id (text) -- WhatsApp Business Account ID
-- display_phone_number (text)
-- access_token (text)
-- is_active (boolean, default true)
-- token_expires_at (timestamptz)
-- connected_by (uuid)
-- created_at (timestamptz)
-- updated_at (timestamptz)
-```
+**Ficheiro**: `src/hooks/useConversations.ts`
+- Adicionar `useEffect` com `supabase.channel('conversations-realtime-{workspaceId}')` que escuta `postgres_changes` em `conversations` filtrado por `workspace_id`
+- No callback, chamar `queryClient.invalidateQueries({ queryKey: ['conversations'] })` para refrescar a lista
+- Limpar canal no cleanup do useEffect
+- Seguir o mesmo padrao ja usado em `useMessages.ts`, `useCrmActivities.ts`, etc.
 
-**Edge Functions -- Fluxo OAuth WhatsApp:**
-1. Frontend chama `whatsapp-auth-url` com workspaceId + userId
-2. Redireciona para `facebook.com/v18.0/dialog/oauth` com scope WhatsApp
-3. Meta redireciona para `whatsapp-oauth-callback`
-4. Callback troca code por token, busca WABA e Phone Number via Graph API
-5. Guarda na tabela e redireciona de volta ao settings
+**Ficheiro**: `src/components/inbox/ConversationList.tsx`
+- Adicionar subscricao realtime na tabela `messages` (sem filtro de conversation_id) para captar qualquer nova mensagem no workspace
+- Ao receber nova mensagem, invalidar queries de conversations para atualizar previews e contadores
 
-**Edge Function -- Webhook WhatsApp:**
-- Verificacao GET (hub.verify_token)
-- POST: processa mensagens inbound, cria conversas e mensagens (mesmo padrao do `instagram-webhook`)
+**Ficheiro**: `src/components/inbox/InboxSidebar.tsx`
+- As contagens ja dependem de `useConversations`, portanto atualizam automaticamente com o realtime
 
-**Edge Function -- Send WhatsApp:**
-- Recebe conversationId + message
-- Busca conexao activa do workspace
-- Envia via `graph.facebook.com/v18.0/{phone_number_id}/messages`
-- Guarda mensagem outbound na BD
-
-**Componente `WhatsAppConnectionCard`:**
-- Mesmo layout do `InstagramConnectionCard`
-- Mostra numero conectado, estado do token
-- Botoes Conectar / Reconectar / Desconectar
-
-**Hook `useWhatsAppConnection`:**
-- Query para buscar conexao activa
-- Mutation para desconectar
-
-**Ficheiros a criar:**
-- `supabase/functions/whatsapp-auth-url/index.ts`
-- `supabase/functions/whatsapp-oauth-callback/index.ts`
-- `supabase/functions/whatsapp-webhook/index.ts`
-- `supabase/functions/whatsapp-send-message/index.ts`
-- `src/components/integrations/WhatsAppConnectionCard.tsx`
-- `src/hooks/useWhatsAppConnection.ts`
-
-**Ficheiros a modificar:**
-- `src/components/settings/sections/ChannelsSettings.tsx` -- substituir badge "Em breve" pelo `WhatsAppConnectionCard`, ajustar logica GHL
-- Migracao SQL para criar tabela `whatsapp_connections`
+Nao e necessaria nenhuma migracao de base de dados -- o realtime ja esta ativado para ambas as tabelas.
