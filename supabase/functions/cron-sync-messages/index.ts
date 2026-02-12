@@ -144,13 +144,17 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
 
       const { data: existingConvs } = await supabase
         .from("conversations")
-        .select("id, external_thread_id")
+        .select("id, external_thread_id, lead_id, channel")
         .eq("workspace_id", workspace_id)
         .not("external_thread_id", "is", null);
 
       const convsByThreadId = new Map<string, string>();
+      const convsByLeadChannel = new Map<string, string>();
       for (const conv of existingConvs || []) {
         if (conv.external_thread_id) convsByThreadId.set(conv.external_thread_id, conv.id);
+        if (conv.lead_id && conv.channel) {
+          convsByLeadChannel.set(`${conv.lead_id}:${conv.channel}`, conv.id);
+        }
       }
 
       let messagesCreated = 0;
@@ -160,11 +164,15 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
         if (Date.now() - iterationStart > 4500) break;
 
         const ghlConvId = ghlConv.id;
-        let conversationId = convsByThreadId.get(ghlConvId);
         let channel = resolveChannel(ghlConv.type);
         const leadId = leadsByGhlId.get(ghlConv.contactId);
 
         if (!leadId) continue;
+
+        // Deduplicate: check by thread_id (with/without ghl_ prefix) then by lead+channel
+        let conversationId = convsByThreadId.get(ghlConvId)
+          || convsByThreadId.get(`ghl_${ghlConvId}`)
+          || convsByLeadChannel.get(`${leadId}:${channel}`);
 
         if (!conversationId) {
           const { data: newConv, error: convErr } = await supabase
@@ -197,6 +205,7 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
             conversationId = newConv?.id;
             conversationsCreated++;
             convsByThreadId.set(ghlConvId, conversationId!);
+            convsByLeadChannel.set(`${leadId}:${channel}`, conversationId!);
           }
         }
 
