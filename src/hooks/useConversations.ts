@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Lead } from "./useLeads";
 
 export type ConversationChannel = "whatsapp" | "email" | "sms" | "webchat" | "instagram" | "facebook" | "messenger" | "live_chat" | "web_widget" | "phone" | "other";
@@ -75,6 +77,32 @@ export interface ConversationFilters {
 export function useConversations(filters?: ConversationFilters) {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
+  const queryClient = useQueryClient();
+
+  // Realtime subscription for conversations table
+  useEffect(() => {
+    if (!currentWorkspace?.id) return;
+
+    const channel = supabase
+      .channel(`conversations-realtime-${currentWorkspace.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `workspace_id=eq.${currentWorkspace.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentWorkspace?.id, queryClient]);
 
   return useQuery({
     queryKey: ["conversations", currentWorkspace?.id, filters],

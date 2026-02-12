@@ -1,6 +1,9 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useConversations, useDeleteConversations, useUpdateConversationPriority, ConversationChannel, ConversationStatus, Conversation } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Building2, Pencil, DollarSign, User, Briefcase } from "lucide-react";
@@ -254,6 +257,44 @@ export function ConversationList({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
+  const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
+  const lastMessageCountRef = useRef<number | null>(null);
+
+  // Realtime subscription for messages table (workspace-wide)
+  useEffect(() => {
+    if (!currentWorkspace?.id) return;
+
+    const channel = supabase
+      .channel(`messages-realtime-${currentWorkspace.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `workspace_id=eq.${currentWorkspace.id}`,
+        },
+        (payload) => {
+          // Invalidate conversations to update previews and counters
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          
+          // Show toast for inbound messages
+          const newMsg = payload.new as any;
+          if (newMsg?.direction === 'inbound') {
+            toast.success("Nova mensagem recebida", {
+              description: newMsg.content?.substring(0, 80) || "Nova mensagem",
+              duration: 4000,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentWorkspace?.id, queryClient]);
 
   // Sync with external channel filter from sidebar
   useEffect(() => {
