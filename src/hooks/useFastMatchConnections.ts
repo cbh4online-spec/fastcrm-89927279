@@ -53,7 +53,8 @@ export function useUnlockConnection() {
     mutationFn: async ({ otherProfileId, quotaSource }: { otherProfileId: string; quotaSource: string }) => {
       if (!profile || !currentWorkspace) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      // 1. Insert connection
+      const { data: connection, error } = await supabase
         .from("fastmatch_connections")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -66,11 +67,142 @@ export function useUnlockConnection() {
         .single();
 
       if (error) throw error;
-      return data as FastMatchConnection;
+
+      // 2. Fetch other profile for CRM auto-create
+      const { data: otherProfile } = await supabase
+        .from("fastmatch_profiles")
+        .select("*")
+        .eq("id", otherProfileId)
+        .single();
+
+      if (!otherProfile) return connection as FastMatchConnection;
+
+      const companyName = (otherProfile as any).company_name || "Empresa FastMatch";
+      const industry = (otherProfile as any).industry || null;
+
+      try {
+        // 3. Find or create company
+        let companyId: string | null = null;
+        const { data: existingCompany } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("workspace_id", currentWorkspace.id)
+          .eq("name", companyName)
+          .maybeSingle();
+
+        if (existingCompany) {
+          companyId = existingCompany.id;
+        } else {
+          const { data: newCompany } = await supabase
+            .from("companies")
+            .insert({
+              workspace_id: currentWorkspace.id,
+              created_by: profile.user_id,
+              name: companyName,
+              industry,
+              source: "fastmatch",
+              tags: ["fastmatch"],
+            })
+            .select("id")
+            .single();
+          companyId = newCompany?.id || null;
+        }
+
+        // 4. Find or create contact
+        let contactId: string | null = null;
+        const { data: existingContact } = await supabase
+          .from("contacts")
+          .select("id")
+          .eq("workspace_id", currentWorkspace.id)
+          .eq("company_id", companyId!)
+          .eq("source", "fastmatch")
+          .maybeSingle();
+
+        if (existingContact) {
+          contactId = existingContact.id;
+        } else {
+          const { data: newContact } = await supabase
+            .from("contacts")
+            .insert({
+              workspace_id: currentWorkspace.id,
+              created_by: profile.user_id,
+              name: companyName,
+              company: companyName,
+              company_id: companyId,
+              source: "fastmatch",
+              tags: ["fastmatch"],
+            })
+            .select("id")
+            .single();
+          contactId = newContact?.id || null;
+        }
+
+        // 5. Find FastMatch pipeline & first stage
+        const { data: pipeline } = await supabase
+          .from("pipelines")
+          .select("id")
+          .eq("workspace_id", currentWorkspace.id)
+          .eq("name", "FastMatch")
+          .maybeSingle();
+
+        let stageId: string | null = null;
+        if (pipeline) {
+          const { data: firstStage } = await supabase
+            .from("pipeline_stages")
+            .select("id")
+            .eq("pipeline_id", pipeline.id)
+            .order("position", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          stageId = firstStage?.id || null;
+        }
+
+        // 6. Create opportunity
+        let opportunityId: string | null = null;
+        if (stageId) {
+          const { data: opp } = await supabase
+            .from("opportunities")
+            .insert({
+              workspace_id: currentWorkspace.id,
+              title: `FastMatch — ${companyName}`,
+              stage_id: stageId,
+              contact_id: contactId,
+              company_id: companyId,
+              source: "fastmatch",
+              status: "open",
+              owner_id: profile.user_id,
+            })
+            .select("id")
+            .single();
+          opportunityId = opp?.id || null;
+        }
+
+        // 7. Update connection with CRM IDs
+        await supabase
+          .from("fastmatch_connections")
+          .update({
+            crm_opportunity_id: opportunityId,
+            crm_contact_id: contactId,
+            crm_company_id: companyId,
+          })
+          .eq("id", (connection as any).id);
+
+        return {
+          ...(connection as any),
+          crm_opportunity_id: opportunityId,
+          crm_contact_id: contactId,
+          crm_company_id: companyId,
+        } as FastMatchConnection;
+      } catch (crmError) {
+        console.error("CRM auto-create failed:", crmError);
+        // Return connection even if CRM creation fails
+        return connection as FastMatchConnection;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-connections"] });
       queryClient.invalidateQueries({ queryKey: ["fastmatch-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["fastmatch-discovery"] });
       toast.success("Conexão desbloqueada com sucesso!");
     },
     onError: () => {
