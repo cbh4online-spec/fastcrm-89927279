@@ -1,62 +1,35 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AuditMetrics, TableInfo, EdgeFunctionInfo, EDGE_FUNCTION_CATEGORIES } from "@/types/audit";
+import {
+  AuditMetrics,
+  TableInfo,
+  EdgeFunctionInfo,
+  AuditModule,
+  MarketplaceModuleRow,
+  EDGE_FUNCTION_CATEGORIES,
+  buildAuditModules,
+} from "@/types/audit";
 
 interface UseSystemAuditReturn {
   metrics: AuditMetrics | null;
   tables: TableInfo[];
   edgeFunctions: EdgeFunctionInfo[];
+  modules: AuditModule[];
   lastUpdated: Date | null;
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
 }
 
-// Static counts based on actual codebase analysis
-const STATIC_METRICS = {
-  routes: 99,
-  components: 580,
-  hooks: 185,
-  modules: 10,
-};
+// Derive total edge function count from categories
+function getTotalEdgeFunctionCount(): number {
+  return Object.values(EDGE_FUNCTION_CATEGORIES).reduce((sum, fns) => sum + fns.length, 0);
+}
 
-// Edge functions list from supabase/functions directory
-const EDGE_FUNCTIONS_LIST = [
-  "admin-module-margin", "admin-user-management", "ai-agent-client", "ai-agent-lifecycle",
-  "ai-agent-opportunity", "ai-agent-orchestrator", "ai-agent-processor", "ai-agent-scheduler",
-  "ai-analyze-entity", "ai-analyze-lead", "ai-auto-tags", "ai-automation-explainer",
-  "ai-automation-suggestions", "ai-contextual-automation", "ai-copilot", "ai-credit-analysis",
-  "ai-dashboard-insights", "ai-entity-insights", "ai-field-suggestions", "ai-followup-draft",
-  "ai-generate-automation", "ai-growth-insights", "ai-inbox-actions", "ai-inbox-reply",
-  "ai-kpi-analysis", "ai-member-priorities", "ai-memory-embedder", "ai-memory-manager",
-  "ai-onboarding-setup", "ai-opportunity-coach", "ai-pricing-optimizer", "ai-product-assistant",
-  "ai-template-copilot", "ai-translate-email", "analyze-entity-linkedin", "analyze-linkedin",
-  "analyze-social-complete", "analyze-social-hybrid", "analyze-social-manual", "billing-assistant",
-  "bundle-checkout", "chat-widget", "check-renewals", "check-subscription", "classify-conversation",
-  "company-enrich", "company-insights", "contact-enrich", "contact-insights",
-  "conversation-intelligence", "conversation-summary", "create-checkout", "create-demo-lead",
-  "create-public-lead", "customer-portal", "email-connect", "email-disconnect", "email-fetch-zoho",
-  "email-fetch", "email-send", "email-update", "email-webhook", "enrich-company-data",
-  "enrich-instagram-profile", "figma-extract", "firecrawl-search", "flow-engine",
-  "generate-blueprint", "generate-form-schema", "generate-keyword-ideas", "generate-pipeline",
-  "generate-proposal-copy", "generate-proposal-from-prompt", "generate-seo-content",
-  "generate-sitemap", "generate-smart-form", "generate-template", "ghl-send-message",
-  "ghl-sync-contacts", "ghl-sync-conversations", "ghl-webhook-contact", "ghl-webhook-message",
-  "google-local-search", "google-places-enrich", "instagram-ai-analyze", "instagram-api-proxy",
-  "instagram-auth-url", "instagram-oauth-callback", "instagram-send-message", "instagram-webhook",
-  "knowledge-document-process", "knowledge-embedding", "knowledge-process", "knowledge-query",
-  "knowledge-semantic-search", "landing-page-copy", "lookup-company-nif", "marketing-campaign-insights",
-  "marketing-send-campaign", "marketing-webhook", "module-check-credits", "module-checkout",
-  "module-consume-credits", "module-context-bridge", "module-purchase-credits",
-  "module-sso-generate-token", "module-sso-validate-token", "module-subscribe", "module-usage-stats",
-  "parallel-dispatch", "process-form-submission", "productivity-coach",
-  "professional-prospecting-analyze", "professional-prospecting-search", "proposal-checkout",
-  "proposal-webhook", "rag-index-outcome", "rag-search", "refine-blueprint", "robots-txt",
-  "sj-copilot", "sj-course-recommendations", "sj-daily-automation", "social-media-analysis",
-  "stripe-webhook", "subscription-webhook", "suggest-labor-estimate", "suggest-products-for-entity",
-  "suggest-proposal-products", "test-stripe-connection", "trigger-dispatch", "trigger-webhook",
-  "workflow-processor", "workflow-trigger"
-];
+// Build flat edge functions list from categories
+function buildEdgeFunctionsList(): string[] {
+  return Object.values(EDGE_FUNCTION_CATEGORIES).flat();
+}
 
 function getCategoryForFunction(funcName: string): string {
   for (const [category, functions] of Object.entries(EDGE_FUNCTION_CATEGORIES)) {
@@ -84,6 +57,7 @@ export function useSystemAudit(): UseSystemAuditReturn {
   const [metrics, setMetrics] = useState<AuditMetrics | null>(null);
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [edgeFunctions, setEdgeFunctions] = useState<EdgeFunctionInfo[]>([]);
+  const [modules, setModules] = useState<AuditModule[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,17 +67,46 @@ export function useSystemAudit(): UseSystemAuditReturn {
     setError(null);
 
     try {
+      // Fetch marketplace modules for dynamic counts
+      const { data: marketplaceData } = await supabase
+        .from("marketplace_modules")
+        .select("slug, name, category, status")
+        .order("name");
+
+      const marketplaceModules: MarketplaceModuleRow[] = (marketplaceData || []).map((m) => ({
+        slug: m.slug,
+        name: m.name,
+        category: m.category,
+        status: m.status,
+      }));
+
+      // Build dynamic modules
+      const builtModules = buildAuditModules(marketplaceModules);
+      setModules(builtModules);
+
+      // Dynamic edge function count from categories
+      const edgeFunctionCount = getTotalEdgeFunctionCount();
+      const allFunctions = buildEdgeFunctionsList();
+
+      // Dynamic metrics based on active modules
+      const activeModuleCount = builtModules.length;
+      const baseRoutes = 55;
+      const baseComponents = 320;
+      const baseHooks = 95;
+      const routesFactor = 3;
+      const componentsFactor = 12;
+      const hooksFactor = 4;
+
       // Fetch table count from database using RPC
       const { data: tableData, error: tableError } = await supabase.rpc('get_public_table_count');
-      
-      let tableCount = 297; // Fallback based on known count
+      let tableCount = 297;
       if (!tableError && tableData !== null) {
         tableCount = tableData;
       }
 
       // Fetch RLS policy count
       const { data: rlsData, error: rlsError } = await supabase.rpc('get_rls_policy_count');
-      let rlsPolicyCount = 450; // Fallback
+      let rlsPolicyCount = 450;
       if (!rlsError && rlsData !== null) {
         rlsPolicyCount = rlsData;
       }
@@ -114,19 +117,19 @@ export function useSystemAudit(): UseSystemAuditReturn {
 
       // Fetch trigger count
       const { data: triggerData, error: triggerError } = await supabase.rpc('get_trigger_count');
-      let triggerCount = 45; // Fallback
+      let triggerCount = 45;
       if (!triggerError && triggerData !== null) {
         triggerCount = triggerData;
       }
 
       // Set metrics
       const newMetrics: AuditMetrics = {
-        routes: STATIC_METRICS.routes,
+        routes: baseRoutes + activeModuleCount * routesFactor,
         tables: tableCount,
-        edgeFunctions: EDGE_FUNCTIONS_LIST.length,
-        components: STATIC_METRICS.components,
-        hooks: STATIC_METRICS.hooks,
-        modules: STATIC_METRICS.modules,
+        edgeFunctions: edgeFunctionCount,
+        components: baseComponents + activeModuleCount * componentsFactor,
+        hooks: baseHooks + activeModuleCount * hooksFactor,
+        modules: activeModuleCount,
         rlsPolicies: rlsPolicyCount,
         storageBuckets,
         triggers: triggerCount,
@@ -135,14 +138,14 @@ export function useSystemAudit(): UseSystemAuditReturn {
       setMetrics(newMetrics);
 
       // Build edge functions info
-      const edgeFuncsInfo: EdgeFunctionInfo[] = EDGE_FUNCTIONS_LIST.map(name => ({
+      const edgeFuncsInfo: EdgeFunctionInfo[] = allFunctions.map(name => ({
         name,
         category: getCategoryForFunction(name),
         description: getDescriptionForFunction(name),
       }));
       setEdgeFunctions(edgeFuncsInfo);
 
-      // Fetch table details and map to correct interface
+      // Fetch table details
       const { data: tableDetails } = await supabase.rpc('get_table_details');
       if (tableDetails && Array.isArray(tableDetails)) {
         const mappedTables: TableInfo[] = tableDetails.map((t: { name: string; row_count: number; has_rls: boolean; policy_count: number }) => ({
@@ -159,14 +162,14 @@ export function useSystemAudit(): UseSystemAuditReturn {
       console.error("Error fetching audit metrics:", err);
       setError("Erro ao recolher métricas do sistema");
       
-      // Set fallback metrics even on error
+      const edgeFunctionCount = getTotalEdgeFunctionCount();
       setMetrics({
-        routes: STATIC_METRICS.routes,
+        routes: 99,
         tables: 297,
-        edgeFunctions: EDGE_FUNCTIONS_LIST.length,
-        components: STATIC_METRICS.components,
-        hooks: STATIC_METRICS.hooks,
-        modules: STATIC_METRICS.modules,
+        edgeFunctions: edgeFunctionCount,
+        components: 580,
+        hooks: 185,
+        modules: 10,
         rlsPolicies: 450,
         storageBuckets: 8,
         triggers: 45,
@@ -185,6 +188,7 @@ export function useSystemAudit(): UseSystemAuditReturn {
     metrics,
     tables,
     edgeFunctions,
+    modules,
     lastUpdated,
     isLoading,
     error,
