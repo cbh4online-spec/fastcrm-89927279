@@ -21,7 +21,7 @@ export function LandingStickyHeader() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/fastcrm" className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <Zap className="h-4 w-4 text-primary-foreground" />
           </div>

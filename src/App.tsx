@@ -323,7 +323,7 @@ function CRMRoutes() {
                 <Route path="/cookies" element={<CookiePolicyPage />} />
                 
                 {/* Main Routes */}
-                <Route path="/" element={<MarketingHomepage />} />
+                <Route path="/" element={<FastCRMLanding />} />
                 <Route path="/fastcrm" element={<FastCRMLanding />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
