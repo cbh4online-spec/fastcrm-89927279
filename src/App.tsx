@@ -52,6 +52,7 @@ import AIAssistants from "./pages/AIAssistants";
 import ConversationalEngine from "./pages/ConversationalEngine";
 import MarketingHomepage from "./pages/MarketingHomepage";
 import FastCRMLanding from "./pages/FastCRMLanding";
+import ProposalView from "./pages/ProposalView";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
 
 // Client Portal
@@ -325,6 +326,7 @@ function CRMRoutes() {
                 {/* Main Routes */}
                 <Route path="/" element={<FastCRMLanding />} />
                 <Route path="/fastcrm" element={<FastCRMLanding />} />
+                <Route path="/proposal/:id" element={<ProposalView />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/auth" element={<Auth />} />

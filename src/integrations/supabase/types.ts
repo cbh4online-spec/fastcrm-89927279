@@ -8956,6 +8956,154 @@ export type Database = {
           },
         ]
       }
+      fastcrm_proposals: {
+        Row: {
+          addons_total: number
+          ai_pack_label: string | null
+          ai_pack_price: number
+          ai_usage_level: string
+          company_name: string
+          contact_name: string
+          contacts_adjustment: number
+          contacts_count: number
+          created_at: string
+          email: string
+          email_sent_at: string | null
+          id: string
+          integrations_required: string | null
+          lead_id: string | null
+          monthly_total: number
+          needs_ai_sales_coach: boolean
+          needs_api: boolean
+          needs_client_portal: boolean
+          needs_ecommerce: boolean
+          needs_instagram: boolean
+          needs_knowledge_base: boolean
+          needs_whatsapp: boolean
+          opportunity_id: string | null
+          phone: string | null
+          plan_base_price: number
+          proposal_html: string | null
+          proposal_pdf_url: string | null
+          recommended_plan: string
+          sector: string | null
+          setup_fee: number
+          setup_fee_label: string | null
+          status: string
+          updated_at: string
+          users_adjustment: number
+          users_count: number
+          valid_until: string | null
+          workspace_id: string
+          workspaces_adjustment: number
+          workspaces_count: number
+        }
+        Insert: {
+          addons_total?: number
+          ai_pack_label?: string | null
+          ai_pack_price?: number
+          ai_usage_level?: string
+          company_name: string
+          contact_name: string
+          contacts_adjustment?: number
+          contacts_count?: number
+          created_at?: string
+          email: string
+          email_sent_at?: string | null
+          id?: string
+          integrations_required?: string | null
+          lead_id?: string | null
+          monthly_total?: number
+          needs_ai_sales_coach?: boolean
+          needs_api?: boolean
+          needs_client_portal?: boolean
+          needs_ecommerce?: boolean
+          needs_instagram?: boolean
+          needs_knowledge_base?: boolean
+          needs_whatsapp?: boolean
+          opportunity_id?: string | null
+          phone?: string | null
+          plan_base_price?: number
+          proposal_html?: string | null
+          proposal_pdf_url?: string | null
+          recommended_plan?: string
+          sector?: string | null
+          setup_fee?: number
+          setup_fee_label?: string | null
+          status?: string
+          updated_at?: string
+          users_adjustment?: number
+          users_count?: number
+          valid_until?: string | null
+          workspace_id: string
+          workspaces_adjustment?: number
+          workspaces_count?: number
+        }
+        Update: {
+          addons_total?: number
+          ai_pack_label?: string | null
+          ai_pack_price?: number
+          ai_usage_level?: string
+          company_name?: string
+          contact_name?: string
+          contacts_adjustment?: number
+          contacts_count?: number
+          created_at?: string
+          email?: string
+          email_sent_at?: string | null
+          id?: string
+          integrations_required?: string | null
+          lead_id?: string | null
+          monthly_total?: number
+          needs_ai_sales_coach?: boolean
+          needs_api?: boolean
+          needs_client_portal?: boolean
+          needs_ecommerce?: boolean
+          needs_instagram?: boolean
+          needs_knowledge_base?: boolean
+          needs_whatsapp?: boolean
+          opportunity_id?: string | null
+          phone?: string | null
+          plan_base_price?: number
+          proposal_html?: string | null
+          proposal_pdf_url?: string | null
+          recommended_plan?: string
+          sector?: string | null
+          setup_fee?: number
+          setup_fee_label?: string | null
+          status?: string
+          updated_at?: string
+          users_adjustment?: number
+          users_count?: number
+          valid_until?: string | null
+          workspace_id?: string
+          workspaces_adjustment?: number
+          workspaces_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fastcrm_proposals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastcrm_proposals_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastcrm_proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fastmatch_connections: {
         Row: {
           created_at: string

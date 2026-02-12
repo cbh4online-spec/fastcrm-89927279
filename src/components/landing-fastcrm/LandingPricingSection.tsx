@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   AlertTriangle, Check, Crown, Building2, Rocket, Zap,
@@ -6,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { QualificationModal } from "./QualificationModal";
 
 const painPoints = [
   "Leads perdidos por falta de acompanhamento",
@@ -117,8 +119,17 @@ const strategicReasons = [
 ];
 
 export function LandingPricingSection() {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string | undefined>();
+
+  const openQualification = (planKey: string) => {
+    setSelectedPlan(planKey);
+    setModalOpen(true);
+  };
+
   return (
     <section id="pricing" className="py-24 md:py-32 relative">
+      <QualificationModal open={modalOpen} onClose={() => setModalOpen(false)} prefilledPlan={selectedPlan} />
       {/* Pre-Anchor */}
       <div className="max-w-4xl mx-auto px-6 mb-20">
         <motion.div
@@ -234,9 +245,20 @@ export function LandingPricingSection() {
                 </div>
 
                 {/* CTA */}
-                <Link to={plan.ctaLink} className="w-full">
+                {plan.name === "Free" ? (
+                  <Link to="/auth" className="w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full border-[hsl(210,40%,98%)/0.15] text-[hsl(210,40%,98%)] hover:bg-[hsl(210,40%,98%)/0.05]"
+                    >
+                      {plan.cta}
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </Link>
+                ) : (
                   <Button
                     variant={plan.ctaVariant}
+                    onClick={() => openQualification(plan.name.toLowerCase())}
                     className={`w-full ${
                       plan.highlighted
                         ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary)/0.9)]"
@@ -246,7 +268,7 @@ export function LandingPricingSection() {
                     {plan.cta}
                     <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
-                </Link>
+                )}
 
                 {plan.note && (
                   <p className="text-[10px] text-[hsl(210,40%,98%)/0.35] mt-3 text-center">{plan.note}</p>
