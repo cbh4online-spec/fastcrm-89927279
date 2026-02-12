@@ -24,11 +24,11 @@ export default function EficienciaPage() {
       subtitle="Fazer mais com menos — IA aplicada, templates e processos otimizados."
       zoneBadge="Método PARE"
       breadcrumbs={[
-        { label: "FastClub", href: "/dashboard/fastclub" },
-        { label: "Método PARE", href: "/dashboard/fastclub/metodo-pare" },
+        { label: "FastClub", href: "/club/fastclub" },
+        { label: "Método PARE", href: "/club/fastclub/metodo-pare" },
         { label: "Eficiência" },
       ]}
-      backPath="/dashboard/fastclub/metodo-pare"
+      backPath="/club/fastclub/metodo-pare"
       ctaLabel="Abrir FastCRM"
       ctaPath="/dashboard/productivity"
       gradient="from-violet-500 to-purple-400"

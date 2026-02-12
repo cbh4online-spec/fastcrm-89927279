@@ -18,21 +18,21 @@ const subchannels = [
     title: "Demonstrações",
     description: "Vídeos e demos interativos das funcionalidades do FastCRM.",
     icon: Play,
-    href: "/dashboard/fastclub/demos/demonstracoes",
+    href: "/club/fastclub/demos/demonstracoes",
     color: "from-blue-600 to-blue-400",
   },
   {
     title: "Casos Práticos",
     description: "Resultados reais de empresas que utilizam o FastCRM.",
     icon: Briefcase,
-    href: "/dashboard/fastclub/demos/casos-praticos",
+    href: "/club/fastclub/demos/casos-praticos",
     color: "from-emerald-500 to-green-400",
   },
   {
     title: "Roadmap e Atualizações",
     description: "Evolução contínua do ecossistema FastCRM.",
     icon: TrendingUp,
-    href: "/dashboard/fastclub/demos/roadmap",
+    href: "/club/fastclub/demos/roadmap",
     color: "from-violet-500 to-purple-400",
   },
 ];
@@ -48,7 +48,7 @@ export default function DemosPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/dashboard/fastclub")}
+            onClick={() => navigate("/club/fastclub")}
             className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 mb-4"
           >
             <ArrowLeft className="h-5 w-5" />

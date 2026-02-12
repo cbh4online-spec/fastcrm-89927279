@@ -27,11 +27,11 @@ export default function RoadmapPage() {
       subtitle="Evolução contínua do ecossistema FastCRM."
       zoneBadge="FastCRM em Ação"
       breadcrumbs={[
-        { label: "FastClub", href: "/dashboard/fastclub" },
-        { label: "FastCRM em Ação", href: "/dashboard/fastclub/demos" },
+        { label: "FastClub", href: "/club/fastclub" },
+        { label: "FastCRM em Ação", href: "/club/fastclub/demos" },
         { label: "Roadmap" },
       ]}
-      backPath="/dashboard/fastclub/demos"
+      backPath="/club/fastclub/demos"
     >
       <div className="space-y-4">
         {roadmapItems.map((item, i) => {

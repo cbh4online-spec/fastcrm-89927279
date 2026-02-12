@@ -24,11 +24,11 @@ export default function ResultadosParePage() {
       subtitle="Medir o que importa — dashboards, KPIs e relatórios de impacto comercial."
       zoneBadge="Método PARE"
       breadcrumbs={[
-        { label: "FastClub", href: "/dashboard/fastclub" },
-        { label: "Método PARE", href: "/dashboard/fastclub/metodo-pare" },
+        { label: "FastClub", href: "/club/fastclub" },
+        { label: "Método PARE", href: "/club/fastclub/metodo-pare" },
         { label: "Resultados" },
       ]}
-      backPath="/dashboard/fastclub/metodo-pare"
+      backPath="/club/fastclub/metodo-pare"
       ctaLabel="Abrir FastCRM"
       ctaPath="/dashboard/reports"
       gradient="from-emerald-500 to-green-400"

@@ -30,11 +30,11 @@ export default function CasosPraticosPage() {
       subtitle="Resultados reais de empresas que utilizam o FastCRM."
       zoneBadge="FastCRM em Ação"
       breadcrumbs={[
-        { label: "FastClub", href: "/dashboard/fastclub" },
-        { label: "FastCRM em Ação", href: "/dashboard/fastclub/demos" },
+        { label: "FastClub", href: "/club/fastclub" },
+        { label: "FastCRM em Ação", href: "/club/fastclub/demos" },
         { label: "Casos Práticos" },
       ]}
-      backPath="/dashboard/fastclub/demos"
+      backPath="/club/fastclub/demos"
       ctaLabel="Abrir FastCRM"
       ctaPath="/dashboard"
     >

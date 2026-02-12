@@ -24,11 +24,11 @@ export default function AutomacaoPage() {
       subtitle="Eliminar tarefas repetitivas — follow-ups, movimentação de leads e notificações automáticas."
       zoneBadge="Método PARE"
       breadcrumbs={[
-        { label: "FastClub", href: "/dashboard/fastclub" },
-        { label: "Método PARE", href: "/dashboard/fastclub/metodo-pare" },
+        { label: "FastClub", href: "/club/fastclub" },
+        { label: "Método PARE", href: "/club/fastclub/metodo-pare" },
         { label: "Automação" },
       ]}
-      backPath="/dashboard/fastclub/metodo-pare"
+      backPath="/club/fastclub/metodo-pare"
       ctaLabel="Abrir FastCRM"
       ctaPath="/dashboard/automations"
       gradient="from-amber-500 to-orange-400"

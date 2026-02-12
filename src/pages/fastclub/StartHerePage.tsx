@@ -59,7 +59,7 @@ export default function StartHerePage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/dashboard/fastclub")}
+            onClick={() => navigate("/club/fastclub")}
             className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 mb-4"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -134,13 +134,13 @@ export default function StartHerePage() {
             Explore o Método PARE ou veja o FastCRM em ação com demonstrações práticas.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Button onClick={() => navigate("/dashboard/fastclub/metodo-pare")} className="gap-2">
+            <Button onClick={() => navigate("/club/fastclub/metodo-pare")} className="gap-2">
               Método PARE <ArrowRight className="w-4 h-4" />
             </Button>
-            <Button variant="outline" onClick={() => navigate("/dashboard/fastclub/demos")} className="gap-2">
+            <Button variant="outline" onClick={() => navigate("/club/fastclub/demos")} className="gap-2">
               FastCRM em Ação <ArrowRight className="w-4 h-4" />
             </Button>
-            <Button variant="outline" onClick={() => navigate("/dashboard/fastclub/desafio-7-dias")} className="gap-2">
+            <Button variant="outline" onClick={() => navigate("/club/fastclub/desafio-7-dias")} className="gap-2">
               Iniciar Desafio 7 Dias <ArrowRight className="w-4 h-4" />
             </Button>
           </div>

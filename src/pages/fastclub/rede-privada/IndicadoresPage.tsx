@@ -10,11 +10,11 @@ export default function IndicadoresPage() {
       subtitle="Dados agregados sobre a rede de conexões: membros, oportunidades e tendências."
       zoneBadge="Rede Privada"
       breadcrumbs={[
-        { label: "FastClub", href: "/dashboard/fastclub" },
-        { label: "Rede Privada", href: "/dashboard/fastclub/rede-privada" },
+        { label: "FastClub", href: "/club/fastclub" },
+        { label: "Rede Privada", href: "/club/fastclub/rede-privada" },
         { label: "Indicadores" },
       ]}
-      backPath="/dashboard/fastclub/rede-privada"
+      backPath="/club/fastclub/rede-privada"
       ctaLabel="Abrir FastMatch no CRM"
       ctaPath="/dashboard/fastmatch"
     >

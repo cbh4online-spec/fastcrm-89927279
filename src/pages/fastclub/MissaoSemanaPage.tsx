@@ -70,7 +70,7 @@ export default function MissaoSemanaPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/dashboard/fastclub")}
+            onClick={() => navigate("/club/fastclub")}
             className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 mb-4"
           >
             <ArrowLeft className="h-5 w-5" />
