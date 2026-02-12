@@ -20,7 +20,8 @@ import { DraggableChannelList } from "@/components/community/DraggableChannelLis
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, MessageSquare, Plus, Search, Clock, TrendingUp,
-  MessageCircle, Sparkles, Hash, Loader2, X, Pencil
+  MessageCircle, Sparkles, Hash, Loader2, X, Pencil, Lock, Eye,
+  Users, ArrowUpRight, Zap
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -330,20 +331,109 @@ export default function ForumPage() {
               showAllButton
             />
 
-            {/* Active channel banner */}
-            <AnimatePresence>
+            {/* Immersive channel banner */}
+            <AnimatePresence mode="wait">
               {selectedCategoryData && (
                 <motion.div
-                  initial={{ opacity: 0, y: -8 }}
+                  key={selectedCategoryData.id}
+                  initial={{ opacity: 0, y: -12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/5 border border-primary/10"
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="rounded-2xl border p-5 bg-gradient-to-r from-primary/8 via-primary/4 to-transparent"
                 >
-                  <Hash className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-sm">{selectedCategoryData.icon} {selectedCategoryData.name}</span>
-                  {selectedCategoryData.description && (
-                    <span className="text-xs text-muted-foreground ml-2">{selectedCategoryData.description}</span>
-                  )}
+                  <div className="flex items-center gap-4">
+                    <motion.span
+                      initial={{ scale: 0, rotate: -20 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.1 }}
+                      className="text-4xl"
+                    >
+                      {selectedCategoryData.icon || "💬"}
+                    </motion.span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="font-bold text-lg text-foreground">{selectedCategoryData.name}</h2>
+                        {(selectedCategoryData as any).is_private && (
+                          <Badge variant="outline" className="text-[10px] gap-0.5 border-primary/30 text-primary">
+                            <Lock className="h-2.5 w-2.5" /> Privado
+                          </Badge>
+                        )}
+                        {(selectedCategoryData as any).is_read_only && (
+                          <Badge variant="outline" className="text-[10px] gap-0.5">
+                            <Eye className="h-2.5 w-2.5" /> Leitura
+                          </Badge>
+                        )}
+                        {(selectedCategoryData as any).is_paid && (
+                          <Badge className="text-[10px] gap-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20" variant="outline">
+                            <Zap className="h-2.5 w-2.5" /> Premium
+                          </Badge>
+                        )}
+                      </div>
+                      {selectedCategoryData.description && (
+                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">{selectedCategoryData.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="text-center">
+                        <p className="text-xl font-bold text-foreground">{filteredTopics.length}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">tópicos</p>
+                      </div>
+                      {user && (
+                        <Button
+                          size="sm"
+                          className="rounded-full gap-1.5"
+                          onClick={() => {
+                            setNewCategoryId(selectedCategory || "");
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Novo Tópico
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Activity bar */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex items-center gap-4 mt-3 pt-3 border-t border-border/40 text-xs text-muted-foreground"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" />
+                      {members.length} membros
+                    </span>
+                    {filteredTopics.length > 0 && (
+                      <>
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5" />
+                          Última publicação {(() => {
+                            const latest = filteredTopics[0];
+                            const diff = Date.now() - new Date(latest.updated_at).getTime();
+                            const mins = Math.floor(diff / 60000);
+                            if (mins < 60) return `há ${mins}m`;
+                            const hrs = Math.floor(mins / 60);
+                            if (hrs < 24) return `há ${hrs}h`;
+                            return `há ${Math.floor(hrs / 24)}d`;
+                          })()}
+                        </span>
+                        {(() => {
+                          const recentCount = filteredTopics.filter(t =>
+                            Date.now() - new Date(t.created_at).getTime() < 7 * 24 * 60 * 60 * 1000
+                          ).length;
+                          if (recentCount >= 3) return (
+                            <span className="flex items-center gap-1 text-primary font-medium">
+                              <ArrowUpRight className="h-3.5 w-3.5" />
+                              Em tendência
+                            </span>
+                          );
+                          return null;
+                        })()}
+                      </>
+                    )}
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -354,28 +444,97 @@ export default function ForumPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : filteredTopics.length === 0 ? (
-              <div className="text-center py-16 text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>{searchQuery ? "Nenhum resultado encontrado." : "Nenhum tópico ainda. Sê o primeiro!"}</p>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", bounce: 0.3 }}
+                className="text-center py-16"
+              >
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                >
+                  <MessageSquare className="h-16 w-16 mx-auto text-primary/30" />
+                </motion.div>
+                <h3 className="font-semibold text-foreground mt-4 text-lg">
+                  {searchQuery
+                    ? "Nenhum resultado encontrado."
+                    : selectedCategoryData
+                      ? `Sê o primeiro a publicar em ${selectedCategoryData.name}!`
+                      : "Nenhum tópico ainda. Sê o primeiro!"}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
+                  {searchQuery
+                    ? "Tenta pesquisar por outros termos."
+                    : "Partilha uma ideia, dúvida ou experiência com a comunidade."}
+                </p>
+                {!searchQuery && user && (
+                  <>
+                    <Button
+                      className="rounded-full gap-1.5"
+                      onClick={() => {
+                        setNewCategoryId(selectedCategory || "");
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4" /> Criar primeiro tópico
+                    </Button>
+                    {selectedCategoryData && (
+                      <div className="flex flex-wrap justify-center gap-2 mt-4">
+                        {[
+                          `Dicas sobre ${selectedCategoryData.name}`,
+                          `Dúvida sobre ${selectedCategoryData.name}`,
+                          `Experiência com ${selectedCategoryData.name}`,
+                        ].map((suggestion, i) => (
+                          <motion.button
+                            key={i}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 + i * 0.1 }}
+                            onClick={() => {
+                              setNewTitle(suggestion);
+                              setNewCategoryId(selectedCategory || "");
+                              setDialogOpen(true);
+                            }}
+                            className="text-xs bg-muted hover:bg-primary/10 text-muted-foreground hover:text-primary px-3 py-1.5 rounded-full transition-colors"
+                          >
+                            💡 {suggestion}
+                          </motion.button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </motion.div>
             ) : (
-              <div className="space-y-3">
-                {filteredTopics.map((topic, i) => (
-                  <motion.div
-                    key={topic.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04, duration: 0.3 }}
-                  >
-                    <SocialPostCard
-                      topic={topic}
-                      categoryName={topic.category_id ? categoryMap[topic.category_id]?.name : undefined}
-                      categoryIcon={topic.category_id ? categoryMap[topic.category_id]?.icon ?? undefined : undefined}
-                      onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={selectedCategory || "all"}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="space-y-3"
+                >
+                  {filteredTopics.map((topic, i) => (
+                    <motion.div
+                      key={topic.id}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 25 }}
+                      whileHover={{ scale: 1.008, transition: { duration: 0.2 } }}
+                      className="transition-shadow hover:shadow-md rounded-2xl"
+                    >
+                      <SocialPostCard
+                        topic={topic}
+                        categoryName={topic.category_id ? categoryMap[topic.category_id]?.name : undefined}
+                        categoryIcon={topic.category_id ? categoryMap[topic.category_id]?.icon ?? undefined : undefined}
+                        onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)}
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
             )}
           </div>
 
