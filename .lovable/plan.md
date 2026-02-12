@@ -1,58 +1,40 @@
 
 
-## Autopilot: Resposta Imediata
+## Cron Job a cada 5 segundos
 
-### Problema Atual
+### Limitacao Importante
 
-O autopilot tem um delay artificial de 5-12 segundos antes de responder, simulando um tempo de resposta "humano". Isto atrasa desnecessariamente as respostas automáticas.
+O `pg_cron` (usado na base de dados) so suporta granularidade minima de **1 minuto**. Nao e possivel agendar tarefas a cada 5 segundos com `pg_cron`.
 
-### Solução
+### Solucao: Loop interno na Edge Function
 
-Alterar os valores padrão do delay para 0 segundos e garantir que o sistema responde de imediato quando o delay está a zero.
+A abordagem e criar uma Edge Function que, quando invocada pelo cron a cada minuto, executa internamente um loop com 12 iteracoes (60s / 5s = 12), fazendo o sync a cada 5 segundos durante esse minuto.
 
-### Alterações
+### Alteracoes
 
-**1. Edge Function `ghl-webhook-message/index.ts`**
-- Mudar os defaults de `response_delay_min` e `response_delay_max` de 5/10 para 0/0
-- Saltar o `setTimeout` quando o delay calculado for 0
+**1. Modificar `supabase/functions/cron-sync-messages/index.ts`**
 
-**2. Hook `useAutopilotConfig.ts`**
-- Mudar os valores padrão de `response_delay_min: 8` e `response_delay_max: 12` para `0` e `0`
+Envolver a logica de sync existente num loop que executa 12 vezes com intervalos de 5 segundos:
 
-**3. Componente `AutopilotToggle.tsx`**
-- Ajustar a exibição para mostrar "Imediato" quando o delay for 0
-
-### Detalhes Técnicos
-
-No ficheiro `ghl-webhook-message/index.ts` (linhas 823-839):
 ```text
-// Antes:
-const delayMin = autopilotConfig.response_delay_min || 5;
-const delayMax = autopilotConfig.response_delay_max || 10;
-const delaySeconds = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
-await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
-
-// Depois:
-const delayMin = autopilotConfig.response_delay_min ?? 0;
-const delayMax = autopilotConfig.response_delay_max ?? 0;
-const delaySeconds = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
-if (delaySeconds > 0) {
-  await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+// Pseudocodigo
+for (let i = 0; i < 12; i++) {
+  await syncAllWorkspaces();  // logica existente
+  if (i < 11) {
+    await new Promise(r => setTimeout(r, 5000)); // esperar 5s
+  }
 }
 ```
 
-Nota: usar `??` em vez de `||` para que o valor `0` seja respeitado (com `||`, zero seria tratado como falsy e substituído pelo default).
+Isto garante que durante cada invocacao do cron (1x por minuto), o sync corre efetivamente a cada 5 segundos.
 
-No `useAutopilotConfig.ts`, os defaults passam a:
-```text
-response_delay_min: 0,
-response_delay_max: 0,
-```
+**2. Manter o cron job existente**
 
-No `AutopilotToggle.tsx`, a exibição do delay mostra "Imediato" quando ambos os valores são 0.
+O agendamento `pg_cron` a cada 1 minuto ja esta configurado e continua igual. A diferenca e que cada execucao agora faz 12 verificacoes internas.
 
-### Resultado
+### Consideracoes
 
-- O autopilot responde sem qualquer delay artificial
-- Utilizadores que queiram delay podem configurá-lo manualmente nas definições
-- Configurações existentes com delay personalizado continuam a funcionar normalmente
+- Edge Functions tem timeout maximo de ~60 segundos, o que se alinha com 12 iteracoes de 5 segundos
+- Se uma iteracao demorar mais que 5 segundos, o intervalo efetivo sera maior mas nao ha sobreposicao
+- O consumo de recursos sera ~12x maior que a versao atual
+
