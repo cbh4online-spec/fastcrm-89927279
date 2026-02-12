@@ -1,121 +1,103 @@
 
-# Enriquecer a experiencia dentro dos canais do forum
+
+# Enriquecer a experiencia dos canais no FastClub Hub
 
 ## Problema
 
-Quando se seleciona um canal, a experiencia e pobre: apenas um pequeno banner com o nome do canal e a lista de topicos (ou estado vazio generico). Falta animacao, contexto visual, e elementos que incentivem o engagement.
+Na pagina principal do FastClub, os canais sao simples chips sem animacao e o estado vazio e estatico. A ForumPage ja tem banner imersivo, animacoes stagger e estado vazio motivacional -- falta aplicar o mesmo nivel de qualidade aqui.
 
 ## Alteracoes
 
-### 1. Banner de canal imersivo (substituir o banner simples)
+### 1. Animacoes nos channel chips (DraggableChannelList)
 
-Quando um canal esta selecionado, mostrar um banner mais rico com:
-- Icone grande do canal com animacao de entrada (scale + fade)
-- Nome e descricao do canal
-- Contagem de topicos nesse canal
-- Badges visuais para canais privados, somente leitura ou pagos
-- Fundo com gradiente subtil baseado na cor do canal (se definida)
-- Botao rapido "Novo Topico neste canal" que pre-seleciona o canal no dialog
+- Entrada animada dos chips com stagger (fade + slide horizontal)
+- Hover com scale subtil nos chips
+- Transicao suave ao selecionar um canal (destaque animado)
 
-### 2. Estado vazio animado e motivacional
+### 2. Estado vazio animado e motivacional (FastClubPage)
 
-Substituir o estado vazio atual (icone + texto simples) por:
-- Animacao de entrada com framer-motion (bounce/spring)
-- Icone ilustrativo maior e com animacao de pulso suave
-- Texto motivacional contextual ao canal selecionado ("Sê o primeiro a publicar em {canal}!")
-- Botao CTA direto "Criar primeiro topico" que abre o dialog com o canal pre-selecionado
-- Sugestoes rapidas de topicos (3 chips com ideias geradas localmente baseadas no nome do canal)
+Substituir o `EmptyState` atual por uma versao com:
+- Animacao de entrada com framer-motion (spring/bounce)
+- Icone com animacao de pulso flutuante (y bounce infinito)
+- Texto motivacional mais envolvente
+- Botao CTA com destaque visual
 
-### 3. Animacoes melhoradas nos cards de topicos
+### 3. Animacoes stagger nos cards de topicos (FastClubPage)
 
-- Hover com escala subtil (scale 1.01) e elevacao de sombra mais pronunciada
-- Animacao stagger mais visivel na entrada dos cards (spring com bounce)
-- Transicao suave ao mudar de canal (AnimatePresence no container de topicos)
+- Cada SocialPostCard entra com delay sequencial (stagger 0.05s)
+- Hover com scale subtil (1.008) e sombra elevada
+- AnimatePresence para transicoes ao filtrar
 
-### 4. Barra de atividade do canal
+### 4. Animacoes nos cards de eventos (FastClubPage)
 
-Adicionar abaixo do banner do canal uma mini-barra com:
-- Numero de membros ativos (com icone animado)
-- Ultimo topico publicado ("Ultima publicacao ha X minutos")
-- Indicador visual de tendencia (seta para cima se houve posts recentes)
+- Entrada stagger nos eventos
+- Hover com elevacao de sombra
+- Estado vazio de eventos tambem animado
 
 ## Ficheiros
 
 | Ficheiro | Acao |
 |---|---|
-| `src/pages/community/ForumPage.tsx` | Editar -- banner de canal imersivo, estado vazio animado, animacoes melhoradas, barra de atividade |
+| `src/pages/community/FastClubPage.tsx` | Editar -- estado vazio animado, stagger nos topic cards e event cards |
+| `src/components/community/DraggableChannelList.tsx` | Editar -- animacoes de entrada e hover nos chips |
 
-Total: 1 ficheiro editado, 0 criados.
+Total: 2 ficheiros editados, 0 criados.
 
 ## Seccao tecnica
 
-### Banner de canal imersivo
+### DraggableChannelList -- chips animados
+Envolver cada chip em `motion.div` com stagger de entrada:
 ```tsx
-{selectedCategoryData && (
-  <motion.div
-    key={selectedCategoryData.id}
-    initial={{ opacity: 0, y: -12 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -12 }}
-    className="rounded-2xl border p-5 bg-gradient-to-r from-primary/8 to-transparent"
-  >
-    <div className="flex items-center gap-4">
-      <motion.span 
-        initial={{ scale: 0 }} 
-        animate={{ scale: 1 }} 
-        className="text-3xl"
+<motion.div
+  key={c.id}
+  initial={{ opacity: 0, x: -8 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ delay: i * 0.04, type: "spring", stiffness: 300, damping: 25 }}
+  whileHover={{ scale: 1.05, transition: { duration: 0.15 } }}
+>
+  {/* chip content */}
+</motion.div>
+```
+
+### FastClubPage -- EmptyState animado
+```tsx
+function EmptyState() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: "spring", bounce: 0.3 }}
+      className="text-center py-16 rounded-2xl border border-dashed bg-muted/20"
+    >
+      <motion.div
+        animate={{ y: [0, -8, 0] }}
+        transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
       >
-        {selectedCategoryData.icon || "💬"}
-      </motion.span>
-      <div className="flex-1">
-        <h2 className="font-bold text-lg">{selectedCategoryData.name}</h2>
-        <p className="text-sm text-muted-foreground">{selectedCategoryData.description}</p>
-      </div>
-      <div className="text-right text-sm">
-        <p className="font-bold">{filteredTopics.length}</p>
-        <p className="text-muted-foreground text-xs">topicos</p>
-      </div>
-    </div>
-    {/* Badges + CTA */}
-  </motion.div>
-)}
+        <MessageSquare className="h-14 w-14 text-primary/30 mx-auto" />
+      </motion.div>
+      <p className="font-semibold mt-4">Nenhuma discussao ainda</p>
+      <p className="text-sm text-muted-foreground mb-5">Se o primeiro a iniciar uma conversa!</p>
+      <Button>Criar Topico</Button>
+    </motion.div>
+  );
+}
 ```
 
-### Estado vazio motivacional
+### FastClubPage -- topic cards com stagger
 ```tsx
-<motion.div
-  initial={{ opacity: 0, scale: 0.95 }}
-  animate={{ opacity: 1, scale: 1 }}
-  transition={{ type: "spring", bounce: 0.3 }}
-  className="text-center py-16"
->
+{filteredTopics.slice(0, 15).map((topic, i) => (
   <motion.div
-    animate={{ y: [0, -8, 0] }}
-    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+    key={topic.id}
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 25 }}
+    whileHover={{ scale: 1.008, transition: { duration: 0.2 } }}
+    className="transition-shadow hover:shadow-md rounded-2xl"
   >
-    <MessageSquare className="h-16 w-16 mx-auto text-primary/30" />
+    <SocialPostCard ... />
   </motion.div>
-  <h3 className="font-semibold mt-4">
-    {selectedCategoryData 
-      ? `Sê o primeiro a publicar em ${selectedCategoryData.name}!`
-      : "Nenhum tópico ainda. Sê o primeiro!"}
-  </h3>
-  <Button onClick={() => { setNewCategoryId(selectedCategory || ""); setDialogOpen(true); }}>
-    Criar primeiro tópico
-  </Button>
-  {/* Chips de sugestao */}
-</motion.div>
+))}
 ```
 
-### Animacoes nos cards
-```tsx
-<motion.div
-  key={topic.id}
-  initial={{ opacity: 0, y: 16 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 25 }}
-  whileHover={{ scale: 1.008, transition: { duration: 0.2 } }}
->
-  <SocialPostCard ... />
-</motion.div>
-```
+### FastClubPage -- event cards com stagger
+Mesma logica de stagger aplicada aos cards de eventos na funcao `EventsList`, com hover elevacao.
