@@ -4,15 +4,10 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
   ArrowRight,
   BarChart3,
   Brain,
-  Briefcase,
   ChevronRight,
   Eye,
   FileCheck,
@@ -21,15 +16,11 @@ import {
   Search,
   Shield,
   ShieldCheck,
-  Sparkles,
   Target,
   TrendingUp,
-  UserCheck,
   Users,
   Zap,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -91,54 +82,13 @@ const CONFIDENTIALITY = [
 
 export default function FastClubLandingPage() {
   const [scrolled, setScrolled] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const canonicalUrl = `${getPublicBaseUrl()}/fastclub`;
-  const { toast } = useToast();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handler, { passive: true });
     return () => window.removeEventListener("scroll", handler);
   }, []);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    const form = e.target as HTMLFormElement;
-    const fd = new FormData(form);
-
-    try {
-      const { error } = await supabase.from('fastclub_applications' as any).insert({
-        full_name: fd.get('full_name') as string,
-        company: fd.get('company') as string,
-        role: fd.get('role') as string,
-        sector: fd.get('sector') as string,
-        employees: (fd.get('employees') as string) || null,
-        revenue: (fd.get('revenue') as string) || null,
-        website_linkedin: (fd.get('website_linkedin') as string) || null,
-        motivation: fd.get('motivation') as string,
-        email: (fd.get('email') as string) || null,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Candidatura submetida",
-        description: "Análise confidencial. Resposta em até 5 dias úteis.",
-      });
-      form.reset();
-    } catch (err) {
-      console.error('FastClub application error:', err);
-      toast({
-        title: "Erro ao submeter candidatura",
-        description: "Tente novamente mais tarde.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const navLinks = [
     { label: "Posicionamento", href: "#posicionamento" },
@@ -175,12 +125,12 @@ export default function FastClubLandingPage() {
               </a>
             ))}
           </nav>
-          <a href="#candidatura">
+          <Link to="/club/fastclub/apply">
             <Button size="sm" className="gradient-primary shadow-glow text-primary-foreground font-semibold gap-1.5">
               Solicitar Avaliação
               <ArrowRight className="h-3.5 w-3.5" />
             </Button>
-          </a>
+          </Link>
         </div>
       </nav>
 
@@ -206,12 +156,12 @@ export default function FastClubLandingPage() {
                 Um ambiente restrito onde empresários, investidores e decisores estratégicos alinham oportunidades com método, controlo e métricas reais.
               </p>
               <div className="pt-2">
-                <a href="#candidatura">
+                <Link to="/club/fastclub/apply">
                   <Button size="lg" className="gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-base font-semibold gap-2">
                     Solicitar Avaliação de Entrada
                     <ArrowRight className="h-4 w-4" />
                   </Button>
-                </a>
+                </Link>
               </div>
               <p className="text-xs text-[hsl(215,20%,55%)]">
                 Acesso exclusivamente por convite ou candidatura validada.
@@ -469,67 +419,23 @@ export default function FastClubLandingPage() {
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/8 blur-[150px]" />
           </div>
-          <div className="relative max-w-2xl mx-auto px-6">
-            <motion.div {...fadeUp} transition={{ duration: 0.6 }} className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+          <div className="relative max-w-2xl mx-auto px-6 text-center">
+            <motion.div {...fadeUp} transition={{ duration: 0.6 }} className="space-y-6">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
                 Se considera que o seu perfil está alinhado, pode solicitar avaliação.
               </h2>
-            </motion.div>
-            <motion.div {...fadeUp} transition={{ delay: 0.2, duration: 0.5 }}>
-              <Card className="border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)]">
-                <CardContent className="p-8">
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid sm:grid-cols-2 gap-5">
-                      <div className="space-y-2">
-                        <Label className="text-[hsl(210,40%,98%)] text-xs">Nome</Label>
-                        <Input name="full_name" required placeholder="Nome completo" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[hsl(210,40%,98%)] text-xs">Empresa</Label>
-                        <Input name="company" required placeholder="Nome da empresa" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
-                      </div>
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-5">
-                      <div className="space-y-2">
-                        <Label className="text-[hsl(210,40%,98%)] text-xs">Cargo</Label>
-                        <Input name="role" required placeholder="Cargo atual" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[hsl(210,40%,98%)] text-xs">Setor</Label>
-                        <Input name="sector" required placeholder="Setor de atividade" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
-                      </div>
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-5">
-                      <div className="space-y-2">
-                        <Label className="text-[hsl(210,40%,98%)] text-xs">N.º Colaboradores</Label>
-                        <Input name="employees" placeholder="Ex: 15" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[hsl(210,40%,98%)] text-xs">Faturação Estimada</Label>
-                        <Input name="revenue" placeholder="Ex: 500K-1M EUR" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[hsl(210,40%,98%)] text-xs">Email</Label>
-                      <Input name="email" type="email" placeholder="email@exemplo.com" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[hsl(210,40%,98%)] text-xs">Website / LinkedIn</Label>
-                      <Input name="website_linkedin" placeholder="https://" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[hsl(210,40%,98%)] text-xs">Porque pretende integrar o Private Capital Circle?</Label>
-                      <Textarea name="motivation" required rows={4} placeholder="Descreva brevemente a sua motivação e expectativas." className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] resize-none" />
-                    </div>
-                    <Button type="submit" size="lg" disabled={isSubmitting} className="w-full gradient-primary shadow-glow text-primary-foreground h-12 text-base font-semibold">
-                      {isSubmitting ? "A submeter..." : "Solicitar Avaliação"}
-                    </Button>
-                    <p className="text-xs text-center text-[hsl(215,20%,55%)]">
-                      Análise confidencial. Resposta em até 5 dias úteis.
-                    </p>
-                  </form>
-                </CardContent>
-              </Card>
+              <p className="text-[hsl(215,20%,65%)]">
+                Formulário detalhado de candidatura com análise estratégica automatizada.
+              </p>
+              <Link to="/club/fastclub/apply">
+                <Button size="lg" className="gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-base font-semibold gap-2 mt-4">
+                  Iniciar Candidatura
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+              <p className="text-xs text-[hsl(215,20%,55%)]">
+                Análise confidencial. Resposta em até 5 dias úteis.
+              </p>
             </motion.div>
           </div>
         </section>
@@ -546,12 +452,12 @@ export default function FastClubLandingPage() {
                 Se entende isso, pode candidatar-se.
               </p>
               <div className="pt-2">
-                <a href="#candidatura">
+                <Link to="/club/fastclub/apply">
                   <Button size="lg" className="gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-base font-semibold gap-2">
                     Solicitar Avaliação de Entrada
                     <ArrowRight className="h-4 w-4" />
                   </Button>
-                </a>
+                </Link>
               </div>
             </motion.div>
           </div>

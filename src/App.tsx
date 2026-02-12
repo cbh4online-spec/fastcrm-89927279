@@ -166,6 +166,8 @@ import FastMatchPage from "./pages/fastclub/FastMatchPage";
 import LaboratorioPage from "./pages/fastclub/LaboratorioPage";
 import HotSeatsPage from "./pages/fastclub/HotSeatsPage";
 import FastClubLandingPage from "./pages/fastclub/FastClubLandingPage";
+import FastClubApplyPage from "./pages/fastclub/FastClubApplyPage";
+import FastClubApplicationsPage from "./pages/fastclub/FastClubApplicationsPage";
 
 // FastClub Subchannel Pages
 import PlaneamentoParePage from "./pages/fastclub/metodo-pare/PlaneamentoPage";
@@ -424,6 +426,7 @@ function CRMRoutes() {
                 
                 {/* FastClub - redirect old paths */}
                 <Route path="/dashboard/fastclub" element={<Navigate to="/club/fastclub" replace />} />
+                <Route path="/dashboard/fastclub/candidaturas" element={<FastClubApplicationsPage />} />
                 <Route path="/dashboard/fastclub/*" element={<Navigate to="/club/fastclub" replace />} />
                 
                 {/* FastMatch Discovery (CRM) */}
@@ -475,6 +478,7 @@ const App = () => (
               
               {/* Public FastClub Landing */}
               <Route path="/fastclub" element={<FastClubLandingPage />} />
+              <Route path="/club/fastclub/apply" element={<FastClubApplyPage />} />
               
               {/* FastClub Portal Routes - BEFORE /club/:slug to prevent catch-all */}
               <Route path="/club/fastclub" element={

@@ -256,6 +256,7 @@ const navigationGroups: NavGroup[] = [
     moduleSlug: "fastclub",
     items: [
       { name: "Abrir FastClub", href: "/club/fastclub", icon: Zap, tooltip: "Portal da comunidade", highlight: true },
+      { name: "Candidaturas", href: "/dashboard/fastclub/candidaturas", icon: ClipboardList, tooltip: "Candidaturas ao Private Capital Circle" },
     ],
   },
   // MARKETING
