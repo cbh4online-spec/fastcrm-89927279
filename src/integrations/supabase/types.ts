@@ -8956,6 +8956,298 @@ export type Database = {
           },
         ]
       }
+      fastmatch_connections: {
+        Row: {
+          created_at: string
+          credits_consumed: number
+          crm_company_id: string | null
+          crm_contact_id: string | null
+          crm_opportunity_id: string | null
+          id: string
+          profile_a_id: string
+          profile_b_id: string
+          source: string
+          status: string
+          unlocked_at: string
+          unlocked_by: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_consumed?: number
+          crm_company_id?: string | null
+          crm_contact_id?: string | null
+          crm_opportunity_id?: string | null
+          id?: string
+          profile_a_id: string
+          profile_b_id: string
+          source?: string
+          status?: string
+          unlocked_at?: string
+          unlocked_by: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_consumed?: number
+          crm_company_id?: string | null
+          crm_contact_id?: string | null
+          crm_opportunity_id?: string | null
+          id?: string
+          profile_a_id?: string
+          profile_b_id?: string
+          source?: string
+          status?: string
+          unlocked_at?: string
+          unlocked_by?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fastmatch_connections_profile_a_id_fkey"
+            columns: ["profile_a_id"]
+            isOneToOne: false
+            referencedRelation: "fastmatch_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastmatch_connections_profile_b_id_fkey"
+            columns: ["profile_b_id"]
+            isOneToOne: false
+            referencedRelation: "fastmatch_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastmatch_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fastmatch_interests: {
+        Row: {
+          created_at: string
+          from_profile_id: string
+          id: string
+          status: string
+          to_profile_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_profile_id: string
+          id?: string
+          status?: string
+          to_profile_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          from_profile_id?: string
+          id?: string
+          status?: string
+          to_profile_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fastmatch_interests_from_profile_id_fkey"
+            columns: ["from_profile_id"]
+            isOneToOne: false
+            referencedRelation: "fastmatch_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastmatch_interests_to_profile_id_fkey"
+            columns: ["to_profile_id"]
+            isOneToOne: false
+            referencedRelation: "fastmatch_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastmatch_interests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fastmatch_profiles: {
+        Row: {
+          bio: string | null
+          company_name: string | null
+          created_at: string
+          extra_credits_balance: number
+          founder_expiry_date: string | null
+          founder_quota_override: number | null
+          id: string
+          industry: string | null
+          is_founder: boolean
+          is_verified: boolean
+          last_score_update: string | null
+          linkedin_url: string | null
+          match_quota_monthly: number
+          match_used_current_period: number
+          member_id: string | null
+          period_reset_date: string
+          reputation_count: number
+          reputation_score: number
+          services_needed: string[] | null
+          services_offered: string[] | null
+          status: string
+          strategic_reasons: Json | null
+          strategic_score: number | null
+          target_audience: string | null
+          ticket_range: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          bio?: string | null
+          company_name?: string | null
+          created_at?: string
+          extra_credits_balance?: number
+          founder_expiry_date?: string | null
+          founder_quota_override?: number | null
+          id?: string
+          industry?: string | null
+          is_founder?: boolean
+          is_verified?: boolean
+          last_score_update?: string | null
+          linkedin_url?: string | null
+          match_quota_monthly?: number
+          match_used_current_period?: number
+          member_id?: string | null
+          period_reset_date?: string
+          reputation_count?: number
+          reputation_score?: number
+          services_needed?: string[] | null
+          services_offered?: string[] | null
+          status?: string
+          strategic_reasons?: Json | null
+          strategic_score?: number | null
+          target_audience?: string | null
+          ticket_range?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          bio?: string | null
+          company_name?: string | null
+          created_at?: string
+          extra_credits_balance?: number
+          founder_expiry_date?: string | null
+          founder_quota_override?: number | null
+          id?: string
+          industry?: string | null
+          is_founder?: boolean
+          is_verified?: boolean
+          last_score_update?: string | null
+          linkedin_url?: string | null
+          match_quota_monthly?: number
+          match_used_current_period?: number
+          member_id?: string | null
+          period_reset_date?: string
+          reputation_count?: number
+          reputation_score?: number
+          services_needed?: string[] | null
+          services_offered?: string[] | null
+          status?: string
+          strategic_reasons?: Json | null
+          strategic_score?: number | null
+          target_audience?: string | null
+          ticket_range?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fastmatch_profiles_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "community_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastmatch_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fastmatch_reputation_reviews: {
+        Row: {
+          comment: string | null
+          connection_id: string
+          created_at: string
+          id: string
+          rating: number
+          reviewed_profile_id: string
+          reviewer_profile_id: string
+          workspace_id: string
+        }
+        Insert: {
+          comment?: string | null
+          connection_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          reviewed_profile_id: string
+          reviewer_profile_id: string
+          workspace_id: string
+        }
+        Update: {
+          comment?: string | null
+          connection_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          reviewed_profile_id?: string
+          reviewer_profile_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fastmatch_reputation_reviews_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "fastmatch_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastmatch_reputation_reviews_reviewed_profile_id_fkey"
+            columns: ["reviewed_profile_id"]
+            isOneToOne: false
+            referencedRelation: "fastmatch_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastmatch_reputation_reviews_reviewer_profile_id_fkey"
+            columns: ["reviewer_profile_id"]
+            isOneToOne: false
+            referencedRelation: "fastmatch_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fastmatch_reputation_reviews_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       field_permissions: {
         Row: {
           created_at: string
@@ -27120,6 +27412,14 @@ export type Database = {
         }
         Returns: number
       }
+      consume_fastmatch_quota: {
+        Args: { p_profile_id: string; p_workspace_id: string }
+        Returns: {
+          message: string
+          source: string
+          success: boolean
+        }[]
+      }
       consume_module_credits: {
         Args: {
           p_action_key: string
@@ -27648,6 +27948,7 @@ export type Database = {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: Json
       }
+      reset_fastmatch_quotas: { Args: never; Returns: undefined }
       retrieve_entity_memories: {
         Args: {
           p_entity_id: string
