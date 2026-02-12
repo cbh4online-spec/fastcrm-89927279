@@ -38,11 +38,11 @@ export default function PlaneamentoPage() {
       subtitle="Estruturar antes de agir — definir pipelines, segmentar contactos e configurar o CRM."
       zoneBadge="Método PARE"
       breadcrumbs={[
-        { label: "FastClub", href: "/dashboard/fastclub" },
-        { label: "Método PARE", href: "/dashboard/fastclub/metodo-pare" },
+        { label: "FastClub", href: "/club/fastclub" },
+        { label: "Método PARE", href: "/club/fastclub/metodo-pare" },
         { label: "Planeamento" },
       ]}
-      backPath="/dashboard/fastclub/metodo-pare"
+      backPath="/club/fastclub/metodo-pare"
       ctaLabel="Abrir FastCRM"
       ctaPath="/dashboard"
       gradient="from-blue-600 to-blue-400"

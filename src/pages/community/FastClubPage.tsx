@@ -125,7 +125,7 @@ export default function FastClubPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/club/fastclub")}
               className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -226,10 +226,10 @@ export default function FastClubPage() {
                   </div>
                 </div>
                 <div className="flex sm:flex-col items-center gap-2 sm:border-l sm:pl-4">
-                  <Button size="sm" className="gap-1.5 rounded-full w-full" onClick={() => navigate("/dashboard/fastclub/rewards")}>
+                  <Button size="sm" className="gap-1.5 rounded-full w-full" onClick={() => navigate("/club/fastclub/rewards")}>
                     <Gift className="h-3.5 w-3.5" /> Resgatar
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5 rounded-full w-full" onClick={() => navigate("/dashboard/fastclub/rewards")}>
+                  <Button variant="outline" size="sm" className="gap-1.5 rounded-full w-full" onClick={() => navigate("/club/fastclub/rewards")}>
                     <Trophy className="h-3.5 w-3.5" /> Histórico
                   </Button>
                 </div>
@@ -270,7 +270,7 @@ export default function FastClubPage() {
                     />
                   </div>
                   {user && (
-                    <Button onClick={() => navigate("/dashboard/fastclub/forum")} className="gap-1.5 rounded-full h-11">
+                    <Button onClick={() => navigate("/club/fastclub/forum")} className="gap-1.5 rounded-full h-11">
                       <Plus className="h-4 w-4" /> Novo
                     </Button>
                   )}
@@ -281,7 +281,7 @@ export default function FastClubPage() {
                     categories={categories}
                     workspaceId={workspaceId}
                     isAdmin={isAdmin}
-                    onClickChannel={() => navigate("/dashboard/fastclub/forum")}
+                    onClickChannel={() => navigate("/club/fastclub/forum")}
                     onEditChannel={(ch) => setEditingChannel(ch)}
                     onAddChannel={() => setAddChannelOpen(true)}
                   />
@@ -317,7 +317,7 @@ export default function FastClubPage() {
                               topic={topic}
                               categoryName={cat?.name}
                               categoryIcon={cat?.icon || undefined}
-                              onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)}
+                              onClick={() => navigate(`/club/fastclub/forum/${topic.id}`)}
                             />
                           </motion.div>
                         );

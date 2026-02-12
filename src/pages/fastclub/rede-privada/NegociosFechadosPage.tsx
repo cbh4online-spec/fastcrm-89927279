@@ -28,11 +28,11 @@ export default function NegociosFechadosPage() {
       subtitle="Casos reais de negócios originados na Rede Privada."
       zoneBadge="Rede Privada"
       breadcrumbs={[
-        { label: "FastClub", href: "/dashboard/fastclub" },
-        { label: "Rede Privada", href: "/dashboard/fastclub/rede-privada" },
+        { label: "FastClub", href: "/club/fastclub" },
+        { label: "Rede Privada", href: "/club/fastclub/rede-privada" },
         { label: "Negócios Fechados" },
       ]}
-      backPath="/dashboard/fastclub/rede-privada"
+      backPath="/club/fastclub/rede-privada"
       ctaLabel="Abrir FastMatch no CRM"
       ctaPath="/dashboard/fastmatch"
     >

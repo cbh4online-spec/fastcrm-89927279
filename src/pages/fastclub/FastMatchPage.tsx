@@ -70,7 +70,7 @@ export default function FastMatchPage() {
         <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
           {/* Back */}
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/fastclub")} className="gap-2 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/club/fastclub")} className="gap-2 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" />
               Voltar
             </Button>
@@ -157,7 +157,7 @@ export default function FastMatchPage() {
                 >
                   <Card
                     className="cursor-pointer border-border/60 hover:border-primary/30 hover:shadow-md transition-all duration-200 group"
-                    onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)}
+                    onClick={() => navigate(`/club/fastclub/forum/${topic.id}`)}
                   >
                     <CardContent className="p-5">
                       <div className="flex items-start gap-4">

@@ -30,7 +30,7 @@ export function SubchannelLayout({
   zoneBadge,
   breadcrumbs,
   children,
-  backPath = "/dashboard/fastclub",
+  backPath = "/club/fastclub",
   ctaLabel,
   ctaPath,
   gradient = "from-primary via-primary to-primary/80",

@@ -14,11 +14,11 @@ const stagger = {
 };
 
 const subchannels = [
-  { title: "Como Funciona", description: "Regras, ética e estrutura de quotas.", icon: BookOpen, href: "/dashboard/fastclub/rede-privada/como-funciona", color: "from-blue-600 to-blue-400" },
-  { title: "Otimizar Perfil", description: "Modelos de oferta, procura e exemplos.", icon: UserCheck, href: "/dashboard/fastclub/rede-privada/otimizar-perfil", color: "from-amber-500 to-orange-400" },
-  { title: "Indicadores da Rede", description: "Dados agregados e tendências.", icon: BarChart3, href: "/dashboard/fastclub/rede-privada/indicadores", color: "from-emerald-500 to-green-400" },
-  { title: "Negócios Fechados", description: "Casos reais aprovados.", icon: Briefcase, href: "/dashboard/fastclub/rede-privada/negocios-fechados", color: "from-violet-500 to-purple-400" },
-  { title: "Estratégias de Abordagem", description: "Qualificação, comunicação e conversão.", icon: Target, href: "/dashboard/fastclub/rede-privada/estrategias", color: "from-rose-500 to-pink-400" },
+  { title: "Como Funciona", description: "Regras, ética e estrutura de quotas.", icon: BookOpen, href: "/club/fastclub/rede-privada/como-funciona", color: "from-blue-600 to-blue-400" },
+  { title: "Otimizar Perfil", description: "Modelos de oferta, procura e exemplos.", icon: UserCheck, href: "/club/fastclub/rede-privada/otimizar-perfil", color: "from-amber-500 to-orange-400" },
+  { title: "Indicadores da Rede", description: "Dados agregados e tendências.", icon: BarChart3, href: "/club/fastclub/rede-privada/indicadores", color: "from-emerald-500 to-green-400" },
+  { title: "Negócios Fechados", description: "Casos reais aprovados.", icon: Briefcase, href: "/club/fastclub/rede-privada/negocios-fechados", color: "from-violet-500 to-purple-400" },
+  { title: "Estratégias de Abordagem", description: "Qualificação, comunicação e conversão.", icon: Target, href: "/club/fastclub/rede-privada/estrategias", color: "from-rose-500 to-pink-400" },
 ];
 
 export default function RedePrivadaPage() {
@@ -53,7 +53,7 @@ export default function RedePrivadaPage() {
       <div className="bg-gradient-to-br from-primary via-primary to-primary/80 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
         <div className="relative container mx-auto px-4 pt-6 pb-12">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fastclub")} className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 mb-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/club/fastclub")} className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 mb-4">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <motion.div {...stagger} transition={{ delay: 0.05 }}>

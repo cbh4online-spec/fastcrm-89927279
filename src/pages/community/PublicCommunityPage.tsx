@@ -60,7 +60,7 @@ export default function PublicCommunityPage() {
 
   // Redirect approved members to internal dashboard
   if (!authLoading && !isLoading && !membershipLoading && user && (membershipStatus === "active" || membershipStatus === "workspace_member")) {
-    navigate("/dashboard/fastclub", { replace: true });
+    navigate("/club/fastclub", { replace: true });
     return null;
   }
 

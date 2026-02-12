@@ -76,7 +76,7 @@ export default function IAAvancadaPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/dashboard/fastclub")}
+            onClick={() => navigate("/club/fastclub")}
             className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 mb-4"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -197,7 +197,7 @@ export default function IAAvancadaPage() {
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
               Siga os playbooks de Implementação Guiada para configurar tudo passo a passo.
             </p>
-            <Button variant="outline" onClick={() => navigate("/dashboard/fastclub/implementacao")} className="gap-2">
+            <Button variant="outline" onClick={() => navigate("/club/fastclub/implementacao")} className="gap-2">
               Ver Implementação Guiada
               <ArrowRight className="w-4 h-4" />
             </Button>

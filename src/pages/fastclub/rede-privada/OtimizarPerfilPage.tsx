@@ -22,11 +22,11 @@ export default function OtimizarPerfilPage() {
       subtitle="Modelos de oferta, procura e exemplos concretos para maximizar o seu perfil."
       zoneBadge="Rede Privada"
       breadcrumbs={[
-        { label: "FastClub", href: "/dashboard/fastclub" },
-        { label: "Rede Privada", href: "/dashboard/fastclub/rede-privada" },
+        { label: "FastClub", href: "/club/fastclub" },
+        { label: "Rede Privada", href: "/club/fastclub/rede-privada" },
         { label: "Otimizar Perfil" },
       ]}
-      backPath="/dashboard/fastclub/rede-privada"
+      backPath="/club/fastclub/rede-privada"
       ctaLabel="Abrir FastMatch no CRM"
       ctaPath="/dashboard/fastmatch"
     >

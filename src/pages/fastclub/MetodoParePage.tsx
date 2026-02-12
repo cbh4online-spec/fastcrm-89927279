@@ -80,7 +80,7 @@ export default function MetodoParePage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/dashboard/fastclub")}
+            onClick={() => navigate("/club/fastclub")}
             className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 mb-4"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -104,7 +104,7 @@ export default function MetodoParePage() {
           <motion.div key={p.letter} {...stagger} transition={{ delay: 0.1 + i * 0.1 }}>
             <Card
               className="border-border/50 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate(`/dashboard/fastclub/metodo-pare/${p.letter === "P" ? "planeamento" : p.letter === "A" ? "automacao" : p.letter === "R" ? "resultados" : "eficiencia"}`)}
+              onClick={() => navigate(`/club/fastclub/metodo-pare/${p.letter === "P" ? "planeamento" : p.letter === "A" ? "automacao" : p.letter === "R" ? "resultados" : "eficiencia"}`)}
             >
               <CardContent className="p-0">
                 <div className="flex flex-col md:flex-row">

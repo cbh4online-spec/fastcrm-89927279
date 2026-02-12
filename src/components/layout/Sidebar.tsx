@@ -255,38 +255,7 @@ const navigationGroups: NavGroup[] = [
     highlight: true,
     moduleSlug: "fastclub",
     items: [
-      { name: "FastClub", href: "/dashboard/fastclub", icon: Zap, tooltip: "Hub da comunidade", highlight: true },
-      { name: "Start Here", href: "/dashboard/fastclub/start-here", icon: Compass, tooltip: "Ponto de partida do ecossistema" },
-      // Método PARE subcanais
-      { name: "Método PARE", href: "/dashboard/fastclub/metodo-pare", icon: Target, tooltip: "Framework P/A/R/E" },
-      { name: "  Planeamento", href: "/dashboard/fastclub/metodo-pare/planeamento", icon: ClipboardList, tooltip: "Pilar P" },
-      { name: "  Automação", href: "/dashboard/fastclub/metodo-pare/automacao", icon: Zap, tooltip: "Pilar A" },
-      { name: "  Resultados", href: "/dashboard/fastclub/metodo-pare/resultados", icon: BarChart3, tooltip: "Pilar R" },
-      { name: "  Eficiência", href: "/dashboard/fastclub/metodo-pare/eficiencia", icon: Gauge, tooltip: "Pilar E" },
-      // FastCRM em Ação subcanais
-      { name: "FastCRM em Ação", href: "/dashboard/fastclub/demos", icon: Play, tooltip: "Demos e casos práticos" },
-      { name: "  Demonstrações", href: "/dashboard/fastclub/demos/demonstracoes", icon: Play, tooltip: "Vídeos e demos" },
-      { name: "  Casos Práticos", href: "/dashboard/fastclub/demos/casos-praticos", icon: Briefcase, tooltip: "Casos reais" },
-      { name: "  Roadmap", href: "/dashboard/fastclub/demos/roadmap", icon: TrendingUp, tooltip: "Roadmap e atualizações" },
-      // Resultados
-      { name: "Resultados", href: "/dashboard/fastclub/resultados", icon: TrendingUp, tooltip: "Prova social e métricas" },
-      // Hub Rede Privada subcanais
-      { name: "Rede Privada", href: "/dashboard/fastclub/rede-privada", icon: Users, tooltip: "Hub educativo da rede" },
-      { name: "  Como Funciona", href: "/dashboard/fastclub/rede-privada/como-funciona", icon: BookOpen, tooltip: "Regras e ética" },
-      { name: "  Otimizar Perfil", href: "/dashboard/fastclub/rede-privada/otimizar-perfil", icon: UserCheck, tooltip: "Modelos de oferta e procura" },
-      { name: "  Indicadores", href: "/dashboard/fastclub/rede-privada/indicadores", icon: BarChart3, tooltip: "Dados agregados" },
-      { name: "  Negócios Fechados", href: "/dashboard/fastclub/rede-privada/negocios-fechados", icon: Briefcase, tooltip: "Casos reais aprovados" },
-      { name: "  Estratégias", href: "/dashboard/fastclub/rede-privada/estrategias", icon: Target, tooltip: "Qualificação e conversão" },
-      // Premium Zone
-      { name: "Missão da Semana", href: "/dashboard/fastclub/missao-semana", icon: CalendarClock, tooltip: "Missão semanal premium" },
-      { name: "Implementação Guiada", href: "/dashboard/fastclub/implementacao", icon: BookOpen, tooltip: "Playbooks e checklists" },
-      { name: "IA Avançada", href: "/dashboard/fastclub/ia-avancada", icon: Brain, tooltip: "Templates IA e automações" },
-      { name: "Laboratório Fast", href: "/dashboard/fastclub/laboratorio", icon: FlaskConical, tooltip: "Experimentos e funcionalidades beta" },
-      { name: "Hot Seats", href: "/dashboard/fastclub/hot-seats", icon: Mic, tooltip: "Sessões de mentoria ao vivo" },
-      // Comunicação Institucional
-      { name: "Anúncios Oficiais", href: "/dashboard/fastclub/anuncios", icon: Newspaper, tooltip: "Novidades e comunicados" },
-      { name: "Atualizações", href: "/dashboard/fastclub/atualizacoes", icon: Rocket, tooltip: "Atualizações do ecossistema" },
-      { name: "Conta & Plano", href: "/dashboard/settings/billing", icon: CreditCard, tooltip: "Gerir plano e faturação" },
+      { name: "Abrir FastClub", href: "/club/fastclub", icon: Zap, tooltip: "Portal da comunidade", highlight: true },
     ],
   },
   // MARKETING

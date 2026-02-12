@@ -56,7 +56,7 @@ export default function LaboratorioPage() {
     <PremiumGate featureLabel="Laboratório Fast">
       <div className="space-y-8 p-6 max-w-6xl mx-auto">
         {/* Back */}
-        <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/fastclub")} className="gap-2">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/club/fastclub")} className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Voltar ao FastClub
         </Button>
 
