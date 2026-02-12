@@ -180,6 +180,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Contactos", href: "/dashboard/contacts", icon: UsersRound, tooltip: "Pessoas" },
       { name: "Empresas", href: "/dashboard/companies", icon: Building2, tooltip: "Organizações" },
       { name: "Oportunidades", href: "/dashboard/opportunities", icon: Kanban, tooltip: "Negócios em curso" },
+      { name: "FastMatch", href: "/dashboard/fastmatch", icon: Zap, tooltip: "Rede de conexões estratégicas", highlight: true },
     ],
   },
   // VENDAS

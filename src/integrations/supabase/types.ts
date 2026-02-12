@@ -27457,6 +27457,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_fastmatch_pipeline_for_workspace: {
+        Args: { p_workspace_id: string }
+        Returns: undefined
+      }
       create_meeting_followup_task: {
         Args: {
           p_description?: string
