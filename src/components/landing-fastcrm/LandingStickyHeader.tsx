@@ -28,20 +28,23 @@ export function LandingStickyHeader() {
           <span className="text-lg font-bold tracking-tight">FastCRM</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8 text-sm text-[hsl(215,20%,65%)]">
-          <a href="#problema" className="hover:text-[hsl(210,40%,98%)] transition-colors">
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[hsl(215,20%,75%)]">
+          <a href="#problema" className="hover:text-white transition-colors duration-200">
             Problema
           </a>
-          <a href="#solucao" className="hover:text-[hsl(210,40%,98%)] transition-colors">
+          <a href="#solucao" className="hover:text-white transition-colors duration-200">
             Solução
           </a>
-          <a href="#arquitectura" className="hover:text-[hsl(210,40%,98%)] transition-colors">
+          <a href="#arquitectura" className="hover:text-white transition-colors duration-200">
             Arquitectura
           </a>
-          <a href="#metricas" className="hover:text-[hsl(210,40%,98%)] transition-colors">
+          <a href="#metricas" className="hover:text-white transition-colors duration-200">
             Métricas
           </a>
-          <a href="#faq" className="hover:text-[hsl(210,40%,98%)] transition-colors">
+          <a href="#pricing" className="hover:text-white transition-colors duration-200">
+            Investimento
+          </a>
+          <a href="#faq" className="hover:text-white transition-colors duration-200">
             FAQ
           </a>
         </nav>
