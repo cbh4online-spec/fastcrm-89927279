@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { motion } from "framer-motion";
 import { Plus, Pencil, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ForumCategory } from "@/hooks/useForum";
@@ -109,7 +110,11 @@ export function DraggableChannelList({
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
       {showAllButton && onSelectCategory && (
-        <button
+        <motion.button
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          whileHover={{ scale: 1.05, transition: { duration: 0.15 } }}
           onClick={() => onSelectCategory(undefined)}
           className={cn(
             "shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border transition-colors text-xs font-medium",
@@ -117,22 +122,26 @@ export function DraggableChannelList({
           )}
         >
           Todos
-        </button>
+        </motion.button>
       )}
-      {displayCategories.map(c => (
-        <div
+      {displayCategories.map((c, i) => (
+        <motion.div
           key={c.id}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.04, type: "spring", stiffness: 300, damping: 25 }}
+          whileHover={{ scale: 1.05, transition: { duration: 0.15 } }}
           className={cn(
-            "shrink-0 flex items-center gap-1 group transition-all",
+            "shrink-0 flex items-center gap-1 group",
             draggedId === c.id && "opacity-40",
             dragOverId === c.id && "ring-2 ring-primary rounded-full",
           )}
           draggable={isAdmin}
-          onDragStart={(e) => handleDragStart(e, c.id)}
-          onDragEnter={(e) => handleDragEnter(e, c.id)}
+          onDragStart={(e: any) => handleDragStart(e, c.id)}
+          onDragEnter={(e: any) => handleDragEnter(e, c.id)}
           onDragLeave={() => handleDragLeave(c.id)}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, c.id)}
+          onDragOver={(e: any) => handleDragOver(e)}
+          onDrop={(e: any) => handleDrop(e, c.id)}
           onDragEnd={handleDragEnd}
         >
           {isAdmin && (
@@ -160,15 +169,19 @@ export function DraggableChannelList({
               <Pencil className="h-3 w-3 text-muted-foreground" />
             </button>
           )}
-        </div>
+        </motion.div>
       ))}
       {isAdmin && onAddChannel && (
-        <button
+        <motion.button
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: displayCategories.length * 0.04, type: "spring", stiffness: 300, damping: 25 }}
+          whileHover={{ scale: 1.05, transition: { duration: 0.15 } }}
           onClick={onAddChannel}
           className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-dashed hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground"
         >
           <Plus className="h-3 w-3" /> Canal
-        </button>
+        </motion.button>
       )}
     </div>
   );

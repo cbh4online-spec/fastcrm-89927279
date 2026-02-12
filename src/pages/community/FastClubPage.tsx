@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -294,20 +294,36 @@ export default function FastClubPage() {
                     ))}
                   </div>
                 ) : filteredTopics.length > 0 ? (
-                  <div className="space-y-3">
-                    {filteredTopics.slice(0, 15).map(topic => {
-                      const cat = topic.category_id ? categoryMap.get(topic.category_id) : undefined;
-                      return (
-                        <SocialPostCard
-                          key={topic.id}
-                          topic={topic}
-                          categoryName={cat?.name}
-                          categoryIcon={cat?.icon || undefined}
-                          onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)}
-                        />
-                      );
-                    })}
-                  </div>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={searchQuery}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-3"
+                    >
+                      {filteredTopics.slice(0, 15).map((topic, i) => {
+                        const cat = topic.category_id ? categoryMap.get(topic.category_id) : undefined;
+                        return (
+                          <motion.div
+                            key={topic.id}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 25 }}
+                            whileHover={{ scale: 1.008, transition: { duration: 0.2 } }}
+                            className="transition-shadow hover:shadow-md rounded-2xl"
+                          >
+                            <SocialPostCard
+                              topic={topic}
+                              categoryName={cat?.name}
+                              categoryIcon={cat?.icon || undefined}
+                              onClick={() => navigate(`/dashboard/fastclub/forum/${topic.id}`)}
+                            />
+                          </motion.div>
+                        );
+                      })}
+                    </motion.div>
+                  </AnimatePresence>
                 ) : (
                   <EmptyState />
                 )}
@@ -365,10 +381,21 @@ function EmptyState() {
   const navigate = useNavigate();
   const { user } = useAuth();
   return (
-    <div className="text-center py-16 rounded-2xl border border-dashed bg-muted/20">
-      <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-        <MessageSquare className="h-6 w-6 text-primary" />
-      </div>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: "spring", bounce: 0.3 }}
+      className="text-center py-16 rounded-2xl border border-dashed bg-muted/20"
+    >
+      <motion.div
+        animate={{ y: [0, -8, 0] }}
+        transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+        className="mx-auto mb-4"
+      >
+        <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+          <MessageSquare className="h-7 w-7 text-primary/40" />
+        </div>
+      </motion.div>
       <p className="font-semibold text-foreground mb-1">Nenhuma discussão ainda</p>
       <p className="text-sm text-muted-foreground mb-5">Sê o primeiro a iniciar uma conversa!</p>
       {user && (
@@ -376,7 +403,7 @@ function EmptyState() {
           <Plus className="h-4 w-4" /> Criar Tópico
         </Button>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -432,14 +459,32 @@ function EventsList({ workspaceId, events, isAdmin }: { workspaceId: string | un
       )}
 
       {events.length === 0 ? (
-        <div className="text-center py-16 rounded-2xl border border-dashed bg-muted/20">
-          <Calendar className="h-10 w-10 text-primary/40 mx-auto mb-3" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", bounce: 0.3 }}
+          className="text-center py-16 rounded-2xl border border-dashed bg-muted/20"
+        >
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+            className="mx-auto mb-3"
+          >
+            <Calendar className="h-12 w-12 text-primary/30 mx-auto" />
+          </motion.div>
           <p className="font-semibold">Sem eventos agendados</p>
           <p className="text-sm text-muted-foreground">Os próximos eventos aparecerão aqui.</p>
-        </div>
+        </motion.div>
       ) : (
-        events.map(event => (
-          <div key={event.id} className="flex items-center gap-4 p-4 rounded-2xl border bg-card hover:bg-muted/30 transition-colors">
+        events.map((event, i) => (
+          <motion.div
+            key={event.id}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 25 }}
+            whileHover={{ scale: 1.008, transition: { duration: 0.2 } }}
+            className="flex items-center gap-4 p-4 rounded-2xl border bg-card hover:bg-muted/30 transition-all hover:shadow-md"
+          >
             <div className={cn(
               "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
               event.event_type === "live" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
@@ -465,7 +510,7 @@ function EventsList({ workspaceId, events, isAdmin }: { workspaceId: string | un
                 </Button>
               </a>
             )}
-          </div>
+          </motion.div>
         ))
       )}
 
