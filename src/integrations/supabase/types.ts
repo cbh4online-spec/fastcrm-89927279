@@ -8787,49 +8787,100 @@ export type Database = {
       }
       fastclub_applications: {
         Row: {
+          candidate_tier: string | null
           company: string
+          company_id: string | null
+          consent_given: boolean | null
+          contact_id: string | null
+          contribution: string | null
           created_at: string
-          email: string | null
+          email: string
+          email_sent: boolean | null
           employees: string | null
+          employees_count: number | null
+          estimated_annual_revenue: string | null
           full_name: string
           id: string
+          ip_address: string | null
+          job_title: string | null
           motivation: string
+          notification_sent: boolean | null
+          opportunity_id: string | null
+          phone: string | null
+          processed_at: string | null
+          profile_score: number | null
           revenue: string | null
           role: string
           sector: string
           status: string
+          strategic_objective: string | null
           updated_at: string
           website_linkedin: string | null
+          workspace_id: string | null
         }
         Insert: {
+          candidate_tier?: string | null
           company: string
+          company_id?: string | null
+          consent_given?: boolean | null
+          contact_id?: string | null
+          contribution?: string | null
           created_at?: string
-          email?: string | null
+          email?: string
+          email_sent?: boolean | null
           employees?: string | null
+          employees_count?: number | null
+          estimated_annual_revenue?: string | null
           full_name: string
           id?: string
+          ip_address?: string | null
+          job_title?: string | null
           motivation: string
+          notification_sent?: boolean | null
+          opportunity_id?: string | null
+          phone?: string | null
+          processed_at?: string | null
+          profile_score?: number | null
           revenue?: string | null
           role: string
           sector: string
           status?: string
+          strategic_objective?: string | null
           updated_at?: string
           website_linkedin?: string | null
+          workspace_id?: string | null
         }
         Update: {
+          candidate_tier?: string | null
           company?: string
+          company_id?: string | null
+          consent_given?: boolean | null
+          contact_id?: string | null
+          contribution?: string | null
           created_at?: string
-          email?: string | null
+          email?: string
+          email_sent?: boolean | null
           employees?: string | null
+          employees_count?: number | null
+          estimated_annual_revenue?: string | null
           full_name?: string
           id?: string
+          ip_address?: string | null
+          job_title?: string | null
           motivation?: string
+          notification_sent?: boolean | null
+          opportunity_id?: string | null
+          phone?: string | null
+          processed_at?: string | null
+          profile_score?: number | null
           revenue?: string | null
           role?: string
           sector?: string
           status?: string
+          strategic_objective?: string | null
           updated_at?: string
           website_linkedin?: string | null
+          workspace_id?: string | null
         }
         Relationships: []
       }
