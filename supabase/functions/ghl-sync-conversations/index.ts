@@ -350,7 +350,7 @@ Deno.serve(async (req) => {
             const sinceDate = new Date();
             sinceDate.setDate(sinceDate.getDate() - days_back);
 
-            let lastId: string | undefined;
+            let lastSortDate: string | undefined;
 
             while (hasMore && pageCount < maxPages) {
               if (Date.now() - startTime > maxExecutionTime) {
@@ -364,9 +364,10 @@ Deno.serve(async (req) => {
               const queryParams = new URLSearchParams({
                 locationId,
                 limit: "50",
+                status: "all",
               });
-              if (lastId) {
-                queryParams.set("startAfterId", lastId);
+              if (lastSortDate) {
+                queryParams.set("startAfterDate", lastSortDate);
               }
               
               const ghlUrl = `https://services.leadconnectorhq.com/conversations/search?${queryParams.toString()}`;
@@ -398,6 +399,8 @@ Deno.serve(async (req) => {
 
               const data = await ghlResponse.json();
               const conversations: GHLConversation[] = data.conversations || [];
+              
+              console.log(`[GHL Sync] Page ${pageCount}: got ${conversations.length} conversations`);
 
               if (conversations.length === 0) {
                 hasMore = false;
@@ -593,9 +596,10 @@ Deno.serve(async (req) => {
                 });
               }
 
-              // Update lastId for pagination
+              // Update pagination cursor using sort date
               if (conversations.length > 0) {
-                lastId = conversations[conversations.length - 1].id;
+                const lastConv = conversations[conversations.length - 1];
+                lastSortDate = lastConv.lastMessageDate || lastConv.dateUpdated || lastConv.id;
               }
               
               // Continue if we got a full page
