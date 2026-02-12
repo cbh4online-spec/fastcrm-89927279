@@ -25667,6 +25667,56 @@ export type Database = {
           },
         ]
       }
+      whatsapp_connections: {
+        Row: {
+          access_token: string | null
+          connected_by: string | null
+          created_at: string
+          display_phone_number: string | null
+          id: string
+          is_active: boolean
+          phone_number_id: string | null
+          token_expires_at: string | null
+          updated_at: string
+          waba_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_by?: string | null
+          created_at?: string
+          display_phone_number?: string | null
+          id?: string
+          is_active?: boolean
+          phone_number_id?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          waba_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_by?: string | null
+          created_at?: string
+          display_phone_number?: string | null
+          id?: string
+          is_active?: boolean
+          phone_number_id?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          waba_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_configurations: {
         Row: {
           allowed_domains: string[] | null

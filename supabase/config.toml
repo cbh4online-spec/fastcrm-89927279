@@ -231,3 +231,15 @@ verify_jwt = false
 
 [functions.generate-fastcrm-proposal]
 verify_jwt = false
+
+[functions.whatsapp-auth-url]
+verify_jwt = false
+
+[functions.whatsapp-oauth-callback]
+verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.whatsapp-send-message]
+verify_jwt = false
