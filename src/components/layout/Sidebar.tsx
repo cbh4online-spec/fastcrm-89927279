@@ -257,6 +257,10 @@ const navigationGroups: NavGroup[] = [
       { name: "Resultados", href: "/dashboard/fastclub/resultados", icon: TrendingUp, tooltip: "Prova social e métricas" },
       { name: "Fórum", href: "/dashboard/fastclub/forum", icon: MessageSquare, tooltip: "Discussões da comunidade" },
       { name: "Recompensas", href: "/dashboard/fastclub/rewards", icon: Crown, tooltip: "Pontos e recompensas" },
+      // Premium Zone
+      { name: "Missão da Semana", href: "/dashboard/fastclub/missao-semana", icon: CalendarClock, tooltip: "Missão semanal premium" },
+      { name: "Implementação Guiada", href: "/dashboard/fastclub/implementacao", icon: BookOpen, tooltip: "Playbooks e checklists" },
+      { name: "IA Avançada", href: "/dashboard/fastclub/ia-avancada", icon: Brain, tooltip: "Templates IA e automações" },
     ],
   },
   // MARKETING
