@@ -239,7 +239,7 @@ export function ClubSidebar({ open, onClose }: ClubSidebarProps) {
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden lg:flex w-64 border-r bg-card/50 flex-col fixed inset-y-0 left-0 z-30">
+      <aside className="hidden lg:flex w-60 shrink-0 rounded-2xl border bg-card flex-col sticky top-6 self-start max-h-[calc(100vh-3rem)]">
         {sidebarContent}
       </aside>
 

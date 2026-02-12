@@ -28,17 +28,17 @@ export function ClubLayout({ children }: ClubLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen flex bg-background">
-      <ClubSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
-        {/* Mobile topbar */}
-        <div className="lg:hidden flex items-center gap-3 p-3 border-b bg-card/50">
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="h-9 w-9">
-            <Menu className="h-5 w-5" />
-          </Button>
-          <span className="font-semibold text-sm text-foreground">FastClub</span>
-        </div>
-        <main className="flex-1 animate-fade-in">
+    <div className="min-h-screen bg-background">
+      {/* Mobile topbar */}
+      <div className="lg:hidden flex items-center gap-3 p-3 border-b bg-card/50">
+        <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="h-9 w-9">
+          <Menu className="h-5 w-5" />
+        </Button>
+        <span className="font-semibold text-sm text-foreground">FastClub</span>
+      </div>
+      <div className="max-w-[1600px] mx-auto lg:flex lg:gap-6 lg:p-6">
+        <ClubSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <main className="flex-1 min-w-0 animate-fade-in">
           {children}
         </main>
       </div>
