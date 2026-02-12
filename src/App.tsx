@@ -150,6 +150,8 @@ import CommunityAuthPage from "./pages/community/CommunityAuthPage";
 import StartHerePage from "./pages/fastclub/StartHerePage";
 import MetodoParePage from "./pages/fastclub/MetodoParePage";
 import DemosPage from "./pages/fastclub/DemosPage";
+import DesafioPage from "./pages/fastclub/DesafioPage";
+import ResultadosPage from "./pages/fastclub/ResultadosPage";
 
 // Store (Public E-commerce)
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
@@ -394,6 +396,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/fastclub/start-here" element={<StartHerePage />} />
                 <Route path="/dashboard/fastclub/metodo-pare" element={<MetodoParePage />} />
                 <Route path="/dashboard/fastclub/demos" element={<DemosPage />} />
+                <Route path="/dashboard/fastclub/desafio-7-dias" element={<DesafioPage />} />
+                <Route path="/dashboard/fastclub/resultados" element={<ResultadosPage />} />
 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />

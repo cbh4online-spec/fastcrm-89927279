@@ -253,6 +253,8 @@ const navigationGroups: NavGroup[] = [
       { name: "Start Here", href: "/dashboard/fastclub/start-here", icon: Compass, tooltip: "Ponto de partida do ecossistema" },
       { name: "Método PARE", href: "/dashboard/fastclub/metodo-pare", icon: Target, tooltip: "Framework P/A/R/E" },
       { name: "FastCRM em Ação", href: "/dashboard/fastclub/demos", icon: Play, tooltip: "Demos e casos práticos" },
+      { name: "Desafio 7 Dias", href: "/dashboard/fastclub/desafio-7-dias", icon: Zap, tooltip: "Micro-missões de ativação" },
+      { name: "Resultados", href: "/dashboard/fastclub/resultados", icon: TrendingUp, tooltip: "Prova social e métricas" },
       { name: "Fórum", href: "/dashboard/fastclub/forum", icon: MessageSquare, tooltip: "Discussões da comunidade" },
       { name: "Recompensas", href: "/dashboard/fastclub/rewards", icon: Crown, tooltip: "Pontos e recompensas" },
     ],
