@@ -1,40 +1,44 @@
 
 
-# Fase 2: Desafio 7 Dias + Resultados (Prova Social)
+# Fase 3: Zona Premium (Missao da Semana, Implementacao Guiada, IA Avancada)
 
-Esta fase adiciona duas paginas novas ao FastClub: o **Desafio 7 Dias** (sequencia de micro-missoes de ativacao ligadas ao FastCRM) e a pagina **Resultados** (prova social com testemunhos, wins e metricas).
+Esta fase cria as 3 primeiras paginas da zona premium do FastClub, acessiveis apenas a membros premium. Cada pagina usa o `PremiumGate` existente para controlo de acesso e segue o padrao visual executivo ja estabelecido.
 
 ---
 
 ## O que esta incluido
 
-### 1. Pagina "Desafio 7 Dias" (`/dashboard/fastclub/desafio-7-dias`)
+### 1. Pagina "Missao da Semana" (`/dashboard/fastclub/missao-semana`)
 
-Sequencia visual de 7 dias com micro-missoes praticas:
-- Timeline vertical com 7 cards (um por dia), cada um com titulo, descricao, CTA para o FastCRM e estado (bloqueado/disponivel/concluido)
-- Progresso visual no topo (barra + "Dia X de 7")
-- Cada missao tem um botao de acao que aponta para uma funcionalidade real do FastCRM (deep-link)
-- Os dados vem da tabela `fastclub_challenges` ja existente
-- Dados semente: 7 missoes pre-carregadas (criar pipeline, registar contactos, enviar proposta, ativar automacao, etc.)
-- Tabela `fastclub_challenge_progress` para guardar progresso do utilizador (dia completado, data)
+Missao semanal orientada a execucao real no FastCRM:
+- Card destaque com a missao atual (titulo, descricao, objetivo, CTA deep-link)
+- Checklist de passos (3-5 sub-tarefas)
+- Historico de missoes anteriores (colapsavel)
+- Dados vem de `fastclub_content_sections` com `page_key = 'missao-semana'`
+- Dados semente: 4 missoes exemplo
 
-### 2. Pagina "Resultados" (`/dashboard/fastclub/resultados`)
+### 2. Pagina "Implementacao Guiada" (`/dashboard/fastclub/implementacao`)
 
-Pagina de prova social com 3 seccoes:
-- **Metricas agregadas**: cards com numeros do ecossistema (membros ativos, oportunidades criadas, taxa de conversao) vindos da tabela `fastclub_crm_aggregates`
-- **Casos de sucesso**: cards com estrutura "Problema - Acao - Resultado" (dados da tabela `fastclub_content_sections` com page_key = 'resultados')
-- **Testemunhos curtos**: citacoes com nome, cargo e empresa (dados semente)
-- CTA recorrente "Ativar FastCRM" em cada seccao
+Biblioteca de playbooks e checklists para implementar o FastCRM:
+- Cards de playbooks organizados por categoria (Onboarding, Pipeline, Automacoes, Integracao)
+- Cada playbook tem titulo, descricao, duracao estimada, nivel (Basico/Intermedio/Avancado) e checklist de passos
+- Filtro por categoria
+- Dados de `fastclub_content_sections` com `page_key = 'implementacao'`
+- Dados semente: 6 playbooks exemplo
 
-### 3. Migracao de base de dados
+### 3. Pagina "IA e Automacoes Avancadas" (`/dashboard/fastclub/ia-avancada`)
 
-- Tabela `fastclub_challenge_progress` para tracking do progresso individual
-- Dados semente: 7 challenges + 5 casos de sucesso + 4 metricas agregadas
+Conteudo avancado sobre IA e automacoes no FastCRM:
+- Cards de templates/praticas organizados por tipo (Automacoes, Prompts IA, Fluxos, Integracao)
+- Cada card com titulo, descricao, complexidade, CTA para o FastCRM
+- Seccao "Dicas Rapidas" com snippets curtos
+- Dados de `fastclub_content_sections` com `page_key = 'ia-avancada'`
+- Dados semente: 6 templates + 4 dicas
 
-### 4. Rotas e navegacao
+### 4. Navegacao atualizada
 
-- Adicionar rotas no App.tsx
-- Atualizar items da Sidebar para incluir links ativos
+- 3 novos items na sidebar do FastClub (separados visualmente como zona premium com icone de cadeado)
+- 3 novas rotas no App.tsx
 
 ---
 
@@ -42,70 +46,80 @@ Pagina de prova social com 3 seccoes:
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/pages/fastclub/DesafioPage.tsx` | Pagina Desafio 7 Dias com timeline e progresso |
-| `src/pages/fastclub/ResultadosPage.tsx` | Pagina Resultados (prova social) |
+| `src/pages/fastclub/MissaoSemanaPage.tsx` | Missao da Semana com card destaque e historico |
+| `src/pages/fastclub/ImplementacaoPage.tsx` | Playbooks e checklists de implementacao |
+| `src/pages/fastclub/IAAvancadaPage.tsx` | Templates IA e automacoes avancadas |
 
 ## Ficheiros a editar
 
 | Ficheiro | Acao |
 |---|---|
-| `src/App.tsx` | Adicionar 2 rotas novas |
-| `src/components/layout/Sidebar.tsx` | Adicionar links para Desafio e Resultados |
+| `src/App.tsx` | Adicionar 3 rotas novas |
+| `src/components/layout/Sidebar.tsx` | Adicionar 3 items premium com separador visual |
 
 ---
 
 ## Detalhe tecnico
 
-### Migracao DB
+### Dados semente (insert via tool, sem migracao)
 
-```sql
--- Progresso individual no Desafio 7 Dias
-CREATE TABLE public.fastclub_challenge_progress (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid REFERENCES workspaces(id) ON DELETE CASCADE NOT NULL,
-  user_id uuid NOT NULL,
-  challenge_id uuid REFERENCES fastclub_challenges(id) ON DELETE CASCADE NOT NULL,
-  completed_at timestamptz DEFAULT now(),
-  UNIQUE(user_id, challenge_id)
-);
+Inserir conteudo nas tabelas existentes `fastclub_content_sections`:
 
-ALTER TABLE public.fastclub_challenge_progress ENABLE ROW LEVEL SECURITY;
+**Missao da Semana** (page_key = 'missao-semana', 4 registos):
+- Semana 1: "Configurar pipeline completo" -- passos no metadata (JSON array)
+- Semana 2: "Automatizar follow-up de leads"
+- Semana 3: "Criar proposta modelo com IA"
+- Semana 4: "Ativar fluxo de onboarding"
 
-CREATE POLICY "Users can read own progress"
-  ON public.fastclub_challenge_progress FOR SELECT
-  TO authenticated USING (user_id = auth.uid());
+**Implementacao Guiada** (page_key = 'implementacao', 6 registos):
+- Playbooks com metadata incluindo: categoria, duracao, nivel, checklist (JSON)
 
-CREATE POLICY "Users can insert own progress"
-  ON public.fastclub_challenge_progress FOR INSERT
-  TO authenticated WITH CHECK (user_id = auth.uid());
+**IA Avancada** (page_key = 'ia-avancada', 10 registos):
+- 6 templates (automacao email, qualificacao IA, fluxo WhatsApp, etc.)
+- 4 dicas rapidas (section_key = 'dica')
+
+### Sidebar -- zona premium separada
+
+Atualizar o array `navigationGroups` no Sidebar.tsx para adicionar 3 items ao grupo FastClub, com separacao visual. Os items premium terao `highlight: false` e serao visualmente distintos com o icone Crown ja suportado pelo `renderNavItem`.
+
+Novos items:
+```typescript
+{ name: "Missão da Semana", href: "/dashboard/fastclub/missao-semana", icon: CalendarClock, tooltip: "Missão semanal premium" },
+{ name: "Implementação Guiada", href: "/dashboard/fastclub/implementacao", icon: BookOpen, tooltip: "Playbooks e checklists" },
+{ name: "IA Avançada", href: "/dashboard/fastclub/ia-avancada", icon: Brain, tooltip: "Templates IA e automações" },
 ```
 
-### Dados semente
+### Pagina MissaoSemanaPage
 
-7 challenges na tabela `fastclub_challenges`:
-- Dia 1: "Configurar o seu pipeline" (action: abrir pipeline)
-- Dia 2: "Registar 5 contactos" (action: abrir contactos)
-- Dia 3: "Criar a primeira oportunidade" (action: abrir oportunidades)
-- Dia 4: "Enviar uma proposta" (action: abrir propostas)
-- Dia 5: "Ativar uma automacao simples" (action: abrir automacoes)
-- Dia 6: "Analisar os seus KPIs" (action: abrir reports)
-- Dia 7: "Explorar a Rede Privada" (action: abrir FastMatch)
+- Envolvida em `PremiumGate` com `featureLabel="Missão da Semana"`
+- Card principal grande com a missao mais recente (sort_order mais alto)
+- Sub-tarefas renderizadas como checklist visual (apenas display, sem tracking nesta fase)
+- Historico em accordion colapsavel com missoes anteriores
+- Animacoes framer-motion (fade + stagger) consistentes com as paginas existentes
+- CTA "Executar no FastCRM" em cada missao
 
-5 casos de sucesso na tabela `fastclub_content_sections` (page_key = 'resultados'):
-- Estrutura: titulo, content (Problema/Acao/Resultado), metadata (empresa, setor, metrica)
+### Pagina ImplementacaoPage
 
-### Pagina Desafio 7 Dias
+- Envolvida em `PremiumGate`
+- Filtro por categoria no topo (tabs ou chips)
+- Grid de cards com: titulo, descricao curta, badge de nivel, duracao estimada
+- Ao expandir card: checklist completa com passos numerados
+- Cada passo com CTA opcional para o FastCRM
 
-- Barra de progresso no topo com contagem de dias concluidos
-- Timeline vertical com cards animados (stagger, spring)
-- Cada card mostra: numero do dia, titulo, descricao, botao CTA, estado (icone check se completo)
-- Ao clicar "Marcar como concluido" insere registo em `fastclub_challenge_progress`
-- Consulta challenges com `useQuery` + progresso do utilizador
+### Pagina IAAvancadaPage
 
-### Pagina Resultados
+- Envolvida em `PremiumGate`
+- Seccao "Templates e Praticas" com grid de cards (tipo, complexidade, descricao)
+- Seccao "Dicas Rapidas" com cards compactos
+- Cada template com botao "Aplicar no FastCRM"
+- Filtro por tipo (Automacoes, Prompts, Fluxos, Integracao)
 
-- 3 seccoes com animacoes de entrada (fade + stagger)
-- Metricas: 4 cards grandes com numeros vindos de `fastclub_crm_aggregates`
-- Casos: cards com gradiente subtil e estrutura Problema/Acao/Resultado
-- Testemunhos: citacoes com aspas, nome e cargo
-- CTA final "Ativar FastCRM" com destaque visual
+### Padrao visual
+
+Todas as paginas seguem o padrao visual ja estabelecido:
+- Botao "Voltar" no topo com `ArrowLeft`
+- Titulo e subtitulo com badges
+- Animacoes `motion.div` com `stagger` (delay sequencial de 0.05-0.1s)
+- Cards com gradientes subtis e hover elevacao
+- CTAs recorrentes para o FastCRM com icone `ArrowRight`
+
