@@ -261,6 +261,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Missão da Semana", href: "/dashboard/fastclub/missao-semana", icon: CalendarClock, tooltip: "Missão semanal premium" },
       { name: "Implementação Guiada", href: "/dashboard/fastclub/implementacao", icon: BookOpen, tooltip: "Playbooks e checklists" },
       { name: "IA Avançada", href: "/dashboard/fastclub/ia-avancada", icon: Brain, tooltip: "Templates IA e automações" },
+      { name: "FastMatch Hub", href: "/dashboard/fastclub/fastmatch", icon: Users, tooltip: "Rede privada de oportunidades" },
     ],
   },
   // MARKETING
