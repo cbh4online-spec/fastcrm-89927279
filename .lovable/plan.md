@@ -1,40 +1,41 @@
 
 
-# Fase 5: Landing Publica FastClub + Integracao Deep-Link SSO com FastCRM
+# Fase 6: Laboratorio Fast + Hot Seats + Refinamentos Finais
 
-Esta fase cria a pagina de marketing publica do FastClub (acessivel sem autenticacao) e integra deep-links SSO que permitem aos CTAs da landing iniciar sessao automatica no FastCRM.
+Esta fase adiciona as duas ultimas paginas premium do ecossistema FastClub e aplica refinamentos visuais e de navegacao a todo o conjunto.
 
 ---
 
 ## O que esta incluido
 
-### 1. Landing Publica FastClub (`/fastclub`)
+### 1. Pagina "Laboratorio Fast" (`/dashboard/fastclub/laboratorio`)
 
-Pagina de marketing publica (fora do `/dashboard`) acessivel por qualquer visitante:
+Espaco experimental onde membros premium testam novas funcionalidades, workflows e templates antes de serem lancados publicamente:
 
-- **Hero section**: Titulo impactante, subtitulo, CTA principal ("Ativar FastCRM" / "Entrar no FastClub")
-- **Pilares do ecossistema**: 3 cards (FastCRM, Metodo PARE, Rede Privada) -- reutilizando o conteudo ja definido em `StartHerePage`
-- **Como funciona**: 4 passos visuais (timeline horizontal)
-- **Beneficios/Features**: Grid de cards com icones e descricoes curtas
-- **Prova social**: Metricas agregadas + testemunhos (reutilizando dados de `fastclub_crm_aggregates` e `fastclub_content_sections` page_key='resultados')
-- **CTA final**: Seccao de conversao com botao para registo/login
-- **SEO**: Meta tags com Helmet, canonical URL via `getPublicBaseUrl()`
-- **Responsive**: Mobile-first, animacoes framer-motion
+- Header executivo com badge "Beta" e descricao do conceito
+- Grid de "Experimentos" -- cada um e um card com titulo, descricao, estado (Ativo / Em Breve / Concluido) e CTA
+- Seccao "Feedback" com formulario inline para os membros darem opiniao sobre os experimentos
+- Dados de `fastclub_content_sections` com `page_key = 'laboratorio'`
+- Envolvido em `PremiumGate`
+- Dados semente: 4 experimentos exemplo (ex: "Pipeline Kanban v2", "IA Qualificacao Automatica", "Widget WhatsApp", "Relatorios Avancados")
 
-### 2. Integracao Deep-Link SSO
+### 2. Pagina "Hot Seats" (`/dashboard/fastclub/hot-seats`)
 
-Sistema de deep-links que permite CTAs na landing (e em qualquer pagina do ecossistema) iniciar sessao SSO no FastCRM:
+Sessoes de mentoria ao vivo onde membros apresentam o seu caso e recebem feedback do grupo:
 
-- **Componente `FastCRMDeepLink`**: Componente reutilizavel que encapsula a logica SSO. Recebe `moduleId`, `targetPath` (ex: `/dashboard/pipeline`) e renderiza um botao/link. Ao clicar:
-  1. Se utilizador nao autenticado: redireciona para `/auth?redirect=/dashboard/fastclub` (fluxo existente)
-  2. Se autenticado: invoca `useModuleSSO` para gerar token, depois redireciona para o `targetPath` no FastCRM com o token como query param
-- **Hook `useFastCRMDeepLink`**: Simplifica a integracao SSO para deep-links internos. Wrapper sobre `useModuleSSO` que gere o fluxo redirect automaticamente
-- **Integracao nas paginas existentes**: Substituir CTAs estaticos ("Abrir Pipeline", "Executar no FastCRM") nas paginas do Desafio 7 Dias, Missao da Semana e IA Avancada pelo componente `FastCRMDeepLink`
+- Header com descricao do conceito (sessoes de grupo focadas)
+- Lista de proximas sessoes (data, hora, tema, vagas) -- cards visuais com countdown
+- Historico de sessoes anteriores (colapsavel) com resumo e takeaways
+- Botao "Inscrever-me" com CTA para o FastCRM (deep-link SSO)
+- Dados de `fastclub_content_sections` com `page_key = 'hot-seats'`
+- Envolvido em `PremiumGate`
+- Dados semente: 3 sessoes futuras + 2 sessoes passadas
 
-### 3. Navegacao e Rotas
+### 3. Refinamentos Finais
 
-- Nova rota publica `/fastclub` no `App.tsx` (fora do layout autenticado)
-- Meta-navegacao na landing: link para login, link para registo, link para a comunidade publica (`/club/fastclub`)
+- **Separador visual na sidebar**: Adicionar um separador/label "Zona Premium" antes dos items premium para melhor hierarquia visual
+- **Ordenacao da sidebar**: Garantir ordem logica: paginas de conteudo base primeiro, depois zona premium
+- **Landing page `/fastclub`**: Adicionar links para as novas paginas na seccao de ecossistema (se aplicavel)
 
 ---
 
@@ -42,87 +43,87 @@ Sistema de deep-links que permite CTAs na landing (e em qualquer pagina do ecoss
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/pages/fastclub/FastClubLandingPage.tsx` | Landing publica de marketing do FastClub |
-| `src/components/fastclub/FastCRMDeepLink.tsx` | Componente reutilizavel de deep-link SSO |
-| `src/hooks/useFastCRMDeepLink.ts` | Hook simplificado para deep-links SSO internos |
+| `src/pages/fastclub/LaboratorioPage.tsx` | Laboratorio de experimentos premium |
+| `src/pages/fastclub/HotSeatsPage.tsx` | Sessoes de mentoria Hot Seats |
 
 ## Ficheiros a editar
 
 | Ficheiro | Acao |
 |---|---|
-| `src/App.tsx` | Adicionar rota publica `/fastclub` |
-| `src/pages/fastclub/DesafioPage.tsx` | Integrar `FastCRMDeepLink` nos CTAs das missoes |
-| `src/pages/fastclub/MissaoSemanaPage.tsx` | Integrar `FastCRMDeepLink` nos CTAs |
-| `src/pages/fastclub/IAAvancadaPage.tsx` | Integrar `FastCRMDeepLink` nos CTAs |
+| `src/App.tsx` | Adicionar 2 rotas novas |
+| `src/components/layout/Sidebar.tsx` | Adicionar 2 items premium + separador visual "Zona Premium" |
 
 ---
 
 ## Detalhe tecnico
 
-### Landing Publica (`FastClubLandingPage.tsx`)
+### Dados semente
 
-- Rota publica `/fastclub` sem `AuthProvider` wrapper (acesso anonimo)
-- Utiliza `getPublicBaseUrl()` para canonical URL e links de partilha
-- SEO com `react-helmet-async`: titulo "FastClub - Ecossistema de Aceleracao Comercial", descricao, og:tags
-- Navbar minima no topo: logo FastClub, link "Entrar", link "Registar" (apontando para `/auth?redirect=/dashboard/fastclub`)
-- Hero com gradiente executivo (padrao visual existente)
-- Seccao "Ecossistema" com 3 pilares (dados estaticos inline, mesmo conteudo de `StartHerePage`)
-- Seccao "Como Funciona" com 4 passos em timeline horizontal
-- Seccao "Resultados" com metricas agregadas (fetch publico de `fastclub_crm_aggregates` com RLS publica ou dados estaticos fallback)
-- Seccao "Testemunhos" com citacoes (dados estaticos inline para nao depender de workspace_id)
-- Footer com links: Comunidade (`/club/fastclub`), Login (`/auth`), Termos
-- Animacoes: `motion.div` com scroll-triggered fade-in
+Inserir conteudo em `fastclub_content_sections`:
 
-### Componente `FastCRMDeepLink`
+**Laboratorio** (page_key = 'laboratorio', 4 registos):
+- section_key: `exp-pipeline-v2`, titulo: "Pipeline Kanban v2", metadata: `{ estado: "Ativo", tipo: "Feature" }`
+- section_key: `exp-ia-qualificacao`, titulo: "IA Qualificacao Automatica", metadata: `{ estado: "Ativo", tipo: "IA" }`
+- section_key: `exp-widget-whatsapp`, titulo: "Widget WhatsApp Integrado", metadata: `{ estado: "Em Breve", tipo: "Integracao" }`
+- section_key: `exp-relatorios`, titulo: "Relatorios Avancados", metadata: `{ estado: "Em Breve", tipo: "Analytics" }`
 
-```typescript
-interface FastCRMDeepLinkProps {
-  targetPath: string;           // ex: "/dashboard/pipeline"
-  moduleId?: string;            // ID do modulo SSO (opcional)
-  children: ReactNode;          // Conteudo do botao
-  variant?: "default" | "outline" | "ghost";
-  className?: string;
-  fallbackBehavior?: "navigate" | "login";  // Se SSO falhar
-}
-```
+**Hot Seats** (page_key = 'hot-seats', 5 registos):
+- 3 sessoes futuras com metadata: `{ data: "2026-02-20", hora: "10:00", tema: "...", vagas: 8, tipo: "futuro" }`
+- 2 sessoes passadas com metadata: `{ data: "2026-01-15", tipo: "passado", takeaways: ["...", "..."] }`
 
-Logica:
-1. Verifica se utilizador esta autenticado (via `useAuth`)
-2. Se nao autenticado: navega para `/auth?redirect={targetPath}`
-3. Se autenticado e `moduleId` fornecido: invoca SSO, gera token, navega com `?sso_token=...&nonce=...`
-4. Se autenticado sem `moduleId`: navega diretamente para `targetPath` (deep-link simples sem SSO)
-5. Estados visuais: loading spinner durante SSO, erro com toast
+### Pagina LaboratorioPage
 
-### Hook `useFastCRMDeepLink`
+- Envolvida em `PremiumGate` com `featureLabel="Laboratório Fast"`
+- Botao "Voltar" no topo
+- Header com gradiente executivo, badge "Beta" em amarelo
+- Grid de cards de experimentos com:
+  - Titulo e descricao
+  - Badge de estado (Ativo = verde, Em Breve = amarelo, Concluido = cinza)
+  - Badge de tipo (Feature, IA, Integracao, Analytics)
+  - CTA "Experimentar" (deep-link SSO) para experimentos ativos
+- Seccao de feedback com textarea e botao "Enviar Feedback" (toast de confirmacao, sem persistencia nesta fase)
+- Animacoes framer-motion (fade + stagger)
 
-Wrapper simplificado:
-```typescript
-function useFastCRMDeepLink(targetPath: string, moduleId?: string) {
-  // Retorna { navigate: () => void, isLoading: boolean }
-  // Gere automaticamente o fluxo auth check + SSO + redirect
-}
-```
+### Pagina HotSeatsPage
 
-### Integracao nas paginas existentes
+- Envolvida em `PremiumGate` com `featureLabel="Hot Seats"`
+- Botao "Voltar" no topo
+- Seccao "Proximas Sessoes" com cards visuais:
+  - Data e hora com formatacao
+  - Tema da sessao
+  - Numero de vagas restantes com badge
+  - CTA "Inscrever-me" via `FastCRMDeepLink`
+- Seccao "Sessoes Anteriores" em Accordion:
+  - Titulo e data
+  - Lista de takeaways
+- Animacoes framer-motion consistentes
 
-Nas paginas do Desafio, Missao da Semana e IA Avancada, os botoes "Abrir no FastCRM" / "Executar" serao substituidos por `<FastCRMDeepLink targetPath="/dashboard/pipeline">`. Isto mantem o visual igual mas adiciona a logica SSO quando aplicavel.
+### Sidebar -- separador visual e novos items
 
-### Rota publica no App.tsx
+Adicionar um label/separador "Zona Premium" antes dos items premium no grupo FastClub. Depois adicionar:
 
 ```typescript
-{/* Public FastClub Landing */}
-<Route path="/fastclub" element={<FastClubLandingPage />} />
+// Antes dos items premium, inserir separador visual
+// Novos items:
+{ name: "Laboratório Fast", href: "/dashboard/fastclub/laboratorio", icon: FlaskConical, tooltip: "Experimentos e funcionalidades beta" },
+{ name: "Hot Seats", href: "/dashboard/fastclub/hot-seats", icon: Mic, tooltip: "Sessões de mentoria ao vivo" },
 ```
 
-Colocada na zona de rotas publicas, fora dos providers de workspace/autenticacao obrigatoria.
+Ordem final dos items premium na sidebar:
+1. Missao da Semana
+2. Implementacao Guiada
+3. IA Avancada
+4. FastMatch Hub
+5. Laboratorio Fast
+6. Hot Seats
 
-### Padrao visual da Landing
+### Padrao visual
 
-- Navbar fixa/sticky com fundo transparente que fica solido ao scroll
-- Hero: gradiente `from-primary via-primary to-primary/80` com pattern overlay (mesmo padrao de `StartHerePage`)
-- Seccoes alternadas fundo branco/cinza claro
-- Cards com `hover:shadow-lg transition-all`
-- CTAs primarios com cor primary, secundarios outline
-- Responsivo: stack vertical em mobile, grid em desktop
-- Animacoes subtis de entrada ao scroll (intersection observer + framer-motion)
+Consistente com todas as paginas anteriores:
+- Botao "Voltar" com `ArrowLeft`
+- Titulo e subtitulo com badges
+- Cards com gradientes subtis e hover com elevacao
+- Animacoes `motion.div` com stagger (delay 0.05-0.1s)
+- Empty states motivacionais
+- CTAs via `FastCRMDeepLink` onde aplicavel
 
