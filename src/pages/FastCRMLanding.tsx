@@ -30,7 +30,7 @@ export default function FastCRMLanding() {
           content="Não é apenas um CRM. É a Infraestrutura Digital da Sua Empresa."
         />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://fastcrm.metodopare.ai/fastcrm" />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai" />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
