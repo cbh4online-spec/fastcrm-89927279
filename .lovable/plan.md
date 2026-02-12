@@ -1,251 +1,173 @@
 
-# Estrutura Completa de Canais e Subcanais do FastClub
+# Migrar FastClub de /dashboard/fastclub para /club/fastclub
 
-## Contexto Atual
+## Problema Atual
 
-O FastClub ja possui paginas dedicadas para cada seccao (StartHerePage, MetodoParePage, DemosPage, RedePrivadaPage, etc.) e usa a tabela `fastclub_content_sections` para conteudo dinamico. A sidebar tem os items organizados mas falta:
+Todo o conteudo do FastClub (Start Here, Metodo PARE, Demos, Rede Privada, Zona Premium, etc.) vive em rotas `/dashboard/fastclub/...` dentro do CRM. O portal publico `/club/fastclub` e apenas uma landing page basica que redireciona membros aprovados para o dashboard.
 
-- **Subcanais** dentro de cada canal principal (ex: Metodo PARE com 4 subpaginas P/A/R/E)
-- **Pagina de Atualizacoes do Ecossistema** (comunicacao institucional)
-- **Subcanalização da Rede Privada** (5 subcanais educativos)
-- **Subcanalização do FastCRM em Acao** (3 subcanais)
-- **Navegacao hierarquica** na sidebar com submenus collapsiveis
-- **Controlo de permissoes** (Free vs Premium vs Admin) na UI
+O utilizador quer que **todo o conteudo do FastClub viva dentro de `/club/fastclub/...`**, como portal autonomo da comunidade.
 
 ---
 
-## 1. Reestruturar Sidebar com Subcanais Collapsiveis
+## Arquitetura Proposta
 
-Modificar o tipo `NavItem` em `Sidebar.tsx` para suportar `children: NavItem[]` e renderizar submenus collapsiveis.
+### Novo Layout: `ClubLayout`
 
-### Estrutura de navegacao pretendida:
+Criar um layout dedicado para o portal `/club/fastclub` que substitui o `DashboardLayout` do CRM. Este layout tera:
+
+- **Sidebar propria** com a navegacao completa do FastClub (zonas publica, premium, rede privada, institucional)
+- **TopBar simplificada** com logo da comunidade, nome e botao de perfil
+- **Gate de acesso**: verificar se o utilizador esta autenticado e e membro (active/workspace_member). Caso contrario, redirecionar para `/club/fastclub/auth`.
 
 ```text
-ZONA PUBLICA (Free + Premium)
-  Start Here                     /dashboard/fastclub/start-here
-  Metodo PARE                    (colapsavel)
-    Planeamento                  /dashboard/fastclub/metodo-pare/planeamento
-    Automacao                    /dashboard/fastclub/metodo-pare/automacao
-    Resultados                   /dashboard/fastclub/metodo-pare/resultados
-    Eficiencia                   /dashboard/fastclub/metodo-pare/eficiencia
-  FastCRM em Acao                (colapsavel)
-    Demonstracoes                /dashboard/fastclub/demos/demonstracoes
-    Casos Praticos               /dashboard/fastclub/demos/casos-praticos
-    Roadmap & Atualizacoes       /dashboard/fastclub/demos/roadmap
-  Resultados                     /dashboard/fastclub/resultados
-
-HUB REDE PRIVADA
-  Rede Privada                   (colapsavel)
-    Como Funciona                /dashboard/fastclub/rede-privada/como-funciona
-    Otimizar Perfil              /dashboard/fastclub/rede-privada/otimizar-perfil
-    Indicadores da Rede          /dashboard/fastclub/rede-privada/indicadores
-    Negocios Fechados            /dashboard/fastclub/rede-privada/negocios-fechados
-    Estrategias de Abordagem     /dashboard/fastclub/rede-privada/estrategias
-
----- ZONA PREMIUM ----
-  Missao da Semana               /dashboard/fastclub/missao-semana
-  Implementacao Guiada           /dashboard/fastclub/implementacao
-  IA & Automacoes                /dashboard/fastclub/ia-avancada
-  Laboratorio Fast               /dashboard/fastclub/laboratorio
-
-COMUNICACAO INSTITUCIONAL
-  Anuncios Oficiais              /dashboard/fastclub/anuncios
-  Atualizacoes do Ecossistema    /dashboard/fastclub/atualizacoes
-  Conta & Plano                  /dashboard/settings/billing
++------------------+-----------------------------+
+|  Club Sidebar    |  Conteudo da pagina         |
+|                  |                             |
+|  Start Here      |  (SubchannelLayout ou       |
+|  Metodo PARE     |   pagina de hub)            |
+|    Planeamento   |                             |
+|    Automacao     |                             |
+|    ...           |                             |
+|  Rede Privada    |                             |
+|    ...           |                             |
+|  --- Premium --- |                             |
+|  Missao Semana   |                             |
+|    ...           |                             |
+|  --- Instit. --- |                             |
+|  Anuncios        |                             |
++------------------+-----------------------------+
 ```
 
 ---
 
-## 2. Subpaginas do Metodo PARE
+## Plano de Execucao
 
-Converter `MetodoParePage.tsx` de pagina unica com os 4 pilares numa pagina de **hub** com links para 4 subpaginas dedicadas.
+### 1. Criar `ClubLayout` e `ClubSidebar`
 
-Criar: `src/pages/fastclub/metodo-pare/PlaneamentoPage.tsx`
-Criar: `src/pages/fastclub/metodo-pare/AutomacaoPage.tsx`
-Criar: `src/pages/fastclub/metodo-pare/ResultadosParePage.tsx`
-Criar: `src/pages/fastclub/metodo-pare/EficienciaPage.tsx`
+**Criar**: `src/components/club/ClubLayout.tsx`
+- Verifica autenticacao e membership status
+- Se nao autenticado ou nao membro: redireciona para `/club/:slug/auth`
+- Se pendente: mostra ecra de aprovacao
+- Se ativo: renderiza sidebar + conteudo
 
-Cada subpagina tera:
-- Conteudo educacional (carregado de `fastclub_content_sections` com `page_key` = `pare-planeamento`, etc.)
-- Templates (lista de recursos)
-- Videos (placeholders para URLs)
-- Sem discussao livre (sem forum/comentarios)
-- CTA "Abrir FastCRM" com deep-link contextual
+**Criar**: `src/components/club/ClubSidebar.tsx`
+- Navegacao identica a que esta atualmente na sidebar do CRM (grupo FastClub)
+- Todas as rotas apontam para `/club/fastclub/...` em vez de `/dashboard/fastclub/...`
+- Separadores visuais: Zona Publica, Rede Privada, Zona Premium, Institucional
+- Responsivo: colapsavel em mobile
 
-Manter `MetodoParePage.tsx` como hub com cards linkando para cada subpagina.
+### 2. Mover Rotas de `/dashboard/fastclub/*` para `/club/fastclub/*`
 
----
+**Editar**: `src/App.tsx`
+- Remover todas as 30 rotas `/dashboard/fastclub/...`
+- Criar rotas equivalentes em `/club/fastclub/...` envolvidas no `ClubLayout`
+- Manter `/club/:slug` (PublicCommunityPage) para visitantes nao autenticados
+- Manter `/club/:slug/auth` para registo
 
-## 3. Subcanais do FastCRM em Acao
-
-Expandir `DemosPage.tsx` numa estrutura com 3 subpaginas:
-
-Criar: `src/pages/fastclub/demos/DemonstracaoesPage.tsx` — Videos e demos interativos
-Criar: `src/pages/fastclub/demos/CasosPraticosPage.tsx` — Casos reais com comentarios moderados
-Criar: `src/pages/fastclub/demos/RoadmapPage.tsx` — Roadmap e notas de atualizacao
-
-Cada subcanal carrega conteudo de `fastclub_content_sections` com `page_key` contextual.
-Comentarios moderados apenas em Casos Praticos (usando o sistema de forum existente com `forum_topics` filtrado por `category_id`).
-CTA fixo "Abrir FastCRM" em todas.
-
-Manter `DemosPage.tsx` como hub com links para os 3 subcanais.
-
----
-
-## 4. Subcanais da Rede Privada
-
-Expandir `RedePrivadaPage.tsx` numa estrutura com 5 subpaginas:
-
-Criar: `src/pages/fastclub/rede-privada/ComoFuncionaPage.tsx`
-  - Regras da rede, etica, estrutura de quotas
-
-Criar: `src/pages/fastclub/rede-privada/OtimizarPerfilPage.tsx`
-  - Modelos de oferta e procura, exemplos corretos vs incorretos
-
-Criar: `src/pages/fastclub/rede-privada/IndicadoresPage.tsx`
-  - Dados agregados de `fastmatch_profiles` e `fastmatch_connections`
-  - Oportunidades semanais, membros verificados, tendencias setoriais, taxa de resposta
-
-Criar: `src/pages/fastclub/rede-privada/NegociosFechadosPage.tsx`
-  - Casos reais aprovados com formato estruturado (template obrigatorio)
-  - Dados de `fastclub_content_sections` com `page_key = 'negocios-fechados'`
-
-Criar: `src/pages/fastclub/rede-privada/EstrategiasPage.tsx`
-  - Como qualificar, comunicar e converter
-
-Todas com CTA fixo: "Abrir FastMatch no CRM" (deep-link para `/dashboard/fastmatch`).
-
-Manter `RedePrivadaPage.tsx` como hub com stats agregados e links para cada subcanal.
-
----
-
-## 5. Pagina de Atualizacoes do Ecossistema
-
-Criar: `src/pages/fastclub/AtualizacoesPage.tsx`
-- Novas funcionalidades, evolucao do roadmap, integracoes
-- Dados de `fastclub_content_sections` com `page_key = 'atualizacoes'`
-- Badges: "Nova Funcionalidade", "Integracao", "Melhoria"
-- Sem comentarios (apenas admin publica)
-
----
-
-## 6. Componentes Reutilizaveis
-
-### Criar: `src/components/fastclub/SubchannelLayout.tsx`
-Layout padrao para subcanais com:
-- Header com gradiente e badge de zona
-- Breadcrumb (ex: FastClub > Metodo PARE > Planeamento)
-- Container de conteudo
-- CTA fixo no fundo
-
-### Criar: `src/components/fastclub/ClosedCaseTemplate.tsx`
-Template obrigatorio para "Caso Fechado" com:
-- Contexto
-- Acao
-- Resultado
-- Metrica
-Estilo executivo, sem emojis.
-
-### Criar: `src/components/fastclub/WeeklyMissionTemplate.tsx`
-Template para "Missao da Semana" com:
-- Objetivo
-- Passos
-- Implementacao no CRM
-- Resultado esperado
-
-### Criar: `src/components/fastclub/AggregatedDashboard.tsx`
-Dashboard de indicadores agregados para a Rede Privada:
-- Cards com metricas de `fastmatch_profiles` e `fastmatch_connections`
-- Grafico simples de tendencia (opcional, com recharts)
-
----
-
-## 7. Controlo de Permissoes na UI
-
-Utilizar o hook existente `useFastClubMembership()` para controlar acesso:
-
-| Zona | Visitor | Free | Premium | Admin |
-|---|---|---|---|---|
-| Start Here | -- | Sim | Sim | Sim |
-| Metodo PARE + sub | -- | Sim | Sim | Sim |
-| FastCRM em Acao + sub | -- | Sim | Sim | Sim |
-| Resultados | -- | Sim | Sim | Sim |
-| Rede Privada + sub | -- | Sim | Sim | Sim |
-| Zona Premium | -- | -- | Sim | Sim |
-| Anuncios (publicar) | -- | -- | -- | Sim |
-| Atualizacoes (publicar) | -- | -- | -- | Sim |
-
-Na sidebar: items premium ja utilizam o separador "Zona Premium". Adicionar `PremiumGate` (ja existente) nas subpaginas premium.
-Na sidebar: Anuncios visiveis a todos; publicacao restrita a admin via logica na pagina.
-
----
-
-## 8. Rotas Novas no App.tsx
-
-Adicionar rotas aninhadas:
+Nova estrutura de rotas:
 
 ```text
-/dashboard/fastclub/metodo-pare/planeamento
-/dashboard/fastclub/metodo-pare/automacao
-/dashboard/fastclub/metodo-pare/resultados
-/dashboard/fastclub/metodo-pare/eficiencia
-/dashboard/fastclub/demos/demonstracoes
-/dashboard/fastclub/demos/casos-praticos
-/dashboard/fastclub/demos/roadmap
-/dashboard/fastclub/rede-privada/como-funciona
-/dashboard/fastclub/rede-privada/otimizar-perfil
-/dashboard/fastclub/rede-privada/indicadores
-/dashboard/fastclub/rede-privada/negocios-fechados
-/dashboard/fastclub/rede-privada/estrategias
-/dashboard/fastclub/atualizacoes
+/club/fastclub                     --> FastClubPage (hub principal)
+/club/fastclub/start-here          --> StartHerePage
+/club/fastclub/metodo-pare         --> MetodoParePage
+/club/fastclub/metodo-pare/planeamento  --> PlaneamentoPage
+/club/fastclub/metodo-pare/automacao    --> AutomacaoPage
+/club/fastclub/metodo-pare/resultados   --> ResultadosParePage
+/club/fastclub/metodo-pare/eficiencia   --> EficienciaPage
+/club/fastclub/demos               --> DemosPage
+/club/fastclub/demos/demonstracoes --> DemonstracoesPage
+/club/fastclub/demos/casos-praticos --> CasosPraticosPage
+/club/fastclub/demos/roadmap       --> RoadmapPage
+/club/fastclub/resultados          --> ResultadosPage
+/club/fastclub/rede-privada        --> RedePrivadaPage
+/club/fastclub/rede-privada/...    --> (5 subpaginas)
+/club/fastclub/missao-semana       --> MissaoSemanaPage
+/club/fastclub/implementacao       --> ImplementacaoPage
+/club/fastclub/ia-avancada         --> IAAvancadaPage
+/club/fastclub/laboratorio         --> LaboratorioPage
+/club/fastclub/hot-seats           --> HotSeatsPage
+/club/fastclub/anuncios            --> AnunciosPage
+/club/fastclub/atualizacoes        --> AtualizacoesPage
+/club/fastclub/forum               --> ForumPage
+/club/fastclub/forum/:topicId      --> ForumTopicPage
+/club/fastclub/rewards             --> LoyaltyPage
+/club/fastclub/desafio-7-dias      --> DesafioPage
+/club/fastclub/fastmatch           --> FastMatchPage
 ```
+
+### 3. Atualizar Todos os Links Internos
+
+**Editar** (13 ficheiros em `src/pages/fastclub/`):
+- Substituir todas as referencias a `/dashboard/fastclub` por `/club/fastclub`
+- Inclui `navigate()`, `backPath`, `breadcrumbs`, links de CTAs
+
+**Editar**: `src/components/fastclub/SubchannelLayout.tsx`
+- Alterar `backPath` default de `/dashboard/fastclub` para `/club/fastclub`
+
+**Editar**: `src/components/layout/PageBreadcrumbs.tsx`
+- Alterar link Home de `/dashboard` para `/club/fastclub`
+
+### 4. Atualizar `PublicCommunityPage.tsx`
+
+**Editar**: `src/pages/community/PublicCommunityPage.tsx`
+- Remover o redirect para `/dashboard/fastclub` (linha 63)
+- Em vez disso, redirecionar membros ativos para `/club/fastclub` (mesmo dominio, agora com layout proprio)
+
+### 5. Atualizar Sidebar do CRM
+
+**Editar**: `src/components/layout/Sidebar.tsx`
+- Simplificar o grupo FastClub: em vez de listar todos os subcanais, ter apenas um link "FastClub" que abre `/club/fastclub` (ou usa `window.location` para navegar fora do SPA do dashboard)
+- Alternativa: manter como link externo com icone de "abrir"
+
+### 6. Atualizar `FastClubPage.tsx`
+
+**Editar**: `src/pages/community/FastClubPage.tsx`
+- Atualizar todos os `navigate("/dashboard/fastclub/...")` para `/club/fastclub/...`
+- Alterar botao "Voltar" de `/dashboard` para logica contextual
 
 ---
 
 ## Detalhe Tecnico
 
-### Ficheiros a criar (16 ficheiros)
+### Ficheiros a criar (2)
 
 | Ficheiro | Descricao |
 |---|---|
-| `src/pages/fastclub/metodo-pare/PlaneamentoPage.tsx` | Subpagina P |
-| `src/pages/fastclub/metodo-pare/AutomacaoPage.tsx` | Subpagina A |
-| `src/pages/fastclub/metodo-pare/ResultadosParePage.tsx` | Subpagina R |
-| `src/pages/fastclub/metodo-pare/EficienciaPage.tsx` | Subpagina E |
-| `src/pages/fastclub/demos/DemonstracaoesPage.tsx` | Demos interativos |
-| `src/pages/fastclub/demos/CasosPraticosPage.tsx` | Casos com comentarios |
-| `src/pages/fastclub/demos/RoadmapPage.tsx` | Roadmap e atualizacoes |
-| `src/pages/fastclub/rede-privada/ComoFuncionaPage.tsx` | Regras e etica |
-| `src/pages/fastclub/rede-privada/OtimizarPerfilPage.tsx` | Modelos oferta/procura |
-| `src/pages/fastclub/rede-privada/IndicadoresPage.tsx` | Dashboard agregado |
-| `src/pages/fastclub/rede-privada/NegociosFechadosPage.tsx` | Casos reais |
-| `src/pages/fastclub/rede-privada/EstrategiasPage.tsx` | Qualificacao e conversao |
-| `src/pages/fastclub/AtualizacoesPage.tsx` | Comunicacao institucional |
-| `src/components/fastclub/SubchannelLayout.tsx` | Layout reutilizavel |
-| `src/components/fastclub/ClosedCaseTemplate.tsx` | Template caso fechado |
-| `src/components/fastclub/AggregatedDashboard.tsx` | Dashboard indicadores |
+| `src/components/club/ClubLayout.tsx` | Layout principal com sidebar, auth gate, e conteudo |
+| `src/components/club/ClubSidebar.tsx` | Sidebar de navegacao do FastClub |
 
-### Ficheiros a editar (4 ficheiros)
+### Ficheiros a editar (~20)
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/components/layout/Sidebar.tsx` | Adicionar suporte a `children` no NavItem, reorganizar FastClub com submenus collapsiveis, separadores de zona |
-| `src/App.tsx` | Adicionar 13 rotas novas |
-| `src/pages/fastclub/MetodoParePage.tsx` | Converter em hub com links para subpaginas |
-| `src/pages/fastclub/DemosPage.tsx` | Converter em hub com links para subcanais |
-| `src/pages/fastclub/RedePrivadaPage.tsx` | Converter em hub com links para subcanais |
+| `src/App.tsx` | Mover rotas de `/dashboard/fastclub/*` para `/club/fastclub/*` |
+| `src/components/layout/Sidebar.tsx` | Simplificar grupo FastClub para link unico |
+| `src/pages/community/PublicCommunityPage.tsx` | Redirect para `/club/fastclub` |
+| `src/pages/community/FastClubPage.tsx` | Atualizar todos os links internos |
+| `src/components/fastclub/SubchannelLayout.tsx` | backPath default |
+| `src/components/layout/PageBreadcrumbs.tsx` | Home link contextual |
+| `src/pages/fastclub/StartHerePage.tsx` | Links internos |
+| `src/pages/fastclub/MetodoParePage.tsx` | Links internos |
+| `src/pages/fastclub/DemosPage.tsx` | Links internos |
+| `src/pages/fastclub/RedePrivadaPage.tsx` | Links internos |
+| `src/pages/fastclub/ResultadosPage.tsx` | Links internos |
+| `src/pages/fastclub/AnunciosPage.tsx` | Links internos |
+| `src/pages/fastclub/AtualizacoesPage.tsx` | Links internos |
+| `src/pages/fastclub/MissaoSemanaPage.tsx` | Links internos |
+| `src/pages/fastclub/IAAvancadaPage.tsx` | Links internos |
+| `src/pages/fastclub/ImplementacaoPage.tsx` | Links internos |
+| `src/pages/fastclub/LaboratorioPage.tsx` | Links internos |
+| `src/pages/fastclub/FastMatchPage.tsx` | Links internos |
+| Subpaginas em `metodo-pare/`, `demos/`, `rede-privada/` | Breadcrumbs e backPath |
 
 ### Sem migracoes SQL
 
-Todo o conteudo dinamico utiliza a tabela `fastclub_content_sections` existente com novos `page_key` values. Os indicadores da rede utilizam `fastmatch_profiles` e `fastmatch_connections` ja existentes.
+Nao ha alteracoes na base de dados. Toda a logica e de routing e UI.
 
-### Ordem de implementacao
+### Ordem de execucao
 
-1. `SubchannelLayout.tsx` + `ClosedCaseTemplate.tsx` + `AggregatedDashboard.tsx` (componentes base)
-2. Subpaginas do Metodo PARE (4 paginas)
-3. Subcanais do FastCRM em Acao (3 paginas)
-4. Subcanais da Rede Privada (5 paginas)
-5. `AtualizacoesPage.tsx`
-6. Sidebar com submenus collapsiveis
-7. App.tsx com todas as rotas
-8. Conversao de hub pages (MetodoParePage, DemosPage, RedePrivadaPage)
+1. Criar `ClubLayout` + `ClubSidebar` (componentes base)
+2. Atualizar `App.tsx` (mover rotas)
+3. Atualizar `PublicCommunityPage.tsx` (redirect)
+4. Atualizar todos os ficheiros de paginas (links internos) — em batch
+5. Simplificar sidebar do CRM
