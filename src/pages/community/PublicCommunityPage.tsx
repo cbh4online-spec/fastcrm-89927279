@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -60,8 +60,7 @@ export default function PublicCommunityPage() {
 
   // Redirect approved members to internal dashboard
   if (!authLoading && !isLoading && !membershipLoading && user && (membershipStatus === "active" || membershipStatus === "workspace_member")) {
-    navigate("/club/fastclub", { replace: true });
-    return null;
+    return <Navigate to="/club/fastclub" replace />;
   }
 
   if (isLoading || authLoading || membershipLoading) {

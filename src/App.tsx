@@ -422,40 +422,6 @@ function CRMRoutes() {
                 <Route path="/dashboard/fastclub" element={<Navigate to="/club/fastclub" replace />} />
                 <Route path="/dashboard/fastclub/*" element={<Navigate to="/club/fastclub" replace />} />
                 
-                {/* FastClub Portal Routes (under /club/fastclub) - wrapped in ClubLayout */}
-                <Route element={<ClubLayout><Outlet /></ClubLayout>}>
-                  <Route path="/club/fastclub" element={<FastClubPage />} />
-                  <Route path="/club/fastclub/forum" element={<ForumPage />} />
-                  <Route path="/club/fastclub/forum/:topicId" element={<ForumTopicPage />} />
-                  <Route path="/club/fastclub/rewards" element={<LoyaltyPage />} />
-                  <Route path="/club/fastclub/start-here" element={<StartHerePage />} />
-                  <Route path="/club/fastclub/metodo-pare" element={<MetodoParePage />} />
-                  <Route path="/club/fastclub/metodo-pare/planeamento" element={<PlaneamentoParePage />} />
-                  <Route path="/club/fastclub/metodo-pare/automacao" element={<AutomacaoParePage />} />
-                  <Route path="/club/fastclub/metodo-pare/resultados" element={<ResultadosParePage />} />
-                  <Route path="/club/fastclub/metodo-pare/eficiencia" element={<EficienciaParePage />} />
-                  <Route path="/club/fastclub/demos" element={<DemosPage />} />
-                  <Route path="/club/fastclub/demos/demonstracoes" element={<DemonstracoesPage />} />
-                  <Route path="/club/fastclub/demos/casos-praticos" element={<CasosPraticosPage />} />
-                  <Route path="/club/fastclub/demos/roadmap" element={<RoadmapFCPage />} />
-                  <Route path="/club/fastclub/desafio-7-dias" element={<DesafioPage />} />
-                  <Route path="/club/fastclub/resultados" element={<ResultadosPage />} />
-                  <Route path="/club/fastclub/rede-privada" element={<RedePrivadaPage />} />
-                  <Route path="/club/fastclub/rede-privada/como-funciona" element={<ComoFuncionaPage />} />
-                  <Route path="/club/fastclub/rede-privada/otimizar-perfil" element={<OtimizarPerfilPage />} />
-                  <Route path="/club/fastclub/rede-privada/indicadores" element={<IndicadoresPage />} />
-                  <Route path="/club/fastclub/rede-privada/negocios-fechados" element={<NegociosFechadosPage />} />
-                  <Route path="/club/fastclub/rede-privada/estrategias" element={<EstrategiasPage />} />
-                  <Route path="/club/fastclub/anuncios" element={<AnunciosPage />} />
-                  <Route path="/club/fastclub/atualizacoes" element={<AtualizacoesPage />} />
-                  <Route path="/club/fastclub/missao-semana" element={<MissaoSemanaPage />} />
-                  <Route path="/club/fastclub/implementacao" element={<ImplementacaoPage />} />
-                  <Route path="/club/fastclub/ia-avancada" element={<IAAvancadaPage />} />
-                  <Route path="/club/fastclub/fastmatch" element={<FastMatchPage />} />
-                  <Route path="/club/fastclub/laboratorio" element={<LaboratorioPage />} />
-                  <Route path="/club/fastclub/hot-seats" element={<HotSeatsPage />} />
-                </Route>
-                
                 {/* FastMatch Discovery (CRM) */}
                 <Route path="/dashboard/fastmatch" element={<FastMatchDiscoveryPage />} />
 
@@ -506,6 +472,52 @@ const App = () => (
               {/* Public FastClub Landing */}
               <Route path="/fastclub" element={<FastClubLandingPage />} />
               
+              {/* FastClub Portal Routes - BEFORE /club/:slug to prevent catch-all */}
+              <Route path="/club/fastclub" element={
+                <AuthProvider>
+                  <WorkspaceProvider>
+                    <WorkspaceInstanceProvider>
+                      <ActivityProfileProvider>
+                        <SubscriptionProvider>
+                          <ClubLayout><Outlet /></ClubLayout>
+                        </SubscriptionProvider>
+                      </ActivityProfileProvider>
+                    </WorkspaceInstanceProvider>
+                  </WorkspaceProvider>
+                </AuthProvider>
+              }>
+                <Route index element={<FastClubPage />} />
+                <Route path="forum" element={<ForumPage />} />
+                <Route path="forum/:topicId" element={<ForumTopicPage />} />
+                <Route path="rewards" element={<LoyaltyPage />} />
+                <Route path="start-here" element={<StartHerePage />} />
+                <Route path="metodo-pare" element={<MetodoParePage />} />
+                <Route path="metodo-pare/planeamento" element={<PlaneamentoParePage />} />
+                <Route path="metodo-pare/automacao" element={<AutomacaoParePage />} />
+                <Route path="metodo-pare/resultados" element={<ResultadosParePage />} />
+                <Route path="metodo-pare/eficiencia" element={<EficienciaParePage />} />
+                <Route path="demos" element={<DemosPage />} />
+                <Route path="demos/demonstracoes" element={<DemonstracoesPage />} />
+                <Route path="demos/casos-praticos" element={<CasosPraticosPage />} />
+                <Route path="demos/roadmap" element={<RoadmapFCPage />} />
+                <Route path="desafio-7-dias" element={<DesafioPage />} />
+                <Route path="resultados" element={<ResultadosPage />} />
+                <Route path="rede-privada" element={<RedePrivadaPage />} />
+                <Route path="rede-privada/como-funciona" element={<ComoFuncionaPage />} />
+                <Route path="rede-privada/otimizar-perfil" element={<OtimizarPerfilPage />} />
+                <Route path="rede-privada/indicadores" element={<IndicadoresPage />} />
+                <Route path="rede-privada/negocios-fechados" element={<NegociosFechadosPage />} />
+                <Route path="rede-privada/estrategias" element={<EstrategiasPage />} />
+                <Route path="anuncios" element={<AnunciosPage />} />
+                <Route path="atualizacoes" element={<AtualizacoesPage />} />
+                <Route path="missao-semana" element={<MissaoSemanaPage />} />
+                <Route path="implementacao" element={<ImplementacaoPage />} />
+                <Route path="ia-avancada" element={<IAAvancadaPage />} />
+                <Route path="fastmatch" element={<FastMatchPage />} />
+                <Route path="laboratorio" element={<LaboratorioPage />} />
+                <Route path="hot-seats" element={<HotSeatsPage />} />
+              </Route>
+
               {/* Public Community */}
               <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
               <Route path="/club/:slug/topic/:topicId" element={<AuthProvider><PublicCommunityTopicPage /></AuthProvider>} />
