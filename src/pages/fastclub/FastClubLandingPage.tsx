@@ -29,6 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -90,6 +91,7 @@ const CONFIDENTIALITY = [
 
 export default function FastClubLandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const canonicalUrl = `${getPublicBaseUrl()}/fastclub`;
   const { toast } = useToast();
 
@@ -99,13 +101,43 @@ export default function FastClubLandingPage() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast({
-      title: "Candidatura submetida",
-      description: "Análise confidencial. Resposta em até 5 dias úteis.",
-    });
-    (e.target as HTMLFormElement).reset();
+    setIsSubmitting(true);
+
+    const form = e.target as HTMLFormElement;
+    const fd = new FormData(form);
+
+    try {
+      const { error } = await supabase.from('fastclub_applications' as any).insert({
+        full_name: fd.get('full_name') as string,
+        company: fd.get('company') as string,
+        role: fd.get('role') as string,
+        sector: fd.get('sector') as string,
+        employees: (fd.get('employees') as string) || null,
+        revenue: (fd.get('revenue') as string) || null,
+        website_linkedin: (fd.get('website_linkedin') as string) || null,
+        motivation: fd.get('motivation') as string,
+        email: (fd.get('email') as string) || null,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Candidatura submetida",
+        description: "Análise confidencial. Resposta em até 5 dias úteis.",
+      });
+      form.reset();
+    } catch (err) {
+      console.error('FastClub application error:', err);
+      toast({
+        title: "Erro ao submeter candidatura",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const navLinks = [
@@ -450,43 +482,47 @@ export default function FastClubLandingPage() {
                     <div className="grid sm:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label className="text-[hsl(210,40%,98%)] text-xs">Nome</Label>
-                        <Input required placeholder="Nome completo" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
+                        <Input name="full_name" required placeholder="Nome completo" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[hsl(210,40%,98%)] text-xs">Empresa</Label>
-                        <Input required placeholder="Nome da empresa" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
+                        <Input name="company" required placeholder="Nome da empresa" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
                       </div>
                     </div>
                     <div className="grid sm:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label className="text-[hsl(210,40%,98%)] text-xs">Cargo</Label>
-                        <Input required placeholder="Cargo atual" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
+                        <Input name="role" required placeholder="Cargo atual" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[hsl(210,40%,98%)] text-xs">Setor</Label>
-                        <Input required placeholder="Setor de atividade" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
+                        <Input name="sector" required placeholder="Setor de atividade" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
                       </div>
                     </div>
                     <div className="grid sm:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label className="text-[hsl(210,40%,98%)] text-xs">N.º Colaboradores</Label>
-                        <Input placeholder="Ex: 15" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
+                        <Input name="employees" placeholder="Ex: 15" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[hsl(210,40%,98%)] text-xs">Faturação Estimada</Label>
-                        <Input placeholder="Ex: 500K-1M EUR" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
+                        <Input name="revenue" placeholder="Ex: 500K-1M EUR" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
                       </div>
                     </div>
                     <div className="space-y-2">
+                      <Label className="text-[hsl(210,40%,98%)] text-xs">Email</Label>
+                      <Input name="email" type="email" placeholder="email@exemplo.com" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
+                    </div>
+                    <div className="space-y-2">
                       <Label className="text-[hsl(210,40%,98%)] text-xs">Website / LinkedIn</Label>
-                      <Input placeholder="https://" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
+                      <Input name="website_linkedin" placeholder="https://" className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)]" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[hsl(210,40%,98%)] text-xs">Porque pretende integrar o Private Capital Circle?</Label>
-                      <Textarea required rows={4} placeholder="Descreva brevemente a sua motivação e expectativas." className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] resize-none" />
+                      <Textarea name="motivation" required rows={4} placeholder="Descreva brevemente a sua motivação e expectativas." className="bg-[hsl(222,47%,8%)] border-[hsl(217,33%,17%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] resize-none" />
                     </div>
-                    <Button type="submit" size="lg" className="w-full gradient-primary shadow-glow text-primary-foreground h-12 text-base font-semibold">
-                      Solicitar Avaliação
+                    <Button type="submit" size="lg" disabled={isSubmitting} className="w-full gradient-primary shadow-glow text-primary-foreground h-12 text-base font-semibold">
+                      {isSubmitting ? "A submeter..." : "Solicitar Avaliação"}
                     </Button>
                     <p className="text-xs text-center text-[hsl(215,20%,55%)]">
                       Análise confidencial. Resposta em até 5 dias úteis.
