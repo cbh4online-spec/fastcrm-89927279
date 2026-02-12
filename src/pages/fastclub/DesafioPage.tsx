@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { FastCRMDeepLink } from "@/components/fastclub/FastCRMDeepLink";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -186,15 +187,16 @@ export default function DesafioPage() {
                         {isAvailable && !isCompleted && (
                           <div className="flex items-center gap-2 mt-4">
                             {challenge.action_url && (
-                              <Button
-                                size="sm"
+                              <FastCRMDeepLink
+                                targetPath={challenge.action_url!}
                                 variant="outline"
-                                onClick={() => navigate(challenge.action_url!)}
+                                size="sm"
                                 className="gap-1.5"
+                                fallbackBehavior="navigate"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                                 {challenge.action_label || "Abrir"}
-                              </Button>
+                              </FastCRMDeepLink>
                             )}
                             <Button
                               size="sm"

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { FastCRMDeepLink } from "@/components/fastclub/FastCRMDeepLink";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -138,14 +139,15 @@ export default function MissaoSemanaPage() {
                   )}
 
                   {currentMeta.cta_url && (
-                    <Button
-                      onClick={() => navigate(currentMeta.cta_url!)}
+                    <FastCRMDeepLink
+                      targetPath={currentMeta.cta_url!}
                       className="gap-2 w-full sm:w-auto"
                       size="lg"
+                      fallbackBehavior="navigate"
                     >
                       {currentMeta.cta_label || "Executar no FastCRM"}
                       <ArrowRight className="w-4 h-4" />
-                    </Button>
+                    </FastCRMDeepLink>
                   )}
                 </CardContent>
               </Card>
@@ -181,15 +183,16 @@ export default function MissaoSemanaPage() {
                             </div>
                           )}
                           {meta.cta_url && (
-                            <Button
+                            <FastCRMDeepLink
+                              targetPath={meta.cta_url!}
                               size="sm"
                               variant="outline"
-                              onClick={() => navigate(meta.cta_url!)}
                               className="gap-1.5"
+                              fallbackBehavior="navigate"
                             >
                               {meta.cta_label || "Executar no FastCRM"}
                               <ArrowRight className="w-3.5 h-3.5" />
-                            </Button>
+                            </FastCRMDeepLink>
                           )}
                         </div>
                       </AccordionContent>
