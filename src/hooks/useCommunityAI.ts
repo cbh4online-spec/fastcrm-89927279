@@ -13,3 +13,16 @@ export function useSuggestCommunityCategory() {
     },
   });
 }
+
+export function useSuggestChannelDescription() {
+  return useMutation({
+    mutationFn: async ({ channelName }: { channelName: string }) => {
+      const { data, error } = await supabase.functions.invoke("community-ai-category", {
+        body: { mode: "suggest-channel-description", channelName },
+      });
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || "Erro ao sugerir descrição");
+      return data.description as string;
+    },
+  });
+}
