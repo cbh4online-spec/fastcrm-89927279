@@ -1,43 +1,96 @@
 
-## Receber Mensagens Automaticamente no Inbox (Realtime)
 
-### Problema
+## Corrigir Sincronizacao de Mensagens Instagram do GHL
 
-Os webhooks (GHL, WhatsApp, Instagram) ja recebem mensagens e guardam na base de dados automaticamente. A tabela `conversations` e `messages` ja tem realtime ativado. No entanto, o hook `useConversations` nao tem subscricao realtime -- so atualiza quando o utilizador navega ou faz refresh manual. Isto faz parecer que o sistema nao recebe mensagens.
+### Problemas Identificados
+
+Nos logs da edge function `ghl-sync-conversations` encontrei dois erros que impedem o download de mensagens Instagram:
+
+**Erro 1: "messages is not iterable"**
+A API do GHL para obter mensagens de uma conversa (`/conversations/{id}/messages`) retorna um formato que o codigo nao esta a tratar corretamente. O codigo assume `msgData.messages` como array, mas a API pode devolver a estrutura noutro formato (ex: objecto com propriedade `messages` que por sua vez contem outro objecto, ou a resposta pode vir paginada com `lastMessageId`). Quando isto acontece, o `for...of` crashar com "not iterable" e todas as mensagens dessa conversa sao perdidas.
+
+**Erro 2: "No lead found for contact"**
+Conversas cujo contacto GHL nao tem lead correspondente no FastCRM sao completamente ignoradas. Isto significa que se um contacto Instagram escreveu no GHL mas ainda nao foi sincronizado como lead, todas as suas mensagens sao descartadas.
 
 ### Solucao
 
-Adicionar subscricoes realtime ao hook `useConversations` para que a lista de conversas atualize instantaneamente quando chegam novas mensagens via webhook.
+**1. Corrigir parsing da resposta de mensagens**
 
-### O que sera feito
+Na edge function `ghl-sync-conversations`, adicionar logging do formato real da resposta e tratar multiplos formatos possiveis:
+- `msgData.messages` (array direto)
+- `msgData.messages.messages` (nested)
+- `msgData.data` (formato alternativo)
+- Adicionar `Array.isArray()` check antes do loop
+- Log do formato recebido para debug futuro
 
-**1. Adicionar realtime ao `useConversations`**
+**2. Criar lead automaticamente quando nao existe**
 
-Modificar `src/hooks/useConversations.ts` para incluir uma subscricao `postgres_changes` na tabela `conversations`, filtrando por `workspace_id`. Quando houver INSERT, UPDATE ou DELETE, invalida automaticamente a query cache do React Query, fazendo o UI atualizar.
+Quando um contacto GHL nao tem lead correspondente:
+- Buscar dados do contacto na API do GHL (`/contacts/{contactId}`)
+- Criar lead automatico com os dados basicos (nome, email, telefone, ghl_contact_id)
+- Continuar com a sincronizacao da conversa e mensagens
 
-**2. Adicionar realtime ao `ConversationList`**
+Isto garante que todas as conversas Instagram (e de outros canais) sao sincronizadas, mesmo que os contactos ainda nao tenham sido importados.
 
-Garantir que o componente `ConversationList` tambem escuta mudancas na tabela `messages` para atualizar contadores e previews quando chega uma nova mensagem (o hook `useMessages` ja tem realtime, mas apenas para a conversa selecionada).
+**3. Melhorar tratamento de erros**
 
-**3. Notificacao visual de nova mensagem**
-
-Adicionar um efeito sonoro ou visual (badge a piscar, toast) quando chega uma nova conversa ou mensagem inbound para chamar a atencao do utilizador.
-
----
+- Envolver o fetch de mensagens num try/catch mais robusto que nao interrompa o loop
+- Adicionar log do body da resposta quando o formato nao e reconhecido
+- Continuar para a proxima conversa em vez de crashar
 
 ### Detalhes Tecnicos
 
-**Ficheiro**: `src/hooks/useConversations.ts`
-- Adicionar `useEffect` com `supabase.channel('conversations-realtime-{workspaceId}')` que escuta `postgres_changes` em `conversations` filtrado por `workspace_id`
-- No callback, chamar `queryClient.invalidateQueries({ queryKey: ['conversations'] })` para refrescar a lista
-- Limpar canal no cleanup do useEffect
-- Seguir o mesmo padrao ja usado em `useMessages.ts`, `useCrmActivities.ts`, etc.
+**Ficheiro a modificar:** `supabase/functions/ghl-sync-conversations/index.ts`
 
-**Ficheiro**: `src/components/inbox/ConversationList.tsx`
-- Adicionar subscricao realtime na tabela `messages` (sem filtro de conversation_id) para captar qualquer nova mensagem no workspace
-- Ao receber nova mensagem, invalidar queries de conversations para atualizar previews e contadores
+Alteracoes no bloco de fetch de mensagens (linhas 408-468):
 
-**Ficheiro**: `src/components/inbox/InboxSidebar.tsx`
-- As contagens ja dependem de `useConversations`, portanto atualizam automaticamente com o realtime
+```text
+// Antes (crashava):
+const messages: GHLMessage[] = msgData.messages || [];
+for (const msg of messages) { ... }
 
-Nao e necessaria nenhuma migracao de base de dados -- o realtime ja esta ativado para ambas as tabelas.
+// Depois (robusto):
+const rawMessages = msgData.messages || msgData.data || [];
+const messages: GHLMessage[] = Array.isArray(rawMessages) ? rawMessages : [];
+console.log("[GHL Sync] Messages response keys:", Object.keys(msgData), "count:", messages.length);
+```
+
+Alteracoes no bloco de lead lookup (linhas 338-346):
+
+```text
+// Antes (skip total):
+const leadId = leadsByGhlId.get(ghlConv.contactId);
+if (!leadId) { continue; }
+
+// Depois (auto-criar lead):
+let leadId = leadsByGhlId.get(ghlConv.contactId);
+if (!leadId) {
+  // Fetch contact from GHL API and create lead
+  const contactData = await fetchGHLContact(apiKey, ghlConv.contactId);
+  const newLead = await createLeadFromGHLContact(supabase, workspace_id, contactData);
+  if (newLead) {
+    leadId = newLead.id;
+    leadsByGhlId.set(ghlConv.contactId, leadId);
+  } else {
+    continue; // Only skip if creation truly fails
+  }
+}
+```
+
+Nova funcao helper `fetchGHLContact`:
+- GET `https://services.leadconnectorhq.com/contacts/{contactId}`
+- Headers: Authorization Bearer, Version 2021-04-15
+- Retorna nome, email, telefone
+
+Nova funcao helper `createLeadFromGHLContact`:
+- Insere na tabela `leads` com dados do contacto
+- Define `ghl_contact_id` para futuras sincronizacoes
+- Retorna o lead criado
+
+### Resultado Esperado
+
+Apos estas correcoes:
+- Mensagens Instagram (e de todos os outros canais) serao descarregadas mesmo que o contacto ainda nao exista como lead
+- O erro "messages is not iterable" sera eliminado com o check `Array.isArray()`
+- Leads serao criados automaticamente durante a sincronizacao, garantindo que nenhuma conversa e perdida
+
