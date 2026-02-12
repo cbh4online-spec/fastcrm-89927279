@@ -129,3 +129,28 @@ export function useDeleteForumCategory(workspaceId: string | undefined) {
     onError: () => toast.error("Erro ao eliminar canal"),
   });
 }
+
+export function useReorderForumCategories(workspaceId: string | undefined) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      if (!workspaceId) throw new Error("Sem workspace");
+      // Update sort_order for each category
+      const updates = orderedIds.map((id, index) =>
+        supabase
+          .from("forum_categories")
+          .update({ sort_order: index } as any)
+          .eq("id", id)
+          .eq("workspace_id", workspaceId)
+      );
+      const results = await Promise.all(updates);
+      const failed = results.find(r => r.error);
+      if (failed?.error) throw failed.error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["forum-categories"] });
+    },
+    onError: () => toast.error("Erro ao reordenar canais"),
+  });
+}

@@ -13,6 +13,7 @@ import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { SocialPostCard } from "@/components/community/SocialPostCard";
 import { CommunitySidebar } from "@/components/community/CommunitySidebar";
 import { AddChannelDialog, ChannelData } from "@/components/community/AddChannelDialog";
+import { DraggableChannelList } from "@/components/community/DraggableChannelList";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, MessageSquare, Plus, Search, Clock, TrendingUp,
@@ -282,58 +283,16 @@ export default function ForumPage() {
             </div>
 
             {/* Category filter */}
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              <Button
-                variant={!selectedCategory ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(undefined)}
-                className="rounded-full shrink-0"
-              >
-                Todos
-              </Button>
-              {categories.map(c => (
-                <div key={c.id} className="shrink-0 flex items-center gap-1 group">
-                  <Button
-                    variant={selectedCategory === c.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(c.id)}
-                    className="rounded-full shrink-0 gap-1"
-                  >
-                    {c.icon && <span>{c.icon}</span>}
-                    {c.name}
-                  </Button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => setEditingChannel({
-                        id: c.id,
-                        name: c.name,
-                        description: c.description,
-                        icon: c.icon,
-                        color: (c as any).color || null,
-                        is_private: (c as any).is_private || false,
-                        is_read_only: (c as any).is_read_only || false,
-                        is_paid: (c as any).is_paid || false,
-                        price: (c as any).price || null,
-                      })}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-muted"
-                      title="Editar canal"
-                    >
-                      <Pencil className="h-3 w-3 text-muted-foreground" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              {user && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAddChannelOpen(true)}
-                  className="rounded-full shrink-0 gap-1 text-muted-foreground"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Canal
-                </Button>
-              )}
-            </div>
+            <DraggableChannelList
+              categories={categories}
+              workspaceId={workspaceId}
+              isAdmin={isAdmin}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              onEditChannel={(ch) => setEditingChannel(ch)}
+              onAddChannel={() => setAddChannelOpen(true)}
+              showAllButton
+            />
 
             {/* Active channel banner */}
             <AnimatePresence>
