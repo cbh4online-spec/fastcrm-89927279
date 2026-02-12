@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { FastCRMDeepLink } from "@/components/fastclub/FastCRMDeepLink";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -144,15 +145,16 @@ export default function IAAvancadaPage() {
                         <h3 className="font-semibold text-foreground mb-1">{template.title}</h3>
                         <p className="text-sm text-muted-foreground flex-1">{template.content}</p>
                         {meta.cta_url && (
-                          <Button
+                          <FastCRMDeepLink
+                            targetPath={meta.cta_url!}
                             size="sm"
                             variant="outline"
-                            onClick={() => navigate(meta.cta_url!)}
                             className="gap-1.5 mt-4 self-start"
+                            fallbackBehavior="navigate"
                           >
                             {meta.cta_label || "Aplicar no FastCRM"}
                             <ArrowRight className="w-3.5 h-3.5" />
-                          </Button>
+                          </FastCRMDeepLink>
                         )}
                       </CardContent>
                     </Card>

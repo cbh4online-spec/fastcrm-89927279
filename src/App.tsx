@@ -158,6 +158,7 @@ import MissaoSemanaPage from "./pages/fastclub/MissaoSemanaPage";
 import ImplementacaoPage from "./pages/fastclub/ImplementacaoPage";
 import IAAvancadaPage from "./pages/fastclub/IAAvancadaPage";
 import FastMatchPage from "./pages/fastclub/FastMatchPage";
+import FastClubLandingPage from "./pages/fastclub/FastClubLandingPage";
 
 // Store (Public E-commerce)
 import { StoreCartProvider } from "@/contexts/StoreCartContext";
@@ -452,6 +453,9 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug/sponsor" element={<C2CSponsorPortal />} />
               <Route path="/c2c/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
               <Route path="/c2c/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
+              
+              {/* Public FastClub Landing */}
+              <Route path="/fastclub" element={<FastClubLandingPage />} />
               
               {/* Public Community */}
               <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
