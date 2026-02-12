@@ -7,14 +7,160 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users, ArrowRight, MessageSquare } from "lucide-react";
+import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users, ArrowRight, MessageSquare, Instagram, Facebook, Phone, Share2 } from "lucide-react";
 import { useWorkspaceGHLConfig, SaveGHLConfigInput } from "@/hooks/useWorkspaceGHLConfig";
 import { useGHLContactSync } from "@/hooks/useGHLContactSync";
 import { useGHLConversationSync } from "@/hooks/useGHLConversationSync";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+interface SocialChannelInfo {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  channels: string[];
+  color: string;
+  setupGuide: string;
+}
+
+const SOCIAL_CHANNELS: SocialChannelInfo[] = [
+  {
+    id: "instagram",
+    label: "Instagram DM",
+    icon: Instagram,
+    channels: ["instagram"],
+    color: "text-pink-500",
+    setupGuide: "No GHL, vá a Settings → Integrations → Instagram e conecte a sua conta profissional do Instagram. Depois, as mensagens de DM serão sincronizadas automaticamente.",
+  },
+  {
+    id: "messenger",
+    label: "Facebook Messenger",
+    icon: Facebook,
+    channels: ["messenger"],
+    color: "text-blue-600",
+    setupGuide: "No GHL, vá a Settings → Integrations → Facebook e conecte a sua página do Facebook. As mensagens do Messenger serão recebidas automaticamente.",
+  },
+  {
+    id: "whatsapp",
+    label: "WhatsApp",
+    icon: Phone,
+    channels: ["whatsapp"],
+    color: "text-green-500",
+    setupGuide: "No GHL, vá a Settings → Integrations → WhatsApp e configure a sua conta WhatsApp Business. As mensagens serão sincronizadas via webhook.",
+  },
+];
+
+function useSocialChannelCounts(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["social-channel-counts", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return {};
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("channel")
+        .eq("workspace_id", workspaceId)
+        .in("channel", ["instagram", "messenger", "whatsapp"]);
+
+      if (error) throw error;
+
+      const counts: Record<string, number> = { instagram: 0, messenger: 0, whatsapp: 0 };
+      for (const row of data || []) {
+        if (row.channel && counts[row.channel] !== undefined) {
+          counts[row.channel]++;
+        }
+      }
+      return counts;
+    },
+    enabled: !!workspaceId,
+  });
+}
 
 export function WorkspaceGHLSettings() {
+  return <WorkspaceGHLSettingsInner />;
+}
+
+function SocialChannelsViaGHL() {
+  const { currentWorkspace } = useWorkspace();
+  const { data: channelCounts = {}, isLoading } = useSocialChannelCounts(currentWorkspace?.id);
+
+  return (
+    <Card className="border-purple-200 dark:border-purple-900/30 bg-purple-50/50 dark:bg-purple-950/20">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Share2 className="h-4 w-4 text-purple-500" />
+          Canais Sociais via GHL
+        </CardTitle>
+        <CardDescription>
+          Instagram, Facebook Messenger e WhatsApp conectados via GoHighLevel
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {SOCIAL_CHANNELS.map((ch) => {
+              const Icon = ch.icon;
+              const count = channelCounts[ch.id] || 0;
+              return (
+                <div key={ch.id} className="border border-border rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 rounded-lg bg-muted">
+                        <Icon className={`h-4 w-4 ${ch.color}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{ch.label}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {count > 0 ? `${count} conversa${count !== 1 ? "s" : ""}` : "Sem conversas ainda"}
+                        </p>
+                      </div>
+                    </div>
+                    {count > 0 ? (
+                      <Badge className="bg-emerald-500 text-white text-[10px]">Ativo</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">Pendente</Badge>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="setup-guide" className="border-0">
+            <AccordionTrigger className="text-xs text-muted-foreground py-2 hover:no-underline">
+              Como ativar canais sociais no GHL?
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3 text-xs text-muted-foreground">
+              {SOCIAL_CHANNELS.map((ch) => {
+                const Icon = ch.icon;
+                return (
+                  <div key={ch.id} className="flex gap-2">
+                    <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${ch.color}`} />
+                    <div>
+                      <p className="font-medium text-foreground">{ch.label}</p>
+                      <p>{ch.setupGuide}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </CardContent>
+    </Card>
+  );
+}
+
+function WorkspaceGHLSettingsInner() {
   const {
     config,
     isLoading,
@@ -487,6 +633,9 @@ export function WorkspaceGHLSettings() {
           </CardContent>
         </Card>
       )}
+
+      {/* Social Channels via GHL */}
+      {isConfigured && <SocialChannelsViaGHL />}
 
       {/* Webhook URLs */}
       <Card>

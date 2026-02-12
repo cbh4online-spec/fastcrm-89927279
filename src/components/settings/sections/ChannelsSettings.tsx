@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InstagramConnectionCard } from "@/components/integrations/InstagramConnectionCard";
 import { EmailChannelSettings } from "./EmailChannelSettings";
+import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import {
   Mail,
   MessageSquare,
@@ -13,6 +14,7 @@ import {
   Instagram,
   Phone,
   Globe,
+  Zap,
 } from "lucide-react";
 
 interface ChannelsSettingsProps {
@@ -21,6 +23,7 @@ interface ChannelsSettingsProps {
 }
 
 export function ChannelsSettings({ searchQuery = "", matchedSections }: ChannelsSettingsProps) {
+  const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const hasSearch = searchQuery.trim().length > 0;
 
   const shouldShow = (sectionId: string) => {
@@ -63,6 +66,15 @@ export function ChannelsSettings({ searchQuery = "", matchedSections }: Channels
           icon={<Instagram className="h-5 w-5" />}
         >
           <div className="space-y-4">
+            {isGHLConfigured && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/30">
+                <Zap className="h-4 w-4 text-orange-500" />
+                <p className="text-sm text-muted-foreground">
+                  Estes canais estão conectados via <span className="font-medium text-foreground">GoHighLevel</span>. As mensagens são sincronizadas automaticamente.
+                </p>
+              </div>
+            )}
+            
             <InstagramConnectionCard />
             
             <div className="border border-border rounded-lg p-4">
@@ -74,11 +86,17 @@ export function ChannelsSettings({ searchQuery = "", matchedSections }: Channels
                   <div>
                     <p className="font-medium">WhatsApp Business</p>
                     <p className="text-sm text-muted-foreground">
-                      Conectar conta WhatsApp Business
+                      {isGHLConfigured 
+                        ? "Conectado via GoHighLevel"
+                        : "Conectar conta WhatsApp Business"}
                     </p>
                   </div>
                 </div>
-                <Badge variant="secondary">Em breve</Badge>
+                {isGHLConfigured ? (
+                  <Badge className="bg-orange-500 text-white">Via GHL</Badge>
+                ) : (
+                  <Badge variant="secondary">Em breve</Badge>
+                )}
               </div>
             </div>
           </div>
@@ -133,10 +151,24 @@ export function ChannelsSettings({ searchQuery = "", matchedSections }: Channels
           description="Conectar páginas e perfis sociais"
           icon={<Share2 className="h-5 w-5" />}
         >
+          {isGHLConfigured && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/30 mb-4">
+              <Zap className="h-4 w-4 text-orange-500" />
+              <p className="text-sm text-muted-foreground">
+                Facebook Messenger está conectado via <span className="font-medium text-foreground">GoHighLevel</span>.
+              </p>
+            </div>
+          )}
           <SettingsItem
             title="Facebook Pages"
-            description="Capturar leads de formulários do Facebook"
-            action={<Button variant="outline">Conectar</Button>}
+            description={isGHLConfigured ? "Conectado via GoHighLevel" : "Capturar leads de formulários do Facebook"}
+            action={
+              isGHLConfigured ? (
+                <Badge className="bg-orange-500 text-white">Via GHL</Badge>
+              ) : (
+                <Button variant="outline">Conectar</Button>
+              )
+            }
           />
           <SettingsItem
             title="LinkedIn"
