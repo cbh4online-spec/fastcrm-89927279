@@ -12,11 +12,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { SocialPostCard } from "@/components/community/SocialPostCard";
 import { CommunitySidebar } from "@/components/community/CommunitySidebar";
-import { AddChannelDialog } from "@/components/community/AddChannelDialog";
+import { AddChannelDialog, ChannelData } from "@/components/community/AddChannelDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, MessageSquare, Plus, Search, Clock, TrendingUp,
-  MessageCircle, Sparkles, Hash, Loader2, X
+  MessageCircle, Sparkles, Hash, Loader2, X, Pencil
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,6 +33,8 @@ export default function ForumPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("recent");
   const [addChannelOpen, setAddChannelOpen] = useState(false);
+  const [editingChannel, setEditingChannel] = useState<ChannelData | null>(null);
+  const isAdmin = currentWorkspace?.role === "owner" || currentWorkspace?.role === "admin";
 
   const { data: categories = [] } = useForumCategories(workspaceId);
   const { data: topics = [], isLoading } = useForumTopics(workspaceId, selectedCategory);
@@ -290,16 +292,36 @@ export default function ForumPage() {
                 Todos
               </Button>
               {categories.map(c => (
-                <Button
-                  key={c.id}
-                  variant={selectedCategory === c.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(c.id)}
-                  className="rounded-full shrink-0 gap-1"
-                >
-                  {c.icon && <span>{c.icon}</span>}
-                  {c.name}
-                </Button>
+                <div key={c.id} className="shrink-0 flex items-center gap-1 group">
+                  <Button
+                    variant={selectedCategory === c.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(c.id)}
+                    className="rounded-full shrink-0 gap-1"
+                  >
+                    {c.icon && <span>{c.icon}</span>}
+                    {c.name}
+                  </Button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setEditingChannel({
+                        id: c.id,
+                        name: c.name,
+                        description: c.description,
+                        icon: c.icon,
+                        color: (c as any).color || null,
+                        is_private: (c as any).is_private || false,
+                        is_read_only: (c as any).is_read_only || false,
+                        is_paid: (c as any).is_paid || false,
+                        price: (c as any).price || null,
+                      })}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-muted"
+                      title="Editar canal"
+                    >
+                      <Pencil className="h-3 w-3 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
               ))}
               {user && (
                 <Button
@@ -370,6 +392,12 @@ export default function ForumPage() {
       </div>
 
       <AddChannelDialog open={addChannelOpen} onOpenChange={setAddChannelOpen} workspaceId={workspaceId} />
+      <AddChannelDialog
+        open={!!editingChannel}
+        onOpenChange={(open) => { if (!open) setEditingChannel(null); }}
+        workspaceId={workspaceId}
+        channel={editingChannel}
+      />
     </div>
   );
 }
