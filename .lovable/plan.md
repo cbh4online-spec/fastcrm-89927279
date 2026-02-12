@@ -1,62 +1,59 @@
 
 
-## Persistir Candidaturas FastClub e Acionar Workflow
+## Integrar Mensagens de Redes Sociais com o GHL
 
-**Problema identificado**: O formulario de candidatura na pagina `/fastclub` apenas mostra um toast e limpa o formulario. Os dados nao sao guardados na base de dados e nenhum workflow e acionado.
+### Contexto Atual
+
+A integração GHL já suporta tecnicamente os canais sociais (Instagram DM, Facebook Messenger, WhatsApp) tanto para receber como para enviar mensagens. O webhook `ghl-webhook-message` mapeia os tipos GHL (17/18 para Instagram, 5/11/19 para Facebook/Messenger) e o `ghl-send-message` envia por esses canais. No entanto, falta uma configuração clara no UI para os utilizadores verem e gerirem estes canais sociais via GHL.
 
 ---
 
 ### O que sera feito
 
-1. **Criar tabela `fastclub_applications`** na base de dados para armazenar as candidaturas com todos os campos do formulario (nome, empresa, cargo, setor, colaboradores, faturacao, website/linkedin, motivacao) e um campo `status` (pending/approved/rejected).
+**1. Secção "Canais Sociais via GHL" nas Definições GHL**
 
-2. **Politica RLS**: Permitir inserts anonimos (formulario publico) e leitura apenas para utilizadores autenticados com papel de admin no workspace.
+Adicionar ao `WorkspaceGHLSettings.tsx` uma nova secção (visível quando o GHL está configurado) que mostra:
+- Lista de canais sociais suportados: Instagram, Facebook Messenger, WhatsApp
+- Estado de cada canal (baseado nas conversas existentes com esse canal no workspace)
+- Instruções de como ativar cada canal no GHL (links/guia)
+- Toggle para ativar/desativar a sincronização por canal
 
-3. **Atualizar o formulario** (`FastClubLandingPage.tsx`):
-   - Capturar todos os campos com `useState` ou `FormData`.
-   - No `handleSubmit`, inserir os dados na tabela `fastclub_applications` via Supabase client.
-   - Apos insercao com sucesso, acionar o workflow existente (`useWorkflowExecution`) com o codigo adequado para notificar os admins.
-   - Manter o toast de confirmacao e o reset do formulario.
+**2. Atualizar Canais no Settings**
 
-4. **Criar workflow template** para processamento da candidatura (notificacao ao admin, registo de atividade).
+Modificar `ChannelsSettings.tsx` para:
+- Na secção "WhatsApp & Instagram", mostrar badge "Via GHL" quando a integração está ativa
+- Na secção "Redes Sociais" (Facebook), mostrar igualmente a indicação de que já está conectado via GHL
+- Remover botões "Conectar" duplicados quando o canal já está coberto pelo GHL
+
+**3. Filtro por Canal Social no Inbox**
+
+Verificar que o `InboxSidebar` já tem filtros para instagram/messenger/facebook e que funcionam corretamente com conversas vindas do GHL.
+
+**4. Sincronização de Conversas Sociais**
+
+Atualizar `ghl-sync-conversations` para filtrar e identificar conversas de canais sociais (Instagram, Messenger, WhatsApp) durante a sincronização em massa, garantindo que o campo `channel` é corretamente mapeado.
 
 ---
 
 ### Detalhes Tecnicos
 
-**Migracao SQL**:
-```text
-CREATE TABLE public.fastclub_applications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  full_name TEXT NOT NULL,
-  company TEXT NOT NULL,
-  role TEXT NOT NULL,
-  sector TEXT NOT NULL,
-  employees TEXT,
-  revenue TEXT,
-  website_linkedin TEXT,
-  motivation TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  email TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+**Ficheiro**: `src/components/settings/sections/WorkspaceGHLSettings.tsx`
+- Adicionar componente `SocialChannelsStatus` que consulta conversas agrupadas por canal para mostrar contagens
+- Mostrar cards para Instagram, Facebook Messenger, WhatsApp com ícone, estado e contagem de conversas
+- Incluir accordion com instruções para ativar cada canal no painel GHL
 
-ALTER TABLE public.fastclub_applications ENABLE ROW LEVEL SECURITY;
+**Ficheiro**: `src/components/settings/sections/ChannelsSettings.tsx`
+- Importar `useWorkspaceGHLConfig` para verificar se GHL está ativo
+- Condicionar a exibição dos botões "Conectar" e mostrar badge "Conectado via GHL" quando aplicável
+- Manter a opção de conexão directa ao Instagram como alternativa
 
--- Allow public inserts (form is public, no auth required)
-CREATE POLICY "Allow public insert" ON public.fastclub_applications
-  FOR INSERT TO anon WITH CHECK (true);
+**Ficheiro**: `src/components/inbox/InboxSidebar.tsx`
+- Confirmar que os filtros de canal (instagram, messenger, facebook, whatsapp) estão presentes e funcionais
+- Adicionar contagem de conversas por canal social se não existir
 
--- Allow authenticated users to read (admin review)
-CREATE POLICY "Allow authenticated read" ON public.fastclub_applications
-  FOR SELECT TO authenticated USING (true);
-```
+**Ficheiro**: `supabase/functions/ghl-sync-conversations/index.ts`
+- Garantir que o mapeamento de canal durante a sincronização usa a mesma função `resolveGHLChannel` do webhook
+- Verificar que conversas do tipo Instagram (17/18), Messenger (5/19), WhatsApp (9/15/16) são corretamente classificadas
 
-**Ficheiro**: `src/pages/fastclub/FastClubLandingPage.tsx`
-- Adicionar `name` attributes a cada Input/Textarea do formulario.
-- No `handleSubmit`, extrair dados via `FormData`, inserir na tabela `fastclub_applications` com o Supabase client, e apresentar feedback adequado (sucesso ou erro).
-
-**Workflow** (opcional, segunda fase):
-- Adicionar template `fastclub_application_review` ao `workflowTemplates.ts` para notificacao automatica aos admins quando uma nova candidatura e submetida.
+**Nenhuma migração de base de dados necessária** - a estrutura existente já suporta os canais sociais com o campo `channel` nas tabelas `conversations` e `messages`.
 
