@@ -161,6 +161,7 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
       let conversationsCreated = 0;
 
       for (const ghlConv of recentConversations) {
+        let convMessagesCreated = 0;
         if (Date.now() - iterationStart > 4500) break;
 
         const ghlConvId = ghlConv.id;
@@ -269,6 +270,7 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
             });
 
             if (!msgError) {
+              convMessagesCreated++;
               messagesCreated++;
               if (channel === "other" && msg.type !== undefined) {
                 const inferredChannel = resolveChannel(msg.type);
@@ -283,18 +285,32 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
             }
           }
 
-          if (recentMessages.length > 0 && messagesCreated > 0) {
+          if (recentMessages.length > 0 && convMessagesCreated > 0) {
             const lastMsg = recentMessages[recentMessages.length - 1];
             const lastDirection = normalizeDirection(lastMsg?.direction);
             if (lastDirection === "inbound") {
-              triggerAutopilot(supabaseUrl, serviceKey, {
-                workspaceId: workspace_id,
-                conversationId: conversationId!,
-                channel,
-                leadId,
-                ghlContactId: ghlConv.contactId,
-                locationId,
-              });
+              // Check if there's a recent outbound response (last 60s) to avoid re-triggering
+              const { data: recentOutbound } = await supabase
+                .from("messages")
+                .select("id")
+                .eq("conversation_id", conversationId)
+                .eq("direction", "outbound")
+                .gte("sent_at", new Date(Date.now() - 60000).toISOString())
+                .limit(1)
+                .maybeSingle();
+
+              if (recentOutbound) {
+                console.log("[Cron Sync] Skipping autopilot — recent outbound exists for conv", conversationId);
+              } else {
+                triggerAutopilot(supabaseUrl, serviceKey, {
+                  workspaceId: workspace_id,
+                  conversationId: conversationId!,
+                  channel,
+                  leadId,
+                  ghlContactId: ghlConv.contactId,
+                  locationId,
+                });
+              }
             }
           }
 
