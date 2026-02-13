@@ -1,71 +1,106 @@
 
-## Fix: Autopilot Disparando Multiplas Respostas por Mensagem
 
-### Problema Confirmado (Dados Reais)
+## Analytics Privacy-First: Gap Analysis e Plano de Implementacao
 
-Na conversa `1ef06a4a`, apos a mensagem inbound "Vamos testar de novo" as 15:13:03, houve **10 triggers do autopilot** entre 15:13:10 e 15:17:23, resultando em **7 respostas outbound duplicadas**.
+### Resumo Executivo
 
-### Causa Raiz
+O hook `useCRMAnalytics` ja define **16 funcoes de tracking** cobrindo Inbox, Templates, CRM, AI, Automacoes e Billing. No entanto, apenas **7 de 16** estao realmente integradas nos componentes UI. As restantes 9 funcoes existem no hook mas nunca sao chamadas — sao "dead code" funcional.
 
-Dois problemas combinados:
+A infraestrutura base (GTM, Consent Mode v2, sanitizacao PII, bucketizacao) esta completa e funcional. O trabalho restante e exclusivamente **wiring** — ligar as funcoes de tracking existentes aos pontos de interacao corretos nos componentes.
 
-**1. `cron-sync-messages` re-sincroniza mensagens do GHL a cada 5 segundos**
+---
 
-O cron faz 12 iteracoes/minuto. Cada iteracao busca mensagens dos ultimos 30 min via GHL API. Quando o autopilot envia uma resposta via GHL, essa resposta aparece na proxima chamada da API GHL como uma mensagem "nova". O cron insere-a no DB (e um outbound novo), `convMessagesCreated++`, depois verifica o ultimo inbound — e re-dispara o autopilot. Ciclo vicioso: autopilot responde -> GHL retorna resposta -> cron sincroniza -> detecta novo inbound -> re-dispara.
+### Gap List
 
-**2. Dedup window de 30s e insuficiente**
+| # | Area | Evento | Estado Atual | Ficheiro de Integracao | Severidade |
+|---|------|--------|-------------|----------------------|------------|
+| 1 | UI | `trackLeadMovedPipeline` | Definido no hook, nunca chamado | `OpportunitiesModule.tsx` (handleMoveOpportunity), `CrmBoardView.tsx` (handleMoveOpportunity) | High |
+| 2 | UI | `trackOpportunityCreated` | Definido no hook, nunca chamado | `CreateOpportunityEnhancedDialog.tsx` (onSubmit), `OpportunityTriggerBanner.tsx` | High |
+| 3 | UI | `trackTemplateUsed` | Definido no hook, nunca chamado | `InboxTemplatePanel.tsx` (quando template e inserido na conversa) | High |
+| 4 | UI | `trackTemplateConversion` | Definido no hook, nunca chamado | Nenhum trigger UI direto — deve ser backend/edge function | Medium |
+| 5 | UI | `trackConversationConverted` | Definido no hook, nunca chamado | `OpportunityTriggerBanner.tsx` (quando oportunidade e criada a partir de conversa) | High |
+| 6 | UI | `trackAISuggestionRejected` | Definido no hook, nunca chamado | `AIMessageComposer.tsx` (quando sugestao e descartada/fechada sem usar) | Medium |
+| 7 | UI | `trackAutomationTriggered` | Definido no hook, nunca chamado | Backend-side — edge function `run-automation` | Low |
+| 8 | UI | `trackCheckoutCompleted` | Definido no hook, nunca chamado | Pagina de sucesso pos-checkout ou webhook Stripe | High |
+| 9 | UI | `trackTemplateUsed` (comm templates) | Definido no hook, nunca chamado | `InboxTemplatePanel.tsx` quando communication template e aplicado | Medium |
 
-O cooldown de 30s em `ghl-webhook-message` (linha 745) nao cobre o intervalo entre iteracoes do cron (~15-20s), e apos 30s a janela expira, permitindo um novo trigger.
+### Eventos JA Integrados (Confirmados)
 
-### Solucao (3 correcoes cirurgicas)
+| Evento | Componente | Estado |
+|--------|-----------|--------|
+| `crm.session_start` | `useCRMAnalytics` (useEffect) | OK |
+| `inbox.opened` | `InboxView.tsx` | OK |
+| `conversation.opened` | `ConversationDetail.tsx` | OK |
+| `conversation.replied` | `AIMessageComposer.tsx` | OK |
+| `ai.suggestion.generated` | `AIMessageComposer.tsx` | OK |
+| `ai.suggestion.accepted` | `AIMessageComposer.tsx` | OK |
+| `automation.created` | `VisualAutomationBuilder.tsx` | OK |
+| `checkout.started` | `PricingCards.tsx` | OK |
+| `lead.created` | `CreateLeadDialog.tsx` | OK |
 
-#### Correcao 1: `cron-sync-messages` — Nao disparar autopilot se ja existe trigger recente (5 min)
+---
 
-Ficheiro: `supabase/functions/cron-sync-messages/index.ts`
+### Plano de Implementacao (Fase Unica — Wiring)
 
-Substituir a verificacao de outbound recente (60s) por uma verificacao de **autopilot trigger recente (5 minutos)** na tabela `autopilot_events`. Isto previne completamente o re-disparo pelo cron.
+Todas as alteracoes sao de **1-5 linhas por ficheiro** — importar o hook e chamar a funcao no momento correto.
 
-Linhas 292-313: substituir o bloco de `recentOutbound` por:
+#### 1. `trackLeadMovedPipeline` — Pipeline Drag/Move
 
-```text
-// Check if autopilot was already triggered for this conversation in the last 5 min
-const { data: recentTrigger } = await supabase
-  .from("autopilot_events")
-  .select("id")
-  .eq("conversation_id", conversationId)
-  .eq("event_type", "triggered")
-  .gte("created_at", new Date(Date.now() - 300000).toISOString())
-  .limit(1)
-  .maybeSingle();
+**Ficheiros**: `src/components/opportunities/OpportunitiesModule.tsx` e `src/components/crm/unified/CrmBoardView.tsx`
 
-if (recentTrigger) {
-  console.log("[Cron Sync] Skipping autopilot — already triggered in last 5min", conversationId);
-} else {
-  triggerAutopilot(...);
-}
-```
+- Importar `useCRMAnalytics`
+- No `handleMoveOpportunity`, apos sucesso do mutateAsync, chamar `trackLeadMovedPipeline({ from_stage, to_stage, days_in_previous_stage })`
+- Obter `from_stage` do estado atual da oportunidade antes do move
 
-#### Correcao 2: `ghl-webhook-message` — Aumentar dedup window de 30s para 120s
+#### 2. `trackOpportunityCreated` — Dialogo de Criacao
 
-Ficheiro: `supabase/functions/ghl-webhook-message/index.ts`
+**Ficheiro**: `src/components/opportunities/CreateOpportunityEnhancedDialog.tsx`
 
-Linha 745: alterar `30000` para `120000` (2 minutos de cooldown).
+- Importar `useCRMAnalytics`
+- No `onSubmit`, apos sucesso do createOpportunity, chamar `trackOpportunityCreated({ value: values.value, origin: 'manual' })`
 
-#### Correcao 3: `ghl-webhook-message` — Verificar outbound recente ANTES de gerar resposta AI
+**Ficheiro**: `src/components/inbox/OpportunityTriggerBanner.tsx`
 
-Ficheiro: `supabase/functions/ghl-webhook-message/index.ts`
+- Importar `useCRMAnalytics`
+- Apos criacao, chamar `trackOpportunityCreated({ value, origin: 'inbox' })`
 
-Apos o delay (linha 856) e antes de buscar mensagens para contexto (linha 858), adicionar uma verificacao: se ja existe uma resposta outbound enviada apos o ultimo inbound, nao gerar nova resposta. Isto protege contra race conditions onde multiplos triggers estao em paralelo com delays diferentes.
+#### 3. `trackConversationConverted` — Conversao via Inbox
 
-### Ficheiros Afetados
+**Ficheiro**: `src/components/inbox/OpportunityTriggerBanner.tsx`
 
-| Ficheiro | Alteracao |
-|---|---|
-| `supabase/functions/cron-sync-messages/index.ts` | Substituir outbound check por autopilot_events check (5 min) |
-| `supabase/functions/ghl-webhook-message/index.ts` | Aumentar dedup para 120s + verificacao pos-delay |
+- Apos criacao de oportunidade a partir de conversa, chamar `trackConversationConverted({ days_to_convert, used_ai_in_thread, used_template, priority_score_at_start })`
 
-### Resultado Esperado
+#### 4. `trackTemplateUsed` — Aplicacao de Template
 
-- Cada mensagem inbound gera no maximo 1 trigger do autopilot
-- Window de 5 min previne todas as re-execucoes do cron
-- Verificacao pos-delay cobre race conditions entre triggers paralelos
+**Ficheiro**: `src/components/inbox/InboxTemplatePanel.tsx`
+
+- Quando um template e inserido (callback onInsert/onApply), chamar `trackTemplateUsed({ structure_type, dynamic, ai_adapted, pipeline_stage_when_used })`
+
+#### 5. `trackAISuggestionRejected` — Fechar Painel AI sem Usar
+
+**Ficheiro**: `src/components/inbox/AIMessageComposer.tsx`
+
+- Quando o painel AI e fechado (setShowAIPanel(false)) SEM ter usado nenhuma sugestao, chamar `trackAISuggestionRejected({ context: 'inbox' })`
+
+#### 6. `trackCheckoutCompleted` — Pos-Checkout
+
+**Ficheiro**: Pagina de retorno do Stripe ou componente que deteta subscricao ativa apos checkout
+
+- Detetar transicao de estado (sem plano -> com plano) e chamar `trackCheckoutCompleted({ plan_type, billing_cycle })`
+
+#### 7. `trackTemplateConversion` e `trackAutomationTriggered`
+
+Estes sao eventos backend — devem ser implementados nas edge functions (`template-log-event` e `run-automation`) via `dataLayer` push no retorno ao frontend, ou como eventos server-side. Prioridade mais baixa.
+
+---
+
+### Validacao
+
+Apos implementacao, confirmar em ambiente staging:
+
+1. Abrir DevTools > Console e filtrar por `dataLayer`
+2. Verificar que cada acao gera o evento correto com dados bucketizados
+3. Confirmar que nenhum campo PII aparece nos eventos (nome, email, conteudo)
+4. Confirmar que eventos so disparam com `consent.analytics === true`
+5. Confirmar que em staging os eventos NAO sao enviados (gate `isProd`)
+
