@@ -220,94 +220,60 @@ async function fetchKnowledgeContext(
     return { entries: [], persona };
   }
 
-  // Generate embedding for semantic search
-  if (!LOVABLE_API_KEY) {
-    console.warn("[AI-INBOX-REPLY] LOVABLE_API_KEY not available for embeddings");
+  // Portuguese stopwords to filter out
+  const stopwords = new Set([
+    "tem", "ter", "de", "do", "da", "dos", "das", "em", "no", "na", "nos", "nas",
+    "um", "uma", "uns", "umas", "que", "qual", "como", "para", "por", "com",
+    "seu", "sua", "ele", "ela", "isso", "isto", "esse", "essa", "esses", "essas",
+    "mais", "mas", "muito", "sim", "nao", "não", "ola", "olá", "bom", "boa",
+    "dia", "tarde", "noite", "sobre", "pode", "quero", "queria", "gostaria",
+    "preciso", "vou", "vai", "vamos", "esta", "está", "ser", "sao", "são",
+    "temos", "voce", "você", "nos", "nós", "meu", "minha", "the", "and", "you"
+  ]);
+
+  // Extract meaningful keywords from query
+  const keywords = query.toLowerCase()
+    .replace(/[?!.,;:()]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stopwords.has(w));
+
+  console.log(`[AI-INBOX-REPLY] Search keywords extracted: [${keywords.join(', ')}] from query: "${query}"`);
+
+  if (keywords.length === 0) {
+    console.log("[AI-INBOX-REPLY] No meaningful keywords extracted from query");
     return { entries: [], persona };
   }
 
-  let useTextFallback = false;
-  
+  // Build OR filter: each keyword searches across title, question, and content
   try {
-    const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-embedding-ada-002",
-        input: query
-      }),
-    });
+    const orClauses = keywords.map(kw => {
+      const pattern = `%${kw}%`;
+      return `title.ilike.${pattern},question.ilike.${pattern},content.ilike.${pattern}`;
+    }).join(',');
 
-    if (!embeddingResponse.ok) {
-      const errorText = await embeddingResponse.text();
-      console.warn("[AI-INBOX-REPLY] Embedding API error, using text fallback:", errorText);
-      useTextFallback = true;
+    const { data: textResults, error: textError } = await supabaseAdmin
+      .from('knowledge_entries')
+      .select('id, title, question, content')
+      .eq('workspace_id', workspaceId)
+      .eq('status', 'validated')
+      .in('knowledge_base_id', knowledgeBaseIds)
+      .or(orClauses)
+      .limit(5);
+
+    if (!textError && textResults && textResults.length > 0) {
+      entries = textResults.map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        question: r.question,
+        content: r.content,
+        similarity: 0.8
+      }));
+      console.log(`[AI-INBOX-REPLY] Found ${entries.length} entries via keyword search`);
     } else {
-      const embeddingData = await embeddingResponse.json();
-      const queryEmbedding = embeddingData.data[0].embedding;
-
-      // Search for semantically similar entries
-      const { data: results, error } = await supabaseAdmin.rpc("match_knowledge_entries", {
-        query_embedding: queryEmbedding,
-        match_threshold: 0.65,
-        match_count: 5,
-        filter_workspace_id: workspaceId,
-        filter_knowledge_base_id: knowledgeBaseIds.length === 1 ? knowledgeBaseIds[0] : null,
-        filter_status: 'validated'
-      });
-
-      if (error) {
-        console.error("[AI-INBOX-REPLY] Knowledge search error:", error);
-        useTextFallback = true;
-      } else {
-        entries = (results || []).map((r: any) => ({
-          id: r.id,
-          title: r.title,
-          question: r.question,
-          content: r.content,
-          similarity: r.similarity
-        }));
-        console.log(`[AI-INBOX-REPLY] Found ${entries.length} relevant entries via embeddings`);
-      }
+      console.log(`[AI-INBOX-REPLY] No entries found via keyword search. Error: ${textError?.message || 'none'}`);
     }
-  } catch (error) {
-    console.warn("[AI-INBOX-REPLY] Embedding error, using text fallback:", error);
-    useTextFallback = true;
-  }
-
-  // Fallback: text-based search when embeddings fail
-  if (useTextFallback && knowledgeBaseIds.length > 0) {
-    console.log("[AI-INBOX-REPLY] Using text-based fallback search");
-    try {
-      // Extract keywords from query (simple tokenization)
-      const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-      const searchPattern = `%${keywords.slice(0, 3).join('%')}%`;
-      
-      const { data: textResults, error: textError } = await supabaseAdmin
-        .from('knowledge_entries')
-        .select('id, title, question, content')
-        .eq('workspace_id', workspaceId)
-        .eq('status', 'validated')
-        .in('knowledge_base_id', knowledgeBaseIds)
-        .or(`title.ilike.${searchPattern},question.ilike.${searchPattern},content.ilike.${searchPattern}`)
-        .limit(5);
-
-      if (!textError && textResults) {
-        entries = textResults.map((r: any) => ({
-          id: r.id,
-          title: r.title,
-          question: r.question,
-          content: r.content,
-          similarity: 0.7 // Estimated similarity for text match
-        }));
-        console.log(`[AI-INBOX-REPLY] Found ${entries.length} entries via text fallback`);
-      }
-    } catch (fallbackError) {
-      console.error("[AI-INBOX-REPLY] Text fallback also failed:", fallbackError);
-    }
+  } catch (searchError) {
+    console.error("[AI-INBOX-REPLY] Knowledge search failed:", searchError);
   }
 
   return { entries, persona };
