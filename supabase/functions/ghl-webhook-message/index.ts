@@ -736,6 +736,21 @@ async function triggerAutopilotResponse(
     return;
   }
 
+  // DEDUP: Check if autopilot was already triggered for this conversation in the last 30s
+  const { data: recentTrigger } = await supabase
+    .from("autopilot_events")
+    .select("id")
+    .eq("conversation_id", conversationId)
+    .eq("event_type", "triggered")
+    .gte("created_at", new Date(Date.now() - 30000).toISOString())
+    .limit(1)
+    .maybeSingle();
+
+  if (recentTrigger) {
+    console.log("[AUTOPILOT] Skipping — already triggered in last 30s", { conversationId, existingEventId: recentTrigger.id });
+    return;
+  }
+
   console.log("[AUTOPILOT] Autopilot is active", { 
     configId: autopilotConfig.id,
     scope: autopilotConfig.config_scope,
