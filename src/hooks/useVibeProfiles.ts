@@ -98,17 +98,11 @@ export function useVibeProfiles() {
     mutationFn: async (id: string) => {
       if (!currentWorkspace?.id) throw new Error("Workspace não selecionado");
 
-      // First, unset all defaults
-      await supabase
-        .from("vibe_profiles")
-        .update({ is_default: false })
-        .eq("workspace_id", currentWorkspace.id);
-
-      // Set the new default
-      const { error } = await supabase
-        .from("vibe_profiles")
-        .update({ is_default: true })
-        .eq("id", id);
+      // Atomic set default via RPC
+      const { error } = await supabase.rpc("set_default_vibe_profile" as any, {
+        p_workspace_id: currentWorkspace.id,
+        p_profile_id: id,
+      });
 
       if (error) throw error;
     },
