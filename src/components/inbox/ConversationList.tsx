@@ -144,38 +144,29 @@ export function ConversationList({
   });
   const deleteConversations = useDeleteConversations();
 
-  // Filter and sort
-  const processedConversations = useMemo(() => {
+  // Filter by tab + search (before channel filter, for channel counts)
+  const tabFilteredConversations = useMemo(() => {
     if (!conversations) return [];
 
     let filtered = conversations.filter((conv) => {
-      // Tab-based filtering using simplified status
       const simplifiedStatus = (conv as any).conversation_status_simplified;
       switch (activeTab) {
         case "requires_response":
-          // Unread or explicitly marked as requires response
-          if (simplifiedStatus === "REQUIRES_RESPONSE") return true;
-          if (!simplifiedStatus && conv.unread_count > 0) return true;
-          if (!simplifiedStatus && conv.status === "open") return true;
-          return false;
+          // Show ALL open conversations (already filtered by status=open in query)
+          // REQUIRES_RESPONSE vs FOLLOW_UP is visual only (badge), not a hard filter
+          return true;
         case "follow_up":
           if (simplifiedStatus === "FOLLOW_UP") return true;
           return false;
         case "active":
           if (simplifiedStatus === "ACTIVE_OPPORTUNITY") return true;
-          // Fallback: conversations with open opportunities
           if (conv.opportunities && conv.opportunities.length > 0) return true;
           return false;
         case "resolved":
-          return true; // Already filtered by status=closed
+          return true;
       }
       return true;
     });
-
-    // Channel filter (local)
-    if (channelFilter !== "all") {
-      filtered = filtered.filter(conv => conv.channel === channelFilter);
-    }
 
     // Search filter
     if (search) {
@@ -186,6 +177,17 @@ export function ConversationList({
         conv.lead?.email?.toLowerCase().includes(searchLower) ||
         conv.last_message_preview?.toLowerCase().includes(searchLower)
       );
+    }
+
+    return filtered;
+  }, [conversations, search, activeTab]);
+
+  // Apply channel filter + sort
+  const processedConversations = useMemo(() => {
+    let filtered = tabFilteredConversations;
+
+    if (channelFilter !== "all") {
+      filtered = filtered.filter(conv => conv.channel === channelFilter);
     }
 
     // Sort by priority score DESC, then last_message_at DESC
@@ -200,7 +202,7 @@ export function ConversationList({
     });
 
     return filtered;
-  }, [conversations, search, activeTab, channelFilter]);
+  }, [tabFilteredConversations, channelFilter]);
 
   const toggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -233,7 +235,7 @@ export function ConversationList({
           {/* Simplified Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SimplifiedTab)}>
             <TabsList className="w-full grid grid-cols-4 h-8">
-              <TabsTrigger value="requires_response" className="text-[11px] px-1">Responder</TabsTrigger>
+              <TabsTrigger value="requires_response" className="text-[11px] px-1">Abertas</TabsTrigger>
               <TabsTrigger value="follow_up" className="text-[11px] px-1">Follow-up</TabsTrigger>
               <TabsTrigger value="active" className="text-[11px] px-1">Ativas</TabsTrigger>
               <TabsTrigger value="resolved" className="text-[11px] px-1">Resolvidas</TabsTrigger>
@@ -253,22 +255,28 @@ export function ConversationList({
             </div>
           </div>
 
-          {/* Channel Filter Pills */}
+          {/* Channel Filter Pills with counts */}
           <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
-            {channelFilterOptions.map((opt) => (
-              <button
-                key={opt.id}
-                onClick={() => setChannelFilter(opt.id)}
-                className={cn(
-                  "text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border transition-colors",
-                  channelFilter === opt.id
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
+            {channelFilterOptions.map((opt) => {
+              const count = opt.id === "all"
+                ? tabFilteredConversations.length
+                : tabFilteredConversations.filter(c => c.channel === opt.id).length;
+              if (opt.id !== "all" && count === 0) return null;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => setChannelFilter(opt.id)}
+                  className={cn(
+                    "text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border transition-colors",
+                    channelFilter === opt.id
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                  )}
+                >
+                  {opt.label} ({count})
+                </button>
+              );
+            })}
           </div>
 
           {/* Bulk Actions */}
