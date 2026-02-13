@@ -96,7 +96,7 @@ export async function normalizeIncomingMessage(
         channel: msg.channel,
         external_thread_id: msg.external_thread_id,
         status: "open",
-        unread_count: 1,
+        unread_count: 0,
         last_message_at: msg.timestamp,
         last_message_preview: messagePreview,
         lead_id: msg.lead_id || null,
