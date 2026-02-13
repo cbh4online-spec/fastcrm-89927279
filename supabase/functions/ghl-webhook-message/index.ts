@@ -678,56 +678,63 @@ async function triggerAutopilotResponse(
 
   console.log("[AUTOPILOT] Checking autopilot config for workspace", { workspaceId, conversationId });
 
-  // 1. Check if autopilot is enabled for this workspace
-  const { data: autopilotConfig } = await supabase
-    .from("autopilot_config")
+  // 1. Check ai_agents FIRST (has persona + goals), then fallback to legacy autopilot_config
+  let autopilotConfig: any = null;
+  let agentSource: any = null;
+
+  // Priority 1: ai_agents table (modern system with persona, KB, goals)
+  console.log("[AUTOPILOT] Checking ai_agents for channel", { workspaceId, channel });
+  const { data: agent } = await supabase
+    .from("ai_agents")
     .select("*")
     .eq("workspace_id", workspaceId)
     .eq("is_active", true)
-    .or(`config_scope.eq.workspace,channel.eq.${channel}`)
-    .order("config_scope", { ascending: false }) // channel-specific first
+    .eq("channel", channel)
+    .eq("autopilot_enabled", true)
+    .order("priority", { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  // Fallback: check ai_agents table if no legacy autopilot_config found
-  let agentSource: any = null;
+  if (agent) {
+    agentSource = agent;
+    autopilotConfig = {
+      id: agent.id,
+      is_active: true,
+      persona_id: agent.persona_id,
+      response_delay_min: agent.response_delay_min || 8,
+      response_delay_max: agent.response_delay_max || 12,
+      max_messages_per_conversation: agent.max_messages_per_conversation || 25,
+      max_consecutive_bot_messages: agent.max_consecutive_bot_messages || 3,
+      sleep_on_human_reply: agent.sleep_on_human_reply ?? true,
+      respect_working_hours: agent.respect_working_hours ?? false,
+      working_hours_start: agent.working_hours_start || "09:00",
+      working_hours_end: agent.working_hours_end || "18:00",
+      working_days: agent.working_days || [1,2,3,4,5],
+      timezone: agent.timezone || "Europe/Lisbon",
+      out_of_hours_message: agent.out_of_hours_message || null,
+      typing_indicator: agent.typing_indicator ?? true,
+      config_scope: "channel",
+      source: "ai_agent"
+    };
+    console.log("[AUTOPILOT] Using ai_agents config", { agentId: agent.id, agentName: agent.name, channel, hasGoals: !!agent.goal_config && Object.keys(agent.goal_config).length > 0 });
+  }
+
+  // Priority 2: Legacy autopilot_config (fallback)
   if (!autopilotConfig) {
-    console.log("[AUTOPILOT] No legacy config found, checking ai_agents for channel", { workspaceId, channel });
-    
-    const { data: agent } = await supabase
-      .from("ai_agents")
+    console.log("[AUTOPILOT] No ai_agent found, checking legacy autopilot_config", { workspaceId, channel });
+    const { data: legacyConfig } = await supabase
+      .from("autopilot_config")
       .select("*")
       .eq("workspace_id", workspaceId)
       .eq("is_active", true)
-      .eq("channel", channel)
-      .eq("autopilot_enabled", true)
-      .order("priority", { ascending: true })
+      .or(`config_scope.eq.workspace,channel.eq.${channel}`)
+      .order("config_scope", { ascending: false })
       .limit(1)
       .maybeSingle();
-
-    if (agent) {
-      agentSource = agent;
-      const settings = (agent.settings || {}) as Record<string, any>;
-      autopilotConfig = {
-        id: agent.id,
-        is_active: true,
-        persona_id: agent.persona_id,
-        response_delay_min: agent.response_delay_min || 8,
-        response_delay_max: agent.response_delay_max || 12,
-        max_messages_per_conversation: agent.max_messages_per_conversation || 25,
-        max_consecutive_bot_messages: agent.max_consecutive_bot_messages || 3,
-        sleep_on_human_reply: agent.sleep_on_human_reply ?? true,
-        respect_working_hours: agent.respect_working_hours ?? false,
-        working_hours_start: agent.working_hours_start || "09:00",
-        working_hours_end: agent.working_hours_end || "18:00",
-        working_days: agent.working_days || [1,2,3,4,5],
-        timezone: agent.timezone || "Europe/Lisbon",
-        out_of_hours_message: agent.out_of_hours_message || null,
-        typing_indicator: agent.typing_indicator ?? true,
-        config_scope: "channel",
-        source: "ai_agent"
-      };
-      console.log("[AUTOPILOT] Using ai_agents config", { agentId: agent.id, agentName: agent.name, channel });
+    
+    if (legacyConfig) {
+      autopilotConfig = legacyConfig;
+      console.log("[AUTOPILOT] Using legacy autopilot_config", { configId: legacyConfig.id });
     }
   }
 
@@ -932,6 +939,7 @@ async function triggerAutopilotResponse(
       personaId: autopilotConfig.persona_id,
       useKnowledgeBase: true,
       knowledgeBaseIds: agentSource?.knowledge_base_ids || undefined,
+      goalConfig: agentSource?.goal_config || undefined,
       conversationId,
       useConversationalFlows: true
     })
