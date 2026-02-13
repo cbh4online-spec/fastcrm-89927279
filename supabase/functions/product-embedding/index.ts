@@ -25,15 +25,6 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ success: false, error: "AI gateway not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -57,7 +48,7 @@ serve(async (req) => {
       );
     }
 
-    // Build embedding text from product data
+    // Build searchable text from product data
     const attributes = product.product_attributes || [];
     const functions = attributes
       .filter((a: any) => a.attribute_type === "function")
@@ -83,53 +74,54 @@ serve(async (req) => {
       indications ? `Indicações: ${indications}` : null,
     ].filter(Boolean);
 
-    const textToEmbed = textParts.join("\n");
+    const textToIndex = textParts.join("\n");
 
-    console.log(`Generating embedding for product ${productId}: ${product.name}`);
+    // Extract keywords using chat model instead of embedding API
+    // (text-embedding-ada-002 is not supported by the AI gateway)
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    let keywords: string[] = [];
 
-    // Generate embedding via Lovable AI gateway
-    const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-embedding-ada-002",
-        input: textToEmbed.slice(0, 8000),
-      }),
-    });
+    if (LOVABLE_API_KEY) {
+      try {
+        const keywordResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              {
+                role: "system",
+                content: "Extract important search keywords from this product description. Return ONLY a JSON array of strings. Max 15 keywords in Portuguese."
+              },
+              { role: "user", content: textToIndex.slice(0, 4000) }
+            ],
+            temperature: 0
+          }),
+        });
 
-    if (!embeddingResponse.ok) {
-      const errorText = await embeddingResponse.text();
-      console.error("Embedding API error:", errorText);
-      return new Response(
-        JSON.stringify({ success: false, error: `Embedding API error: ${embeddingResponse.status}` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+        if (keywordResponse.ok) {
+          const data = await keywordResponse.json();
+          const raw = data.choices?.[0]?.message?.content || "[]";
+          const match = raw.match(/\[[\s\S]*\]/);
+          if (match) {
+            keywords = JSON.parse(match[0]);
+          }
+        }
+      } catch (e) {
+        console.warn("Keyword extraction failed:", e);
+      }
     }
 
-    const embeddingData = await embeddingResponse.json();
-    const embedding = embeddingData.data[0].embedding;
+    console.log(`Keywords extracted for product ${productId}: ${product.name} (${keywords.length} keywords)`);
 
-    // Save embedding to database
-    const { error: updateError } = await supabase
-      .from("products")
-      .update({ embedding })
-      .eq("id", productId);
-
-    if (updateError) {
-      console.error("Failed to save embedding:", updateError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to save embedding" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`Embedding saved for product ${productId}`);
+    // Note: We no longer store vector embeddings since the API is unsupported.
+    // Product search uses text-based matching instead.
 
     return new Response(
-      JSON.stringify({ success: true, productId, textLength: textToEmbed.length }),
+      JSON.stringify({ success: true, productId, textLength: textToIndex.length, keywords: keywords.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
