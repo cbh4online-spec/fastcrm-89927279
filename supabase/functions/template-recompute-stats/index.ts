@@ -9,14 +9,13 @@ const corsHeaders = {
 // Adaptive weights by pipeline stage
 function getWeights(pipelineStage?: string | null) {
   const stage = (pipelineStage || "").toLowerCase();
-  if (stage === "lead" || stage === "novo" || stage === "new") {
-    return { win: 0.35, opp: 0.45, reply: 0.10, progression: 0.10, timePenalty: 0.05 };
+  if (["lead", "qualificação", "qualificacao", "novo", "new"].includes(stage)) {
+    return { opp: 0.45, win: 0.35, reply: 0.10, progression: 0.10, timePenalty: 0.05 };
   }
-  if (stage === "proposta" || stage === "proposal" || stage === "negociação" || stage === "negotiation") {
-    return { win: 0.60, opp: 0.25, reply: 0.05, progression: 0.05, timePenalty: 0.05 };
+  if (["proposta", "proposal", "negociação", "negociacao", "negotiation"].includes(stage)) {
+    return { opp: 0.30, win: 0.50, reply: 0.05, progression: 0.05, timePenalty: 0.05 };
   }
-  // Default METODOPARE calibration
-  return { win: 0.45, opp: 0.35, reply: 0.10, progression: 0.10, timePenalty: 0.05 };
+  return { opp: 0.40, win: 0.40, reply: 0.10, progression: 0.10, timePenalty: 0.05 };
 }
 
 serve(async (req) => {

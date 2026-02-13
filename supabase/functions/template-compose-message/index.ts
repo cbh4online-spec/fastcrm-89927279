@@ -13,13 +13,13 @@ const DEFAULT_PROFILES: Record<string, Record<string, number>> = {
 
 function getStructureWeights(stage?: string | null) {
   const s = (stage || "").toLowerCase();
-  if (["lead", "qualificação", "qualificacao", "novo"].includes(s)) {
-    return { win: 0.45, opp: 0.45, reply: 0.10 };
+  if (["lead", "qualificação", "qualificacao", "novo", "new"].includes(s)) {
+    return { opp: 0.45, win: 0.35, reply: 0.10 };
   }
-  if (["proposta", "proposal", "negociação", "negociacao"].includes(s)) {
-    return { win: 0.65, opp: 0.25, reply: 0.05 };
+  if (["proposta", "proposal", "negociação", "negociacao", "negotiation"].includes(s)) {
+    return { opp: 0.30, win: 0.50, reply: 0.05 };
   }
-  return { win: 0.55, opp: 0.35, reply: 0.10 };
+  return { opp: 0.40, win: 0.40, reply: 0.10 };
 }
 
 // Inline length prediction (heuristic only, no DB lookup for stats)
@@ -31,21 +31,49 @@ function predictLengthHeuristic(
 ): string {
   const ch = (channel || "email").toLowerCase();
   if (ch === "whatsapp") {
+    // METODOPARE: WhatsApp default is SHORT
     if (signals) {
-      if ((signals.response_latency_avg_minutes || 0) <= 60 && (signals.engagement_depth_score || 0) > 0.5) return "medium";
-      if ((signals.response_latency_avg_minutes || 0) > 180 || (signals.reply_rate_last_30d || 0) < 0.1) return "short";
+      if ((signals.engagement_depth_score || 0) > 0.5) return "medium";
+      if ((signals.response_latency_avg_minutes || 0) <= 60 && (signals.reply_rate_last_30d || 0) > 0.3) return "medium";
     }
-    const stage = (pipelineStage || "").toLowerCase();
-    if (["proposta", "proposal", "negociação", "negociacao"].includes(stage)) return "medium";
-    return "medium";
+    return "short";
   }
+  // Email: default MEDIUM
   if (signals) {
     if ((signals.reading_proxy_score || 0) > 0.6) return "long";
-    if ((signals.response_latency_avg_minutes || 0) > 360 && (signals.engagement_depth_score || 0) < 0.3) return "short";
+    if ((signals.response_latency_avg_minutes || 0) > 300) return "short";
   }
   const intent = (intentLabel || "").toLowerCase();
   if (["price", "objection", "preço", "objeção"].includes(intent)) return "medium";
   return "medium";
+}
+
+// Hard caps de segurança
+function applyHardCaps(
+  chosenLength: string,
+  channel: string,
+  pipelineStage?: string | null,
+  signals?: any | null,
+): string {
+  const ch = (channel || "email").toLowerCase();
+  const stage = (pipelineStage || "").toLowerCase();
+
+  // WhatsApp + Proposta/Negociação: nunca long
+  if (ch === "whatsapp" && ["proposta", "proposal", "negociação", "negociacao", "negotiation"].includes(stage)) {
+    if (chosenLength === "long") return "medium";
+  }
+
+  // Email + Proposta complexa: nunca short
+  if (ch === "email" && ["proposta", "proposal", "negociação", "negociacao", "negotiation"].includes(stage)) {
+    if (chosenLength === "short") return "medium";
+  }
+
+  // Lead com latência alta: nunca long
+  if (signals && (signals.response_latency_avg_minutes || 0) > 300) {
+    if (chosenLength === "long") return "medium";
+  }
+
+  return chosenLength;
 }
 
 function allocateBlockBudgets(
@@ -172,7 +200,8 @@ serve(async (req) => {
       behaviorSignals = sigData;
     }
 
-    const chosenLength = predictLengthHeuristic(channel || "email", behaviorSignals, pipeline_stage, intent_label);
+    let chosenLength = predictLengthHeuristic(channel || "email", behaviorSignals, pipeline_stage, intent_label);
+    chosenLength = applyHardCaps(chosenLength, channel || "email", pipeline_stage, behaviorSignals);
     const channelProfiles = lengthProfiles?.[channel || "email"] || DEFAULT_PROFILES[channel || "email"] || DEFAULT_PROFILES.email;
     const targetCharLimit = channelProfiles[chosenLength] || channelProfiles.medium || 1200;
 
