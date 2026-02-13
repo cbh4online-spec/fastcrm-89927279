@@ -25,11 +25,14 @@ import { Info, Sparkles } from 'lucide-react';
 import { 
   CommunicationTemplate, 
   TemplateChannel,
+  TemplateStructure,
   JourneyContext,
   TemplateTone,
   CHANNEL_LABELS,
   JOURNEY_CONTEXT_LABELS,
   TONE_LABELS,
+  STRUCTURE_LABELS,
+  STRUCTURE_PLACEHOLDERS,
   LANGUAGE_OPTIONS,
   TEMPLATE_VARIABLES,
   renderTemplate,
@@ -58,7 +61,10 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
     subject: '',
     body: '',
     tone: 'professional' as TemplateTone,
-    isActive: true
+    structureType: 'custom' as TemplateStructure,
+    cta: '',
+    isActive: true,
+    conversionCount: 0,
   });
 
   useEffect(() => {
@@ -71,7 +77,10 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
         subject: template.subject || '',
         body: template.body,
         tone: template.tone,
-        isActive: template.isActive
+        structureType: template.structureType || 'custom',
+        cta: template.cta || '',
+        isActive: template.isActive,
+        conversionCount: template.conversionCount || 0,
       });
     } else {
       setFormData({
@@ -82,10 +91,25 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
         subject: '',
         body: '',
         tone: 'professional',
-        isActive: true
+        structureType: 'custom',
+        cta: '',
+        isActive: true,
+        conversionCount: 0,
       });
     }
   }, [template, open]);
+
+  const handleStructureChange = (structure: TemplateStructure) => {
+    setFormData(prev => {
+      const newData = { ...prev, structureType: structure };
+      // If body is empty or matches another placeholder, pre-fill with new structure placeholder
+      const allPlaceholders = Object.values(STRUCTURE_PLACEHOLDERS);
+      if (!prev.body.trim() || allPlaceholders.some(p => p && prev.body.trim() === p.trim())) {
+        newData.body = STRUCTURE_PLACEHOLDERS[structure] || '';
+      }
+      return newData;
+    });
+  };
 
   const handleSubmit = async () => {
     if (isEditing && template?.id) {
@@ -162,17 +186,17 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Idioma</Label>
+                  <Label>Estrutura</Label>
                   <Select 
-                    value={formData.language} 
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, language: v }))}
+                    value={formData.structureType} 
+                    onValueChange={(v) => handleStructureChange(v as TemplateStructure)}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {LANGUAGE_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      {Object.entries(STRUCTURE_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -192,6 +216,33 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Idioma</Label>
+                  <Select 
+                    value={formData.language} 
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, language: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGE_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>CTA (Call-to-Action)</Label>
+                  <Input
+                    value={formData.cta}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cta: e.target.value }))}
+                    placeholder='Ex: "Responda QUERO EVOLUIR"'
+                  />
                 </div>
               </div>
 
@@ -240,7 +291,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
                 <Textarea
                   value={formData.body}
                   onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
-                  placeholder="Escreva a sua mensagem aqui. Use {{variável}} para personalizar."
+                  placeholder={STRUCTURE_PLACEHOLDERS[formData.structureType] || "Escreva a sua mensagem aqui. Use {{variável}} para personalizar."}
                   className="min-h-[200px]"
                 />
               </div>

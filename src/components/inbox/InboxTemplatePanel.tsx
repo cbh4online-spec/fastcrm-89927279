@@ -42,8 +42,10 @@ import {
   Lightbulb,
   Plus,
   Save,
+  TrendingUp,
 } from "lucide-react";
 import { useTemplates, Template, TemplateGoal, TemplateType } from "@/hooks/useTemplates";
+import { useCommunicationTemplates } from "@/hooks/useCommunicationTemplates";
 import { useInboxAI, LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { Message } from "@/hooks/useMessages";
 import { 
@@ -105,6 +107,7 @@ export function InboxTemplatePanel({
 
   const { data: templates, isLoading: templatesLoading } = useTemplates({ isActive: true });
   const { personalizeTemplate, isLoading: aiLoading } = useInboxAI();
+  const { data: commTemplates } = useCommunicationTemplates({ isActive: true });
 
   // Map channel to template channel type
   const getTemplateChannel = (): TemplateChannel => {
@@ -179,6 +182,19 @@ export function InboxTemplatePanel({
   const favoriteTemplates = useMemo(() => 
     filteredTemplates.filter(t => favoriteIds.has(t.id)),
   [filteredTemplates, favoriteIds]);
+
+  // Recommended templates: sorted by conversion rate then usage
+  const recommendedTemplates = useMemo(() => {
+    if (!commTemplates) return [];
+    return [...commTemplates]
+      .filter(t => t.isActive && t.usageCount > 0)
+      .sort((a, b) => {
+        const aRate = a.usageCount > 0 ? (a.conversionCount || 0) / a.usageCount : 0;
+        const bRate = b.usageCount > 0 ? (b.conversionCount || 0) / b.usageCount : 0;
+        return bRate - aRate;
+      })
+      .slice(0, 10);
+  }, [commTemplates]);
 
   // Validate selected template
   const validation = useMemo(() => {
@@ -393,6 +409,10 @@ export function InboxTemplatePanel({
                 <TabsTrigger value="all" className="text-xs h-7">
                   Todos ({filteredTemplates.length})
                 </TabsTrigger>
+                <TabsTrigger value="recommended" className="text-xs h-7">
+                  <TrendingUp className="w-3 h-3 mr-1" />
+                  Recomendados
+                </TabsTrigger>
                 <TabsTrigger value="favorites" className="text-xs h-7">
                   <Star className="w-3 h-3 mr-1" />
                   Favoritos ({favoriteTemplates.length})
@@ -411,6 +431,38 @@ export function InboxTemplatePanel({
                     </div>
                   ) : (
                     filteredTemplates.map(renderTemplateCard)
+                  )}
+                </TabsContent>
+
+                <TabsContent value="recommended" className="m-0 space-y-2">
+                  {recommendedTemplates.length === 0 ? (
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                      <TrendingUp className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                      Sem dados de conversão ainda
+                    </div>
+                  ) : (
+                    recommendedTemplates.map(ct => (
+                      <div
+                        key={ct.id}
+                        onClick={() => {
+                          setEditedContent(ct.body);
+                          setEditedSubject(ct.subject || '');
+                        }}
+                        className="p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50 hover:bg-muted/30"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium text-sm truncate block">{ct.name}</span>
+                            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                              {ct.body.substring(0, 80)}...
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px] py-0 flex-shrink-0">
+                            {ct.usageCount > 0 ? `${((ct.conversionCount || 0) / ct.usageCount * 100).toFixed(0)}%` : '0%'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </TabsContent>
 

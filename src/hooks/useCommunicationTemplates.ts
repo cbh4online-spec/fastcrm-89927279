@@ -6,7 +6,8 @@ import {
   CommunicationTemplate, 
   TemplateChannel, 
   JourneyContext,
-  TemplateTone
+  TemplateTone,
+  TemplateStructure
 } from '@/types/communicationTemplate';
 import { toast } from 'sonner';
 
@@ -53,8 +54,11 @@ export function useCommunicationTemplates(filters?: {
         body: t.body,
         bodyHtml: t.body_html,
         tone: t.tone as TemplateTone,
+        structureType: (t as any).structure_type || 'custom',
+        cta: (t as any).cta || undefined,
         isActive: t.is_active,
         usageCount: t.usage_count,
+        conversionCount: (t as any).conversion_count || 0,
         responseRate: t.response_rate,
         createdBy: t.created_by,
         createdAt: t.created_at,
@@ -94,8 +98,11 @@ export function useCommunicationTemplate(id: string | undefined) {
         body: data.body,
         bodyHtml: data.body_html,
         tone: data.tone as TemplateTone,
+        structureType: (data as any).structure_type || 'custom',
+        cta: (data as any).cta || undefined,
         isActive: data.is_active,
         usageCount: data.usage_count,
+        conversionCount: (data as any).conversion_count || 0,
         responseRate: data.response_rate,
         createdBy: data.created_by,
         createdAt: data.created_at,
@@ -129,8 +136,10 @@ export function useCreateCommunicationTemplate() {
           body_html: template.bodyHtml,
           tone: template.tone,
           is_active: template.isActive,
-          created_by: user.id
-        })
+          created_by: user.id,
+          structure_type: template.structureType || 'custom',
+          cta: template.cta || null,
+        } as any)
         .select()
         .single();
 
@@ -165,6 +174,8 @@ export function useUpdateCommunicationTemplate() {
       if (updates.bodyHtml !== undefined) updateData.body_html = updates.bodyHtml;
       if (updates.tone !== undefined) updateData.tone = updates.tone;
       if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+      if (updates.structureType !== undefined) updateData.structure_type = updates.structureType;
+      if (updates.cta !== undefined) updateData.cta = updates.cta;
 
       const { data, error } = await supabase
         .from('communication_templates')

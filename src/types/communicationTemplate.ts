@@ -1,5 +1,7 @@
 export type TemplateChannel = 'email' | 'whatsapp' | 'inbox' | 'note';
 
+export type TemplateStructure = 'AIDA' | 'PAS' | 'FollowUp' | 'ColdOutreach' | 'custom';
+
 export type JourneyContext = 
   | 'onboarding'
   | 'em_consumo'
@@ -23,8 +25,11 @@ export interface CommunicationTemplate {
   body: string;
   bodyHtml?: string;
   tone: TemplateTone;
+  structureType: TemplateStructure;
+  cta?: string;
   isActive: boolean;
   usageCount: number;
+  conversionCount: number;
   responseRate?: number;
   createdBy: string;
   createdAt: string;
@@ -97,6 +102,22 @@ export const TONE_LABELS: Record<TemplateTone, string> = {
   human: 'Humano',
   empathetic: 'Empático',
   commercial: 'Comercial Suave'
+};
+
+export const STRUCTURE_LABELS: Record<TemplateStructure, string> = {
+  AIDA: 'AIDA',
+  PAS: 'PAS',
+  FollowUp: 'Follow-Up',
+  ColdOutreach: 'Cold Outreach',
+  custom: 'Personalizado'
+};
+
+export const STRUCTURE_PLACEHOLDERS: Record<TemplateStructure, string> = {
+  AIDA: '**Atenção**\n[Capte a atenção do leitor]\n\n**Interesse**\n[Desperte curiosidade]\n\n**Desejo**\n[Crie vontade de agir]\n\n**Ação**\n[Call-to-action claro]',
+  PAS: '**Problema**\n[Identifique a dor]\n\n**Agitação**\n[Amplifique o impacto]\n\n**Solução**\n[Apresente a solução]',
+  FollowUp: '**Contexto**\n[Retome a conversa anterior]\n\n**Valor**\n[Reforce o benefício]\n\n**Próximo Passo**\n[Proponha ação concreta]',
+  ColdOutreach: '**Hook**\n[Abordagem personalizada]\n\n**Credibilidade**\n[Prova social ou resultado]\n\n**Proposta**\n[Oferta clara]\n\n**CTA**\n[Ação simples]',
+  custom: ''
 };
 
 export const LANGUAGE_OPTIONS = [

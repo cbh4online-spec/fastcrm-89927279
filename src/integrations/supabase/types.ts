@@ -4690,14 +4690,17 @@ export type Database = {
           body: string
           body_html: string | null
           channel: string
+          conversion_count: number | null
           created_at: string | null
           created_by: string
+          cta: string | null
           id: string
           is_active: boolean | null
           journey_contexts: string[] | null
           language: string
           name: string
           response_rate: number | null
+          structure_type: string | null
           subject: string | null
           tone: string | null
           updated_at: string | null
@@ -4708,14 +4711,17 @@ export type Database = {
           body: string
           body_html?: string | null
           channel: string
+          conversion_count?: number | null
           created_at?: string | null
           created_by: string
+          cta?: string | null
           id?: string
           is_active?: boolean | null
           journey_contexts?: string[] | null
           language?: string
           name: string
           response_rate?: number | null
+          structure_type?: string | null
           subject?: string | null
           tone?: string | null
           updated_at?: string | null
@@ -4726,14 +4732,17 @@ export type Database = {
           body?: string
           body_html?: string | null
           channel?: string
+          conversion_count?: number | null
           created_at?: string | null
           created_by?: string
+          cta?: string | null
           id?: string
           is_active?: boolean | null
           journey_contexts?: string[] | null
           language?: string
           name?: string
           response_rate?: number | null
+          structure_type?: string | null
           subject?: string | null
           tone?: string | null
           updated_at?: string | null
