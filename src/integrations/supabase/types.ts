@@ -1181,6 +1181,63 @@ export type Database = {
           },
         ]
       }
+      ai_booking_calendars: {
+        Row: {
+          allow_cancel: boolean | null
+          bot_id: string
+          calendar_id: string
+          calendar_name: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_fallback: boolean | null
+          keywords: string[] | null
+          post_booking_actions: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          allow_cancel?: boolean | null
+          bot_id: string
+          calendar_id: string
+          calendar_name: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_fallback?: boolean | null
+          keywords?: string[] | null
+          post_booking_actions?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          allow_cancel?: boolean | null
+          bot_id?: string
+          calendar_id?: string
+          calendar_name?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_fallback?: boolean | null
+          keywords?: string[] | null
+          post_booking_actions?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_booking_calendars_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_booking_calendars_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_cache_metrics: {
         Row: {
           agent_type: string
@@ -1296,6 +1353,63 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_field_suggestions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_followup_policies: {
+        Row: {
+          allow_channel_switching: boolean | null
+          bot_id: string
+          cadence: Json | null
+          channel: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          scenarios: Json | null
+          switch_rules: Json | null
+          working_hours: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          allow_channel_switching?: boolean | null
+          bot_id: string
+          cadence?: Json | null
+          channel: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          scenarios?: Json | null
+          switch_rules?: Json | null
+          working_hours?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          allow_channel_switching?: boolean | null
+          bot_id?: string
+          cadence?: Json | null
+          channel?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          scenarios?: Json | null
+          switch_rules?: Json | null
+          working_hours?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_followup_policies_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_followup_policies_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -10336,6 +10450,57 @@ export type Database = {
             columns: ["flow_id"]
             isOneToOne: false
             referencedRelation: "conversational_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_queue: {
+        Row: {
+          bot_id: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          next_run_at: string
+          policy_id: string
+          status: string | null
+          step_index: number | null
+          workspace_id: string
+        }
+        Insert: {
+          bot_id: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          next_run_at: string
+          policy_id: string
+          status?: string | null
+          step_index?: number | null
+          workspace_id: string
+        }
+        Update: {
+          bot_id?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          next_run_at?: string
+          policy_id?: string
+          status?: string | null
+          step_index?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_queue_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ai_followup_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_queue_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]

@@ -1,5 +1,5 @@
 /**
- * AgentGoalsPanel - Tabs for Handover, Workflows, Transfer config per agent
+ * AgentGoalsPanel - Tabs for Handover, Workflows, Transfer, Booking, Follow-up config per agent
  */
 
 import { useState } from 'react';
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Trash2, Plus, Workflow, ArrowRightLeft, UserCheck } from 'lucide-react';
+import { Trash2, Plus, Workflow, ArrowRightLeft, UserCheck, CalendarDays, MailCheck } from 'lucide-react';
 import {
   useWorkflowTriggers,
   useCreateWorkflowTrigger,
@@ -22,6 +22,8 @@ import {
   useCreateTransferRule,
   useDeleteTransferRule,
 } from '@/hooks/useAgentGoals';
+import { useBookingCalendars, useCreateBookingCalendar, useDeleteBookingCalendar } from '@/hooks/useAgentBooking';
+import { useFollowupPolicies, useCreateFollowupPolicy, useDeleteFollowupPolicy } from '@/hooks/useAgentFollowup';
 import type { AIChannelAgent } from '@/types/aiChannelAgents';
 
 interface AgentGoalsPanelProps {
@@ -33,18 +35,26 @@ interface AgentGoalsPanelProps {
 export function AgentGoalsPanel({ agent, agents, onUpdateGoalConfig }: AgentGoalsPanelProps) {
   return (
     <Tabs defaultValue="handover" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="handover" className="gap-1.5">
-          <UserCheck className="h-3.5 w-3.5" />
-          Handover
+      <TabsList className="grid w-full grid-cols-5">
+        <TabsTrigger value="handover" className="gap-1 text-xs px-1">
+          <UserCheck className="h-3 w-3" />
+          <span className="hidden sm:inline">Handover</span>
         </TabsTrigger>
-        <TabsTrigger value="workflows" className="gap-1.5">
-          <Workflow className="h-3.5 w-3.5" />
-          Workflows
+        <TabsTrigger value="workflows" className="gap-1 text-xs px-1">
+          <Workflow className="h-3 w-3" />
+          <span className="hidden sm:inline">Workflows</span>
         </TabsTrigger>
-        <TabsTrigger value="transfer" className="gap-1.5">
-          <ArrowRightLeft className="h-3.5 w-3.5" />
-          Transferência
+        <TabsTrigger value="transfer" className="gap-1 text-xs px-1">
+          <ArrowRightLeft className="h-3 w-3" />
+          <span className="hidden sm:inline">Transfer</span>
+        </TabsTrigger>
+        <TabsTrigger value="booking" className="gap-1 text-xs px-1">
+          <CalendarDays className="h-3 w-3" />
+          <span className="hidden sm:inline">Agenda</span>
+        </TabsTrigger>
+        <TabsTrigger value="followup" className="gap-1 text-xs px-1">
+          <MailCheck className="h-3 w-3" />
+          <span className="hidden sm:inline">Follow-up</span>
         </TabsTrigger>
       </TabsList>
 
@@ -56,6 +66,12 @@ export function AgentGoalsPanel({ agent, agents, onUpdateGoalConfig }: AgentGoal
       </TabsContent>
       <TabsContent value="transfer">
         <TransferTab agent={agent} agents={agents} />
+      </TabsContent>
+      <TabsContent value="booking">
+        <BookingTab agent={agent} />
+      </TabsContent>
+      <TabsContent value="followup">
+        <FollowupTab agent={agent} />
       </TabsContent>
     </Tabs>
   );
@@ -365,6 +381,237 @@ function TransferTab({ agent, agents }: { agent: AIChannelAgent; agents: AIChann
                   className="h-7 w-7 text-destructive shrink-0"
                   onClick={() => deleteRule.mutate(r.id)}
                 >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            );
+          })
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ===================== Booking Tab =====================
+
+function BookingTab({ agent }: { agent: AIChannelAgent }) {
+  const { data: calendars = [], isLoading } = useBookingCalendars(agent.id);
+  const createCalendar = useCreateBookingCalendar();
+  const deleteCalendar = useDeleteBookingCalendar();
+
+  const [showForm, setShowForm] = useState(false);
+  const [calendarName, setCalendarName] = useState('');
+  const [description, setDescription] = useState('');
+  const [keywords, setKeywords] = useState('');
+  const [isFallback, setIsFallback] = useState(false);
+
+  const handleCreate = () => {
+    if (!calendarName.trim()) return;
+    createCalendar.mutate({
+      bot_id: agent.id,
+      calendar_id: crypto.randomUUID(),
+      calendar_name: calendarName.trim(),
+      description: description.trim() || null,
+      keywords: keywords.trim() ? keywords.split(',').map(k => k.trim()).filter(Boolean) : [],
+      is_fallback: isFallback,
+      allow_cancel: false,
+      post_booking_actions: {},
+    }, {
+      onSuccess: () => {
+        setShowForm(false);
+        setCalendarName('');
+        setDescription('');
+        setKeywords('');
+        setIsFallback(false);
+      },
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm">Calendários de Agendamento</CardTitle>
+            <CardDescription className="text-xs">
+              Associe calendários ao bot para agendamento inteligente
+            </CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Adicionar
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {showForm && (
+          <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome do calendário</Label>
+              <Input value={calendarName} onChange={(e) => setCalendarName(e.target.value)} placeholder="Ex: Reunião de vendas" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Descrição</Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Quando usar este calendário..." rows={2} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Keywords (separadas por vírgula)</Label>
+              <Input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="reunião, demo, apresentação" />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Calendário fallback</Label>
+              <Switch checked={isFallback} onCheckedChange={setIsFallback} />
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleCreate} disabled={createCalendar.isPending}>Criar</Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Cancelar</Button>
+            </div>
+          </div>
+        )}
+
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground text-center py-4">A carregar...</p>
+        ) : calendars.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">Nenhum calendário configurado</p>
+        ) : (
+          calendars.map((c) => (
+            <div key={c.id} className="flex items-start justify-between gap-2 p-2 border rounded-md">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium">{c.calendar_name}</span>
+                  {c.is_fallback && <Badge variant="outline" className="text-[10px]">Fallback</Badge>}
+                </div>
+                {c.description && <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>}
+                {c.keywords.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {c.keywords.map((kw, i) => <Badge key={i} variant="secondary" className="text-[10px]">{kw}</Badge>)}
+                  </div>
+                )}
+              </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0" onClick={() => deleteCalendar.mutate(c.id)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ===================== Follow-up Tab =====================
+
+function FollowupTab({ agent }: { agent: AIChannelAgent }) {
+  const { data: policies = [], isLoading } = useFollowupPolicies(agent.id);
+  const createPolicy = useCreateFollowupPolicy();
+  const deletePolicy = useDeleteFollowupPolicy();
+
+  const [showForm, setShowForm] = useState(false);
+  const [channel, setChannel] = useState('whatsapp');
+  const [delaysText, setDelaysText] = useState('60, 360, 1440');
+  const [stoppedReplying, setStoppedReplying] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  const handleCreate = () => {
+    const delays = delaysText.split(',').map(d => parseInt(d.trim())).filter(n => !isNaN(n));
+    if (delays.length === 0) return;
+    createPolicy.mutate({
+      bot_id: agent.id,
+      channel,
+      scenarios: { stopped_replying: stoppedReplying, busy },
+      cadence: { delays_minutes: delays },
+      working_hours: {},
+      allow_channel_switching: false,
+      switch_rules: null,
+      is_active: true,
+    }, {
+      onSuccess: () => {
+        setShowForm(false);
+        setDelaysText('60, 360, 1440');
+      },
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm">Políticas de Follow-up</CardTitle>
+            <CardDescription className="text-xs">
+              Configure follow-ups automáticos quando o contacto para de responder
+            </CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Adicionar
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {showForm && (
+          <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Canal</Label>
+              <Select value={channel} onValueChange={setChannel}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="sms">SMS</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Cenários</Label>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={stoppedReplying} onChange={(e) => setStoppedReplying(e.target.checked)} className="rounded" />
+                  Parou de responder
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={busy} onChange={(e) => setBusy(e.target.checked)} className="rounded" />
+                  Ocupado / pediu para depois
+                </label>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Cadência (minutos, separados por vírgula)</Label>
+              <Input value={delaysText} onChange={(e) => setDelaysText(e.target.value)} placeholder="60, 360, 1440" />
+              <p className="text-[10px] text-muted-foreground">Ex: 60 = 1h, 360 = 6h, 1440 = 24h</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleCreate} disabled={createPolicy.isPending}>Criar</Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Cancelar</Button>
+            </div>
+          </div>
+        )}
+
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground text-center py-4">A carregar...</p>
+        ) : policies.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">Nenhuma política configurada</p>
+        ) : (
+          policies.map((p) => {
+            const cadence = p.cadence as any;
+            const delays = cadence?.delays_minutes || [];
+            return (
+              <div key={p.id} className="flex items-start justify-between gap-2 p-2 border rounded-md">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <MailCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm font-medium capitalize">{p.channel}</span>
+                    <Badge variant={p.is_active ? 'default' : 'secondary'} className="text-[10px]">
+                      {p.is_active ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {delays.length} etapas: {delays.map((d: number) => d >= 60 ? `${Math.round(d / 60)}h` : `${d}m`).join(' → ')}
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0" onClick={() => deletePolicy.mutate(p.id)}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
