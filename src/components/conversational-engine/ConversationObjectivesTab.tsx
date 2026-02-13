@@ -1,9 +1,9 @@
 /**
  * Conversation Objectives Tab
- * List of objectives with drag-and-drop reordering
+ * List of objectives with drag-and-drop reordering + progress tracking
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,9 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { useConversationObjectives } from "@/hooks/useConversationObjectives";
+import { useObjectiveProgress } from "@/hooks/useObjectiveProgress";
 import { ConversationObjectiveForm } from "./ConversationObjectiveForm";
+import { ObjectiveProgressBar } from "./ObjectiveProgressBar";
 import type { Database } from "@/integrations/supabase/types";
 
 type ConversationObjective = Database["public"]["Tables"]["conversation_objectives"]["Row"];
@@ -45,6 +47,9 @@ export function ConversationObjectivesTab() {
     reorderObjectives,
     isDeleting,
   } = useConversationObjectives();
+
+  const objectiveIds = useMemo(() => objectives.map((o) => o.id), [objectives]);
+  const { metrics: progressMetrics } = useObjectiveProgress(objectiveIds);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingObjective, setEditingObjective] = useState<ConversationObjective | null>(null);
@@ -199,6 +204,10 @@ export function ConversationObjectivesTab() {
                       <p className="text-sm text-muted-foreground mt-1 truncate">
                         {objective.objective_description}
                       </p>
+                    )}
+                    {/* Progress Bar */}
+                    {progressMetrics[objective.id] && (
+                      <ObjectiveProgressBar metrics={progressMetrics[objective.id]} />
                     )}
                   </div>
 
