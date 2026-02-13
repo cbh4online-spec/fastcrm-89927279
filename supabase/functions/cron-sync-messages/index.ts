@@ -289,18 +289,35 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
             const lastMsg = recentMessages[recentMessages.length - 1];
             const lastDirection = normalizeDirection(lastMsg?.direction);
             if (lastDirection === "inbound") {
-              // Check if autopilot was already triggered for this conversation in the last 5 min
-              const { data: recentTrigger } = await supabase
+              // SMART DEDUP: Check if there's a new inbound AFTER the last trigger
+              const { data: lastTrigger } = await supabase
                 .from("autopilot_events")
-                .select("id")
+                .select("id, created_at")
                 .eq("conversation_id", conversationId)
                 .eq("event_type", "triggered")
-                .gte("created_at", new Date(Date.now() - 300000).toISOString())
+                .order("created_at", { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
-              if (recentTrigger) {
-                console.log("[Cron Sync] Skipping autopilot — already triggered in last 5min", conversationId);
+              let shouldTrigger = true;
+              if (lastTrigger) {
+                const { data: newerInbound } = await supabase
+                  .from("messages")
+                  .select("id")
+                  .eq("conversation_id", conversationId)
+                  .eq("direction", "inbound")
+                  .gt("sent_at", lastTrigger.created_at)
+                  .limit(1)
+                  .maybeSingle();
+
+                if (!newerInbound) {
+                  shouldTrigger = false;
+                  console.log("[Cron Sync] Skipping autopilot — last trigger covers latest inbound", conversationId);
+                }
+              }
+
+              if (!shouldTrigger) {
+                // skip
               } else {
                 triggerAutopilot(supabaseUrl, serviceKey, {
                   workspaceId: workspace_id,
