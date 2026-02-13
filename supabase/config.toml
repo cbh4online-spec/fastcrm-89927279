@@ -246,3 +246,6 @@ verify_jwt = false
 
 [functions.calculate-conversation-priority]
 verify_jwt = false
+
+[functions.generate-dynamic-template-context]
+verify_jwt = false

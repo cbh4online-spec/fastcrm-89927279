@@ -18,6 +18,7 @@ interface GenerateTemplateRequest {
     conversationContext?: string;
   };
   customInstructions?: string;
+  dynamic?: boolean;
 }
 
 serve(async (req) => {
@@ -26,7 +27,6 @@ serve(async (req) => {
   }
 
   try {
-    // Validate auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -53,7 +53,8 @@ serve(async (req) => {
       );
     }
 
-    const { type, goal, tone, context, customInstructions }: GenerateTemplateRequest = await req.json();
+    const body: GenerateTemplateRequest = await req.json();
+    const { type, goal, tone, context, customInstructions, dynamic } = body;
 
     if (!type || !goal) {
       return new Response(
@@ -96,75 +97,89 @@ serve(async (req) => {
     if (context.opportunityId) {
       const { data: opportunity } = await supabase
         .from("opportunities")
-        .select(`
-          title, value, status, notes, expected_close_date,
-          lead:leads(name, email, phone)
-        `)
+        .select("title, value, status, notes, expected_close_date, lead:leads(name, email, phone)")
         .eq("id", context.opportunityId)
         .single();
       if (opportunity) contextData.opportunity = opportunity;
     }
 
-    // Build prompt based on type
-    const typeInstructions = {
-      email: `Create a professional email template. Include:
-- Subject line (max 60 chars, engaging)
-- Body content with proper greeting and sign-off
-- Use {{variables}} for personalization: {{contact.name}}, {{company.name}}, {{opportunity.value}}`,
-      whatsapp: `Create a WhatsApp message template. Keep it:
-- Concise (max 500 chars)
-- Conversational but professional
-- Use emojis sparingly if appropriate
-- Use {{variables}} for personalization`,
-      proposal: `Create proposal content blocks. Generate:
-- Compelling introduction
-- Value proposition (3-5 bullet points)
-- Call to action
-- Use {{variables}} for personalization`,
+    // Build prompt
+    const typeInstructions: Record<string, string> = {
+      email: "Create a professional email template. Include:\n- Subject line (max 60 chars, engaging)\n- Body content with proper greeting and sign-off\n- Use {{variables}} for personalization: {{contact.name}}, {{company.name}}, {{opportunity.value}}",
+      whatsapp: "Create a WhatsApp message template. Keep it:\n- Concise (max 500 chars)\n- Conversational but professional\n- Use emojis sparingly if appropriate\n- Use {{variables}} for personalization",
+      proposal: "Create proposal content blocks. Generate:\n- Compelling introduction\n- Value proposition (3-5 bullet points)\n- Call to action\n- Use {{variables}} for personalization",
     };
 
-    const toneInstructions = {
+    const toneInstructions: Record<string, string> = {
       formal: "Use formal, professional language. Address the recipient respectfully.",
       friendly: "Use warm, approachable language while maintaining professionalism.",
       direct: "Be concise and to the point. Focus on value and action.",
       casual: "Use relaxed, conversational tone. Be personable.",
     };
 
-    const prompt = `Generate a ${type} template in Portuguese (Portugal).
+    let dynamicInstructions = "";
+    if (dynamic) {
+      dynamicInstructions = `
 
-Goal: ${goal}
-Tone: ${toneInstructions[tone]}
+IMPORTANT: This is a DYNAMIC template. You MUST include conditional blocks using this syntax:
+{{#if variable_name == "value"}}content{{else}}alternative{{/if}}
+{{#if variable_name > number}}content{{/if}}
 
-${typeInstructions[type]}
+Available smart variables for conditions:
+- urgency_level (low, medium, high)
+- business_maturity (early, growth, scale)
+- digital_readiness (low, medium, high)
+- conversion_probability (0-100)
+- recommended_tone (direct, consultative, strategic)
+- days_since_last_contact (number)
+- industry (text)
+- lead_score (0-100)
 
-Context:
-${JSON.stringify(contextData, null, 2)}
+Include at least 2-3 conditional blocks that adapt the message based on these variables.
+Use {{first_name}}, {{company_name}}, {{industry}}, {{potential_value}} for personalization.`;
+    }
 
-${context.conversationContext ? `Previous conversation:\n${context.conversationContext}` : ""}
+    const contextStr = JSON.stringify(contextData, null, 2);
+    const conversationPart = context.conversationContext 
+      ? "Previous conversation:\n" + context.conversationContext 
+      : "";
+    const customPart = customInstructions 
+      ? "Additional instructions: " + customInstructions 
+      : "";
 
-${customInstructions ? `Additional instructions: ${customInstructions}` : ""}
+    let responseFormat = "";
+    if (type === "email") {
+      responseFormat = '{\n  "subject": "Email subject line",\n  "content": "Full email body with proper formatting",\n  "suggestedName": "Template name suggestion"\n}';
+    } else if (type === "whatsapp") {
+      responseFormat = '{\n  "content": "WhatsApp message content",\n  "suggestedName": "Template name suggestion"\n}';
+    } else {
+      responseFormat = '{\n  "content_blocks": [\n    { "type": "text", "title": "...", "body": "..." },\n    { "type": "offer", "title": "...", "features": ["..."] },\n    { "type": "cta", "text": "..." }\n  ],\n  "suggestedName": "Template name suggestion"\n}';
+    }
 
-Return ONLY a JSON object (no markdown):
-${type === "email" ? `{
-  "subject": "Email subject line",
-  "content": "Full email body with proper formatting",
-  "suggestedName": "Template name suggestion"
-}` : type === "whatsapp" ? `{
-  "content": "WhatsApp message content",
-  "suggestedName": "Template name suggestion"
-}` : `{
-  "content_blocks": [
-    { "type": "text", "title": "...", "body": "..." },
-    { "type": "offer", "title": "...", "features": ["..."] },
-    { "type": "cta", "text": "..." }
-  ],
-  "suggestedName": "Template name suggestion"
-}`}`;
+    const prompt = [
+      "Generate a " + type + " template in Portuguese (Portugal).",
+      "",
+      "Goal: " + goal,
+      "Tone: " + (toneInstructions[tone] || ""),
+      "",
+      typeInstructions[type] || "",
+      dynamicInstructions,
+      "",
+      "Context:",
+      contextStr,
+      "",
+      conversationPart,
+      "",
+      customPart,
+      "",
+      "Return ONLY a JSON object (no markdown):",
+      responseFormat,
+    ].join("\n");
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Authorization": "Bearer " + LOVABLE_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
