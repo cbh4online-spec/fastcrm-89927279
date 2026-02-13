@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +17,12 @@ interface RequestBody {
   leadName?: string;
   channel?: string;
   lastMessageAt?: string;
+  // Session summary mode
+  sessionMode?: boolean;
+  conversationId?: string;
+  workspaceId?: string;
+  inactivityThresholdMinutes?: number;
+  saveToContactField?: string;
 }
 
 serve(async (req) => {
@@ -24,7 +31,11 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, leadName, channel, lastMessageAt }: RequestBody = await req.json();
+    const { 
+      messages, leadName, channel, lastMessageAt,
+      sessionMode, conversationId, workspaceId,
+      inactivityThresholdMinutes, saveToContactField
+    }: RequestBody = await req.json();
 
     if (!messages || messages.length === 0) {
       return new Response(
@@ -35,9 +46,14 @@ serve(async (req) => {
 
     // Format messages for context
     const conversationText = messages
-      .slice(-20) // Last 20 messages for context
+      .slice(-20)
       .map((m) => `${m.direction === "inbound" ? "Cliente" : "Equipa"}: ${m.content}`)
       .join("\n");
+
+    // Build full transcript for session mode
+    const fullTranscript = sessionMode 
+      ? messages.map((m) => `[${m.direction === "inbound" ? "Cliente" : "Equipa"}] ${m.content}`).join("\n")
+      : undefined;
 
     // Calculate time since last message
     let timeSinceLastMessage = "";
@@ -105,7 +121,6 @@ Gere um resumo conciso seguindo o formato especificado.`;
     // Parse JSON from response
     let summary;
     try {
-      // Try to extract JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         summary = JSON.parse(jsonMatch[0]);
@@ -114,12 +129,42 @@ Gere um resumo conciso seguindo o formato especificado.`;
       }
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
-      // Fallback structure
       summary = {
         bulletPoints: ["Não foi possível gerar resumo automático"],
         status: "Indeterminado",
         lastAction: "desconhecido",
       };
+    }
+
+    // Session mode: persist to conversation_sessions
+    if (sessionMode && conversationId && workspaceId) {
+      try {
+        const supabaseAdmin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        const summaryText = summary.bulletPoints.join(" | ");
+
+        // Upsert session with summary
+        await supabaseAdmin
+          .from("conversation_sessions")
+          .update({
+            summary: summaryText,
+            transcript: fullTranscript || null,
+            saved_to_contact_field: saveToContactField || null,
+            session_end_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("conversation_id", conversationId)
+          .eq("workspace_id", workspaceId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        console.log(`[CONV-SUMMARY] Session summary saved for conversation ${conversationId}`);
+      } catch (sessionErr) {
+        console.warn("[CONV-SUMMARY] Failed to save session summary:", sessionErr);
+      }
     }
 
     return new Response(

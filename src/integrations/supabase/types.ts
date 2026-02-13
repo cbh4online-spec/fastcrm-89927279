@@ -873,6 +873,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           flow_id: string | null
+          goal_config: Json | null
           id: string
           is_active: boolean | null
           knowledge_base_ids: string[] | null
@@ -901,6 +902,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           flow_id?: string | null
+          goal_config?: Json | null
           id?: string
           is_active?: boolean | null
           knowledge_base_ids?: string[] | null
@@ -929,6 +931,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           flow_id?: string | null
+          goal_config?: Json | null
           id?: string
           is_active?: boolean | null
           knowledge_base_ids?: string[] | null
@@ -1345,6 +1348,60 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_memory_access_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_message_audit: {
+        Row: {
+          bot_id: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          intent: Json | null
+          message_id: string | null
+          model_meta: Json | null
+          prompt_used: string | null
+          rag_chunks: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          bot_id?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          intent?: Json | null
+          message_id?: string | null
+          model_meta?: Json | null
+          prompt_used?: string | null
+          rag_chunks?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          bot_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          intent?: Json | null
+          message_id?: string | null
+          model_meta?: Json | null
+          prompt_used?: string | null
+          rag_chunks?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_message_audit_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_message_audit_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2496,6 +2553,55 @@ export type Database = {
             columns: ["blueprint_id"]
             isOneToOne: false
             referencedRelation: "crm_blueprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_knowledge_bases: {
+        Row: {
+          bot_id: string
+          created_at: string
+          id: string
+          knowledge_base_id: string
+          priority: number
+          workspace_id: string
+        }
+        Insert: {
+          bot_id: string
+          created_at?: string
+          id?: string
+          knowledge_base_id: string
+          priority?: number
+          workspace_id: string
+        }
+        Update: {
+          bot_id?: string
+          created_at?: string
+          id?: string
+          knowledge_base_id?: string
+          priority?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_knowledge_bases_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_knowledge_bases_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_knowledge_bases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -6543,6 +6649,63 @@ export type Database = {
           },
         ]
       }
+      conversation_ai_state: {
+        Row: {
+          active_bot_id: string | null
+          conversation_id: string
+          fail_count: number
+          handed_over: boolean
+          handed_over_to_user_id: string | null
+          id: string
+          is_bot_sleeping: boolean
+          last_ai_message_at: string | null
+          sleep_until: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active_bot_id?: string | null
+          conversation_id: string
+          fail_count?: number
+          handed_over?: boolean
+          handed_over_to_user_id?: string | null
+          id?: string
+          is_bot_sleeping?: boolean
+          last_ai_message_at?: string | null
+          sleep_until?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active_bot_id?: string | null
+          conversation_id?: string
+          fail_count?: number
+          handed_over?: boolean
+          handed_over_to_user_id?: string | null
+          id?: string
+          is_bot_sleeping?: boolean
+          last_ai_message_at?: string | null
+          sleep_until?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_ai_state_active_bot_id_fkey"
+            columns: ["active_bot_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_ai_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_analytics: {
         Row: {
           ai_suggestions_used: number | null
@@ -7301,10 +7464,15 @@ export type Database = {
           handed_off_at: string | null
           handed_off_to: string | null
           id: string
+          inactivity_threshold_minutes: number | null
           lead_id: string | null
+          saved_to_contact_field: string | null
+          session_end_at: string | null
           started_at: string
           status: Database["public"]["Enums"]["session_status"]
           step_history: Json | null
+          summary: string | null
+          transcript: string | null
           updated_at: string
           variables: Json | null
           workspace_id: string
@@ -7323,10 +7491,15 @@ export type Database = {
           handed_off_at?: string | null
           handed_off_to?: string | null
           id?: string
+          inactivity_threshold_minutes?: number | null
           lead_id?: string | null
+          saved_to_contact_field?: string | null
+          session_end_at?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["session_status"]
           step_history?: Json | null
+          summary?: string | null
+          transcript?: string | null
           updated_at?: string
           variables?: Json | null
           workspace_id: string
@@ -7345,10 +7518,15 @@ export type Database = {
           handed_off_at?: string | null
           handed_off_to?: string | null
           id?: string
+          inactivity_threshold_minutes?: number | null
           lead_id?: string | null
+          saved_to_contact_field?: string | null
+          session_end_at?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["session_status"]
           step_history?: Json | null
+          summary?: string | null
+          transcript?: string | null
           updated_at?: string
           variables?: Json | null
           workspace_id?: string

@@ -91,11 +91,21 @@ export function AIAgentForm({
   };
 
   const toggleKB = (kbId: string) => {
-    setSelectedKBs(prev => 
-      prev.includes(kbId) 
-        ? prev.filter(id => id !== kbId)
-        : [...prev, kbId]
-    );
+    if (selectedKBs.includes(kbId)) {
+      setSelectedKBs(prev => prev.filter(id => id !== kbId));
+    } else if (selectedKBs.length < 7) {
+      setSelectedKBs(prev => [...prev, kbId]);
+    }
+  };
+
+  const moveKB = (kbId: string, direction: "up" | "down") => {
+    const idx = selectedKBs.indexOf(kbId);
+    if (idx === -1) return;
+    const newArr = [...selectedKBs];
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= newArr.length) return;
+    [newArr[idx], newArr[swapIdx]] = [newArr[swapIdx], newArr[idx]];
+    setSelectedKBs(newArr);
   };
 
   const removeKB = (kbId: string) => {
@@ -177,20 +187,35 @@ export function AIAgentForm({
 
       {/* Knowledge Bases Multi-select */}
       <div className="space-y-2">
-        <Label>Bases de Conhecimento</Label>
+        <div className="flex items-center justify-between">
+          <Label>Bases de Conhecimento</Label>
+          <span className="text-xs text-muted-foreground">{selectedKBs.length}/7</span>
+        </div>
         
-        {/* Selected KBs */}
+        {/* Selected KBs with priority order */}
         {selectedKBs.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {selectedKBs.map(kbId => {
+          <div className="space-y-1 mb-2 p-2 border rounded-md bg-muted/30">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Ordem de prioridade</span>
+            {selectedKBs.map((kbId, idx) => {
               const kb = knowledgeBases.find(k => k.id === kbId);
               return kb ? (
-                <Badge key={kbId} variant="secondary" className="gap-1">
-                  {kb.name}
-                  <button type="button" onClick={() => removeKB(kbId)} className="hover:text-destructive">
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
+                <div key={kbId} className="flex items-center justify-between gap-1 py-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground w-4">{idx + 1}.</span>
+                    <span className="text-xs">{kb.name}</span>
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    <button type="button" onClick={() => moveKB(kbId, "up")} disabled={idx === 0} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30">
+                      <span className="text-[10px]">▲</span>
+                    </button>
+                    <button type="button" onClick={() => moveKB(kbId, "down")} disabled={idx === selectedKBs.length - 1} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30">
+                      <span className="text-[10px]">▼</span>
+                    </button>
+                    <button type="button" onClick={() => removeKB(kbId)} className="p-0.5 text-muted-foreground hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
               ) : null;
             })}
           </div>
@@ -210,6 +235,7 @@ export function AIAgentForm({
                     id={`kb-${kb.id}`}
                     checked={selectedKBs.includes(kb.id)}
                     onCheckedChange={() => toggleKB(kb.id)}
+                    disabled={!selectedKBs.includes(kb.id) && selectedKBs.length >= 7}
                   />
                   <label htmlFor={`kb-${kb.id}`} className="text-sm cursor-pointer">
                     {kb.name}
@@ -220,7 +246,7 @@ export function AIAgentForm({
           )}
         </ScrollArea>
         <p className="text-xs text-muted-foreground">
-          Selecione as bases de conhecimento que este agente pode consultar
+          Selecione até 7 bases de conhecimento. A ordem define a prioridade de consulta.
         </p>
       </div>
 

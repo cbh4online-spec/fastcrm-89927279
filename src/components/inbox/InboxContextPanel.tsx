@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, User, Zap, X, ExternalLink, Mail, Phone, Tag, Target, Calendar, UserPlus, MessageSquare, Loader2, Check } from "lucide-react";
+import { Sparkles, User, Zap, X, ExternalLink, Mail, Phone, Tag, Target, Calendar, UserPlus, MessageSquare, Loader2, Check, FileText, RefreshCw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +22,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConversationIntelligencePanel } from "./ConversationIntelligencePanel";
+import { useConversationSummary } from "@/hooks/useConversationSummary";
 import { UnifiedActivityLog } from "@/components/crm/UnifiedActivityLog";
 import { ScheduleFollowupDialog } from "./ScheduleFollowupDialog";
 import { CreateOpportunityFromInboxDialog } from "./CreateOpportunityFromInboxDialog";
@@ -36,6 +37,82 @@ interface InboxContextPanelProps {
   conversationId: string | null;
   onClose: () => void;
   onInsertReply?: (text: string) => void;
+}
+
+function ConversationSummaryTab({
+  conversationId,
+  messages,
+  leadName,
+  channel,
+  lastMessageAt,
+}: {
+  conversationId: string | null;
+  messages: any[] | undefined;
+  leadName?: string;
+  channel?: string;
+  lastMessageAt?: string;
+}) {
+  const { summary, isLoading, error, refresh } = useConversationSummary({
+    conversationId,
+    messages,
+    leadName,
+    channel,
+    lastMessageAt,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-6 space-y-2">
+        <p className="text-xs text-destructive">{error}</p>
+        <Button variant="outline" size="sm" className="text-xs h-7" onClick={refresh}>
+          <RefreshCw className="w-3 h-3 mr-1" /> Tentar novamente
+        </Button>
+      </div>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-8">
+        Sem resumo disponível
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Status */}
+      <div className="flex items-center justify-between">
+        <Badge variant="secondary" className="text-xs">{summary.status}</Badge>
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={refresh}>
+          <RefreshCw className="w-3 h-3" />
+        </Button>
+      </div>
+
+      {/* Bullet Points */}
+      <div className="space-y-2">
+        {summary.bulletPoints.map((point, i) => (
+          <div key={i} className="flex items-start gap-2 text-sm">
+            <span className="text-primary mt-0.5">•</span>
+            <span>{point}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Last Action */}
+      <div className="text-xs text-muted-foreground border-t border-border pt-2">
+        Última ação: {summary.lastAction}
+      </div>
+    </div>
+  );
 }
 
 export function InboxContextPanel({ conversationId, onClose, onInsertReply }: InboxContextPanelProps) {
@@ -131,10 +208,14 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
 
       {/* Tabs */}
       <Tabs defaultValue="ai" className="flex-1 flex flex-col min-h-0">
-        <TabsList className="w-full grid grid-cols-3 h-9 mx-3 mt-2" style={{ width: "calc(100% - 1.5rem)" }}>
+        <TabsList className="w-full grid grid-cols-4 h-9 mx-3 mt-2" style={{ width: "calc(100% - 1.5rem)" }}>
           <TabsTrigger value="ai" className="text-xs gap-1">
             <Sparkles className="w-3 h-3" />
             AI
+          </TabsTrigger>
+          <TabsTrigger value="summary" className="text-xs gap-1">
+            <FileText className="w-3 h-3" />
+            Resumo
           </TabsTrigger>
           <TabsTrigger value="lead" className="text-xs gap-1">
             <User className="w-3 h-3" />
@@ -170,6 +251,21 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
                   Sem mensagens para analisar
                 </p>
               )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        {/* Summary Tab */}
+        <TabsContent value="summary" className="flex-1 m-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-3">
+              <ConversationSummaryTab
+                conversationId={conversationId}
+                messages={messages}
+                leadName={displayName}
+                channel={conversation?.channel}
+                lastMessageAt={conversation?.last_message_at || undefined}
+              />
             </div>
           </ScrollArea>
         </TabsContent>
