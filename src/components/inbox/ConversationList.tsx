@@ -37,6 +37,8 @@ import {
   Trash2,
   CheckSquare,
   AlertCircle,
+  Zap,
+  Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -55,6 +57,7 @@ const channelIcons: Record<ConversationChannel, React.ElementType> = {
   live_chat: MessageSquare,
   web_widget: Globe,
   phone: Phone,
+  ghl: Zap,
   other: MessageSquare,
 };
 
@@ -69,8 +72,19 @@ const channelColors: Record<ConversationChannel, string> = {
   live_chat: "text-teal-500",
   web_widget: "text-cyan-500",
   phone: "text-green-600",
+  ghl: "text-orange-500",
   other: "text-muted-foreground",
 };
+
+const channelFilterOptions: { id: ConversationChannel | "all"; label: string }[] = [
+  { id: "all", label: "Todos" },
+  { id: "email", label: "Email" },
+  { id: "whatsapp", label: "WhatsApp" },
+  { id: "instagram", label: "Instagram" },
+  { id: "ghl", label: "GHL" },
+  { id: "webchat", label: "Webchat" },
+  { id: "sms", label: "SMS" },
+];
 
 type SimplifiedTab = "requires_response" | "follow_up" | "active" | "resolved";
 
@@ -87,6 +101,7 @@ export function ConversationList({
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<SimplifiedTab>("requires_response");
+  const [channelFilter, setChannelFilter] = useState<ConversationChannel | "all">("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -157,6 +172,11 @@ export function ConversationList({
       return true;
     });
 
+    // Channel filter (local)
+    if (channelFilter !== "all") {
+      filtered = filtered.filter(conv => conv.channel === channelFilter);
+    }
+
     // Search filter
     if (search) {
       const searchLower = search.toLowerCase();
@@ -180,7 +200,7 @@ export function ConversationList({
     });
 
     return filtered;
-  }, [conversations, search, activeTab]);
+  }, [conversations, search, activeTab, channelFilter]);
 
   const toggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -220,15 +240,35 @@ export function ConversationList({
             </TabsList>
           </Tabs>
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-8 text-sm"
-            />
+          {/* Search + Channel Filter */}
+          <div className="flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-8 text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Channel Filter Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+            {channelFilterOptions.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setChannelFilter(opt.id)}
+                className={cn(
+                  "text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border transition-colors",
+                  channelFilter === opt.id
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
 
           {/* Bulk Actions */}

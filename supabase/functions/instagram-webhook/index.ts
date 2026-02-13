@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizeIncomingMessage } from "../_shared/normalize-message.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,7 +59,7 @@ serve(async (req) => {
 
         const workspaceId = connection.workspace_id;
 
-        // Process messaging events
+        // Process messaging events via normalize layer
         for (const messagingEvent of entry.messaging || []) {
           const senderId = messagingEvent.sender?.id;
           const recipientId = messagingEvent.recipient?.id;
@@ -70,65 +71,10 @@ serve(async (req) => {
           // Skip echo messages (messages we sent)
           if (message.is_echo) continue;
 
-          // Find or create conversation
-          let conversationId: string;
           const externalThreadId = `instagram_${senderId}_${recipientId}`;
+          const externalMessageId = message.mid || undefined;
 
-          const { data: existingConversation } = await supabase
-            .from("conversations")
-            .select("id")
-            .eq("workspace_id", workspaceId)
-            .eq("external_thread_id", externalThreadId)
-            .single();
-
-          if (existingConversation) {
-            conversationId = existingConversation.id;
-
-            // Update conversation with last message preview
-            const messagePreview = (message.text || "").substring(0, 100);
-            await supabase
-              .from("conversations")
-              .update({
-                last_message_at: new Date(timestamp).toISOString(),
-                last_message_preview: messagePreview,
-                unread_count: supabase.rpc("increment_unread", { row_id: conversationId }),
-                status: "open",
-              })
-              .eq("id", conversationId);
-          } else {
-            // Try to find/create lead for this sender
-            let leadId = null;
-
-            // Create new conversation with message preview
-            const messagePreview = (message.text || "").substring(0, 100);
-            const { data: newConversation, error: convError } = await supabase
-              .from("conversations")
-              .insert({
-                workspace_id: workspaceId,
-                channel: "instagram",
-                external_thread_id: externalThreadId,
-                status: "open",
-                unread_count: 1,
-                last_message_at: new Date(timestamp).toISOString(),
-                last_message_preview: messagePreview,
-                lead_id: leadId,
-                channel_metadata: {
-                  instagram_sender_id: senderId,
-                  instagram_recipient_id: recipientId,
-                },
-              })
-              .select("id")
-              .single();
-
-            if (convError) {
-              console.error("Failed to create conversation:", convError);
-              continue;
-            }
-
-            conversationId = newConversation.id;
-          }
-
-          // Create message
+          // Build attachments
           const attachments: any[] = [];
           if (message.attachments) {
             for (const att of message.attachments) {
@@ -139,17 +85,25 @@ serve(async (req) => {
             }
           }
 
-          const { error: msgError } = await supabase.from("messages").insert({
-            conversation_id: conversationId,
-            workspace_id: workspaceId,
-            direction: "inbound",
-            content: message.text || "",
-            attachments: attachments,
-            sent_at: new Date(timestamp).toISOString(),
-          });
+          try {
+            const result = await normalizeIncomingMessage(supabase, {
+              workspace_id: workspaceId,
+              channel: "instagram",
+              sender_id: senderId,
+              content: message.text || "",
+              attachments,
+              external_thread_id: externalThreadId,
+              external_message_id: externalMessageId,
+              timestamp: new Date(timestamp).toISOString(),
+              channel_metadata: {
+                instagram_sender_id: senderId,
+                instagram_recipient_id: recipientId,
+              },
+            });
 
-          if (msgError) {
-            console.error("Failed to save message:", msgError);
+            console.log("[instagram] Message processed:", result);
+          } catch (err) {
+            console.error("[instagram] Failed to process message:", err);
           }
         }
       }
@@ -158,7 +112,6 @@ serve(async (req) => {
       return new Response("EVENT_RECEIVED", { status: 200 });
     } catch (error) {
       console.error("Webhook processing error:", error);
-      // Still return 200 to prevent Meta from retrying
       return new Response("EVENT_RECEIVED", { status: 200 });
     }
   }

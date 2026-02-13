@@ -5,7 +5,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Lead } from "./useLeads";
 
-export type ConversationChannel = "whatsapp" | "email" | "sms" | "webchat" | "instagram" | "facebook" | "messenger" | "live_chat" | "web_widget" | "phone" | "other";
+export type ConversationChannel = "whatsapp" | "email" | "sms" | "webchat" | "instagram" | "facebook" | "messenger" | "live_chat" | "web_widget" | "phone" | "ghl" | "other";
 export type ConversationStatus = "open" | "closed" | "archived";
 
 export interface ConversationContact {
@@ -118,6 +118,7 @@ export function useConversations(filters?: ConversationFilters) {
           company:companies(id, name)
         `)
         .eq("workspace_id", currentWorkspace.id)
+        .order("conversation_priority_score", { ascending: false, nullsFirst: true })
         .order("last_message_at", { ascending: false, nullsFirst: false });
 
       if (filters?.status) {

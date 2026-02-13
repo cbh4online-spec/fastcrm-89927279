@@ -18,6 +18,7 @@ import {
   CheckCircle,
   Clock,
   Briefcase,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +67,7 @@ const channels: ChannelItem[] = [
   { id: "email", label: "Email", icon: Mail, color: "text-blue-500" },
   { id: "whatsapp", label: "WhatsApp", icon: Phone, color: "text-green-500" },
   { id: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
+  { id: "ghl", label: "GoHighLevel", icon: Zap, color: "text-orange-500" },
   { id: "sms", label: "SMS", icon: MessageSquare, color: "text-purple-500" },
   { id: "messenger", label: "Messenger", icon: Facebook, color: "text-blue-600" },
   { id: "webchat", label: "Website", icon: Globe, color: "text-cyan-500" },
@@ -114,6 +116,7 @@ export function InboxSidebar({
     email: allConversations?.filter(c => c.channel === "email").length || 0,
     whatsapp: allConversations?.filter(c => c.channel === "whatsapp").length || 0,
     instagram: allConversations?.filter(c => c.channel === "instagram").length || 0,
+    ghl: allConversations?.filter(c => c.channel === "ghl").length || 0,
     facebook: allConversations?.filter(c => c.channel === "facebook" || c.channel === "messenger").length || 0,
     messenger: allConversations?.filter(c => c.channel === "messenger").length || 0,
     webchat: allConversations?.filter(c => c.channel === "webchat" || c.channel === "web_widget" || c.channel === "live_chat").length || 0,
