@@ -13184,6 +13184,59 @@ export type Database = {
           },
         ]
       }
+      lead_behavior_signals: {
+        Row: {
+          channel_preference: string | null
+          contact_id: string | null
+          engagement_depth_score: number | null
+          followup_needed_rate: number | null
+          id: string
+          last_seen_at: string | null
+          last_updated_at: string | null
+          lead_id: string | null
+          reading_proxy_score: number | null
+          reply_rate_last_30d: number | null
+          response_latency_avg_minutes: number | null
+          workspace_id: string
+        }
+        Insert: {
+          channel_preference?: string | null
+          contact_id?: string | null
+          engagement_depth_score?: number | null
+          followup_needed_rate?: number | null
+          id?: string
+          last_seen_at?: string | null
+          last_updated_at?: string | null
+          lead_id?: string | null
+          reading_proxy_score?: number | null
+          reply_rate_last_30d?: number | null
+          response_latency_avg_minutes?: number | null
+          workspace_id: string
+        }
+        Update: {
+          channel_preference?: string | null
+          contact_id?: string | null
+          engagement_depth_score?: number | null
+          followup_needed_rate?: number | null
+          id?: string
+          last_seen_at?: string | null
+          last_updated_at?: string | null
+          lead_id?: string | null
+          reading_proxy_score?: number | null
+          reply_rate_last_30d?: number | null
+          response_latency_avg_minutes?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_behavior_signals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_linkedin_data: {
         Row: {
           analysis_status: string | null
@@ -15533,6 +15586,59 @@ export type Database = {
         }
         Relationships: []
       }
+      message_length_events: {
+        Row: {
+          channel: string
+          char_count: number
+          chosen_length: string
+          conversation_id: string | null
+          event_at: string | null
+          event_type: string
+          id: string
+          intent_label: string | null
+          pipeline_stage: string | null
+          structure_key: string
+          template_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string
+          char_count?: number
+          chosen_length: string
+          conversation_id?: string | null
+          event_at?: string | null
+          event_type: string
+          id?: string
+          intent_label?: string | null
+          pipeline_stage?: string | null
+          structure_key: string
+          template_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          char_count?: number
+          chosen_length?: string
+          conversation_id?: string | null
+          event_at?: string | null
+          event_type?: string
+          id?: string
+          intent_label?: string | null
+          pipeline_stage?: string | null
+          structure_key?: string
+          template_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_length_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           attachments: Json | null
@@ -17490,6 +17596,7 @@ export type Database = {
           id: string
           key: string
           label: string
+          length_profiles: Json | null
           updated_at: string
         }
         Insert: {
@@ -17500,6 +17607,7 @@ export type Database = {
           id?: string
           key: string
           label: string
+          length_profiles?: Json | null
           updated_at?: string
         }
         Update: {
@@ -17510,6 +17618,7 @@ export type Database = {
           id?: string
           key?: string
           label?: string
+          length_profiles?: Json | null
           updated_at?: string
         }
         Relationships: []
@@ -27510,6 +27619,7 @@ export type Database = {
         Row: {
           avg_time_to_reply_minutes: number
           channel: string
+          chosen_length: string | null
           id: string
           intent_label: string | null
           opportunity_rate: number
@@ -27525,6 +27635,7 @@ export type Database = {
         Insert: {
           avg_time_to_reply_minutes?: number
           channel: string
+          chosen_length?: string | null
           id?: string
           intent_label?: string | null
           opportunity_rate?: number
@@ -27540,6 +27651,7 @@ export type Database = {
         Update: {
           avg_time_to_reply_minutes?: number
           channel?: string
+          chosen_length?: string | null
           id?: string
           intent_label?: string | null
           opportunity_rate?: number

@@ -48,10 +48,28 @@ serve(async (req) => {
       });
     }
 
-    // Group by structure_key + channel + pipeline_stage + intent_label
+    // Also get length events to enrich with chosen_length
+    const { data: lengthEvents } = await supabase
+      .from("message_length_events")
+      .select("conversation_id, template_id, structure_key, channel, chosen_length")
+      .eq("workspace_id", workspace_id)
+      .eq("event_type", "composed");
+
+    // Build lookup: conversation_id+structure_key+channel -> chosen_length
+    const lengthLookup: Record<string, string> = {};
+    if (lengthEvents) {
+      for (const le of lengthEvents) {
+        const key = `${le.conversation_id || ''}|${le.structure_key}|${le.channel}`;
+        lengthLookup[key] = le.chosen_length;
+      }
+    }
+
+    // Group by structure_key + channel + pipeline_stage + intent_label + chosen_length
     const groups: Record<string, typeof events> = {};
     for (const evt of events) {
-      const key = `${evt.structure_key}|${evt.channel}|${evt.pipeline_stage || 'null'}|${evt.intent_label || 'null'}`;
+      const lengthKey = `${evt.conversation_id || ''}|${evt.structure_key}|${evt.channel}`;
+      const chosenLength = lengthLookup[lengthKey] || null;
+      const key = `${evt.structure_key}|${evt.channel}|${evt.pipeline_stage || 'null'}|${evt.intent_label || 'null'}|${chosenLength || 'null'}`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(evt);
     }
@@ -59,9 +77,10 @@ serve(async (req) => {
     const upserts = [];
 
     for (const [key, groupEvents] of Object.entries(groups)) {
-      const [structureKey, channel, stage, intentLabel] = key.split("|");
+      const [structureKey, channel, stage, intentLabel, chosenLen] = key.split("|");
       const pipelineStage = stage === "null" ? null : stage;
       const intent = intentLabel === "null" ? null : intentLabel;
+      const chosenLength = chosenLen === "null" ? null : chosenLen;
 
       const sent = groupEvents.filter(e => e.event_type === "sent").length;
       const replied = groupEvents.filter(e => e.event_type === "replied").length;
@@ -112,6 +131,7 @@ serve(async (req) => {
         channel,
         pipeline_stage: pipelineStage,
         intent_label: intent,
+        chosen_length: chosenLength,
         samples: sent,
         opportunity_rate: Math.round(oppRate * 10000) / 10000,
         win_rate: Math.round(winRate * 10000) / 10000,

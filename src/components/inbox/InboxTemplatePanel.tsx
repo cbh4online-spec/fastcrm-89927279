@@ -120,6 +120,9 @@ export function InboxTemplatePanel({
   const [isComposing, setIsComposing] = useState(false);
   const [composedStructure, setComposedStructure] = useState<string | null>(null);
   const [composedConfidence, setComposedConfidence] = useState<string | null>(null);
+  const [composedLength, setComposedLength] = useState<string | null>(null);
+  const [composedCharCount, setComposedCharCount] = useState<number | null>(null);
+  const [composedTargetLimit, setComposedTargetLimit] = useState<number | null>(null);
 
   const { currentWorkspace } = useWorkspace();
   const { data: templates, isLoading: templatesLoading } = useTemplates({ isActive: true });
@@ -585,7 +588,10 @@ export function InboxTemplatePanel({
                               if (result.subject) setEditedSubject(result.subject);
                               setComposedStructure(result.structure_key);
                               setComposedConfidence(result.confidence);
-                              toast.success(`Mensagem composta com estrutura ${result.structure_key}`);
+                              setComposedLength(result.chosen_length || null);
+                              setComposedCharCount(result.char_count || null);
+                              setComposedTargetLimit(result.target_char_limit || null);
+                              toast.success(`Mensagem composta: ${result.structure_key} (${result.chosen_length || 'medium'})`);
                             }
                           } catch (err) {
                             console.error(err);
@@ -610,7 +616,7 @@ export function InboxTemplatePanel({
                   })()}
 
                   {composedStructure && (
-                    <div className="flex items-center gap-1.5 justify-center">
+                    <div className="flex items-center gap-1.5 justify-center flex-wrap">
                       <Badge variant="secondary" className="text-[10px] py-0 gap-0.5">
                         <LayoutTemplate className="h-2.5 w-2.5" />
                         {composedStructure}
@@ -618,6 +624,20 @@ export function InboxTemplatePanel({
                       <Badge variant="outline" className="text-[10px] py-0">
                         {composedConfidence === 'high' ? '🟢' : composedConfidence === 'medium' ? '🟡' : '🔴'} {composedConfidence}
                       </Badge>
+                      {composedLength && (
+                        <Badge variant="outline" className="text-[10px] py-0 gap-0.5">
+                          {composedLength === 'short' ? '📝' : composedLength === 'long' ? '📄' : '📃'}
+                          {composedLength === 'short' ? 'Curto' : composedLength === 'long' ? 'Longo' : 'Médio'}
+                        </Badge>
+                      )}
+                      {composedCharCount !== null && composedTargetLimit !== null && (
+                        <Badge 
+                          variant="outline" 
+                          className={`text-[10px] py-0 ${composedCharCount > composedTargetLimit ? 'text-destructive border-destructive/30' : 'text-green-600 border-green-500/30'}`}
+                        >
+                          {composedCharCount}/{composedTargetLimit} chars
+                        </Badge>
+                      )}
                     </div>
                   )}
 

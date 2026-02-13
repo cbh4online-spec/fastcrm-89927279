@@ -47,6 +47,7 @@ import { Toolbar } from '@/components/common/Toolbar';
 import { FilterSidebar, FilterGroup } from '@/components/common/FilterSidebar';
 import { useCommunicationTemplates, useDeleteCommunicationTemplate, useUpdateCommunicationTemplate } from '@/hooks/useCommunicationTemplates';
 import { useWorkspaceTemplateStats, useTemplateVariants } from '@/hooks/usePredictiveTemplates';
+import { useStructureLengthStats } from '@/hooks/useMessageLength';
 import { 
   CommunicationTemplate, 
   TemplateChannel,
@@ -104,6 +105,8 @@ export function TemplatesListPage() {
   const updateTemplate = useUpdateCommunicationTemplate();
   const { data: allStats } = useWorkspaceTemplateStats();
   const { data: selectedVariants } = useTemplateVariants(selectedStatsTemplate);
+  const { data: lengthStats } = useStructureLengthStats();
+  const [lengthChannelFilter, setLengthChannelFilter] = useState<string>('all');
 
   // Filter groups for sidebar
   const filterGroups: FilterGroup[] = [
@@ -700,6 +703,75 @@ export function TemplatesListPage() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+
+            {/* Length Performance Matrix */}
+            {lengthStats && lengthStats.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium flex items-center gap-1.5">
+                    📏 Por Comprimento (Estrutura × Length × Canal)
+                  </h4>
+                  <Select value={lengthChannelFilter} onValueChange={setLengthChannelFilter}>
+                    <SelectTrigger className="w-[120px] h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  {(() => {
+                    const filtered = lengthChannelFilter === 'all'
+                      ? lengthStats
+                      : lengthStats.filter(s => s.channel === lengthChannelFilter);
+
+                    // Group by structure_key
+                    const grouped: Record<string, typeof filtered> = {};
+                    for (const s of filtered) {
+                      if (!grouped[s.structure_key]) grouped[s.structure_key] = [];
+                      grouped[s.structure_key].push(s);
+                    }
+
+                    return Object.entries(grouped).map(([structKey, items]) => (
+                      <Card key={structKey} className="hover:border-primary/50 transition-colors">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="font-medium text-sm">{structKey}</span>
+                            <Badge variant="secondary" className="text-[10px] py-0">
+                              {items.reduce((sum, i) => sum + i.samples, 0)} amostras
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            {['short', 'medium', 'long'].map(len => {
+                              const stat = items.find(i => i.chosen_length === len);
+                              const label = len === 'short' ? 'Curto' : len === 'long' ? 'Longo' : 'Médio';
+                              return (
+                                <div key={len} className={`rounded-lg border p-2 text-center ${stat ? 'bg-muted/30' : 'opacity-40'}`}>
+                                  <div className="text-[10px] font-medium text-muted-foreground mb-1">{label}</div>
+                                  {stat ? (
+                                    <div className="space-y-0.5">
+                                      <div className="text-sm font-bold text-primary">{(stat.score * 100).toFixed(1)}%</div>
+                                      <div className="text-[10px] text-muted-foreground">Win: {(stat.win_rate * 100).toFixed(1)}%</div>
+                                      <div className="text-[10px] text-muted-foreground">Opp: {(stat.opportunity_rate * 100).toFixed(1)}%</div>
+                                      <div className="text-[10px] text-muted-foreground">{stat.samples} amostras</div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-[10px] text-muted-foreground">—</div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ));
+                  })()}
+                </div>
               </div>
             )}
           </TabsContent>
