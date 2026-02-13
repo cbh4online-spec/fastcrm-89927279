@@ -897,13 +897,16 @@ async function triggerAutopilotResponse(
     .from("messages")
     .select("content, direction, sent_at")
     .eq("conversation_id", conversationId)
-    .order("sent_at", { ascending: true })
+    .order("sent_at", { ascending: false })
     .limit(20);
 
   if (!messages || messages.length === 0) {
     console.log("[AUTOPILOT] No messages found for context");
     return;
   }
+
+  // Reverse to restore chronological order (oldest first) for the AI prompt
+  const orderedMessages = messages.reverse();
 
   // 9. Get lead data for personalization
   let leadData = null;
@@ -927,7 +930,7 @@ async function triggerAutopilotResponse(
     },
     body: JSON.stringify({
       action: "suggest_reply",
-      messages: messages.map((m: any) => ({
+      messages: orderedMessages.map((m: any) => ({
         role: m.direction === "inbound" ? "user" : "assistant",
         content: m.content,
         direction: m.direction
@@ -1005,7 +1008,7 @@ async function triggerAutopilotResponse(
   await supabase.from("ai_response_audits").insert({
     workspace_id: workspaceId,
     conversation_id: conversationId,
-    user_message: messages.filter((m: any) => m.direction === "inbound").pop()?.content || "",
+    user_message: orderedMessages.filter((m: any) => m.direction === "inbound").pop()?.content || "",
     ai_response: suggestion,
     persona_id: autopilotConfig.persona_id,
     followed_rules: true,
