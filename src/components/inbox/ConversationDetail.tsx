@@ -27,6 +27,7 @@ import {
   Facebook,
   Globe,
   Calendar,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -153,11 +154,17 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleStatusChange = async (status: "open" | "closed" | "archived") => {
+  const handleStatusChange = async (status: "open" | "closed" | "pending" | "archived") => {
     if (!conversationId) return;
     try {
       await updateStatus.mutateAsync({ conversationId, status });
-      toast.success(status === "closed" ? "Conversa fechada" : status === "archived" ? "Conversa arquivada" : "Conversa reaberta");
+      const labels: Record<string, string> = {
+        open: "Conversa reaberta",
+        closed: "Conversa fechada",
+        pending: "Conversa marcada como pendente",
+        archived: "Conversa arquivada",
+      };
+      toast.success(labels[status]);
     } catch (error) {
       toast.error("Falha ao atualizar estado");
     }
@@ -213,11 +220,13 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 className={cn(
                   "text-[10px] px-1.5 py-0 flex-shrink-0",
                   conversation.status === "open" && "border-green-500/50 text-green-600",
+                  conversation.status === "pending" && "border-amber-500/50 text-amber-600",
                   conversation.status === "closed" && "border-muted-foreground/50",
                   conversation.status === "archived" && "border-amber-500/50 text-amber-600"
                 )}
               >
                 {conversation.status === "open" ? "Aberta" :
+                 conversation.status === "pending" ? "Pendente" :
                  conversation.status === "closed" ? "Fechada" : "Arquivada"}
               </Badge>
               {priorityScore > 0 && <PriorityScoreBadge score={priorityScore} />}
@@ -237,6 +246,10 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
               <DropdownMenuItem onClick={() => handleStatusChange("open")}>
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Marcar como Aberta
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusChange("pending")}>
+                <Clock className="w-4 h-4 mr-2" />
+                Marcar como Pendente
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange("closed")}>
                 <XCircle className="w-4 h-4 mr-2" />

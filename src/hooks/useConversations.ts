@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Lead } from "./useLeads";
 
 export type ConversationChannel = "whatsapp" | "email" | "sms" | "webchat" | "instagram" | "facebook" | "messenger" | "live_chat" | "web_widget" | "phone" | "ghl" | "other";
-export type ConversationStatus = "open" | "closed" | "archived";
+export type ConversationStatus = "open" | "closed" | "pending" | "archived";
 
 export interface ConversationContact {
   id: string;

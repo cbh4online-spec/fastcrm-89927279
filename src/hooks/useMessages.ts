@@ -306,5 +306,10 @@ export function useSendMessage() {
       queryClient.invalidateQueries({ queryKey: ["messages", data.conversation_id] });
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
     },
+    onError: (error: Error, variables) => {
+      // Import toast from sonner dynamically won't work, so we use a custom event
+      // The error is already caught in ConversationDetail.handleSendMessage
+      console.error("[useSendMessage] Falha ao enviar:", error.message, "conversationId:", variables.conversationId);
+    },
   });
 }
