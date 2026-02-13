@@ -1474,8 +1474,10 @@ export type Database = {
           bot_id: string | null
           conversation_id: string
           created_at: string
+          detected_intent: Json | null
           id: string
           intent: Json | null
+          memory_context: Json | null
           message_id: string | null
           model_meta: Json | null
           prompt_used: string | null
@@ -1486,8 +1488,10 @@ export type Database = {
           bot_id?: string | null
           conversation_id: string
           created_at?: string
+          detected_intent?: Json | null
           id?: string
           intent?: Json | null
+          memory_context?: Json | null
           message_id?: string | null
           model_meta?: Json | null
           prompt_used?: string | null
@@ -1498,8 +1502,10 @@ export type Database = {
           bot_id?: string | null
           conversation_id?: string
           created_at?: string
+          detected_intent?: Json | null
           id?: string
           intent?: Json | null
+          memory_context?: Json | null
           message_id?: string | null
           model_meta?: Json | null
           prompt_used?: string | null
