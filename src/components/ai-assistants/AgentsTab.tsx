@@ -9,9 +9,10 @@ import { useConversationalFlows } from "@/hooks/useConversationalFlows";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Bot } from "lucide-react";
+import { Plus, Bot, Sparkles } from "lucide-react";
 import { AgentCardExpanded } from "./AgentCardExpanded";
 import { AgentFullForm } from "./AgentFullForm";
+import { BotSetupWizard } from "@/components/ai-agents/BotSetupWizard";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { AIChannelAgent } from "@/types/aiChannelAgents";
@@ -35,6 +36,7 @@ export function AgentsTab({ searchValue }: AgentsTabProps) {
   const { flows } = useConversationalFlows();
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AIChannelAgent | null>(null);
   const [deletingAgent, setDeletingAgent] = useState<AIChannelAgent | null>(null);
 
@@ -88,8 +90,12 @@ export function AgentsTab({ searchValue }: AgentsTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Create Button */}
-      <div className="flex justify-end">
+      {/* Create Buttons */}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => setShowWizard(true)}>
+          <Sparkles className="h-4 w-4 mr-2" />
+          Criar com Assistente
+        </Button>
         <Button onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Agente
@@ -172,6 +178,37 @@ export function AgentsTab({ searchValue }: AgentsTabProps) {
             flows={flows}
             onSubmit={handleCreate}
             onCancel={() => setShowCreateDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Wizard Dialog */}
+      <Dialog open={showWizard} onOpenChange={setShowWizard}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+          <BotSetupWizard
+            personas={personas.map(p => ({ id: p.id, name: p.name }))}
+            knowledgeBases={knowledgeBases.map(kb => ({ id: kb.id, name: kb.name }))}
+            onComplete={async (wizardConfig) => {
+              await createAgent({
+                name: wizardConfig.name,
+                channel: wizardConfig.channel,
+                personaId: wizardConfig.personaId,
+                description: wizardConfig.description,
+                knowledgeBaseIds: wizardConfig.knowledgeBaseIds,
+                isActive: wizardConfig.isActive,
+                settings: {
+                  goalConfig: {
+                    auto_handover_enabled: wizardConfig.handoverEnabled,
+                    handover_max_retries: wizardConfig.handoverMaxRetries,
+                    handover_closing_message: wizardConfig.handoverClosingMessage,
+                    booking_enabled: wizardConfig.bookingEnabled,
+                    followup_enabled: wizardConfig.followupEnabled,
+                  },
+                },
+              } as any);
+              setShowWizard(false);
+            }}
+            onCancel={() => setShowWizard(false)}
           />
         </DialogContent>
       </Dialog>

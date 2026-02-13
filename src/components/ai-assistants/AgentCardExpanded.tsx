@@ -19,10 +19,14 @@ import {
   Zap,
   Moon,
   Settings2,
-  ChevronDown
+  ChevronDown,
+  CalendarDays,
+  MailCheck
 } from "lucide-react";
 import { AGENT_CHANNELS, type AIChannelAgent } from "@/types/aiChannelAgents";
 import { AgentGoalsPanel } from "@/components/ai-agents/AgentGoalsPanel";
+import { useBookingCalendars } from "@/hooks/useAgentBooking";
+import { useFollowupPolicies } from "@/hooks/useAgentFollowup";
 
 interface AgentCardExpandedProps {
   agent: AIChannelAgent;
@@ -53,6 +57,10 @@ export function AgentCardExpanded({
   const autopilotEnabled = agent.settings?.autopilotEnabled || false;
   const delayMin = agent.settings?.responseDelayMs ? Math.floor(agent.settings.responseDelayMs / 1000) : 8;
   const delayMax = agent.settings?.maxMessagesPerConversation || 25;
+
+  const { data: bookingCalendars = [] } = useBookingCalendars(agent.id);
+  const { data: followupPolicies = [] } = useFollowupPolicies(agent.id);
+  const activeFollowups = followupPolicies.filter(p => p.is_active);
 
   return (
     <Card className={`transition-all ${agent.isActive ? 'border-primary/30' : 'opacity-60'}`}>
@@ -104,6 +112,18 @@ export function AgentCardExpanded({
               {kb.name}
             </Badge>
           ))}
+          {bookingCalendars.length > 0 && (
+            <Badge variant="outline" className="gap-1">
+              <CalendarDays className="h-3 w-3" />
+              {bookingCalendars.length} calendário{bookingCalendars.length > 1 ? 's' : ''}
+            </Badge>
+          )}
+          {activeFollowups.length > 0 && (
+            <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300">
+              <MailCheck className="h-3 w-3" />
+              Follow-up ativo
+            </Badge>
+          )}
         </div>
 
         {/* Autopilot Status */}
