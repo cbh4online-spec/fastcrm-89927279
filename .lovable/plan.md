@@ -1,67 +1,98 @@
 
 
-## Fix: Inbox Mostrando Apenas Email (Gap Analysis + Correcao)
+## Fix: Recepcao Duplicada de Mensagens (Autopilot a Disparar Multiplas Vezes)
 
-### Diagnostico Confirmado
+### Problema Identificado
 
-A Inbox ja e omnichannel a nivel de codigo e base de dados. O problema e exclusivamente de UX e classificacao:
+O Autopilot esta a enviar multiplas respostas para cada mensagem inbound. A conversa do Jorge Cardoso mostra **7 respostas automaticas** para uma unica mensagem inbound ("Vamos testar de novo") — todas em 30 segundos.
 
-- **API retorna todos os canais** — confirmado via network request (instagram, sms, email todos presentes na resposta)
-- **Tab "Responder" esconde conversas FOLLOW_UP** — todas as conversas instagram/sms estao classificadas como FOLLOW_UP, enquanto todos os 42 emails estao como REQUIRES_RESPONSE
-- **Resultado**: utilizador ve apenas email no tab default
+### Causas Raiz (3 problemas distintos)
 
-### Correcoes Necessarias
+**1. `cron-sync-messages` usa contador global em vez de por-conversa (Blocker)**
 
-#### 1. Tab "Responder" deve mostrar todas as conversas abertas por defeito
+Na linha 286, o `messagesCreated` e um acumulador global. Se uma mensagem foi criada para QUALQUER conversa, o autopilot dispara para TODAS as conversas com mensagens inbound recentes nessa iteracao.
 
-Ficheiro: `src/components/inbox/ConversationList.tsx`
+**2. `cron-sync-messages` re-processa mensagens a cada 5 segundos (Blocker)**
 
-Alterar a logica do filtro `requires_response` (linhas 153-160) para incluir todas as conversas open, nao apenas as REQUIRES_RESPONSE:
+A janela de 30 minutos (`thirtyMinAgo`) faz com que mensagens recentes sejam verificadas 360 vezes (12 iteracoes/min x 30 min). Mesmo que a insercao falhe por duplicado (unique index), o autopilot e disparado se `messagesCreated > 0` globalmente.
 
-- Antes: mostra apenas `conversation_status_simplified === "REQUIRES_RESPONSE"` ou `unread_count > 0`
-- Depois: mostra todas as conversas com `status === "open"` independentemente do `conversation_status_simplified`
-- A distincao REQUIRES_RESPONSE vs FOLLOW_UP deve ser apenas visual (badge), nao um filtro excludente
+**3. Sem deduplicacao de triggers do Autopilot (High)**
 
-#### 2. Adicionar contadores de canal no header dos tabs
+`triggerAutopilotResponse` nao verifica se ja respondeu ao ultimo inbound message. Cada trigger gera uma nova resposta AI independente.
 
-Ficheiro: `src/components/inbox/ConversationList.tsx`
+### Solucao
 
-Adicionar contadores visuais junto aos channel filter pills mostrando quantas conversas existem por canal (ex: "Email (42)" | "Instagram (4)" | "SMS (2)").
+#### Ficheiro 1: `supabase/functions/cron-sync-messages/index.ts`
 
-#### 3. Renomear tab "Responder" para "Abertas"
+**Alteracao A** — Contador por conversa em vez de global:
+- Mover `messagesCreated` para dentro do loop de conversas (variavel local `convMessagesCreated`)
+- Usar `convMessagesCreated > 0` na condicao de trigger do autopilot
 
-Para evitar confusao semântica — o tab deve mostrar todas as conversas abertas, com badges de prioridade para as que precisam de resposta.
+**Alteracao B** — Nao disparar autopilot se ultimo outbound e recente:
+- Antes de chamar `triggerAutopilot`, verificar se ja existe uma resposta outbound recente (ultimos 60s) para essa conversa
+- Se existir, skip do trigger
+
+#### Ficheiro 2: `supabase/functions/ghl-webhook-message/index.ts`
+
+**Alteracao C** — Deduplicar autopilot triggers:
+- Na funcao `triggerAutopilotResponse`, antes de gerar resposta AI (passo 8-10), verificar se ja existe um `autopilot_events` com `event_type = 'triggered'` nos ultimos 30 segundos para esta conversa
+- Se existir, skip (log e return)
 
 ### Detalhes Tecnicos
 
-**Ficheiro unico afetado**: `src/components/inbox/ConversationList.tsx`
-
-**Alteracao no filtro (linhas 151-173)**:
+**`cron-sync-messages/index.ts`** — Alteracao no loop principal (linhas 160-298):
 
 ```text
-case "requires_response":
-  // ANTES: apenas REQUIRES_RESPONSE ou unread
-  // DEPOIS: todas as conversas abertas (o status=open ja filtra na query)
-  return true;  // Mostrar todas - ja filtrado por status=open na query
+// ANTES (linha 160): messagesCreated global
+let messagesCreated = 0;
+
+// DEPOIS: mover para dentro do loop de conversas
+for (const ghlConv of recentConversations) {
+  let convMessagesCreated = 0;  // POR CONVERSA
+  ...
+  // Na insercao (linha 271):
+  if (!msgError) {
+    convMessagesCreated++;
+    messagesCreated++;  // manter para stats
+    ...
+  }
+  
+  // Na condicao autopilot (linha 286):
+  if (recentMessages.length > 0 && convMessagesCreated > 0) {
+    // Trigger autopilot
+  }
+}
 ```
 
-**Alteracao nos pills de canal**: adicionar contagem derivada das conversas filtradas por tab.
+**`ghl-webhook-message/index.ts`** — Dedup na funcao `triggerAutopilotResponse` (antes da linha 843):
 
-**Renomear tab**: "Responder" -> "Abertas" na TabsTrigger (linha 236).
+```text
+// Verificar trigger recente (ultimos 30s)
+const { data: recentTrigger } = await supabase
+  .from("autopilot_events")
+  .select("id")
+  .eq("conversation_id", conversationId)
+  .eq("event_type", "triggered")
+  .gte("created_at", new Date(Date.now() - 30000).toISOString())
+  .limit(1)
+  .maybeSingle();
 
-### Validacao
+if (recentTrigger) {
+  console.log("[AUTOPILOT] Skipping — already triggered in last 30s");
+  return;
+}
+```
 
-Apos a alteracao:
-- Tab "Abertas" mostra 48 conversas (42 email + 4 instagram + 2 sms)
-- Filtro "Instagram" mostra 4 conversas
-- Filtro "SMS" mostra 2 conversas
-- Filtro "Email" mostra 42 conversas
-- Conversas com REQUIRES_RESPONSE mostram badge visual de prioridade
+### Ficheiros Afetados
 
-### Nota sobre WhatsApp e GHL
+| Ficheiro | Alteracao |
+|---|---|
+| `supabase/functions/cron-sync-messages/index.ts` | Contador por conversa + skip se outbound recente |
+| `supabase/functions/ghl-webhook-message/index.ts` | Dedup de triggers por tempo (30s cooldown) |
 
-Nao existem conversas WhatsApp ou GHL neste workspace porque:
-- Nao ha `whatsapp_connections` ativas para este workspace
-- As conversas GHL existentes ja entram como instagram/sms/messenger (canal correto do GHL)
-- Quando uma conexao WhatsApp for configurada, as conversas aparecerao automaticamente na Inbox
+### Resultado Esperado
+
+- Cada mensagem inbound gera no maximo 1 resposta do autopilot
+- Cron sync nao re-dispara autopilot para mensagens ja processadas
+- Cooldown de 30 segundos previne race conditions entre webhook e cron
 
