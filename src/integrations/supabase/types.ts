@@ -6438,6 +6438,60 @@ export type Database = {
           },
         ]
       }
+      conversation_analytics: {
+        Row: {
+          ai_suggestions_used: number | null
+          avg_response_time_minutes: number | null
+          conversation_id: string
+          conversion_status: string | null
+          created_at: string | null
+          id: string
+          revenue: number | null
+          sla_breached: boolean | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_suggestions_used?: number | null
+          avg_response_time_minutes?: number | null
+          conversation_id: string
+          conversion_status?: string | null
+          created_at?: string | null
+          id?: string
+          revenue?: number | null
+          sla_breached?: boolean | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ai_suggestions_used?: number | null
+          avg_response_time_minutes?: number | null
+          conversation_id?: string
+          conversion_status?: string | null
+          created_at?: string | null
+          id?: string
+          revenue?: number | null
+          sla_breached?: boolean | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_analytics_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_analytics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_autopilot_state: {
         Row: {
           bot_message_count: number | null
@@ -7334,12 +7388,16 @@ export type Database = {
           classification_confirmed_by: string | null
           company_id: string | null
           contact_id: string | null
+          conversation_priority_score: number | null
+          conversation_status_simplified: string | null
           created_at: string
           external_thread_id: string | null
           id: string
           last_message_at: string | null
           last_message_preview: string | null
           lead_id: string | null
+          potential_value_estimate: number | null
+          sla_deadline: string | null
           status: string
           tags_assigned_at: string | null
           tags_auto_assigned: boolean | null
@@ -7364,12 +7422,16 @@ export type Database = {
           classification_confirmed_by?: string | null
           company_id?: string | null
           contact_id?: string | null
+          conversation_priority_score?: number | null
+          conversation_status_simplified?: string | null
           created_at?: string
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
           last_message_preview?: string | null
           lead_id?: string | null
+          potential_value_estimate?: number | null
+          sla_deadline?: string | null
           status?: string
           tags_assigned_at?: string | null
           tags_auto_assigned?: boolean | null
@@ -7394,12 +7456,16 @@ export type Database = {
           classification_confirmed_by?: string | null
           company_id?: string | null
           contact_id?: string | null
+          conversation_priority_score?: number | null
+          conversation_status_simplified?: string | null
           created_at?: string
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
           last_message_preview?: string | null
           lead_id?: string | null
+          potential_value_estimate?: number | null
+          sla_deadline?: string | null
           status?: string
           tags_assigned_at?: string | null
           tags_auto_assigned?: boolean | null
