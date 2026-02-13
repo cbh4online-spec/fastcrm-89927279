@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useConversationalFlows } from '@/hooks/useConversationalFlows';
 import { FlowList } from './FlowList';
 import { FlowBuilderCanvas } from './FlowBuilderCanvas';
+import { FlowAnalyticsPanel } from './FlowAnalyticsPanel';
 import { CreateFlowDialog } from './CreateFlowDialog';
 import { ConversationalFlow, FlowStatus } from '@/types/conversational-flows';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, BarChart3, PenTool } from 'lucide-react';
 import { toast } from 'sonner';
 import { FlowTemplate } from './FlowTemplates';
 
@@ -38,6 +39,7 @@ export function FlowBuilderModule({ personas, knowledgeBases }: FlowBuilderModul
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingFlow, setEditingFlow] = useState<ConversationalFlow | null>(null);
+  const [activeView, setActiveView] = useState<'canvas' | 'analytics'>('canvas');
 
   const handleSelectFlow = async (flowId: string) => {
     await loadFlowDetails(flowId);
@@ -105,6 +107,7 @@ export function FlowBuilderModule({ personas, knowledgeBases }: FlowBuilderModul
 
   const handleBack = () => {
     setCurrentFlow(null);
+    setActiveView('canvas');
   };
 
   return (
@@ -140,23 +143,45 @@ export function FlowBuilderModule({ personas, knowledgeBases }: FlowBuilderModul
                 <p className="text-xs text-muted-foreground">{currentFlow.description}</p>
               )}
             </div>
+            <div className="flex gap-1">
+              <Button
+                variant={activeView === 'canvas' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveView('canvas')}
+              >
+                <PenTool className="h-3.5 w-3.5 mr-1" />
+                Canvas
+              </Button>
+              <Button
+                variant={activeView === 'analytics' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveView('analytics')}
+              >
+                <BarChart3 className="h-3.5 w-3.5 mr-1" />
+                Analytics
+              </Button>
+            </div>
           </div>
 
-          {/* Canvas */}
+          {/* Canvas or Analytics */}
           <div className="flex-1">
-            <FlowBuilderCanvas
-              steps={steps}
-              variables={variables}
-              flowStatus={currentFlow.status}
-              onCreateStep={handleCreateStep}
-              onUpdateStep={updateStep}
-              onDeleteStep={deleteStep}
-              onUpdatePositions={updateStepPositions}
-              onSave={handleSave}
-              onActivate={handleActivate}
-              onDeactivate={handleDeactivate}
-              isSaving={isSaving}
-            />
+            {activeView === 'canvas' ? (
+              <FlowBuilderCanvas
+                steps={steps}
+                variables={variables}
+                flowStatus={currentFlow.status}
+                onCreateStep={handleCreateStep}
+                onUpdateStep={updateStep}
+                onDeleteStep={deleteStep}
+                onUpdatePositions={updateStepPositions}
+                onSave={handleSave}
+                onActivate={handleActivate}
+                onDeactivate={handleDeactivate}
+                isSaving={isSaving}
+              />
+            ) : (
+              <FlowAnalyticsPanel flowId={currentFlow.id} />
+            )}
           </div>
         </div>
       )}
