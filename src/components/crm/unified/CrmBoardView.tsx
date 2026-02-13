@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 
 interface CrmBoardViewProps {
   entityType: CrmEntityType;
@@ -47,6 +48,7 @@ export function CrmBoardView({
 }: CrmBoardViewProps) {
   const isMobile = useIsMobile();
   const moveOpportunity = useMoveOpportunity();
+  const { trackLeadMovedPipeline } = useCRMAnalytics();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [mobileViewMode, setMobileViewMode] = useState<"swipe" | "list">("swipe");
@@ -89,7 +91,18 @@ export function CrmBoardView({
   }, [contacts]);
 
   const handleMoveOpportunity = async (oppId: string, stageId: string) => {
+    const opp = opportunities?.find(o => o.id === oppId);
+    const fromStage = stages?.find(s => s.id === opp?.stage_id);
+    const toStage = stages?.find(s => s.id === stageId);
+    
     await moveOpportunity.mutateAsync({ id: oppId, stage_id: stageId });
+    
+    if (fromStage && toStage && opp) {
+      const daysInPrevious = opp.updated_at
+        ? Math.floor((Date.now() - new Date(opp.updated_at).getTime()) / 86400000)
+        : 0;
+      trackLeadMovedPipeline({ from_stage: fromStage.name, to_stage: toStage.name, days_in_previous_stage: daysInPrevious });
+    }
   };
 
   // Navigation for mobile swipe view

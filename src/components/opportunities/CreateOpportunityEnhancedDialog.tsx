@@ -45,6 +45,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 
 const opportunitySchema = z.object({
   title: z.string().min(1, "Nome é obrigatório").max(100),
@@ -79,6 +80,7 @@ export function CreateOpportunityEnhancedDialog({
 }: CreateOpportunityEnhancedDialogProps) {
   const createOpportunity = useCreateOpportunityEnhanced();
   const { data: stages } = usePipelineStages();
+  const { trackOpportunityCreated } = useCRMAnalytics();
   const { data: leads } = useLeads();
   const { contacts } = useContacts();
   const { companies } = useCompanies();
@@ -140,6 +142,7 @@ export function CreateOpportunityEnhancedDialog({
         await customFieldsRef.current.saveCustomFields(result.id);
       }
       
+      trackOpportunityCreated({ value: values.value, origin: 'manual' });
       toast.success("Oportunidade criada com sucesso");
       form.reset();
       onOpenChange(false);
