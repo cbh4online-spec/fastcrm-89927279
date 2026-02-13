@@ -67,6 +67,16 @@ interface InboxReplyRequest {
   useKnowledgeBase?: boolean;
   conversationId?: string;
   useConversationalFlows?: boolean;
+  goalConfig?: GoalConfig;
+}
+
+interface GoalConfig {
+  primary_goal?: string;
+  qualification_questions?: string[];
+  conversion_action?: string;
+  auto_handover_enabled?: boolean;
+  handover_max_retries?: number;
+  [key: string]: unknown;
 }
 
 interface FlowEngineResponse {
@@ -309,7 +319,8 @@ const buildSystemPrompt = (
   template?: TemplateData,
   knowledgeEntries?: KnowledgeEntry[],
   persona?: any,
-  workspaceName?: string
+  workspaceName?: string,
+  goalConfig?: GoalConfig
 ): string => {
   const channelGuide = channel ? channelGuidelines[channel] || channelGuidelines.webchat : channelGuidelines.webchat;
   
@@ -377,11 +388,47 @@ IMPORTANT: When answering questions about products, services, pricing, or proced
 `;
   }
   
+  // Goal-driven instructions from agent goal_config
+  let goalInstructions = "";
+  if (goalConfig && Object.keys(goalConfig).length > 0) {
+    const goalParts: string[] = [];
+    goalParts.push("## Agent Goals & Objectives:");
+    
+    if (goalConfig.primary_goal === "qualify_and_convert") {
+      goalParts.push("- O teu objetivo principal é QUALIFICAR o lead e guiá-lo para agendar uma reunião ou demonstração.");
+      goalParts.push("- Responde sempre com informação relevante e guia a conversa para o próximo passo comercial.");
+      goalParts.push("- Não dês respostas vagas como 'No que posso ajudar?' — sê proativo e direto.");
+    } else if (goalConfig.primary_goal) {
+      goalParts.push(`- Objetivo principal: ${goalConfig.primary_goal}`);
+    }
+    
+    if (goalConfig.qualification_questions?.length) {
+      goalParts.push("- Perguntas de qualificação a fazer naturalmente durante a conversa:");
+      goalConfig.qualification_questions.forEach((q: string) => goalParts.push(`  • ${q}`));
+    }
+    
+    if (goalConfig.conversion_action === "schedule_meeting") {
+      goalParts.push("- Ação de conversão: Guiar para agendar uma reunião/demonstração com a equipa.");
+    } else if (goalConfig.conversion_action) {
+      goalParts.push(`- Ação de conversão: ${goalConfig.conversion_action}`);
+    }
+    
+    if (goalConfig.auto_handover_enabled) {
+      const retries = goalConfig.handover_max_retries || 2;
+      goalParts.push(`- Se após ${retries} tentativas não conseguires resolver a questão do cliente, transfere para atendimento humano.`);
+    }
+    
+    goalParts.push("- IMPORTANTE: Quando o cliente faz uma pergunta sobre produtos/serviços, responde com informação da Knowledge Base e guia para o próximo passo. Nunca dês respostas genéricas.");
+    
+    goalInstructions = goalParts.join("\n");
+  }
+
   const basePrompt = `You are an AI assistant helping compose professional reply messages for a CRM inbox.
 Your role is to SUGGEST replies that will be reviewed by a human before sending.
 
 ${safetyRules}
 ${personaInstructions}
+${goalInstructions}
 ${channelGuide}
 ${knowledgeContext}
 `;
@@ -587,7 +634,8 @@ serve(async (req) => {
       personaId,
       useKnowledgeBase = true,
       conversationId,
-      useConversationalFlows = true
+      useConversationalFlows = true,
+      goalConfig
     }: InboxReplyRequest = await req.json();
 
     // Check for active conversational flows first
@@ -747,7 +795,7 @@ serve(async (req) => {
     }
 
     // Pass workspaceName for fallback context when no persona/knowledge
-    const systemPrompt = buildSystemPrompt(action, channel, template, knowledgeEntries, persona, workspaceName);
+    const systemPrompt = buildSystemPrompt(action, channel, template, knowledgeEntries, persona, workspaceName, goalConfig);
     const actionTools = tools[action];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
