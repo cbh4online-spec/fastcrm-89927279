@@ -165,13 +165,37 @@ async function fetchKnowledgeContext(
     }
   }
 
-  // Get knowledge base IDs from persona or use all active ones
+  // Get knowledge base IDs: bot_knowledge_bases table (priority) > persona > all active
   let knowledgeBaseIds: string[] = [];
+  let botId: string | null = null;
   
-  if (persona?.knowledge_base_ids?.length > 0) {
+  // Try to find active bot for this query context (passed via options)
+  if ((fetchKnowledgeContext as any).__botId) {
+    botId = (fetchKnowledgeContext as any).__botId;
+  }
+
+  if (botId) {
+    // Use bot_knowledge_bases table (new multi-KB system)
+    const { data: botKbs } = await supabaseAdmin
+      .from('bot_knowledge_bases')
+      .select('knowledge_base_id')
+      .eq('bot_id', botId)
+      .eq('workspace_id', workspaceId)
+      .order('priority', { ascending: false });
+    
+    if (botKbs && botKbs.length > 0) {
+      knowledgeBaseIds = botKbs.map(bk => bk.knowledge_base_id);
+      console.log(`[AI-INBOX-REPLY] Using ${knowledgeBaseIds.length} KBs from bot_knowledge_bases`);
+    }
+  }
+  
+  // Fallback: persona KBs
+  if (knowledgeBaseIds.length === 0 && persona?.knowledge_base_ids?.length > 0) {
     knowledgeBaseIds = persona.knowledge_base_ids;
-  } else {
-    // Fetch all active knowledge bases for workspace
+  }
+  
+  // Fallback: all active KBs
+  if (knowledgeBaseIds.length === 0) {
     const { data: kbs } = await supabaseAdmin
       .from('knowledge_bases')
       .select('id')
@@ -776,13 +800,70 @@ serve(async (req) => {
 
     const result = JSON.parse(toolCall.function.arguments);
 
+    // Persist AI message audit if workspaceId available
+    let auditId: string | null = null;
+    if (workspaceId && conversationId) {
+      try {
+        const supabaseAdmin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        
+        const auditData = {
+          workspace_id: workspaceId,
+          conversation_id: conversationId,
+          prompt_used: systemPrompt.slice(0, 5000),
+          rag_chunks: knowledgeEntries.map(e => ({
+            chunk_id: e.id,
+            source: e.title,
+            score: e.similarity,
+            excerpt: (e.content || "").slice(0, 200)
+          })),
+          intent: action === "suggest_reply" && result?.suggestions?.[0]
+            ? { label: result.suggestions[0].intent, confidence: 0.8 }
+            : {},
+          model_meta: {
+            model: "google/gemini-3-flash-preview",
+            tokens: data.usage?.total_tokens || null,
+            latency_ms: null
+          }
+        };
+        
+        const { data: auditRow, error: auditErr } = await supabaseAdmin
+          .from("ai_message_audit")
+          .insert(auditData)
+          .select("id")
+          .single();
+        
+        if (!auditErr && auditRow) {
+          auditId = auditRow.id;
+          console.log(`[AI-INBOX-REPLY] Audit saved: ${auditId}`);
+        } else if (auditErr) {
+          console.warn("[AI-INBOX-REPLY] Audit save failed:", auditErr.message);
+        }
+
+        // Update conversation_ai_state
+        await supabaseAdmin
+          .from("conversation_ai_state")
+          .upsert({
+            workspace_id: workspaceId,
+            conversation_id: conversationId,
+            last_ai_message_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, { onConflict: "conversation_id" });
+      } catch (auditError) {
+        console.warn("[AI-INBOX-REPLY] Audit/state error:", auditError);
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         action, 
         result,
         knowledgeUsed: knowledgeEntries.length > 0,
         knowledgeEntriesCount: knowledgeEntries.length,
-        personaUsed: persona?.name || null
+        personaUsed: persona?.name || null,
+        auditId
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

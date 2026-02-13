@@ -1,10 +1,11 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { FileText, Paperclip, Download } from "lucide-react";
+import { FileText, Paperclip, Download, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MessageDeliveryStatus, getDeliveryStatus } from "./MessageDeliveryStatus";
+import { ResponseInfoSheet } from "./ResponseInfoSheet";
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -61,6 +62,11 @@ export function MessageBubble({
           {/* Header */}
           <div className="flex items-center justify-end gap-2 mb-1">
             <span className="text-xs font-medium text-foreground">{companyName}</span>
+            <ResponseInfoSheet messageId={message.id}>
+              <button className="text-muted-foreground hover:text-primary transition-colors">
+                <Info className="w-3.5 h-3.5" />
+              </button>
+            </ResponseInfoSheet>
             <MessageDeliveryStatus status={deliveryStatus} />
           </div>
           
