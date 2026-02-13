@@ -1,90 +1,99 @@
 
 
-# P2-6: Modo Dry Run para Fluxos Conversacionais
+# Bloco 1 – Validacao e Correcao da Infraestrutura Base
 
-## Contexto
+## Estado Atual
 
-Atualmente nao existe forma de testar um fluxo antes de o ativar. O utilizador tem de ativar o flow e enviar mensagens reais para ver se a logica funciona. Um modo "dry run" permite simular a execucao localmente no browser, sem criar sessoes nem gravar dados na base de dados.
+Auditei as 5 tabelas principais do motor de conversas. Aqui esta o resumo:
 
-## O que sera implementado
+### Tabelas e Campos Criticos
 
-### 1. Motor de simulacao local
+| Tabela | workspace_id | contact_id | channel | status | unread_count | assigned_to | updated_at |
+|---|---|---|---|---|---|---|---|
+| conversations | OK | OK | OK (channel) | OK (default 'open') | OK (default 0) | OK (assigned_to) | OK |
+| messages | OK | -- | -- | -- | -- | -- | Sem coluna |
+| contacts | OK | -- | -- | OK (client_status) | -- | OK | OK |
+| leads | OK | -- | -- | OK (default 'new') | -- | OK | OK |
+| crm_activities | OK | OK | -- | -- | -- | -- | Sem coluna |
 
-Novo ficheiro `src/lib/flow-simulator.ts` que replica a logica do `flow-engine` no frontend:
-- Recebe os `steps` e `variables` do flow atual (ja carregados no canvas)
-- Mantém estado em memória: `currentStepId`, `variables`, `responses[]`
-- Processa cada step da mesma forma que o edge function (message, question, condition, action, goal, handoff)
-- Para steps do tipo `question`, aguarda input do utilizador antes de avancar
-- Avalia condicoes usando a mesma logica (`equals`, `contains`, `greater_than`, etc.)
-- Nao faz nenhuma chamada a base de dados nem edge functions
+### Triggers Existentes
 
-### 2. Componente `FlowDryRunPanel`
+| Tabela | updated_at | Logs automaticos | Outros |
+|---|---|---|---|
+| conversations | OK | -- | -- |
+| messages | NAO TEM | OK (log_message_activity) | trg_message_priority, trigger_update_lead_last_contact |
+| contacts | OK | OK (log_contact_creation) | auto_create_company, sync_client_number, cache |
+| leads | OK | OK (log_lead_creation, log_lead_status_change) | cache |
+| crm_activities | NAO TEM | -- | -- |
 
-Novo componente `src/components/flow-builder/FlowDryRunPanel.tsx` com interface de chat simulado:
-- Painel lateral que abre por cima ou ao lado do canvas
-- Interface de chat com bolhas de mensagem (bot vs user)
-- Input de texto para responder a perguntas do flow
-- Indicador visual do step atual (nome + tipo)
-- Painel lateral com variaveis recolhidas em tempo real
-- Botoes: "Reiniciar", "Fechar"
-- Destaque visual no canvas do node ativo durante a simulacao (highlight do step atual)
+### RLS (Row Level Security)
 
-### 3. Integracao no FlowBuilderCanvas
+| Tabela | RLS Ativo | SELECT | INSERT | UPDATE | DELETE |
+|---|---|---|---|---|---|
+| conversations | OK | workspace_member | workspace_member | workspace_member | admin |
+| messages | OK | workspace_member | workspace_member | workspace_member | Sem policy (apenas super admin) |
+| contacts | OK | workspace_member | member + created_by | workspace_member | admin |
+| leads | OK | workspace_member | member + created_by | workspace_member | admin |
+| crm_activities | OK | workspace_member (subquery) | workspace_member (subquery) | Sem policy | Sem policy |
 
-- Adicionar botao "Testar" (icone Play + tube) no painel top-right do canvas, ao lado de Ativar/Guardar
-- Ao clicar, abre o `FlowDryRunPanel` como overlay/drawer
-- O step ativo no simulador e destacado no canvas via `selectedStep`
+### Trigger de unread_count
 
-## Plano Tecnico
+**NAO EXISTE** — nenhum trigger incrementa automaticamente o `unread_count` quando uma mensagem inbound chega. Isto e feito manualmente no codigo (normalize-message.ts) apenas para novas conversas.
 
-| Ficheiro | Alteracao |
-|---|---|
-| `src/lib/flow-simulator.ts` | **Novo** - Motor de simulacao puro (sem I/O) |
-| `src/components/flow-builder/FlowDryRunPanel.tsx` | **Novo** - UI de chat simulado |
-| `src/components/flow-builder/FlowBuilderCanvas.tsx` | **Editar** - Adicionar botao "Testar" e estado de simulacao |
+---
 
-### Motor de simulacao (`flow-simulator.ts`)
+## O que sera corrigido
+
+### 1. Trigger `updated_at` em messages
+Adicionar trigger `update_messages_updated_at` (reusa a funcao `update_updated_at_column` existente). Requer adicionar a coluna `updated_at` a tabela messages primeiro.
+
+### 2. Trigger auto-incremento de `unread_count`
+Criar funcao `increment_unread_on_inbound_message()` que, ao inserir mensagem com `direction = 'inbound'`, faz `UPDATE conversations SET unread_count = unread_count + 1 WHERE id = NEW.conversation_id`.
+
+### 3. Coluna `updated_at` em `crm_activities` + trigger
+Adicionar coluna com default `now()` e trigger automatico.
+
+### 4. Politicas RLS em falta
+- **messages**: adicionar DELETE para workspace members (admin-only, consistente com conversations)
+- **crm_activities**: adicionar UPDATE e DELETE para workspace members (admin-only para delete)
+
+---
+
+## Plano Tecnico (Migracao SQL)
+
+Uma unica migracao com:
 
 ```text
-class FlowSimulator {
-  steps: FlowStep[]
-  variables: FlowVariable[]
-  currentStepId: string | null
-  collectedVars: Record<string, unknown>
-  responses: Array<{ role: 'bot' | 'user', content: string }>
-  status: 'idle' | 'waiting_input' | 'completed' | 'handed_off'
+-- 1. Coluna updated_at em messages
+ALTER TABLE messages ADD COLUMN updated_at timestamptz DEFAULT now();
+CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-  start(): SimResult        // Inicia no entry point, processa ate parar
-  sendMessage(msg): SimResult  // Envia resposta do user, avanca flow
-  reset(): void             // Reinicia simulacao
-}
+-- 2. Coluna updated_at em crm_activities  
+ALTER TABLE crm_activities ADD COLUMN updated_at timestamptz DEFAULT now();
+CREATE TRIGGER update_crm_activities_updated_at BEFORE UPDATE ON crm_activities
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- 3. Trigger auto-incremento unread_count
+CREATE FUNCTION increment_unread_on_inbound_message() ...
+CREATE TRIGGER trg_increment_unread AFTER INSERT ON messages ...
+
+-- 4. RLS policies em falta
+CREATE POLICY "Admins can delete messages" ON messages FOR DELETE
+  USING (is_workspace_admin_or_owner(auth.uid(), workspace_id));
+
+CREATE POLICY "Members can update activities" ON crm_activities FOR UPDATE
+  USING (is_workspace_member(auth.uid(), workspace_id));
+
+CREATE POLICY "Admins can delete activities" ON crm_activities FOR DELETE
+  USING (is_workspace_admin_or_owner(auth.uid(), workspace_id));
 ```
 
-A logica de `processStep` e `evaluateCondition` e extraida do edge function:
-- `message` -> adiciona resposta bot, avanca para next_step_id
-- `question` -> adiciona pergunta bot, muda status para `waiting_input`
-- `condition` -> avalia e segue true/false branch
-- `action` -> log simulado, avanca
-- `goal` -> marca completo
-- `handoff` -> marca handed_off
+### Sem alteracoes de codigo
 
-### FlowDryRunPanel
+Todas as correcoes sao a nivel de base de dados (triggers + RLS). O codigo frontend e edge functions nao precisam de alteracoes — os triggers passam a funcionar automaticamente.
 
-- Layout tipo chat messenger com scroll automatico
-- Bolhas azuis (bot) e cinzentas (user)
-- Badge com nome/tipo do step atual
-- Painel colapsavel com variaveis recolhidas (key: value)
-- Input desabilitado quando flow completo ou em handoff
-- Mensagem final de resumo ("Flow completado - X variaveis recolhidas")
+### Riscos
 
-### Alteracao no FlowBuilderCanvas
-
-- Novo estado `isDryRunning: boolean`
-- Botao "Testar" na Panel top-right (apenas visivel quando ha steps e entry point)
-- Quando ativo, passa o `currentStepId` do simulador como prop de highlight para os nodes
-- O `FlowDryRunPanel` recebe `steps`, `variables` e callbacks
-
-## Sem alteracoes de DB
-
-Toda a simulacao corre no frontend. Nao e necessaria nenhuma migracao, edge function, ou RLS.
+- O trigger de `unread_count` pode duplicar incrementos se o `normalize-message.ts` ja faz isso para novas conversas. Vou verificar e, se necessario, remover a logica duplicada do normalize layer ou condicionar o trigger para ignorar conversas recem-criadas.
 
