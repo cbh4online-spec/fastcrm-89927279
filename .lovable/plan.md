@@ -1,102 +1,96 @@
 
 
-## Implementar Funcionalidades em Falta -- Inbox 3.0
+## Templates 2.0 -- Conversion Library
 
-Confirmacao apos revisao do codigo: todos os 7 pontos identificados estao de facto em falta. Segue o plano de implementacao.
+### Resumo
+
+Evoluir o modulo de Templates de Comunicacao para uma biblioteca estrategica de conversao com estruturas AIDA, metricas de performance, geracao IA contextual e integracao com Inbox 3.0.
 
 ---
 
-### 1. Deploy da Edge Function + Suporte `all_workspaces`
+### 1. Migracao DB -- Novos Campos
 
-**config.toml**: Adicionar declaracao `[functions.calculate-conversation-priority]` com `verify_jwt = false`.
-
-**Edge Function**: Adicionar modo `all_workspaces` -- quando `batch: true` e `all_workspaces: true`, buscar todos os `workspace_id` distintos com conversas abertas e iterar sobre cada um.
-
-### 2. Cron Job de 15 minutos
-
-Executar SQL (via insert tool, nao migracao) para criar agendamento pg_cron:
+Adicionar campos em falta na tabela `communication_templates`:
 
 ```text
-SELECT cron.schedule(
-  'recalculate-conversation-priorities',
-  '*/15 * * * *',
-  $$SELECT net.http_post(
-    url := 'https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/calculate-conversation-priority',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}'::jsonb,
-    body := '{"batch": true, "all_workspaces": true}'::jsonb
-  ) AS request_id$$
-);
+structure_type TEXT DEFAULT 'custom' (AIDA, PAS, FollowUp, ColdOutreach, custom)
+cta TEXT
+conversion_count INTEGER DEFAULT 0
 ```
 
-### 3. Trigger DB na Insercao de Mensagens
+Estes campos nao existem atualmente. A tabela ja tem `usage_count` e `response_rate`.
 
-Migracao SQL para criar funcao + trigger:
+### 2. Metrica `conversion_rate` Calculada
+
+Nao criar coluna -- calcular no frontend:
 
 ```text
-CREATE OR REPLACE FUNCTION notify_new_message_priority()
-RETURNS trigger AS $$
-BEGIN
-  PERFORM net.http_post(
-    url := 'https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/calculate-conversation-priority',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer ..."}'::jsonb,
-    body := json_build_object('conversation_id', NEW.conversation_id)::jsonb
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_message_priority
-AFTER INSERT ON messages
-FOR EACH ROW
-WHEN (NEW.direction = 'inbound')
-EXECUTE FUNCTION notify_new_message_priority();
+conversion_rate = conversion_count / usage_count
 ```
 
-### 4. Renderizar CreateOpportunityFromInboxDialog
+Adicionar trigger DB: quando um `template_usage_log` e marcado como `converted = true`, incrementar `conversion_count` no template (similar ao trigger existente que incrementa `usage_count`).
 
-No `InboxContextPanel.tsx`, adicionar apos o `ScheduleFollowupDialog` (linha 256):
+### 3. Atualizar Tipo TypeScript
 
-```text
-{showCreateOpp && lead && (
-  <CreateOpportunityFromInboxDialog
-    open={showCreateOpp}
-    onOpenChange={setShowCreateOpp}
-    leadId={lead.id}
-    leadName={lead.name}
-  />
-)}
-```
+Em `src/types/communicationTemplate.ts`:
+- Adicionar `structureType` e `cta` e `conversionCount` ao interface `CommunicationTemplate`
+- Adicionar type `TemplateStructure = 'AIDA' | 'PAS' | 'FollowUp' | 'ColdOutreach' | 'custom'`
+- Adicionar `STRUCTURE_LABELS` constante
 
-### 5. Implementar Atribuir Utilizador
+### 4. Atualizar Hook `useCommunicationTemplates`
 
-No `InboxContextPanel.tsx`:
-- Importar `useAssignConversation` e `useAgentMembers`
-- Adicionar estado `showAssign` e um `DropdownMenu` no botao "Atribuir Utilizador"
-- Listar membros do workspace e chamar `assignConversation.mutate({ conversationId, userId })`
+Em `src/hooks/useCommunicationTemplates.ts`:
+- Mapear `structure_type`, `cta`, `conversion_count` nos queries
+- Atualizar `useCreateCommunicationTemplate` e `useUpdateCommunicationTemplate` para incluir os novos campos
 
-### 6. Implementar Adicionar Nota
+### 5. Dashboard KPI -- Conversao Media
 
-No `InboxContextPanel.tsx`:
-- Adicionar estado `showNote` e `noteText`
-- Ao clicar, revelar uma `Textarea` inline com botao "Guardar"
-- Gravar na tabela `unified_activity_log` com `entity_type: "conversation"`, `action: "note"`, `details: noteText`
+Em `src/components/communication/TemplatesListPage.tsx`:
+- Substituir o KPI "Emails" por "Conversao Media" (media de `conversion_count / usage_count` de todos os templates)
+- Adicionar sort option "Maior Conversao"
+- Mostrar `conversion_rate %` e `structure_type` nos cards da lista
 
-### 7. AI Usage Logging no AISuggestModal
+### 6. Atualizar `TemplateFormDialog`
 
-No `AISuggestModal.tsx`:
-- Aceitar nova prop `conversationId` e `workspaceId`
-- Na funcao `handleSelect`, apos inserir a sugestao, fazer insert na tabela `ai_agent_executions`:
+Em `src/components/communication/TemplateFormDialog.tsx`:
+- Adicionar campo `structure_type` (Select com opcoes AIDA, PAS, FollowUp, ColdOutreach, Custom)
+- Adicionar campo `cta` (Input de texto)
+- Ao selecionar uma estrutura (ex: AIDA), mostrar placeholder/guia no body com seccoes: Atencao / Interesse / Desejo / Acao
 
-```text
-supabase.from('ai_agent_executions').insert({
-  workspace_id: workspaceId,
-  agent_type: 'inbox_suggest',
-  action_type: 'reply_suggestion',
-  input_data: { tone: activeTone, conversation_id: conversationId },
-  output_data: { suggestion_text: text },
-  status: 'completed',
-})
-```
+### 7. Botao "Criar com IA" -- Fluxo Completo
+
+Criar novo componente `src/components/communication/AITemplateGeneratorDialog.tsx`:
+
+Fluxo em 4 passos dentro de um Dialog:
+1. Objetivo da mensagem (ex: captar lead frio, follow-up, upsell)
+2. Publico-alvo (ex: empresarios, gestores)
+3. Canal (email, whatsapp, sms)
+4. Tom (formal, amigavel, direto, casual)
+
+Ao submeter, chamar a edge function `generate-template` (ja existente) com estes parametros. O resultado e pre-preenchido no `TemplateFormDialog` para revisao e gravacao.
+
+### 8. Integracao com Inbox 3.0
+
+No componente `InboxTemplatePanel.tsx` (ja existe e e usado na Inbox):
+- Adicionar tab "Recomendados" que filtra templates por maior conversao e mais usados
+- Adicionar sort por `conversion_rate DESC`
+- A tab "IA" ja existe com adaptacao contextual
+
+O botao "Templates" no `ConversationDetail` ja abre o `InboxTemplatePanel`.
+
+### 9. Templates Pre-Configurados METODOPARE
+
+Inserir 5 templates via insert tool (nao migracao) apos as alteracoes de schema:
+
+| Nome | Canal | Estrutura | Assunto/CTA |
+|---|---|---|---|
+| Captacao Lead Frio | email | AIDA | "Responda QUERO EVOLUIR" |
+| WhatsApp Qualificacao | whatsapp | AIDA | "Posso fazer 2 perguntas?" |
+| Follow-Up Comercial | email | FollowUp | "Conversa de 20 min?" |
+| Convite Masterclasse | email | AIDA | "Reserve o seu lugar" |
+| Recuperacao Lead Inativo | email | AIDA | "Enviar resumo novidades?" |
+
+Nota: estes serao inseridos so se o workspace METODOPARE existir, caso contrario ficam como templates de exemplo.
 
 ---
 
@@ -104,17 +98,21 @@ supabase.from('ai_agent_executions').insert({
 
 | Ficheiro | Alteracao |
 |---|---|
-| `supabase/config.toml` | Adicionar `[functions.calculate-conversation-priority]` |
-| `supabase/functions/calculate-conversation-priority/index.ts` | Modo `all_workspaces` |
-| SQL (insert tool) | Cron job pg_cron |
-| Migracao SQL | Trigger `trg_message_priority` |
-| `src/components/inbox/InboxContextPanel.tsx` | Dialog oportunidade + Atribuir + Nota |
-| `src/components/inbox/AISuggestModal.tsx` | AI usage logging |
-| `src/components/inbox/ConversationDetail.tsx` | Passar `conversationId`/`workspaceId` ao AISuggestModal |
+| Migracao SQL | Adicionar `structure_type`, `cta`, `conversion_count` + trigger conversao |
+| `src/types/communicationTemplate.ts` | Novos tipos e constantes |
+| `src/hooks/useCommunicationTemplates.ts` | Mapear novos campos |
+| `src/components/communication/TemplatesListPage.tsx` | KPI conversao + coluna estrutura |
+| `src/components/communication/TemplateFormDialog.tsx` | Campos estrutura + CTA |
+| `src/components/communication/AITemplateGeneratorDialog.tsx` | Novo -- fluxo IA 4 passos |
+| `src/components/inbox/InboxTemplatePanel.tsx` | Tab recomendados por conversao |
+| Insert SQL | 5 templates METODOPARE |
 
-### Ordem
+### Ordem de Implementacao
 
-1. config.toml + edge function update + deploy
-2. Cron job SQL + trigger SQL
-3. InboxContextPanel (dialog + atribuir + nota)
-4. AISuggestModal logging
+1. Migracao DB (novos campos + trigger conversao)
+2. Tipos TypeScript + hook updates
+3. UI: TemplateFormDialog + TemplatesListPage
+4. AITemplateGeneratorDialog
+5. InboxTemplatePanel (tab recomendados)
+6. Inserir templates METODOPARE
+
