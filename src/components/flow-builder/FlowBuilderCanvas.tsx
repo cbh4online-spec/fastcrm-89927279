@@ -18,8 +18,9 @@ import { FlowStep, FlowVariable, FlowStepType } from '@/types/conversational-flo
 import { FlowStepNode, FlowStepNodeData } from './FlowStepNode';
 import { FlowBuilderSidebar } from './FlowBuilderSidebar';
 import { StepPropertiesPanel } from './StepPropertiesPanel';
+import { FlowDryRunPanel } from './FlowDryRunPanel';
 import { Button } from '@/components/ui/button';
-import { Save, Play, Pause, RotateCcw } from 'lucide-react';
+import { Save, Play, Pause, RotateCcw, TestTube } from 'lucide-react';
 
 interface FlowBuilderCanvasProps {
   steps: FlowStep[];
@@ -49,6 +50,8 @@ export function FlowBuilderCanvas({
   isSaving
 }: FlowBuilderCanvasProps) {
   const [selectedStep, setSelectedStep] = useState<FlowStep | null>(null);
+  const [isDryRunning, setIsDryRunning] = useState(false);
+  const [highlightedStepId, setHighlightedStepId] = useState<string | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   // Handlers for nodes
@@ -73,10 +76,10 @@ export function FlowBuilderCanvas({
         step,
         onEdit: handleEditStep,
         onDelete: handleDeleteStep,
-        isSelected: step.id === selectedStep?.id
+        isSelected: step.id === selectedStep?.id || step.id === highlightedStepId
       }
     })) as Node[];
-  }, [steps, handleEditStep, handleDeleteStep, selectedStep?.id]);
+  }, [steps, handleEditStep, handleDeleteStep, selectedStep?.id, highlightedStepId]);
 
   // Convert steps to edges
   const buildEdges = useCallback(() => {
@@ -250,6 +253,16 @@ export function FlowBuilderCanvas({
           
           {/* Top panel with actions */}
           <Panel position="top-right" className="flex gap-2">
+            {steps.length > 0 && steps.some(s => s.isEntryPoint) && (
+              <Button
+                variant={isDryRunning ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => setIsDryRunning(!isDryRunning)}
+              >
+                <TestTube className="h-4 w-4 mr-1" />
+                Testar
+              </Button>
+            )}
             {flowStatus === 'active' ? (
               <Button variant="outline" size="sm" onClick={onDeactivate}>
                 <Pause className="h-4 w-4 mr-1" />
@@ -283,12 +296,25 @@ export function FlowBuilderCanvas({
       </div>
 
       {/* Properties Panel */}
-      {selectedStep && (
+      {selectedStep && !isDryRunning && (
         <StepPropertiesPanel
           step={selectedStep}
           variables={variables}
           onUpdate={handleUpdateFromPanel}
           onClose={() => setSelectedStep(null)}
+        />
+      )}
+
+      {/* Dry Run Panel */}
+      {isDryRunning && (
+        <FlowDryRunPanel
+          steps={steps}
+          variables={variables}
+          onClose={() => {
+            setIsDryRunning(false);
+            setHighlightedStepId(null);
+          }}
+          onStepHighlight={setHighlightedStepId}
         />
       )}
     </div>
