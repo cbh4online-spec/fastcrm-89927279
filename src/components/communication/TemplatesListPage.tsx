@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -160,12 +161,17 @@ export function TemplatesListPage() {
   // Get stats map by template_id
   const statsMap = useMemo(() => {
     if (!allStats) return {};
-    const map: Record<string, { score: number; replyRate: number; samples: number }> = {};
+    const map: Record<string, { score: number; weightedScore: number; replyRate: number; oppRate: number; winRate: number; stageProgression: number; samples: number }> = {};
     for (const s of allStats) {
-      if (!map[s.template_id] || s.score > map[s.template_id].score) {
+      const ws = s.weighted_score ?? s.score;
+      if (!map[s.template_id] || ws > map[s.template_id].weightedScore) {
         map[s.template_id] = { 
-          score: s.score, 
+          score: s.score,
+          weightedScore: ws,
           replyRate: s.reply_rate, 
+          oppRate: s.opportunity_rate,
+          winRate: s.win_rate,
+          stageProgression: s.stage_progression_rate ?? 0,
           samples: s.samples 
         };
       }
@@ -533,10 +539,25 @@ export function TemplatesListPage() {
                                 <span>• {((template.conversionCount || 0) / template.usageCount * 100).toFixed(0)}% conv.</span>
                               )}
                               {tStats && tStats.samples > 0 && (
-                                <Badge variant="outline" className="text-[10px] py-0 gap-0.5">
-                                  <Brain className="h-2.5 w-2.5" />
-                                  {(tStats.score * 100).toFixed(0)}%
-                                </Badge>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="outline" className="text-[10px] py-0 gap-0.5">
+                                        <Brain className="h-2.5 w-2.5" />
+                                        {(tStats.weightedScore * 100).toFixed(0)}%
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="text-xs">
+                                      <div className="space-y-0.5">
+                                        <div>Win Rate: {(tStats.winRate * 100).toFixed(1)}%</div>
+                                        <div>Opp Rate: {(tStats.oppRate * 100).toFixed(1)}%</div>
+                                        <div>Stage Prog: {(tStats.stageProgression * 100).toFixed(1)}%</div>
+                                        <div>Reply Rate: {(tStats.replyRate * 100).toFixed(1)}%</div>
+                                        <div className="text-muted-foreground">{tStats.samples} amostras</div>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               )}
                             </div>
                             <Switch
@@ -629,20 +650,24 @@ export function TemplatesListPage() {
                           </div>
                           <div className="flex items-center gap-4 text-sm">
                             <div className="text-center">
-                              <div className="font-bold text-primary">{(stat.score * 100).toFixed(1)}%</div>
-                              <div className="text-[10px] text-muted-foreground">Score</div>
+                              <div className="font-bold text-primary">{((stat.weighted_score ?? stat.score) * 100).toFixed(1)}%</div>
+                              <div className="text-[10px] text-muted-foreground">W.Score</div>
                             </div>
                             <div className="text-center">
-                              <div className="font-bold">{(stat.reply_rate * 100).toFixed(1)}%</div>
-                              <div className="text-[10px] text-muted-foreground">Reply</div>
+                              <div className="font-bold">{(stat.win_rate * 100).toFixed(1)}%</div>
+                              <div className="text-[10px] text-muted-foreground">Win</div>
                             </div>
                             <div className="text-center">
                               <div className="font-bold">{(stat.opportunity_rate * 100).toFixed(1)}%</div>
                               <div className="text-[10px] text-muted-foreground">Oportunidade</div>
                             </div>
                             <div className="text-center">
-                              <div className="font-bold">{(stat.win_rate * 100).toFixed(1)}%</div>
-                              <div className="text-[10px] text-muted-foreground">Ganho</div>
+                              <div className="font-bold">{((stat.stage_progression_rate ?? 0) * 100).toFixed(1)}%</div>
+                              <div className="text-[10px] text-muted-foreground">Progressão</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold">{(stat.reply_rate * 100).toFixed(1)}%</div>
+                              <div className="text-[10px] text-muted-foreground">Reply</div>
                             </div>
                             <div className="text-center">
                               <div className="font-bold">{stat.samples}</div>
@@ -714,9 +739,9 @@ export function TemplatesListPage() {
                   </div>
                   <div className="p-4 rounded-lg border bg-muted/30 text-center">
                     <div className="text-2xl font-bold text-primary">
-                      {allStats && allStats.filter(s => s.samples >= 30).length || 0}
+                      {allStats && allStats.filter(s => s.samples >= 50).length || 0}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">Com dados suficientes (≥30)</div>
+                    <div className="text-xs text-muted-foreground mt-1">Com dados suficientes (≥50)</div>
                   </div>
                 </div>
                 <div className="rounded-lg border p-3 bg-primary/5">
@@ -725,8 +750,8 @@ export function TemplatesListPage() {
                     Multi-Armed Bandit
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    80% das vezes usa a variante com melhor score. 20% testa alternativas para diversificar dados.
-                    Com menos de 30 amostras, o sistema explora aleatoriamente.
+                    80% das vezes usa a variante com melhor weighted score (Win 45% + Opp 35% + Reply 10% + Progressão 10%). 
+                    20% testa alternativas. Com menos de 50 amostras, exploração a 30%.
                   </p>
                 </div>
               </CardContent>

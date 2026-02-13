@@ -99,7 +99,7 @@ export function useWorkspaceTemplateStats(templateId?: string) {
       if (templateId) query = query.eq('template_id', templateId);
       const { data, error } = await query;
       if (error) throw error;
-      return data as unknown as Array<{
+      return (data || []) as unknown as Array<{
         id: string;
         workspace_id: string;
         template_id: string;
@@ -114,6 +114,8 @@ export function useWorkspaceTemplateStats(templateId?: string) {
         win_rate: number;
         avg_time_to_reply_minutes: number;
         score: number;
+        stage_progression_rate: number;
+        weighted_score: number;
         updated_at: string;
       }>;
     },
@@ -146,12 +148,17 @@ export function usePredictBestVariant() {
         confidence: 'low' | 'medium' | 'high';
         rationale: string;
         exploration: boolean;
+        revenue_impact_estimate: number;
+        opportunity_rate: number;
+        win_rate: number;
         alternatives: Array<{
           variant_id: string;
           variant_key: string;
           score: number;
           samples: number;
           reply_rate: number;
+          opportunity_rate: number;
+          win_rate: number;
         }>;
       };
     },
