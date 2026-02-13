@@ -736,19 +736,33 @@ async function triggerAutopilotResponse(
     return;
   }
 
-  // DEDUP: Check if autopilot was already triggered for this conversation in the last 120s
-  const { data: recentTrigger } = await supabase
+  // SMART DEDUP: Check if there's a new inbound message AFTER the last trigger
+  // This allows rapid back-to-back messages to each get a response
+  const { data: lastTrigger } = await supabase
     .from("autopilot_events")
-    .select("id")
+    .select("id, created_at")
     .eq("conversation_id", conversationId)
     .eq("event_type", "triggered")
-    .gte("created_at", new Date(Date.now() - 120000).toISOString())
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (recentTrigger) {
-    console.log("[AUTOPILOT] Skipping — already triggered in last 120s", { conversationId, existingEventId: recentTrigger.id });
-    return;
+  if (lastTrigger) {
+    // Check if there are inbound messages AFTER this trigger
+    const { data: newerInbound } = await supabase
+      .from("messages")
+      .select("id")
+      .eq("conversation_id", conversationId)
+      .eq("direction", "inbound")
+      .gt("sent_at", lastTrigger.created_at)
+      .limit(1)
+      .maybeSingle();
+
+    if (!newerInbound) {
+      console.log("[AUTOPILOT] Skipping — last trigger already covers latest inbound", { conversationId, lastTriggerId: lastTrigger.id });
+      return;
+    }
+    console.log("[AUTOPILOT] New inbound found after last trigger, allowing new trigger", { conversationId });
   }
 
   console.log("[AUTOPILOT] Autopilot is active", { 
@@ -947,6 +961,13 @@ async function triggerAutopilotResponse(
   }
 
   console.log("[AUTOPILOT] AI generated response", { preview: suggestion.substring(0, 100) });
+
+  // 10b. Typing simulation delay — proportional to response length
+  const typingBaseDelay = 1.5; // seconds to "read" the message
+  const charsPerSecond = 40; // simulated typing speed
+  const typingDelay = Math.min(8, typingBaseDelay + (suggestion.length / charsPerSecond));
+  console.log("[AUTOPILOT] Simulating typing delay", { chars: suggestion.length, typingDelaySec: typingDelay.toFixed(1) });
+  await new Promise(resolve => setTimeout(resolve, typingDelay * 1000));
 
   // 11. Send the response via GHL
   await sendAutopilotMessage(
