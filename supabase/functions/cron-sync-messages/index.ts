@@ -289,18 +289,18 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
             const lastMsg = recentMessages[recentMessages.length - 1];
             const lastDirection = normalizeDirection(lastMsg?.direction);
             if (lastDirection === "inbound") {
-              // Check if there's a recent outbound response (last 60s) to avoid re-triggering
-              const { data: recentOutbound } = await supabase
-                .from("messages")
+              // Check if autopilot was already triggered for this conversation in the last 5 min
+              const { data: recentTrigger } = await supabase
+                .from("autopilot_events")
                 .select("id")
                 .eq("conversation_id", conversationId)
-                .eq("direction", "outbound")
-                .gte("sent_at", new Date(Date.now() - 60000).toISOString())
+                .eq("event_type", "triggered")
+                .gte("created_at", new Date(Date.now() - 300000).toISOString())
                 .limit(1)
                 .maybeSingle();
 
-              if (recentOutbound) {
-                console.log("[Cron Sync] Skipping autopilot — recent outbound exists for conv", conversationId);
+              if (recentTrigger) {
+                console.log("[Cron Sync] Skipping autopilot — already triggered in last 5min", conversationId);
               } else {
                 triggerAutopilot(supabaseUrl, serviceKey, {
                   workspaceId: workspace_id,
