@@ -9,6 +9,7 @@ export interface PersuasionStructure {
   channel: string;
   blocks: Array<{ id: string; goal: string; required: boolean }>;
   constraints: { max_length?: number; cta_type?: string; tone_options?: string[] };
+  length_profiles?: Record<string, Record<string, number>>;
   created_at: string;
   updated_at: string;
 }
@@ -20,6 +21,7 @@ export interface StructureStats {
   pipeline_stage: string | null;
   intent_label: string | null;
   structure_key: string;
+  chosen_length: string | null;
   samples: number;
   opportunity_rate: number;
   win_rate: number;
@@ -144,6 +146,9 @@ export function useComposeMessage() {
         cta?: string;
         structure_key: string;
         block_map: Array<{ block_name: string; content: string }>;
+        chosen_length: string;
+        target_char_limit: number;
+        char_count: number;
         confidence: 'low' | 'medium' | 'high';
         crm_variables_used: string[];
       };
