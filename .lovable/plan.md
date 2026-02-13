@@ -1,40 +1,82 @@
 
 
-## Cron Job a cada 5 segundos
+## Melhorar Visualizacao de Mensagens no Inbox (estilo GHL)
 
-### Limitacao Importante
+### Problema Atual
 
-O `pg_cron` (usado na base de dados) so suporta granularidade minima de **1 minuto**. Nao e possivel agendar tarefas a cada 5 segundos com `pg_cron`.
+As mensagens no inbox mostram apenas a hora (HH:mm) sem separadores de data, sem nome do remetente, e sem indicadores de estado de entrega. A experiencia e muito basica comparada com o GHL.
 
-### Solucao: Loop interno na Edge Function
+### Referencia GHL
 
-A abordagem e criar uma Edge Function que, quando invocada pelo cron a cada minuto, executa internamente um loop com 12 iteracoes (60s / 5s = 12), fazendo o sync a cada 5 segundos durante esse minuto.
+O GHL mostra:
+- Separadores de data entre grupos de mensagens ("Yesterday", "Today")
+- Nome do remetente acima de cada mensagem
+- Hora completa (ex: "09:04 PM") abaixo de cada bolha
+- Icone do canal junto ao avatar
 
 ### Alteracoes
 
-**1. Modificar `supabase/functions/cron-sync-messages/index.ts`**
+**1. Substituir renderizacao inline por `MessageBubble` no `ConversationDetail.tsx`**
 
-Envolver a logica de sync existente num loop que executa 12 vezes com intervalos de 5 segundos:
+O componente `MessageBubble` ja existe e tem suporte para:
+- Avatar do remetente com iniciais
+- Nome do remetente
+- Timestamps formatados com data e hora
+- Indicadores de estado de entrega (enviado, entregue, lido)
+- Suporte a anexos
+
+Atualmente o `ConversationDetail` usa renderizacao inline basica (linhas 416-448). Vamos substituir pelo `MessageBubble`.
+
+**2. Adicionar separadores de data entre mensagens**
+
+Criar logica para agrupar mensagens por dia e inserir separadores visuais como:
 
 ```text
-// Pseudocodigo
-for (let i = 0; i < 12; i++) {
-  await syncAllWorkspaces();  // logica existente
-  if (i < 11) {
-    await new Promise(r => setTimeout(r, 5000)); // esperar 5s
-  }
-}
+------------ Ontem ------------
+[mensagens de ontem]
+
+------------ Hoje ------------
+[mensagens de hoje]
 ```
 
-Isto garante que durante cada invocacao do cron (1x por minuto), o sync corre efetivamente a cada 5 segundos.
+Usando `date-fns` com locale `pt` para labels como "Hoje", "Ontem", ou a data completa (ex: "12 Fev").
 
-**2. Manter o cron job existente**
+**3. Passar dados do lead e conversa ao MessageBubble**
 
-O agendamento `pg_cron` a cada 1 minuto ja esta configurado e continua igual. A diferenca e que cada execucao agora faz 12 verificacoes internas.
+- Mensagens inbound: mostrar nome do lead/contacto
+- Mensagens outbound: mostrar nome da empresa ou "Voce"
+- Incluir `delivered_at`, `read_at`, `sent_at` para os indicadores de entrega
 
-### Consideracoes
+### Detalhes Tecnicos
 
-- Edge Functions tem timeout maximo de ~60 segundos, o que se alinha com 12 iteracoes de 5 segundos
-- Se uma iteracao demorar mais que 5 segundos, o intervalo efetivo sera maior mas nao ha sobreposicao
-- O consumo de recursos sera ~12x maior que a versao atual
+No `ConversationDetail.tsx` (linhas ~414-452):
+
+1. Importar `MessageBubble` de `./MessageBubble`
+2. Importar `isToday`, `isYesterday`, `format` de `date-fns`
+3. Antes do `.map()`, criar uma funcao helper que determina se deve mostrar separador de data
+4. Renderizar separadores de data entre grupos de mensagens
+5. Substituir o JSX inline pelo componente `MessageBubble` com as props corretas:
+   - `senderName`: nome do lead para inbound, nome da empresa para outbound
+   - `senderAvatar`: avatar do lead se disponivel
+   - `companyName`: nome do workspace ou "Voce"
+
+Exemplo de separador de data:
+```text
+<div className="flex items-center gap-3 py-3">
+  <div className="flex-1 h-px bg-border" />
+  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+    <Calendar className="w-3 h-3" />
+    Hoje
+  </span>
+  <div className="flex-1 h-px bg-border" />
+</div>
+```
+
+### Resultado
+
+- Mensagens com data e hora completa de rececao
+- Separadores visuais por dia (Hoje, Ontem, data)
+- Nome do remetente visivel em cada mensagem
+- Indicadores de estado de entrega (enviado, entregue, lido)
+- Visual consistente com a experiencia GHL
 
