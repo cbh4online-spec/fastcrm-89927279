@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -36,11 +37,15 @@ import {
   ChevronRight,
   FileText,
   Zap,
+  BarChart3,
+  GitBranch,
+  Brain,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
 import { FilterSidebar, FilterGroup } from '@/components/common/FilterSidebar';
 import { useCommunicationTemplates, useDeleteCommunicationTemplate, useUpdateCommunicationTemplate } from '@/hooks/useCommunicationTemplates';
+import { useWorkspaceTemplateStats, useTemplateVariants } from '@/hooks/usePredictiveTemplates';
 import { 
   CommunicationTemplate, 
   TemplateChannel,
@@ -68,6 +73,7 @@ const sortOptions = [
   { value: 'updated_asc', label: 'Mais antigos' },
   { value: 'usage_desc', label: 'Mais usados' },
   { value: 'conversion_desc', label: 'Maior Conversão' },
+  { value: 'score_desc', label: 'Melhor Score' },
   { value: 'name_asc', label: 'Nome (A-Z)' },
 ];
 
@@ -79,8 +85,9 @@ export function TemplatesListPage() {
   const [previewTemplate, setPreviewTemplate] = useState<CommunicationTemplate | null>(null);
   const [sendEmailTemplate, setSendEmailTemplate] = useState<CommunicationTemplate | null>(null);
   const [showAIDialog, setShowAIDialog] = useState(false);
+  const [activePageTab, setActivePageTab] = useState('templates');
+  const [selectedStatsTemplate, setSelectedStatsTemplate] = useState<string | undefined>();
   
-  // New UI state
   const [showFilterSidebar, setShowFilterSidebar] = useState(true);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState('');
@@ -94,6 +101,8 @@ export function TemplatesListPage() {
   );
   const deleteTemplate = useDeleteCommunicationTemplate();
   const updateTemplate = useUpdateCommunicationTemplate();
+  const { data: allStats } = useWorkspaceTemplateStats();
+  const { data: selectedVariants } = useTemplateVariants(selectedStatsTemplate);
 
   // Filter groups for sidebar
   const filterGroups: FilterGroup[] = [
@@ -117,13 +126,15 @@ export function TemplatesListPage() {
       items: [
         { id: 'status_active', label: 'Ativos' },
         { id: 'status_inactive', label: 'Inativos' },
+        { id: 'status_dynamic', label: 'Dinâmicos' },
+        { id: 'status_predictive', label: 'Preditivos' },
       ],
     },
   ];
 
   // Stats calculation
   const stats = useMemo(() => {
-    if (!templates) return { total: 0, active: 0, byChannel: {}, avgUsage: 0, avgConversion: 0 };
+    if (!templates) return { total: 0, active: 0, byChannel: {}, avgUsage: 0, avgConversion: 0, avgScore: 0 };
     
     const active = templates.filter(t => t.isActive).length;
     const byChannel = templates.reduce((acc, t) => {
@@ -137,9 +148,30 @@ export function TemplatesListPage() {
     const avgConversion = templatesWithUsage.length > 0
       ? templatesWithUsage.reduce((sum, t) => sum + ((t.conversionCount || 0) / t.usageCount) * 100, 0) / templatesWithUsage.length
       : 0;
+    
+    // Average score from stats
+    const avgScore = allStats && allStats.length > 0
+      ? allStats.reduce((sum, s) => sum + (s.score || 0), 0) / allStats.length
+      : 0;
 
-    return { total: templates.length, active, byChannel, avgUsage, avgConversion };
-  }, [templates]);
+    return { total: templates.length, active, byChannel, avgUsage, avgConversion, avgScore };
+  }, [templates, allStats]);
+
+  // Get stats map by template_id
+  const statsMap = useMemo(() => {
+    if (!allStats) return {};
+    const map: Record<string, { score: number; replyRate: number; samples: number }> = {};
+    for (const s of allStats) {
+      if (!map[s.template_id] || s.score > map[s.template_id].score) {
+        map[s.template_id] = { 
+          score: s.score, 
+          replyRate: s.reply_rate, 
+          samples: s.samples 
+        };
+      }
+    }
+    return map;
+  }, [allStats]);
 
   // Filtered and sorted templates
   const filteredTemplates = useMemo(() => {
@@ -147,7 +179,6 @@ export function TemplatesListPage() {
     
     let result = [...templates];
     
-    // Search filter
     if (searchValue) {
       const query = searchValue.toLowerCase();
       result = result.filter(t => 
@@ -156,7 +187,6 @@ export function TemplatesListPage() {
       );
     }
 
-    // Filter by activeFilterId
     if (activeFilterId) {
       if (activeFilterId.startsWith('channel_')) {
         const channel = activeFilterId.replace('channel_', '');
@@ -165,10 +195,13 @@ export function TemplatesListPage() {
         result = result.filter(t => t.isActive);
       } else if (activeFilterId === 'status_inactive') {
         result = result.filter(t => !t.isActive);
+      } else if (activeFilterId === 'status_dynamic') {
+        result = result.filter(t => t.isDynamic);
+      } else if (activeFilterId === 'status_predictive') {
+        result = result.filter(t => t.personalizationLevel === 'predictive');
       }
     }
 
-    // Sort
     result.sort((a, b) => {
       switch (sortValue) {
         case 'updated_desc':
@@ -182,6 +215,11 @@ export function TemplatesListPage() {
           const bRate = b.usageCount > 0 ? (b.conversionCount || 0) / b.usageCount : 0;
           return bRate - aRate;
         }
+        case 'score_desc': {
+          const aScore = statsMap[a.id]?.score || 0;
+          const bScore = statsMap[b.id]?.score || 0;
+          return bScore - aScore;
+        }
         case 'name_asc':
           return a.name.localeCompare(b.name);
         default:
@@ -190,7 +228,7 @@ export function TemplatesListPage() {
     });
 
     return result;
-  }, [templates, searchValue, activeFilterId, sortValue]);
+  }, [templates, searchValue, activeFilterId, sortValue, statsMap]);
 
   // Pagination
   const totalTemplates = filteredTemplates.length;
@@ -229,14 +267,9 @@ export function TemplatesListPage() {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['communication-templates'] });
+    await queryClient.invalidateQueries({ queryKey: ['workspace-template-stats'] });
     setIsRefreshing(false);
   }, [queryClient]);
-
-  // Page tabs
-  const pageTabs = [
-    { id: 'templates', label: 'Templates', count: stats.total },
-    { id: 'ai', label: 'Gerador IA', icon: <Sparkles className="h-4 w-4" /> },
-  ];
 
   return (
     <div className="flex h-full -m-6">
@@ -256,7 +289,7 @@ export function TemplatesListPage() {
         <PageHeader
           title="Templates de Comunicação"
           count={stats.total}
-          description="Crie e gira mensagens reutilizáveis para a jornada do cliente"
+          description="Crie e gira mensagens reutilizáveis com IA preditiva"
           actions={[
             {
               label: 'Criar com IA',
@@ -272,276 +305,434 @@ export function TemplatesListPage() {
           ]}
         />
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-          <Card className="hover:border-primary/50 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  {isLoading ? (
-                    <Skeleton className="h-7 w-12 mt-1" />
-                  ) : (
-                    <p className="text-2xl font-bold">{stats.total}</p>
-                  )}
-                </div>
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Page Tabs */}
+        <Tabs value={activePageTab} onValueChange={setActivePageTab} className="mt-4">
+          <TabsList>
+            <TabsTrigger value="templates" className="gap-1.5">
+              <FileText className="h-4 w-4" />
+              Biblioteca
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="gap-1.5">
+              <BarChart3 className="h-4 w-4" />
+              Performance
+            </TabsTrigger>
+            <TabsTrigger value="learning" className="gap-1.5">
+              <Brain className="h-4 w-4" />
+              Treino do Workspace
+            </TabsTrigger>
+          </TabsList>
 
-          <Card className="hover:border-primary/50 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Ativos</p>
-                  {isLoading ? (
-                    <Skeleton className="h-7 w-12 mt-1" />
-                  ) : (
-                    <p className="text-2xl font-bold">{stats.active}</p>
-                  )}
-                </div>
-                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Zap className="h-5 w-5 text-green-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:border-primary/50 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Conversão Média</p>
-                  {isLoading ? (
-                    <Skeleton className="h-7 w-12 mt-1" />
-                  ) : (
-                    <p className="text-2xl font-bold">{stats.avgConversion.toFixed(1)}%</p>
-                  )}
-                </div>
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:border-primary/50 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Uso Médio</p>
-                  {isLoading ? (
-                    <Skeleton className="h-7 w-12 mt-1" />
-                  ) : (
-                    <p className="text-2xl font-bold">{stats.avgUsage.toFixed(0)}</p>
-                  )}
-                </div>
-                <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-amber-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Toolbar */}
-        <Toolbar
-          searchValue={searchValue}
-          searchPlaceholder="Pesquisar templates..."
-          onSearchChange={(v) => { setSearchValue(v); setCurrentPage(1); }}
-          showFilters={true}
-          filtersActive={filtersActive}
-          onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
-          onClearFilters={handleClearFilters}
-          sortOptions={sortOptions}
-          sortValue={sortValue}
-          onSortChange={setSortValue}
-          rightActions={
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
-          }
-          className="mt-4"
-        />
-
-        {/* Templates Grid */}
-        <div className="flex-1 mt-4">
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <Skeleton key={i} className="h-48" />
-              ))}
+          <TabsContent value="templates" className="mt-4 space-y-4">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <Card className="hover:border-primary/50 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total</p>
+                      {isLoading ? <Skeleton className="h-7 w-12 mt-1" /> : <p className="text-2xl font-bold">{stats.total}</p>}
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="hover:border-primary/50 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Ativos</p>
+                      {isLoading ? <Skeleton className="h-7 w-12 mt-1" /> : <p className="text-2xl font-bold">{stats.active}</p>}
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-green-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="hover:border-primary/50 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Conversão</p>
+                      {isLoading ? <Skeleton className="h-7 w-12 mt-1" /> : <p className="text-2xl font-bold">{stats.avgConversion.toFixed(1)}%</p>}
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="hover:border-primary/50 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Score Médio</p>
+                      {isLoading ? <Skeleton className="h-7 w-12 mt-1" /> : <p className="text-2xl font-bold">{(stats.avgScore * 100).toFixed(0)}%</p>}
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                      <Brain className="h-5 w-5 text-purple-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="hover:border-primary/50 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Uso Médio</p>
+                      {isLoading ? <Skeleton className="h-7 w-12 mt-1" /> : <p className="text-2xl font-bold">{stats.avgUsage.toFixed(0)}</p>}
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-amber-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          ) : paginatedTemplates.length === 0 ? (
-            <Card className="py-12">
-              <CardContent className="flex flex-col items-center justify-center text-center">
-                <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">
-                  {searchValue ? 'Nenhum template encontrado' : 'Sem templates'}
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchValue ? 'Tente uma pesquisa diferente' : 'Crie o seu primeiro template para começar'}
-                </p>
-                {!searchValue && (
-                  <Button onClick={() => setShowCreateDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Criar Template
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paginatedTemplates.map(template => {
-                const ChannelIcon = CHANNEL_ICONS[template.channel];
-                
-                return (
-                  <Card key={template.id} className={`${!template.isActive ? 'opacity-60' : ''} hover:shadow-md transition-all`}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <ChannelIcon className="h-4 w-4 text-primary" />
+
+            {/* Toolbar */}
+            <Toolbar
+              searchValue={searchValue}
+              searchPlaceholder="Pesquisar templates..."
+              onSearchChange={(v) => { setSearchValue(v); setCurrentPage(1); }}
+              showFilters={true}
+              filtersActive={filtersActive}
+              onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
+              onClearFilters={handleClearFilters}
+              sortOptions={sortOptions}
+              sortValue={sortValue}
+              onSortChange={setSortValue}
+              rightActions={
+                <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              }
+            />
+
+            {/* Templates Grid */}
+            <div className="flex-1">
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-48" />)}
+                </div>
+              ) : paginatedTemplates.length === 0 ? (
+                <Card className="py-12">
+                  <CardContent className="flex flex-col items-center justify-center text-center">
+                    <Mail className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">
+                      {searchValue ? 'Nenhum template encontrado' : 'Sem templates'}
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      {searchValue ? 'Tente uma pesquisa diferente' : 'Crie o seu primeiro template para começar'}
+                    </p>
+                    {!searchValue && (
+                      <Button onClick={() => setShowCreateDialog(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Criar Template
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {paginatedTemplates.map(template => {
+                    const ChannelIcon = CHANNEL_ICONS[template.channel];
+                    const tStats = statsMap[template.id];
+                    
+                    return (
+                      <Card key={template.id} className={`${!template.isActive ? 'opacity-60' : ''} hover:shadow-md transition-all`}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-2 rounded-lg bg-primary/10">
+                                <ChannelIcon className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-base flex items-center gap-1.5">
+                                  {template.name}
+                                  {template.personalizationLevel === 'predictive' && (
+                                    <Brain className="h-3.5 w-3.5 text-purple-500" />
+                                  )}
+                                  {template.isDynamic && (
+                                    <Zap className="h-3.5 w-3.5 text-amber-500" />
+                                  )}
+                                </CardTitle>
+                                <p className="text-xs text-muted-foreground">
+                                  {CHANNEL_LABELS[template.channel]} • {TONE_LABELS[template.tone]}
+                                  {template.structureType && template.structureType !== 'custom' && ` • ${STRUCTURE_LABELS[template.structureType]}`}
+                                </p>
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setPreviewTemplate(template)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Pré-visualizar
+                                </DropdownMenuItem>
+                                {template.channel === 'email' && (
+                                  <DropdownMenuItem onClick={() => setSendEmailTemplate(template)}>
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    Enviar Email
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => {
+                                  setEditingTemplate(template);
+                                  setShowCreateDialog(true);
+                                }}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDuplicate(template)}>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Duplicar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedStatsTemplate(template.id);
+                                  setActivePageTab('performance');
+                                }}>
+                                  <BarChart3 className="h-4 w-4 mr-2" />
+                                  Ver Performance
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => deleteTemplate.mutate(template.id)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                          <div>
-                            <CardTitle className="text-base">{template.name}</CardTitle>
-                            <p className="text-xs text-muted-foreground">
-                              {CHANNEL_LABELS[template.channel]} • {TONE_LABELS[template.tone]}
-                              {template.structureType && template.structureType !== 'custom' && ` • ${STRUCTURE_LABELS[template.structureType]}`}
-                            </p>
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setPreviewTemplate(template)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Pré-visualizar
-                            </DropdownMenuItem>
-                            {template.channel === 'email' && (
-                              <DropdownMenuItem onClick={() => setSendEmailTemplate(template)}>
-                                <Mail className="h-4 w-4 mr-2" />
-                                Enviar Email
-                              </DropdownMenuItem>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex flex-wrap gap-1">
+                            {template.journeyContexts.slice(0, 3).map(ctx => (
+                              <Badge key={ctx} variant="secondary" className="text-xs">
+                                {JOURNEY_CONTEXT_LABELS[ctx]}
+                              </Badge>
+                            ))}
+                            {template.journeyContexts.length > 3 && (
+                              <Badge variant="outline" className="text-xs">+{template.journeyContexts.length - 3}</Badge>
                             )}
-                            <DropdownMenuItem onClick={() => {
-                              setEditingTemplate(template);
-                              setShowCreateDialog(true);
-                            }}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDuplicate(template)}>
-                              <Copy className="h-4 w-4 mr-2" />
-                              Duplicar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => deleteTemplate.mutate(template.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Eliminar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {/* Journey contexts */}
-                      <div className="flex flex-wrap gap-1">
-                        {template.journeyContexts.slice(0, 3).map(ctx => (
-                          <Badge key={ctx} variant="secondary" className="text-xs">
-                            {JOURNEY_CONTEXT_LABELS[ctx]}
-                          </Badge>
-                        ))}
-                        {template.journeyContexts.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{template.journeyContexts.length - 3}
-                          </Badge>
-                        )}
-                      </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {template.body.substring(0, 100)}...
+                          </p>
+                          <div className="flex items-center justify-between pt-2 border-t">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <TrendingUp className="h-3 w-3" />
+                              <span>{template.usageCount} usos</span>
+                              {template.usageCount > 0 && (
+                                <span>• {((template.conversionCount || 0) / template.usageCount * 100).toFixed(0)}% conv.</span>
+                              )}
+                              {tStats && tStats.samples > 0 && (
+                                <Badge variant="outline" className="text-[10px] py-0 gap-0.5">
+                                  <Brain className="h-2.5 w-2.5" />
+                                  {(tStats.score * 100).toFixed(0)}%
+                                </Badge>
+                              )}
+                            </div>
+                            <Switch
+                              checked={template.isActive}
+                              onCheckedChange={() => handleToggleActive(template)}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
-                      {/* Preview */}
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {template.body.substring(0, 100)}...
-                      </p>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Mostrar</span>
+                  <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-[70px] h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAGE_SIZE_OPTIONS.map(size => (
+                        <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span>por página ({totalTemplates} total)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Página {currentPage} de {totalPages}</span>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
 
-                      {/* Stats & Toggle */}
-                      <div className="flex items-center justify-between pt-2 border-t">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <TrendingUp className="h-3 w-3" />
-                          <span>{template.usageCount} usos</span>
-                          {template.usageCount > 0 && (
-                            <span>• {((template.conversionCount || 0) / template.usageCount * 100).toFixed(0)}% conv.</span>
-                          )}
+          {/* Performance Tab */}
+          <TabsContent value="performance" className="mt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Performance por Template</h3>
+              {selectedStatsTemplate && (
+                <Button variant="ghost" size="sm" onClick={() => setSelectedStatsTemplate(undefined)}>
+                  Ver Todos
+                </Button>
+              )}
+            </div>
+
+            {!allStats || allStats.length === 0 ? (
+              <Card className="py-12">
+                <CardContent className="flex flex-col items-center justify-center text-center">
+                  <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Sem dados de performance</h3>
+                  <p className="text-muted-foreground">
+                    Os dados aparecem após os templates serem usados e receberem respostas.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {(selectedStatsTemplate 
+                  ? allStats.filter(s => s.template_id === selectedStatsTemplate) 
+                  : allStats
+                ).map(stat => {
+                  const tpl = templates?.find(t => t.id === stat.template_id);
+                  return (
+                    <Card key={stat.id} className="hover:border-primary/50 transition-colors">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm truncate">{tpl?.name || 'Template'}</span>
+                              {stat.variant_id && (
+                                <Badge variant="outline" className="text-[10px] py-0 gap-0.5">
+                                  <GitBranch className="h-2.5 w-2.5" />
+                                  Variante
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" className="text-[10px] py-0">{stat.channel}</Badge>
+                              {stat.tone && <Badge variant="outline" className="text-[10px] py-0">{stat.tone}</Badge>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="text-center">
+                              <div className="font-bold text-primary">{(stat.score * 100).toFixed(1)}%</div>
+                              <div className="text-[10px] text-muted-foreground">Score</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold">{(stat.reply_rate * 100).toFixed(1)}%</div>
+                              <div className="text-[10px] text-muted-foreground">Reply</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold">{(stat.opportunity_rate * 100).toFixed(1)}%</div>
+                              <div className="text-[10px] text-muted-foreground">Oportunidade</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold">{(stat.win_rate * 100).toFixed(1)}%</div>
+                              <div className="text-[10px] text-muted-foreground">Ganho</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold">{stat.samples}</div>
+                              <div className="text-[10px] text-muted-foreground">Amostras</div>
+                            </div>
+                          </div>
                         </div>
-                        <Switch
-                          checked={template.isActive}
-                          onCheckedChange={() => handleToggleActive(template)}
-                        />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Variants for selected template */}
+            {selectedStatsTemplate && selectedVariants && selectedVariants.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium flex items-center gap-1.5">
+                  <GitBranch className="h-4 w-4" />
+                  Variantes ({selectedVariants.length})
+                </h4>
+                {selectedVariants.map(v => (
+                  <Card key={v.id} className="border-dashed">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-sm">{v.variant_key}</span>
+                        <Badge variant="outline" className="text-[10px]">{v.tone}</Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{v.body.substring(0, 120)}...</p>
                     </CardContent>
                   </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Mostrar</span>
-              <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1); }}>
-                <SelectTrigger className="w-[70px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZE_OPTIONS.map(size => (
-                    <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span>por página ({totalTemplates} total)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Página {currentPage} de {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+          {/* Learning Tab */}
+          <TabsContent value="learning" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-primary" />
+                  Treino do Workspace
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  O sistema de aprendizagem analisa automaticamente a performance dos templates e variantes 
+                  para recomendar a melhor versão em cada contexto.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-lg border bg-muted/30 text-center">
+                    <div className="text-2xl font-bold text-primary">{allStats?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Combinações rastreadas</div>
+                  </div>
+                  <div className="p-4 rounded-lg border bg-muted/30 text-center">
+                    <div className="text-2xl font-bold text-primary">
+                      {allStats?.reduce((sum, s) => sum + s.samples, 0) || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Total de amostras</div>
+                  </div>
+                  <div className="p-4 rounded-lg border bg-muted/30 text-center">
+                    <div className="text-2xl font-bold text-primary">
+                      {allStats && allStats.length > 0
+                        ? (allStats.reduce((sum, s) => sum + (s.reply_rate || 0), 0) / allStats.length * 100).toFixed(1)
+                        : '0'}%
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Reply Rate Médio</div>
+                  </div>
+                  <div className="p-4 rounded-lg border bg-muted/30 text-center">
+                    <div className="text-2xl font-bold text-primary">
+                      {allStats && allStats.filter(s => s.samples >= 30).length || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Com dados suficientes (≥30)</div>
+                  </div>
+                </div>
+                <div className="rounded-lg border p-3 bg-primary/5">
+                  <div className="text-xs font-medium mb-1 flex items-center gap-1">
+                    <Zap className="h-3 w-3 text-primary" />
+                    Multi-Armed Bandit
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    80% das vezes usa a variante com melhor score. 20% testa alternativas para diversificar dados.
+                    Com menos de 30 amostras, o sistema explora aleatoriamente.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Dialogs */}
@@ -563,14 +754,12 @@ export function TemplatesListPage() {
         />
       )}
 
-      {/* Send Email Dialog */}
       <SendEmailFromTemplateDialog
         open={!!sendEmailTemplate}
         onOpenChange={(open) => !open && setSendEmailTemplate(null)}
         template={sendEmailTemplate}
       />
 
-      {/* AI Generator Dialog */}
       <AITemplateGeneratorDialog
         open={showAIDialog}
         onOpenChange={setShowAIDialog}

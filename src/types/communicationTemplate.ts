@@ -35,6 +35,10 @@ export interface CommunicationTemplate {
   responseRate?: number;
   isDynamic: boolean;
   dynamicRules: Record<string, unknown>;
+  dynamicSchema?: Record<string, unknown>;
+  allowedChannels?: string[];
+  defaultTone?: string;
+  status?: string;
   personalizationLevel: PersonalizationLevel;
   createdBy: string;
   createdAt: string;
