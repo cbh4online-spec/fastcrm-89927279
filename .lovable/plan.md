@@ -1,58 +1,84 @@
 
-## Fix: Autopilot Nao Responde + Simular Escrita
+## Fix: Autopilot Nao Usa Goals do Agente
 
-### Problema 1: Autopilot Bloqueado pelo Dedup
+### Problema
 
-A mensagem do Jorge Cardoso as 18:27:13 nao obteve resposta porque:
-- O trigger anterior foi as 18:26:10 (63s antes)
-- A janela de dedup no webhook e de **120s** -- bloqueou
-- A janela de dedup no cron e de **5 minutos** -- tambem bloqueou
+O autopilot esta a gerar respostas genericas ("Perfeito, Jorge! Estou pronto. No que e que posso ajudar?") porque:
 
-O dedup esta correto para evitar duplicados do *mesmo* inbound, mas esta a bloquear *novos* inbounds legitimos que chegam dentro da janela.
+1. A tabela `autopilot_config` (legacy) e encontrada primeiro e tem `persona_id: null` -- nao liga nenhuma persona
+2. O agente IG ("Redes Sociais IG") tem persona configurada (`IA de Vendas`) mas tem `autopilot_enabled: false` e `goal_config: {}`
+3. Mesmo que o agente fosse usado, o campo `goal_config` nunca e passado ao `ai-inbox-reply`
+4. A funcao `buildSystemPrompt` no `ai-inbox-reply` nao tem conceito de "goals" do agente
 
-### Problema 2: Sem Simulacao de Escrita
-
-Quando o autopilot responde, a mensagem aparece instantaneamente. Deveria simular um tempo de escrita proporcional ao tamanho da resposta para parecer mais natural.
+Resultado: a IA nao sabe qual o objetivo da conversa e da respostas vagas.
 
 ---
 
-### Correcao 1: Refinar Logica de Dedup no Webhook
+### Correcao (3 partes)
+
+#### 1. Priorizar `ai_agents` sobre `autopilot_config` legacy
 
 **Ficheiro**: `supabase/functions/ghl-webhook-message/index.ts`
 
-Alterar a verificacao de dedup (linha 740) para ser mais inteligente: em vez de verificar apenas "triggered nos ultimos 120s", verificar se ja existe um trigger para o **mesmo inbound** (comparando o timestamp do ultimo inbound). Se houver um novo inbound depois do ultimo trigger, permitir novo trigger.
+Inverter a ordem de resolucao: primeiro verificar `ai_agents` para o canal, e so usar `autopilot_config` como fallback. Isto garante que o agente com persona e goals configurados e usado quando existe.
 
-Logica: Buscar o ultimo evento "triggered" e verificar se existem mensagens inbound mais recentes que esse evento. Se sim, permitir o novo trigger.
+Quando o agente e encontrado, extrair `goal_config` e passa-lo na chamada a `ai-inbox-reply`.
 
-### Correcao 2: Refinar Dedup no Cron
+#### 2. Passar `goalConfig` na chamada ao `ai-inbox-reply`
 
-**Ficheiro**: `supabase/functions/cron-sync-messages/index.ts`
+**Ficheiro**: `supabase/functions/ghl-webhook-message/index.ts` (linha ~921)
 
-Mesma logica: em vez de bloquear por 5 minutos, verificar se o ultimo trigger ja cobriu o ultimo inbound. Se houver inbounds novos apos o ultimo trigger, permitir.
+Adicionar campo `goalConfig` no body da chamada fetch a `ai-inbox-reply`:
 
-### Correcao 3: Simular Escrita (Typing Delay)
+```
+goalConfig: agentSource?.goal_config || undefined
+```
 
-**Ficheiro**: `supabase/functions/ghl-webhook-message/index.ts`
+#### 3. Injetar Goals no System Prompt
 
-Apos gerar a resposta AI (linha 949) e antes de enviar (linha 952), adicionar um delay proporcional ao tamanho da mensagem para simular tempo de escrita:
+**Ficheiro**: `supabase/functions/ai-inbox-reply/index.ts`
 
-- Base: 1-2 segundos (tempo de "ler" a mensagem)
-- Escrita: ~30-50 caracteres por segundo (velocidade de digitacao humana)
-- Maximo: 8 segundos (para nao ser demasiado lento)
-- Exemplo: resposta de 200 caracteres = 2s base + 4s escrita = 6s total
+- Receber `goalConfig` no request body
+- No `buildSystemPrompt`, adicionar uma nova seccao "Agent Goals" que instrui a IA sobre o objetivo especifico da conversa
 
-Isto combina com o delay inicial (8-12s antes de "comecar a escrever") para criar um comportamento natural: recebe mensagem -> espera 8-12s -> "escreve" durante 3-6s -> envia.
+Quando `goalConfig` tem campos preenchidos (ex: `handover_max_retries`, `auto_handover_enabled`), injetar instrucoes como:
+- "O teu objetivo principal e qualificar o lead e guia-lo para agendar uma reuniao"
+- "Apos 2 falhas consecutivas em responder, transfere para atendimento humano"
+
+Se `goal_config` estiver vazio MAS a persona existir, usar o `system_prompt` da persona como guia de objetivo (ja funciona parcialmente mas a persona nao e carregada porque `persona_id` e null no legacy config).
+
+#### 4. Ativar autopilot no agente IG (migracao DB)
+
+O agente IG tem `autopilot_enabled: false`. Para que o novo fluxo funcione, ativar o autopilot no agente e configurar um `goal_config` basico:
+
+```sql
+UPDATE ai_agents 
+SET autopilot_enabled = true,
+    goal_config = '{
+      "primary_goal": "qualify_and_convert",
+      "qualification_questions": ["Qual o seu interesse principal?", "Ja utiliza alguma ferramenta de CRM?", "Qual o tamanho da sua equipa?"],
+      "conversion_action": "schedule_meeting",
+      "auto_handover_enabled": true,
+      "handover_max_retries": 2
+    }'::jsonb
+WHERE id = 'b39aca29-a9c4-4a2d-be2b-4ed1fbdc245d';
+```
+
+---
 
 ### Detalhe Tecnico
 
 | Ficheiro | Alteracao |
 |----------|-----------|
-| `supabase/functions/ghl-webhook-message/index.ts` | Dedup inteligente: verificar se ha inbound novo apos ultimo trigger |
-| `supabase/functions/ghl-webhook-message/index.ts` | Typing delay proporcional ao tamanho da resposta antes do envio |
-| `supabase/functions/cron-sync-messages/index.ts` | Dedup inteligente: mesma logica do webhook |
+| `supabase/functions/ghl-webhook-message/index.ts` | Inverter prioridade: `ai_agents` primeiro, `autopilot_config` como fallback |
+| `supabase/functions/ghl-webhook-message/index.ts` | Passar `goalConfig` na chamada ao `ai-inbox-reply` |
+| `supabase/functions/ai-inbox-reply/index.ts` | Receber `goalConfig`, injetar no `buildSystemPrompt` como instrucoes de objetivo |
+| DB migration | Ativar autopilot e definir goals no agente IG |
 
 ### Resultado Esperado
 
-- Cada novo inbound gera exactamente 1 resposta do autopilot (mesmo se chegar 30s apos o anterior)
-- A resposta aparece com um delay natural que simula escrita humana
-- Duplicados continuam prevenidos (mesmo inbound nao dispara 2x)
+Em vez de "No que posso ajudar?", o bot vai:
+1. Reconhecer que o Jorge perguntou sobre "modulo de proposta"
+2. Consultar a Knowledge Base para informacao sobre propostas
+3. Responder com informacao relevante E guiar para o proximo passo (qualificacao ou agendamento)
+4. Seguir o objetivo configurado no `goal_config` do agente
