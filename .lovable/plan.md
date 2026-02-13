@@ -1,400 +1,256 @@
 
-# AUDITORIA TECNICA E FUNCIONAL COMPLETA - FastCRM
+
+# AUDITORIA: CONVERSATIONAL ENGINE
 
 ---
 
-## 1) INVENTARIO DE FUNCIONALIDADES
+## 1) INVENTARIO
 
-### Escala do Sistema
-- **424 tabelas** no schema public
-- **1233 RLS policies** (SELECT: 462, INSERT: 260, UPDATE: 181, DELETE: 130, ALL: 200)
-- **269 funcoes DB** (RPC)
-- **~180 Edge Functions** deployadas
-- **~120 rotas** no frontend
-- **~300+ componentes**
-- **~260 hooks** custom
-- **50 triggers** em tabelas publicas
-- **39 tabelas de logs/eventos/auditoria**
+### Rotas
 
----
+| Rota | Componente | Descricao |
+|---|---|---|
+| `/dashboard/conversational-engine` | `ConversationalEngineModule` | Hub principal: Vibes, Regras, Objetivos |
+| `/dashboard/flow-builder` | `FlowBuilderModule` | Flow Builder visual (canvas) |
+| `/dashboard/ai-assistants` | `KnowledgeBaseModule` | Personas + KB + Agents (referencia flows) |
 
-### A) AUTH & WORKSPACES
+### Componentes React
 
-| Funcionalidade | Estado | Rota/Ecra | Backend | Notas/Riscos |
-|---|---|---|---|---|
-| Login (email/password) | Existe | `/login` | `supabase.auth.signInWithPassword` | Funcional |
-| Registo (email/password) | Existe | `/signup` | `supabase.auth.signUp` com `full_name` | Email redirect configurado |
-| Reset password | Parcial | Nao ha rota dedicada `/forgot-password` | Auth nativo | Falta UI dedicada para reset no CRM |
-| Auth unificado (legacy) | Existe | `/auth` | Verifica workspaces apos login | Toggle login/signup |
-| Onboarding | Existe | `/onboarding` | `create_workspace_with_owner` RPC | Cria workspace + owner atomicamente |
-| Workspace creation | Existe | WorkspaceContext | RPC `create_workspace_with_owner` | SECURITY DEFINER, atomico |
-| Workspace selection | Existe | `WorkspaceSwitcher` no Sidebar | localStorage + DB | Persiste selecao |
-| Workspace roles | Existe | owner/admin/agent/viewer/agency | `workspace_members.role` | 5 roles distintos |
-| Super Admin | Existe | `/super-admin` | `user_roles` + `is_super_admin` RPC | Tabela separada, correto |
-| Agency management | Existe | WorkspaceContext | `managed_by_workspace_id` | SA ve todos, agency ve geridos |
-| Menu permissions | Existe | `useMenuPermissions` hook | `menu_permissions` tabela | Filtra sidebar por role |
-| RLS workspace isolation | Existe | Todas as tabelas CRM | `workspace_id` em policies | Verificar cobertura completa |
+| Componente | Ficheiro |
+|---|---|
+| `ConversationalEngineModule` | `src/components/conversational-engine/ConversationalEngineModule.tsx` |
+| `VibeProfilesTab` | `src/components/conversational-engine/VibeProfilesTab.tsx` |
+| `VibeProfileForm` | `src/components/conversational-engine/VibeProfileForm.tsx` |
+| `ConversationRulesTab` | `src/components/conversational-engine/ConversationRulesTab.tsx` |
+| `ConversationRuleForm` | `src/components/conversational-engine/ConversationRuleForm.tsx` |
+| `ConversationObjectivesTab` | `src/components/conversational-engine/ConversationObjectivesTab.tsx` |
+| `ConversationObjectiveForm` | `src/components/conversational-engine/ConversationObjectiveForm.tsx` |
+| `AutopilotConfigTab` | `src/components/conversational-engine/AutopilotConfigTab.tsx` |
+| `FlowBuilderModule` | `src/components/flow-builder/FlowBuilderModule.tsx` |
+| `FlowBuilderCanvas` | `src/components/flow-builder/FlowBuilderCanvas.tsx` |
+| `FlowStepNode` | `src/components/flow-builder/FlowStepNode.tsx` |
+| `StepPropertiesPanel` | `src/components/flow-builder/StepPropertiesPanel.tsx` |
+| `FlowList` | `src/components/flow-builder/FlowList.tsx` |
+| `CreateFlowDialog` | `src/components/flow-builder/CreateFlowDialog.tsx` |
 
-### B) CONTACTOS
+### Hooks
 
-| Funcionalidade | Estado | Rota/Ecra | Backend | Notas/Riscos |
-|---|---|---|---|---|
-| Lista contactos | Existe | `/dashboard/contacts` | `contacts` tabela | Com filtros |
-| Detalhe contacto | Existe | `/dashboard/contacts/:id` | Join com custom fields | Timeline |
-| Criar/editar/apagar | Existe | Dialog forms | CRUD com RLS | Validado |
-| Tags | Existe | `useAutoTags` + `useSmartContacts` | `contacts.tags` (array) | AI auto-tagging disponivel |
-| Campos custom | Existe | `useCustomFields` | `custom_fields` + `custom_field_values` | Audit logs incluidos |
-| Pesquisa/filtros | Existe | `useEntitySearch` | ILIKE queries | Sem full-text search nativo |
-| Import/export | Existe | `/dashboard/imports` | `useImportHistory`, CSV/XLSX | Via papaparse/xlsx |
-| Historico/timeline | Existe | `ContactDetail` | `entity_activities`, `crm_activities` | Atividades registadas |
-| Duplicados | Existe | `useContactDuplicates`, `useContactMerge` | Detecao + merge | Funcionalidade avancada |
-| Enriquecimento | Existe | `useContactEnrichment` | `contact-enrich` edge function | LinkedIn data disponivel |
-| Documentos | Parcial | `contact_documents` tabela | Storage | Sem UI dedicada visivel |
+| Hook | Ficheiro |
+|---|---|
+| `useVibeProfiles` | `src/hooks/useVibeProfiles.ts` |
+| `useConversationRules` | `src/hooks/useConversationRules.ts` |
+| `useConversationObjectives` | `src/hooks/useConversationObjectives.ts` |
+| `useAutopilotConfig` | `src/hooks/useAutopilotConfig.ts` |
+| `useConversationalFlows` | `src/hooks/useConversationalFlows.ts` |
+| `useFlowEngine` | `src/hooks/useFlowEngine.ts` |
+| `useActiveFlowSession` | `src/hooks/useFlowEngine.ts` |
 
-### C) INBOX / CONVERSAS
+### Edge Functions
 
-| Funcionalidade | Estado | Rota/Ecra | Backend | Notas/Riscos |
-|---|---|---|---|---|
-| Lista threads | Existe | `/dashboard/inbox` | `conversations` tabela | Multi-canal |
-| Mensagens por thread | Existe | InboxView | `messages` tabela | Realtime possivel |
-| Canais: Instagram | Existe | Instagram DMs | `instagram-webhook`, `instagram-send-message` | OAuth flow completo |
-| Canais: WhatsApp | Existe | WhatsApp Business | `whatsapp-webhook`, `whatsapp-send-message` | OAuth flow completo |
-| Canais: Email | Existe | Email integration | `email-fetch`, `email-send` | Zoho + generic |
-| Canais: Chat Widget | Existe | Widget embed | `chat-widget` edge function | `widget_conversations` |
-| Estados (open/pending/closed) | Existe | `conversations.status` | Com filtros | Classificacao IA disponivel |
-| Atribuicao | Existe | `conversations.assigned_to` | Assign to team member | |
-| Nao lidas | Existe | `conversations.unread_count` | Atualizado por triggers | |
-| Envio de mensagem | Existe | Per-channel send functions | `instagram-send-message`, `whatsapp-send-message`, `email-send` | |
-| Upload/anexos | Parcial | Storage buckets existem | Supabase Storage | Limitado por canal |
-| Classificacao IA | Existe | `useConversationClassification` | `classify-conversation` | Categoriza automaticamente |
-| Prioridade conversa | Existe | `calculate-conversation-priority` | Trigger + edge function | Score calculado |
-| Sumario conversa | Existe | `useConversationSummary` | `conversation-summary` | Resumo IA |
-| Regras de fallback | Parcial | `bot_transfer_rules` | `bot-transfer`, `human-handover` | Transferencia para humano |
-| Smart alerts | Existe | `inbox_smart_alerts` | Alertas configurados | |
+| Funcao | Descricao | Chamada por |
+|---|---|---|
+| `flow-engine` | Executa fluxos conversacionais step-by-step | `ai-inbox-reply`, `chat-widget`, `useFlowEngine` |
+| `ai-inbox-reply` | Gera respostas IA (chama flow-engine primeiro) | `ghl-webhook-message`, inbox UI |
+| `chat-widget` | Widget publico (chama flow-engine) | Embed externo |
+| `bot-transfer` | Transfere para humano | Regras de handoff |
+| `human-handover` | Escalacao para agente | Regras de handoff |
+| `calculate-conversation-priority` | Calcula prioridade de conversa | Trigger |
 
-### D) AI EMPLOYEE (IA do FastCRM)
+### Tabelas
 
-| Funcionalidade | Estado | Rota/Ecra | Backend | Notas/Riscos |
-|---|---|---|---|---|
-| Sugestao de resposta (copilot) | Existe | Inbox panel | `ai-inbox-reply` + `ai-copilot` | Dual system |
-| AI Personas | Existe | `/dashboard/ai-assistants` | `ai_personas` tabela | System prompts custom |
-| AI Agents (por canal) | Existe | AI Assistants | `ai_agents` tabela | Autopilot per-channel |
-| Autopilot (auto-reply) | Existe | `autopilot_config` + `ai_agents` | `ghl-webhook-message` | **Corrigido recentemente: prioridade agents > legacy** |
-| Goal Config | Existe | `ai_agents.goal_config` | Injected no system prompt | **Corrigido: goals agora passados ao ai-inbox-reply** |
-| Knowledge Base | Existe | `/dashboard/ai-assistants` (tab) | `knowledge_bases`, `knowledge_entries`, `knowledge_sources` | **Corrigido: search keyword-based (embedding API nao suportada)** |
-| Knowledge embedding | Parcial | `knowledge-embedding` edge func | Tentativa de usar embeddings | **BUG: modelo embedding nao suportado pelo gateway** |
-| Knowledge semantic search | Parcial | `knowledge-semantic-search` | Depende de embeddings | **Fallback para text search funciona** |
-| Regras de seguranca IA | Existe | `useAiSafetyRules`, `useInboxSafety` | `conversation_rules` | Safety rules configuradas |
-| Memoria por thread | Existe | `ai_agent_memory`, `ai_agent_strategic_memory` | `ai-memory-manager`, `ai-memory-embedder` | Memory com TTL e access log |
-| Guardar drafts | Existe | `ai_message_audit` | Auditoria de prompts/respostas | Registado |
-| Auditoria prompts | Existe | `ai_response_audits` | Grava user_message + ai_response | **Corrigido: agora grava mensagem correta** |
-| Aprovacao humana | Parcial | `conversation_autopilot_state` | Estado auto/manual | Sem UI clara de approve/reject |
-| Conversational flows | Existe | `/dashboard/conversational-engine` | `conversational_flows`, `flow_steps` | Flow builder visual |
-| Vibe Profiles | Existe | `useVibeProfiles` | `vibe_profiles` | Tom de comunicacao |
-| Conversation Objectives | Existe | `useConversationObjectives` | `conversation_objectives` + `conversation_objective_progress` | Tracking de progresso |
-| AI Followup | Existe | `useAgentFollowup` | `ai-followup-draft`, `conversation_followups` | Follow-up automatico |
-| RAG (Retrieval Augmented) | Existe | `rag-index-outcome`, `rag-search` | Indexa resultados para aprendizagem | |
+| Tabela | RLS | Registos | Descricao |
+|---|---|---|---|
+| `vibe_profiles` | Ativo | 2 | Perfis de tom/estilo IA |
+| `conversation_rules` | Ativo | 18 | Regras DO/DONT/STOP/REDIRECT |
+| `conversation_objectives` | Ativo | 6 | Objetivos por conversa |
+| `conversation_objective_progress` | Ativo | - | Progresso por objetivo |
+| `autopilot_config` | Ativo | 2 | Config autopilot legacy |
+| `conversational_flows` | Ativo | 2 | Fluxos visuais |
+| `flow_steps` | Ativo | - | Passos dos fluxos |
+| `flow_variables` | Ativo | - | Variaveis dos fluxos |
+| `conversation_sessions` | Ativo | - | Sessoes ativas de fluxo |
+| `flow_analytics` | Ativo | - | Metricas por fluxo/dia |
+| `conversation_autopilot_state` | Ativo | - | Estado auto/manual por conversa |
+| `autopilot_events` | Ativo | - | Log de eventos autopilot |
+| `bot_transfer_rules` | Ativo | - | Regras de transferencia |
+| `conversation_journey` | Ativo | - | Jornada da conversa |
+| `conversation_replays` | Ativo | - | Replays de conversa |
 
-### E) PIPELINES / OPORTUNIDADES
+### Triggers
 
-| Funcionalidade | Estado | Rota/Ecra | Backend | Notas/Riscos |
-|---|---|---|---|---|
-| Kanban board | Existe | `/dashboard/opportunities` ou `/dashboard/crm` | `opportunities` + `pipeline_stages` | Drag & drop |
-| Criar oportunidade | Existe | Dialog form | `opportunities` tabela | Com valor, probabilidade |
-| Mover etapa | Existe | Drag no Kanban | Update `stage_id` | |
-| Campos: valor, prob, responsavel, datas | Existe | `opportunities` colunas | `value`, `probability`, `assigned_to`, `expected_close_date` | |
-| Metricas por coluna | Parcial | Sumario visual | Calculado client-side | Sem metricas server-side pre-calculadas |
-| Pipeline customizavel | Existe | `/dashboard/settings/pipelines` | `pipelines` + `pipeline_stages` | Multiplos pipelines |
-| Generate pipeline IA | Existe | `useGeneratePipeline` | `generate-pipeline` edge function | IA gera etapas |
-| AI Opportunity Coach | Existe | `useAgentAnalysis` | `ai-opportunity-coach` | Sugestoes por oportunidade |
-| Blueprint (templates) | Existe | `useBlueprints` | `crm_blueprints` | Templates de pipeline |
+Apenas `update_updated_at_column` em: `conversation_rules`, `vibe_profiles`, `conversation_objectives`, `conversation_objective_progress`, `conversational_flows`, `flow_steps`, `conversation_sessions`, `autopilot_config`, `conversation_autopilot_state`.
 
-### F) AUTOMATIONS / WORKFLOWS
-
-| Funcionalidade | Estado | Rota/Ecra | Backend | Notas/Riscos |
-|---|---|---|---|---|
-| Regras de automacao | Existe | `/dashboard/automations` | `automation_rules`, `automation_actions`, `automation_conditions` | Trigger/condition/action |
-| Execucao | Existe | `workflow-processor`, `workflow-trigger` | Edge functions | |
-| Logs | Existe | `automation_logs` | Registo de execucoes | |
-| Execution tracking | Existe | `automation_execution_tracking`, `automation_chain_tracking` | Anti-loop | |
-| Idempotencia | Parcial | `automation_chain_tracking` | Hash-based dedup | Depende de implementacao por funcao |
-| AI Generate Automation | Existe | `useGenerateAutomation` | `ai-generate-automation` | IA cria workflows |
-| AI Contextual Automation | Existe | Edge function | `ai-contextual-automation` | Sugere automacoes |
-| Parallel Dispatch | Existe | `useParallelDispatch` | `parallel-dispatch` | Execucao paralela |
-| Trigger.dev integration | Existe | `@trigger.dev/sdk` instalado | `trigger-dispatch`, `trigger-webhook` | Jobs async |
-
-### G) DASHBOARDS / KPI
-
-| Funcionalidade | Estado | Rota/Ecra | Backend | Notas/Riscos |
-|---|---|---|---|---|
-| Dashboard principal | Existe | `/dashboard` | `useDashboardData` | KPIs, graficos |
-| KPIs detalhados | Existe | `/dashboard/reports/kpis` | `useKPIs` | Metricas por periodo |
-| Relatorios overview | Existe | `/dashboard/reports` | `ReportsOverview` | Visao executiva |
-| Forecasts | Existe | `/dashboard/reports/forecasts` | `useForecastsReports` | Previsao de receita |
-| Consumo/sessoes | Existe | `/dashboard/reports/consumption` | `ReportsConsumption` | |
-| Retencao | Existe | `/dashboard/reports/retention` | `ReportsRetention` | |
-| Growth | Existe | `/dashboard/reports/growth` | `ReportsGrowth` | |
-| Sales reports | Existe | `/dashboard/reports/sales` | `ReportsSales` | |
-| Metas vs Resultados | Existe | `/dashboard/reports/goals` | `useGoalsVsResults`, `useSalesGoals` | Comparacao |
-| Dashboard customizavel | Existe | `useDashboardLayout` | `dashboard_layouts` tabela | Drag rearrange |
-| AI Dashboard Insights | Existe | `useAIInsights` | `ai-dashboard-insights` | IA analisa metricas |
-| SaaS Metrics | Existe | `useSaaSMetrics` | MRR, churn, LTV | |
-
-### H) SETTINGS / INTEGRACOES
-
-| Funcionalidade | Estado | Rota/Ecra | Backend | Notas/Riscos |
-|---|---|---|---|---|
-| Settings gerais | Existe | `/dashboard/settings` | Multiplas tabs | CRM data, pipelines, security, billing, integrations |
-| Workspace settings | Existe | `useWorkspaceSettings` | `workspaces` + `workspace_settings` | |
-| Instagram OAuth | Existe | Settings integrations | `instagram-auth-url`, `instagram-oauth-callback` | |
-| WhatsApp OAuth | Existe | Settings integrations | `whatsapp-auth-url`, `whatsapp-oauth-callback` | |
-| Email connection | Existe | `useEmailConnection` | `email-connect`, `email-disconnect` | |
-| GHL (GoHighLevel) | Existe | `useWorkspaceGHLConfig` | `ghl_config`, `ghl-sync-contacts` | Sync bi-direcional |
-| Video meetings | Existe | `useWorkspaceVideoConfig` | `create-video-meeting`, `video-auth-url` | |
-| Stripe | Existe | `useWorkspaceStripeConfig` | `stripe-webhook`, `test-stripe-connection` | |
-| Workspace instances | Existe | SuperAdmin | `workspace_instances` | Multi-instance |
-| Admin settings | Existe | SuperAdmin | `admin_settings` | Key-value global |
-| Audit logs | Existe | `admin_audit_logs` | Acoes administrativas | |
-
-### I) BILLING / LIMITES
-
-| Funcionalidade | Estado | Rota/Ecra | Backend | Notas/Riscos |
-|---|---|---|---|---|
-| Planos por workspace | Existe | `SubscriptionContext` | `workspace_subscriptions` | Plano ativo |
-| Quotas/contadores | Existe | `useCredits`, `useModuleBilling` | `workspace_usage`, `credit_packages`, `credit_purchases` | |
-| Feature gates | Existe | `useEntitlements` | `client_entitlements` | Bloqueio por plano |
-| Module marketplace | Existe | `/dashboard/marketplace` | `marketplace_modules`, `workspace_module_installs` | Compra/instala modulos |
-| Module billing | Existe | `module-checkout`, `module-consume-credits` | Edge functions | Credits system |
-| Stripe webhooks | Existe | `stripe-webhook`, `subscription-webhook` | Processamento eventos | |
-| Billing events | Existe | `billing_events` | Log de eventos billing | |
-| Trial management | Existe | `useModuleTrial` | `module_trial_logs` | Trial tracking |
+**Nenhum trigger de validacao ou negocio.**
 
 ---
 
-## 2) MATRIZ DE TESTES (Casos Criticos)
+## 2) FLUXO FUNCIONAL
 
-| ID | Pre-condicoes | Passos | Resultado Esperado | Resultado Atual |
-|---|---|---|---|---|
-| T01 | Sem conta | Signup > confirmar email > login | Dashboard com onboarding | **Nao testado: confirmar se email verification esta ativo** |
-| T02 | User autenticado, 0 workspaces | Aceder `/dashboard` | Redirect para `/onboarding` | Existe (DashboardLayout verifica) |
-| T03 | User autenticado, 1+ workspace | Aceder `/dashboard` | Dashboard com workspace selecionado | Existe |
-| T04 | User A, workspace X | Query tabela `contacts` | So ve contactos de workspace X | **Depende de RLS** -- policies existem |
-| T05 | User A, workspace X | Tentar aceder dados de workspace Y via API | Retorno vazio / forbidden | Depende de RLS filtering |
-| T06 | Mensagem IG recebida | Webhook dispara > autopilot processa | Resposta baseada em KB + goals | **Corrigido recentemente** |
-| T07 | Conversa com 50+ msgs | Autopilot processa | Usa ultimas 20 mensagens | **Corrigido: DESC + reverse** |
-| T08 | Pergunta sobre produto | AI procura KB | Encontra entrada relevante e responde | **Corrigido: keyword search + validated status** |
-| T09 | Super Admin | Aceder `/super-admin` | Dashboard administrativo completo | Existe, com sidebar |
-| T10 | User normal | Aceder `/super-admin` | "Acesso Negado" | Existe (useUserRole check) |
-| T11 | Pipeline com oportunidades | Drag card entre etapas | Stage atualizado, valor recalculado | A verificar client-side |
-| T12 | Criar proposta | Preencher > enviar link publico | Proposta visivel em `/p/:slug` | Existe |
-| T13 | Workspace owner | Convidar membro | Membro adicionado com role | A verificar |
-| T14 | Automation rule ativa | Trigger event ocorre | Acao executada e logada | Depende de implementacao |
-| T15 | Module trial | Instalar modulo free trial | Trial ativo com contador | Existe |
+| Fluxo | Estado | Notas |
+|---|---|---|
+| Criacao de flow visual | Existe | CRUD completo em `useConversationalFlows` |
+| Criacao de steps/variaveis | Existe | Drag & drop no canvas |
+| Execucao de flow (flow-engine) | **QUEBRADO** | Nomes de colunas errados (ver P0-1, P0-2) |
+| Criacao de sessao | **QUEBRADO** | Escreve `state` e `collected_variables` que nao existem na DB |
+| Vibe profiles CRUD | Existe | Funcional |
+| Conversation rules CRUD | Existe | Funcional, com toggle ativo/inativo |
+| Objectives CRUD + reorder | Existe | Funcional |
+| Autopilot config | Existe | Legacy, superseded por `ai_agents` |
+| Regras injetadas no prompt IA | Parcial | `ai-inbox-reply` busca regras mas nao todas |
+| Vibe injetado no prompt IA | Parcial | Depende de persona ter vibe_profile_id |
+| Objectives tracking (progresso) | Parcial | Tabela existe, sem UI de progresso |
+| Bot transfer / handoff | Existe | Edge functions existem |
 
 ---
 
-## 3) BUG LIST PRIORITIZADA
+## 3) MULTI-TENANT
+
+| Tabela | workspace_id? | RLS SELECT | RLS INSERT | RLS UPDATE | RLS DELETE | Risco |
+|---|---|---|---|---|---|---|
+| `vibe_profiles` | Sim | workspace_members | workspace_members (ALL) | workspace_members (ALL) | workspace_members (ALL) | OK |
+| `conversation_rules` | Sim | workspace_members | admin/owner (ALL) | admin/owner (ALL) | admin/owner (ALL) | OK |
+| `conversation_objectives` | Sim | workspace_members | admin/owner (ALL) | admin/owner (ALL) | admin/owner (ALL) | OK |
+| `autopilot_config` | Sim | workspace_members | admin/owner (ALL) | admin/owner (ALL) | admin/owner (ALL) | OK |
+| `conversational_flows` | Sim | workspace_members | WITH_CHECK **ausente** | workspace_members | workspace_members | **P1: INSERT sem WITH_CHECK de workspace** |
+| `flow_steps` | Nao (via flow_id) | via flow JOIN | via flow JOIN (ALL) | via flow JOIN (ALL) | via flow JOIN (ALL) | OK (indireto) |
+| `flow_variables` | Nao (via flow_id) | via flow JOIN | via flow JOIN (ALL) | via flow JOIN (ALL) | via flow JOIN (ALL) | OK (indireto) |
+| `conversation_sessions` | Sim | workspace_members | workspace_members (ALL) | workspace_members (ALL) | workspace_members (ALL) | OK |
+| `flow_analytics` | Sim | workspace_members | workspace_members (ALL) | workspace_members (ALL) | workspace_members (ALL) | OK |
+| `conversation_autopilot_state` | Sim | workspace_members | **USING(true)** | **USING(true)** | **USING(true)** | **P0: qualquer user autenticado pode manipular** |
+| `autopilot_events` | Sim | workspace_members | **WITH_CHECK(true)** | - | - | **P1: qualquer user pode inserir eventos** |
+| `conversation_journey` | Sim | workspace_members | **USING(true)** | **USING(true)** | **USING(true)** | **P1: sem filtro workspace** |
+| `conversation_replays` | Sim | workspace_members | - | - | - | Sem INSERT/UPDATE/DELETE (read-only) |
+
+---
+
+## 4) EDGE FUNCTIONS
+
+### `flow-engine`
+- **Input**: `{ action, workspaceId, conversationId, leadId, userMessage, channel }`
+- **Output**: `{ hasActiveFlow, flowId, sessionId, responses[], sessionState, collectedVariables, personaId, knowledgeBaseIds }`
+- **Auth**: Bearer token required, mas usa `SERVICE_ROLE_KEY` internamente
+- **Erros tratados**: Try/catch geral, 401/400/500
+- **Timeout**: Default Deno (sem custom)
+- **Retries**: Nenhum
+- **BUGS CRITICOS**: Ver P0-1, P0-2, P0-3
+
+### `ai-inbox-reply`
+- Chama `flow-engine` internamente via fetch
+- Se flow ativo, usa respostas do flow em vez de gerar com IA
+
+### `chat-widget`
+- Chama `flow-engine` para conversas do widget
+- Fallback para KB RAG se sem flow ativo
+
+---
+
+## 5) TESTES
+
+| ID | Caso | Pre-condicoes | Passos | Esperado | Atual |
+|---|---|---|---|---|---|
+| T01 | Receber mensagem com flow ativo | Flow `active`, entry_point definido | Mensagem inbound chega | Sessao criada, resposta do step enviada | **FALHA: flow-engine escreve `state`/`collected_variables` que nao existem** |
+| T02 | Enviar mensagem manual | Thread aberta no inbox | User escreve e envia | Mensagem gravada, thread atualizada | Funciona (via canal especifico) |
+| T03 | Mudar status conversa | Thread no inbox | Clicar open/pending/closed | Status atualizado | Funciona |
+| T04 | Gerar AI draft | Thread com mensagens | Clicar "Sugerir resposta" | Draft gerado com regras/vibe aplicados | Parcial (depende de config) |
+| T05 | Escalar para humano | Flow com step handoff | Flow chega ao step handoff | `conversation_autopilot_state` atualizado, agente notificado | **FALHA: state/status mismatch** |
+| T06 | Erro de envio (canal indisponivel) | Canal IG desconectado | Tentar enviar | Toast de erro, mensagem nao enviada | Depende de edge function do canal |
+| T07 | Webhook duplicado | Mesma msg recebida 2x | Dois webhooks em <1s | Apenas 1 msg gravada | **SEM DEDUP: nao ha idempotency key** |
+| T08 | Thread sem contacto/lead | Webhook de canal novo | Msg de numero desconhecido | Lead criado automaticamente | Existe (auto-lead creation no webhook) |
+| T09 | Mensagem sem canal valido | Flow engine chamado sem channel | `channel` undefined | Seleciona flow generico | Funciona (channel e opcional) |
+| T10 | Falha de auth no flow-engine | Token expirado | Chamar flow-engine | 401 Unauthorized | Funciona |
+
+---
+
+## 6) BUGS
 
 ### P0 (Bloqueante)
 
-| # | Titulo | Passos | Resultado Atual | Esperado | Causa Provavel | Correcao |
-|---|---|---|---|---|---|---|
-| P0-1 | **Embedding API falha sempre** | KB com embeddings > query semantica | Erro `invalid model: text-embedding-ada-002` | Pesquisa semantica funciona | Lovable AI Gateway nao suporta modelos embedding | **Mitigado: fallback keyword search implementado. Solucao real: remover chamada embedding de todas as funcoes (knowledge-semantic-search, knowledge-embedding, ai-memory-embedder)** |
-| P0-2 | **0 triggers SQL para RLS enforcement** | Verificar triggers | 0 triggers de enforcement | Triggers para garantir workspace_id | Nao foram criados triggers de validacao | Criar validation triggers para tabelas criticas (contacts, leads, opportunities, messages) |
-| P0-3 | **~40 tabelas sem INSERT policy** | Tentar inserir dados via client | RLS block ou bypass via service_role | INSERT funciona para users autenticados | Policies incompletas em tabelas operacionais | Adicionar INSERT policies com workspace_id check |
+| # | Titulo | Causa | Impacto | Correcao |
+|---|---|---|---|---|
+| P0-1 | **flow-engine usa `state` mas DB tem `status`** | `flow-engine/index.ts` linhas 109, 43, 362 usam `.eq("state", "active")` e `state: "active"` mas a coluna e `status` | **Flow engine nunca encontra sessoes existentes, cria duplicadas, nunca atualiza estado** | Substituir `state` por `status` em todo o ficheiro |
+| P0-2 | **flow-engine usa `collected_variables` mas DB tem `variables`** | `flow-engine/index.ts` linhas 133, 312, 358 usam `collected_variables` mas a coluna e `variables` | **Variaveis coletadas nunca sao gravadas nem lidas** | Substituir `collected_variables` por `variables` |
+| P0-3 | **flow-engine usa `last_interaction_at` que nao existe** | Linha 363: `last_interaction_at: new Date().toISOString()` | **Update de sessao falha silenciosamente (service_role ignora erro?)** | Remover campo ou adicionar coluna |
+| P0-4 | **useActiveFlowSession usa `state` e `collected_variables`** | `useFlowEngine.ts` linhas 76, 77, 102 | **Hook nunca encontra sessoes ativas** | Corrigir para `status` e `variables` |
+| P0-5 | **conversation_autopilot_state RLS: USING(true) para ALL** | Qualquer user autenticado pode INSERT/UPDATE/DELETE em qualquer workspace | **Fuga de dados cross-tenant, manipulacao de estado autopilot** | Restringir para workspace_members |
 
 ### P1 (Grave)
 
-| # | Titulo | Passos | Resultado Atual | Esperado | Causa Provavel | Correcao |
-|---|---|---|---|---|---|---|
-| P1-1 | **Permissive RLS policies (USING true)** | Linter detecta 55 warnings | `conversation_autopilot_state`, `demo_leads`, `fastclub_applications`, `gdpr_consents` com `USING(true)` para UPDATE/INSERT/DELETE | Policies restritivas | Policies criadas sem filtro workspace | Adicionar `workspace_id = current_workspace_id()` ou equivalente |
-| P1-2 | **11 funcoes DB sem search_path set** | Linter warning | Funcoes vulneraveis a schema injection | `SET search_path = public` | Omissao na criacao | Adicionar `SET search_path = public` a todas as funcoes SECURITY DEFINER |
-| P1-3 | **Nenhum evento de auditoria para auth** | Login/signup | Sem registo de `auth.login_success` | Eventos gravados | Nao implementado | Criar trigger ou log em AuthContext |
-| P1-4 | **Reset password sem UI dedicada** | User esquece password | Sem pagina `/forgot-password` no CRM | Flow completo | Pagina nao existe | Criar pagina com `supabase.auth.resetPasswordForEmail` |
-| P1-5 | **Aprovacao humana sem UI clara** | Autopilot sugere resposta | Estado em `conversation_autopilot_state` mas sem botao approve/reject visivel | Botoes de acao | UI nao implementada | Adicionar approve/reject na InboxView |
-| P1-6 | **Knowledge entries em draft por defeito** | Criar entrada KB | Status `draft`, invisivel para autopilot | Status `validated` apos criacao ou review | Fluxo de validacao nao implementado | Adicionar toggle de publicacao ou auto-validate |
-| P1-7 | **Extension em schema public** | Linter warning | Extensao instalada em public | Extensao em schema dedicado | Padrao Supabase | Mover extensao para schema separado |
+| # | Titulo | Causa | Correcao |
+|---|---|---|---|
+| P1-1 | **conversational_flows INSERT sem WITH_CHECK** | Policy INSERT nao tem `WITH_CHECK` de workspace | Adicionar `WITH CHECK (workspace_id IN (SELECT ... workspace_members))` |
+| P1-2 | **autopilot_events INSERT WITH_CHECK(true)** | Qualquer user pode inserir eventos em qualquer workspace | Restringir para workspace_members |
+| P1-3 | **conversation_journey ALL USING(true)** | Sem filtro workspace | Restringir |
+| P1-4 | **Autopilot tab removido do UI mas hook mantido** | `AutopilotConfigTab` existe mas nao aparece nas tabs (grid-cols-3 sem autopilot) | Codigo morto. Remover ou re-adicionar |
+| P1-5 | **flow_steps nao tem campo `variable_to_collect`** | Flow engine usa `step.variable_to_collect` mas DB tem `variable_id` (UUID ref) | Flow engine nao consegue extrair variaveis de questions |
+| P1-6 | **Sem webhook dedup** | Mesma mensagem processada N vezes | Adicionar idempotency key ou dedup window |
+| P1-7 | **flow_analytics upsert pode falhar** | `onConflict: "flow_id,date"` assume unique constraint que pode nao existir | Verificar e criar constraint |
 
 ### P2 (Melhoria)
 
-| # | Titulo | Notas |
-|---|---|---|
-| P2-1 | **Sem full-text search nativo** | Pesquisa de contactos/leads usa ILIKE, sem tsvector/tsquery |
-| P2-2 | **Metricas pipeline client-side** | Somas por coluna calculadas no browser, sem view materializada |
-| P2-3 | **Sem paginacao server-side em listas grandes** | Contactos, leads podem exceder 1000 rows (limite Supabase default) |
-| P2-4 | **Sem rate limiting nas edge functions** | Nenhuma funcao tem rate limit implementado |
-| P2-5 | **Sem retry logic em webhooks** | Instagram/WhatsApp webhooks sem retry em caso de falha |
-| P2-6 | **Dashboard layouts sem validacao** | `dashboard_layouts` aceita JSON arbitrario |
-| P2-7 | **Workspace slug sem validacao de unicidade forte** | Slug gerado client-side com regex basica |
-| P2-8 | **Sem export de contactos** | Import existe mas export nao esta visivel |
-| P2-9 | **Sem dark mode consistente** | `next-themes` instalado mas utilizacao inconsistente |
-| P2-10 | **Sem testes automatizados** | Zero testes unitarios ou E2E no projeto |
+| # | Titulo |
+|---|---|
+| P2-1 | Sem UI de progresso de objectives (tabela existe, UI nao) |
+| P2-2 | Reorder de objectives faz N queries sequenciais (deveria ser batch) |
+| P2-3 | `setDefault` em vibe_profiles nao e atomico (2 queries separadas) |
+| P2-4 | Flow builder sem validacao de fluxo antes de ativar (pode ativar sem entry_point) |
+| P2-5 | Sem metricas visuais de flow analytics |
+| P2-6 | Sem teste de flow antes de ativar (modo "dry run") |
 
 ---
 
-## 4) GAPS / REQUISITOS EM FALTA
+## 7) GAPS PARA PRODUCAO
 
-| Gap | Impacto | Descricao |
-|---|---|---|
-| **Forgot Password (CRM)** | Alto | Nao existe pagina dedicada no CRM (existe no Client Portal) |
-| **Email verification feedback** | Medio | Nao ha UI que informe o user para verificar email apos signup |
-| **Bulk actions** | Medio | Sem selecao multipla + acao em massa em listas (contactos, leads) |
-| **Webhook retry/DLQ** | Alto | Webhooks de IG/WA/Email nao tem dead letter queue nem retry |
-| **Observability dashboard** | Alto | Sem painel para ver saude do sistema (erros, latencia, throughput) |
-| **Data export** | Medio | Sem export CSV/PDF de listas de dados |
-| **Mobile-responsive inbox** | Medio | Inbox pode nao funcionar bem em mobile |
-| **Multi-language** | Baixo | App em portugues, sem suporte i18n |
-| **2FA** | Medio | Sem autenticacao de dois fatores |
-| **Audit trail para dados** | Alto | Sem historico de alteracoes em campos de contactos/leads (quem mudou o que) |
-| **Webhook signature validation** | Alto | Verificar se webhooks validam assinaturas (IG, WA, Stripe) |
+### Producao Estavel
 
----
+| Gap | Estado |
+|---|---|
+| Flow engine funcional (corrigir P0-1 a P0-5) | **Bloqueante** |
+| RLS restritivo em todas as tabelas | **Bloqueante** |
+| Dedup de webhooks | Alto |
+| Validacao de flow antes de ativar | Medio |
+| Logs estruturados de execucao de flows | Medio |
 
-## 5) OBSERVABILIDADE
+### Escala
 
-### O que existe (39 tabelas de logs/eventos):
+| Gap | Estado |
+|---|---|
+| Paginacao de sessoes | Medio |
+| Flow analytics pre-calculados | Medio |
+| Timeout configuravel por flow (existe campo, sem enforcement) | Medio |
+| Rate limiting no flow-engine | Alto |
 
-| Categoria | Tabelas | Cobertura |
-|---|---|---|
-| Admin | `admin_audit_logs` | Acoes admin |
-| AI | `ai_analytics_events`, `ai_message_audit`, `ai_response_audits`, `ai_memory_access_log` | Prompts, respostas, cache |
-| Automacao | `automation_logs`, `automation_execution_tracking`, `automation_chain_tracking` | Execucoes e dedup |
-| Billing | `billing_events`, `stripe_event_log`, `subscription_events` | Eventos de pagamento |
-| Conversas | `autopilot_events`, `conversation_journey`, `conversation_replays` | Flow de conversa |
-| Marketing | `marketing_events`, `template_usage_events` | Campanhas |
-| Modulos | `module_action_logs`, `module_access_logs`, `module_trial_logs` | Uso de modulos |
-| Store | `store_order_events`, `store_automation_events` | E-commerce |
-| Consumo | `consumption_logs`, `credit_consumption_logs`, `usage_events` | Quotas |
+### IA Semi-Autonoma
 
-### O que FALTA:
-
-| Evento | Importancia | Estado |
-|---|---|---|
-| `auth.login_success` | Critico | **Nao existe** |
-| `auth.login_failed` | Critico | **Nao existe** |
-| `auth.signup` | Critico | **Nao existe** |
-| `workspace.created` | Alto | Parcial (sem evento dedicado) |
-| `workspace.selected` | Baixo | **Nao existe** |
-| `contact.created/updated/deleted` | Alto | Parcial via `entity_activities` |
-| `thread.created/updated` | Medio | **Nao existe como evento dedicado** |
-| `message.received/sent` | Alto | Parcial via triggers existentes |
-| `ai.draft_accepted/rejected` | Alto | **Nao existe** |
-| `opportunity.stage_changed` | Alto | **Nao existe como evento dedicado** |
-| `settings.updated` | Medio | Parcial via admin_audit_logs |
-| **Error tracking centralizado** | Critico | **Nao existe** (erros vao para console.error) |
-| **Latencia de edge functions** | Alto | **Nao existe** |
-| **Health check endpoint** | Alto | **Nao existe** |
+| Gap | Estado |
+|---|---|
+| Objectives tracking end-to-end (UI + engine) | Alto |
+| Vibe injection consistente no prompt | Medio |
+| Conversation rules avaliadas runtime no flow-engine | Alto (regras existem mas flow-engine nao as consulta) |
+| A/B testing de message_variants nos steps | Baixo |
+| Auto-fallback quando flow falha (atualmente silencioso) | Alto |
 
 ---
 
-## 6) PLANO DE CORRECAO
+## PLANO DE CORRECAO (Priorizado)
 
-### Fase 1: P0 Criticos (Semana 1-2)
+### Imediato (P0)
 
-1. **Corrigir embedding API fallback em TODAS as funcoes** -- remover chamadas a `text-embedding-ada-002` em `knowledge-semantic-search`, `knowledge-embedding`, `ai-memory-embedder`, `product-embedding`. Substituir por keyword search ou usar modelo de chat para gerar queries.
+1. **Corrigir flow-engine**: `state` -> `status`, `collected_variables` -> `variables`, remover `last_interaction_at`, `variable_to_collect` -> logica com `variable_id`
+2. **Corrigir useFlowEngine.ts**: mesmas correcoes de nomes
+3. **Restringir RLS** em `conversation_autopilot_state`: substituir `USING(true)` por workspace_members check
 
-2. **Adicionar INSERT/UPDATE/DELETE policies** nas ~40 tabelas que so tem SELECT. Prioridade: tabelas com dados de negocio (`autopilot_config`, `automation_actions`, `automation_conditions`, `availability_*`, `calendar_*`).
+### Semana 1 (P1)
 
-3. **Fixar funcoes sem search_path** -- adicionar `SET search_path = public` a todas as funcoes SECURITY DEFINER.
+4. Corrigir INSERT policy de `conversational_flows` (adicionar WITH_CHECK)
+5. Corrigir INSERT policy de `autopilot_events`
+6. Corrigir ALL policy de `conversation_journey`
+7. Verificar/criar unique constraint `(flow_id, date)` em `flow_analytics`
+8. Limpar codigo morto do `AutopilotConfigTab` ou re-integrar
 
-### Fase 2: P1 Graves (Semana 2-3)
+### Semana 2 (P2 + Gaps)
 
-4. **Criar pagina Forgot Password** -- `/forgot-password` com `supabase.auth.resetPasswordForEmail`.
+9. UI de progresso de objectives
+10. Validacao de flow antes de ativar (entry_point obrigatorio)
+11. Injecao de conversation_rules no flow-engine
+12. Logs de execucao por sessao
 
-5. **Adicionar eventos de auth** -- gravar login_success, login_failed, signup em tabela `auth_events`.
-
-6. **Restringir policies permissivas** -- substituir `USING(true)` por filtros adequados em `conversation_autopilot_state`, `demo_leads`, `gdpr_consents`, etc.
-
-7. **UI de aprovacao humana no autopilot** -- botoes approve/reject na InboxView quando autopilot sugere resposta.
-
-8. **Knowledge Base: auto-validate ou toggle** -- entrada criada deve ter status `validated` por defeito, ou toggle visivel no UI.
-
-### Fase 3: Quick Wins UX (Semana 3-4)
-
-9. **Paginacao server-side** em listas de contactos, leads, empresas (`.range()` no Supabase).
-
-10. **Empty states** -- verificar que todas as listas tem mensagem quando vazias.
-
-11. **Loading/error states** -- garantir spinner + error boundary em todas as paginas.
-
-12. **Bulk select + actions** -- selecao multipla em listas para delete/tag/assign em massa.
-
-13. **Export CSV** -- botao de export em listas de contactos, leads, oportunidades.
-
-### Fase 4: Observabilidade (Semana 4-5)
-
-14. **Criar tabela `system_events`** unificada com schema: `workspace_id, actor_id, entity_type, entity_id, event_type, payload, created_at`.
-
-15. **Health check edge function** -- endpoint simples que verifica DB connectivity + retorna status.
-
-16. **Error tracking** -- wrapper para edge functions que grava erros em tabela dedicada.
-
-### Fase 5: Robustez (Semana 5-6)
-
-17. **Rate limiting** em edge functions publicas (verify_jwt=false).
-
-18. **Webhook signature validation** -- verificar signatures de Instagram, WhatsApp, Stripe.
-
-19. **Retry logic** -- dead letter queue para webhooks falhados.
-
-20. **Testes E2E** -- iniciar com flows criticos: auth > create workspace > create lead > create opportunity > send message.
-
----
-
-### TOP 10 P0
-
-1. Embedding API falha em todas as funcoes que usam `text-embedding-ada-002`
-2. ~40 tabelas sem INSERT policy (RLS incompleto)
-3. 0 validation triggers para workspace_id enforcement
-4. Funcoes SECURITY DEFINER sem search_path fixo (11 funcoes)
-5. Policies `USING(true)` em tabelas com dados sensiveis
-6. Sem reset password UI no CRM
-7. Knowledge entries em draft invisiveis ao autopilot
-8. Webhooks sem retry/DLQ
-9. Sem rate limiting em edge functions publicas
-10. Sem error tracking centralizado
-
-### TOP 10 P1
-
-1. Sem eventos de auditoria para auth (login/signup)
-2. Sem UI de aprovacao humana para autopilot
-3. Sem evento dedicado para stage_changed em oportunidades
-4. Sem ai.draft_accepted/rejected tracking
-5. Extensao em schema public
-6. Sem health check endpoint
-7. Import existe mas export nao
-8. Sem paginacao server-side (limite 1000 rows)
-9. Sem validacao de unicidade forte em workspace slug
-10. Sem 2FA
-
-### 10 MELHORIAS UX RAPIDAS
-
-1. Adicionar empty states em todas as listas vazias
-2. Adicionar loading skeletons em vez de spinners genericos
-3. Adicionar breadcrumbs em paginas de detalhe
-4. Confirmar acao antes de apagar (dialog de confirmacao em todos os deletes)
-5. Toast de sucesso apos criar/editar entidade
-6. Keyboard shortcuts (Cmd+K para pesquisa global)
-7. Botao "Voltar" consistente em paginas de detalhe
-8. Indicador visual de workspace ativo mais proeminente
-9. Contador de notificacoes no sidebar
-10. Filtros persistentes (guardar estado de filtros em URL params)
-
-### DEFINICAO DE PRONTO PARA PRODUCAO
-
-- [ ] Todas as tabelas com RLS policies completas (SELECT + INSERT + UPDATE + DELETE)
-- [ ] Todas as funcoes SECURITY DEFINER com search_path fixo
-- [ ] Zero policies `USING(true)` em tabelas com dados de negocio
-- [ ] Reset password funcional
-- [ ] Email verification ativo e comunicado ao user
-- [ ] Eventos de auth gravados (login/signup/failed)
-- [ ] Knowledge Base com status management funcional
-- [ ] Embedding API removida ou substituida por alternativa funcional
-- [ ] Rate limiting em edge functions publicas
-- [ ] Webhook signature validation (IG, WA, Stripe)
-- [ ] Health check endpoint disponivel
-- [ ] Error tracking centralizado
-- [ ] Paginacao server-side em listas > 100 items
-- [ ] Testes E2E para flows criticos (auth, CRUD, messaging)
-- [ ] Backup strategy documentada
-- [ ] GDPR compliance verificado (right to delete, export data)
