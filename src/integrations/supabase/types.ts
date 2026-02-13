@@ -28645,6 +28645,10 @@ export type Database = {
         }
         Returns: Json
       }
+      batch_reorder_objectives: {
+        Args: { p_ids: string[]; p_positions: number[] }
+        Returns: undefined
+      }
       build_conversation_replay: {
         Args: { p_conversation_id: string }
         Returns: Json
@@ -29339,6 +29343,10 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: number
+      }
+      set_default_vibe_profile: {
+        Args: { p_profile_id: string; p_workspace_id: string }
+        Returns: undefined
       }
       should_bot_respond: {
         Args: { p_conversation_id: string; p_workspace_id: string }

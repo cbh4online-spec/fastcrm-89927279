@@ -477,6 +477,26 @@ export function useConversationalFlows() {
 
   // Activate/Deactivate flow
   const setFlowStatus = useCallback(async (flowId: string, status: FlowStatus) => {
+    // P2-4: Validate flow has entry_point before activation
+    if (status === 'active') {
+      const { data: entryPoints, error: epError } = await supabase
+        .from('flow_steps')
+        .select('id')
+        .eq('flow_id', flowId)
+        .eq('is_entry_point', true)
+        .limit(1);
+
+      if (epError) {
+        toast.error('Erro ao verificar ponto de entrada');
+        return null;
+      }
+
+      if (!entryPoints || entryPoints.length === 0) {
+        toast.error('Define um ponto de entrada antes de ativar o fluxo');
+        return null;
+      }
+    }
+
     const updated = await updateFlow(flowId, { status });
     if (updated) {
       toast.success(status === 'active' ? 'Fluxo ativado' : 'Fluxo desativado');

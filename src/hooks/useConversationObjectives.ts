@@ -163,23 +163,17 @@ export function useConversationObjectives(personaId?: string) {
     },
   });
 
-  // Reorder objectives (batch update sort_position)
+  // Reorder objectives (batch update via RPC)
   const reorderObjectivesMutation = useMutation({
     mutationFn: async (orderedIds: string[]) => {
-      const updates = orderedIds.map((id, index) => ({
-        id,
-        sort_position: index + 1,
-      }));
+      const positions = orderedIds.map((_, index) => index + 1);
 
-      // Update each objective's sort_position
-      for (const update of updates) {
-        const { error } = await supabase
-          .from("conversation_objectives")
-          .update({ sort_position: update.sort_position })
-          .eq("id", update.id);
+      const { error } = await supabase.rpc("batch_reorder_objectives" as any, {
+        p_ids: orderedIds,
+        p_positions: positions,
+      });
 
-        if (error) throw error;
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
