@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
+    "stripe": "npm:stripe@18.5.0",
+    "resend": "npm:resend@2.0.0"
+  }
+}

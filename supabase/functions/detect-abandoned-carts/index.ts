@@ -1,5 +1,5 @@
 import { corsHeaders } from '../_shared/cors.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Detect Abandoned Carts
