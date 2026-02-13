@@ -67,6 +67,9 @@ export function useCommunicationTemplates(filters?: {
         defaultTone: (t as any).default_tone || 'consultative',
         status: (t as any).status || 'active',
         personalizationLevel: (t as any).personalization_level || 'basic',
+        structureFamilies: (t as any).structure_families || ['AIDA'],
+        brandConstraints: (t as any).brand_constraints || {},
+        maxLengthByChannel: (t as any).max_length_by_channel || { whatsapp: 350, email: 1600, sms: 160, inbox: 800 },
         createdBy: t.created_by,
         createdAt: t.created_at,
         updatedAt: t.updated_at
@@ -152,6 +155,9 @@ export function useCreateCommunicationTemplate() {
           is_dynamic: template.isDynamic || false,
           dynamic_rules: template.dynamicRules || {},
           personalization_level: template.personalizationLevel || 'basic',
+          structure_families: template.structureFamilies || ['AIDA'],
+          brand_constraints: template.brandConstraints || {},
+          max_length_by_channel: template.maxLengthByChannel || { whatsapp: 350, email: 1600, sms: 160, inbox: 800 },
         } as any)
         .select()
         .single();
@@ -192,6 +198,9 @@ export function useUpdateCommunicationTemplate() {
       if (updates.isDynamic !== undefined) updateData.is_dynamic = updates.isDynamic;
       if (updates.dynamicRules !== undefined) updateData.dynamic_rules = updates.dynamicRules;
       if (updates.personalizationLevel !== undefined) updateData.personalization_level = updates.personalizationLevel;
+      if (updates.structureFamilies !== undefined) updateData.structure_families = updates.structureFamilies;
+      if (updates.brandConstraints !== undefined) updateData.brand_constraints = updates.brandConstraints;
+      if (updates.maxLengthByChannel !== undefined) updateData.max_length_by_channel = updates.maxLengthByChannel;
 
       const { data, error } = await supabase
         .from('communication_templates')

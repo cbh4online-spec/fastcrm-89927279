@@ -47,11 +47,13 @@ import {
   Brain,
   GitBranch,
   Sparkles,
+  LayoutTemplate,
 } from "lucide-react";
 import { useTemplates, Template, TemplateGoal, TemplateType } from "@/hooks/useTemplates";
 import { useCommunicationTemplates } from "@/hooks/useCommunicationTemplates";
 import { useDynamicTemplateContext } from "@/hooks/useDynamicTemplateContext";
 import { usePredictBestVariant, useTemplateVariants, useLogTemplateEvent, usePredictiveCopy } from "@/hooks/usePredictiveTemplates";
+import { useComposeMessage, useLogStructureEvent } from "@/hooks/usePersuasionStructures";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useInboxAI, LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { Message } from "@/hooks/useMessages";
@@ -115,6 +117,9 @@ export function InboxTemplatePanel({
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [templateToCreate, setTemplateToCreate] = useState<CommunicationTemplate | null>(null);
   const [predictedVariant, setPredictedVariant] = useState<any>(null);
+  const [isComposing, setIsComposing] = useState(false);
+  const [composedStructure, setComposedStructure] = useState<string | null>(null);
+  const [composedConfidence, setComposedConfidence] = useState<string | null>(null);
 
   const { currentWorkspace } = useWorkspace();
   const { data: templates, isLoading: templatesLoading } = useTemplates({ isActive: true });
@@ -124,6 +129,8 @@ export function InboxTemplatePanel({
   const predictBest = usePredictBestVariant();
   const logEvent = useLogTemplateEvent();
   const predictiveCopy = usePredictiveCopy();
+  const composeMessage = useComposeMessage();
+  const logStructureEvent = useLogStructureEvent();
 
   // Map channel to template channel type
   const getTemplateChannel = (): TemplateChannel => {
@@ -551,8 +558,69 @@ export function InboxTemplatePanel({
                   )}
                 </div>
 
-                {/* AI Adapt Button */}
-                <div className="p-3 border-b bg-muted/20">
+                {/* AI Compose & Adapt Buttons */}
+                <div className="p-3 border-b bg-muted/20 space-y-2">
+                  {/* Compose with AI (Structure Router) */}
+                  {selectedTemplate && commTemplates && (() => {
+                    const ct = commTemplates.find(c => c.name === selectedTemplate.name);
+                    if (!ct) return null;
+                    return (
+                      <Button
+                        onClick={async () => {
+                          setIsComposing(true);
+                          try {
+                            const result = await composeMessage.mutateAsync({
+                              template_id: ct.id,
+                              workspace_id: currentWorkspace?.id || '',
+                              channel: channel || 'email',
+                              lead_id: leadId,
+                              pipeline_stage: (leadData as any)?.pipeline_stage,
+                              intent_label: (leadData as any)?.intent_label,
+                              sentiment_label: (leadData as any)?.sentiment_label,
+                              lead_score: (leadData as any)?.score,
+                              potential_value: (opportunityData as any)?.value,
+                            });
+                            if (result?.body) {
+                              setEditedContent(result.body);
+                              if (result.subject) setEditedSubject(result.subject);
+                              setComposedStructure(result.structure_key);
+                              setComposedConfidence(result.confidence);
+                              toast.success(`Mensagem composta com estrutura ${result.structure_key}`);
+                            }
+                          } catch (err) {
+                            console.error(err);
+                            toast.error("Erro ao compor mensagem com IA");
+                          } finally {
+                            setIsComposing(false);
+                          }
+                        }}
+                        disabled={isComposing}
+                        variant="outline"
+                        className="w-full gap-2 border-primary/30"
+                        size="sm"
+                      >
+                        {isComposing ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <LayoutTemplate className="w-4 h-4" />
+                        )}
+                        Compor com IA (Estrutura Preditiva)
+                      </Button>
+                    );
+                  })()}
+
+                  {composedStructure && (
+                    <div className="flex items-center gap-1.5 justify-center">
+                      <Badge variant="secondary" className="text-[10px] py-0 gap-0.5">
+                        <LayoutTemplate className="h-2.5 w-2.5" />
+                        {composedStructure}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] py-0">
+                        {composedConfidence === 'high' ? '🟢' : composedConfidence === 'medium' ? '🟡' : '🔴'} {composedConfidence}
+                      </Badge>
+                    </div>
+                  )}
+
                   <Button
                     onClick={handleAIAdapt}
                     disabled={isAdapting || aiLoading}

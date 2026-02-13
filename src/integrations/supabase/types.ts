@@ -4753,6 +4753,7 @@ export type Database = {
           allowed_channels: string[] | null
           body: string
           body_html: string | null
+          brand_constraints: Json | null
           channel: string
           conversion_count: number | null
           created_at: string | null
@@ -4766,10 +4767,13 @@ export type Database = {
           is_dynamic: boolean | null
           journey_contexts: string[] | null
           language: string
+          max_length_by_channel: Json | null
           name: string
           personalization_level: string | null
           response_rate: number | null
+          schema_blocks: Json | null
           status: string | null
+          structure_families: string[] | null
           structure_type: string | null
           subject: string | null
           tone: string | null
@@ -4781,6 +4785,7 @@ export type Database = {
           allowed_channels?: string[] | null
           body: string
           body_html?: string | null
+          brand_constraints?: Json | null
           channel: string
           conversion_count?: number | null
           created_at?: string | null
@@ -4794,10 +4799,13 @@ export type Database = {
           is_dynamic?: boolean | null
           journey_contexts?: string[] | null
           language?: string
+          max_length_by_channel?: Json | null
           name: string
           personalization_level?: string | null
           response_rate?: number | null
+          schema_blocks?: Json | null
           status?: string | null
+          structure_families?: string[] | null
           structure_type?: string | null
           subject?: string | null
           tone?: string | null
@@ -4809,6 +4817,7 @@ export type Database = {
           allowed_channels?: string[] | null
           body?: string
           body_html?: string | null
+          brand_constraints?: Json | null
           channel?: string
           conversion_count?: number | null
           created_at?: string | null
@@ -4822,10 +4831,13 @@ export type Database = {
           is_dynamic?: boolean | null
           journey_contexts?: string[] | null
           language?: string
+          max_length_by_channel?: Json | null
           name?: string
           personalization_level?: string | null
           response_rate?: number | null
+          schema_blocks?: Json | null
           status?: string | null
+          structure_families?: string[] | null
           structure_type?: string | null
           subject?: string | null
           tone?: string | null
@@ -17469,6 +17481,39 @@ export type Database = {
           },
         ]
       }
+      persuasion_structures: {
+        Row: {
+          blocks: Json
+          channel: string
+          constraints: Json
+          created_at: string
+          id: string
+          key: string
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          blocks?: Json
+          channel?: string
+          constraints?: Json
+          created_at?: string
+          id?: string
+          key: string
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          blocks?: Json
+          channel?: string
+          constraints?: Json
+          created_at?: string
+          id?: string
+          key?: string
+          label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pipeline_stages: {
         Row: {
           color: string
@@ -24459,6 +24504,65 @@ export type Database = {
           },
         ]
       }
+      structure_usage_events: {
+        Row: {
+          channel: string
+          conversation_id: string | null
+          event_at: string
+          event_type: string
+          id: string
+          intent_label: string | null
+          lead_score: number | null
+          message_id: string | null
+          pipeline_stage: string | null
+          potential_value: number | null
+          sentiment_label: string | null
+          structure_key: string
+          template_id: string
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string
+          conversation_id?: string | null
+          event_at?: string
+          event_type: string
+          id?: string
+          intent_label?: string | null
+          lead_score?: number | null
+          message_id?: string | null
+          pipeline_stage?: string | null
+          potential_value?: number | null
+          sentiment_label?: string | null
+          structure_key: string
+          template_id: string
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          conversation_id?: string | null
+          event_at?: string
+          event_type?: string
+          id?: string
+          intent_label?: string | null
+          lead_score?: number | null
+          message_id?: string | null
+          pipeline_stage?: string | null
+          potential_value?: number | null
+          sentiment_label?: string | null
+          structure_key?: string
+          template_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structure_usage_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_events: {
         Row: {
           amount: number | null
@@ -27397,6 +27501,62 @@ export type Database = {
             foreignKeyName: "workspace_stripe_config_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_structure_stats: {
+        Row: {
+          avg_time_to_reply_minutes: number
+          channel: string
+          id: string
+          intent_label: string | null
+          opportunity_rate: number
+          pipeline_stage: string | null
+          reply_rate: number
+          samples: number
+          score: number
+          structure_key: string
+          updated_at: string
+          win_rate: number
+          workspace_id: string
+        }
+        Insert: {
+          avg_time_to_reply_minutes?: number
+          channel: string
+          id?: string
+          intent_label?: string | null
+          opportunity_rate?: number
+          pipeline_stage?: string | null
+          reply_rate?: number
+          samples?: number
+          score?: number
+          structure_key: string
+          updated_at?: string
+          win_rate?: number
+          workspace_id: string
+        }
+        Update: {
+          avg_time_to_reply_minutes?: number
+          channel?: string
+          id?: string
+          intent_label?: string | null
+          opportunity_rate?: number
+          pipeline_stage?: string | null
+          reply_rate?: number
+          samples?: number
+          score?: number
+          structure_key?: string
+          updated_at?: string
+          win_rate?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_structure_stats_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
