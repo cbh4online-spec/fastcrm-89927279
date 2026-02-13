@@ -1,48 +1,58 @@
 
+## Fix: Autopilot Nao Responde + Simular Escrita
 
-## Fix: Remover Labels AIDA dos Templates
+### Problema 1: Autopilot Bloqueado pelo Dedup
 
-### Problema
+A mensagem do Jorge Cardoso as 18:27:13 nao obteve resposta porque:
+- O trigger anterior foi as 18:26:10 (63s antes)
+- A janela de dedup no webhook e de **120s** -- bloqueou
+- A janela de dedup no cron e de **5 minutos** -- tambem bloqueou
 
-5 templates na base de dados contêm labels de estrutura AIDA visíveis no corpo da mensagem (`**Atenção**`, `**Interesse**`, `**Desejo**`, `**Ação**`). Estas labels são instruções internas do framework persuasivo e não devem ser enviadas ao cliente.
+O dedup esta correto para evitar duplicados do *mesmo* inbound, mas esta a bloquear *novos* inbounds legitimos que chegam dentro da janela.
 
-Templates afetados:
-- Captação Lead Frio (`b299e5a5`)
-- WhatsApp Qualificação (`b2e09315`)
-- Follow-Up Comercial (`8bdcccbc`)
-- Convite Masterclasse (`2e15e55c`)
-- Recuperação Lead Inativo (`56e7176c`)
+### Problema 2: Sem Simulacao de Escrita
 
-### Solução (3 camadas de proteção)
+Quando o autopilot responde, a mensagem aparece instantaneamente. Deveria simular um tempo de escrita proporcional ao tamanho da resposta para parecer mais natural.
 
-#### 1. Migração DB — Limpar os 5 templates existentes
+---
 
-Uma migração SQL que faz `UPDATE` no `body` de cada template, removendo as linhas `**Atenção**`, `**Interesse**`, `**Desejo**` e `**Ação**` e limpando linhas vazias duplicadas.
+### Correcao 1: Refinar Logica de Dedup no Webhook
 
-#### 2. Sanitização no UI — Defesa em profundidade
+**Ficheiro**: `supabase/functions/ghl-webhook-message/index.ts`
 
-Criar uma função `stripStructureLabels()` em `src/lib/templateUtils.ts` que remove automaticamente labels de estrutura (`**Atenção**`, `**Interesse**`, `**Desejo**`, `**Ação**`, `**Problema**`, `**Agitação**`, `**Solução**`, etc.) do conteúdo antes de apresentar/inserir.
+Alterar a verificacao de dedup (linha 740) para ser mais inteligente: em vez de verificar apenas "triggered nos ultimos 120s", verificar se ja existe um trigger para o **mesmo inbound** (comparando o timestamp do ultimo inbound). Se houver um novo inbound depois do ultimo trigger, permitir novo trigger.
 
-Aplicar esta função em `InboxTemplatePanel.tsx` nos dois pontos onde o `body` é usado:
-- Quando o template é selecionado (linha ~270)
-- Quando é aplicado no campo de mensagem
+Logica: Buscar o ultimo evento "triggered" e verificar se existem mensagens inbound mais recentes que esse evento. Se sim, permitir o novo trigger.
 
-#### 3. Prompt do AI — Prevenir geração futura
+### Correcao 2: Refinar Dedup no Cron
 
-Atualizar o `systemPrompt` em `template-compose-message/index.ts` para incluir a regra: "NUNCA inclua labels de bloco (Atenção, Interesse, Desejo, Ação, Problema, etc.) no texto da mensagem. O conteúdo deve fluir naturalmente sem cabeçalhos de estrutura."
+**Ficheiro**: `supabase/functions/cron-sync-messages/index.ts`
 
-### Detalhe Técnico
+Mesma logica: em vez de bloquear por 5 minutos, verificar se o ultimo trigger ja cobriu o ultimo inbound. Se houver inbounds novos apos o ultimo trigger, permitir.
 
-| Camada | Ficheiro | Alteração |
-|--------|---------|-----------|
-| DB | Nova migração SQL | UPDATE 5 templates, remover labels com regexp_replace |
-| UI | `src/lib/templateUtils.ts` (novo) | Função `stripStructureLabels(text)` |
-| UI | `src/components/inbox/InboxTemplatePanel.tsx` | Aplicar `stripStructureLabels()` ao body antes de render |
-| Edge | `supabase/functions/template-compose-message/index.ts` | Adicionar regra ao systemPrompt |
+### Correcao 3: Simular Escrita (Typing Delay)
 
-### Resultado
+**Ficheiro**: `supabase/functions/ghl-webhook-message/index.ts`
 
-- Templates existentes ficam imediatamente limpos
-- Novos templates gerados por AI nunca incluem labels
-- Qualquer template que escape as duas primeiras camadas é limpo no momento de inserção
+Apos gerar a resposta AI (linha 949) e antes de enviar (linha 952), adicionar um delay proporcional ao tamanho da mensagem para simular tempo de escrita:
 
+- Base: 1-2 segundos (tempo de "ler" a mensagem)
+- Escrita: ~30-50 caracteres por segundo (velocidade de digitacao humana)
+- Maximo: 8 segundos (para nao ser demasiado lento)
+- Exemplo: resposta de 200 caracteres = 2s base + 4s escrita = 6s total
+
+Isto combina com o delay inicial (8-12s antes de "comecar a escrever") para criar um comportamento natural: recebe mensagem -> espera 8-12s -> "escreve" durante 3-6s -> envia.
+
+### Detalhe Tecnico
+
+| Ficheiro | Alteracao |
+|----------|-----------|
+| `supabase/functions/ghl-webhook-message/index.ts` | Dedup inteligente: verificar se ha inbound novo apos ultimo trigger |
+| `supabase/functions/ghl-webhook-message/index.ts` | Typing delay proporcional ao tamanho da resposta antes do envio |
+| `supabase/functions/cron-sync-messages/index.ts` | Dedup inteligente: mesma logica do webhook |
+
+### Resultado Esperado
+
+- Cada novo inbound gera exactamente 1 resposta do autopilot (mesmo se chegar 30s apos o anterior)
+- A resposta aparece com um delay natural que simula escrita humana
+- Duplicados continuam prevenidos (mesmo inbound nao dispara 2x)
