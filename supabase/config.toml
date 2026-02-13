@@ -249,3 +249,15 @@ verify_jwt = false
 
 [functions.generate-dynamic-template-context]
 verify_jwt = false
+
+[functions.template-log-event]
+verify_jwt = false
+
+[functions.template-recompute-stats]
+verify_jwt = false
+
+[functions.template-predict-best-variant]
+verify_jwt = false
+
+[functions.template-generate-predictive-copy]
+verify_jwt = false

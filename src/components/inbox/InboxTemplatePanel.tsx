@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -44,10 +44,15 @@ import {
   Save,
   TrendingUp,
   Zap,
+  Brain,
+  GitBranch,
+  Sparkles,
 } from "lucide-react";
 import { useTemplates, Template, TemplateGoal, TemplateType } from "@/hooks/useTemplates";
 import { useCommunicationTemplates } from "@/hooks/useCommunicationTemplates";
 import { useDynamicTemplateContext } from "@/hooks/useDynamicTemplateContext";
+import { usePredictBestVariant, useTemplateVariants, useLogTemplateEvent, usePredictiveCopy } from "@/hooks/usePredictiveTemplates";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useInboxAI, LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { Message } from "@/hooks/useMessages";
 import { 
@@ -109,11 +114,16 @@ export function InboxTemplatePanel({
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [templateToCreate, setTemplateToCreate] = useState<CommunicationTemplate | null>(null);
+  const [predictedVariant, setPredictedVariant] = useState<any>(null);
 
+  const { currentWorkspace } = useWorkspace();
   const { data: templates, isLoading: templatesLoading } = useTemplates({ isActive: true });
   const { personalizeTemplate, isLoading: aiLoading } = useInboxAI();
   const { data: commTemplates } = useCommunicationTemplates({ isActive: true });
   const { data: dynamicContext } = useDynamicTemplateContext(leadId);
+  const predictBest = usePredictBestVariant();
+  const logEvent = useLogTemplateEvent();
+  const predictiveCopy = usePredictiveCopy();
 
   // Map channel to template channel type
   const getTemplateChannel = (): TemplateChannel => {

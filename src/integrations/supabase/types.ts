@@ -4685,8 +4685,72 @@ export type Database = {
           },
         ]
       }
+      communication_template_variants: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string | null
+          created_by: string | null
+          cta: string | null
+          id: string
+          is_active: boolean | null
+          subject: string | null
+          template_id: string
+          tone: string | null
+          updated_at: string | null
+          variant_key: string
+          workspace_id: string
+        }
+        Insert: {
+          body: string
+          channel?: string
+          created_at?: string | null
+          created_by?: string | null
+          cta?: string | null
+          id?: string
+          is_active?: boolean | null
+          subject?: string | null
+          template_id: string
+          tone?: string | null
+          updated_at?: string | null
+          variant_key: string
+          workspace_id: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string | null
+          created_by?: string | null
+          cta?: string | null
+          id?: string
+          is_active?: boolean | null
+          subject?: string | null
+          template_id?: string
+          tone?: string | null
+          updated_at?: string | null
+          variant_key?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_template_variants_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_template_variants_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_templates: {
         Row: {
+          allowed_channels: string[] | null
           body: string
           body_html: string | null
           channel: string
@@ -4694,7 +4758,9 @@ export type Database = {
           created_at: string | null
           created_by: string
           cta: string | null
+          default_tone: string | null
           dynamic_rules: Json | null
+          dynamic_schema: Json | null
           id: string
           is_active: boolean | null
           is_dynamic: boolean | null
@@ -4703,6 +4769,7 @@ export type Database = {
           name: string
           personalization_level: string | null
           response_rate: number | null
+          status: string | null
           structure_type: string | null
           subject: string | null
           tone: string | null
@@ -4711,6 +4778,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          allowed_channels?: string[] | null
           body: string
           body_html?: string | null
           channel: string
@@ -4718,7 +4786,9 @@ export type Database = {
           created_at?: string | null
           created_by: string
           cta?: string | null
+          default_tone?: string | null
           dynamic_rules?: Json | null
+          dynamic_schema?: Json | null
           id?: string
           is_active?: boolean | null
           is_dynamic?: boolean | null
@@ -4727,6 +4797,7 @@ export type Database = {
           name: string
           personalization_level?: string | null
           response_rate?: number | null
+          status?: string | null
           structure_type?: string | null
           subject?: string | null
           tone?: string | null
@@ -4735,6 +4806,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          allowed_channels?: string[] | null
           body?: string
           body_html?: string | null
           channel?: string
@@ -4742,7 +4814,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           cta?: string | null
+          default_tone?: string | null
           dynamic_rules?: Json | null
+          dynamic_schema?: Json | null
           id?: string
           is_active?: boolean | null
           is_dynamic?: boolean | null
@@ -4751,6 +4825,7 @@ export type Database = {
           name?: string
           personalization_level?: string | null
           response_rate?: number | null
+          status?: string | null
           structure_type?: string | null
           subject?: string | null
           tone?: string | null
@@ -25018,6 +25093,88 @@ export type Database = {
           },
         ]
       }
+      template_usage_events: {
+        Row: {
+          channel: string
+          company_id: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          event_at: string | null
+          event_type: string
+          id: string
+          intent_label: string | null
+          lead_id: string | null
+          lead_score: number | null
+          message_id: string | null
+          pipeline_stage: string | null
+          potential_value: number | null
+          sentiment_label: string | null
+          template_id: string
+          variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string
+          company_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          event_at?: string | null
+          event_type: string
+          id?: string
+          intent_label?: string | null
+          lead_id?: string | null
+          lead_score?: number | null
+          message_id?: string | null
+          pipeline_stage?: string | null
+          potential_value?: number | null
+          sentiment_label?: string | null
+          template_id: string
+          variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          company_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          event_at?: string | null
+          event_type?: string
+          id?: string
+          intent_label?: string | null
+          lead_id?: string | null
+          lead_score?: number | null
+          message_id?: string | null
+          pipeline_stage?: string | null
+          potential_value?: number | null
+          sentiment_label?: string | null
+          template_id?: string
+          variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_usage_events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_usage_events_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "communication_template_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_usage_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_usage_logs: {
         Row: {
           automation_id: string | null
@@ -27299,6 +27456,82 @@ export type Database = {
             foreignKeyName: "workspace_subscriptions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_template_stats: {
+        Row: {
+          avg_time_to_reply_minutes: number | null
+          channel: string
+          id: string
+          industry: string | null
+          opportunity_rate: number | null
+          pipeline_stage: string | null
+          reply_rate: number | null
+          samples: number | null
+          score: number | null
+          template_id: string
+          tone: string | null
+          updated_at: string | null
+          variant_id: string | null
+          win_rate: number | null
+          workspace_id: string
+        }
+        Insert: {
+          avg_time_to_reply_minutes?: number | null
+          channel?: string
+          id?: string
+          industry?: string | null
+          opportunity_rate?: number | null
+          pipeline_stage?: string | null
+          reply_rate?: number | null
+          samples?: number | null
+          score?: number | null
+          template_id: string
+          tone?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+          win_rate?: number | null
+          workspace_id: string
+        }
+        Update: {
+          avg_time_to_reply_minutes?: number | null
+          channel?: string
+          id?: string
+          industry?: string | null
+          opportunity_rate?: number | null
+          pipeline_stage?: string | null
+          reply_rate?: number | null
+          samples?: number | null
+          score?: number | null
+          template_id?: string
+          tone?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+          win_rate?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_template_stats_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_template_stats_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "communication_template_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_template_stats_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
