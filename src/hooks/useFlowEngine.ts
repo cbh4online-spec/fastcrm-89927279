@@ -73,9 +73,9 @@ export function useActiveFlowSession() {
       // Use rpc or raw query since types may not be generated yet
       const { data: sessions, error } = await supabase
         .from("conversation_sessions" as any)
-        .select("id, flow_id, current_step_id, state, collected_variables")
+        .select("id, flow_id, current_step_id, status, variables")
         .eq("conversation_id", conversationId)
-        .eq("state", "active")
+        .eq("status", "active")
         .limit(1);
 
       if (error) {
@@ -98,8 +98,8 @@ export function useActiveFlowSession() {
         id: sessionData.id,
         flow_id: sessionData.flow_id,
         current_step_id: sessionData.current_step_id,
-        state: sessionData.state,
-        collected_variables: sessionData.collected_variables || {},
+        state: sessionData.status,
+        collected_variables: sessionData.variables || {},
         flow: flowData ? {
           id: (flowData as any).id,
           name: (flowData as any).name,
