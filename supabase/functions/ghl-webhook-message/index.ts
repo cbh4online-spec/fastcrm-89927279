@@ -736,18 +736,18 @@ async function triggerAutopilotResponse(
     return;
   }
 
-  // DEDUP: Check if autopilot was already triggered for this conversation in the last 30s
+  // DEDUP: Check if autopilot was already triggered for this conversation in the last 120s
   const { data: recentTrigger } = await supabase
     .from("autopilot_events")
     .select("id")
     .eq("conversation_id", conversationId)
     .eq("event_type", "triggered")
-    .gte("created_at", new Date(Date.now() - 30000).toISOString())
+    .gte("created_at", new Date(Date.now() - 120000).toISOString())
     .limit(1)
     .maybeSingle();
 
   if (recentTrigger) {
-    console.log("[AUTOPILOT] Skipping — already triggered in last 30s", { conversationId, existingEventId: recentTrigger.id });
+    console.log("[AUTOPILOT] Skipping — already triggered in last 120s", { conversationId, existingEventId: recentTrigger.id });
     return;
   }
 
@@ -853,6 +853,22 @@ async function triggerAutopilotResponse(
   // 7. Wait for delay (skip if immediate)
   if (delaySeconds > 0) {
     await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+  }
+
+  // 7b. Post-delay race condition check: verify no outbound was sent after the last inbound
+  const { data: postDelayMessages } = await supabase
+    .from("messages")
+    .select("id, direction, sent_at")
+    .eq("conversation_id", conversationId)
+    .order("sent_at", { ascending: false })
+    .limit(3);
+
+  if (postDelayMessages && postDelayMessages.length > 0) {
+    const lastMsg = postDelayMessages[0];
+    if (lastMsg.direction === "outbound") {
+      console.log("[AUTOPILOT] Skipping — outbound already sent after last inbound (post-delay check)", { conversationId, messageId: lastMsg.id });
+      return;
+    }
   }
 
   // 8. Fetch conversation messages for context
