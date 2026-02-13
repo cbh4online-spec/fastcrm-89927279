@@ -174,16 +174,12 @@ export function InboxTemplatePanel({
 
   // Filter templates by channel
   const filteredTemplates = useMemo(() => {
-    if (!templates) return [];
+    const query = searchQuery.toLowerCase();
     
-    let filtered = templates.filter(t => {
-      // Filter by channel/type
-      if (t.type !== currentChannel.templateType && t.type !== "email") {
-        return false;
-      }
-      // Filter by search
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
+    // 1. Templates from `templates` table
+    let fromTemplates: Template[] = (templates || []).filter(t => {
+      if (t.type !== currentChannel.templateType && t.type !== "email") return false;
+      if (query) {
         return (
           t.name.toLowerCase().includes(query) ||
           t.content.toLowerCase().includes(query) ||
@@ -193,16 +189,46 @@ export function InboxTemplatePanel({
       return true;
     });
 
+    // 2. Communication templates mapped to Template format
+    const fromComm: Template[] = (commTemplates || [])
+      .filter(ct => ct.isActive)
+      .filter(ct => {
+        if (query) {
+          return (
+            ct.name.toLowerCase().includes(query) ||
+            ct.body.toLowerCase().includes(query) ||
+            (ct.subject?.toLowerCase().includes(query))
+          );
+        }
+        return true;
+      })
+      .map(ct => ({
+        id: `comm_${ct.id}`,
+        name: ct.name,
+        content: ct.body,
+        subject: ct.subject || '',
+        type: (ct.channel === 'whatsapp' ? 'whatsapp' : ct.channel === 'email' ? 'email' : 'email') as TemplateType,
+        goal: 'follow_up' as TemplateGoal,
+        is_active: true,
+        usage_count: ct.usageCount || 0,
+        workspace_id: currentWorkspace?.id || '',
+        created_at: ct.createdAt || '',
+        updated_at: ct.updatedAt || '',
+        _commTemplate: ct,
+      } as Template & { _commTemplate: CommunicationTemplate }));
+
+    const all = [...fromTemplates, ...fromComm];
+
     // Sort: favorites first, then by usage
-    filtered.sort((a, b) => {
+    all.sort((a, b) => {
       const aFav = favoriteIds.has(a.id) ? 1 : 0;
       const bFav = favoriteIds.has(b.id) ? 1 : 0;
       if (aFav !== bFav) return bFav - aFav;
       return (b.usage_count || 0) - (a.usage_count || 0);
     });
 
-    return filtered;
-  }, [templates, currentChannel.templateType, searchQuery, favoriteIds]);
+    return all;
+  }, [templates, commTemplates, currentChannel.templateType, searchQuery, favoriteIds, currentWorkspace?.id]);
 
   // Get favorites
   const favoriteTemplates = useMemo(() => 
@@ -213,11 +239,13 @@ export function InboxTemplatePanel({
   const recommendedTemplates = useMemo(() => {
     if (!commTemplates) return [];
     return [...commTemplates]
-      .filter(t => t.isActive && t.usageCount > 0)
+      .filter(t => t.isActive)
       .sort((a, b) => {
+        // Sort by conversion rate when available, then by name
         const aRate = a.usageCount > 0 ? (a.conversionCount || 0) / a.usageCount : 0;
         const bRate = b.usageCount > 0 ? (b.conversionCount || 0) / b.usageCount : 0;
-        return bRate - aRate;
+        if (aRate !== bRate) return bRate - aRate;
+        return a.name.localeCompare(b.name);
       })
       .slice(0, 10);
   }, [commTemplates]);
@@ -232,14 +260,30 @@ export function InboxTemplatePanel({
   const handleSelectTemplate = (template: Template) => {
     setSelectedTemplate(template);
     
-    // Render template with CRM data
-    const rendered = renderTemplate(template.content, templateContext);
-    const renderedSubject = template.subject 
-      ? renderTemplate(template.subject, templateContext)
-      : "";
+    // Check if this is a mapped communication template
+    const commTpl = (template as any)._commTemplate as CommunicationTemplate | undefined;
     
-    setEditedContent(rendered);
-    setEditedSubject(renderedSubject);
+    if (commTpl) {
+      // Use dynamic rendering for communication templates
+      const content = commTpl.isDynamic && dynamicContext
+        ? renderDynamicTemplate(commTpl.body, dynamicContext.allVariables)
+        : commTpl.body;
+      const subject = commTpl.subject
+        ? (commTpl.isDynamic && dynamicContext
+          ? renderDynamicTemplate(commTpl.subject, dynamicContext.allVariables)
+          : commTpl.subject)
+        : '';
+      setEditedContent(content);
+      setEditedSubject(subject);
+    } else {
+      // Standard template rendering
+      const rendered = renderTemplate(template.content, templateContext);
+      const renderedSubject = template.subject 
+        ? renderTemplate(template.subject, templateContext)
+        : "";
+      setEditedContent(rendered);
+      setEditedSubject(renderedSubject);
+    }
   };
 
   // AI adapt template to conversation
