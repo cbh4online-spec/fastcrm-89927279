@@ -23,6 +23,16 @@ export interface AIMessageAudit {
     tokens?: number;
     latency_ms?: number | null;
   };
+  memory_context: Array<{
+    id: string;
+    content: string;
+    memory_type: string;
+    category: string | null;
+  }>;
+  detected_intent: {
+    intent?: string;
+    confidence?: number;
+  };
   created_at: string;
 }
 

@@ -68,6 +68,7 @@ interface InboxReplyRequest {
   conversationId?: string;
   useConversationalFlows?: boolean;
   goalConfig?: GoalConfig;
+  detectedIntent?: { intent: string; confidence: number } | null;
 }
 
 interface GoalConfig {
@@ -601,7 +602,8 @@ serve(async (req) => {
       useKnowledgeBase = true,
       conversationId,
       useConversationalFlows = true,
-      goalConfig
+      goalConfig,
+      detectedIntent: passedDetectedIntent
     }: InboxReplyRequest = await req.json();
 
     // Check for active conversational flows first
@@ -699,6 +701,39 @@ serve(async (req) => {
       }
     }
 
+    // Fetch agent memory for this conversation/lead
+    let memoryContext: Array<{ id: string; content: string; memory_type: string; category: string | null }> = [];
+    if (workspaceId && (conversationId || leadData?.id)) {
+      try {
+        const supabaseAdmin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        const entityId = leadData?.id || conversationId!;
+        const entityType = leadData?.id ? "lead" : "conversation";
+        const { data: memories } = await supabaseAdmin.rpc("retrieve_entity_memories", {
+          p_workspace_id: workspaceId,
+          p_entity_id: entityId,
+          p_entity_type: entityType,
+          p_limit: 5
+        });
+        if (memories && memories.length > 0) {
+          memoryContext = memories.map((m: any) => ({
+            id: m.id,
+            content: m.content,
+            memory_type: m.memory_type,
+            category: m.memory_category
+          }));
+          console.log(`[AI-INBOX-REPLY] Loaded ${memoryContext.length} agent memories`);
+        }
+      } catch (memErr) {
+        console.warn("[AI-INBOX-REPLY] Memory fetch failed:", memErr);
+      }
+    }
+
+    // Use detectedIntent passed from autopilot
+    const detectedIntent = passedDetectedIntent || null;
+
     // Build user content with all context
     let userContent = "";
     
@@ -736,6 +771,20 @@ serve(async (req) => {
     // Add channel info
     if (channel) {
       userContent += `## Channel: ${channel}\n\n`;
+    }
+
+    // Add agent memory context
+    if (memoryContext.length > 0) {
+      userContent += "## Agent Memory (historical context about this contact):\n";
+      memoryContext.forEach((mem, i) => {
+        userContent += `${i + 1}. [${mem.memory_type}${mem.category ? '/' + mem.category : ''}] ${mem.content}\n`;
+      });
+      userContent += "\n";
+    }
+
+    // Add detected intent context
+    if (detectedIntent) {
+      userContent += `## Detected Intent: ${detectedIntent.intent} (confidence: ${detectedIntent.confidence})\n\n`;
     }
     
     // Action-specific content
@@ -840,7 +889,9 @@ serve(async (req) => {
             model: "google/gemini-3-flash-preview",
             tokens: data.usage?.total_tokens || null,
             latency_ms: null
-          }
+          },
+          memory_context: memoryContext,
+          detected_intent: detectedIntent || {}
         };
         
         const { data: auditRow, error: auditErr } = await supabaseAdmin

@@ -919,7 +919,48 @@ async function triggerAutopilotResponse(
     leadData = lead;
   }
 
-  // 10. Generate AI response
+  // 10. Classify intent before generating response
+  let detectedIntent: { intent: string; confidence: number } | null = null;
+  const lastInboundMessage = orderedMessages.filter((m: any) => m.direction === "inbound").pop()?.content || "";
+  
+  if (lastInboundMessage) {
+    try {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (LOVABLE_API_KEY) {
+        const intentResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              { role: "system", content: "Classifica a intenção da mensagem do cliente. Responde APENAS com JSON válido: {\"intent\": \"sales|support|question|complaint|greeting|other\", \"confidence\": 0.0-1.0}" },
+              { role: "user", content: lastInboundMessage }
+            ],
+            max_tokens: 100,
+          }),
+        });
+
+        if (intentResponse.ok) {
+          const intentData = await intentResponse.json();
+          const intentText = intentData.choices?.[0]?.message?.content || "";
+          try {
+            const cleaned = intentText.replace(/```json\n?|```\n?/g, "").trim();
+            detectedIntent = JSON.parse(cleaned);
+            console.log("[AUTOPILOT] Intent classified", detectedIntent);
+          } catch (parseErr) {
+            console.warn("[AUTOPILOT] Intent parse failed:", intentText);
+          }
+        }
+      }
+    } catch (intentErr) {
+      console.warn("[AUTOPILOT] Intent classification failed:", intentErr);
+    }
+  }
+
+  // 10b. Generate AI response
   console.log("[AUTOPILOT] Generating AI response");
 
   const aiResponse = await fetch(`${supabaseUrl}/functions/v1/ai-inbox-reply`, {
@@ -944,7 +985,8 @@ async function triggerAutopilotResponse(
       knowledgeBaseIds: agentSource?.knowledge_base_ids || undefined,
       goalConfig: agentSource?.goal_config || undefined,
       conversationId,
-      useConversationalFlows: true
+      useConversationalFlows: true,
+      detectedIntent
     })
   });
 
@@ -1014,6 +1056,24 @@ async function triggerAutopilotResponse(
     followed_rules: true,
     followed_vibe: true
   });
+
+  // 14. Log unified ai_agent_executions for dashboard visibility
+  try {
+    await supabase.from("ai_agent_executions").insert({
+      workspace_id: workspaceId,
+      agent_type: "autopilot",
+      trigger_type: "auto",
+      entity_id: conversationId,
+      entity_type: "conversation",
+      executive_summary: `Autopilot: ${detectedIntent?.intent || "unknown"} via ${channel}`,
+      input_summary: { channel, lead_id: leadId, message_count: messages?.length || 0 },
+      output: { response_preview: suggestion.substring(0, 200), persona_id: autopilotConfig.persona_id },
+      reasoning_trace: { intent: detectedIntent, knowledge_used: true, flow_used: !!aiResult.flowUsed }
+    });
+    console.log("[AUTOPILOT] Execution logged to ai_agent_executions");
+  } catch (execErr) {
+    console.warn("[AUTOPILOT] Failed to log execution:", execErr);
+  }
 
   console.log("[AUTOPILOT] Response sent successfully");
 }
