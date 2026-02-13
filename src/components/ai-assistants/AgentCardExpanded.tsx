@@ -1,11 +1,13 @@
 /**
- * Agent Card Expanded - Shows agent with autopilot status inline
+ * Agent Card Expanded - Shows agent with autopilot status inline + Goals panel
  */
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { 
   Bot, 
   Edit, 
@@ -15,27 +17,35 @@ import {
   Users,
   BookOpen,
   Zap,
-  Moon
+  Moon,
+  Settings2,
+  ChevronDown
 } from "lucide-react";
 import { AGENT_CHANNELS, type AIChannelAgent } from "@/types/aiChannelAgents";
+import { AgentGoalsPanel } from "@/components/ai-agents/AgentGoalsPanel";
 
 interface AgentCardExpandedProps {
   agent: AIChannelAgent;
+  allAgents: AIChannelAgent[];
   personas: Array<{ id: string; name: string }>;
   knowledgeBases: Array<{ id: string; name: string }>;
   onEdit: () => void;
   onDelete: () => void;
   onToggleStatus: () => void;
+  onUpdateGoalConfig?: (agentId: string, config: Record<string, unknown>) => void;
 }
 
 export function AgentCardExpanded({
   agent,
+  allAgents,
   personas,
   knowledgeBases,
   onEdit,
   onDelete,
-  onToggleStatus
+  onToggleStatus,
+  onUpdateGoalConfig
 }: AgentCardExpandedProps) {
+  const [goalsOpen, setGoalsOpen] = useState(false);
   const channelConfig = AGENT_CHANNELS[agent.channel];
   const persona = personas.find(p => p.id === agent.personaId);
   const linkedBases = knowledgeBases.filter(kb => agent.knowledgeBaseIds.includes(kb.id));
@@ -127,6 +137,26 @@ export function AgentCardExpanded({
             </div>
           )}
         </div>
+
+        {/* Goals Panel (collapsible) */}
+        <Collapsible open={goalsOpen} onOpenChange={setGoalsOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground hover:text-foreground">
+              <div className="flex items-center gap-2">
+                <Settings2 className="h-3.5 w-3.5" />
+                <span className="text-xs">Objectivos & Regras</span>
+              </div>
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${goalsOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            <AgentGoalsPanel
+              agent={agent}
+              agents={allAgents}
+              onUpdateGoalConfig={(config) => onUpdateGoalConfig?.(agent.id, config)}
+            />
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );
