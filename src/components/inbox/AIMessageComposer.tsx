@@ -59,7 +59,8 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     
     const { isLoading, suggestReplies, modifyReply } = useInboxAI();
-    const { trackConversationReplied, trackAISuggestionGenerated, trackAISuggestionAccepted } = useCRMAnalytics();
+    const { trackConversationReplied, trackAISuggestionGenerated, trackAISuggestionAccepted, trackAISuggestionRejected } = useCRMAnalytics();
+    const aiSuggestionUsed = useRef(false);
     const aiUsedInReply = useRef(false);
     const templateUsedInReply = useRef(false);
     // Map channel to template channel type
@@ -130,9 +131,18 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
       setMessage(text);
       setShowAIPanel(false);
       aiUsedInReply.current = true;
+      aiSuggestionUsed.current = true;
       trackAISuggestionAccepted({ context: 'inbox', tone_used: undefined, edited_before_send: false });
       textareaRef.current?.focus();
     };
+
+    const handleCloseAIPanel = useCallback(() => {
+      if (!aiSuggestionUsed.current && suggestions.length > 0) {
+        trackAISuggestionRejected({ context: 'inbox' });
+      }
+      setShowAIPanel(false);
+      aiSuggestionUsed.current = false;
+    }, [suggestions.length, trackAISuggestionRejected]);
 
     const handleTemplateApply = (content: string, subject?: string) => {
       setMessage(content);
@@ -318,7 +328,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowAIPanel(false)}
+                  onClick={handleCloseAIPanel}
                   className="h-6 text-xs"
                 >
                   Fechar

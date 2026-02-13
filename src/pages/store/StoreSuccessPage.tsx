@@ -1,12 +1,23 @@
+import { useEffect } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Package, ArrowRight } from "lucide-react";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 
 export default function StoreSuccessPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const [searchParams] = useSearchParams();
   const wsSlug = workspaceSlug || "";
+  const { trackCheckoutCompleted } = useCRMAnalytics();
+
+  useEffect(() => {
+    trackCheckoutCompleted({
+      plan_type: searchParams.get('plan') || 'store_purchase',
+      billing_cycle: searchParams.get('billing') || 'one_time',
+    });
+  }, []);
 
   return (
     <>

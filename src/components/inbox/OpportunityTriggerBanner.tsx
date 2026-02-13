@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useCreateOpportunity } from "@/hooks/useOpportunities";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useExecuteInboxAction, useCheckAutomationsForAction } from "@/hooks/useInboxActions";
@@ -90,6 +91,7 @@ export function OpportunityTriggerBanner({
   const { data: stages } = usePipelineStages();
   const createOpportunity = useCreateOpportunity();
   const executeAction = useExecuteInboxAction();
+  const { trackOpportunityCreated, trackConversationConverted } = useCRMAnalytics();
   
   const matchingAutomations = useCheckAutomationsForAction("create_opportunity");
   const hasAutomations = matchingAutomations.length > 0;
@@ -147,6 +149,14 @@ export function OpportunityTriggerBanner({
         automationRuleId: automationId,
       });
 
+      trackOpportunityCreated({ value: parseFloat(value) || 0, origin: 'inbox' });
+      trackConversationConverted({
+        days_to_convert: 0,
+        used_ai_in_thread: false,
+        used_template: false,
+        priority_score_at_start: 0,
+      });
+      
       toast.success("Oportunidade criada com sucesso!");
       
       if (createProposalAfter) {

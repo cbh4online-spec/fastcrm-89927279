@@ -66,6 +66,7 @@ import {
 import { renderDynamicTemplate } from "@/lib/dynamicTemplateEngine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { TemplateFormDialog } from "@/components/communication/TemplateFormDialog";
 import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
 
@@ -125,6 +126,7 @@ export function InboxTemplatePanel({
   const [composedTargetLimit, setComposedTargetLimit] = useState<number | null>(null);
 
   const { currentWorkspace } = useWorkspace();
+  const { trackTemplateUsed } = useCRMAnalytics();
   const { data: templates, isLoading: templatesLoading } = useTemplates({ isActive: true });
   const { personalizeTemplate, isLoading: aiLoading } = useInboxAI();
   const { data: commTemplates } = useCommunicationTemplates({ isActive: true });
@@ -327,6 +329,15 @@ export function InboxTemplatePanel({
     if (unresolvedVars.length > 0) {
       toast.warning(`Atenção: ${unresolvedVars.length} variável(is) não resolvida(s)`);
     }
+    
+    // Track template usage
+    const commTpl = (selectedTemplate as any)?._commTemplate;
+    trackTemplateUsed({
+      structure_type: commTpl?.persuasionFramework || selectedTemplate?.goal || 'other',
+      dynamic: !!(commTpl?.isDynamic),
+      ai_adapted: isAdapting,
+      pipeline_stage_when_used: undefined,
+    });
     
     onApply(editedContent, editedSubject || undefined);
     setOpen(false);

@@ -46,6 +46,7 @@ import { CreateOpportunityEnhancedDialog } from "./CreateOpportunityEnhancedDial
 import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { toast } from "sonner";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 // Design System imports
 import { PageLoading, EmptyState } from "@/components/design-system";
 
@@ -71,6 +72,7 @@ export function OpportunitiesModule() {
   const { data: stages, isLoading: stagesLoading } = usePipelineStages();
   const moveOpportunity = useMoveOpportunityEnhanced();
   const closeOpportunity = useCloseOpportunity();
+  const { trackLeadMovedPipeline } = useCRMAnalytics();
 
   // Filter by search
   const filteredOpportunities = useMemo(() => {
@@ -102,7 +104,19 @@ export function OpportunitiesModule() {
 
   const handleMoveOpportunity = async (oppId: string, stageId: string, probability: number) => {
     try {
+      const opp = opportunities?.find(o => o.id === oppId);
+      const fromStage = stages?.find(s => s.id === opp?.stage_id);
+      const toStage = stages?.find(s => s.id === stageId);
+      
       await moveOpportunity.mutateAsync({ id: oppId, stage_id: stageId, probability });
+      
+      if (fromStage && toStage && opp) {
+        const daysInPrevious = opp.updated_at 
+          ? Math.floor((Date.now() - new Date(opp.updated_at).getTime()) / 86400000)
+          : 0;
+        trackLeadMovedPipeline({ from_stage: fromStage.name, to_stage: toStage.name, days_in_previous_stage: daysInPrevious });
+      }
+      
       toast.success("Oportunidade movida");
     } catch (error) {
       toast.error("Erro ao mover oportunidade");
