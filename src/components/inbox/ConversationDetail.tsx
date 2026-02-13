@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useConversation, useMarkConversationRead, useUpdateConversationStatus, useAssignConversation } from "@/hooks/useConversations";
+import { isToday, isYesterday, format as formatDateFns, isSameDay } from "date-fns";
+import { pt } from "date-fns/locale";
+import { MessageBubble } from "./MessageBubble";
 import { useMessages, useSendMessage } from "@/hooks/useMessages";
 import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +36,7 @@ import {
   Facebook,
   Globe,
   Sparkles,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -412,41 +416,69 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 Sem mensagens
               </div>
             ) : (
-              <div className="space-y-3">
-                {messages.map((message) => (
-                  conversation.channel === "email" ? (
-                    <EmailMessageBubble key={message.id} message={message} />
-                  ) : (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        "flex",
-                        message.direction === "outbound" ? "justify-end" : "justify-start"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "max-w-[75%] rounded-lg px-3 py-2",
-                          message.direction === "outbound"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
+              <div className="space-y-1">
+                {messages.map((message, index) => {
+                  const msgDate = new Date(message.created_at || message.sent_at);
+                  const prevDate = index > 0 ? new Date(messages[index - 1].created_at || messages[index - 1].sent_at) : null;
+                  const showDateSeparator = !prevDate || !isSameDay(msgDate, prevDate);
+
+                  const getDateLabel = (date: Date) => {
+                    if (isToday(date)) return "Hoje";
+                    if (isYesterday(date)) return "Ontem";
+                    return formatDateFns(date, "d MMM yyyy", { locale: pt });
+                  };
+
+                  if (conversation.channel === "email") {
+                    return (
+                      <div key={message.id}>
+                        {showDateSeparator && (
+                          <div className="flex items-center gap-3 py-3">
+                            <div className="flex-1 h-px bg-border" />
+                            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                              <Calendar className="w-3 h-3" />
+                              {getDateLabel(msgDate)}
+                            </span>
+                            <div className="flex-1 h-px bg-border" />
+                          </div>
                         )}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        <p
-                          className={cn(
-                            "text-[10px] mt-1",
-                            message.direction === "outbound"
-                              ? "text-primary-foreground/70"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {format(new Date(message.sent_at), "HH:mm")}
-                        </p>
+                        <EmailMessageBubble message={message} />
                       </div>
+                    );
+                  }
+
+                  return (
+                    <div key={message.id}>
+                      {showDateSeparator && (
+                        <div className="flex items-center gap-3 py-3">
+                          <div className="flex-1 h-px bg-border" />
+                          <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <Calendar className="w-3 h-3" />
+                            {getDateLabel(msgDate)}
+                          </span>
+                          <div className="flex-1 h-px bg-border" />
+                        </div>
+                      )}
+                      <MessageBubble
+                        message={{
+                          id: message.id,
+                          content: message.content,
+                          direction: message.direction as "inbound" | "outbound",
+                          created_at: message.created_at || message.sent_at,
+                          read_at: message.read_at,
+                          delivered_at: message.delivered_at,
+                          sent_at: message.sent_at,
+                        }}
+                        senderName={
+                          message.direction === "inbound"
+                            ? conversation.lead?.name || "Desconhecido"
+                            : undefined
+                        }
+                        companyName="Você"
+                        showTimestamp={true}
+                      />
                     </div>
-                  )
-                ))}
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
             )}
