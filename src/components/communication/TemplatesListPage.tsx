@@ -46,11 +46,13 @@ import {
   TemplateChannel,
   CHANNEL_LABELS,
   JOURNEY_CONTEXT_LABELS,
-  TONE_LABELS
+  TONE_LABELS,
+  STRUCTURE_LABELS
 } from '@/types/communicationTemplate';
 import { TemplateFormDialog } from './TemplateFormDialog';
 import { TemplatePreviewDialog } from './TemplatePreviewDialog';
 import { SendEmailFromTemplateDialog } from './SendEmailFromTemplateDialog';
+import { AITemplateGeneratorDialog } from './AITemplateGeneratorDialog';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
@@ -65,6 +67,7 @@ const sortOptions = [
   { value: 'updated_desc', label: 'Mais recentes' },
   { value: 'updated_asc', label: 'Mais antigos' },
   { value: 'usage_desc', label: 'Mais usados' },
+  { value: 'conversion_desc', label: 'Maior Conversão' },
   { value: 'name_asc', label: 'Nome (A-Z)' },
 ];
 
@@ -120,7 +123,7 @@ export function TemplatesListPage() {
 
   // Stats calculation
   const stats = useMemo(() => {
-    if (!templates) return { total: 0, active: 0, byChannel: {}, avgUsage: 0 };
+    if (!templates) return { total: 0, active: 0, byChannel: {}, avgUsage: 0, avgConversion: 0 };
     
     const active = templates.filter(t => t.isActive).length;
     const byChannel = templates.reduce((acc, t) => {
@@ -130,8 +133,12 @@ export function TemplatesListPage() {
     const avgUsage = templates.length > 0 
       ? templates.reduce((sum, t) => sum + t.usageCount, 0) / templates.length 
       : 0;
+    const templatesWithUsage = templates.filter(t => t.usageCount > 0);
+    const avgConversion = templatesWithUsage.length > 0
+      ? templatesWithUsage.reduce((sum, t) => sum + ((t.conversionCount || 0) / t.usageCount) * 100, 0) / templatesWithUsage.length
+      : 0;
 
-    return { total: templates.length, active, byChannel, avgUsage };
+    return { total: templates.length, active, byChannel, avgUsage, avgConversion };
   }, [templates]);
 
   // Filtered and sorted templates
@@ -170,6 +177,11 @@ export function TemplatesListPage() {
           return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
         case 'usage_desc':
           return b.usageCount - a.usageCount;
+        case 'conversion_desc': {
+          const aRate = a.usageCount > 0 ? (a.conversionCount || 0) / a.usageCount : 0;
+          const bRate = b.usageCount > 0 ? (b.conversionCount || 0) / b.usageCount : 0;
+          return bRate - aRate;
+        }
         case 'name_asc':
           return a.name.localeCompare(b.name);
         default:
@@ -302,15 +314,15 @@ export function TemplatesListPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Emails</p>
+                  <p className="text-xs text-muted-foreground">Conversão Média</p>
                   {isLoading ? (
                     <Skeleton className="h-7 w-12 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold">{stats.byChannel.email || 0}</p>
+                    <p className="text-2xl font-bold">{stats.avgConversion.toFixed(1)}%</p>
                   )}
                 </div>
-                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <Mail className="h-5 w-5 text-blue-500" />
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -403,6 +415,7 @@ export function TemplatesListPage() {
                             <CardTitle className="text-base">{template.name}</CardTitle>
                             <p className="text-xs text-muted-foreground">
                               {CHANNEL_LABELS[template.channel]} • {TONE_LABELS[template.tone]}
+                              {template.structureType && template.structureType !== 'custom' && ` • ${STRUCTURE_LABELS[template.structureType]}`}
                             </p>
                           </div>
                         </div>
@@ -470,8 +483,8 @@ export function TemplatesListPage() {
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <TrendingUp className="h-3 w-3" />
                           <span>{template.usageCount} usos</span>
-                          {template.responseRate && (
-                            <span>• {template.responseRate.toFixed(0)}% resposta</span>
+                          {template.usageCount > 0 && (
+                            <span>• {((template.conversionCount || 0) / template.usageCount * 100).toFixed(0)}% conv.</span>
                           )}
                         </div>
                         <Switch
@@ -555,6 +568,16 @@ export function TemplatesListPage() {
         open={!!sendEmailTemplate}
         onOpenChange={(open) => !open && setSendEmailTemplate(null)}
         template={sendEmailTemplate}
+      />
+
+      {/* AI Generator Dialog */}
+      <AITemplateGeneratorDialog
+        open={showAIDialog}
+        onOpenChange={setShowAIDialog}
+        onGenerated={(generated) => {
+          setEditingTemplate(generated as CommunicationTemplate);
+          setShowCreateDialog(true);
+        }}
       />
     </div>
   );
