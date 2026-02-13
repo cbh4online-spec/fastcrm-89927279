@@ -143,11 +143,15 @@ export function AgentsTab({ searchValue }: AgentsTabProps) {
                   <AgentCardExpanded
                     key={agent.id}
                     agent={agent}
+                    allAgents={agents}
                     personas={personas.map(p => ({ id: p.id, name: p.name }))}
                     knowledgeBases={knowledgeBases.map(kb => ({ id: kb.id, name: kb.name }))}
                     onEdit={() => setEditingAgent(agent)}
                     onDelete={() => setDeletingAgent(agent)}
                     onToggleStatus={() => toggleAgentStatus(agent.id)}
+                    onUpdateGoalConfig={async (agentId, config) => {
+                      await updateAgent(agentId, { settings: { ...agents.find(a => a.id === agentId)?.settings, goalConfig: config } } as any);
+                    }}
                   />
                 ))}
               </div>

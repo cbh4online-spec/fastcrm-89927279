@@ -1611,6 +1611,60 @@ export type Database = {
           },
         ]
       }
+      ai_workflow_triggers: {
+        Row: {
+          action_name: string
+          bot_id: string
+          created_at: string
+          examples: string[] | null
+          id: string
+          is_active: boolean
+          trigger_condition_text: string
+          updated_at: string
+          workflow_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action_name: string
+          bot_id: string
+          created_at?: string
+          examples?: string[] | null
+          id?: string
+          is_active?: boolean
+          trigger_condition_text: string
+          updated_at?: string
+          workflow_id: string
+          workspace_id: string
+        }
+        Update: {
+          action_name?: string
+          bot_id?: string
+          created_at?: string
+          examples?: string[] | null
+          id?: string
+          is_active?: boolean
+          trigger_condition_text?: string
+          updated_at?: string
+          workflow_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_workflow_triggers_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_workflow_triggers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_actions: {
         Row: {
           action_type: Database["public"]["Enums"]["automation_action_type"]
@@ -2599,6 +2653,64 @@ export type Database = {
           },
           {
             foreignKeyName: "bot_knowledge_bases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_transfer_rules: {
+        Row: {
+          created_at: string
+          examples: string[] | null
+          from_bot_id: string
+          id: string
+          is_active: boolean
+          to_bot_id: string
+          trigger_condition_text: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          examples?: string[] | null
+          from_bot_id: string
+          id?: string
+          is_active?: boolean
+          to_bot_id: string
+          trigger_condition_text: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          examples?: string[] | null
+          from_bot_id?: string
+          id?: string
+          is_active?: boolean
+          to_bot_id?: string
+          trigger_condition_text?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_transfer_rules_from_bot_id_fkey"
+            columns: ["from_bot_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_transfer_rules_to_bot_id_fkey"
+            columns: ["to_bot_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_transfer_rules_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6656,6 +6768,9 @@ export type Database = {
           fail_count: number
           handed_over: boolean
           handed_over_to_user_id: string | null
+          handover_at: string | null
+          handover_message: string | null
+          handover_reason: string | null
           id: string
           is_bot_sleeping: boolean
           last_ai_message_at: string | null
@@ -6669,6 +6784,9 @@ export type Database = {
           fail_count?: number
           handed_over?: boolean
           handed_over_to_user_id?: string | null
+          handover_at?: string | null
+          handover_message?: string | null
+          handover_reason?: string | null
           id?: string
           is_bot_sleeping?: boolean
           last_ai_message_at?: string | null
@@ -6682,6 +6800,9 @@ export type Database = {
           fail_count?: number
           handed_over?: boolean
           handed_over_to_user_id?: string | null
+          handover_at?: string | null
+          handover_message?: string | null
+          handover_reason?: string | null
           id?: string
           is_bot_sleeping?: boolean
           last_ai_message_at?: string | null
