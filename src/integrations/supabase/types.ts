@@ -8435,6 +8435,7 @@ export type Database = {
           opportunity_id: string | null
           performed_by: string | null
           title: string
+          updated_at: string | null
           workspace_id: string
         }
         Insert: {
@@ -8453,6 +8454,7 @@ export type Database = {
           opportunity_id?: string | null
           performed_by?: string | null
           title: string
+          updated_at?: string | null
           workspace_id: string
         }
         Update: {
@@ -8471,6 +8473,7 @@ export type Database = {
           opportunity_id?: string | null
           performed_by?: string | null
           title?: string
+          updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -16121,6 +16124,7 @@ export type Database = {
           read_at: string | null
           sender_id: string | null
           sent_at: string
+          updated_at: string | null
           workspace_id: string
         }
         Insert: {
@@ -16140,6 +16144,7 @@ export type Database = {
           read_at?: string | null
           sender_id?: string | null
           sent_at?: string
+          updated_at?: string | null
           workspace_id: string
         }
         Update: {
@@ -16159,6 +16164,7 @@ export type Database = {
           read_at?: string | null
           sender_id?: string | null
           sent_at?: string
+          updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [
