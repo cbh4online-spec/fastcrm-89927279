@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { FileText, Paperclip, Download, Info } from "lucide-react";
+import { FileText, Paperclip, Download, Info, AlertCircle, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ interface MessageBubbleProps {
   senderAvatar?: string;
   companyName?: string;
   showTimestamp?: boolean;
+  onRetry?: (messageContent: string) => void;
 }
 
 export function MessageBubble({
@@ -30,9 +31,11 @@ export function MessageBubble({
   senderAvatar,
   companyName = "Empresa",
   showTimestamp = true,
+  onRetry,
 }: MessageBubbleProps) {
   const isOutbound = message.direction === "outbound";
   const deliveryStatus = getDeliveryStatus(message);
+  const isFailed = deliveryStatus === "failed";
   
   // Parse attachments from metadata
   const attachments = message.channel_metadata?.attachments as Array<{
@@ -71,7 +74,10 @@ export function MessageBubble({
           </div>
           
           {/* Bubble */}
-          <div className="bg-card border border-border rounded-2xl rounded-tr-sm p-3">
+          <div className={cn(
+            "bg-card border rounded-2xl rounded-tr-sm p-3",
+            isFailed ? "border-destructive/50 bg-destructive/5" : "border-border"
+          )}>
             <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
             
             {/* Attachments */}
@@ -100,8 +106,29 @@ export function MessageBubble({
             )}
           </div>
           
+          {/* Failed indicator */}
+          {isFailed && (
+            <div className="flex items-center justify-end gap-2 mt-2">
+              <span className="text-[10px] text-destructive flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Falha ao enviar
+              </span>
+              {onRetry && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px] text-destructive hover:text-destructive gap-1"
+                  onClick={() => onRetry(message.content)}
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Reenviar
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Timestamp */}
-          {showTimestamp && (
+          {showTimestamp && !isFailed && (
             <p className="text-[10px] text-muted-foreground mt-1 text-right">
               Mensagem Enviada {formattedDate}
             </p>

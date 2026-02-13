@@ -32,6 +32,7 @@ export type InboxCategory =
   | "all" 
   | "new" 
   | "assigned" 
+  | "pending"
   | "favourites" 
   | "negotiations" 
   | "closed" 
@@ -77,6 +78,7 @@ const conversationCategories: CategoryItem[] = [
   { id: "new", label: "Novas" },
   { id: "all", label: "Todas" },
   { id: "assigned", label: "Atribuídas" },
+  { id: "pending", label: "Pendentes", icon: Clock },
   { id: "favourites", label: "Favoritas", icon: Star },
   { id: "negotiations", label: "Negociações", icon: Briefcase },
   { id: "closed", label: "Fechadas", icon: CheckCircle },
@@ -101,7 +103,8 @@ export function InboxSidebar({
     new: allConversations?.filter(c => c.unread_count > 0 && c.status === "open").length || 0,
     all: allConversations?.filter(c => c.status === "open").length || 0,
     assigned: allConversations?.filter(c => c.assigned_to && c.status === "open").length || 0,
-    favourites: 0, // Would need a favourites flag
+    pending: allConversations?.filter(c => c.status === "pending").length || 0,
+    favourites: 0,
     negotiations: allConversations?.filter(c => {
       const intent = c.user_intent || c.ai_intent;
       return intent === "sales" && c.status === "open";
