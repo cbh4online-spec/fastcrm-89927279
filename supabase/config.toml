@@ -243,3 +243,6 @@ verify_jwt = false
 
 [functions.whatsapp-send-message]
 verify_jwt = false
+
+[functions.calculate-conversation-priority]
+verify_jwt = false

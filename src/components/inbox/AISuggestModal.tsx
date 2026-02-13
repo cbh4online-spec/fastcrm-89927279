@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useInboxAI, LeadData, OpportunityData, ReplySuggestion } from "@/hooks/useInboxAI";
 import { Message } from "@/hooks/useMessages";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AISuggestModalProps {
   open: boolean;
@@ -21,6 +22,8 @@ interface AISuggestModalProps {
   opportunityData?: OpportunityData;
   channel: string;
   onSelectSuggestion: (text: string) => void;
+  conversationId?: string;
+  workspaceId?: string;
 }
 
 type TonePreset = "direct" | "consultative" | "commercial";
@@ -39,6 +42,8 @@ export function AISuggestModal({
   opportunityData,
   channel,
   onSelectSuggestion,
+  conversationId,
+  workspaceId,
 }: AISuggestModalProps) {
   const [activeTone, setActiveTone] = useState<TonePreset>("direct");
   const [suggestions, setSuggestions] = useState<ReplySuggestion[]>([]);
@@ -57,8 +62,28 @@ export function AISuggestModal({
     }
   };
 
+  const logAIUsage = async (text: string) => {
+    if (!conversationId || !workspaceId) return;
+    try {
+      await supabase.from("ai_agent_executions").insert({
+        workspace_id: workspaceId,
+        agent_type: "inbox_suggest",
+        trigger_type: "manual",
+        entity_id: conversationId,
+        entity_type: "conversation",
+        executive_summary: `AI suggestion used with tone: ${activeTone}`,
+        input_summary: { tone: activeTone, conversation_id: conversationId } as any,
+        output: { suggestion_text: text.slice(0, 500) } as any,
+        reasoning_trace: {} as any,
+      });
+    } catch {
+      // Non-blocking: don't fail the action if logging fails
+    }
+  };
+
   const handleSelect = (text: string) => {
     onSelectSuggestion(text);
+    logAIUsage(text);
     onOpenChange(false);
   };
 

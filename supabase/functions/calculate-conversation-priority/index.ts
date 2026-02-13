@@ -15,44 +15,37 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { workspace_id, conversation_id, batch } = await req.json();
+    const { workspace_id, conversation_id, batch, all_workspaces } = await req.json();
 
-    if (batch && workspace_id) {
-      // Batch mode: recalculate all open conversations for a workspace
-      const { data: conversations, error } = await supabase
+    if (batch && all_workspaces) {
+      // All workspaces mode: get distinct workspace_ids with open conversations
+      const { data: workspaces, error: wsError } = await supabase
         .from("conversations")
-        .select("id, channel, last_message_at, unread_count, status, ai_intent, ai_priority, lead_id")
-        .eq("workspace_id", workspace_id)
-        .eq("status", "open")
-        .limit(500);
+        .select("workspace_id")
+        .eq("status", "open");
 
-      if (error) throw error;
+      if (wsError) throw wsError;
 
-      const updates = [];
-      for (const conv of conversations || []) {
-        const score = calculateScore(conv);
-        updates.push({
-          id: conv.id,
-          conversation_priority_score: score.score,
-          conversation_status_simplified: score.status,
-          sla_deadline: score.slaDeadline,
-        });
-      }
+      const uniqueWsIds = [...new Set((workspaces || []).map((w: any) => w.workspace_id))];
+      let totalUpdated = 0;
 
-      // Batch update
-      for (const update of updates) {
-        await supabase
-          .from("conversations")
-          .update({
-            conversation_priority_score: update.conversation_priority_score,
-            conversation_status_simplified: update.conversation_status_simplified,
-            sla_deadline: update.sla_deadline,
-          })
-          .eq("id", update.id);
+      for (const wsId of uniqueWsIds) {
+        const count = await recalculateWorkspace(supabase, wsId as string);
+        totalUpdated += count;
       }
 
       return new Response(
-        JSON.stringify({ updated: updates.length }),
+        JSON.stringify({ updated: totalUpdated, workspaces: uniqueWsIds.length }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (batch && workspace_id) {
+      // Single workspace batch mode
+      const count = await recalculateWorkspace(supabase, workspace_id);
+
+      return new Response(
+        JSON.stringify({ updated: count }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -116,6 +109,41 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+async function recalculateWorkspace(supabase: any, workspaceId: string): Promise<number> {
+  const { data: conversations, error } = await supabase
+    .from("conversations")
+    .select("id, channel, last_message_at, unread_count, status, ai_intent, ai_priority, lead_id")
+    .eq("workspace_id", workspaceId)
+    .eq("status", "open")
+    .limit(500);
+
+  if (error) throw error;
+
+  const updates = [];
+  for (const conv of conversations || []) {
+    const score = calculateScore(conv);
+    updates.push({
+      id: conv.id,
+      conversation_priority_score: score.score,
+      conversation_status_simplified: score.status,
+      sla_deadline: score.slaDeadline,
+    });
+  }
+
+  for (const update of updates) {
+    await supabase
+      .from("conversations")
+      .update({
+        conversation_priority_score: update.conversation_priority_score,
+        conversation_status_simplified: update.conversation_status_simplified,
+        sla_deadline: update.sla_deadline,
+      })
+      .eq("id", update.id);
+  }
+
+  return updates.length;
+}
 
 function calculateScore(
   conv: any,
