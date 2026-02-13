@@ -1,84 +1,69 @@
 
-## Fix: Autopilot Nao Usa Goals do Agente
 
-### Problema
+## Fix: Autopilot Nao Responde a Perguntas sobre Produtos
 
-O autopilot esta a gerar respostas genericas ("Perfeito, Jorge! Estou pronto. No que e que posso ajudar?") porque:
+### Problemas Identificados (3 causas raiz)
 
-1. A tabela `autopilot_config` (legacy) e encontrada primeiro e tem `persona_id: null` -- nao liga nenhuma persona
-2. O agente IG ("Redes Sociais IG") tem persona configurada (`IA de Vendas`) mas tem `autopilot_enabled: false` e `goal_config: {}`
-3. Mesmo que o agente fosse usado, o campo `goal_config` nunca e passado ao `ai-inbox-reply`
-4. A funcao `buildSystemPrompt` no `ai-inbox-reply` nao tem conceito de "goals" do agente
+**1. Modelo de embeddings nao suportado**
+O `ai-inbox-reply` tenta usar `text-embedding-ada-002` para pesquisa semantica, mas o Lovable AI Gateway nao suporta modelos de embedding -- apenas modelos de chat. O erro nos logs:
+```
+invalid model: text-embedding-ada-002, allowed models: [openai/gpt-5-mini ...]
+```
+Resultado: A pesquisa semantica falha SEMPRE e cai no fallback de texto.
 
-Resultado: a IA nao sabe qual o objetivo da conversa e da respostas vagas.
+**2. Entradas de conhecimento estao em "draft"**
+A entrada que responde a "Tem modulo de proposta?" (ID `77cee4f7`) esta com `status: draft`. O fallback de texto filtra por `status = 'validated'`, por isso nunca encontra o conteudo relevante. Resultado: 0 entradas encontradas.
+
+**3. Sem conhecimento = respostas genericas**
+Com 0 entradas de KB, a IA so tem as perguntas de qualificacao do `goal_config` e responde de forma vaga em vez de dar informacao concreta sobre o produto.
 
 ---
 
 ### Correcao (3 partes)
 
-#### 1. Priorizar `ai_agents` sobre `autopilot_config` legacy
+#### 1. Substituir embedding por pesquisa AI-powered
 
-**Ficheiro**: `supabase/functions/ghl-webhook-message/index.ts`
+**Ficheiro**: `supabase/functions/ai-inbox-reply/index.ts` (funcao `fetchKnowledgeContext`)
 
-Inverter a ordem de resolucao: primeiro verificar `ai_agents` para o canal, e so usar `autopilot_config` como fallback. Isto garante que o agente com persona e goals configurados e usado quando existe.
+Remover a chamada a `text-embedding-ada-002` (que nunca funciona). Em substituicao, usar duas estrategias de pesquisa:
 
-Quando o agente e encontrado, extrair `goal_config` e passa-lo na chamada a `ai-inbox-reply`.
+- **Pesquisa por texto (ILIKE)**: Melhorar a extracao de keywords da query para captar termos relevantes como "proposta", "modulo", etc. Usar palavras individuais em OR em vez de concatenar com AND.
+- **Pesquisa por titulo/question match**: Adicionar busca directa por correspondencia de titulo e question, que sao campos curtos e bem definidos.
 
-#### 2. Passar `goalConfig` na chamada ao `ai-inbox-reply`
+Manter o threshold de similaridade como 0.7 para resultados de texto.
 
-**Ficheiro**: `supabase/functions/ghl-webhook-message/index.ts` (linha ~921)
+#### 2. Validar as entradas de Knowledge Base
 
-Adicionar campo `goalConfig` no body da chamada fetch a `ai-inbox-reply`:
-
-```
-goalConfig: agentSource?.goal_config || undefined
-```
-
-#### 3. Injetar Goals no System Prompt
-
-**Ficheiro**: `supabase/functions/ai-inbox-reply/index.ts`
-
-- Receber `goalConfig` no request body
-- No `buildSystemPrompt`, adicionar uma nova seccao "Agent Goals" que instrui a IA sobre o objetivo especifico da conversa
-
-Quando `goalConfig` tem campos preenchidos (ex: `handover_max_retries`, `auto_handover_enabled`), injetar instrucoes como:
-- "O teu objetivo principal e qualificar o lead e guia-lo para agendar uma reuniao"
-- "Apos 2 falhas consecutivas em responder, transfere para atendimento humano"
-
-Se `goal_config` estiver vazio MAS a persona existir, usar o `system_prompt` da persona como guia de objetivo (ja funciona parcialmente mas a persona nao e carregada porque `persona_id` e null no legacy config).
-
-#### 4. Ativar autopilot no agente IG (migracao DB)
-
-O agente IG tem `autopilot_enabled: false`. Para que o novo fluxo funcione, ativar o autopilot no agente e configurar um `goal_config` basico:
+**Migracao DB**: Atualizar as entradas em estado `draft` para `validated` no workspace de producao, para que fiquem disponiveis para o autopilot:
 
 ```sql
-UPDATE ai_agents 
-SET autopilot_enabled = true,
-    goal_config = '{
-      "primary_goal": "qualify_and_convert",
-      "qualification_questions": ["Qual o seu interesse principal?", "Ja utiliza alguma ferramenta de CRM?", "Qual o tamanho da sua equipa?"],
-      "conversion_action": "schedule_meeting",
-      "auto_handover_enabled": true,
-      "handover_max_retries": 2
-    }'::jsonb
-WHERE id = 'b39aca29-a9c4-4a2d-be2b-4ed1fbdc245d';
+UPDATE knowledge_entries 
+SET status = 'validated' 
+WHERE workspace_id = 'd9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f' 
+  AND status = 'draft';
 ```
 
----
+Isto inclui a entrada critica "Quais sao os modulos core do FastCRM?" que contem a resposta sobre propostas.
+
+#### 3. Melhorar o fallback de pesquisa textual
+
+**Ficheiro**: `supabase/functions/ai-inbox-reply/index.ts` (funcao `fetchKnowledgeContext`, seccao text fallback)
+
+A pesquisa textual atual concatena keywords com `%` (`%vamos%testar%novo%`), o que e ineficaz. Alterar para:
+- Extrair palavras significativas (>3 chars, excluir stopwords como "tem", "de", "o", "que")
+- Fazer OR entre cada keyword individual: `title.ilike.%proposta%,question.ilike.%proposta%,content.ilike.%proposta%`
+- Adicionar tambem busca por `title.ilike.%modulo%` etc.
 
 ### Detalhe Tecnico
 
 | Ficheiro | Alteracao |
 |----------|-----------|
-| `supabase/functions/ghl-webhook-message/index.ts` | Inverter prioridade: `ai_agents` primeiro, `autopilot_config` como fallback |
-| `supabase/functions/ghl-webhook-message/index.ts` | Passar `goalConfig` na chamada ao `ai-inbox-reply` |
-| `supabase/functions/ai-inbox-reply/index.ts` | Receber `goalConfig`, injetar no `buildSystemPrompt` como instrucoes de objetivo |
-| DB migration | Ativar autopilot e definir goals no agente IG |
+| `supabase/functions/ai-inbox-reply/index.ts` | Remover chamada a embedding API; melhorar text search com keywords individuais e stopwords |
+| DB migration | `UPDATE knowledge_entries SET status = 'validated'` para entradas draft |
 
 ### Resultado Esperado
 
-Em vez de "No que posso ajudar?", o bot vai:
-1. Reconhecer que o Jorge perguntou sobre "modulo de proposta"
-2. Consultar a Knowledge Base para informacao sobre propostas
-3. Responder com informacao relevante E guiar para o proximo passo (qualificacao ou agendamento)
-4. Seguir o objetivo configurado no `goal_config` do agente
+Quando o Jorge pergunta "Tem modulo de proposta?":
+1. A pesquisa textual extrai "modulo" e "proposta" como keywords
+2. Encontra a entrada "Quais sao os modulos core do FastCRM?" (agora validated)
+3. A IA responde com: "Sim, temos! O modulo de Vendas & Faturacao inclui Propostas, faturas e catalogo..." e guia para o proximo passo comercial
