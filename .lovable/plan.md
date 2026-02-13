@@ -1,98 +1,71 @@
 
+## Fix: Autopilot Disparando Multiplas Respostas por Mensagem
 
-## Fix: Recepcao Duplicada de Mensagens (Autopilot a Disparar Multiplas Vezes)
+### Problema Confirmado (Dados Reais)
 
-### Problema Identificado
+Na conversa `1ef06a4a`, apos a mensagem inbound "Vamos testar de novo" as 15:13:03, houve **10 triggers do autopilot** entre 15:13:10 e 15:17:23, resultando em **7 respostas outbound duplicadas**.
 
-O Autopilot esta a enviar multiplas respostas para cada mensagem inbound. A conversa do Jorge Cardoso mostra **7 respostas automaticas** para uma unica mensagem inbound ("Vamos testar de novo") — todas em 30 segundos.
+### Causa Raiz
 
-### Causas Raiz (3 problemas distintos)
+Dois problemas combinados:
 
-**1. `cron-sync-messages` usa contador global em vez de por-conversa (Blocker)**
+**1. `cron-sync-messages` re-sincroniza mensagens do GHL a cada 5 segundos**
 
-Na linha 286, o `messagesCreated` e um acumulador global. Se uma mensagem foi criada para QUALQUER conversa, o autopilot dispara para TODAS as conversas com mensagens inbound recentes nessa iteracao.
+O cron faz 12 iteracoes/minuto. Cada iteracao busca mensagens dos ultimos 30 min via GHL API. Quando o autopilot envia uma resposta via GHL, essa resposta aparece na proxima chamada da API GHL como uma mensagem "nova". O cron insere-a no DB (e um outbound novo), `convMessagesCreated++`, depois verifica o ultimo inbound — e re-dispara o autopilot. Ciclo vicioso: autopilot responde -> GHL retorna resposta -> cron sincroniza -> detecta novo inbound -> re-dispara.
 
-**2. `cron-sync-messages` re-processa mensagens a cada 5 segundos (Blocker)**
+**2. Dedup window de 30s e insuficiente**
 
-A janela de 30 minutos (`thirtyMinAgo`) faz com que mensagens recentes sejam verificadas 360 vezes (12 iteracoes/min x 30 min). Mesmo que a insercao falhe por duplicado (unique index), o autopilot e disparado se `messagesCreated > 0` globalmente.
+O cooldown de 30s em `ghl-webhook-message` (linha 745) nao cobre o intervalo entre iteracoes do cron (~15-20s), e apos 30s a janela expira, permitindo um novo trigger.
 
-**3. Sem deduplicacao de triggers do Autopilot (High)**
+### Solucao (3 correcoes cirurgicas)
 
-`triggerAutopilotResponse` nao verifica se ja respondeu ao ultimo inbound message. Cada trigger gera uma nova resposta AI independente.
+#### Correcao 1: `cron-sync-messages` — Nao disparar autopilot se ja existe trigger recente (5 min)
 
-### Solucao
+Ficheiro: `supabase/functions/cron-sync-messages/index.ts`
 
-#### Ficheiro 1: `supabase/functions/cron-sync-messages/index.ts`
+Substituir a verificacao de outbound recente (60s) por uma verificacao de **autopilot trigger recente (5 minutos)** na tabela `autopilot_events`. Isto previne completamente o re-disparo pelo cron.
 
-**Alteracao A** — Contador por conversa em vez de global:
-- Mover `messagesCreated` para dentro do loop de conversas (variavel local `convMessagesCreated`)
-- Usar `convMessagesCreated > 0` na condicao de trigger do autopilot
-
-**Alteracao B** — Nao disparar autopilot se ultimo outbound e recente:
-- Antes de chamar `triggerAutopilot`, verificar se ja existe uma resposta outbound recente (ultimos 60s) para essa conversa
-- Se existir, skip do trigger
-
-#### Ficheiro 2: `supabase/functions/ghl-webhook-message/index.ts`
-
-**Alteracao C** — Deduplicar autopilot triggers:
-- Na funcao `triggerAutopilotResponse`, antes de gerar resposta AI (passo 8-10), verificar se ja existe um `autopilot_events` com `event_type = 'triggered'` nos ultimos 30 segundos para esta conversa
-- Se existir, skip (log e return)
-
-### Detalhes Tecnicos
-
-**`cron-sync-messages/index.ts`** — Alteracao no loop principal (linhas 160-298):
+Linhas 292-313: substituir o bloco de `recentOutbound` por:
 
 ```text
-// ANTES (linha 160): messagesCreated global
-let messagesCreated = 0;
-
-// DEPOIS: mover para dentro do loop de conversas
-for (const ghlConv of recentConversations) {
-  let convMessagesCreated = 0;  // POR CONVERSA
-  ...
-  // Na insercao (linha 271):
-  if (!msgError) {
-    convMessagesCreated++;
-    messagesCreated++;  // manter para stats
-    ...
-  }
-  
-  // Na condicao autopilot (linha 286):
-  if (recentMessages.length > 0 && convMessagesCreated > 0) {
-    // Trigger autopilot
-  }
-}
-```
-
-**`ghl-webhook-message/index.ts`** — Dedup na funcao `triggerAutopilotResponse` (antes da linha 843):
-
-```text
-// Verificar trigger recente (ultimos 30s)
+// Check if autopilot was already triggered for this conversation in the last 5 min
 const { data: recentTrigger } = await supabase
   .from("autopilot_events")
   .select("id")
   .eq("conversation_id", conversationId)
   .eq("event_type", "triggered")
-  .gte("created_at", new Date(Date.now() - 30000).toISOString())
+  .gte("created_at", new Date(Date.now() - 300000).toISOString())
   .limit(1)
   .maybeSingle();
 
 if (recentTrigger) {
-  console.log("[AUTOPILOT] Skipping — already triggered in last 30s");
-  return;
+  console.log("[Cron Sync] Skipping autopilot — already triggered in last 5min", conversationId);
+} else {
+  triggerAutopilot(...);
 }
 ```
+
+#### Correcao 2: `ghl-webhook-message` — Aumentar dedup window de 30s para 120s
+
+Ficheiro: `supabase/functions/ghl-webhook-message/index.ts`
+
+Linha 745: alterar `30000` para `120000` (2 minutos de cooldown).
+
+#### Correcao 3: `ghl-webhook-message` — Verificar outbound recente ANTES de gerar resposta AI
+
+Ficheiro: `supabase/functions/ghl-webhook-message/index.ts`
+
+Apos o delay (linha 856) e antes de buscar mensagens para contexto (linha 858), adicionar uma verificacao: se ja existe uma resposta outbound enviada apos o ultimo inbound, nao gerar nova resposta. Isto protege contra race conditions onde multiplos triggers estao em paralelo com delays diferentes.
 
 ### Ficheiros Afetados
 
 | Ficheiro | Alteracao |
 |---|---|
-| `supabase/functions/cron-sync-messages/index.ts` | Contador por conversa + skip se outbound recente |
-| `supabase/functions/ghl-webhook-message/index.ts` | Dedup de triggers por tempo (30s cooldown) |
+| `supabase/functions/cron-sync-messages/index.ts` | Substituir outbound check por autopilot_events check (5 min) |
+| `supabase/functions/ghl-webhook-message/index.ts` | Aumentar dedup para 120s + verificacao pos-delay |
 
 ### Resultado Esperado
 
-- Cada mensagem inbound gera no maximo 1 resposta do autopilot
-- Cron sync nao re-dispara autopilot para mensagens ja processadas
-- Cooldown de 30 segundos previne race conditions entre webhook e cron
-
+- Cada mensagem inbound gera no maximo 1 trigger do autopilot
+- Window de 5 min previne todas as re-execucoes do cron
+- Verificacao pos-delay cobre race conditions entre triggers paralelos
