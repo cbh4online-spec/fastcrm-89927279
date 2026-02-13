@@ -17,6 +17,7 @@ import {
   getPreviewVariables
 } from '@/types/communicationTemplate';
 import { renderDynamicTemplate, getDynamicPreviewVariables, extractConditions } from '@/lib/dynamicTemplateEngine';
+import { stripStructureLabels } from '@/lib/templateUtils';
 import { toast } from 'sonner';
 
 interface TemplatePreviewDialogProps {
@@ -39,9 +40,11 @@ export function TemplatePreviewDialog({ open, onOpenChange, template }: Template
   const previewSubject = template.subject 
     ? (template.isDynamic ? renderDynamicTemplate(template.subject, previewVariables) : renderTemplate(template.subject, previewVariables))
     : '';
-  const previewBody = template.isDynamic 
-    ? renderDynamicTemplate(template.body, previewVariables)
-    : renderTemplate(template.body, previewVariables);
+  const previewBody = stripStructureLabels(
+    template.isDynamic 
+      ? renderDynamicTemplate(template.body, previewVariables)
+      : renderTemplate(template.body, previewVariables)
+  );
 
   const conditions = template.isDynamic ? extractConditions(template.body) : [];
 

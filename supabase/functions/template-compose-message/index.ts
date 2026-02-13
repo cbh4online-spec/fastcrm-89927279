@@ -284,6 +284,7 @@ COMPRIMENTO: ${lengthLabels[chosenLength] || "média"} (máximo ${targetCharLimi
 Respeite ESTRITAMENTE o budget de caracteres por bloco indicado abaixo.
 
 REGRAS CRÍTICAS:
+- NUNCA inclua labels de bloco (Atenção, Interesse, Desejo, Ação, Problema, Agitação, Solução, etc.) no texto da mensagem. O conteúdo deve fluir naturalmente sem cabeçalhos de estrutura.
 - Nunca invente factos sobre a empresa ou lead
 - Se um dado está em falta, use linguagem neutra sem inventar
 - Máximo ${targetCharLimit} caracteres TOTAL

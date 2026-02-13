@@ -64,6 +64,7 @@ import {
   extractVariables 
 } from "@/lib/templateVariables";
 import { renderDynamicTemplate } from "@/lib/dynamicTemplateEngine";
+import { stripStructureLabels } from "@/lib/templateUtils";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
@@ -267,9 +268,10 @@ export function InboxTemplatePanel({
     
     if (commTpl) {
       // Use dynamic rendering for communication templates
-      const content = commTpl.isDynamic && dynamicContext
+      const rawContent = commTpl.isDynamic && dynamicContext
         ? renderDynamicTemplate(commTpl.body, dynamicContext.allVariables)
         : commTpl.body;
+      const content = stripStructureLabels(rawContent);
       const subject = commTpl.subject
         ? (commTpl.isDynamic && dynamicContext
           ? renderDynamicTemplate(commTpl.subject, dynamicContext.allVariables)
@@ -279,7 +281,7 @@ export function InboxTemplatePanel({
       setEditedSubject(subject);
     } else {
       // Standard template rendering
-      const rendered = renderTemplate(template.content, templateContext);
+      const rendered = stripStructureLabels(renderTemplate(template.content, templateContext));
       const renderedSubject = template.subject 
         ? renderTemplate(template.subject, templateContext)
         : "";
