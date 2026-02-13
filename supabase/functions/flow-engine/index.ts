@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,8 +29,14 @@ interface FlowStep {
   condition_false_step_id?: string;
   action_type?: string;
   action_config?: Record<string, unknown>;
-  variable_to_collect?: string;
+  variable_id?: string;
   is_entry_point?: boolean;
+}
+
+interface FlowVariable {
+  id: string;
+  name: string;
+  type: string;
 }
 
 interface FlowSession {
@@ -39,8 +45,9 @@ interface FlowSession {
   conversation_id: string;
   lead_id?: string;
   current_step_id?: string;
-  state: "active" | "completed" | "abandoned" | "handed_off";
-  collected_variables: Record<string, unknown>;
+  status: "active" | "completed" | "abandoned" | "handed_off";
+  variables: Record<string, unknown>;
+  workspace_id?: string;
 }
 
 interface ConversationalFlow {
@@ -51,6 +58,7 @@ interface ConversationalFlow {
   trigger_channels?: string[];
   trigger_keywords?: string[];
   status: "draft" | "active" | "paused" | "archived";
+  workspace_id?: string;
 }
 
 // Find matching active flow for this conversation context
@@ -60,7 +68,6 @@ async function findActiveFlow(
   channel?: string,
   userMessage?: string
 ): Promise<ConversationalFlow | null> {
-  // First, get all active flows for this workspace
   const { data: flows, error } = await supabase
     .from("conversational_flows")
     .select("*")
@@ -72,7 +79,6 @@ async function findActiveFlow(
     return null;
   }
 
-  // Filter by channel if specified
   let matchingFlows = flows;
   if (channel) {
     matchingFlows = flows.filter((f: ConversationalFlow) => 
@@ -80,7 +86,6 @@ async function findActiveFlow(
     );
   }
 
-  // Check for keyword triggers
   if (userMessage && matchingFlows.length > 1) {
     const lowerMessage = userMessage.toLowerCase();
     const keywordMatch = matchingFlows.find((f: ConversationalFlow) =>
@@ -89,7 +94,6 @@ async function findActiveFlow(
     if (keywordMatch) return keywordMatch;
   }
 
-  // Return first matching flow (priority-based in future)
   return matchingFlows[0] || null;
 }
 
@@ -106,7 +110,7 @@ async function getOrCreateSession(
     .select("*")
     .eq("flow_id", flow.id)
     .eq("conversation_id", conversationId)
-    .eq("state", "active")
+    .eq("status", "active")
     .single();
 
   if (existingSession) {
@@ -129,8 +133,8 @@ async function getOrCreateSession(
       conversation_id: conversationId,
       lead_id: leadId,
       current_step_id: entryStep?.id,
-      state: "active",
-      collected_variables: {},
+      status: "active",
+      variables: {},
       workspace_id: flow.workspace_id,
     })
     .select()
@@ -156,6 +160,20 @@ async function getCurrentStep(
     .single();
 
   return step as FlowStep | null;
+}
+
+// Get variable details by ID
+async function getFlowVariable(
+  supabase: ReturnType<typeof createClient>,
+  variableId: string
+): Promise<FlowVariable | null> {
+  const { data: variable } = await supabase
+    .from("flow_variables")
+    .select("id, name, type")
+    .eq("id", variableId)
+    .single();
+
+  return variable as FlowVariable | null;
 }
 
 // Extract variable from user message
@@ -232,48 +250,54 @@ async function processStep(
 
   switch (step.step_type) {
     case "message":
-      // Send message and move to next step
       response = step.message_content || null;
       break;
 
-    case "question":
-      // Check if we're waiting for answer or sending question
-      if (step.variable_to_collect && !variables[`_answered_${step.id}`]) {
+    case "question": {
+      // Resolve variable info from variable_id
+      let varName = "response";
+      let varType = "text";
+      
+      if (step.variable_id) {
+        const flowVar = await getFlowVariable(supabase, step.variable_id);
+        if (flowVar) {
+          varName = flowVar.name;
+          varType = flowVar.type || "text";
+        }
+      }
+
+      if (!variables[`_answered_${step.id}`]) {
         // Send the question
         response = step.message_content || null;
         updatedVariables[`_answered_${step.id}`] = false;
         nextStepId = step.id; // Stay on this step until answered
-      } else if (step.variable_to_collect) {
+      } else {
         // Extract and store variable from user response
-        const extracted = extractVariable(userMessage, step.variable_to_collect.split(":")[1] || "text");
+        const extracted = extractVariable(userMessage, varType);
         if (extracted) {
-          const varName = step.variable_to_collect.split(":")[0] || step.variable_to_collect;
           updatedVariables[varName] = extracted;
           updatedVariables[`_answered_${step.id}`] = true;
         }
       }
       break;
+    }
 
-    case "condition":
-      // Evaluate condition and branch
+    case "condition": {
       const conditionResult = evaluateCondition(step, updatedVariables);
       nextStepId = conditionResult 
         ? step.condition_true_step_id || null
         : step.condition_false_step_id || null;
       break;
+    }
 
     case "action":
-      // Execute action (in future: create lead, update field, send webhook)
       console.log(`[FLOW-ENGINE] Executing action: ${step.action_type}`, step.action_config);
-      // Action execution would go here
       break;
 
     case "goal":
-      // Mark goal as completed
       completed = true;
       response = step.message_content || null;
       
-      // Log analytics
       await supabase.from("flow_analytics").upsert({
         flow_id: session.flow_id,
         date: new Date().toISOString().split("T")[0],
@@ -288,7 +312,6 @@ async function processStep(
       break;
 
     case "handoff":
-      // Transfer to human agent
       handoff = true;
       response = step.message_content || "Um agente humano vai continuar esta conversa em breve.";
       break;
@@ -309,10 +332,10 @@ async function executeFlow(
 }> {
   const responses: string[] = [];
   let currentStepId = session.current_step_id;
-  let variables = { ...session.collected_variables };
+  let variables = { ...session.variables };
   let sessionState: "active" | "completed" | "handed_off" = "active";
   let iterationCount = 0;
-  const maxIterations = 10; // Prevent infinite loops
+  const maxIterations = 10;
 
   while (currentStepId && iterationCount < maxIterations) {
     iterationCount++;
@@ -338,28 +361,25 @@ async function executeFlow(
       break;
     }
 
-    // Move to next step (unless we're waiting for user input)
     if (result.nextStepId === currentStepId) {
-      // Waiting for input on current step
       break;
     }
     
     currentStepId = result.nextStepId;
     
-    // Only continue auto-advancing for non-interactive steps
     if (step.step_type === "question") {
       break;
     }
   }
 
-  // Update session
+  // Update session with correct column names
   await supabase
     .from("conversation_sessions")
     .update({
       current_step_id: currentStepId,
-      collected_variables: variables,
-      state: sessionState,
-      last_interaction_at: new Date().toISOString(),
+      variables: variables,
+      status: sessionState,
+      updated_at: new Date().toISOString(),
     })
     .eq("id", session.id);
 
@@ -401,7 +421,6 @@ serve(async (req) => {
       );
     }
 
-    // Find active flow for this context
     const flow = await findActiveFlow(supabase, workspaceId, channel, userMessage);
     
     if (!flow) {
@@ -414,10 +433,7 @@ serve(async (req) => {
       );
     }
 
-    // Get or create session
     const session = await getOrCreateSession(supabase, flow, conversationId, leadId);
-
-    // Execute flow
     const result = await executeFlow(supabase, session, userMessage);
 
     return new Response(
