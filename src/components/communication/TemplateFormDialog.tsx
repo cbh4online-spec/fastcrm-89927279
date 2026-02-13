@@ -73,6 +73,9 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
     isDynamic: false,
     dynamicRules: {} as Record<string, unknown>,
     personalizationLevel: 'basic' as PersonalizationLevel,
+    structureFamilies: ['AIDA'] as string[],
+    brandConstraints: {} as Record<string, unknown>,
+    maxLengthByChannel: { whatsapp: 350, email: 1600, sms: 160, inbox: 800 } as Record<string, number>,
   });
 
   useEffect(() => {
@@ -92,6 +95,9 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
         isDynamic: template.isDynamic || false,
         dynamicRules: template.dynamicRules || {},
         personalizationLevel: template.personalizationLevel || 'basic',
+        structureFamilies: template.structureFamilies || ['AIDA'],
+        brandConstraints: template.brandConstraints || {},
+        maxLengthByChannel: template.maxLengthByChannel || { whatsapp: 350, email: 1600, sms: 160, inbox: 800 },
       });
     } else {
       setFormData({
@@ -109,6 +115,9 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
         isDynamic: false,
         dynamicRules: {},
         personalizationLevel: 'basic',
+        structureFamilies: ['AIDA'],
+        brandConstraints: {},
+        maxLengthByChannel: { whatsapp: 350, email: 1600, sms: 160, inbox: 800 },
       });
     }
   }, [template, open]);

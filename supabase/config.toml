@@ -261,3 +261,15 @@ verify_jwt = false
 
 [functions.template-generate-predictive-copy]
 verify_jwt = false
+
+[functions.structure-log-event]
+verify_jwt = false
+
+[functions.structure-recompute-stats]
+verify_jwt = false
+
+[functions.structure-predict-best]
+verify_jwt = false
+
+[functions.template-compose-message]
+verify_jwt = false
