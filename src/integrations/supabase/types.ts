@@ -27472,10 +27472,12 @@ export type Database = {
           reply_rate: number | null
           samples: number | null
           score: number | null
+          stage_progression_rate: number | null
           template_id: string
           tone: string | null
           updated_at: string | null
           variant_id: string | null
+          weighted_score: number | null
           win_rate: number | null
           workspace_id: string
         }
@@ -27489,10 +27491,12 @@ export type Database = {
           reply_rate?: number | null
           samples?: number | null
           score?: number | null
+          stage_progression_rate?: number | null
           template_id: string
           tone?: string | null
           updated_at?: string | null
           variant_id?: string | null
+          weighted_score?: number | null
           win_rate?: number | null
           workspace_id: string
         }
@@ -27506,10 +27510,12 @@ export type Database = {
           reply_rate?: number | null
           samples?: number | null
           score?: number | null
+          stage_progression_rate?: number | null
           template_id?: string
           tone?: string | null
           updated_at?: string | null
           variant_id?: string | null
+          weighted_score?: number | null
           win_rate?: number | null
           workspace_id?: string
         }
