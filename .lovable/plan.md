@@ -1,122 +1,97 @@
 
 
-## Smart Dynamic Templates -- Templates Dinamicos Inteligentes
+## Otimizacao do Learning Engine -- Revenue-First Scoring
 
 ### Resumo
 
-Adicionar sistema de templates com variaveis inteligentes calculadas, sintaxe condicional (`{{#if}}`), e personalizacao automatica baseada no perfil do lead. Os templates adaptam tom, CTA e conteudo em tempo real usando dados do CRM e metricas calculadas por IA.
+Recalibrar a formula de score preditivo para priorizar receita real (win_rate + opportunity_rate) em vez de reply_rate. Adicionar logica adaptativa por contexto (pipeline stage, potential value) e nova metrica `stage_progression_rate`.
 
 ---
 
-### 1. Migracao DB -- Novos Campos
+### 1. Migracao DB -- Novos Campos em `workspace_template_stats`
 
-Adicionar 3 campos na tabela `communication_templates`:
-
-```text
-is_dynamic BOOLEAN DEFAULT false
-dynamic_rules JSONB DEFAULT '{}'
-personalization_level TEXT DEFAULT 'basic'  (basic, contextual, predictive)
-```
-
-### 2. Tipos TypeScript
-
-Atualizar `src/types/communicationTemplate.ts`:
-
-- Adicionar `isDynamic`, `dynamicRules`, `personalizationLevel` ao interface `CommunicationTemplate`
-- Criar type `PersonalizationLevel = 'basic' | 'contextual' | 'predictive'`
-- Expandir `TEMPLATE_VARIABLES` com novas variaveis CRM: `company_name`, `industry`, `pipeline_stage`, `lead_score`, `potential_value`, `assigned_user`, `city`, `days_since_last_contact`
-- Criar constante `SMART_VARIABLES` para variaveis calculadas: `urgency_level`, `business_maturity`, `digital_readiness`, `conversion_probability`, `recommended_tone`
-- Adicionar `PERSONALIZATION_LABELS` constante
-
-### 3. Motor de Rendering Condicional
-
-Criar `src/lib/dynamicTemplateEngine.ts`:
-
-- Parser que processa sintaxe `{{#if condition}}...{{else}}...{{/if}}`
-- Suporta operadores: `==`, `!=`, `>`, `<`, `>=`, `<=`
-- Funcao `renderDynamicTemplate(template, variables)` que:
-  1. Resolve condicionais `{{#if}}`
-  2. Substitui variaveis `{{key}}`
-  3. Aplica fallbacks para valores null
-- Funcao `extractConditions(template)` para listar todas as condicoes usadas
-- Funcao `validateDynamicTemplate(template)` para verificar sintaxe
-
-### 4. Edge Function `generate-dynamic-template-context`
-
-Nova edge function que recebe `leadId` ou `contactId` + `workspaceId` e calcula:
+Adicionar 2 colunas:
 
 ```text
-{
-  "urgency_level": "low | medium | high",
-  "business_maturity": "early | growth | scale",
-  "digital_readiness": "low | medium | high",
-  "conversion_probability": 0-100,
-  "recommended_tone": "direct | consultative | strategic",
-  "days_since_last_contact": number
-}
+stage_progression_rate NUMERIC DEFAULT 0
+weighted_score NUMERIC DEFAULT 0
 ```
 
-Logica:
-- `urgency_level`: baseado em SLA deadline, tempo sem contacto, valor potencial
-- `business_maturity`: baseado em industry, employee_count, annual_revenue
-- `digital_readiness`: baseado em tags, notas, historico de interacao
-- `conversion_probability`: usa lead_score existente ou calcula baseado em pipeline stage + engagement
-- `recommended_tone`: derivado de lead_score (alto = direto, medio = consultivo, baixo = educacional)
+`stage_progression_rate` = proporcao de conversas onde o lead avancou de fase apos envio do template.
+`weighted_score` = score final com pesos adaptativos (distinto do `score` atual que fica como legado).
 
-Usa Lovable AI (gemini-3-flash-preview) para inferir `business_maturity` e `digital_readiness` quando dados insuficientes.
+### 2. Atualizar Edge Function `template-recompute-stats`
 
-### 5. Hook `useDynamicTemplateContext`
+Alteracoes na logica de calculo:
 
-Novo hook `src/hooks/useDynamicTemplateContext.ts`:
+**Novos pesos base (METODOPARE calibration):**
+```text
+win_rate:              0.45
+opportunity_rate:      0.35
+reply_rate:            0.10
+stage_progression:     0.10
+time_penalty:          0.05 (normalizado)
+```
 
-- Recebe `leadId` ou `contactId`
-- Chama a edge function `generate-dynamic-template-context`
-- Retorna variaveis calculadas + variaveis CRM base (nome, empresa, industria, etc.)
-- Cache de 5 minutos via React Query
+**Calculo de `stage_progression_rate`:**
+- Contar eventos onde o lead associado avancou de pipeline stage dentro de 7 dias apos o `sent`
+- Requer lookup: para cada `sent` event com `lead_id`, verificar se existe mudanca de stage na tabela `opportunities` ou `leads` no periodo
+- Simplificacao pratica: usar evento `opportunity_created` como proxy de progressao quando nao ha dados de stage change
 
-### 6. Atualizar Hook `useCommunicationTemplates`
+**Pesos adaptativos por `pipeline_stage`:**
+- Se stage = "Lead" ou inicio do funil: `opportunity_rate = 0.45, win_rate = 0.35`
+- Se stage = "Proposta" ou final do funil: `win_rate = 0.60, opportunity_rate = 0.25, reply_rate = 0.05, stage_progression = 0.05`
+- Default: pesos base
 
-Mapear os novos campos `is_dynamic`, `dynamic_rules`, `personalization_level` nas queries, create e update.
+**Revenue multiplier:**
+- Se `potential_value` medio do grupo > 0: `multiplier = 1 + (avg_potential_value / 10000 * 0.05)`, capped at 1.25
+- Aplicar ao `weighted_score` final
 
-### 7. Atualizar `TemplateFormDialog`
+**Persistir ambos:** `score` (formula antiga para retrocompatibilidade) e `weighted_score` (nova formula).
 
-- Adicionar toggle "Template Dinamico" que ativa modo avancado
-- Quando dinamico = true:
-  - Mostrar selector de `personalization_level` (Basico, Contextual, Preditivo)
-  - Na tab "Variaveis", adicionar seccao "Variaveis Inteligentes" com as calculadas
-  - Adicionar botao "Inserir Condicao" que insere bloco `{{#if}}...{{/if}}` no body
-  - Atualizar preview para processar condicionais com dados de exemplo
-- Na tab "Preview", usar o motor de rendering condicional com variaveis de exemplo enriquecidas
+### 3. Atualizar Edge Function `template-predict-best-variant`
 
-### 8. Atualizar `TemplatePreviewDialog`
+**Usar `weighted_score` em vez de `score`** para ordenar variantes.
 
-- Quando template `isDynamic`, mostrar badge "Dinamico"
-- Processar condicionais no preview com dados de exemplo
-- Mostrar seccao "Variaveis Inteligentes Usadas" listando as condicoes detectadas
+**Pesos adaptativos no momento da predicao:**
+- Receber `pipeline_stage` e `potential_value` do request
+- Ajustar pesos conforme contexto (mesma logica do recompute)
+- Se stats tem dados por `pipeline_stage`, filtrar stats relevantes
 
-### 9. Atualizar `InboxTemplatePanel`
+**Ajustar thresholds de confianca:**
+- `low`: < 50 amostras (era 30)
+- `medium`: 50-100 amostras
+- `high`: > 100 amostras
 
-- Quando um template dinamico e selecionado na Inbox:
-  1. Chamar `generate-dynamic-template-context` com o leadId da conversa
-  2. Processar template com variaveis reais do lead
-  3. Resolver condicionais automaticamente
-  4. Mostrar badge "Personalizado" no resultado
-- Adicionar indicador visual nos cards de templates dinamicos
+**Exploration rate:**
+- Se samples < 50: exploration 30% (era 20% com threshold 30)
+- Se samples >= 50: exploration 20%
 
-### 10. Atualizar Edge Function `generate-template`
+**Adicionar ao response:**
+- `revenue_impact_estimate`: `weighted_score * avg_potential_value * samples` (estimativa)
+- `opportunity_rate` e `win_rate` na lista de alternatives
 
-- Adicionar parametro `dynamic: true` que gera templates com sintaxe condicional
-- Quando `dynamic = true`, o prompt pede ao modelo para incluir blocos `{{#if}}` baseados em variaveis inteligentes
+### 4. Atualizar Hook `usePredictiveTemplates`
 
-### 11. Templates Dinamicos METODOPARE
+**`useWorkspaceTemplateStats`:** Adicionar `stage_progression_rate` e `weighted_score` ao tipo de retorno.
 
-Inserir 3 templates dinamicos via insert tool:
+**`usePredictBestVariant`:** Adicionar `revenue_impact_estimate`, `opportunity_rate`, `win_rate` ao tipo de response e alternatives.
 
-| Nome | Canal | Descricao |
-|---|---|---|
-| Qualificacao Inteligente | email | Adapta assunto e corpo baseado em conversion_probability e business_maturity |
-| Reativacao Inteligente | email | Adapta mensagem baseado em days_since_last_contact, industry e urgency_level |
-| Proposta Quente | email | Adapta CTA baseado em conversion_probability e potential_value |
+### 5. Atualizar UI -- TemplatesListPage
+
+**Nos cards de template:**
+- Mostrar `weighted_score` em vez de `score` no badge
+- Tooltip com breakdown: Win Rate, Opp Rate, Stage Progression, Reply Rate
+
+**Na tab Performance:**
+- Adicionar colunas `Stage Progression %` e `Weighted Score`
+- Ordenar por `weighted_score DESC` por defeito
+- Mostrar indicador "Revenue Contribution" estimado: soma de `potential_value` dos deals ganhos atribuidos
+
+### 6. Atualizar UI -- InboxTemplatePanel
+
+- Mostrar `weighted_score` no card de recomendacao (em vez de `score`)
+- Mostrar `revenue_impact_estimate` quando disponivel
 
 ---
 
@@ -124,28 +99,17 @@ Inserir 3 templates dinamicos via insert tool:
 
 | Ficheiro | Alteracao |
 |---|---|
-| Migracao SQL | `is_dynamic`, `dynamic_rules`, `personalization_level` |
-| `src/types/communicationTemplate.ts` | Novos tipos, variaveis CRM e inteligentes |
-| `src/lib/dynamicTemplateEngine.ts` | Novo -- parser condicional + rendering |
-| `supabase/functions/generate-dynamic-template-context/index.ts` | Novo -- calculo variaveis inteligentes |
-| `supabase/config.toml` | Declarar nova edge function |
-| `src/hooks/useDynamicTemplateContext.ts` | Novo -- hook para variaveis calculadas |
-| `src/hooks/useCommunicationTemplates.ts` | Mapear novos campos |
-| `src/components/communication/TemplateFormDialog.tsx` | Toggle dinamico + condicoes + preview |
-| `src/components/communication/TemplatePreviewDialog.tsx` | Preview com condicionais |
-| `src/components/inbox/InboxTemplatePanel.tsx` | Rendering dinamico com dados reais do lead |
-| `supabase/functions/generate-template/index.ts` | Suporte a geracao com sintaxe condicional |
-| Insert SQL | 3 templates dinamicos METODOPARE |
+| Migracao SQL | `stage_progression_rate`, `weighted_score` em `workspace_template_stats` |
+| `supabase/functions/template-recompute-stats/index.ts` | Nova formula, pesos adaptativos, revenue multiplier |
+| `supabase/functions/template-predict-best-variant/index.ts` | Usar `weighted_score`, thresholds ajustados, `revenue_impact_estimate` |
+| `src/hooks/usePredictiveTemplates.ts` | Novos campos nos tipos |
+| `src/components/communication/TemplatesListPage.tsx` | Mostrar `weighted_score`, breakdown, revenue contribution |
+| `src/components/inbox/InboxTemplatePanel.tsx` | Usar `weighted_score` e revenue estimate |
 
 ### Ordem de Implementacao
 
-1. Migracao DB (3 novos campos)
-2. Motor de rendering condicional (`dynamicTemplateEngine.ts`)
-3. Edge function `generate-dynamic-template-context` + config.toml
-4. Tipos TypeScript + hooks (context + templates)
-5. UI: TemplateFormDialog (toggle + condicoes + preview)
-6. UI: TemplatePreviewDialog (preview dinamico)
-7. UI: InboxTemplatePanel (rendering com dados reais)
-8. Atualizar edge function `generate-template` para modo dinamico
-9. Inserir templates METODOPARE
-
+1. Migracao DB (2 novos campos)
+2. `template-recompute-stats` (nova formula + pesos adaptativos)
+3. `template-predict-best-variant` (weighted_score + revenue estimate)
+4. Hook types update
+5. UI: TemplatesListPage + InboxTemplatePanel
