@@ -1,4 +1,4 @@
-import { useState, useRef, useImperativeHandle, forwardRef } from "react";
+import { useState, useRef, useImperativeHandle, forwardRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -28,6 +28,7 @@ import { InboxTemplatePanel } from "./InboxTemplatePanel";
 import { VariableContext } from "@/lib/templateVariables";
 import { TemplateFormDialog } from "@/components/communication/TemplateFormDialog";
 import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 
 interface AIMessageComposerProps {
   conversationId: string;
@@ -58,7 +59,9 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     
     const { isLoading, suggestReplies, modifyReply } = useInboxAI();
-
+    const { trackConversationReplied, trackAISuggestionGenerated, trackAISuggestionAccepted } = useCRMAnalytics();
+    const aiUsedInReply = useRef(false);
+    const templateUsedInReply = useRef(false);
     // Map channel to template channel type
     const getTemplateChannel = (): TemplateChannel => {
       switch (channel) {
@@ -100,6 +103,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
       if (result) {
         setSuggestions(result.suggestions);
         setReasoning(result.reasoning);
+        trackAISuggestionGenerated({ context: 'inbox', intent_detected: undefined, recommended_tone: result.suggestions[0]?.tone });
       }
     };
 
@@ -125,20 +129,29 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     const handleSelectSuggestion = (text: string) => {
       setMessage(text);
       setShowAIPanel(false);
+      aiUsedInReply.current = true;
+      trackAISuggestionAccepted({ context: 'inbox', tone_used: undefined, edited_before_send: false });
       textareaRef.current?.focus();
     };
 
     const handleTemplateApply = (content: string, subject?: string) => {
-      // For email, we could handle subject separately if needed
-      // For now, we just apply the content
       setMessage(content);
+      templateUsedInReply.current = true;
       textareaRef.current?.focus();
     };
 
     const handleSend = async () => {
       if (!message.trim() || isSending) return;
+      trackConversationReplied({
+        response_time_minutes: 0,
+        ai_used: aiUsedInReply.current,
+        template_used: templateUsedInReply.current,
+        follow_up_scheduled: false,
+      });
       await onSend(message.trim());
       setMessage("");
+      aiUsedInReply.current = false;
+      templateUsedInReply.current = false;
     };
 
     const handleCopy = (text: string) => {

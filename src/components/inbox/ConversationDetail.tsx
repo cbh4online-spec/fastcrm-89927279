@@ -37,6 +37,7 @@ import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialo
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { PriorityScoreBadge } from "./PriorityScoreBadge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 // Design System imports
 import { EmptyState, LoadingSpinner } from "@/components/design-system";
 
@@ -63,11 +64,29 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const sendMessage = useSendMessage();
   const markRead = useMarkConversationRead();
   const updateStatus = useUpdateConversationStatus();
+  const { trackConversationOpened } = useCRMAnalytics();
 
   const [showProposalDialog, setShowProposalDialog] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<AIMessageComposerRef>(null);
+  const trackedConvId = useRef<string | null>(null);
+
+  // ── Analytics: conversation.opened ──
+  useEffect(() => {
+    if (!conversation || trackedConvId.current === conversation.id) return;
+    trackedConvId.current = conversation.id;
+
+    const priorityScore = (conversation as any).conversation_priority_score || 0;
+    trackConversationOpened({
+      priority_score: priorityScore,
+      sla_risk: priorityScore > 70,
+      pipeline_stage: undefined,
+      potential_value: 0,
+      conversion_probability: 0,
+      channel: conversation.channel,
+    });
+  }, [conversation, trackConversationOpened]);
 
   // Build lead data for AI
   const leadData: LeadData | undefined = useMemo(() => {

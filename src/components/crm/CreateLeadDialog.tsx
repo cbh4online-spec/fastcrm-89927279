@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -49,6 +50,7 @@ interface CreateLeadDialogProps {
 export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) {
   const createLead = useCreateLead();
   const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
+  const { trackLeadCreated } = useCRMAnalytics();
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
@@ -75,6 +77,12 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       if (result?.id && customFieldsRef.current) {
         await customFieldsRef.current.saveCustomFields(result.id);
       }
+
+      trackLeadCreated({
+        source_type: values.source || 'manual',
+        industry_segment: undefined,
+        lead_score: 0,
+      });
       
       toast.success("Lead created successfully");
       form.reset();
