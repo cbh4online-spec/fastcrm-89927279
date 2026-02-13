@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -383,6 +384,7 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
   const createRule = useCreateAutomationRule();
   const updateRule = useUpdateAutomationRule();
   const toggleRule = useToggleAutomationRule();
+  const { trackAutomationCreated } = useCRMAnalytics();
   const { data: stages } = usePipelineStages();
   const { data: agents } = useAgentMembers();
   
@@ -546,6 +548,10 @@ export function VisualAutomationBuilder({ open, onOpenChange, editRule, onDuplic
         toast.success(activate ? "Automation activated!" : "Automation saved as draft");
       } else {
         await createRule.mutateAsync(payload);
+        trackAutomationCreated({
+          trigger_type: payload.trigger,
+          actions_count: payload.actions.length,
+        });
         toast.success(activate ? "Automation created and activated!" : "Automation saved as draft");
       }
       onOpenChange(false);

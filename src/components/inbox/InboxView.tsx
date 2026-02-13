@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ConversationList } from "./ConversationList";
 import { ConversationDetail } from "./ConversationDetail";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { PanelRightClose, PanelRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 
 export function InboxView() {
   const [searchParams] = useSearchParams();
@@ -22,6 +23,24 @@ export function InboxView() {
 
   const { data: conversations } = useConversations();
   const openCount = conversations?.filter(c => c.status === "open").length || 0;
+
+  // ── Analytics: inbox.opened ──
+  const { trackInboxOpened } = useCRMAnalytics();
+  const inboxTracked = useRef(false);
+
+  useEffect(() => {
+    if (!conversations || inboxTracked.current) return;
+    inboxTracked.current = true;
+
+    const open = conversations.filter(c => c.status === "open");
+    trackInboxOpened({
+      total_conversations: conversations.length,
+      requires_response_count: open.filter(c => c.unread_count > 0).length,
+      follow_up_count: 0,
+      active_opportunity_count: conversations.filter(c => (c as any).opportunity).length,
+      sla_risk_count: open.filter(c => (c as any).conversation_priority_score > 70).length,
+    });
+  }, [conversations, trackInboxOpened]);
 
   return (
     <TooltipProvider>

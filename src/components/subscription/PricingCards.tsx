@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Sparkles, Zap, Building2, Loader2, Users, Star } from "lucide-react";
 import { useSubscription, SubscriptionPlan, PLAN_INFO } from "@/contexts/SubscriptionContext";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { cn } from "@/lib/utils";
 
 interface PricingCardsProps {
@@ -20,11 +21,13 @@ const PLAN_IDEAL_FOR: Record<SubscriptionPlan, string> = {
 
 export function PricingCards({ onSelectPlan, showRecommendation = true }: PricingCardsProps) {
   const { plan: currentPlan, createCheckout, openCustomerPortal, subscribed, isLoading } = useSubscription();
+  const { trackCheckoutStarted } = useCRMAnalytics();
 
   const handleSelectPlan = (plan: SubscriptionPlan) => {
     if (onSelectPlan) {
       onSelectPlan(plan);
     } else if (plan !== "free" && plan !== currentPlan) {
+      trackCheckoutStarted({ plan_type: plan, upgrade_from_plan: currentPlan });
       createCheckout(plan);
     }
   };

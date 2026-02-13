@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useCRMAnalytics } from '@/hooks/useCRMAnalytics';
 import { 
   Dialog, 
   DialogContent, 
@@ -133,11 +134,18 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
     });
   };
 
+  const { trackTemplateCreated } = useCRMAnalytics();
+
   const handleSubmit = async () => {
     if (isEditing && template?.id) {
       await updateTemplate.mutateAsync({ id: template.id, ...formData });
     } else {
       await createTemplate.mutateAsync(formData);
+      trackTemplateCreated({
+        structure_type: formData.structureType,
+        channel: formData.channel,
+        is_dynamic: formData.isDynamic,
+      });
     }
     onClose();
   };
