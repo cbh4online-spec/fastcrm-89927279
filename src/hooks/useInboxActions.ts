@@ -7,6 +7,7 @@ import { useCreateActivity } from "./useCrmActivities";
 import { toast } from "sonner";
 import { performInboxSafetyCheck, requiresConfirmation } from "@/lib/inboxSafety";
 import { useAutomationGlobalPause, useCheckEntityRateLimit } from "./useAutomationSafety";
+import { useCRMAnalytics } from "./useCRMAnalytics";
 
 export type InboxActionType =
   | "mark_high_priority"
@@ -121,6 +122,7 @@ export function useExecuteInboxAction() {
   const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
   const { data: isGloballyPaused = false } = useAutomationGlobalPause();
+  const { trackAutomationTriggered } = useCRMAnalytics();
 
   return useMutation({
     mutationFn: async ({
@@ -174,6 +176,12 @@ export function useExecuteInboxAction() {
         .single();
 
       if (error) throw error;
+      
+      // Track automation triggered event for analytics
+      if (triggerAutomation && automationRuleId) {
+        trackAutomationTriggered({ trigger_type: actionType, success: !error });
+      }
+      
       return data as InboxActionLog;
     },
     onSuccess: () => {
