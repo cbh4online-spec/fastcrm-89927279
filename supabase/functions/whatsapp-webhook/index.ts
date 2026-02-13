@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizeIncomingMessage } from "../_shared/normalize-message.ts";
 
 serve(async (req) => {
   // Webhook verification (GET)
@@ -57,62 +58,13 @@ serve(async (req) => {
 
           const workspaceId = connection.workspace_id;
 
-          // Process each message
+          // Process each message via normalize layer
           for (const msg of value.messages || []) {
-            const senderId = msg.from; // sender's WhatsApp number
+            const senderId = msg.from;
             const messageText = msg.text?.body || "";
-            const timestamp = msg.timestamp ? new Date(parseInt(msg.timestamp) * 1000).toISOString() : new Date().toISOString();
-
-            const externalThreadId = `whatsapp_${senderId}_${phoneNumberId}`;
-
-            // Find or create conversation
-            let conversationId: string;
-
-            const { data: existingConv } = await supabase
-              .from("conversations")
-              .select("id")
-              .eq("workspace_id", workspaceId)
-              .eq("external_thread_id", externalThreadId)
-              .single();
-
-            if (existingConv) {
-              conversationId = existingConv.id;
-
-              const messagePreview = messageText.substring(0, 100);
-              await supabase
-                .from("conversations")
-                .update({
-                  last_message_at: timestamp,
-                  last_message_preview: messagePreview,
-                  status: "open",
-                })
-                .eq("id", conversationId);
-            } else {
-              const messagePreview = messageText.substring(0, 100);
-              const { data: newConv, error: convError } = await supabase
-                .from("conversations")
-                .insert({
-                  workspace_id: workspaceId,
-                  channel: "whatsapp",
-                  external_thread_id: externalThreadId,
-                  status: "open",
-                  unread_count: 1,
-                  last_message_at: timestamp,
-                  last_message_preview: messagePreview,
-                  channel_metadata: {
-                    whatsapp_sender: senderId,
-                    whatsapp_phone_number_id: phoneNumberId,
-                  },
-                })
-                .select("id")
-                .single();
-
-              if (convError) {
-                console.error("Failed to create conversation:", convError);
-                continue;
-              }
-              conversationId = newConv.id;
-            }
+            const timestamp = msg.timestamp
+              ? new Date(parseInt(msg.timestamp) * 1000).toISOString()
+              : new Date().toISOString();
 
             // Build attachments
             const attachments: any[] = [];
@@ -126,18 +78,29 @@ serve(async (req) => {
               attachments.push({ type: "video", media_id: msg.video.id });
             }
 
-            // Save message
-            const { error: msgError } = await supabase.from("messages").insert({
-              conversation_id: conversationId,
-              workspace_id: workspaceId,
-              direction: "inbound",
-              content: messageText,
-              attachments: attachments.length > 0 ? attachments : null,
-              sent_at: timestamp,
-            });
+            const externalThreadId = `whatsapp_${senderId}_${phoneNumberId}`;
+            const externalMessageId = msg.id || undefined;
 
-            if (msgError) {
-              console.error("Failed to save message:", msgError);
+            try {
+              const result = await normalizeIncomingMessage(supabase, {
+                workspace_id: workspaceId,
+                channel: "whatsapp",
+                sender_id: senderId,
+                sender_phone: senderId,
+                content: messageText,
+                attachments,
+                external_thread_id: externalThreadId,
+                external_message_id: externalMessageId,
+                timestamp,
+                channel_metadata: {
+                  whatsapp_sender: senderId,
+                  whatsapp_phone_number_id: phoneNumberId,
+                },
+              });
+
+              console.log("[whatsapp] Message processed:", result);
+            } catch (err) {
+              console.error("[whatsapp] Failed to process message:", err);
             }
           }
         }
