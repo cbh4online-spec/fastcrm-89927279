@@ -1,232 +1,180 @@
 
 
-## Fase 3 — Multi-Calendar Booking + Auto Follow-up + Guided Wizard
+## FastCRM Privacy-First Analytics Layer (Clarity + GTM)
 
 ### Resumo
 
-Criar 3 novas tabelas (ai_booking_calendars, ai_followup_policies, followup_queue), 3 novas edge functions (booking-router, auto-followup-scheduler, conversation-summary-generator), expandir o AgentGoalsPanel com 2 tabs adicionais (Agendamento + Follow-up), e criar o BotSetupWizard como guided setup de 5 passos.
+Criar uma camada de analytics unificada e privacy-first que envia eventos comportamentais ao dataLayer (GTM/Clarity) sem dados pessoais. Inclui: contexto global por sessao, eventos por modulo (Inbox, Templates, CRM, IA, Automacoes, Billing), metricas compostas estrategicas, e camada de seguranca com validacao de consentimento.
+
+### Arquitetura
+
+A implementacao reutiliza o sistema existente:
+- `useTracking` (growth-seo) ja faz push ao dataLayer com validacao de consent
+- `useConsent` ja gere o estado GDPR (analytics/marketing)
+- `gtmEvents.ts` ja tem pattern de pushToDataLayer
+
+A nova camada sera um hook dedicado `useCRMAnalytics` para o dashboard (separado do `useTracking` do SEO/growth).
 
 ---
 
-### 1. Migracao DB
+### 1. Hook Principal: `useCRMAnalytics`
 
-**1.1 `ai_booking_calendars`**
+Novo ficheiro: `src/hooks/useCRMAnalytics.ts`
 
-| Campo | Tipo |
+**Contexto Global (enviado uma vez por sessao via sessionStorage flag):**
+
+```text
+workspace_id (UUID)
+user_id (UUID)
+role (owner/admin/agent/viewer)
+plan (free/basic/pro/agency)
+env (prod/staging)
+app_version (from package.json or constant)
+device_type (desktop/mobile — via window.innerWidth)
+locale (navigator.language)
+```
+
+Fontes de dados:
+- `useWorkspace()` -> workspace_id, role
+- `useAuth()` -> user_id
+- `useSubscription()` -> plan
+- Derivados: device_type, locale, env
+
+**Funcao auxiliar `sanitizeBucket`:**
+- Converte valores numericos em buckets (0-500 / 500-2000 / 2000+)
+- Converte tempos em buckets (<5min / 5-30 / 30-120 / 120+)
+- Nunca envia valores exatos que possam identificar
+
+---
+
+### 2. Eventos por Modulo
+
+**2.1 Inbox 3.0**
+
+| Evento | Propriedades |
 |---|---|
-| id | UUID PK DEFAULT gen_random_uuid() |
-| workspace_id | UUID NOT NULL |
-| bot_id | UUID NOT NULL REFERENCES ai_agents(id) ON DELETE CASCADE |
-| calendar_id | UUID NOT NULL REFERENCES calendars(id) ON DELETE CASCADE |
-| calendar_name | TEXT NOT NULL |
-| description | TEXT NULL |
-| keywords | TEXT[] DEFAULT '{}' |
-| is_fallback | BOOLEAN DEFAULT false |
-| allow_cancel | BOOLEAN DEFAULT false |
-| post_booking_actions | JSONB DEFAULT '{}' |
-| created_at | TIMESTAMPTZ DEFAULT now() |
+| `inbox.opened` | total_conversations, requires_response_count, follow_up_count, active_opportunity_count, sla_risk_count |
+| `conversation.opened` | priority_score, sla_risk, pipeline_stage, potential_value_bucket, conversion_probability_bucket, channel |
+| `conversation.replied` | response_time_bucket, ai_used, template_used, follow_up_scheduled |
+| `conversation.converted` | days_to_convert, used_ai_in_thread, used_template, priority_score_at_start |
 
-RLS: workspace isolation via workspace_members.
+Integracao: instrumentar `InboxView`, `ConversationPanel`, `MessageComposer`.
 
-**1.2 `ai_followup_policies`**
+**2.2 Templates 2.0**
 
-| Campo | Tipo |
+| Evento | Propriedades |
 |---|---|
-| id | UUID PK DEFAULT gen_random_uuid() |
-| workspace_id | UUID NOT NULL |
-| bot_id | UUID NOT NULL REFERENCES ai_agents(id) ON DELETE CASCADE |
-| channel | TEXT NOT NULL |
-| scenarios | JSONB DEFAULT '{}' |
-| cadence | JSONB DEFAULT '{"delays_minutes": [60, 360, 1440]}' |
-| working_hours | JSONB DEFAULT '{}' |
-| allow_channel_switching | BOOLEAN DEFAULT false |
-| switch_rules | JSONB NULL |
-| is_active | BOOLEAN DEFAULT true |
-| created_at | TIMESTAMPTZ DEFAULT now() |
+| `template.created` | structure_type, channel, is_dynamic |
+| `template.used` | structure_type, dynamic, ai_adapted, pipeline_stage_when_used, lead_score_bucket |
+| `template.conversion` | days_to_conversion, structure_type, dynamic, channel |
 
-RLS: workspace isolation.
+**2.3 CRM Core**
 
-**1.3 `followup_queue`**
-
-| Campo | Tipo |
+| Evento | Propriedades |
 |---|---|
-| id | UUID PK DEFAULT gen_random_uuid() |
-| workspace_id | UUID NOT NULL |
-| conversation_id | UUID NOT NULL |
-| policy_id | UUID NOT NULL REFERENCES ai_followup_policies(id) ON DELETE CASCADE |
-| bot_id | UUID NOT NULL |
-| next_run_at | TIMESTAMPTZ NOT NULL |
-| step_index | INT DEFAULT 0 |
-| status | TEXT DEFAULT 'pending' |
-| created_at | TIMESTAMPTZ DEFAULT now() |
+| `lead.created` | source_type, industry_segment, lead_score_bucket |
+| `lead.moved_pipeline` | from_stage, to_stage, days_in_previous_stage |
+| `opportunity.created` | value_bucket, industry_segment, origin |
 
-RLS: workspace isolation. Index em (status, next_run_at) para queries eficientes do scheduler.
+**2.4 Modulos IA**
 
----
+| Evento | Propriedades |
+|---|---|
+| `ai.suggestion.generated` | context, intent_detected, recommended_tone |
+| `ai.suggestion.accepted` | context, tone_used, edited_before_send |
+| `ai.suggestion.rejected` | context, intent_detected |
 
-### 2. Edge Functions
+**2.5 Automacoes**
 
-**2.1 `booking-router` (Nova)**
+| Evento | Propriedades |
+|---|---|
+| `automation.created` | trigger_type, actions_count, complexity_bucket |
+| `automation.triggered` | trigger_type, success |
 
-Input: workspace_id, bot_id, user_message, conversation_id
+**2.6 Billing**
 
-Logica:
-1. Buscar `ai_booking_calendars` do bot
-2. Usar AI (Gemini flash) para classificar user_message contra calendar_name/description/keywords
-3. Se match: retornar calendar_id + config
-4. Se nenhum match: usar calendar com is_fallback=true
-5. Retornar tambem post_booking_actions e allow_cancel
-
-Output: { matched: true, calendar_id, calendar_name, post_booking_actions, allow_cancel } ou { matched: false, fallback_calendar_id }
-
-**2.2 `auto-followup-scheduler` (Nova)**
-
-Input: workspace_id (event-driven ou manual trigger)
-
-Logica:
-1. Buscar `followup_queue` WHERE next_run_at <= now() AND status = 'pending'
-2. Para cada item:
-   - Buscar policy de `ai_followup_policies`
-   - Verificar working_hours (timezone + janelas horárias): se fora, adiar next_run_at para proximo slot
-   - Verificar se contacto ja respondeu na conversa (query mensagens inbound recentes): se sim, marcar cancelled
-   - Gerar mensagem follow-up via chamada interna ao ai-inbox-reply
-   - Enviar via canal (ou canal alternativo se allow_channel_switching + switch_rules match)
-   - Incrementar step_index, calcular proximo next_run_at a partir de cadence.delays_minutes
-   - Se ultimo step da cadence: marcar completed
-3. Log em autopilot_events
-
-Output: { processed: N, cancelled: M, deferred: K }
-
-**2.3 `conversation-summary-generator` (Nova)**
-
-Dispara automaticamente via triggers contextuais (handover, bot sleep, inactividade).
-
-Input: workspace_id, conversation_id, trigger_reason (inactivity | handover | manual_outbound)
-
-Logica:
-1. Buscar mensagens da conversa
-2. Gerar summary + transcript via AI
-3. Upsert em conversation_sessions (summary, transcript, session_end_at)
-4. Opcionalmente guardar summary num campo do contacto/lead (saved_to_contact_field)
-5. Se workflow configurado, chamar workflow-trigger
-
-Output: { session_id, summary, transcript_length }
+| Evento | Propriedades |
+|---|---|
+| `checkout.started` | plan_type, upgrade_from_plan |
+| `checkout.completed` | plan_type, billing_cycle |
 
 ---
 
-### 3. Hooks Frontend
+### 3. Camada de Seguranca
 
-**3.1 `useAgentBooking` (Novo)**
+Funcao `safePush(event, data)` que antes de enviar:
 
-- `useBookingCalendars(botId)`: query ai_booking_calendars
-- `useCreateBookingCalendar()`: mutation insert
-- `useDeleteBookingCalendar()`: mutation delete
-- `useUpdateBookingCalendar()`: mutation update
-
-**3.2 `useAgentFollowup` (Novo)**
-
-- `useFollowupPolicies(botId)`: query ai_followup_policies
-- `useCreateFollowupPolicy()`: mutation insert
-- `useUpdateFollowupPolicy()`: mutation update
-- `useDeleteFollowupPolicy()`: mutation delete
-- `useFollowupQueue(conversationId)`: query followup_queue para visibilidade no inbox
+1. Verifica `consent.analytics === true` (via useConsent)
+2. Verifica ambiente PROD (`window.location.hostname` check)
+3. Sanitiza todos os campos — remove qualquer string que pareca email/telefone/nome
+4. Nunca envia campos: content, body, subject, name, email, phone, message
+5. Converte valores numericos em buckets quando aplicavel
 
 ---
 
-### 4. UI Components
+### 4. Metricas Compostas (Calculadas no GTM/Clarity)
 
-**4.1 Expandir `AgentGoalsPanel.tsx`**
+Nao sao eventos — sao derivadas dos eventos acima no lado do GTM:
 
-Adicionar 2 tabs ao grid existente (de 3 para 5):
+1. **Inbox Efficiency Index**: response_time_bucket + sla_risk + conversation.converted
+2. **AI Adoption Score**: ai_used frequency + ai.suggestion.accepted rate
+3. **Template Effectiveness Index**: template.used count + template.conversion rate
+4. **Revenue Acceleration Signal**: priority alta + response < 15min + conversion < 7 dias
 
-- Tab "Agendamento" (CalendarBooking):
-  - Lista de calendarios associados ao bot (do workspace, via useCalendars)
-  - Para cada: nome, descricao, keywords (input tags), fallback toggle
-  - Acoes pos-booking: pausa bot (checkbox), trigger workflow (select), transfer bot (select)
-  - Botao "Adicionar Calendário" com select dos calendarios disponíveis
-
-- Tab "Follow-up":
-  - Canal principal (select: whatsapp, email, sms)
-  - Cenarios ativos (checkboxes: stopped_replying, busy, requested_time)
-  - Cadence: lista editavel de delays em minutos (ex: 60, 360, 1440)
-  - Working hours: timezone select + janelas horarias (reutilizar pattern existente)
-  - Channel switching: toggle + regras (ex: "se sem resposta 24h em instagram, enviar sms")
-  - Toggle is_active
-
-**4.2 `BotSetupWizard.tsx` (Novo)**
-
-Componente wizard de 5 passos para criar um agente completo:
-
-Step 1 — Info basica:
-- Nome do agente
-- Canal (select de AGENT_CHANNELS)
-- Persona (select das personas existentes)
-- Descricao (textarea)
-
-Step 2 — Knowledge Bases:
-- Lista de KBs do workspace
-- Selecionar ate 7 com prioridade (drag ou setas)
-- Indicador "X/7"
-
-Step 3 — Objectivos:
-- Handover: toggle + max retries + mensagem encerramento
-- Booking: toggle + selecionar calendarios
-- Follow-up: toggle + cadence basica
-
-Step 4 — Automacoes:
-- Workflow triggers: adicionar triggers simples
-- Transfer rules: adicionar regras
-- (formularios simplificados vs AgentGoalsPanel completo)
-
-Step 5 — Revisao:
-- Resumo visual de toda a configuracao
-- Botao "Criar & Ativar" / "Criar Inativo"
-
-Rota: Nova tab "Wizard" no AIAssistantsModule OU botao "Criar com Assistente" na AgentsTab.
-
-**4.3 Atualizar `AgentCardExpanded.tsx`**
-
-- Adicionar badges visuais para booking calendars count e followup policy status
-- Ex: "3 calendarios", "Follow-up ativo"
+Estas metricas sao configuradas no GTM/Clarity como custom dimensions/metrics, nao requerem codigo adicional.
 
 ---
 
-### 5. Seguranca
-
-- RLS em todas as 3 novas tabelas: SELECT/INSERT/UPDATE/DELETE onde workspace_id pertence ao utilizador via workspace_members
-- Edge functions: verify_jwt = false (consistente com existentes)
-- booking-router: valida que o bot pertence ao workspace
-- auto-followup-scheduler: usa service role key, valida workspace isolation
-
----
-
-### Ficheiros Afetados
+### 5. Ficheiros a Criar/Alterar
 
 | Ficheiro | Alteracao |
 |---|---|
-| Migracao SQL | 3 tabelas novas + indexes + RLS |
-| `supabase/functions/booking-router/index.ts` | Nova |
-| `supabase/functions/auto-followup-scheduler/index.ts` | Nova |
-| `supabase/functions/conversation-summary-generator/index.ts` | Nova |
-| `supabase/config.toml` | 3 novas funcoes |
-| `src/hooks/useAgentBooking.ts` | Novo |
-| `src/hooks/useAgentFollowup.ts` | Novo |
-| `src/hooks/useAgentGoals.ts` | Adicionar tipos Booking + Followup |
-| `src/components/ai-agents/AgentGoalsPanel.tsx` | 2 novas tabs (Agendamento + Follow-up) |
-| `src/components/ai-agents/BotSetupWizard.tsx` | Novo — wizard 5 steps |
-| `src/components/ai-assistants/AgentCardExpanded.tsx` | Badges booking + followup |
-| `src/components/ai-assistants/AgentsTab.tsx` | Botao "Criar com Assistente" -> wizard |
-| `src/integrations/supabase/types.ts` | Auto-updated |
+| `src/hooks/useCRMAnalytics.ts` | **Novo** — hook principal com todos os eventos + contexto global + seguranca |
+| `src/lib/analyticsHelpers.ts` | **Novo** — funcoes puras: bucketize, sanitize, safePush |
+| `src/components/inbox/InboxView.tsx` | Instrumentar inbox.opened |
+| `src/components/inbox/ConversationPanel.tsx` | Instrumentar conversation.opened |
+| `src/components/inbox/MessageComposer.tsx` ou equivalente | Instrumentar conversation.replied |
+| `src/components/templates/` (componentes relevantes) | Instrumentar template.created/used |
+| `src/components/leads/` (componentes relevantes) | Instrumentar lead.created, lead.moved_pipeline |
+| `src/components/ai-agents/` (componentes relevantes) | Instrumentar ai.suggestion.* |
+| `src/components/automations/` (componentes relevantes) | Instrumentar automation.* |
 
-### Ordem de Implementacao
+### 6. Ordem de Implementacao
 
-1. Migracao DB (3 tabelas + RLS + indexes)
-2. Edge functions: booking-router, auto-followup-scheduler, conversation-summary-generator
-3. config.toml (3 novas funcoes)
-4. Deploy edge functions
-5. Hooks: useAgentBooking + useAgentFollowup
-6. UI: AgentGoalsPanel (2 tabs novas)
-7. UI: AgentCardExpanded (badges)
-8. UI: BotSetupWizard (wizard completo)
-9. UI: AgentsTab (botao wizard)
+1. Criar `src/lib/analyticsHelpers.ts` (bucketize, sanitize, safePush)
+2. Criar `src/hooks/useCRMAnalytics.ts` (hook com todos os metodos de tracking + contexto global)
+3. Instrumentar Inbox (inbox.opened, conversation.opened, conversation.replied)
+4. Instrumentar Templates (template.created, template.used)
+5. Instrumentar CRM Core (lead.created, lead.moved_pipeline, opportunity.created)
+6. Instrumentar IA (ai.suggestion.*)
+7. Instrumentar Automacoes + Billing
+
+### Secao Tecnica
+
+**Pattern de uso nos componentes:**
+
+```text
+const { trackInboxOpened, trackConversationOpened } = useCRMAnalytics();
+
+// No useEffect ou handler:
+trackInboxOpened({
+  total_conversations: conversations.length,
+  requires_response_count: conversations.filter(c => c.needs_response).length,
+  ...
+});
+```
+
+**Contexto global — enviado uma vez por sessao:**
+
+```text
+useEffect(() => {
+  if (sessionStorage.getItem('crm_ctx_sent')) return;
+  safePush('crm.session_start', {
+    workspace_id, user_id, role, plan, env, device_type, locale
+  });
+  sessionStorage.setItem('crm_ctx_sent', '1');
+}, [workspace_id, user_id]);
+```
+
+**Sem novas tabelas DB** — tudo via dataLayer/GTM. Sem edge functions adicionais. Sem impacto no backend.
 
