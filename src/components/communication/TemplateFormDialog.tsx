@@ -19,15 +19,17 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Info, Sparkles } from 'lucide-react';
+import { Info, Sparkles, Zap } from 'lucide-react';
 import { 
   CommunicationTemplate, 
   TemplateChannel,
   TemplateStructure,
   JourneyContext,
   TemplateTone,
+  PersonalizationLevel,
   CHANNEL_LABELS,
   JOURNEY_CONTEXT_LABELS,
   TONE_LABELS,
@@ -35,9 +37,12 @@ import {
   STRUCTURE_PLACEHOLDERS,
   LANGUAGE_OPTIONS,
   TEMPLATE_VARIABLES,
+  SMART_VARIABLES,
+  PERSONALIZATION_LABELS,
   renderTemplate,
   getPreviewVariables
 } from '@/types/communicationTemplate';
+import { renderDynamicTemplate, getDynamicPreviewVariables, validateDynamicTemplate, extractConditions } from '@/lib/dynamicTemplateEngine';
 import { useCreateCommunicationTemplate, useUpdateCommunicationTemplate } from '@/hooks/useCommunicationTemplates';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -65,6 +70,9 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
     cta: '',
     isActive: true,
     conversionCount: 0,
+    isDynamic: false,
+    dynamicRules: {} as Record<string, unknown>,
+    personalizationLevel: 'basic' as PersonalizationLevel,
   });
 
   useEffect(() => {
@@ -81,6 +89,9 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
         cta: template.cta || '',
         isActive: template.isActive,
         conversionCount: template.conversionCount || 0,
+        isDynamic: template.isDynamic || false,
+        dynamicRules: template.dynamicRules || {},
+        personalizationLevel: template.personalizationLevel || 'basic',
       });
     } else {
       setFormData({
@@ -95,6 +106,9 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
         cta: '',
         isActive: true,
         conversionCount: 0,
+        isDynamic: false,
+        dynamicRules: {},
+        personalizationLevel: 'basic',
       });
     }
   }, [template, open]);
@@ -102,7 +116,6 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
   const handleStructureChange = (structure: TemplateStructure) => {
     setFormData(prev => {
       const newData = { ...prev, structureType: structure };
-      // If body is empty or matches another placeholder, pre-fill with new structure placeholder
       const allPlaceholders = Object.values(STRUCTURE_PLACEHOLDERS);
       if (!prev.body.trim() || allPlaceholders.some(p => p && prev.body.trim() === p.trim())) {
         newData.body = STRUCTURE_PLACEHOLDERS[structure] || '';
@@ -136,14 +149,31 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
     }));
   };
 
-  const previewText = renderTemplate(formData.body, getPreviewVariables());
+  const insertCondition = () => {
+    const block = '\n{{#if conversion_probability > 70}}\n[conteúdo para alta probabilidade]\n{{else}}\n[conteúdo alternativo]\n{{/if}}\n';
+    setFormData(prev => ({ ...prev, body: prev.body + block }));
+  };
+
+  const previewVariables = formData.isDynamic ? getDynamicPreviewVariables() : getPreviewVariables();
+  const previewText = formData.isDynamic
+    ? renderDynamicTemplate(formData.body, previewVariables)
+    : renderTemplate(formData.body, previewVariables);
+  
+  const templateErrors = formData.isDynamic ? validateDynamicTemplate(formData.body) : [];
+  const conditions = formData.isDynamic ? extractConditions(formData.body) : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
             {isEditing ? 'Editar Template' : 'Novo Template'}
+            {formData.isDynamic && (
+              <Badge variant="secondary" className="gap-1">
+                <Zap className="h-3 w-3" />
+                Dinâmico
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -156,6 +186,41 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
 
           <ScrollArea className="h-[60vh] mt-4">
             <TabsContent value="editor" className="space-y-4 pr-4">
+              {/* Dynamic Toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <div>
+                    <div className="text-sm font-medium">Template Dinâmico</div>
+                    <div className="text-xs text-muted-foreground">Ativa variáveis inteligentes e condições</div>
+                  </div>
+                </div>
+                <Switch
+                  checked={formData.isDynamic}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isDynamic: checked }))}
+                />
+              </div>
+
+              {/* Personalization Level (dynamic only) */}
+              {formData.isDynamic && (
+                <div className="space-y-2">
+                  <Label>Nível de Personalização</Label>
+                  <Select
+                    value={formData.personalizationLevel}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, personalizationLevel: v as PersonalizationLevel }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PERSONALIZATION_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -287,13 +352,26 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
 
               {/* Body */}
               <div className="space-y-2">
-                <Label>Mensagem</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Mensagem</Label>
+                  {formData.isDynamic && (
+                    <Button type="button" variant="outline" size="sm" className="gap-1 text-xs" onClick={insertCondition}>
+                      <Sparkles className="h-3 w-3" />
+                      Inserir Condição
+                    </Button>
+                  )}
+                </div>
                 <Textarea
                   value={formData.body}
                   onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
                   placeholder={STRUCTURE_PLACEHOLDERS[formData.structureType] || "Escreva a sua mensagem aqui. Use {{variável}} para personalizar."}
                   className="min-h-[200px]"
                 />
+                {templateErrors.length > 0 && (
+                  <div className="text-xs text-destructive space-y-1">
+                    {templateErrors.map((err, i) => <div key={i}>⚠ {err}</div>)}
+                  </div>
+                )}
               </div>
 
               {/* Active Toggle */}
@@ -311,7 +389,10 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
               <p className="text-sm text-muted-foreground">
                 Clique numa variável para a inserir no corpo da mensagem.
               </p>
+              
+              {/* Standard variables */}
               <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Variáveis CRM</div>
                 {TEMPLATE_VARIABLES.map(variable => (
                   <div 
                     key={variable.key}
@@ -328,14 +409,58 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
                   </div>
                 ))}
               </div>
+
+              {/* Smart variables (dynamic only) */}
+              {formData.isDynamic && (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Zap className="h-3 w-3" />
+                    Variáveis Inteligentes (calculadas por IA)
+                  </div>
+                  {SMART_VARIABLES.map(variable => (
+                    <div 
+                      key={variable.key}
+                      className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 border-primary/20 bg-primary/5"
+                      onClick={() => insertVariable(variable.key)}
+                    >
+                      <div>
+                        <div className="font-medium text-sm">{variable.label}</div>
+                        <div className="text-xs text-muted-foreground">{variable.description}</div>
+                      </div>
+                      <Badge variant="outline" className="font-mono text-xs border-primary/30">
+                        {`{{${variable.key}}}`}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="preview" className="space-y-4 pr-4">
+              {formData.isDynamic && conditions.length > 0 && (
+                <div className="rounded-lg border p-3 bg-primary/5">
+                  <div className="text-xs font-medium mb-2 flex items-center gap-1">
+                    <Zap className="h-3 w-3" />
+                    Condições detectadas ({conditions.length})
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {conditions.map((c, i) => (
+                      <Badge key={i} variant="outline" className="font-mono text-[10px]">
+                        {c.field} {c.operator} {c.value}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="rounded-lg border p-4 bg-muted/30">
-                <div className="text-xs text-muted-foreground mb-2">Pré-visualização com dados de exemplo:</div>
+                <div className="text-xs text-muted-foreground mb-2">
+                  Pré-visualização com dados de exemplo{formData.isDynamic ? ' (incluindo variáveis inteligentes)' : ''}:
+                </div>
                 {formData.channel === 'email' && formData.subject && (
                   <div className="font-medium mb-2">
-                    Assunto: {renderTemplate(formData.subject, getPreviewVariables())}
+                    Assunto: {formData.isDynamic 
+                      ? renderDynamicTemplate(formData.subject, previewVariables) 
+                      : renderTemplate(formData.subject, getPreviewVariables())}
                   </div>
                 )}
                 <div className="whitespace-pre-wrap">{previewText || 'Escreva algo para ver a pré-visualização...'}</div>

@@ -4694,11 +4694,14 @@ export type Database = {
           created_at: string | null
           created_by: string
           cta: string | null
+          dynamic_rules: Json | null
           id: string
           is_active: boolean | null
+          is_dynamic: boolean | null
           journey_contexts: string[] | null
           language: string
           name: string
+          personalization_level: string | null
           response_rate: number | null
           structure_type: string | null
           subject: string | null
@@ -4715,11 +4718,14 @@ export type Database = {
           created_at?: string | null
           created_by: string
           cta?: string | null
+          dynamic_rules?: Json | null
           id?: string
           is_active?: boolean | null
+          is_dynamic?: boolean | null
           journey_contexts?: string[] | null
           language?: string
           name: string
+          personalization_level?: string | null
           response_rate?: number | null
           structure_type?: string | null
           subject?: string | null
@@ -4736,11 +4742,14 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           cta?: string | null
+          dynamic_rules?: Json | null
           id?: string
           is_active?: boolean | null
+          is_dynamic?: boolean | null
           journey_contexts?: string[] | null
           language?: string
           name?: string
+          personalization_level?: string | null
           response_rate?: number | null
           structure_type?: string | null
           subject?: string | null

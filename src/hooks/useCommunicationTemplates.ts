@@ -60,6 +60,9 @@ export function useCommunicationTemplates(filters?: {
         usageCount: t.usage_count,
         conversionCount: (t as any).conversion_count || 0,
         responseRate: t.response_rate,
+        isDynamic: (t as any).is_dynamic || false,
+        dynamicRules: (t as any).dynamic_rules || {},
+        personalizationLevel: (t as any).personalization_level || 'basic',
         createdBy: t.created_by,
         createdAt: t.created_at,
         updatedAt: t.updated_at
@@ -104,6 +107,9 @@ export function useCommunicationTemplate(id: string | undefined) {
         usageCount: data.usage_count,
         conversionCount: (data as any).conversion_count || 0,
         responseRate: data.response_rate,
+        isDynamic: (data as any).is_dynamic || false,
+        dynamicRules: (data as any).dynamic_rules || {},
+        personalizationLevel: (data as any).personalization_level || 'basic',
         createdBy: data.created_by,
         createdAt: data.created_at,
         updatedAt: data.updated_at
@@ -139,6 +145,9 @@ export function useCreateCommunicationTemplate() {
           created_by: user.id,
           structure_type: template.structureType || 'custom',
           cta: template.cta || null,
+          is_dynamic: template.isDynamic || false,
+          dynamic_rules: template.dynamicRules || {},
+          personalization_level: template.personalizationLevel || 'basic',
         } as any)
         .select()
         .single();
@@ -176,6 +185,9 @@ export function useUpdateCommunicationTemplate() {
       if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
       if (updates.structureType !== undefined) updateData.structure_type = updates.structureType;
       if (updates.cta !== undefined) updateData.cta = updates.cta;
+      if (updates.isDynamic !== undefined) updateData.is_dynamic = updates.isDynamic;
+      if (updates.dynamicRules !== undefined) updateData.dynamic_rules = updates.dynamicRules;
+      if (updates.personalizationLevel !== undefined) updateData.personalization_level = updates.personalizationLevel;
 
       const { data, error } = await supabase
         .from('communication_templates')

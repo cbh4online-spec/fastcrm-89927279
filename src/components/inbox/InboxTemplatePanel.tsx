@@ -43,9 +43,11 @@ import {
   Plus,
   Save,
   TrendingUp,
+  Zap,
 } from "lucide-react";
 import { useTemplates, Template, TemplateGoal, TemplateType } from "@/hooks/useTemplates";
 import { useCommunicationTemplates } from "@/hooks/useCommunicationTemplates";
+import { useDynamicTemplateContext } from "@/hooks/useDynamicTemplateContext";
 import { useInboxAI, LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { Message } from "@/hooks/useMessages";
 import { 
@@ -54,6 +56,7 @@ import {
   renderTemplate, 
   extractVariables 
 } from "@/lib/templateVariables";
+import { renderDynamicTemplate } from "@/lib/dynamicTemplateEngine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TemplateFormDialog } from "@/components/communication/TemplateFormDialog";
@@ -64,6 +67,7 @@ interface InboxTemplatePanelProps {
   messages: Message[];
   templateContext: VariableContext;
   leadData?: LeadData;
+  leadId?: string;
   opportunityData?: OpportunityData;
   onApply: (content: string, subject?: string) => void;
   trigger?: React.ReactNode;
@@ -90,6 +94,7 @@ export function InboxTemplatePanel({
   messages,
   templateContext,
   leadData,
+  leadId,
   opportunityData,
   onApply,
   trigger,
@@ -108,6 +113,7 @@ export function InboxTemplatePanel({
   const { data: templates, isLoading: templatesLoading } = useTemplates({ isActive: true });
   const { personalizeTemplate, isLoading: aiLoading } = useInboxAI();
   const { data: commTemplates } = useCommunicationTemplates({ isActive: true });
+  const { data: dynamicContext } = useDynamicTemplateContext(leadId);
 
   // Map channel to template channel type
   const getTemplateChannel = (): TemplateChannel => {
@@ -445,17 +451,38 @@ export function InboxTemplatePanel({
                       <div
                         key={ct.id}
                         onClick={() => {
-                          setEditedContent(ct.body);
-                          setEditedSubject(ct.subject || '');
+                          const content = ct.isDynamic && dynamicContext
+                            ? renderDynamicTemplate(ct.body, dynamicContext.allVariables)
+                            : ct.body;
+                          const subject = ct.subject
+                            ? (ct.isDynamic && dynamicContext
+                              ? renderDynamicTemplate(ct.subject, dynamicContext.allVariables)
+                              : ct.subject)
+                            : '';
+                          setEditedContent(content);
+                          setEditedSubject(subject);
                         }}
                         className="p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50 hover:bg-muted/30"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <span className="font-medium text-sm truncate block">{ct.name}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-sm truncate block">{ct.name}</span>
+                              {ct.isDynamic && (
+                                <Badge variant="outline" className="text-[10px] py-0 gap-0.5 flex-shrink-0">
+                                  <Zap className="h-2.5 w-2.5" />
+                                  Dinâmico
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                               {ct.body.substring(0, 80)}...
                             </p>
+                            {ct.isDynamic && dynamicContext && (
+                              <Badge variant="secondary" className="text-[10px] py-0 mt-1">
+                                Personalizado
+                              </Badge>
+                            )}
                           </div>
                           <Badge variant="secondary" className="text-[10px] py-0 flex-shrink-0">
                             {ct.usageCount > 0 ? `${((ct.conversionCount || 0) / ct.usageCount * 100).toFixed(0)}%` : '0%'}

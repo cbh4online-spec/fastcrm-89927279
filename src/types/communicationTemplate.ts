@@ -14,6 +14,8 @@ export type JourneyContext =
 
 export type TemplateTone = 'professional' | 'human' | 'empathetic' | 'commercial';
 
+export type PersonalizationLevel = 'basic' | 'contextual' | 'predictive';
+
 export interface CommunicationTemplate {
   id: string;
   workspaceId: string;
@@ -31,6 +33,9 @@ export interface CommunicationTemplate {
   usageCount: number;
   conversionCount: number;
   responseRate?: number;
+  isDynamic: boolean;
+  dynamicRules: Record<string, unknown>;
+  personalizationLevel: PersonalizationLevel;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -69,6 +74,24 @@ export const TEMPLATE_VARIABLES: TemplateVariable[] = [
   { key: 'proxima_acao', label: 'Próxima Ação', description: 'Ação sugerida pela IA', example: 'Agendar sessão de follow-up' },
   { key: 'responsavel_nome', label: 'Nome do Responsável', description: 'Nome do responsável pela conta', example: 'Maria Costa' },
   { key: 'empresa_nome', label: 'Nome da Empresa', description: 'Nome da sua empresa', example: 'Minha Empresa' },
+  // CRM extended variables
+  { key: 'first_name', label: 'Primeiro Nome (CRM)', description: 'Primeiro nome do lead/contacto', example: 'João' },
+  { key: 'company_name', label: 'Empresa (CRM)', description: 'Nome da empresa do lead', example: 'TechCorp' },
+  { key: 'industry', label: 'Indústria', description: 'Setor de atividade', example: 'Tecnologia' },
+  { key: 'pipeline_stage', label: 'Fase Pipeline', description: 'Fase atual no pipeline', example: 'Proposta' },
+  { key: 'lead_score', label: 'Lead Score', description: 'Pontuação do lead', example: '75' },
+  { key: 'potential_value', label: 'Valor Potencial', description: 'Valor estimado da oportunidade', example: '5000' },
+  { key: 'assigned_user', label: 'Responsável', description: 'Utilizador atribuído', example: 'Maria Costa' },
+  { key: 'city', label: 'Cidade', description: 'Cidade do lead/contacto', example: 'Lisboa' },
+  { key: 'days_since_last_contact', label: 'Dias sem Contacto', description: 'Dias desde último contacto', example: '5' },
+];
+
+export const SMART_VARIABLES: TemplateVariable[] = [
+  { key: 'urgency_level', label: 'Nível de Urgência', description: 'low, medium ou high — calculado por IA', example: 'medium' },
+  { key: 'business_maturity', label: 'Maturidade do Negócio', description: 'early, growth ou scale — calculado por IA', example: 'growth' },
+  { key: 'digital_readiness', label: 'Prontidão Digital', description: 'low, medium ou high — calculado por IA', example: 'medium' },
+  { key: 'conversion_probability', label: 'Probabilidade Conversão', description: '0-100 — calculado por IA', example: '72' },
+  { key: 'recommended_tone', label: 'Tom Recomendado', description: 'direct, consultative ou strategic — calculado por IA', example: 'consultative' },
 ];
 
 // Labels and configuration
@@ -110,6 +133,12 @@ export const STRUCTURE_LABELS: Record<TemplateStructure, string> = {
   FollowUp: 'Follow-Up',
   ColdOutreach: 'Cold Outreach',
   custom: 'Personalizado'
+};
+
+export const PERSONALIZATION_LABELS: Record<PersonalizationLevel, string> = {
+  basic: 'Básico',
+  contextual: 'Contextual',
+  predictive: 'Preditivo',
 };
 
 export const STRUCTURE_PLACEHOLDERS: Record<TemplateStructure, string> = {
