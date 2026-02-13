@@ -7,8 +7,8 @@ export interface PersuasionStructure {
   key: string;
   label: string;
   channel: string;
-  blocks: Array<{ position: number; name: string; description: string; required: boolean }>;
-  constraints: Record<string, unknown>;
+  blocks: Array<{ id: string; goal: string; required: boolean }>;
+  constraints: { max_length?: number; cta_type?: string; tone_options?: string[] };
   created_at: string;
   updated_at: string;
 }

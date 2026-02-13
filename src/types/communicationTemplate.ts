@@ -1,6 +1,6 @@
 export type TemplateChannel = 'email' | 'whatsapp' | 'inbox' | 'note';
 
-export type TemplateStructure = 'AIDA' | 'PAS' | 'BAB' | 'FourP' | 'AIDAShort' | 'ObjectionHandling' | 'DemoInvite' | 'FollowUp' | 'ColdOutreach' | 'custom';
+export type TemplateStructure = 'AIDA' | 'PAS' | 'BAB' | 'FourP' | 'AIDA_SHORT' | 'REENGAGE' | 'FollowUp' | 'ColdOutreach' | 'custom';
 
 export type JourneyContext = 
   | 'onboarding'
@@ -135,13 +135,12 @@ export const TONE_LABELS: Record<TemplateTone, string> = {
 };
 
 export const STRUCTURE_LABELS: Record<TemplateStructure, string> = {
-  AIDA: 'AIDA',
-  PAS: 'PAS',
-  BAB: 'BAB — Before/After/Bridge',
-  FourP: '4P — Promise/Picture/Proof/Push',
-  AIDAShort: 'AIDA Short (WhatsApp)',
-  ObjectionHandling: 'Objeção',
-  DemoInvite: 'Convite Demo',
+  AIDA: 'AIDA — Email Completo',
+  PAS: 'PAS — Problema, Agitação, Solução',
+  BAB: 'BAB — Before, After, Bridge',
+  FourP: '4P — Picture, Promise, Proof, Push',
+  AIDA_SHORT: 'AIDA Short — WhatsApp',
+  REENGAGE: 'Reativação Inteligente',
   FollowUp: 'Follow-Up',
   ColdOutreach: 'Cold Outreach',
   custom: 'Personalizado'
@@ -154,13 +153,12 @@ export const PERSONALIZATION_LABELS: Record<PersonalizationLevel, string> = {
 };
 
 export const STRUCTURE_PLACEHOLDERS: Record<TemplateStructure, string> = {
-  AIDA: '**Atenção**\n[Capte a atenção do leitor]\n\n**Interesse**\n[Desperte curiosidade]\n\n**Desejo**\n[Crie vontade de agir]\n\n**Ação**\n[Call-to-action claro]',
-  PAS: '**Problema**\n[Identifique a dor]\n\n**Agitação**\n[Amplifique o impacto]\n\n**Solução**\n[Apresente a solução]',
-  BAB: '**Before**\n[Situação atual]\n\n**After**\n[Como seria com o problema resolvido]\n\n**Bridge**\n[Como chegar lá + CTA]',
-  FourP: '**Promise**\n[Promessa de valor]\n\n**Picture**\n[Cenário do resultado]\n\n**Proof**\n[Evidência]\n\n**Push**\n[Urgência + CTA]',
-  AIDAShort: '**Hook**\n[Uma frase de impacto]\n\n**Insight**\n[Valor/benefício curto]\n\n**CTA**\n[Pergunta simples]',
-  ObjectionHandling: '**Acknowledge**\n[Validar objeção]\n\n**Reframe**\n[Recontextualizar]\n\n**Evidence**\n[Prova concreta]\n\n**CTA**\n[Próximo passo]',
-  DemoInvite: '**Hook Personalizado**\n[Referência ao lead]\n\n**Value Prop**\n[Benefício da demo]\n\n**CTA Simples**\n[Agendar ou confirmar]',
+  AIDA: '**Atenção**\n[Hook contextualizado]\n\n**Interesse**\n[Problema ou insight estratégico]\n\n**Desejo**\n[Resultado / transformação / prova]\n\n**Ação**\n[CTA único e claro]',
+  PAS: '**Problema**\n[Identificar dor real]\n\n**Agitação**\n[Consequência de não agir]\n\n**Solução**\n[Apresentar solução clara]\n\n**Ação**\n[CTA decisivo]',
+  BAB: '**Before**\n[Situação atual]\n\n**After**\n[Resultado desejado]\n\n**Bridge**\n[Método PARE como ponte]\n\n**Ação**\n[Próximo passo claro]',
+  FourP: '**Picture**\n[Visualizar cenário futuro]\n\n**Promise**\n[Promessa específica]\n\n**Proof**\n[Prova ou lógica sólida]\n\n**Push**\n[Encerramento objetivo]',
+  AIDA_SHORT: '**Atenção**\n[Mensagem curta personalizada]\n\n**Interesse**\n[Insight direto]\n\n**Ação**\n[Pergunta simples]',
+  REENGAGE: '**Referência**\n[Relembrar contacto anterior]\n\n**Atualização**\n[Nova evolução / melhoria]\n\n**Oportunidade**\n[Novo ângulo de valor]\n\n**Ação**\n[Convite leve]',
   FollowUp: '**Contexto**\n[Retome a conversa anterior]\n\n**Valor**\n[Reforce o benefício]\n\n**Próximo Passo**\n[Proponha ação concreta]',
   ColdOutreach: '**Hook**\n[Abordagem personalizada]\n\n**Credibilidade**\n[Prova social ou resultado]\n\n**Proposta**\n[Oferta clara]\n\n**CTA**\n[Ação simples]',
   custom: ''
