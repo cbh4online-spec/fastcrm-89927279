@@ -33,25 +33,50 @@ function heuristicLength(
   const ch = (channel || "email").toLowerCase();
 
   if (ch === "whatsapp") {
+    // METODOPARE: WhatsApp default is SHORT
     if (signals) {
-      if (signals.response_latency_avg_minutes <= 60 && signals.engagement_depth_score > 0.5) return "medium";
-      if (signals.response_latency_avg_minutes > 180 || signals.reply_rate_last_30d < 0.1) return "short";
+      if (signals.engagement_depth_score > 0.5) return "medium";
+      if (signals.response_latency_avg_minutes <= 60 && signals.reply_rate_last_30d > 0.3) return "medium";
     }
-    const stage = (pipelineStage || "").toLowerCase();
-    if (["proposta", "proposal", "negociação", "negociacao", "negotiation"].includes(stage)) return "medium";
-    const intent = (intentLabel || "").toLowerCase();
-    if (["price", "objection", "preço", "objeção"].includes(intent)) return "medium";
-    return "medium";
+    return "short";
   }
 
-  // Email
+  // Email: default MEDIUM
   if (signals) {
     if (signals.reading_proxy_score > 0.6) return "long";
-    if (signals.response_latency_avg_minutes > 360 && signals.engagement_depth_score < 0.3) return "short";
+    if (signals.response_latency_avg_minutes > 300) return "short";
   }
   const intent = (intentLabel || "").toLowerCase();
   if (["price", "objection", "preço", "objeção"].includes(intent)) return "medium";
   return "medium";
+}
+
+// Hard caps de segurança
+function applyHardCaps(
+  chosenLength: LengthChoice,
+  channel: string,
+  pipelineStage?: string | null,
+  signals?: BehaviorSignals | null,
+): LengthChoice {
+  const ch = (channel || "email").toLowerCase();
+  const stage = (pipelineStage || "").toLowerCase();
+
+  // WhatsApp + Proposta/Negociação: nunca long
+  if (ch === "whatsapp" && ["proposta", "proposal", "negociação", "negociacao", "negotiation"].includes(stage)) {
+    if (chosenLength === "long") return "medium";
+  }
+
+  // Email + Proposta complexa: nunca short
+  if (ch === "email" && ["proposta", "proposal", "negociação", "negociacao", "negotiation"].includes(stage)) {
+    if (chosenLength === "short") return "medium";
+  }
+
+  // Lead com latência alta: nunca long
+  if (signals && signals.response_latency_avg_minutes > 300) {
+    if (chosenLength === "long") return "medium";
+  }
+
+  return chosenLength;
 }
 
 function getAdjacentLengths(length: LengthChoice): LengthChoice[] {
@@ -158,7 +183,10 @@ serve(async (req) => {
       }
     }
 
-    // 4. Get char limit from structure's length_profiles
+    // 4. Apply hard caps
+    chosenLength = applyHardCaps(chosenLength, ch, pipeline_stage, signals);
+
+    // 5. Get char limit from structure's length_profiles
     const { data: structureDef } = await supabase
       .from("persuasion_structures")
       .select("length_profiles")

@@ -9,12 +9,12 @@ const corsHeaders = {
 function getWeights(pipelineStage?: string | null) {
   const stage = (pipelineStage || "").toLowerCase();
   if (["lead", "qualificação", "qualificacao", "novo", "new"].includes(stage)) {
-    return { win: 0.45, opp: 0.45, reply: 0.10, timePenalty: 0.05 };
+    return { opp: 0.45, win: 0.35, reply: 0.10, stageProgression: 0.10, timePenalty: 0.05 };
   }
   if (["proposta", "proposal", "negociação", "negociacao", "negotiation"].includes(stage)) {
-    return { win: 0.65, opp: 0.25, reply: 0.05, timePenalty: 0.05 };
+    return { opp: 0.30, win: 0.50, reply: 0.10, stageProgression: 0.10, timePenalty: 0.05 };
   }
-  return { win: 0.55, opp: 0.35, reply: 0.10, timePenalty: 0.05 };
+  return { opp: 0.40, win: 0.40, reply: 0.10, stageProgression: 0.10, timePenalty: 0.05 };
 }
 
 serve(async (req) => {
@@ -114,9 +114,12 @@ serve(async (req) => {
       const oppRate = oppCreated / sent;
       const winRate = dealWon / sent;
 
+      // Stage progression: use opportunity_created as proxy (consistent with template-recompute-stats)
+      const stageProgressionRate = oppCreated / sent;
+
       const w = getWeights(pipelineStage);
       const normalizedTimePenalty = Math.min(avgTimeToReply / 1440, 1);
-      let score = (winRate * w.win) + (oppRate * w.opp) + (replyRate * w.reply) - (normalizedTimePenalty * w.timePenalty);
+      let score = (oppRate * w.opp) + (winRate * w.win) + (replyRate * w.reply) + (stageProgressionRate * w.stageProgression) - (normalizedTimePenalty * w.timePenalty);
 
       // Revenue multiplier
       const eventsWithValue = groupEvents.filter(e => e.potential_value && e.potential_value > 0);
